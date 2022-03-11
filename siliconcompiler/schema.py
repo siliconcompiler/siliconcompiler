@@ -5378,149 +5378,90 @@ def schema_asic(cfg):
 
 def schema_mcmm(cfg, scenario='default'):
 
-    cfg['mcmm'] = {}
-    cfg['mcmm'][scenario] = {}
+    scparam(cfg,['mcmm', scenario, 'voltage'],
+            sctype='float',
+            shorthelp="Scenario voltage level",
+            switch="-mcmm_voltage 'scenario <float>'",
+            example=["cli: -mcmm_voltage 'worst 0.9'",
+                     "api: chip.set('mcmm', 'worst','voltage', '0.9')"],
+            schelp="""Operating voltage applied to the scenario,
+            specified in Volts.""")
 
+    scparam(cfg,['mcmm', scenario, 'temperature'],
+            sctype='float',
+            shorthelp="Scenario temperature",
+            switch="-mcmm_temperature 'scenario <float>'",
+            example=["cli: -mcmm_temperature 'worst 125'",
+                     "api: chip.set('mcmm', 'worst', 'temperature','125')"],
+            schelp="""Chip temperature applied to the scenario specified in
+            degrees Celsius.""")
 
-    cfg['mcmm'][scenario]['voltage'] = {
-        'switch': "-mcmm_voltage 'scenario <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Scenario voltage level',
-        'example': ["cli: -mcmm_voltage 'worst 0.9'",
-                    "api: chip.set('mcmm', 'worst','voltage', '0.9')"],
-        'help': """
-        Operating voltage applied to the scenario, specified in Volts.
-        """
-    }
-
-    cfg['mcmm'][scenario]['temperature'] = {
-        'switch': "-mcmm_temperature 'scenario <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Scenario temperature',
-        'example': ["cli: -mcmm_temperature 'worst 125'",
-                    "api: chip.set('mcmm', 'worst', 'temperature','125')"],
-        'help': """
-        Chip temperature applied to the scenario specified in degrees Celsius.
-        """
-    }
-    cfg['mcmm'][scenario]['libcorner'] = {
-        'switch': "-mcmm_libcorner 'scenario <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Scenario library corner',
-        'example': ["cli: -mcmm_libcorner 'worst ttt'",
+    scparam(cfg,['mcmm', scenario, 'libcorner'],
+            sctype='str',
+            shorthelp="Scenario library corner",
+            switch="-mcmm_libcorner 'scenario <str>'",
+            example=["cli: -mcmm_libcorner 'worst ttt'",
                     "api: chip.set('mcmm', 'worst', 'libcorner', 'ttt')"],
-        'help': """
-        Library corner applied to the scenario to scale library timing
-        models based on the libcorner value for models that support it.
-        The parameter is ignored for libraries that have one hard coded
-        model per libcorner.
-        """
-    }
+            schelp="""Library corner applied to the scenario to scale
+            library timing models based on the libcorner value for models
+            that support it. The parameter is ignored for libraries that
+            have one hard coded model per libcorner.""")
 
-    cfg['mcmm'][scenario]['pexcorner'] = {
-        'switch': "-mcmm_pexcorner 'scenario <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Scenario PEX corner',
-        'example': ["cli: -mcmm_pexcorner 'worst max'",
-                    "api: chip.set('mcmm','worst','pexcorner','max')"],
-        'help': """
-        Parasitic corner applied to the scenario. The 'pexcorner' string
-        must match a corner found in the pdk pexmodel setup parameter.
-        """
-    }
+    scparam(cfg,['mcmm', scenario, 'pexcorner'],
+            sctype='str',
+            shorthelp="Scenario pex corner",
+            switch="-mcmm_pexcorner 'scenario <str>'",
+            example=["cli: -mcmm_pexcorner 'worst max'",
+                    "api: chip.set('mcmm', 'worst', 'pexcorner', 'max')"],
+            schelp="""Parasitic corner applied to the scenario. The
+            'pexcorner' string must match a corner found in the pdk
+            pexmodel setup.""")
 
+    scparam(cfg,['mcmm', scenario, 'opcond'],
+            sctype='str',
+            shorthelp="Scenario operating condition",
+            switch="-mcmm_opcond 'scenario <str>'",
+            example=["cli: -mcmm_opcond 'worst typical_1.0'",
+                     "api: chip.set('mcmm', 'worst', 'opcond',  'typical_1.0')"],
+            schelp="""Operating condition applied to the scenario. The value
+            can be used to access specific conditions within the library
+            timing models from the 'logiclib' timing models.""")
 
-    cfg['mcmm'][scenario]['opcond'] = {
-        'switch': "-mcmm_opcond 'scenario <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Scenario operating condition',
-        'example': ["cli: -mcmm_opcond 'worst typical_1.0'",
-                    "api: chip.set('mcmm', 'worst', 'opcond',  'typical_1.0')"],
-        'help': """
-        Operating condition applied to the scenario. The value can be used
-        to access specific conditions within the library timing models of the
-        'target_libs'.
-        """
-    }
+    scparam(cfg,['mcmm', scenario, 'mode'],
+            sctype='str',
+            shorthelp="Scenario operating mode",
+            switch="-mcmm_mode 'scenario <str>'",
+            example=["cli: -mcmm_mode 'worst test'",
+                     "api: chip.set('mcmm',  'worst','mode', 'test')"],
+            schelp="""Operating mode for the scenario. Operating mode strings
+            can be values such as test, functional, standby.""")
 
-    cfg['mcmm'][scenario]['mode'] = {
-        'switch': "-mcmm_mode 'scenario <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Scenario operating mode',
-        'example': ["cli: -mcmm_mode 'worst test'",
-                    "api: chip.set('mcmm',  'worst','mode', 'test')"],
-        'help': """
-        Operating mode for the scenario. Operating mode strings
-        can be values such as test, functional, standby.
-        """
-    }
-    cfg['mcmm'][scenario]['constraint'] = {
-        'switch': "-mcmm_constraint 'scenario <file>'",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': 'Scenario constraints files',
-        'example': ["cli: -mcmm_constraint 'worst hello.sdc'",
-                    "api: chip.set('mcmm','worst','constraint',  'hello.sdc')"],
-        'help': """
-        List of timing constraint files to use for the scenario. The values
-        are combined with any constraints specified by the design
-        'constraint' parameter. If no constraints are found, a default
-        constraint file is used based on the clock definitions.
-        """
-    }
-    cfg['mcmm'][scenario]['check'] = {
-        'switch': "-mcmm_check 'scenario <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': 'Scenario checks',
-        'example': ["cli: -mcmm_check 'worst check setup'",
+    scparam(cfg,['mcmm', scenario, 'constraint'],
+            sctype='[file]',
+            copy='true',
+            shorthelp="Scenario constraints files",
+            switch="-mcmm_constraint 'scenario <file>'",
+            example=["cli: -mcmm_constraint 'worst hello.sdc'",
+                     "api: chip.set('mcmm','worst','constraint', 'hello.sdc')"],
+            schelp="""List of timing constraint files to use for the scenario. The
+            values are combined with any constraints specified by the design
+            'constraint' parameter. If no constraints are found, a default
+            constraint file is used based on the clock definitions.""")
+
+    scparam(cfg,['mcmm', scenario, 'check'],
+            sctype='[str]',
+            shorthelp="Scenario checks",
+            switch="-mcmm_check 'scenario <str>'",
+            example=["cli: -mcmm_check 'worst check setup'",
                     "api: chip.add('mcmm','worst','check','setup')"],
-        'help': """
-        List of checks for to perform for the scenario. The checks must
-        align with the capabilities of the EDA tools and flow being used.
-        Checks generally include objectives like meeting setup and hold goals
-        and minimize power. Standard check names include setup, hold, power,
-        noise, reliability.
-        """
-    }
+            schelp="""
+            List of checks for to perform for the scenario. The checks must
+            align with the capabilities of the EDA tools and flow being used.
+            Checks generally include objectives like meeting setup and hold goals
+            and minimize power. Standard check names include setup, hold, power,
+            noise, reliability.""")
 
     return cfg
-
 
 ##############################################################################
 # Main routine
