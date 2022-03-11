@@ -57,8 +57,9 @@ def parse_reqs():
 
     return install_reqs, extras_reqs
 
-if not on_rtd:
-    subprocess.run(['git', 'submodule', 'update', '--init', '--recursive', 'third_party/tools/openroad'])
+OR_SUBMOD = 'third_party/tools/openroad'
+if not on_rtd and not os.listdir(OR_SUBMOD):
+    subprocess.run(['git', 'submodule', 'update', '--init', '--recursive', OR_SUBMOD])
 
 # Let us pass in generic arguments to CMake via an environment variable, since
 # our automated build servers need to pass in a certain argument when building
