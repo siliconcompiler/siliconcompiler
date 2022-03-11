@@ -12,38 +12,8 @@ Otherwise, you can configure the build as normal.
 
 For example, to build the GCD example from the `Chisel project template repo <https://github.com/freechipsproject/chisel-template>`_, first copy the following code into a file called "GCD.scala".
 
-.. code-block:: scala
-
-    import chisel3._
-
-    /**
-      * Compute GCD using subtraction method.
-      * Subtracts the smaller from the larger until register y is zero.
-      * value in register x is then the GCD
-      */
-    class GCD extends Module {
-      val io = IO(new Bundle {
-        val value1        = Input(UInt(16.W))
-        val value2        = Input(UInt(16.W))
-        val loadingValues = Input(Bool())
-        val outputGCD     = Output(UInt(16.W))
-        val outputValid   = Output(Bool())
-      })
-
-      val x  = Reg(UInt())
-      val y  = Reg(UInt())
-
-      when(x > y) { x := x - y }
-        .otherwise { y := y - x }
-
-      when(io.loadingValues) {
-        x := io.value1
-        y := io.value2
-      }
-
-      io.outputGCD := x
-      io.outputValid := y === 0.U
-    }
+.. literalinclude:: examples/gcd_chisel/GCD.scala
+  :language: scala
 
 .. note::
 
@@ -54,28 +24,11 @@ For example, to build the GCD example from the `Chisel project template repo <ht
 
 This design can then be quickly compiled to a GDS using the command line:
 
-.. code-block:: bash
+.. literalinclude:: examples/gcd_chisel/run.sh
+  :language: bash
 
-    sc GCD.scala -frontend chisel
-    sc-show -design GCD
+Or using Python:
 
-Or using Python::
-
-    import siliconcompiler
-
-    def main():
-        chip = siliconcompiler.Chip()
-        chip.set('source', 'GCD.scala')
-        chip.set('frontend', 'chisel')
-        chip.set('design', 'GCD')
-        # default Chisel clock pin is 'clock'
-        chip.clock(name='clock', pin='clock', period=5)
-        chip.load_target('freepdk45_demo')
-        chip.run()
-        chip.summary()
-        chip.show()
-
-    if __name__ == '__main__':
-        main()
+.. literalinclude:: examples/gcd_chisel/gcd_chisel.py
 
 For more information on creating designs using Chisel, see the `Chisel docs <https://www.chisel-lang.org/chisel3/docs/introduction.html>`_.

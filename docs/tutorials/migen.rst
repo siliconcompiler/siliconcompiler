@@ -5,7 +5,7 @@ Since SC itself is a Python library, it can be used as-is in an end-to-end build
 
 For example, if you have SC installed already, you can quickly get started building designs written in the Migen HDL. To install Migen, run ``pip install migen``. Then, paste the following into a file called "migen_heartbeat.py".
 
-.. literalinclude:: examples/migen_heartbeat.py
+.. literalinclude:: examples/migen_heartbeat/migen_heartbeat.py
 
 Run this file with ``python migen_heartbeat.py`` to compile your Migen design down to a GDS and automatically display it in KLayout.
 

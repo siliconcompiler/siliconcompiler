@@ -12,29 +12,8 @@ Otherwise, you can configure the build as normal.
 
 For example, to build this fibonacci example adapted from the `bsc smoke test <https://github.com/B-Lang-org/bsc/blob/main/examples/smoke_test/FibOne.bsv>`_, first copy the following code into a file called "FibOne.bsv".
 
-.. code-block:: systemverilog
-
-  interface FibOne_IFC;
-     method Action nextFib;
-     method ActionValue #(int)  getFib;
-  endinterface
-
-  (* synthesize *)
-  module mkFibOne(FibOne_IFC);
-     // register containing the current Fibonacci value
-     Reg#(int) this_fib <- mkReg (0);
-     Reg#(int) next_fib <- mkReg (1);
-
-     method Action nextFib;
-        this_fib <= next_fib;
-        next_fib <= this_fib + next_fib;  // note that this uses stale this_fib
-    endmethod
-
-    method ActionValue#(int) getFib;
-      return this_fib;
-    endmethod
-
-  endmodule: mkFibOne
+.. literalinclude:: examples/fibone/FibOne.bsv
+  :language: systemverilog
 
 .. note::
 
@@ -44,28 +23,11 @@ For example, to build this fibonacci example adapted from the `bsc smoke test <h
 
 This design can then be quickly compiled to a GDS using the command line:
 
-.. code-block:: bash
+.. literalinclude:: examples/fibone/run.sh
+  :language: bash
 
-    sc FibOne.bsv -design mkFibOne -frontend bluespec
-    sc-show -design mkFibOne
+Or using Python:
 
-Or using Python::
-
-    import siliconcompiler
-
-    def main():
-        chip = siliconcompiler.Chip()
-        chip.set('source', 'FibOne.bsv')
-        chip.set('frontend', 'bluespec')
-        chip.set('design', 'mkFibOne')
-        # default Bluespec clock pin is 'CLK'
-        chip.clock(name='clock', pin='CLK', period=5)
-        chip.load_target('freepdk45_demo')
-        chip.run()
-        chip.summary()
-        chip.show()
-
-    if __name__ == '__main__':
-        main()
+.. literalinclude:: examples/fibone/fibone.py
 
 For more information on creating designs using Bluespec, see the `Bluespec docs <https://github.com/B-Lang-org/bsc#documentation>`_.
