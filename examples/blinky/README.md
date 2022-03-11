@@ -15,8 +15,8 @@ See this page for installation instructions: http://bygone.clairexen.net/icestor
 
 ## How to run
 
-To run the example, call `./examples/blinky/run.sh` on the command line. This
-will produce an output bitstream at `build/export/job1/outputs/blinky.bit`.
+To run the example, run `python blinky.py`. This will produce an output
+bitstream at `build/job0/export/0/outputs/blinky.bit`.
 
 The resulting bitstream can be loaded onto a connected dev board with the
-command: `iceprog build/export/job1/outputs/blinky.bit`.
+command: `iceprog build/job0/export/0/outputs/blinky.bit`.

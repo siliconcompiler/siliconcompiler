@@ -1,4 +1,4 @@
-import siliconcompiler as sc
+import siliconcompiler
 import os
 
 microwatt_wd = "../../third_party/designs/microwatt/"
@@ -53,8 +53,9 @@ def add_sources(chip):
     chip.add('source', microwatt_wd + 'fpga/top-generic.vhdl')
     chip.add('source', microwatt_wd + 'dmi_dtm_dummy.vhdl')
 
-def configure_fpga(chip):
-    chip.add('design', 'toplevel')
+def main():
+    chip = siliconcompiler.Chip()
+    chip.set('design', 'core')
     add_sources(chip)
 
     cwd = os.getcwd() + '/' + microwatt_wd
@@ -63,26 +64,17 @@ def configure_fpga(chip):
     chip.add('define', 'RESET_LOW=true')
     chip.add('define', 'CLK_INPUT=50000000')
     chip.add('define', 'CLK_FREQUENCY=40000000')
+    chip.load_target('freepdk45_demo')
 
-    chip.target("freepdk45")
+    # TODO: add in synthesis step once we can get an output that passes thru
+    # Yosys.
+    flow = 'vhdlsyn'
+    chip.node(flow, 'import', 'ghdl')
+    # chip.node(flow, 'syn', 'yosys')
+    # chip.edge(flow, 'import', 'syn')
 
-    flow = [
-        ('importvhdl', 'ghdl'),
-        ('syn', 'yosys')
-    ]
+    chip.set('flow', flow)
 
-    for i, (step, tool) in enumerate(flow):
-        if i > 0:
-            chip.add('flowgraph', step, 'input', flow[i-1][0])
-        chip.add('flowgraph', step, 'tool', tool)
-
-def main():
-    chip = sc.Chip()
-
-    configure_fpga(chip)
-
-    chip.set_jobid()
-    chip.target()
     chip.run()
 
 if __name__ == '__main__':

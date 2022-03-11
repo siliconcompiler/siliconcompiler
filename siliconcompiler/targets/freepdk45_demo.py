@@ -40,6 +40,7 @@ def setup(chip):
     chip.set('asic', 'logiclib', 'nangate45')
 
     #5. Set project specific design choices
+    chip.set('asic', 'delaymodel', 'nldm')
     chip.set('asic', 'stackup', '10M')
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m10")
