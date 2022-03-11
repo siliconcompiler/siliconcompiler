@@ -10,7 +10,7 @@ import pytest
 def test_heartbeat_py(scroot, monkeypatch):
     heartbeat_dir = os.path.join(scroot, 'examples', 'heartbeat')
 
-    def _mock_show(chip, filename=None):
+    def _mock_show(chip, filename=None, extra_options=None):
         pass
 
     # pytest's monkeypatch lets us modify sys.path for this test only.
