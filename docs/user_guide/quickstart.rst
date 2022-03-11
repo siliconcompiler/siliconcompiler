@@ -13,16 +13,14 @@ module is a free running counter that creates a single clock cycle pulse
 favorite text editor (vim, emacs, atom, notepad,etc) and save it to disk as
 "heartbeat.v".
 
-.. literalinclude:: examples/heartbeat.v
+.. literalinclude:: examples/heartbeat/heartbeat.v
    :language: verilog
 
 To constrain the design,  we need to also define a constraints file. Save the
 following snippet as heartbeat.sdc. If you are not familiar with timing constraints,
 don't worry about it for now.
 
-.. code-block:: bash
-
-   create_clock -name clk -period 1 [get_ports {clk}]
+.. literalinclude:: examples/heartbeat/heartbeat.sdc
 
 Setup
 -----------------
@@ -33,7 +31,7 @@ fraction of these parameters. The code snippet below illustrates the use of the
 :ref:`Python API<Core API>` to set up and run a compilation. To run the example,
 copy paste the code into your text editor and save it to disk as "heartbeat.py".
 
-.. literalinclude:: examples/heartbeat.py
+.. literalinclude:: examples/heartbeat/heartbeat.py
 
 Much of the complexity of setting up a hardware compilation flow is abstracted away
 from the user through the load_target() function which sets up a large number of PDK,
@@ -74,10 +72,8 @@ your Python virtual environment.
 Alternatively, the simple hearbeat example can be run calling the
 SiliconCompiler 'sc' program directly from the command line.
 
-.. code-block:: bash
-
-   sc heartbeat.v -design heartbeat -constraint heartbeat.sdc -target "asicflow_freepdk45"
-
+.. literalinclude:: examples/heartbeat/run.sh
+   :language: bash
 
 If the compilation was successful, you should see a flood of tool specific
 information printed to the screen followed by a summary resembling the summary

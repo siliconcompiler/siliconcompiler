@@ -12,40 +12,8 @@ Otherwise, you can configure the build as normal.
 
 For example, to implement a GCD function as a circuit, first copy the following into a file called "gcd.c".
 
-.. code-block:: c
-
-  #include <stdio.h>
-
-  short gcd(short a, short b) {
-      // Implement GCD using the Euclidean Algorithm
-      // https://www.khanacademy.org/computing/computer-science/cryptography/modarithmetic/a/the-euclidean-algorithm
-
-      if (b > a) {
-          short tmp = a;
-          a = b;
-          b = tmp;
-      }
-
-      while (a != 0 && b != 0) {
-          short r = a % b;
-          a = b;
-          b = r;
-      }
-
-      if (a == 0)
-          return b;
-      else
-          return a;
-  }
-
-  int main() {
-      // Test the algorithm (will not get implemented as hardware).
-      printf("gcd(4, 4) = %d\n", gcd(4, 4));
-      printf("gcd(27, 36) = %d\n", gcd(27, 36));
-      printf("gcd(270, 192) = %d\n", gcd(270, 192));
-
-      return 0;
-  }
+.. literalinclude:: examples/gcd_hls/gcd.c
+    :language: c
 
 .. note::
 
@@ -55,28 +23,11 @@ For example, to implement a GCD function as a circuit, first copy the following 
 
 This design can then be quickly compiled to a GDS using the command line:
 
-.. code-block:: bash
+.. literalinclude:: examples/gcd_hls/run.sh
+    :language: bash
 
-    sc gcd.c -frontend c
-    sc-show -design gcd
+Or using Python:
 
-Or using Python::
-
-    import siliconcompiler
-
-    def main():
-        chip = siliconcompiler.Chip()
-        chip.set('source', 'gcd.c')
-        chip.set('frontend', 'c')
-        chip.set('design', 'gcd')
-        # default Bambu clock pin is 'clock'
-        chip.clock(name='clock', pin='clock', period=5)
-        chip.load_target('freepdk45_demo')
-        chip.run()
-        chip.summary()
-        chip.show()
-
-    if __name__ == '__main__':
-        main()
+.. literalinclude:: examples/gcd_hls/gcd_hls.py
 
 For more information on the Bambu project used for implementing this frontend, see their `docs <https://panda.dei.polimi.it/?page_id=31>`_.

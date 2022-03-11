@@ -1,4 +1,0 @@
-Usage Examples
-------------------
-
-.. examplegen::
