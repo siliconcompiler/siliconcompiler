@@ -7,6 +7,80 @@ import copy
 import json
 
 #############################################################################
+# PARAM DEFINITION
+#############################################################################
+
+def scparam(cfg,
+            keypath,
+            sctype=None,
+            scope=None,
+            require=None,
+            defvalue=None,
+            copy='false',
+            lock='false',
+            signature=None,
+            hashalgo='sha256',
+            shorthelp=None,
+            switch=None,
+            example=None,
+            schelp=None):
+
+    # 1. decend keypath until done
+    # 2. create key if missing
+    # 3. populate leaf cell when keypath empty
+    if keypath:
+        key = keypath[0]
+        keypath.pop(0)
+        if key not in cfg.keys():
+            cfg[key] = {}
+        scparam(cfg[key],
+                keypath,
+                sctype=sctype,
+                scope=scope,
+                require=require,
+                defvalue=defvalue,
+                copy=copy,
+                lock=lock,
+                signature=signature,
+                hashalgo=hashalgo,
+                shorthelp=shorthelp,
+                switch=switch,
+                example=example,
+                schelp=schelp)
+    else:
+
+        # removing leading newline and space
+        schelp = re.sub(r'\n\s*', " ", schelp)
+        schelp = schelp.strip()
+
+        # converting None to [] for lists
+        if re.match(r'\[',sctype) and signature is None:
+            signature = []
+        if re.match(r'\[',sctype) and defvalue is None:
+            defvalue = []
+
+        # mandatory for all
+        cfg['type'] = sctype
+        cfg['scope'] = scope
+        cfg['require'] = require
+        cfg['lock'] = lock
+        cfg['switch'] = switch
+        cfg['shorthelp'] = shorthelp
+        cfg['example'] = example
+        cfg['help'] = schelp
+        cfg['defvalue'] = defvalue
+        cfg['signature'] = signature
+
+        # file only values
+        if re.search(r'file',sctype):
+            cfg['hashalgo'] = hashalgo
+            cfg['copy'] = copy
+            cfg['filehash'] = []
+            cfg['date'] = [],
+            cfg['author'] = [],
+
+
+#############################################################################
 # CHIP CONFIGURATION
 #############################################################################
 
@@ -2672,7 +2746,7 @@ def schema_arg(cfg):
 # Metrics to Track
 ###########################################################################
 
-def schema_metric(cfg, step='default', index='default',group='default', ):
+def schema_metric(cfg, step='default', index='default',group='default'):
 
     cfg['metric'] = {}
     cfg['metric'][step] = {}
