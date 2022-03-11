@@ -1,5 +1,4 @@
 import os
-import shutil
 import siliconcompiler
 
 #####################################################################
@@ -53,6 +52,10 @@ def setup(chip):
     # Schema requirements
     chip.add('eda', tool, 'require', step, index, 'source')
 
+    design = chip.get('design')
+
+    chip.set('eda', tool, 'output', step, index, f'{design}.v')
+
 ################################
 #  Custom runtime options
 ################################
@@ -69,6 +72,7 @@ def runtime_options(chip):
 
     # Synthesize inputs and output Verilog netlist
     options.append('--synth')
+    options.append('--std=08')
     options.append('--out=verilog')
 
     # Add sources
@@ -103,10 +107,21 @@ def post_process(chip):
 
     design = chip.get('design')
     step = chip.get('arg', 'step')
-    infile = f'{step}.log'
-    outfile = os.path.join('outputs', f'{design}.v')
+    logname = f'{step}.log'
+    outname = os.path.join('outputs', f'{design}.v')
 
-    shutil.copyfile(infile, outfile)
+    # Since the log will also contain warnings and stuff, iterate till we find
+    # the first Verilog module before copying things out.
+    # TODO: find a more robust solution!
+    with open(logname, 'r') as infile, \
+         open(outname, 'w') as outfile:
+
+        for line in infile:
+            if line.startswith('module'):
+                outfile.write(line)
+                break
+        for line in infile:
+            outfile.write(line)
 
     return 0
 
