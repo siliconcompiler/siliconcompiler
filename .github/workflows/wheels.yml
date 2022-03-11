@@ -84,9 +84,6 @@ jobs:
           pytest --import-mode=append {package}/tests/ -m "not eda" &&
           pytest --import-mode=append {package}/tests/tools/test_surelog.py &&
           pytest --import-mode=append {package}/tests/core/test_show.py
-    - name: Verify clean directory
-      run: git diff --exit-code
-      shell: bash
 
     - name: Upload wheels
       uses: actions/upload-artifact@v2
