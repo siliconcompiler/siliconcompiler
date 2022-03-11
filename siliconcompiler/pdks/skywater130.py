@@ -79,11 +79,6 @@ def setup(chip):
     chip.set('pdk','hscribe', hscribe)
     chip.set('pdk','vscribe', vscribe)
 
-    # Values chosen based on
-    # https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/59ad47a1325239b578bf1c2b3cf6617e44d05d47/flow/platforms/sky130hd/tapcell.tcl
-    chip.set('pdk','tapmax', 14)
-    chip.set('pdk','tapoffset', 2)
-
     # Tech file
     for tool in ('openroad', 'klayout', 'magic'):
         chip.set('pdk','aprtech',tool,stackup, libtype,'lef',
