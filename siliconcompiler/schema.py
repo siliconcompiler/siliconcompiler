@@ -4365,370 +4365,236 @@ def schema_design(cfg):
     ''' Design Sources
     '''
 
-    cfg['design'] = {
-        'switch': "-design <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Design top module name',
-        'example': ["cli: -design hello_world",
+    scparam(cfg,['design'],
+            sctype='str',
+            require='all',
+            shorthelp="Design top module name",
+            switch="-design <str>",
+            example=["cli: -design hello_world",
                     "api: chip.set('design', 'hello_world')"],
-        'help': """
-        Name of the top level module to compile. Required for all designs with
-        more than one module.
-        """
-    }
+            schelp="""Name of the top level module to compile.
+            Required for all designs with more than one module.""")
 
-    cfg['source'] = {
-        'switch': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Primary source files',
-        'example': ["cli: hello_world.v",
-                    "api: chip.set('source', 'hello_world.v')"],
-        'help': """
-        A list of source files to read in for elaboration. The files are read
-        in order from first to last entered. File type is inferred from the
-        file suffix.
-        (\\*.v, \\*.vh) = Verilog
-        (\\*.vhd)       = VHDL
-        (\\*.sv)        = SystemVerilog
-        (\\*.c)         = C
-        (\\*.cpp, .cc)  = C++
-        (\\*.py)        = Python
-        """
-    }
+    scparam(cfg,['source'],
+            sctype='[file]',
+            copy='true',
+            shorthelp="Design source files",
+            example=["cli: hello_world.v",
+                     "api: chip.set('source', 'hello_world.v')"],
+            schelp="""
+            A list of source files to read in for elaboration. The files are read
+            in order from first to last entered. File type is inferred from the
+            file suffix.
+            (\\*.v, \\*.vh) = Verilog
+            (\\*.vhd)       = VHDL
+            (\\*.sv)        = SystemVerilog
+            (\\*.c)         = C
+            (\\*.cpp, .cc)  = C++
+            (\\*.py)        = Python""")
 
-    cfg['oformat'] = {
-        'switch': "-oformat <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': [],
-        'shorthelp': 'Output format',
-        'example': ["cli: -oformat gds",
-                    "api: chip.set('oformat', 'gds')"],
-        'help': """
-        File format to use for writing the final siliconcompiler output to
-        disk. For cases, when only one output format exists, the 'oformat'
-        parameter can be omitted. Examples of ASIC layout output formats
-        include GDS and OASIS.
-        """
-    }
-
-    cfg['constraint'] = {
-        'switch': "-constraint <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Design constraints files',
-        'example': ["cli: -constraint top.sdc",
-                    "api: chip.set('constraint','top.sdc')"],
-        'help': """
-        List of default constraints for the design to use during compilation.
-        Types of constraints include timing (SDC) and pin mappings files (PCF)
-        for FPGAs. More than one file can be supplied. Timing constraints are
-        global and sourced in all MCMM scenarios.
-        """
-    }
-
-    cfg['testbench'] = {
-        'switch': '-testbench <file>',
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Testbench files',
-        'example': ["cli: -testbench tb_top.v",
-                    "api: chip.set('testbench', 'tb_top.v')"],
-        'help': """
-        A list of testbench sources. The files are read in order from first to
-        last entered. File type is inferred from the file suffix:
-        (\\*.v, \\*.vh) = Verilog
-        (\\*.vhd)      = VHDL
-        (\\*.sv)       = SystemVerilog
-        (\\*.c)        = C
-        (\\*.cpp, .cc) = C++
-        (\\*.py)       = Python
-        """
-    }
-
-    cfg['waveform'] = {
-        'switch': "-waveform <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Golden waveforms',
-        'example': ["cli: -waveform mytrace.vcd",
-                    "api: chip.set('waveform','mytrace.vcd')"],
-        'help': """
-        Waveform(s) used as a golden test vectors to ensure that compilation
-        transformations do not modify the functional behavior of the source
-        code. The waveform file must be compatible with the testbench and
-        compilation flow tools.
-        """
-    }
-
-    cfg['clock'] = {}
-    cfg['clock']['default'] = {}
-    cfg['clock']['default']['pin'] = {
-        'switch': "-clock_pin 'clkname <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Clock driver pin',
-        'example': ["cli: -clock_pin 'clk top.pll.clkout'",
-                    "api: chip.set('clock', 'clk','pin','top.pll.clkout')"],
-        'help': """
-        Defines a clock name alias to assign to a clock source.
-        """
-    }
-
-    cfg['clock']['default']['period'] = {
-        'switch': "-clock_period 'clkname <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Clock period',
-        'example': ["cli: -clock_period 'clk 10'",
-                    "api: chip.set('clock','clk','period','10')"],
-        'help': """
-        Specifies the period for a clock source in nanoseconds.
-        """
-    }
-
-    cfg['clock']['default']['jitter'] = {
-        'switch': "-clock_jitter 'clkname <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Clock jitter',
-        'example': ["cli: -clock_jitter 'clk 0.01'",
-                    "api: chip.set('clock','clk','jitter','0.01')"],
-        'help': """
-        Specifies the jitter for a clock source in nanoseconds.
-        """
-    }
-
-    cfg['supply'] = {}
-    cfg['supply']['default'] = {}
-    cfg['supply']['default']['pin'] = {
-        'switch': "-supply_pin 'supplyname <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Supply pin mapping',
-        'example': ["cli: -supply_pin 'vdd vdd_0'",
-                    "api: chip.set('supply','vdd','pin','vdd_0')"],
-        'help': """
-        Defines a supply name alias to assign to a power source.
-        A power supply source can be a list of block pins or a regulator
-        output pin.
-
-        Examples:
-        cli: -supply_name 'vdd_0 vdd'
-        api: chip.set('supply','vdd_0', 'pin', 'vdd')
-        """
-    }
-
-    cfg['supply']['default']['level'] = {
-        'switch': "-supply_level 'supplyname <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Supply level',
-        'example': ["cli: -supply_level 'vdd 1.0'",
-                    "api: chip.set('supply','vdd','level','1.0')"],
-        'help': """
-        Voltage level for the name supply, specified in Volts.
-        """
-    }
-
-    cfg['supply']['default']['noise'] = {
-        'switch': "-supply_noise 'supplyname <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Supply noise',
-        'example': ["cli: -supply_noise 'vdd 0.05'",
-                    "api: chip.set('supply','vdd','noise','0.05')"],
-        'help': """
-        Noise level for the name supply, specified in Volts.
-        """
-    }
-
-    cfg['param'] = {}
-    cfg['param']['default'] = {
-        'switch': "-param 'name <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Design parameter',
-        'example': ["cli: -param 'N 64'",
+    name = 'default'
+    scparam(cfg,['param', name],
+            sctype='str',
+            shorthelp="Design parameter",
+            switch="-param 'name <str>'",
+            example=["cli: -param 'N 64'",
                     "api: chip.set('param','N', '64')"],
-        'help': """
-        Overrides the given parameter of the top level module. The value
-        is limited to basic data literals. The parameter override is
-        passed into tools such as Verilator and Yosys. The parameters
-        support Verilog integer literals (64'h4, 2'b0, 4) and strings.
-        """
-    }
+            schelp="""
+            Sets a top level module parameter. The value
+            is limited to basic data literals. The parameter override is
+            passed into tools such as Verilator and Yosys. The parameters
+            support Verilog integer literals (64'h4, 2'b0, 4) and strings.
+            Name of the top level module to compile.""")
 
-    cfg['define'] = {
-        'switch': "-D<str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': 'Design preprocessor symbol',
-        'example': ["cli: -DCFG_ASIC=1",
-                    "api: chip.set('define','CFG_ASIC=1')"],
-        'help': """
-        Preprocessor symbol for verilog source imports.
-        """
-    }
+    scparam(cfg,['define'],
+            sctype='[str]',
+            shorthelp="Design pre-processor symbol",
+            switch="-D<str>",
+            example=["cli: -DCFG_ASIC=1",
+                     "api: chip.set('define','CFG_ASIC=1')"],
+            schelp="""Symbol definition for source preprocessor.""")
 
-    cfg['idir'] = {
-        'switch': ['+incdir+<dir>', '-I <dir>'],
-        'type': '[dir]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'signature': [],
-        'shorthelp': 'Include search paths',
-        'example': ["cli: '+incdir+./mylib'",
+    scparam(cfg,['idir'],
+            sctype='[dir]',
+            shorthelp="Design search paths",
+            switch=['+incdir+<dir>', '-I <dir>'],
+            example=["cli: '+incdir+./mylib'",
                     "api: chip.set('idir','./mylib')"],
-        'help': """
-        Search paths to look for files included in the design using
-        the ```include`` statement.
-        """
-    }
+            schelp="""
+            Search paths to look for files included in the design using
+            the ```include`` statement.""")
 
-    cfg['ydir'] = {
-        'switch': "-y <dir>",
-        'type': '[dir]',
-        'lock': 'false',
-        'require': None,
-        'defvalue': [],
-        'signature': [],
-        'shorthelp': 'Verilog module search path',
-        'example': ["cli: -y './mylib'",
+    scparam(cfg,['ydir'],
+            sctype='[dir]',
+            shorthelp="Design module search paths",
+            switch='-y <dir>',
+            example=["cli: -y './mylib'",
                     "api: chip.set('ydir','./mylib')"],
-        'help': """
-        Search paths to look for modules found in the the source list.
-        The import engine will look for modules inside files with the
-        specified +libext+ param suffix
-        """
-    }
+            schelp="""
+            Search paths to look for verilog modules found in the the
+            source list. The import engine will look for modules inside
+            files with the specified +libext+ param suffix.""")
 
-    cfg['vlib'] = {
-        'switch': "-v <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Verilog library',
-        'example': ["cli: -v './mylib.v'",
-                    "api: chip.set('vlib','./mylib.v')"],
-        'help': """
-        Declares source files to be read in, for which modules are not to be
-        interpreted as root modules.
-        """
-    }
+    scparam(cfg,['vlib'],
+            sctype='[file]',
+            shorthelp="Design libraries",
+            switch='-v <file>',
+            example=["cli: -v './mylib.v'",
+                     "api: chip.set('vlib','./mylib.v')"],
+            schelp="""
+            List of library files to be read in. Modules found in the
+            libraries are not interpreted as root modules.""")
 
-    cfg['libext'] = {
-        'switch': "+libext+<str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': 'Verilog file extensions',
-        'example': ["cli: +libext+sv",
+    scparam(cfg,['libext'],
+            sctype='[str]',
+            shorthelp="Design file extensions",
+            switch="+libext+<str>",
+            example=["cli: +libext+sv",
                     "api: chip.set('libext','sv')"],
-        'help': """
-        Specifies the file extensions that should be used for finding modules.
-        For example, if -y is specified as ./lib", and '.v' is specified as
-        libext then the files ./lib/\\*.v ", will be searched for module matches.
-        """
-    }
+            schelp="""
+            List of file extensions that should be used for finding modules.
+            For example, if -y is specified as ./lib", and '.v' is specified as
+            libext then the files ./lib/\\*.v ", will be searched for
+            module matches.""")
 
-    cfg['cmdfile'] = {
-        'switch': "-f <file>",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Verilog compilation command file',
-        'example': ["cli: -f design.f",
-                    "api: chip.set('cmdfile','design.f')"],
-        'help': """
-        Read the specified file, and act as if all text inside it was specified
-        as command line parameters. Supported by most verilog simulators
-        including Icarus and Verilator. The format of the file is not strongly
-        standardized. Support for comments and environment variables within
-        the file varies and depends on the tool used. SC simply passes on
-        the filepath toe the tool executable.
-        """
-    }
+    scparam(cfg,['cmdfile'],
+            sctype='[file]',
+            shorthelp="Design compilation command file",
+            switch='-f <file>',
+            example=["cli: -f design.f",
+                     "api: chip.set('cmdfile','design.f')"],
+            schelp="""
+            Read the specified file, and act as if all text inside it was specified
+            as command line parameters. Supported by most verilog simulators
+            including Icarus and Verilator. The format of the file is not strongly
+            standardized. Support for comments and environment variables within
+            the file varies and depends on the tool used. SC simply passes on
+            the filepath toe the tool executable.""")
+
+    scparam(cfg,['oformat'],
+            sctype='str',
+            shorthelp="Design output format",
+            switch="-oformat <str>",
+            example=["cli: -oformat gds",
+                    "api: chip.set('oformat', 'gds')"],
+            schelp="""
+            File format to use for writing the final siliconcompiler output to
+            disk. For cases, when only one output format exists, the 'oformat'
+            parameter can be omitted. Examples of ASIC layout output formats
+            include GDS and OASIS.""")
+
+    scparam(cfg,['constraint'],
+            sctype='[file]',
+            copy='true',
+            shorthelp="Design constraints files",
+            switch="-constraint <file>",
+            example=["cli: -constraint top.sdc",
+                    "api: chip.set('constraint','top.sdc')"],
+            schelp="""
+            List of global constraints for the design to use during compilation.
+            Types of constraints include timing (SDC) and pin mappings files (PCF)
+            for FPGAs. More than one file can be supplied. Timing constraints are
+            global and sourced in all MCMM scenarios.""")
+
+    scparam(cfg,['testbench'],
+            sctype='[file]',
+            copy='true',
+            shorthelp="Testbench files",
+            switch="-testbench <file>",
+            example=["cli: -testbench tb_top.v",
+                    "api: chip.set('testbench', 'tb_top.v')"],
+            schelp="""
+            A list of testbench sources. The files are read in order from first to
+            last entered. File type is inferred from the file suffix:
+            (\\*.v, \\*.vh) = Verilog
+            (\\*.vhd)      = VHDL
+            (\\*.sv)       = SystemVerilog
+            (\\*.c)        = C
+            (\\*.cpp, .cc) = C++
+            (\\*.py)       = Python""")
+
+    scparam(cfg,['testmodule'],
+            sctype='str',
+            shorthelp="Testbench top module",
+            switch="-testmodule <str>",
+            example=["cli: -testmodule top",
+                    "api: chip.set('testmodule', 'top')"],
+            schelp="""Name of the top level test module.""")
+
+    scparam(cfg,['waveform'],
+            sctype='[file]',
+            shorthelp="Testbench golden waveforms",
+            switch="-waveform <file>",
+            example=["cli: -waveform mytrace.vcd",
+                    "api: chip.set('waveform','mytrace.vcd')"],
+
+            schelp="""
+            Waveform(s) used as a golden test vectors to ensure that compilation
+            transformations do not modify the functional behavior of the source
+            code. The waveform file must be compatible with the testbench and
+            compilation flow tools.""")
+
+    #TODO: move this to datasheet
+    net = 'default'
+    scparam(cfg,['clock', net, 'pin'],
+            sctype='str',
+            shorthelp="Clock driver pin",
+            switch="-clock_pin 'clkname <str>'",
+            example=["cli: -clock_pin 'clk top.pll.clkout'",
+                    "api: chip.set('clock', 'clk','pin','top.pll.clkout')"],
+            schelp="""
+            Defines a clock name alias to assign to a clock source.""")
+
+    #TODO: use ns, seconds, or specify in units
+    scparam(cfg,['clock', net, 'period'],
+            sctype='float',
+            shorthelp="Clock period",
+            switch="-clock_period 'clkname <float>",
+            example=["cli: -clock_period 'clk 10'",
+                    "api: chip.set('clock','clk','period','10')"],
+            schelp="""
+            Specifies the period for a clock source in nanoseconds.""")
+
+    scparam(cfg,['clock', net, 'jitter'],
+            sctype='float',
+            shorthelp="Clock jitter",
+            switch="-clock_jitter 'clkname <float>",
+            example=["cli: -clock_jitter 'clk 0.01'",
+                    "api: chip.set('clock','clk','jitter','0.01')"],
+            schelp="""
+            Specifies the jitter for a clock source in nanoseconds.""")
+
+    scparam(cfg,['supply', net, 'pin'],
+            sctype='str',
+            shorthelp="Supply pin mapping",
+            switch="-supply_pin 'supplyname <str>'",
+            example=["cli: -supply_pin 'vdd vdd_0'",
+                    "api: chip.set('supply','vdd','pin','vdd_0')"],
+            schelp="""
+            Defines a supply name alias to assign to a power source.
+            A power supply source can be a list of block pins or a regulator
+            output pin.""")
+
+    # move to datasheet
+    scparam(cfg,['supply', net, 'level'],
+            sctype='float',
+            shorthelp="Supply level",
+            switch="-supply_level 'supplyname <float>'",
+            example=["cli: -supply_level 'vdd 1.0'",
+                    "api: chip.set('supply','vdd','level','1.0')"],
+            schelp="""
+            Voltage level for the name supply, specified in Volts.
+            """)
+
+    scparam(cfg,['supply', net, 'noise'],
+            sctype='float',
+            shorthelp="Supply noise",
+            switch="-supply_noise 'supplyname <float>'",
+            example=["cli: -supply_noise 'vdd 1.0'",
+                    "api: chip.set('supply','vdd','noise','1.0')"],
+            schelp="""
+            Voltage noise for the name supply, specified in Volts.
+            """)
 
     return cfg
 
