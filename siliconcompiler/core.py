@@ -90,7 +90,7 @@ class Chip:
         self.cfg['design']['value'] = design
         self.cfg['loglevel']['value'] = loglevel
         # We set scversion directly because it has its 'lock' flag set by default.
-        self.cfg['version']['sc']['value'] = _metadata.version
+        self.cfg['version']['software']['value'] = _metadata.version
 
         self._init_logger()
 
