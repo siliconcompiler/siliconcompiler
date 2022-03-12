@@ -1571,502 +1571,308 @@ def schema_flowstatus(cfg, step='default', index='default'):
 
 def schema_eda(cfg, tool='default', step='default', index='default'):
 
-    cfg['eda'] = {}
-    cfg['eda'][tool] = {}
+    scparam(cfg, ['eda', tool, 'exe'],
+            sctype='str',
+            shorthelp="Tool executable name",
+            switch="-eda_exe 'tool<str>'",
+            example=["cli: -eda_exe 'openroad openroad'",
+                     "api:  chip.set('eda','openroad','exe','openroad')"],
+            schelp="""Tool executable name.""")
 
-    cfg['eda'][tool]['exe'] = {
-        'switch': "-eda_exe 'tool<str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Tool executable name',
-        'example': [
-            "cli: -eda_exe 'openroad openroad'",
-            "api:  chip.set('eda','openroad','exe','openroad')"],
-        'help': """
-        Tool executable name.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'path'],
+            sctype='dir',
+            shorthelp="Tool executable path",
+            switch="-eda_path 'tool <dir>'",
+            example=["cli: -eda_path 'openroad /usr/local/bin'",
+                     "api:  chip.set('eda','openroad','path','/usr/local/bin')"],
+            schelp="""
+            File system path to tool executable. The path is pre pended to the 'exe'
+            parameter for batch runs and output as an environment variable for
+            interactive setup. The path parameter can be left blank if the 'exe'
+            is already in the environment search path.
+            Tool executable name.""")
 
-    cfg['eda'][tool]['path'] = {
-        'switch': "-eda_path 'tool <dir>'",
-        'type': 'dir',
-        'lock': 'false',
-        'require': None,
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Tool executable path',
-        'example': [
-            "cli: -eda_path 'openroad /usr/local/bin'",
-            "api:  chip.set('eda','openroad','path','/usr/local/bin')"],
-        'help': """
-        File system path to tool executable. The path is pre pended to the 'exe'
-        parameter for batch runs and output as an environment variable for
-        interactive setup. The path parameter can be left blank if the 'exe'
-        is already in the environment search path.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'vswitch'],
+            sctype='[str]',
+            shorthelp="Tool executable version switch",
+            switch="-eda_vswitch 'tool <str>'",
+            example=["cli: -eda_vswitch 'openroad -version'",
+                     "api:  chip.set('eda','openroad','vswitch','-version')"],
+            schelp="""
+            Command line switch to use with executable used to print out
+            the version number. Common switches include -v, -version,
+            --version. Some tools may require extra flags to run in batch mode.""")
 
-    cfg['eda'][tool]['vswitch'] = {
-        'switch': "-eda_vswitch 'tool <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Tool executable version switch',
-        'example': [
-            "cli: -eda_vswitch 'openroad -version'",
-            "api:  chip.set('eda','openroad','vswitch','-version')"],
-        'help': """
-        Command line switch to use with executable used to print out
-        the version number. Common switches include -v, -version,
-        --version. Some tools may require extra flags to run in batch mode.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'vendor'],
+            sctype='str',
+            shorthelp="Tool vendor",
+            switch="-eda_vendor 'tool <str>'",
+            example=["cli: -eda_vendor 'yosys yosys'",
+                     "api: chip.set('eda','yosys','vendor','yosys')"],
+            schelp="""
+            Name of the tool vendor. Parameter can be used to set vendor
+            specific technology variables in the PDK and libraries. For
+            open source projects, the project name should be used in
+            place of vendor.""")
 
-    cfg['eda'][tool]['vendor'] = {
-        'switch': "-eda_vendor 'tool <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Tool vendor',
-        'example': ["cli: -eda_vendor 'yosys yosys'",
-                    "api: chip.set('eda','yosys','vendor','yosys')"],
-        'help': """
-        Name of the tool vendor. Parameter can be used to set vendor
-        specific technology variables in the PDK and libraries. For
-        open source projects, the project name should be used in
-        place of vendor.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'version'],
+            sctype='[str]',
+            shorthelp="Tool version number",
+            switch="-eda_version 'tool <str>'",
+            example=["cli: -eda_version 'openroad 2.0'",
+                     "api:  chip.set('eda','openroad','version','2.0')"],
+            schelp="""
+            List of acceptable versions of the tool executable to be used.
+            During task execution, the the tool is called with the 'vswitch'
+            to check the runtime executable version. When the 'vercheck'
+            is set to True, of the 'version' fails to match the system
+            executable, then the job is halted pre-execution.""")
 
-    cfg['eda'][tool]['version'] = {
-        'switch': "-eda_version 'tool <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Tool version number',
-        'example': [
-            "cli: -eda_version 'openroad 1.0'",
-            "api:  chip.set('eda','openroad','version','1.0')"],
-        'help': """
-        Version of the tool executable.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'format'],
+            sctype='str',
+            shorthelp="Tool manifest file format",
+            switch="-eda_format 'tool <file>'",
+            example=[ "cli: -eda_format 'yosys tcl'",
+                      "api: chip.set('eda','yosys','format','tcl')"],
+            schelp="""
+            File format for tool manifest handoff. Supported formats are tcl,
+            yaml, and json.""")
 
-    cfg['eda'][tool]['format'] = {
-        'switch': "-eda_format 'tool <file>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Tool manifest file format',
-        'example': [
-            "cli: -eda_format 'yosys tcl'",
-            "api: chip.set('eda','yosys','format','tcl')"],
-        'help': """
-        File format for tool manifest handoff. Supported formats are tcl,
-        yaml, and json.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'woff'],
+            sctype='[str]',
+            shorthelp="Tool manifest file format",
+            switch="-eda_woff 'tool <str>'",
+            example=["cli: -eda_woff 'verilator COMBDLY'",
+                     "api: chip.set('eda','verilator','woff','COMBDLY')"],
+            schelp="""
+            A list of EDA warnings for which printing should be suppressed.
+            Generally this is done on a per design basis after review has
+            determined that warning can be safely ignored The code for turning
+            off warnings can be found in the specific tool reference manual.
+            """)
 
-    cfg['eda'][tool]['woff'] = {
-        'switch': "-eda_woff 'tool <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': None,
-        'shorthelp': 'Tool warning filter',
-        'example': ["cli: -eda_woff 'verilator COMBDLY'",
-                    "api: chip.set('eda','verilator','woff','COMBDLY')"],
-        'help': """
-        A list of EDA warnings for which printing should be suppressed.
-        Generally this is done on a per design basis after review has
-        determined that warning can be safely ignored The code for turning
-        off warnings can be found in the specific tool reference manual.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'continue'],
+            sctype='bool',
+            shorthelp="Tool continue-on-error option",
+            switch="-eda_continue 'tool <bool>'",
+            example=["cli: -eda_continue 'verilator true'",
+                     "api: chip.set('eda','verilator','continue', true)"],
+            schelp="""
+            Directs tool to continue operating even if errors are
+            encountered.""")
 
-
-
-    cfg['eda'][tool]['continue'] = {
-        'switch': "-eda_continue 'tool <bool>'",
-        'type': 'bool',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': 'false',
-        'shorthelp': "Tool continue-on-error",
-        'example': [
-            "cli: -eda_continue 'verilator true'",
-            "api: chip.set('eda','verilator','continue', true)"],
-        'help': """
-        Directs tool to not exit on error.
-        """
-    }
-
-    cfg['eda'][tool]['copy'] = {
-        'switch': "-eda_copy 'tool <bool>'",
-        'type': 'bool',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': "false",
-        'shorthelp': 'Tool copy-local option',
-        'example': ["cli: -eda_copy 'openroad true'",
+    scparam(cfg, ['eda', tool, 'copy'],
+            sctype='bool',
+            shorthelp="Tool copy option",
+            switch="-eda_copy 'tool <bool>'",
+            example=["cli: -eda_copy 'openroad true'",
                     "api: chip.set('eda','openroad','copy',true)"],
-        'help': """
-        Specifies that the reference script directory should be copied and run
-        from the local run directory.
-        """
-    }
+            schelp="""
+            Specifies that the reference script directory should be copied and run
+            from the local run directory.""")
 
-    cfg['eda'][tool]['licenseserver'] = {}
-    cfg['eda'][tool]['licenseserver']['default'] = {
-        'switch': "-eda_licenseserver 'tool name <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Tool license server',
-        'example': [
-            "cli: -eda_licenseserver 'atool ACME_LICENSE_FILE 1700@server'",
-            "api:  chip.set('eda','atool','licenseserver','ACME_LICENSE_FILE','1700@server')"],
-        'help': """
-        Defines a set of tool specific environment variables used by the executables
-        that depend on license key servers to control access. For multiple servers,
-        separate each server by a 'colon'. The named license variable are read at
-        runtime (run()) and the environment variables are set.
-        """
-    }
+    name = 'default'
+    scparam(cfg, ['eda', tool, 'licenseserver', name],
+            sctype='[str]',
+            shorthelp="Tool license servers",
+            switch="-eda_licenseserver 'tool name <str>'",
+            example=[
+                "cli: -eda_licenseserver 'atool ACME_LICENSE 1700@server'",
+                "api: chip.set('eda','atool','licenseserver','ACME_LICENSE','1700@server')"],
+            schelp="""
+            Defines a set of tool specific environment variables used by the executables
+            that depend on license key servers to control access. For multiple servers,
+            separate each server by a 'colon'. The named license variable are read at
+            runtime (run()) and the environment variables are set.
+            """)
 
-    # eda entries below work on step/index basis
+    #######################
+    # Per step/index
+    ########################
 
     suffix = 'default'
-    cfg['eda'][tool]['regex'] = {}
-    cfg['eda'][tool]['regex'][step] = {}
-    cfg['eda'][tool]['regex'][step][index] = {}
-    cfg['eda'][tool]['regex'][step][index][suffix] = {
-        'switch': "-eda_regex 'tool step index suffix <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': 'Tool regex filter',
-        'example': [
-            "cli: -eda_regex 'openroad place 0 error -v ERROR",
-            "api: chip.set('eda','openroad','regex','place','0','error','-v ERROR')"],
-        'help': """
-        A list of piped together grep commands. Each entry represents a set
-        of command line arguments for grep including the regex pattern to
-        match. Starting with the first list entry, each grep output is piped
-        into the following grep command in the list. Supported grep options
-        include, -t, -i, -E, -x, -e. Patterns starting with "-" should be
-        directly preceeded by the "-e" option. The following example
-        illustrates the concept.
+    scparam(cfg, ['eda', tool, 'regex', step, index, suffix],
+            sctype='[str]',
+            scope='job',
+            shorthelp="Tool regex filter",
+            switch="-eda_regex 'tool step index suffix <str>'",
+            example=[
+                "cli: -eda_regex 'openroad place 0 error -v ERROR",
+                "api: chip.set('eda','openroad','regex','place','0','error','-v ERROR')"],
+            schelp="""
+             A list of piped together grep commands. Each entry represents a set
+            of command line arguments for grep including the regex pattern to
+            match. Starting with the first list entry, each grep output is piped
+            into the following grep command in the list. Supported grep options
+            include, -t, -i, -E, -x, -e. Patterns starting with "-" should be
+            directly preceeded by the "-e" option. The following example
+            illustrates the concept.
 
-        UNIX grep:
-        >> grep WARNING place.log | grep -v "blackbox" > place.warnings
+            UNIX grep:
+            >> grep WARNING place.log | grep -v "bbox" > place.warnings
 
-        siliconcompiler:
-        chip.set('eda','openroad','regex','place',0','warnings',["WARNING","-v blackbox"])
-        """
-    }
+            siliconcompiler:
+            chip.set('eda','openroad','regex','place',0','warnings',["WARNING","-v bbox"])
+
+            Defines a set of tool specific environment variables used by the executables
+            that depend on license key servers to control access. For multiple servers,
+            separate each server by a 'colon'. The named license variable are read at
+            runtime (run()) and the environment variables are set.""")
 
 
-    cfg['eda'][tool]['option'] = {}
-    cfg['eda'][tool]['option'][step] = {}
-    cfg['eda'][tool]['option'][step][index] = {
-        'switch': "-eda_option 'tool step index name <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Tool options',
-        'example': [
-            "cli: -eda_option 'openroad cts 0 -no_init'",
-            "api: chip.set('eda','openroad','option','cts','0','-no_init')"],
-        'help': """
-        List of command line options for the tool executable, specified on
-        a per tool and per step basis. Options should not include spaces.
-        For multiple argument options, each option is a separate list element.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'option', step, index],
+            sctype='[str]',
+            scope='job',
+            shorthelp="Tool executable options",
+            switch="-eda_option 'tool step index name <str>'",
+            example=[
+                "cli: -eda_option 'openroad cts 0 -no_init'",
+                "api: chip.set('eda','openroad','option','cts','0','-no_init')"],
+            schelp="""
+            List of command line options for the tool executable, specified on
+            a per tool and per step basis. Options must not include spaces.
+            For multiple argument options, each option is a separate list element.
+            """)
 
-    cfg['eda'][tool]['variable'] = {}
-    cfg['eda'][tool]['variable'][step] = {}
-    cfg['eda'][tool]['variable'][step][index] = {}
-    cfg['eda'][tool]['variable'][step][index]['default'] = {
-        'switch': "-eda_variable 'tool step index name <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Tool script variables',
-        'example': [
-            "cli: -eda_variable 'openroad cts 0 myvar 42'",
-            "api: chip.set('eda','openroad','variable','cts','0','myvar','42')"],
-        'help': """
-        Executable script variables specified as key value pairs. Variable
-        names and value types must match the name and type of tool and reference
-        script consuming the variable.
-        """
-    }
+    name = 'default'
+    scparam(cfg, ['eda', tool, 'variable', step, index, name],
+            sctype='[str]',
+            scope='job',
+            shorthelp="Tool script variables",
+            switch="-eda_variable 'tool step index name <str>'",
+            example=[
+                "cli: -eda_variable 'openroad cts 0 myvar 42'",
+                "api: chip.set('eda','openroad','variable','cts','0','myvar','42')"],
+            schelp="""
+            Tool script variables specified as key value pairs. Variable
+            names and value types must match the name and type of tool and reference
+            script consuming the variable.""")
 
-    cfg['eda'][tool]['environment'] = {}
-    cfg['eda'][tool]['environment'][step] = {}
-    cfg['eda'][tool]['environment'][step][index] = {}
-    cfg['eda'][tool]['environment'][step][index]['default'] = {
-        'switch': "-eda_environment 'tool step index name <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Tool script environment variables',
-        'example': [
-            "cli: -eda_environment 'openroad cts 0 MYVAR 42'",
-            "api: chip.set('eda','openroad','environment','cts','0','MYVAR','42')"],
-        'help': """
-        Environment variables to set for individual tasks. Keys and values should be
-        set in accordance with the tool's documentation. Many tools do not require extra
-        environment variables to function, but they are sometimes used for advanced configuration.
-        """
-    }
+    name = 'default'
+    scparam(cfg, ['eda', tool, 'env', step, index, name],
+            sctype='[str]',
+            scope='job',
+            shorthelp="Tool environment variables",
+            switch="-eda_env 'tool step index name <str>'",
+            example=[
+                "cli: -eda_env 'openroad cts 0 MYVAR 42'",
+                "api: chip.set('eda','openroad','env','cts','0','MYVAR','42')"],
+            schelp="""
+            Environment variables to set for individual tasks. Keys and values
+            should be set in accordance with the tool's documentation. Most
+            tools do not require extra environment variables to function.""")
 
-    cfg['eda'][tool]['input'] = {}
-    cfg['eda'][tool]['input'][step] = {}
-    cfg['eda'][tool]['input'][step][index] = {
-        'switch': "-eda_input 'tool step index <str>'",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Tool input files',
-        'example': [
-            "cli: -eda_input 'openroad place 0 oh_add.def'",
-            "api: chip.set('eda','openroad','input','place','0','oh_add.def')"],
-        'help': """
-        List of data files to be copied from previous flowgraph steps 'output'
-        directory. The list of steps to copy files from is defined by the
-        list defined by the dictionary key ['flowgraph', step, 'input'].
-        'All files must be available for flow to continue. If a file
-        is missing, the program exists on an error.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'input', step, index],
+            sctype='[file]',
+            shorthelp="Tool input files",
+            switch="-eda_input 'tool step index <str>'",
+            example=[
+                "cli: -eda_input 'openroad place 0 oh_add.def'",
+                "api: chip.set('eda','openroad','input','place','0','oh_add.def')"],
+            schelp="""
+            List of data files to be copied from previous flowgraph steps 'output'
+            directory. The list of steps to copy files from is defined by the
+            list defined by the dictionary key ['flowgraph', step, index, 'input'].
+            All files must be available for flow to continue. If a file
+            is missing, the program exists on an error.""")
 
-    cfg['eda'][tool]['output'] = {}
-    cfg['eda'][tool]['output'][step] = {}
-    cfg['eda'][tool]['output'][step][index] = {
-        'switch': "-eda_output 'tool step index <str>'",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Tool output files ',
-        'example': ["cli: -eda_output 'openroad place 0 oh_add.def'",
-                    "api: chip.set('eda','openroad','output','place','0','oh_add.def')"],
-        'help': """
-        List of data files produced by the current task and placed in the
-        'output' directory. During execution, if a file is missing, the
-        program exists on an error.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'output', step, index],
+            sctype='[file]',
+            shorthelp="Tool output files",
+            switch="-eda_output 'tool step index <str>'",
+            example=[
+                "cli: -eda_output 'openroad place 0 oh_add.def'",
+                "api: chip.set('eda','openroad','output','place','0','oh_add.def')"],
+            schelp="""
+            List of data files to be copied from previous flowgraph steps 'output'
+            directory. The list of steps to copy files from is defined by the
+            list defined by the dictionary key ['flowgraph', step, index, 'output'].
+            All files must be available for flow to continue. If a file
+            is missing, the program exists on an error.""")
+
+    scparam(cfg, ['eda', tool, 'require', step, index],
+            sctype='[str]',
+            shorthelp="Tool parameter requirements",
+            switch="-eda_require 'tool step index <str>'",
+            example=[
+                "cli: -eda_require 'openroad cts 0 design'",
+                "api: chip.set('eda','openroad','require','cts','0','design')"],
+            schelp="""
+            List of keypaths to required tool parameters. The list is used
+            by check() to verify that all parameters have been set up before
+            step execution begins.""")
 
     metric = 'default'
-    cfg['eda'][tool]['report'] = {}
-    cfg['eda'][tool]['report'][step] = {}
-    cfg['eda'][tool]['report'][step][index] = {}
-    cfg['eda'][tool]['report'][step][index][metric] = {
-        'switch': "-eda_report 'tool step index metric <str>'",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'require': None,
-        'defvalue': [],
-        'shorthelp': 'Tool report files ',
-        'example': [
-            "cli: -eda_report 'openroad place 0 holdtns place.log'",
-            "api: chip.set('eda','openroad','report','syn','0','holdtns','place.log')"],
-        'help': """
-        List of report files associated with a specific 'metric'. The file path
-        specified is relative to the run directory of the current task.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'report', step, index, metric],
+            sctype='[file]',
+            shorthelp="Tool report files",
+            switch="-eda_report 'tool step index metric <str>'",
+            example=[
+                 "cli: -eda_report 'openroad place 0 holdtns place.log'",
+                "api: chip.set('eda','openroad','report','syn','0','holdtns','place.log')"],
+            schelp="""
+            List of report files associated with a specific 'metric'. The file path
+            specified is relative to the run directory of the current task.""")
 
-    cfg['eda'][tool]['require'] = {}
-    cfg['eda'][tool]['require'][step] = {}
-    cfg['eda'][tool]['require'][step][index] = {
-        'switch': "-eda_req 'tool step index <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Tool parameter requirements',
-        'example': [
-            "cli: -eda_require 'openroad cts 0 design'",
-            "api: chip.set('eda','openroad','require','cts','0','design')"],
-        'help': """
-        List of keypaths to required tool parameters. The list is used
-        by check() to verify that all parameters have been set up before
-        step execution begins.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'refdir', step, index],
+            sctype='[dir]',
+            shorthelp="Tool script directory",
+            switch="-eda_refdir 'tool step index <dir>'",
+            example=[
+                "cli: -eda_refdir 'yosys syn 0 ./myref'",
+                "api:  chip.set('eda','yosys','refdir','syn','0','./myref')"],
+            schelp="""
+            Path to directories containing reference flow scripts, specified
+            on a per step and index basis.""")
 
-    cfg['eda'][tool]['refdir'] = {}
-    cfg['eda'][tool]['refdir'][step] = {}
-    cfg['eda'][tool]['refdir'][step][index] = {
-        'switch': "-eda_refdir 'tool step index <dir>'",
-        'type': 'dir',
-        'lock': 'false',
-        'require': None,
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Tool reference directory',
-        'example': [
-            "cli: -eda_refdir 'yosys syn 0 ./myref'",
-            "api:  chip.set('eda','yosys','refdir','syn','0','./myref')"],
-        'help': """
-        Path to directories containing compilation scripts, specified
-        on a per step basis.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'script', step, index],
+            sctype='[file]',
+            shorthelp="Tool entry script",
+            switch="-eda_script 'tool step index <file>'",
+            example=[
+                "cli: -eda_script 'yosys syn 0 syn.tcl'",
+                "api: chip.set('eda','yosys','script','syn','0','syn.tcl')"],
+            schelp="""
+            Path to the entry script called by the executable specified
+            on a per tool and per step basis.""")
 
-    cfg['eda'][tool]['script'] = {}
-    cfg['eda'][tool]['script'][step] = {}
-    cfg['eda'][tool]['script'][step][index] = {
-        'switch': "-eda_script 'tool step index <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Tool entry script',
-        'example': [
-            "cli: -eda_script 'yosys syn 0 syn.tcl'",
-            "api: chip.set('eda','yosys','script','syn','0','syn.tcl')"],
-        'help': """
-        Path to the entry point compilation script called by the executable,
-        specified on a per tool and per step basis.
-        """
-    }
+    scparam(cfg, ['eda', tool, 'prescript', step, index],
+            sctype='[file]',
+            shorthelp="Tool pre-step script",
+            switch="-eda_prescript 'tool step index <file>'",
+            example=[
+                 "cli: -eda_prescript 'yosys syn 0 pre.tcl'",
+                "api: chip.set('eda','yosys','prescript','syn','0','pre.tcl')"],
+            schelp="""
+            Path to a user supplied script to execute after reading in the design
+            but before the main execution stage of the step. Exact entry point
+            depends on the step and main script being executed. An example
+            of a prescript entry point would be immediately before global
+            placement.""")
 
+    scparam(cfg, ['eda', tool, 'postscript', step, index],
+            sctype='[file]',
+            shorthelp="Tool post-step script",
+            switch="-eda_postscript 'tool step index <file>'",
+            example=[
+                "cli: -eda_postscript 'yosys syn 0 post.tcl'",
+                "api: chip.set('eda','yosys','postscript','syn','0','post.tcl')"],
+            schelp="""
+            Path to a user supplied script to be executed after all built in
+            tasks (except for data export) have completed.""")
 
-
-    cfg['eda'][tool]['prescript'] = {}
-    cfg['eda'][tool]['prescript'][step] = {}
-    cfg['eda'][tool]['prescript'][step][index] = {
-        'switch': "-eda_prescript 'tool step index <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Tool pre-script plugin',
-        'example': [
-            "cli: -eda_prescript 'yosys syn 0 pre.tcl'",
-            "api: chip.set('eda','yosys','prescript','syn','0','pre.tcl')"],
-        'help': """
-        Path to a user supplied script to execute after reading in the design
-        but before the main execution stage of the step. Exact entry point
-        depends on the step and main script being executed. An example
-        of a prescript entry point would be immediately before global
-        placement.
-        """
-    }
-
-    cfg['eda'][tool]['postscript'] = {}
-    cfg['eda'][tool]['postscript'][step] = {}
-    cfg['eda'][tool]['postscript'][step][index] = {
-        'switch': "-eda_postscript 'tool step index <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Tool post-script plugin',
-        'example': ["cli: -eda_postscript 'yosys syn 0 post.tcl'",
-                    "api: chip.set('eda','yosys','postscript','syn','0','post.tcl')"],
-        'help': """
-        Path to a user supplied script to execute after reading in the design
-        but before the main execution stage of the step. Exact entry point
-        depends on the step and main script being executed. An example
-        of a postscript entry point would be immediately after global
-        placement.
-        """
-    }
-
-
-    cfg['eda'][tool]['threads'] = {}
-    cfg['eda'][tool]['threads'][step] = {}
-    cfg['eda'][tool]['threads'][step][index] = {
-        'switch': "-eda_threads 'tool step index <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Tool job parallelism',
-        'example': ["cli: -eda_threads 'magic drc 0 64'",
-                    "api: chip.set('eda','magic','threads','drc','0','64')"],
-        'help': """
-        Thread parallelism to use for execution specified on a per tool and per
-        step basis. If not specified, SC queries the operating system and sets
-        the threads based on the maximum thread count supported by the
-        hardware.
-        """
-    }
-
-
+    scparam(cfg, ['eda', tool, 'threads', step, index],
+            sctype='int',
+            scope='job',
+            shorthelp="Tool thread parallelism",
+            switch="-eda_threads 'tool step index <int>'",
+            example=["cli: -eda_threads 'magic drc 0 64'",
+                     "api: chip.set('eda','magic','threads','drc','0','64')"],
+            schelp="""
+            Thread parallelism to use for execution specified on a per tool and per
+            step basis. If not specified, SC queries the operating system and sets
+            the threads based on the maximum thread count supported by the
+            hardware.""")
 
     return cfg
 
@@ -2114,7 +1920,6 @@ def schema_arg(cfg):
     }
 
     return cfg
-
 
 ###########################################################################
 # Metrics to Track
