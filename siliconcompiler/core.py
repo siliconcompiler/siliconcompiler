@@ -3361,8 +3361,8 @@ class Chip:
         # 10. Copy Reference Scripts
         if tool not in self.builtin:
             if self.get('eda', tool, 'copy'):
-                refdir = self.find_files('eda', tool, 'refdir', step, index)
-                utils.copytree(refdir, ".", dirs_exist_ok=True)
+                for refdir in self.find_files('eda', tool, 'refdir', step, index):
+                    utils.copytree(refdir, ".", dirs_exist_ok=True)
 
         ##################
         # 11. Check manifest
@@ -3394,10 +3394,10 @@ class Chip:
                 os.environ[item] = ':'.join(license_file)
 
         # Tool-specific environment variables for this task.
-        if (step in self.getkeys('eda', tool, 'environment')) and \
-           (index in self.getkeys('eda', tool, 'environment', step)):
-            for item in self.getkeys('eda', tool, 'environment', step, index):
-                os.environ[item] = self.get('eda', tool, 'environment', step, index, item)
+        if (step in self.getkeys('eda', tool, 'env')) and \
+           (index in self.getkeys('eda', tool, 'env', step)):
+            for item in self.getkeys('eda', tool, 'env', step, index):
+                os.environ[item] = self.get('eda', tool, 'env', step, index, item)
 
         ##################
         # 14. Check exe version
