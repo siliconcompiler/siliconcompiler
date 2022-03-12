@@ -3568,13 +3568,13 @@ def schema_package(cfg, group):
         path = ['library', 'default', 'package']
         shelp = "Library package"
         switch = 'library_package'
-        value = "lib "
+        keys = "lib "
         api = "'library', 'lib', 'package'"
     else:
         path = ['package']
         shelp = "Package"
         switch = 'package'
-        value = ""
+        keys = ""
         api = "package"
 
     name = 'default'
@@ -3582,18 +3582,18 @@ def schema_package(cfg, group):
     scparam(cfg,[*path, 'name'],
             sctype='str',
             shorthelp=f"{shelp} name",
-            switch=f"-{switch}_name '{value}<str>'",
+            switch=f"-{switch}_name '{keys}<str>'",
             example=[
-                f"cli: -{switch}_name '{value}yac'",
+                f"cli: -{switch}_name '{keys}yac'",
                 f"api: chip.set({api},'name','yac')"],
             schelp="""{shelp} name.""")
 
     scparam(cfg,[*path, 'version'],
             sctype='str',
             shorthelp=f"{shelp} version",
-            switch=f"-{switch}_version '{value}<str>'",
+            switch=f"-{switch}_version '{keys}<str>'",
             example=[
-                f"cli: -{switch}_version '{value}1.0'",
+                f"cli: -{switch}_version '{keys}1.0'",
                 f"api: chip.set({api},'version','1.0')"],
             schelp="""{shelp} version. Can be a branch, tag, commit hash,
             or a semver compatible version.""")
@@ -3601,9 +3601,9 @@ def schema_package(cfg, group):
     scparam(cfg,[*path, 'description'],
             sctype='str',
             shorthelp=f"{shelp} description",
-            switch=f"-{switch}_description '{value}<str>'",
+            switch=f"-{switch}_description '{keys}<str>'",
             example=[
-                f"cli: -{switch}_description '{value}Yet another cpu'",
+                f"cli: -{switch}_description '{keys}Yet another cpu'",
                 f"api: chip.set({api},'description','Yet another cpu')"],
             schelp="""{shelp} short one line description for package
             managers and summary reports.""")
@@ -3611,27 +3611,27 @@ def schema_package(cfg, group):
     scparam(cfg,[*path, 'keyword'],
             sctype='str',
             shorthelp=f"{shelp} keyword",
-            switch=f"-{switch}_keyword '{value}<str>'",
+            switch=f"-{switch}_keyword '{keys}<str>'",
             example=[
-                f"cli: -{switch}_keyword '{value}cpu'",
+                f"cli: -{switch}_keyword '{keys}cpu'",
                 f"api: chip.set({api},'keyword','cpu')"],
             schelp="""{shelp} keyword(s) used to characterize package.""")
 
     scparam(cfg,[*path, 'homepage'],
             sctype='str',
             shorthelp=f"{shelp} project homepage",
-            switch=f"-{switch}_homepage '{value}<str>'",
+            switch=f"-{switch}_homepage '{keys}<str>'",
             example=[
-                f"cli: -{switch}_homepage '{value}index.html'",
+                f"cli: -{switch}_homepage '{keys}index.html'",
                 f"api: chip.set({api},'homepage','index.html')"],
             schelp="""{shelp} homepage.""")
 
     scparam(cfg,[*path, 'doc', 'homepage'],
             sctype='str',
             shorthelp=f"{shelp} documentation homepage",
-            switch=f"-{switch}_doc_homepage '{value}<str>'",
+            switch=f"-{switch}_doc_homepage '{keys}<str>'",
             example=[
-                f"cli: -{switch}_doc_homepage '{value}index.html'",
+                f"cli: -{switch}_doc_homepage '{keys}index.html'",
                 f"api: chip.set({api},'doc', 'homepage','index.html')"],
             schelp="""
             {shelp} documentation homepage. Filepath to design docs homepage.
@@ -3652,18 +3652,18 @@ def schema_package(cfg, group):
         scparam(cfg,[*path, 'doc', item],
             sctype='[file]',
             shorthelp=f"{shelp} {item} document",
-            switch=f"-{switch}_doc_{item} '{value}<str>'",
+            switch=f"-{switch}_doc_{item} '{keys}<str>'",
             example=[
-                f"cli: -{switch}_doc_{item} '{value}{item}.pdf'",
+                f"cli: -{switch}_doc_{item} '{keys}{item}.pdf'",
                 f"api: chip.set({api},'doc',{item},'{item}.pdf')"],
             schelp=""" {shelp} list of {item} documents.""")
 
     scparam(cfg,[*path, 'repo'],
             sctype='[str]',
             shorthelp=f"{shelp} code repository",
-            switch=f"-{switch}_repo '{value}<str>'",
+            switch=f"-{switch}_repo '{keys}<str>'",
             example=[
-                f"cli: -{switch}_repo '{value}git@github.com:aolofsson/oh.git'",
+                f"cli: -{switch}_repo '{keys}git@github.com:aolofsson/oh.git'",
                 f"api: chip.set({api},'repo','git@github.com:aolofsson/oh.git')"],
             schelp="""{shelp} IP address to source code repository.""")
 
@@ -3671,9 +3671,9 @@ def schema_package(cfg, group):
     scparam(cfg,[*path, 'dependency', name],
             sctype='[str]',
             shorthelp=f"{shelp} version dependancies",
-            switch=f"-{switch}_dependency '{value}<str>'",
+            switch=f"-{switch}_dependency '{keys}<str>'",
             example=[
-                f"cli: -{switch}_dependency '{value}hell0 1.0'",
+                f"cli: -{switch}_dependency '{keys}hell0 1.0'",
                 f"api: chip.set({api},'dependency','hello', '1.0')"],
             schelp="""{shelp} dependencies specified as a key value pair.
             Versions shall follow the semver standard.""")
@@ -3681,27 +3681,27 @@ def schema_package(cfg, group):
     scparam(cfg,[*path, 'target'],
             sctype='[str]',
             shorthelp=f"{shelp} qualified targets",
-            switch=f"-{switch}_target '{value}<str>'",
+            switch=f"-{switch}_target '{keys}<str>'",
             example=[
-                f"cli: -{switch}_target '{value}asicflow_freepdk45'",
+                f"cli: -{switch}_target '{keys}asicflow_freepdk45'",
                 f"api: chip.set({api},'target','asicflow_freepdk45')"],
             schelp="""{shelp} list of qualified compilation targets.""")
 
     scparam(cfg,[*path, 'license'],
             sctype='[str]',
             shorthelp=f"{shelp} license identifiers",
-            switch=f"-{switch}_license '{value}<str>'",
+            switch=f"-{switch}_license '{keys}<str>'",
             example=[
-                f"cli: -{switch}_license '{value}Apache-2.0'",
+                f"cli: -{switch}_license '{keys}Apache-2.0'",
                 f"api: chip.set({api},'license','Apache-2.0')"],
             schelp="""{shelp} list of SPDX license identifiers.""")
 
     scparam(cfg,[*path, 'licensefile'],
             sctype='[file]',
             shorthelp=f"{shelp} license files",
-            switch=f"-{switch}_licensefile '{value}<file>'",
+            switch=f"-{switch}_licensefile '{keys}<file>'",
             example=[
-                f"cli: -{switch}_licensefile '{value}./LICENSE'",
+                f"cli: -{switch}_licensefile '{keys}./LICENSE'",
                 f"api: chip.set({api},'licensefile','./LICENSE')"],
             schelp="""{shelp} list of license files for {group} to be
             applied in cases when a SPDX identifier is not available.
@@ -3710,9 +3710,9 @@ def schema_package(cfg, group):
     scparam(cfg,[*path, 'location'],
             sctype='[str]',
             shorthelp=f"{shelp} location",
-            switch=f"-{switch}_location '{value}<file>'",
+            switch=f"-{switch}_location '{keys}<file>'",
             example=[
-                f"cli: -{switch}_location '{value}mars'",
+                f"cli: -{switch}_location '{keys}mars'",
                 f"api: chip.set({api},'location','mars')"],
             schelp="""{shelp} country of origin specified as standardized
             international country codes. The field can be left blank
@@ -3721,9 +3721,9 @@ def schema_package(cfg, group):
     scparam(cfg,[*path, 'organization'],
             sctype='[str]',
             shorthelp=f"{shelp} sponsoring organization",
-            switch=f"-{switch}_organzation '{value}<str>'",
+            switch=f"-{switch}_organzation '{keys}<str>'",
             example=[
-                f"cli: -{switch}_organization '{value}humanity'",
+                f"cli: -{switch}_organization '{keys}humanity'",
                 f"api: chip.set({api},'organization','humanity')"],
             schelp="""{shelp} sponsoring organization. The field can be left
             blank if not applicable.""")
@@ -3731,25 +3731,27 @@ def schema_package(cfg, group):
     scparam(cfg,[*path, 'publickey'],
             sctype='str',
             shorthelp=f"{shelp} public key",
-            switch=f"-{switch}_publickey '{value}<str>'",
+            switch=f"-{switch}_publickey '{keys}<str>'",
             example=[
-                f"cli: -{switch}_publickey '{value}6EB695706EB69570'",
+                f"cli: -{switch}_publickey '{keys}6EB695706EB69570'",
                 f"api: chip.set({api},'publickey','6EB695706EB69570')"],
             schelp="""{shelp} public project key.""")
 
-    record = ['email',
-              'userid',
+    record = ['name',
+              'email',
+              'username',
               'location',
               'organization',
               'publickey']
 
+    userid = 'default'
     for item in record:
-        scparam(cfg,[*path, 'author', name, item],
+        scparam(cfg,[*path, 'author', userid, item],
                 sctype='str',
                 shorthelp=f"{shelp} author {item}",
-                switch=f"-{switch}_author_{item} '{value} name <str>'",
+                switch=f"-{switch}_author_{item} '{keys} userid <str>'",
                 example=[
-                    f"cli: -{switch}_author_{item} '{value}wiley wiley@acme.com'",
+                    f"cli: -{switch}_author_{item} '{keys}wiley wiley@acme.com'",
                     f"api: chip.set({api},'author','wiley','{item}','wiley@acme.com')"],
                 schelp="""{shelp} author {item} provided with full name as key and
                 {item} as value.""")
