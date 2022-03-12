@@ -461,7 +461,7 @@ def schema_pdk(cfg, stackup='default'):
             device types include spice, em (electromigration), and aging.""")
 
     corner='default'
-    scparam(cfg, ['pdk', 'pexmodel', tool, simtype, stackup, corner],
+    scparam(cfg, ['pdk', 'pexmodel', tool, stackup, corner],
             sctype='[file]',
             shorthelp="PDK parasitic TCAD models",
             switch="-pdk_pexmodel 'tool stackup corner <file>'",
@@ -4985,390 +4985,252 @@ def schema_read(cfg, step='default', index='default'):
 ###########################
 
 def schema_asic(cfg):
-    ''' ASIC Automated Place and Route Parameters
-    '''
-
-    cfg['asic'] = {}
-
-    cfg['asic']['stackup'] = {
-        'switch': "-asic_stackup <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC metal stackup',
-        'example': ["cli: -asic_stackup 2MA4MB2MC",
-                    "api: chip.set('asic','stackup','2MA4MB2MC')"],
-        'help': """
-        Target stackup to use in the design. The stackup is required
-        parameter for PDKs with multiple metal stackups.
-        """
-    }
-
-    cfg['asic']['logiclib'] =  {
-        'switch': "-asic_logiclib <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': [],
-        'shorthelp': 'ASIC logic libraries',
-        'example': [
-            "cli: -asic_logiclib nangate45",
-            "api: chip.set('asic', 'logiclib','nangate45')"],
-        'help': """
-        List of all available standard cell logic libraries for a given
-        library architecture (9T, 11T, etc).
-        """
-    }
-
-    cfg['asic']['macrolib'] = {
-        'switch': "-asic_macrolib <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'defvalue': [],
-        'require': None,
-        'signature': [],
-        'shorthelp': 'ASIC macro libraries',
-        'example': ["cli: -asic_macrolib sram64x1024",
-                    "api: chip.set('asic', 'macrolib', 'sram64x1024')"],
-        'help': """
-        List of macro libraries to be linked in during synthesis and place
-        and route. Macro libraries are used for resolving instances but are
-        not used as target for automated synthesis.
-        """
-    }
+    '''ASIC Automated Place and Route Parameters'''
 
     step = 'default'
     index = 'default'
-    cfg['asic']['optlib'] = {}
-    cfg['asic']['optlib'][step] = {}
-    cfg['asic']['optlib'][step][index] = {
-        'switch': "-asic_optlib 'step index <str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'defvalue': [],
-        'require': None,
-        'signature': [],
-        'shorthelp': 'ASIC optimization libraries',
-        'example': [
-            "cli: -asic_optlib 'place 0 asap7sc7p5t_lvt'",
-            "api: chip.set('asic','optlib','place','0','asap7sc7p5t_lvt')"],
-        'help': """
-        List of logical libraries used during synthesis and place and route
-        specified on a per step and per index basis.
-        """
-    }
 
-    cfg['asic']['delaymodel'] = {
-        'switch': "-asic_delaymodel <str>",
-        'type': 'str',
-        'lock': 'false',
-        'defvalue': None,
-        'require': None,
-        'signature': None,
-        'shorthelp': 'ASIC library delay model',
-        'example': ["cli: -asic_delaymodel ccs",
-                    "api: chip.set('asic', 'delaymodel', 'ccs')"],
-        'help': """
-        Delay model to use for the target libs. Supported values
-        are nldm and ccs.
-        """
-    }
+    scparam(cfg, ['asic', 'stackup'],
+            sctype='str',
+            require='asic',
+            shorthelp="ASIC metal stackup",
+            switch="-asic_stackup <str>",
+            example=["cli: -asic_stackup 2MA4MB2MC",
+                     "api: chip.set('asic','stackup','2MA4MB2MC')"],
+            schelp="""
+            Target stackup to use in the design. The stackup is required
+            parameter for PDKs with multiple metal stackups.""")
 
-    #TODO? Change to dictionary
-    cfg['asic']['ndr'] = {}
-    cfg['asic']['ndr']['default'] = {
-        'switch': "-asic_ndr 'netname <(float,float)>",
-        'type': '(float,float)',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': None,
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'ASIC non-default routing rule',
-        'example': ["cli: -asic_ndr_width 'clk (0.2,0.2)",
+    scparam(cfg, ['asic', 'logiclib'],
+            sctype='[str]',
+            shorthelp="ASIC logic libraries",
+            switch="-asic_logiclib <str>",
+            example=["cli: -asic_logiclib nangate45",
+                     "api: chip.set('asic', 'logiclib','nangate45')"],
+            schelp="""List of all selected logic libraries libraries
+            to use for optimization for a given library architecture
+            (9T, 11T, etc).""")
+
+    scparam(cfg, ['asic', 'macrolib'],
+            sctype='[str]',
+            shorthelp="ASIC macro libraries",
+            switch="-asic_macrolib <str>",
+            example=["cli: -asic_macrolib sram64x1024",
+                     "api: chip.set('asic', 'macrolib','sram64x1024')"],
+            schelp="""
+            List of macro libraries to be linked in during synthesis and place
+            and route. Macro libraries are used for resolving instances but are
+            not used as targets for logic synthesis.""")
+
+    scparam(cfg, ['asic', 'optlib', step, index],
+            sctype='[str]',
+            shorthelp="ASIC optimization libraries",
+            switch="-asic_optlib 'step index <str>'",
+            example=["cli: -asic_optlib 'place 0 asap7_lvt'",
+                     "api: chip.set('asic','optlib','place','0','asap7_lvt')"],
+            schelp="""
+            List of logical libraries used during synthesis and place and route
+            specified on a per step and per index basis.""")
+
+    scparam(cfg, ['asic', 'delaymodel'],
+            sctype='str',
+            shorthelp="ASIC library delay model",
+            switch="-asic_delaymodel <str>",
+            example= ["cli: -asic_delaymodel ccs",
+                      "api: chip.set('asic', 'delaymodel', 'ccs')"],
+            schelp="""
+            Delay model to use for the target libs. Supported values
+            are nldm and ccs.""")
+
+    net = 'default'
+    scparam(cfg, ['asic', 'ndr', net],
+            sctype='(float,float)',
+            shorthelp="ASIC non-default routing rule",
+            switch="-asic_ndr 'netname <(float,float)>",
+            example= ["cli: -asic_ndr_width 'clk (0.2,0.2)",
                     "api: chip.set('asic','ndr','clk', (0.2,0.2))"],
-        'help': """
-        Definitions of non-default routing rule specified on a per net
-        basis. Constraints are entered as a tuples specified in microns.
-        """
-    }
+            schelp="""
+            Definitions of non-default routing rule specified on a per
+            net basis. Constraints are entered as a (width,space) tuples
+            specified in microns.""")
 
-    cfg['asic']['minlayer'] = {
-        'switch': "-asic_minlayer <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': [],
-        'shorthelp': 'ASIC minimum routing layer',
-        'example': ["cli: -asic_minlayer m2",
+    scparam(cfg, ['asic', 'minlayer'],
+            sctype='str',
+            shorthelp="ASIC minimum routing layer",
+            switch="-asic_minlayer <str>",
+            example= ["cli: -asic_minlayer m2",
                     "api: chip.set('asic', 'minlayer', 'm2')"],
-        'help': """
-        Minimum SC metal layer name to be used for automated place and route .
-        Alternatively the layer can be a string that matches a layer hard coded
-        in the pdk_aprtech file. Designers wishing to use the same setup across
-        multiple process nodes should use the integer approach. For processes
-        with ambiguous starting routing layers, exact strings should be used.
-        """
-    }
+            schelp="""
+            Minimum SC metal layer name to be used for automated place and route .
+            Alternatively the layer can be a string that matches a layer hard coded
+            in the pdk_aprtech file. Designers wishing to use the same setup across
+            multiple process nodes should use the integer approach. For processes
+            with ambiguous starting routing layers, exact strings should be used.
+            """)
 
-    cfg['asic']['maxlayer'] = {
-        'switch': "-asic_maxlayer <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC maximum routing layer',
-        'example': ["cli: -asic_maxlayer m6",
-                    "api: chip.set('asic', 'maxlayer', 'm6')"],
-        'help': """
-        Maximum SC metal layer name to be used for automated place and route .
-        Alternatively the layer can be a string that matches a layer hard coded
-        in the pdk_aprtech file. Designers wishing to use the same setup across
-        multiple process nodes should use the integer approach. For processes
-        with ambiguous starting routing layers, exact strings should be used.
-        """
-    }
+    scparam(cfg, ['asic', 'maxlayer'],
+            sctype='str',
+            shorthelp="ASIC maximum routing layer",
+            switch="-asic_maxlayer <str>",
+            example= ["cli: -asic_maxlayer m2",
+                    "api: chip.set('asic', 'maxlayer', 'm2')"],
+            schelp="""
+            Maximum SC metal layer name to be used for automated place and route .
+            Alternatively the layer can be a string that matches a layer hard coded
+            in the pdk_aprtech file. Designers wishing to use the same setup across
+            multiple process nodes should use the integer approach. For processes
+            with ambiguous starting routing layers, exact strings should be used.
+            """)
 
-    cfg['asic']['maxfanout'] = {
-        'switch': "-asic_maxfanout <int>",
-        'type': 'int',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC maximum fanout',
-        'example': ["cli: -asic_maxfanout 64",
+    scparam(cfg, ['asic', 'maxfanout'],
+            sctype='int',
+            shorthelp="ASIC maximum fanout",
+            switch="-asic_maxfanout <int>",
+            example= ["cli: -asic_maxfanout 64",
                     "api: chip.set('asic', 'maxfanout', '64')"],
-        'help': """
-        Maximum driver fanout allowed during automated place and route.
-        The parameter directs the APR tool to break up any net with fanout
-        larger than maxfanout into sub nets and buffer.
-        """
-    }
+            schelp="""
+             Maximum driver fanout allowed during automated place and route.
+            The parameter directs the APR tool to break up any net with fanout
+            larger than maxfanout into sub nets and buffer.""")
 
-    cfg['asic']['maxlength'] = {
-        'switch': "-asic_maxlength <float>",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC maximum wire length',
-        'example': ["cli: -asic_maxlength 1000",
+    scparam(cfg, ['asic', 'maxlength'],
+            sctype='float',
+            shorthelp="ASIC maximum wire length",
+            switch="-asic_maxlength <float>",
+            example= ["cli: -asic_maxlength 1000",
                     "api: chip.set('asic', 'maxlength', '1000')"],
-        'help': """
-        Maximum total wire length allowed in design during APR. Any
-        net that is longer than maxlength is broken up into segments by
-        the tool.
-        """
-    }
+            schelp="""
+            Maximum total wire length allowed in design during APR. Any
+            net that is longer than maxlength is broken up into segments by
+            the tool.""")
 
-    cfg['asic']['maxcap'] = {
-        'switch': "-asic_maxcap <float>",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC maximum net capacitance',
-        'example': ["cli: -asic_maxcap '0.25e-12'",
-                    "api: chip.set('asic', 'maxcap', '0.25e-12')"],
-        'help': """
-        Maximum allowed capacitance per net. The number is specified
-        in Farads.
-        """
-    }
+    scparam(cfg, ['asic', 'maxcap'],
+            sctype='float',
+            shorthelp="ASIC maximum net capacitance",
+            switch="-asic_maxcap <float>",
+            example= ["cli: -asic_maxcap '0.25e-12'",
+                      "api: chip.set('asic', 'maxcap', '0.25e-12')"],
+            schelp="""Maximum allowed capacitance per net. The number is
+            specified in Farads.""")
 
-    cfg['asic']['maxslew'] = {
-        'switch': "-asic_maxslew <float>",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC maximum slew',
-        'example': ["cli: -asic_maxslew '01e-9'",
-                    "api: chip.set('asic', 'maxslew', '1e-9')"],
-        'help': """
-        Maximum allowed capacitance per net. The number is specified
-        in seconds.
-        """
-    }
+    scparam(cfg, ['asic', 'maxslew'],
+            sctype='float',
+            shorthelp="ASIC maximum slew",
+            switch="-asic_maxslew <float>",
+            example= ["cli: -asic_maxslew '0.25e-9'",
+                    "api: chip.set('asic', 'maxslew', '0.25e-9')"],
+            schelp="""Maximum allowed transition time per net. The number
+            is specified in seconds.""")
 
-    cfg['asic']['rclayer'] = {}
-    cfg['asic']['rclayer']['default'] = {
-        'switch': "-asic_rclayer 'name <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC extraction estimation layer',
-        'example': ["cli: -asic_rclayer 'clk m3",
+    sigtype='default'
+    scparam(cfg, ['asic', 'rclayer', sigtype],
+            sctype='str',
+            shorthelp="ASIC extraction estimation layer",
+            switch="-asic_rclayer 'sigtype <str>'",
+            example= ["cli: -asic_rclayer 'clk m3",
                     "api: chip.set('asic', 'rclayer', 'clk', 'm3')"],
-        'help': """
-        Technology agnostic metal layer to be used for parasitic
-        extraction estimation during APR for the wire type specified
-        Current the supported wire types are: clk, data. The metal
-        layers can be specified as technology agnostic SC layers
-        starting with m1 or as hard PDK specific layer names.
-        """
-    }
+            schelp="""
+            Technology agnostic metal layer to be used for parasitic
+            extraction estimation during APR for the wire type specified
+            Current the supported wire types are: clk, data. The metal
+            layers can be specified as technology agnostic SC layers
+            starting with m1 or as hard PDK specific layer names.""")
 
-    cfg['asic']['vpinlayer'] = {
-        'switch': "-asic_vpinlayer <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC vertical pin layer',
-        'example': ["cli: -asic_vpinlayer m3",
+    scparam(cfg, ['asic', 'vpinlayer'],
+            sctype='str',
+            shorthelp="ASIC vertical pin layer",
+            switch="-asic_vpinlayer <str>",
+            example= ["cli: -asic_vpinlayer m3",
                     "api: chip.set('asic', 'vpinlayer', 'm3')"],
-        'help': """
-        Metal layer to use for automated vertical pin placement
-        during APR.  The metal layers can be specified as technology
-        agnostic SC layers starting with m1 or as hard PDK specific
-        layer names.
-        """
-    }
+            schelp="""
+            Metal layer to use for automated vertical pin placement
+            during APR.  The metal layers can be specified as technology
+            agnostic SC layers starting with m1 or as hard PDK specific
+            layer names.""")
 
-    cfg['asic']['hpinlayer'] = {
-        'switch': "-asic_hpinlayer <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC horizontal pin layer',
-        'example': ["cli: -asic_hpinlayer m2",
-                    "api: chip.set('asic', 'hpinlayer', 'm2')"],
-        'help': """
-        Metal layer to use for automated horizontal pin placement
-        during APR.  The metal layers can be specified as technology agnostic
-        SC layers starting with m1 or as hard PDK specific layer names.
-        """
-    }
+    scparam(cfg, ['asic', 'hpinlayer'],
+            sctype='str',
+            shorthelp="ASIC vertical pin layer",
+            switch="-asic_hpinlayer <str>",
+            example= ["cli: -asic_hpinlayer m4",
+                    "api: chip.set('asic', 'hpinlayer', 'm4')"],
+            schelp="""
+            Metal layer to use for automated horizontal pin placement
+            during APR.  The metal layers can be specified as technology
+            agnostic SC layers starting with m1 or as hard PDK specific
+            layer names.""")
 
-    # For density driven floorplanning
-    cfg['asic']['density'] = {
-        'switch': "-asic_density <float>",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC target core density',
-        'example': ["cli: -asic_density 30",
-                    "api: chip.set('asic', 'density', '30')"],
-        'help': """"
-        Target density based on the total design cell area reported
-        after synthesis. This number is used when no diearea or floorplan is
-        supplied. Any number between 1 and 100 is legal, but values above 50
-        may fail due to area/congestion issues during apr.
-        """
-    }
+    scparam(cfg, ['asic', 'density'],
+            sctype='float',
+            shorthelp="ASIC target core density",
+            switch="-asic_density <float>",
+            example= ["cli: -asic_density 30",
+                      "api: chip.set('asic', 'density', '30')"],
+            schelp="""
+            Target density based on the total design cell area reported
+            after synthesis. This number is used when no diearea or floorplan is
+            supplied. Any number between 1 and 100 is legal, but values above 50
+            may fail due to area/congestion issues during apr.""")
 
-    cfg['asic']['coremargin'] = {
-        'switch': "-asic_coremargin <float>",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC block core margin',
-        'example': ["cli: -asic_coremargin 1",
-                    "api: chip.set('asic', 'coremargin', '1')"],
-        'help': """
-        Halo/margin between the core area to use for automated floorplanning
-        and the outer core boundary specified in microns.  The value is used
-        when no diearea or floorplan is supplied.
-        """
-    }
+    scparam(cfg, ['asic', 'coremargin'],
+            sctype='float',
+            shorthelp="ASIC block core margin",
+            switch="-asic_coremargin <float>",
+            example= ["cli: -asic_coremargin 1",
+                      "api: chip.set('asic', 'coremargin', '1')"],
+            schelp="""
+            Halo/margin between the die boundary and core placement for
+            automated floorplanning when no diearea or floorplan is
+            supplied. The value is specified in microns.""")
 
-    cfg['asic']['aspectratio'] = {
-        'switch': "-asic_aspectratio <float>",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'ASIC block aspect ratio',
-        'example': ["cli: -asic_aspectratio 2.0",
+    scparam(cfg, ['asic', 'aspectratio'],
+            sctype='float',
+            shorthelp="ASIC block aspect ratio",
+            switch="-asic_aspectratio <float>",
+            example= ["cli: -asic_aspectratio 2.0",
                     "api: chip.set('asic', 'aspectratio', '2.0')"],
-        'help': """
-        Height to width ratio of the block for automated floor-planning.
-        Values below 0.1 and above 10 should be avoided as they will likely fail
-        to converge during placement and routing. The ideal aspect ratio for
-        most designs is 1. This value is only used when no diearea or floorplan
-        is supplied.
-        """
-        }
+            schelp="""
+            Height to width ratio of the block for automated floor-planning.
+            Values below 0.1 and above 10 should be avoided as they will likely fail
+            to converge during placement and routing. The ideal aspect ratio for
+            most designs is 1. This value is only used when no diearea or floorplan
+            is supplied.""")
 
-    # For spec driven floorplanning
-    cfg['asic']['diearea'] = {
-        'switch': "-asic_diearea '<[(float,float)]'>",
-        'type': '[(float,float)]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': 'ASIC die area outline',
-        'example': ["cli: -asic_diearea '(0,0)'",
+    scparam(cfg, ['asic', 'diearea'],
+            sctype='[(float,float)]',
+            shorthelp="ASIC die area outline",
+            switch="-asic_diearea <[(float,float)]>",
+            example= ["cli: -asic_diearea '(0,0)'",
                     "api: chip.set('asic', 'diearea', (0,0))"],
-        'help': """
-        List of (x,y) points that define the outline of the die area for the
-        physical design. Simple rectangle areas can be defined with two points,
-        one for the lower left corner and one for the upper right corner. All
-        values are specified in microns.
-        """
-    }
+            schelp="""
+            List of (x,y) points that define the outline of the die area for the
+            physical design. Simple rectangle areas can be defined with two points,
+            one for the lower left corner and one for the upper right corner. All
+            values are specified in microns.""")
 
-    cfg['asic']['corearea'] = {
-        'switch': "-asic_corearea '<[(float,float)]'>",
-        'type': '[(float,float)]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': 'ASIC core area outline',
-        'example': ["cli: -asic_corearea '(0,0)'",
+    scparam(cfg, ['asic', 'corearea'],
+            sctype='[(float,float)]',
+            shorthelp="ASIC core area outline",
+            switch="-asic_corearea <[(float,float)]>",
+            example= ["cli: -asic_corearea '(0,0)'",
                     "api: chip.set('asic', 'corearea', (0,0))"],
-        'help': """
-        List of (x,y) points that define the outline of the core area for the
-        physical design. Simple rectangle areas can be defined with two points,
-        one for the lower left corner and one for the upper right corner. All
-        values are specified in microns.
-        """
-    }
+            schelp="""
+            List of (x,y) points that define the outline of the core area for the
+            physical design. Simple rectangle areas can be defined with two points,
+            one for the lower left corner and one for the upper right corner. All
+            values are specified in microns.""")
 
-    cfg['asic']['exclude'] = {
-        'switch': "-asic_exclude <str>",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': 'List of cells to exclude',
-        'example': ["cli: -asic_exclude sram_macro",
-                    "api: chip.set('asic', 'exclude','sram_macro')"],
-        'help': """
-        List of physical cells to exclude during execution. The process
-        of exclusion is controlled by the flow step and tool setup. The list
-        is commonly used by DRC tools and GDS export tools to direct the tool
-        to exclude GDS information during GDS merge/export.
-        """
-    }
-
+    scparam(cfg, ['asic', 'exclude', step, index],
+            sctype='[str]',
+            shorthelp="ASIC cells to exclude",
+            switch="-asic_exclude 'step index <str>>",
+            example=["cli: -asic_exclude drc 0 sram_macro",
+                    "api: chip.set('asic','exclude','drc','0','sram_macro')"],
+            schelp="""
+            List of physical cells to exclude during execution. The process
+            of exclusion is controlled by the flow step and tool setup. The list
+            is commonly used by DRC tools and GDS export tools to direct the tool
+            to exclude GDS information during GDS merge/export.""")
 
     return cfg
 
@@ -5377,6 +5239,7 @@ def schema_asic(cfg):
 ############################################
 
 def schema_mcmm(cfg, scenario='default'):
+    '''Scenario based timing analysis.'''
 
     scparam(cfg,['mcmm', scenario, 'voltage'],
             sctype='float',
