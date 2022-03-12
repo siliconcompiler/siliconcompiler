@@ -3562,121 +3562,81 @@ def schema_options(cfg):
 
 def schema_package(cfg, group):
 
-    localcfg = {}
+    # hack code to enable reuse of patternf for main/lib
+    if group == 'library':
+        path = ['library', 'default', 'package']
+        shelp = "Library package"
+        switch = 'library_package'
+        value = "lib "
+        api = "'library', 'lib', 'package'"
+    else:
+        path = ['package']
+        shelp = "Package"
+        switch = 'package'
+        value = ""
+        api = "package"
 
-    if group == 'package':
-        lib = ""
-        libapi= ""
-    elif group == 'library':
-        lib = 'lib '
-        libapi = "'lib','package',"
+    name = 'default'
 
-    localcfg['name'] = {
-        'switch': f"-{group}_name '{lib}<str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': f"{group.capitalize()} name",
-        'example': [
-            f"cli: -{group}_name {lib}yac",
-            f"api: chip.set('{group}',{libapi}'name', 'yac')"],
-        'help': f"""
-        Name of {group}.
-        """
-    }
+    scparam(cfg,[*path, 'name'],
+            sctype='str',
+            shorthelp=f"{shelp} name",
+            switch=f"-{switch}_name '{value}<str>'",
+            example=[
+                f"cli: -{switch}_name '{value}yac'",
+                f"api: chip.set({api},'name','yac')"],
+            schelp="""{shelp} name.""")
 
-    localcfg['version'] = {
-        'switch': f"-{group}_version '{lib}<str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': f"{group.capitalize()} version number",
-        'example': [
-            f"cli: -{group}_version '{lib}1.0'",
-            f"api: chip.set({group},{libapi}'version', '1.0')"],
-        'help': f"""
-        Version number. Can be a branch, tag, commit hash, or a major.minor
-        type version string. Versions shall follow the semver standard.
-        """
-    }
+    scparam(cfg,[*path, 'version'],
+            sctype='str',
+            shorthelp=f"{shelp} version",
+            switch=f"-{switch}_version '{value}<str>'",
+            example=[
+                f"cli: -{switch}_version '{value}1.0'",
+                f"api: chip.set({api},'version','1.0')"],
+            schelp="""{shelp} version. Can be a branch, tag, commit hash,
+            or a semver compatible version.""")
 
-    localcfg['description'] = {
-        'switch': f"-{group}_description '{lib}<str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': f"{group.capitalize()} short description",
-        'example': [
-            f"cli: -{group}_description '{lib}Yet another cpu'",
-            f"api: chip.set('{group}',{libapi}'description', 'Yet another cpu')"],
-        'help': """
-        Short one line description for package managers and summary reports.
-        """
-    }
+    scparam(cfg,[*path, 'description'],
+            sctype='str',
+            shorthelp=f"{shelp} description",
+            switch=f"-{switch}_description '{value}<str>'",
+            example=[
+                f"cli: -{switch}_description '{value}Yet another cpu'",
+                f"api: chip.set({api},'description','Yet another cpu')"],
+            schelp="""{shelp} short one line description for package
+            managers and summary reports.""")
 
-    localcfg['keyword'] = {
-        'switch': f"-{group}_keyword '{lib}<str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require':None,
-        'signature': [],
-        'defvalue': None,
-        'shorthelp': f"{group.capitalize()} keywords",
-        'example': [
-            f"cli: -{group}_keyword yac",
-            f"api: chip.set('{group}','{libapi}'keyword', 'yac')"],
-        'help': f"""
-        List of keyword(s) used to search for {group}.
-        """
-    }
-    # project home page
-    localcfg['homepage'] = {
-        'switch': f"-{group}_homepage '{lib}<str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': None,
-        'shorthelp': f"{group.capitalize()} homepage",
-        'example': [
-            f"cli: -{group}_homepage yac",
-            f"api: chip.set('{group}','{libapi}'homepage', 'yac')"],
-        'help': f"""
-        Homepage for {group}.
-        """
-    }
+    scparam(cfg,[*path, 'keyword'],
+            sctype='str',
+            shorthelp=f"{shelp} keyword",
+            switch=f"-{switch}_keyword '{value}<str>'",
+            example=[
+                f"cli: -{switch}_keyword '{value}cpu'",
+                f"api: chip.set({api},'keyword','cpu')"],
+            schelp="""{shelp} keyword(s) used to characterize package.""")
 
-    # documentation homepage
-    localcfg['doc'] = {}
-    localcfg['doc']['homepage'] = {
-            'switch': f"-{group}_doc_homepage '{lib}<file>'",
-            'type': '[file]',
-            'lock': 'false',
-            'copy': 'false',
-            'require': None,
-            'defvalue': [],
-            'filehash': [],
-            'hashalgo': 'sha256',
-            'date': [],
-            'author': [],
-            'signature': [],
-            'shorthelp': f"{group.capitalize()} homepage",
-            'example': [
-                f"cli: -{group}_doc_homepage 'index.html",
-                f"api: chip.set('{group}',{libapi}'doc','homepage','index.html')"],
-            'help': f"""
-            Filepath to design docs homepage. Complex designs can can include
-            a long non standard list of documents dependent.  single html
-            entry point can be used to present an organized documentation
-            dashboard to the designer.
-            """
-    }
+    scparam(cfg,[*path, 'homepage'],
+            sctype='str',
+            shorthelp=f"{shelp} homepage",
+            switch=f"-{switch}_homepage '{value}<str>'",
+            example=[
+                f"cli: -{switch}_homepage '{value}index.html'",
+                f"api: chip.set({api},'homepage','index.html')"],
+            schelp="""{shelp} homepage.""")
+
+    scparam(cfg,[*path, 'doc', 'homepage'],
+            sctype='str',
+            shorthelp=f"{shelp} documentation homepage",
+            switch=f"-{switch}_doc_homepage '{value}<str>'",
+            example=[
+                f"cli: -{switch}_doc_homepage '{value}index.html'",
+                f"api: chip.set({api},'doc', 'homepage','index.html')"],
+            schelp="""
+            {shelp} documentation homepage. Filepath to design docs homepage.
+            Complex designs can can include a long non standard list of
+            documents dependent.  A single html entry point can be used to
+            present an organized documentation dashboard to the designer.""")
 
     doctypes = ['datasheet',
                 'reference',
@@ -3684,229 +3644,115 @@ def schema_package(cfg, group):
                 'quickstart',
                 'releasenotes',
                 'testplan',
+                'signoff',
                 'tutorial']
 
-    localcfg['doc'] = {}
     for item in doctypes:
-        localcfg['doc'][item] = {
-            'switch': f"-{group}_doc_{item} '{lib} <file>'",
-            'type': '[file]',
-            'lock': 'false',
-            'copy': 'false',
-            'require': None,
-            'defvalue': [],
-            'filehash': [],
-            'hashalgo': 'sha256',
-            'date': [],
-            'author': [],
-            'signature': [],
-            'shorthelp': f"{group.capitalize()} {item}",
-            'example': [
-                f"cli: -{group}_doc_{item} '{lib}design.pdf",
-                f"api: chip.set('{group}',{libapi}'doc',{item},'design.pdf')"],
-            'help': f"""
-            List of {item} documents.
-            """
-        }
+        scparam(cfg,[*path, 'doc', item],
+            sctype='[file]',
+            shorthelp=f"{shelp} {item} document",
+            switch=f"-{switch}_doc_{item} '{value}<str>'",
+            example=[
+                f"cli: -{switch}_doc_{item} '{value}{item}.pdf'",
+                f"api: chip.set({api},'doc',{item},'{item}.pdf')"],
+            schelp=""" {shelp} list of {item} documents.""")
 
-    localcfg['signoff'] = {
-        'switch': f"-{group}_signoff '{lib}<file>'",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': f"{group.capitalize()} signoff documents",
-        'example': [
-            f"cli: -{group}_signoff '{lib}hello_review.md",
-            f"api: chip.set('{group}',{libapi}'signoff','hello_review.md')"],
-        'help': """
-        Final signoff report(s).
-        """
-    }
+    scparam(cfg,[*path, 'repo'],
+            sctype='[str]',
+            shorthelp=f"{shelp} code repository",
+            switch=f"-{switch}_repo '{value}<str>'",
+            example=[
+                f"cli: -{switch}_repo '{value}git@github.com:aolofsson/oh.git'",
+                f"api: chip.set({api},'repo','git@github.com:aolofsson/oh.git')"],
+            schelp="""{shelp} IP address to source code repository.""")
 
-    localcfg['repo'] = {
-        'switch': f"-{group}_repo '{lib}<str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': f"{group.capitalize()} repository",
-        'example': [
-            f"cli: -{group}_repo git@github.com:aolofsson/oh.git",
-            f"api: chip.set('{group}',{libapi}'repo','git@github.com:aolofsson/oh.git')"],
-        'help': f"""
-        Optional address to the {group} repository.
-        """
-    }
 
-    dep = 'default'
-    localcfg['dependency'] = {}
-    localcfg['dependency'][dep] = {
-        'switch': f"-{group}_dependency '{lib}<dep> <version>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': f"{group.capitalize()} dependency version",
-        'example': [
-            f"cli: -{group}_dependency '{lib}hello 1.0.0'",
-            f"api: chip.set('{group}',{libapi}'dependency','hello','1.0.0')"],
-        'help': """
-        Package dependency specified as a key value pair. Versions shall follow
-        the semver standard.
-        """
-    }
+    scparam(cfg,[*path, 'dependency', name],
+            sctype='[str]',
+            shorthelp=f"{shelp} version dependancies",
+            switch=f"-{switch}_dependency '{value}<str>'",
+            example=[
+                f"cli: -{switch}_dependency '{value}hell0 1.0'",
+                f"api: chip.set({api},'dependency','hello', '1.0')"],
+            schelp="""{shelp} dependencies specified as a key value pair.
+            Versions shall follow the semver standard.""")
 
-    localcfg['target'] = {
-        'switch': f"-{group}_target '{lib}<str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': f"{group.capitalize()} target list",
-        'example': [
-            f"cli: -{group}_target '{lib}asicflow_freepdk45",
-            f"api: chip.set('{group}',{libapi}'target', 'asicflow_freepdk45')"],
-        'help': f"""
-        List of tested and qualified targets for the package.
-        """
-    }
+    scparam(cfg,[*path, 'target'],
+            sctype='[str]',
+            shorthelp=f"{shelp} qualified targets",
+            switch=f"-{switch}_target '{value}<str>'",
+            example=[
+                f"cli: -{switch}_target '{value}asicflow_freepdk45'",
+                f"api: chip.set({api},'target','asicflow_freepdk45')"],
+            schelp="""{shelp} list of qualified compilation targets.""")
 
-    localcfg['license'] = {
-        'switch': f"-{group}_license '{lib}<str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': f"{group.capitalize()} license names",
-        'example': [
-            f"cli: -{group}_license '{lib}Apache-2.0",
-            f"api: chip.set('{group}',{libapi}'license','Apache-2.0')"],
-        'help': f"""
-        The license(s) for {group}. SPDX identifiers should be used when
-        applicable.
-        """
-    }
+    scparam(cfg,[*path, 'license'],
+            sctype='[str]',
+            shorthelp=f"{shelp} license identifiers",
+            switch=f"-{switch}_license '{value}<str>'",
+            example=[
+                f"cli: -{switch}_license '{value}Apache-2.0'",
+                f"api: chip.set({api},'license','Apache-2.0')"],
+            schelp="""{shelp} list of SPDX license identifiers.""")
 
-    localcfg['licensefile'] = {
-        'switch': f"-{group}_licensefile '{lib}<file>'",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': f"{group.capitalize()} license files",
-        'example': [
-            f"cli: -{group}_licensefile '{lib}./LICENSE",
-            f"api: chip.set('{group}',{libapi}'licensefile','./LICENSE')"],
-        'help': f"""
-        List of license files for {group} to be applied in cases when a
-        SPDX identifier is not available. (eg. proprietary licenses).
-        """
-    }
+    scparam(cfg,[*path, 'licensefile'],
+            sctype='[file]',
+            shorthelp=f"{shelp} license files",
+            switch=f"-{switch}_licensefile '{value}<file>'",
+            example=[
+                f"cli: -{switch}_licensefile '{value}./LICENSE'",
+                f"api: chip.set({api},'licensefile','./LICENSE')"],
+            schelp="""{shelp} list of license files for {group} to be
+            applied in cases when a SPDX identifier is not available.
+            (eg. proprietary licenses).list of SPDX license identifiers.""")
 
-    localcfg['location'] = {
-        'switch': f"-{group}_location '{lib}<str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': f"{group.capitalize()} location",
-        'example': [
-            f"cli: -{group}_location mars",
-            f"api: chip.set('{group}', {libapi}'location', 'mars')"],
-        'help': """
-        Location of origin for project.
-        """
-    }
+    scparam(cfg,[*path, 'location'],
+            sctype='[str]',
+            shorthelp=f"{shelp} location",
+            switch=f"-{switch}_location '{value}<file>'",
+            example=[
+                f"cli: -{switch}_location '{value}mars'",
+                f"api: chip.set({api},'location','mars')"],
+            schelp="""{shelp} country of origin specified as standardized
+            international country codes. The field can be left blank
+            if the location is unknown or global.""")
 
-    localcfg['organization'] = {
-        'switch': f"-{group}_organization '{lib}<str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': f"{group} organization",
-        'example': [
-            f"cli: -{group}_organization '{lib}humanity'",
-            f"api: chip.set('{group}',{libapi}'organization', 'humanity')"],
-        'help': """
-        Projection organization name.
-        """
-    }
+    scparam(cfg,[*path, 'organization'],
+            sctype='[str]',
+            shorthelp=f"{shelp} sponsoring organization",
+            switch=f"-{switch}_organzation '{value}<str>'",
+            example=[
+                f"cli: -{switch}_organization '{value}humanity'",
+                f"api: chip.set({api},'organization','humanity')"],
+            schelp="""{shelp} sponsoring organization. The field can be left
+            blank if not applicable.""")
 
-    localcfg['author'] = {
-        'switch': f"-{group}_author '{lib}<str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': f"{group.capitalize()} author",
-        'example': [
-            f"cli: -{group}_author '{lib}wiley",
-            f"api: chip.set('{group}',{libapi}'author', 'wiley')"],
-        'help': """
-        Author name(s).
-        """
-    }
+    scparam(cfg,[*path, 'publickey'],
+            sctype='str',
+            shorthelp=f"{shelp} public key",
+            switch=f"-{switch}_publickey '{value}<str>'",
+            example=[
+                f"cli: -{switch}_publickey '{value}6EB695706EB69570'",
+                f"api: chip.set({api},'publickey','6EB695706EB69570')"],
+            schelp="""{shelp} public project key.""")
 
-    localcfg['userid'] = {
-        'switch': f"-{group}_userid '{lib}<str>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': [],
-        'defvalue': [],
-        'shorthelp': f"{group.capitalize()} author user ID",
-        'example': [
-            f"cli: -{group}_userid '{lib}0123",
-            f"api: chip.set('{group}',{libapi}'userid', '0123')"],
-        'help': """
-        List of anonymous author user ID(s).
-        """
-    }
+    record = ['email',
+              'userid',
+              'location',
+              'organization',
+              'publickey']
 
-    localcfg['publickey'] = {
-        'switch': f"-{group}_publickey '{lib}<str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': f"{group.capitalize()} public key",
-        'example': [
-            f"cli: -{group}_publickey '{lib}6EB695706EB69570'",
-            f"api: chip.set('{group}',{libapi}'publickey','6EB695706EB69570')"],
-        'help': f"""
-        Public key for {group}.
-        """
-    }
+    for item in record:
+        scparam(cfg,[*path, 'author', name, item],
+                sctype='str',
+                shorthelp=f"{shelp} author {item}",
+                switch=f"-{switch}_author_{item} '{value} name <str>'",
+                example=[
+                    f"cli: -{switch}_author_{item} '{value}wiley wiley@acme.com'",
+                    f"api: chip.set({api},'author','wiley','{item}','wiley@acme.com')"],
+                schelp="""{shelp} author {item} provided with full name as key and
+                {item} as value.""")
 
-    # copy package dictionary into library/project
-    if group == 'package':
-        cfg['package'] = copy.deepcopy(localcfg)
-    elif group == 'record':
-        cfg['record']['default']['default']['default']['package'] = copy.deepcopy(localcfg)
-    elif group == 'library':
-        cfg['library']['default']['package'] = copy.deepcopy(localcfg)
     return cfg
 
 ############################################
