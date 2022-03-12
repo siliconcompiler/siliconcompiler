@@ -157,14 +157,14 @@ def schema_version(cfg, version):
                      "api: chip.get('version', 'schema')"],
             schelp="""SiliconCompiler schema version number.""")
 
-    scparam(cfg,['version', 'sc'],
+    scparam(cfg,['version', 'software'],
             sctype='str',
             defvalue=version,
-            shorthelp="SiliconCompiler version number",
-            switch="-version_sc <str>",
-            example=["cli: -version_sc",
-                     "api: chip.get('version', 'sc')"],
-            schelp="""SiliconCompiler schema version number.""")
+            shorthelp="Software version number",
+            switch="-version_software <str>",
+            example=["cli: -version_software",
+                     "api: chip.get('version', 'software')"],
+            schelp="""SiliconCompiler software version number.""")
 
     scparam(cfg,['version', 'print'],
             sctype='bool',
@@ -172,7 +172,8 @@ def schema_version(cfg, version):
             switch="-version <bool>",
             example=["cli: -version",
                     "api: chip.get('version', 'print')"],
-            schelp="""Command line switch to print SC version numbers.""")
+            schelp="""Command line switch to print the schema and software
+            version numbers in an 'sc' command line app.""")
 
     return cfg
 
@@ -481,7 +482,7 @@ def schema_pdk(cfg, stackup='default'):
     dst = 'default'
     scparam(cfg, ['pdk', 'layermap', tool, src, dst, stackup],
             sctype='[file]',
-            shorthelp="PDK layout data mapping file",
+            shorthelp="PDK layer map file",
             switch="-pdk_layermap 'tool src dst stackup <file>'",
             example=[
                 "cli: -pdk_layermap 'klayout db gds M10 asap7.map'",
@@ -501,7 +502,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'display', tool, stackup],
             sctype='[file]',
-            shorthelp="PDK display configuration file",
+            shorthelp="PDK display file",
             switch="-pdk_display 'tool stackup <file>'",
             example=[
                 "cli: -pdk_display 'klayout M10 display.lyt'",
@@ -515,7 +516,7 @@ def schema_pdk(cfg, stackup='default'):
     libarch = 'default'
     scparam(cfg, ['pdk', 'aprtech', tool, stackup, libarch, filetype],
             sctype='[file]',
-            shorthelp="PDK APR technology file",
+            shorthelp="PDK APR technology files",
             switch="-pdk_aprtech 'tool stackup libarch filetype <file>'",
             example=[
                 "cli: -pdk_aprtech 'openroad M10 12t lef tech.lef'",
@@ -559,7 +560,7 @@ def schema_pdk(cfg, stackup='default'):
     layer = 'default'
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'name'],
             sctype='str',
-            shorthelp="PDK metal layer name map",
+            shorthelp="PDK routing grid name map",
             switch="-pdk_grid_name 'stackup layer <str>'",
             example=[
                 "cli: -pdk_grid_name 'M10 metal1 m1'",
@@ -572,7 +573,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'dir'],
             sctype='str',
-            shorthelp="PDK preferred metal routing direction",
+            shorthelp="PDK routing grid preferred direction",
             switch="-pdk_grid_dir 'stackup layer <str>'",
             example=[
                 "cli: -pdk_grid_dir 'M10 m1 horizontal'",
@@ -655,7 +656,7 @@ def schema_pdk(cfg, stackup='default'):
     corner='default'
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'cap', corner],
             sctype='float',
-            shorthelp="PDK routing layer unit capacitance",
+            shorthelp="PDK routing grid unit capacitance",
             switch="-pdk_grid_cap 'stackup layer corner <float>''",
             example= [
                 "cli: -pdk_grid_cap 'M10 m2 fast 0.2'",
@@ -669,7 +670,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'res', corner],
             sctype='float',
-            shorthelp="PDK routing layer unit resistance",
+            shorthelp="PDK routing grid unit resistance",
             switch="-pdk_grid_res 'stackup layer corner <float>''",
             example= [
                 "cli: -pdk_grid_res 'M10 m2 fast 0.2'",
@@ -683,7 +684,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'tcr', corner],
             sctype='float',
-            shorthelp="PDK routing layer temperature coefficient",
+            shorthelp="PDK routing grid temperature coefficient",
             switch="-pdk_grid_tcr 'stackup layer corner <float>'",
             example= [
                 "cli: -pdk_grid_tcr 'M10 m2 fast 0.2'",
@@ -764,7 +765,7 @@ def schema_pdk(cfg, stackup='default'):
     for item in doctypes:
         scparam(cfg,['pdk', 'doc', item],
                 sctype='[file]',
-                shorthelp=f"PDK {item} doc",
+                shorthelp=f"PDK {item}",
                 switch= f"-pdk_doc_{item} <file>",
                 example=[f"cli: -pdk_doc_{item} {item}.pdf",
                          f"api: chip.set('pdk','doc',{item},'{item}.pdf')"],
@@ -2893,7 +2894,7 @@ def schema_options(cfg):
         'require': None,
         'signature': None,
         'defvalue': 'false',
-        'shorthelp': 'Enables remote processing',
+        'shorthelp': 'Enable remote processing',
         'example': ["cli: -remote",
                     "api: chip.set('remote', True)"],
         'help': """
@@ -3618,7 +3619,7 @@ def schema_package(cfg, group):
 
     scparam(cfg,[*path, 'homepage'],
             sctype='str',
-            shorthelp=f"{shelp} homepage",
+            shorthelp=f"{shelp} project homepage",
             switch=f"-{switch}_homepage '{value}<str>'",
             example=[
                 f"cli: -{switch}_homepage '{value}index.html'",
@@ -4211,7 +4212,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'delaymodel'],
             sctype='str',
-            shorthelp="ASIC library delay model",
+            shorthelp="ASIC delay model",
             switch="-asic_delaymodel <str>",
             example= ["cli: -asic_delaymodel ccs",
                       "api: chip.set('asic', 'delaymodel', 'ccs')"],
@@ -4302,7 +4303,7 @@ def schema_asic(cfg):
     sigtype='default'
     scparam(cfg, ['asic', 'rclayer', sigtype],
             sctype='str',
-            shorthelp="ASIC extraction estimation layer",
+            shorthelp="ASIC parasitics layer",
             switch="-asic_rclayer 'sigtype <str>'",
             example= ["cli: -asic_rclayer 'clk m3",
                     "api: chip.set('asic', 'rclayer', 'clk', 'm3')"],
@@ -4399,7 +4400,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'exclude', step, index],
             sctype='[str]',
-            shorthelp="ASIC cells to exclude",
+            shorthelp="ASIC excluded cells",
             switch="-asic_exclude 'step index <str>>",
             example=["cli: -asic_exclude drc 0 sram_macro",
                     "api: chip.set('asic','exclude','drc','0','sram_macro')"],
