@@ -3918,7 +3918,7 @@ def schema_checklist(cfg, group='checklist'):
     if group == 'library':
         emit_group = "library_checklist"
         emit_switch = "lib "
-        emit_api = "'library','lib','checklist'"
+        emit_api = "'library','default','checklist'"
         emit_help = "Library checklist"
     else:
         emit_group = "checklist"
@@ -3926,184 +3926,117 @@ def schema_checklist(cfg, group='checklist'):
         emit_api = "'checklist'"
         emit_help = "Checklist"
 
+    path = emit_api.replace("\'","").split(',')
+
     item = 'default'
     standard = 'default'
+    metric = 'default'
 
-    localcfg = {}
-    localcfg[item]={}
-    localcfg[standard][item]={}
-    localcfg[standard][item]['description'] = {
-        'switch': f"-{emit_group}_description '{emit_switch}standard item <str>",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': f"{emit_help} item description",
-        'example': [
-            f"cli: -{emit_group}_description '{emit_switch}ISO D000 A-DESCRIPTION'",
-            f"api: chip.set({emit_api},'ISO','D000','description','A-DESCRIPTION')"],
-        'help': f"""
-        A short one line description of the {group} checklist item.
-        """
-    }
+    scparam(cfg,[*path, standard, item, 'description'],
+            sctype='str',
+            shorthelp=f"{emit_help} item description",
+            switch=f"-{emit_group}_description '{emit_switch}standard item <str>",
+            example=[
+                f"cli: -{emit_group}_description '{emit_switch}ISO D000 A-DESCRIPTION'",
+                f"api: chip.set({emit_api},'ISO','D000','description','A-DESCRIPTION')"],
+            schelp="""
+            A short one line description of the {group} checklist item.""")
 
-    localcfg[standard][item]['requirement'] = {
-        'switch': f"-{emit_group}_requirement '{emit_switch}standard item <str>",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': f"{emit_help} item requirement",
-        'example': [
-            f"cli: -{emit_group}_requirement '{emit_switch}ISO D000 DOCSTRING'",
-            f"api: chip.set({emit_api},'ISO','D000','requirement','DOCSTRING')"],
-        'help': f"""
-        A complete requirement description of the {group} checklist item
-        entered as a multi-line string.
-        """
-    }
+    scparam(cfg,[*path, standard, item, 'requirement'],
+            sctype='str',
+            shorthelp=f"{emit_help} item requirement",
+            switch=f"-{emit_group}_requirement '{emit_switch}standard item <str>",
+            example=[
+                f"cli: -{emit_group}_requirement '{emit_switch}ISO D000 DOCSTRING'",
+                f"api: chip.set({emit_api},'ISO','D000','requirement','DOCSTRING')"],
+            schelp="""
+            A complete requirement description of the {group} checklist item
+            entered as a multi-line string.""")
 
-    localcfg[standard][item]['rationale'] = {
-        'switch': f"-{emit_group}_rationale '{emit_switch}standard item <str>",
-        'require': None,
-        'type': '[str]',
-        'lock': 'false',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': f"{emit_help} item rational",
-        'example': [
-            f"cli: -{emit_group}_rational '{emit_switch}ISO D000 reliability'",
-            f"api: chip.set({emit_api},'ISO','D000','rationale','reliability')"],
-        'help': f"""
-        Rationale for the the {group} checklist item. Rationale should be a
-        unique alphanumeric code used by the standard or a short one line
-        or single word description.
-        """
-    }
+    scparam(cfg,[*path, standard, item, 'rationale'],
+            sctype='[str]',
+            shorthelp=f"{emit_help} item rational",
+            switch=f"-{emit_group}_rationale '{emit_switch}standard item <str>",
+            example=[
+                f"cli: -{emit_group}_rational '{emit_switch}ISO D000 reliability'",
+                f"api: chip.set({emit_api},'ISO','D000','rationale','reliability')"],
+            schelp="""
+            Rationale for the the {group} checklist item. Rationale should be a
+            unique alphanumeric code used by the standard or a short one line
+            or single word description.""")
 
-    localcfg[standard][item]['criteria'] = {
-        'switch': f"-{emit_group}_criteria '{emit_switch}standard item <float>'",
-        'type': '[str]',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': [],
-        'shorthelp': f"{emit_help} item signoff criteria",
-        'example': [
-            f"cli: -{emit_group}_criteria '{emit_switch}ISO D000 errors==0'",
-            f"api: chip.set({emit_api},'ISO','D000','criteria','errors==0')"],
-        'help': f"""
-        Simple list of signoff criteria for {group} checklist item which
-        must all be met for signoff. Each signoff criteria consists of
-        a metric, a relational operator, and a value in the form.
-        'metric op value'.
-        """
-    }
+    scparam(cfg,[*path, standard, item, 'criteria'],
+            sctype='[str]',
+            shorthelp=f"{emit_help} item criteria",
+            switch=f"-{emit_group}_criteria '{emit_switch}standard item <float>'",
+            example=[
+                f"cli: -{emit_group}_criteria '{emit_switch}ISO D000 errors==0'",
+                f"api: chip.set({emit_api},'ISO','D000','criteria','errors==0')"],
+            schelp="""
+            Simple list of signoff criteria for {group} checklist item which
+            must all be met for signoff. Each signoff criteria consists of
+            a metric, a relational operator, and a value in the form.
+            'metric op value'.""")
 
-    localcfg[standard][item]['report'] = {}
-    localcfg[standard][item]['report']['default'] = {
-        'switch': f"-{emit_group}_report '{emit_switch}standard item type <file>'",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': f"{emit_help} item report",
-        'example': [
-            f"cli: -{emit_group}_report '{emit_switch}ISO D000 bold my.rpt'",
-            f"api: chip.set({emit_api},'ISO','D000','report','hold', 'my.rpt')"],
-        'help': f"""
-        Filepath to report(s) of specified type documenting the successful
-        validation of the {group} checklist item for the.
-        """
-    }
+    scparam(cfg,[*path, standard, item, 'step'],
+            sctype='str',
+            shorthelp=f"{emit_help} item step",
+            switch=f"-{emit_group}_step '{emit_switch}standard item <str>'",
+            example=[
+                f"cli: -{emit_group}_step '{emit_switch}ISO D000 place'",
+                f"api: chip.set({emit_api},'ISO','D000','step','place')"],
+            schelp="""
+            Flowgraph step used to verify the {group} checklist item.
+            The parameter should be left empty for manual and for tool
+            flows that bypass the SC infrastructure.""")
 
-    localcfg[standard][item]['waiver'] = {
-        'switch': f"-{emit_group}_waiver '{emit_switch}standard item <file>'",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': f"{emit_help} item waiver report",
-        'example': [
-            f"cli: -{emit_group}_waiver '{emit_switch}ISO D000 my.waiver'",
-            f"api: chip.set({emit_api},'ISO','D000','waiver','my.waiver')"],
-        'help': f"""
-        Filepath to report(s) documenting waivers for the {group} checklist
-        item."""
-        }
+    scparam(cfg,[*path, standard, item, 'index'],
+            sctype='str',
+            defvalue='0',
+            shorthelp=f"{emit_help} item index",
+            switch=f"-{emit_group}_index '{emit_switch}standard item <str>'",
+            example=[
+                f"cli: -{emit_group}_index '{emit_switch}ISO D000 1'",
+                f"api: chip.set({emit_api},'ISO','D000','index','1')"],
+            schelp="""
+            Flowgraph index used to verify the {group} checklist item.
+            The parameter should be left empty for manual checks and
+            for tool flows that bypass the SC infrastructure.""")
 
-    localcfg[standard][item]['step'] = {
-        'switch': f"-{emit_group}_step '{emit_switch}standard item <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': f"{emit_help} item step ",
-        'example': [
-            f"cli: -{emit_group}_step '{emit_switch}ISO D000 place'",
-            f"api: chip.set({emit_api},'ISO','D000','step','place')"],
-        'help': """
-        The flowgraph step used to verify the {group} checklist item.
-        The parameter should be left empty for manual verification
-        not related to automated tool reports.
-        """
-    }
+    scparam(cfg,[*path, standard, item, 'report', metric],
+            sctype='[file]',
+            shorthelp=f"{emit_help} item metric report",
+            switch=f"-{emit_group}_report '{emit_switch}standard item metric <file>'",
+            example=[
+                f"cli: -{emit_group}_report '{emit_switch}ISO D000 bold my.rpt'",
+                f"api: chip.set({emit_api},'ISO','D000','report','hold', 'my.rpt')"],
+            schelp="""
+            Filepath to report(s) of specified type documenting the successful
+            validation of the {group} checklist item. Specified on a per
+            metric basis.""")
 
-    localcfg[standard][item]['index'] = {
-        'switch': f"-{emit_group}_index '{emit_switch}standard item <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': "0",
-        'shorthelp': f"{emit_help} item index",
-        'example': [
-            f"cli: -{emit_group}_step '{emit_switch}ISO D000 place'",
-            f"api: chip.set({emit_api},'ISO','D000','step','place')"],
-        'help': """
-        The flowgraph index used to verify the {group} checklist item.
-        The index value defaults to 0.
-        """
-    }
+    scparam(cfg,[*path, standard, item, 'waiver', metric],
+            sctype='[file]',
+            shorthelp=f"{emit_help} item metric waivers",
+            switch=f"-{emit_group}_waiver '{emit_switch}standard item metric <file>'",
+            example=[
+                f"cli: -{emit_group}_waiver '{emit_switch}ISO D000 bold my.txt'",
+                f"api: chip.set({emit_api},'ISO','D000','waiver','hold', 'my.txt')"],
+            schelp="""
+            Filepath to report(s) documenting waivers for the {group} checklist
+            item specified on a per metric basis.""")
 
-    localcfg[standard][item]['ok'] = {
-        'switch': f"-{emit_group}_ok '{emit_switch}standard item <str>'",
-        'type': 'bool',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': "false",
-        'shorthelp': f"{emit_help} item ok",
-        'example': [
-            f"cli: -{emit_group}_ok '{emit_switch}ISO D000 true'",
-            f"api: chip.set({emit_api},'ISO','D000','ok', True)"],
-        'help': """
-        Boolean check mark for the {group} checklist item. A value of
-        True indicates a human has inspected the all item dictionary
-        parameters check out.
-        """
-    }
-
-    # copy package dictionary into library/project
-    if group == 'library':
-        cfg['library']['default']['checklist'] = copy.deepcopy(localcfg)
-    else:
-        cfg['checklist'] = copy.deepcopy(localcfg)
+    scparam(cfg,[*path, standard, item, 'ok'],
+            sctype='bool',
+            shorthelp=f"{emit_help} item ok",
+            switch=f"-{emit_group}_ok '{emit_switch}standard item <str>'",
+            example=[
+                f"cli: -{emit_group}_ok '{emit_switch}ISO D000 true'",
+                f"api: chip.set({emit_api},'ISO','D000','ok', True)"],
+            schelp="""
+            Boolean check mark for the {group} checklist item. A value of
+            True indicates a human has inspected the all item dictionary
+            parameters check out.""")
 
     return cfg
 
@@ -4114,6 +4047,7 @@ def schema_checklist(cfg, group='checklist'):
 def schema_design(cfg):
     ''' Design Sources
     '''
+    name = 'default'
 
     scparam(cfg,['design'],
             sctype='str',
@@ -4142,7 +4076,6 @@ def schema_design(cfg):
             (\\*.cpp, .cc)  = C++
             (\\*.py)        = Python""")
 
-    name = 'default'
     scparam(cfg,['param', name],
             sctype='str',
             shorthelp="Design parameter",
@@ -4285,8 +4218,7 @@ def schema_design(cfg):
             compilation flow tools.""")
 
     #TODO: move this to datasheet
-    net = 'default'
-    scparam(cfg,['clock', net, 'pin'],
+    scparam(cfg,['clock', name, 'pin'],
             sctype='str',
             shorthelp="Clock driver pin",
             switch="-clock_pin 'clkname <str>'",
@@ -4295,8 +4227,8 @@ def schema_design(cfg):
             schelp="""
             Defines a clock name alias to assign to a clock source.""")
 
-    #TODO: use ns, seconds, or specify in units
-    scparam(cfg,['clock', net, 'period'],
+    #TODO: use ns, seconds, or specify in units?
+    scparam(cfg,['clock', name, 'period'],
             sctype='float',
             shorthelp="Clock period",
             switch="-clock_period 'clkname <float>",
@@ -4305,7 +4237,7 @@ def schema_design(cfg):
             schelp="""
             Specifies the period for a clock source in nanoseconds.""")
 
-    scparam(cfg,['clock', net, 'jitter'],
+    scparam(cfg,['clock', name, 'jitter'],
             sctype='float',
             shorthelp="Clock jitter",
             switch="-clock_jitter 'clkname <float>",
@@ -4314,7 +4246,7 @@ def schema_design(cfg):
             schelp="""
             Specifies the jitter for a clock source in nanoseconds.""")
 
-    scparam(cfg,['supply', net, 'pin'],
+    scparam(cfg,['supply', name, 'pin'],
             sctype='str',
             shorthelp="Supply pin mapping",
             switch="-supply_pin 'supplyname <str>'",
@@ -4326,7 +4258,7 @@ def schema_design(cfg):
             output pin.""")
 
     # move to datasheet
-    scparam(cfg,['supply', net, 'level'],
+    scparam(cfg,['supply', name, 'level'],
             sctype='float',
             shorthelp="Supply level",
             switch="-supply_level 'supplyname <float>'",
@@ -4336,7 +4268,7 @@ def schema_design(cfg):
             Voltage level for the name supply, specified in Volts.
             """)
 
-    scparam(cfg,['supply', net, 'noise'],
+    scparam(cfg,['supply', name, 'noise'],
             sctype='float',
             shorthelp="Supply noise",
             switch="-supply_noise 'supplyname <float>'",
