@@ -39,14 +39,12 @@ def main():
                "/../../third_party/designs/oh/")
     #Checking asiclib
     libdir = os.path.join(oh_dir, 'asiclib', 'hdl')
-    print(libdir)
     filelist = glob.glob(libdir + '/*.v')
     dontcheck = ['asic_keeper.v',
                  'asic_antenna.v',
                  'asic_header.v',
                  'asic_footer.v',
                  'asic_decap.v']
-    print(filelist)
     for item in dontcheck:
         filelist.remove(os.path.join(libdir, item))
 

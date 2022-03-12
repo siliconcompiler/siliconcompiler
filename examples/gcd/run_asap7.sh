@@ -3,9 +3,9 @@
 OPT=$1
 
 echo $OPT
-sc examples/gcd/gcd.v \
+sc gcd.v \
    -target "asap7_demo" \
-   -constraint "examples/gcd/gcd.sdc" \
+   -constraint "gcd.sdc" \
    -asic_diearea "(0,0)" \
    -asic_diearea "(100.13,100.8)" \
    -asic_corearea "(10.07,11.2)" \
