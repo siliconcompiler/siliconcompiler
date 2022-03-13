@@ -98,7 +98,7 @@ def setup(chip, flowname='fpgaflow'):
             chip.set('metric', step, index, metric, 'goal', 0)
         # Metrics
         for metric in ('luts','dsps','brams','registers',
-                       'pins','peakpower','standbypower'):
+                       'pins','peakpower','leakagepower'):
             chip.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
         prevstep = step
 
