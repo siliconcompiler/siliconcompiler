@@ -1517,47 +1517,36 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     return cfg
 
 ###########################################################################
-# Local (not global!) parameters for controlling tools
+# Scratch parameters (for internal use only)
 ###########################################################################
 def schema_arg(cfg):
 
 
-    cfg['arg'] = {}
-
-    cfg['arg']['step'] = {
-        'switch': "-arg_step <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Current step',
-        'example': ["cli: -arg_step 'route'",
+    scparam(cfg, ['arg', 'step'],
+            sctype='str',
+            shorthelp="Current step",
+            switch="-arg_step <str>",
+            example=["cli: -arg_step 'route'",
                     "api: chip.set('arg', 'step', 'route')"],
-        'help': """
-        Dynamic variable passed in by the sc runtime as an argument to
-        an EDA tool. The variable allows the EDA configuration code
-        (usually TCL) to use control flow that depend on the current
-        executions step rather than having separate files called
-        for each step.
-        """
-    }
+            schelp="""
+            Dynamic parameter passed in by the sc runtime as an argument to
+            a runtime task. The parameter enables configuration code
+            (usually TCL) to use control flow that depend on the current
+            'step'. The parameter is used the run() fucntion and
+            is not intended for external use.""")
 
-    cfg['arg']['index'] = {
-        'switch': "-arg_index <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Current index',
-        'example': ["cli: -arg_index 0",
+    scparam(cfg, ['arg', 'index'],
+            sctype='str',
+            shorthelp="Current sindex",
+            switch="-arg_index <str>",
+            example=["cli: -arg_index 0",
                     "api: chip.set('arg','index','0')"],
-        'help': """
-        Dynamic variable passed in by the sc runtime as an argument to
-        an EDA tool to indicate the index of the step being worked on.
-        """
-    }
+            schelp="""
+            Dynamic parameter passed in by the sc runtime as an argument to
+            a runtime task. The parameter enables configuration code
+            (usually TCL) to use control flow that depend on the current
+            'index'. The parameter is used the run() fucntion and
+            is not intended for external use.""")
 
     return cfg
 
@@ -1567,656 +1556,285 @@ def schema_arg(cfg):
 
 def schema_metric(cfg, step='default', index='default',group='default'):
 
-    cfg['metric'] = {}
-    cfg['metric'][step] = {}
-    cfg['metric'][step][index] = {}
 
-    cfg['metric'][step][index]['errors'] = {}
-    cfg['metric'][step][index]['errors'][group] = {
-        'switch': "-metric_errors 'step index group <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric total errors',
-        'example': [
-            "cli: -metric_errors 'dfm 0 goal 0'",
-            "api: chip.set('metric','dfm','0','errors','real','0')"],
-        'help': """
-        Metric tracking the total number of errors on a per step basis.
-        """
-    }
+    metrics = {'errors': 'errors',
+               'warnings' :'warnings',
+               'drvs' : 'design rule violations',
+               'unconstrained' : 'unconstrained timing paths'}
 
-    cfg['metric'][step][index]['warnings'] = {}
-    cfg['metric'][step][index]['warnings'][group] = {
-        'switch': "-metric_warnings 'step index group <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric total warnings',
-        'example': [
-            "cli: -metric_warnings 'dfm 0 goal 0'",
-            "api: chip.set('metric','dfm','0','warnings','real','0')"],
+    for item, val in metrics.items():
+        scparam(cfg, ['metric', step, index, item, group],
+            sctype='int',
+                scope='job',
+            require='all',
+            shorthelp=f"Metric: total {item}",
+            switch=f"-metric_{item} 'step index group <int>'",
+            example=[
+                f"cli: -metric_{item} 'dfm 0 goal 0'",
+                f"api: chip.set('metric','dfm','0','{item}','real',0)"],
+            schelp=f"""Metric tracking the total number of {val} on a
+            per step and index basis.""")
 
-        'help': """
-        Metric tracking the total number of warnings on a per step basis.
-        """
-    }
+    scparam(cfg, ['metric', step, index, 'coverage', group],
+            sctype='float',
+            scope='job',
+            require='all',
+            shorthelp=f"Metric: coverage",
+            switch="-metric_coverage 'step index group <float>'",
+            example=[
+                "cli: -metric_coverage 'place 0 goal 99.9'",
+                "api: chip.set('metric','place','0','coverage','goal',99.9)"],
+            schelp=f"""
+            Metric tracking the test coverage in the design expressed as a percentage
+            with 100 meaning full coverage. The meaning of the metric depends on the
+            task being executed. It can refer to code coverage, feature coverage,
+            stuck at fault coverage.""")
 
-    cfg['metric'][step][index]['drvs'] = {}
-    cfg['metric'][step][index]['drvs'][group] = {
-        'switch': "-metric_drv 'step index group <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric design rule violations',
-        'example': [
-            "cli: -metric_drvs 'dfm 0 goal 0'",
-            "api: chip.set('metric','dfm','0','drvs','real','0')"],
-        'help': """
-        Metric tracking the total number of design rule violations on per step
-        basis.
-        """
-    }
+    scparam(cfg, ['metric', step, index, 'security', group],
+            sctype='float',
+            scope='job',
+            require='all',
+            shorthelp="Metric: security",
+            switch="-metric_security 'step index group <float>'",
+            example=[
+                "cli: -metric_security 'place 0 goal 100'",
+                "api: chip.set('metric','place','0','security','goal',100)"],
+            schelp=f"""
+            Metric tracking the level of security (1/vulnerability) of the design.
+            A completely secure design would have a score of 100. There is no
+            absolute scale for the security metrics (like with power, area, etc)
+            so the metric will be task and tool dependent.""")
 
-    cfg['metric'][step][index]['unconstrained'] = {}
-    cfg['metric'][step][index]['unconstrained'][group] = {
-        'switch': "-metric_unconstrained 'step index group <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric unconstrained paths',
-        'example': [
-            "cli: -metric_unconstrained 'place 0 goal 0'",
-            "api: chip.set('metric','place','0','unconstrained','goal','0')"],
-        'help': """
-        Metric tracking the total number of unconstrained timing paths.
-        """
-    }
+    metrics = {'luts': 'FPGA LUTs',
+               'dsps' :'FPGA DSP slices',
+               'brams' : 'FPGA BRAM tiles'}
 
-    cfg['metric'][step][index]['coverage'] = {}
-    cfg['metric'][step][index]['coverage'][group] = {
-        'switch': "-metric_coverage 'step index group <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric coverage',
-        'example': [
-            "cli: -metric_coverage 'place 0 goal 99.9'",
-            "api: chip.set('metric','place','0','coverage','goal','99.9')"],
-        'help': """
-        Metric tracking the test coverage in the design expressed as a percentage
-        with 100 meaning full coverage. The meaning of the metric depends on the
-        task being executed. It can refer to code coverage, feature coverage,
-        stuck at fault coverage.
-        """
-    }
+    for item, val in metrics.items():
+        scparam(cfg, ['metric', step, index, item, group],
+                sctype='int',
+                scope='job',
+                require='fpga',
+                shorthelp=f"Metric: {val}",
+                switch=f"-metric_{item} 'step index group <int>'",
+                example=[
+                    f"cli: -metric_{item} 'place 0 goal 100'",
+                    f"api: chip.set('metric','place','0','{item}','real',100)"],
+                schelp=f"""
+                Metric tracking the total {val} used by the design as reported
+                by the implementation tool. There is no standardized definition
+                for this metric across vendors, so metric comparisons can
+                generally only be done between runs on identical tools and
+                device families.""")
 
-    cfg['metric'][step][index]['security'] = {}
-    cfg['metric'][step][index]['security'][group] = {
-        'switch': "-metric_security 'step index group <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric security',
-        'example': [
-            "cli: -metric_security 'place 0 goal 100'",
-            "api: chip.set('metric','place','0','security','goal','100')"],
-        'help': """
-        Metric tracking the level of security (1/vulnerability) of the design.
-        A completely secure design would have a score of 100. There is no
-        absolute scale for the security metrics (like with power, area, etc)
-        so the metric will be task and tool dependent.
-        """
-    }
+    metrics = {'cellarea': 'cell area (ignoring fillers)',
+               'totalarea' :'physical die area'}
 
+    for item, val in metrics.items():
+        scparam(cfg, ['metric', step, index, item, group],
+                sctype='float',
+                scope='job',
+                require='asic',
+                shorthelp=f"Metric: {item}",
+                switch=f"-metric_{item} 'step index group <float>'",
+                example=[
+                    f"cli: -metric_{item} 'place 0 goal 100.00'",
+                    f"api: chip.set('metric','place','0','{item}','real',100.00)"],
+                schelp=f"""
+                Metric tracking the total {val} occupied by the design. The
+                metric is specified in um^2.""")
 
-    cfg['metric'][step][index]['luts'] = {}
-    cfg['metric'][step][index]['luts'][group] = {
-        'switch': '-metric_luts step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'require': 'fpga',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric FPGA LUT count',
-        'example': [
-            "cli: -metric_luts 'place 0 goal 100'",
-            "api: chip.set('metric','place','0','luts','real','100')"],
-        'help': """
-        Metric tracking the total FPGA LUTs used by the design as reported
-        by the implementation tool. There is no standard LUT definition,
-        so metric comparisons can generally only be done between runs on
-        identical tools and device families.
-        """
-    }
+    scparam(cfg, ['metric', step, index, 'utilization', group],
+            sctype='float',
+            scope='job',
+            require='asic',
+            shorthelp=f"Metric: area utilization",
+            switch=f"-metric_utilization step index group <float>",
+            example=[
+                f"cli: -metric_utilization 'place 0 goal 50.00'",
+                f"api: chip.set('metric','place','0','utilization','real',50.00)"],
+            schelp=f"""
+            Metric tracking the area utilization of the design calculated as
+            100 * (cellarea/totalarea).""")
 
-    cfg['metric'][step][index]['dsps'] = {}
-    cfg['metric'][step][index]['dsps'][group] = {
-        'switch': '-metric_dsps step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'require': 'fpga',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric FPGA DSP count',
-        'example': [
-            "cli: -metric_dsps 'place 0 goal 100'",
-            "api: chip.set('metric','place','0','dsps','real','100')"],
-        'help': """
-        Metric tracking the total FPGA DSP slices used by the design as reported
-        by the implementation tool. There is no standard DSP definition,
-        so metric comparisons can generally only be done between runs on
-        identical tools and device families.
-        """
-    }
+    metrics = {'peakpower': 'worst case total peak power',
+               'averagepower': 'average workload power',
+               'dozepower': 'power consumed while in low frequency operating mode',
+               'idlepower': 'power while not performing useful work',
+               'leakagepower' :'leakage power with rails active but without any dynamic switching activity',
+               'sleeppower': 'power consumed with some or all power rails gated off'}
 
-    cfg['metric'][step][index]['brams'] = {}
-    cfg['metric'][step][index]['brams'][group] = {
-        'switch': '-metric_brams step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'require': 'fpga',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric FPGA BRAM count',
-        'example': [
-            "cli: -metric_bram 'place 0 goal 100'",
-            "api: chip.set('metric','place','0','brams','real','100')"],
-        'help': """
-        Metric tracking the total FPGA BRAM tiles used by the design as
-        reported by the implementation tool. There is no standard DSP
-        definition, so metric comparisons can generally only be done between
-        runs on identical tools and device families.
-        """
-    }
+    for item, val in metrics.items():
+        scparam(cfg, ['metric', step, index, item, group],
+                sctype='float',
+                scope='job',
+                require='all',
+                shorthelp=f"Metric: {item}",
+                switch=f"-metric_{item} 'step index group <float>'",
+                example=[
+                    f"cli: -metric_{item} 'place 0 goal 0.01'",
+                    f"api: chip.set('metric','place','0','{item}','real',0.01)"],
+                schelp=f"""
+                Metric tracking the {val} of the design specified on a per step
+                and index basis. Power metric depend heavily on the method
+                being used for extraction: dynamic vs static, workload
+                specification (vcd vs saif), power models, process/voltage/temperature.
+                The power {item} metric tries to capture the data that would
+                usually be reflected inside a datasheet given the approprate
+                footnote conditions.""")
 
-    cfg['metric'][step][index]['cellarea'] = {}
-    cfg['metric'][step][index]['cellarea'][group] = {
-        'switch': '-metric_cellarea step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric cell area',
-        'example': [
-            "cli: -metric_cellarea 'place 0 goal 100.00'",
-            "api: chip.set('metric','place','0','cellarea','real','100.00')"],
-        'help': """
-        Metric tracking the sum of all non-filler standard cells on a per and per
-        index basis specified in um^2.
-        """
-    }
+    scparam(cfg, ['metric', step, index, 'irdrop', group],
+            sctype='float',
+            scope='job',
+            require='asic',
+            shorthelp=f"Metric: peak IR drop",
+            switch="-metric_irdrop 'step index group <float>'",
+            example=[
+                f"cli: -metric_irdrop 'place 0 real 0.05'",
+                f"api: chip.set('metric','place','0','irdrop','real',0.05)"],
+            schelp=f"""
+            Metric tracking the peak IR drop in the design based on extracted
+            power and ground rail parasitics, library power models, and
+            switching activity. The switching activity calculated on a per
+            node basis is taken from one of three possible sources, in order
+            of priority: VCD file, SAIF file, 'activityfactor' parameter.""")
 
-    cfg['metric'][step][index]['totalarea'] = {}
-    cfg['metric'][step][index]['totalarea'][group] = {
-        'switch': '-metric_totalarea step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric total area',
-        'example': [
-            "cli: -metric_totalarea 'place 0 goal 100.00'",
-            "api: chip.set('metric','place','0','totalarea','real','100.00')"],
-        'help': """
-        Metric tracking the total physical area occupied by the design,
-        including cellarea, fillers, and any addiotnal white space/margins. The
-        number is specified in um^2.
-        """
-    }
+    metrics = {'holdpaths': 'hold',
+               'setuppaths': 'setup'}
 
-    cfg['metric'][step][index]['utilization'] = {}
-    cfg['metric'][step][index]['utilization'][group] = {
-        'switch': '-metric_utilization step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric area utilization',
-        'example': [
-            "cli: -metric_utilization 'place 0 goal 50.00'",
-            "api: chip.set('metric','place','0','utilization','real','50.00')"],
-        'help': """
-        Metric tracking the area utilization of the design calculated as
-        100 * (cellarea/totalarea).
-        """
-    }
+    for item, val in metrics.items():
+        scparam(cfg, ['metric', step, index, item, group],
+                sctype='int',
+                scope='job',
+                require='all',
+                shorthelp=f"Metric: {item}",
+                switch=f"-metric_{item} 'step index group <float>'",
+                example=[
+                    f"cli: -metric_{item} 'place 0 goal 10'",
+                    f"api: chip.set('metric','place','0','{item}','real',10)"],
+                schelp=f"""
+                Metric tracking the total number of timing paths violating {val}
+                constraints.""")
 
-    cfg['metric'][step][index]['peakpower'] = {}
-    cfg['metric'][step][index]['peakpower'][group] = {
-        'switch': '-metric_peakpower step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric total power',
-        'example': [
-            "cli: -metric_peakpower 'place 0 real 0.001'",
-            "api: chip.set('metric','place','0','peakpower','real','0.001')"],
-        'help': """
-        Metric tracking the worst case total power of the design on a per step
-        basis calculated based on setup config and VCD stimulus. Metric unit is
-        Watts.
-        """
-    }
+    metrics = {'holdslack': 'worst hold slack (positive or negative)',
+               'holdwns': 'worst negative hold slack (positive values truncated to zero)',
+               'holdtns': 'total negative hold slack (TNS)',
+               'setupslack': 'worst setup slack (positive or negative)',
+               'setupwns': 'worst negative setup slack (positive values truncated to zero)',
+               'setuptns': 'total negative setup slack (TNS)'}
 
-    cfg['metric'][step][index]['standbypower'] = {}
-    cfg['metric'][step][index]['standbypower'][group] = {
-        'switch': '-metric_standbypower step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric leakage power',
-        'example': [
-            "cli: -metric_standbypower 'place 0 real 1e-6'",
-            "api: chip.set('metric',place','0','standbypower','real','1e-6')"],
-        'help': """
-        Metric tracking the leakage power of the design on a per step
-        basis. Metric unit is Watts.
-        """
-    }
+    for item, val in metrics.items():
+        scparam(cfg, ['metric', step, index, item, group],
+                sctype='float',
+                scope='job',
+                require='all',
+                shorthelp=f"Metric: {item}",
+                switch=f"-metric_{item} 'step index group <float>'",
+                example=[
+                    f"cli: -metric_{item} 'place 0 goal 0.01'",
+                    f"api: chip.set('metric','place','0','{item}','real', 0.01)"],
+                schelp=f"""
+                Metric tracking the {val} on a per step and index basis.
+                Metric unit is nanoseconds.""")
 
-    cfg['metric'][step][index]['irdrop'] = {}
-    cfg['metric'][step][index]['irdrop'][group] = {
-        'switch': "-metric_irdrop 'step index group <int>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric peak IR drop',
-        'example': [
-            "cli: -metric_irdrop 'place 0 real 0.05'",
-            "api: chip.set('metric','place','0','irdrop','real','0.05')"],
-        'help': """
-        Metric tracking the peak IR drop in the design based on extracted
-        power and ground rail parasitics, library power models, and
-        switching activity. The switching activity calculated on a per
-        node basis is taken from one of three possible sources, in order
-        of priority: VCD file, SAIF file, 'activityfactor' parameter.
-        """
-    }
+    metrics = {'macros': 'macros',
+               'cells': 'cell instances',
+               'registers': 'register instances',
+               'buffers': 'buffer and inverter instances',
+               'transistors': 'transistors',
+               'pins': 'pins',
+               'nets': 'nets',
+               'vias': 'vias'}
 
-    cfg['metric'][step][index]['holdslack'] = {}
-    cfg['metric'][step][index]['holdslack'][group] = {
-        'switch': "-metric_holdslack 'step index group <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric hold slack',
-        'example': [
-            "cli: -metric_holdslack 'place 0 real 0.0'",
-            "api: chip.set('metric','place','0','holdslack','real','0')"],
-        'help': """
-        Metric tracking of worst hold slack (positive or negative) on
-        a per per step and index basis. Metric unit is nanoseconds.
-        """
-    }
+    for item, val in metrics.items():
+        scparam(cfg, ['metric', step, index, item, group],
+                sctype='int',
+                scope='job',
+                require='asic',
+                shorthelp=f"Metric: {item}",
+                switch=f"-metric_{item} 'step index group <float>'",
+                example=[
+                    f"cli: -metric_{item} 'place 0 goal 100'",
+                    f"api: chip.set('metric','place','0','{item}','real', 50)"],
+                schelp=f"""
+                Metric tracking the total number of {val} in the design
+                on a per step and index basis.""")
 
-    cfg['metric'][step][index]['holdwns'] = {}
-    cfg['metric'][step][index]['holdwns'][group] = {
-        'switch': "-metric_holdwns 'step index group <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric hold worst negative slack',
-        'example': [
-            "cli: -metric_holdwns 'place 0 real 0.42",
-            "api: chip.set('metric','place','0','holdwns','real,'0.43')"],
-        'help': """
-        Metric tracking the worst hold/min timing path slack in the design.
-        Positive values means there is spare/slack, negative slack means the design
-        is failing a hold timing constraint. The metric unit is nanoseconds.
-        """
-    }
+    item = 'wirelength'
+    scparam(cfg, ['metric', step, index, item, group],
+            sctype='float',
+            scope='job',
+            require='asic',
+            shorthelp=f"Metric: {item}",
+            switch=f"-metric_{item} 'step index group <float>'",
+            example=[
+                f"cli: -metric_{item} 'place 0 goal 100.0'",
+                f"api: chip.set('metric','place','0','{item}','real', 50.0)"],
+            schelp=f"""
+            Metric tracking the total {item} of the design on a per step
+            and index basis. The unit is meters.""")
 
-    cfg['metric'][step][index]['holdtns'] = {}
-    cfg['metric'][step][index]['holdtns'][group] = {
-        'switch': "-metric_holdtns 'step index group <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric hold total negative slack',
-        'example': [
-            "cli: -metric_holdtns 'place 0 real 0.0'",
-            "api: chip.set('metric','place','0','holdtns','real','0')"],
-        'help': """
-        Metric tracking of total negative hold slack (TNS) on a per step basis.
-        Metric unit is nanoseconds.
-        """
-    }
+    item = 'overflow'
+    scparam(cfg, ['metric', step, index, item, group],
+            sctype='int',
+            scope='job',
+            require='asic',
+            shorthelp=f"Metric: {item}",
+            switch=f"-metric_{item} 'step index group <float>'",
+            example=[
+                f"cli: -metric_{item} 'place 0 goal 0'",
+                f"api: chip.set('metric','place','0','{item}','real', 50)"],
+            schelp=f"""
+            Metric tracking the total number of overflow tracks for the routing
+            on per step and index basis. Any non-zero number suggests an over
+            congested design. To analyze where the congestion is occurring
+            inspect the router log files for detailed per metal overflow
+            reporting and open up the design to find routing hotspots.""")
 
-    cfg['metric'][step][index]['holdpaths'] = {}
-    cfg['metric'][step][index]['holdpaths'][group] = {
-        'switch': "-metric_holdpaths 'step index group <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric hold path violations',
-        'example': [
-            "cli: -metric_holdpaths 'place 0 real 0'",
-            "api: chip.set('metric','place','0','holdpaths','real','0')"],
-        'help': """
-        Metric tracking the total number of timing paths violating hold
-        constraints.
-        """
-    }
+    item = 'memory'
+    scparam(cfg, ['metric', step, index, item, group],
+            sctype='float',
+            scope='job',
+            require='asic',
+            shorthelp=f"Metric: {item}",
+            switch=f"-metric_{item} 'step index group <float>'",
+            example=[
+                f"cli: -metric_{item} 'dfm 0 goal 10e9'",
+                f"api: chip.set('metric','dfm','0','{item}','real, 10e9)"],
+            schelp=f"""
+            Metric tracking total peak program memory footprint on a per
+            step and index basis, specified in bytes.""")
 
+    item = 'exetime'
+    scparam(cfg, ['metric', step, index, item, group],
+            sctype='float',
+            scope='job',
+            require='asic',
+            shorthelp=f"Metric: {item}",
+            switch=f"-metric_{item} 'step index group <float>'",
+            example=[
+                f"cli: -metric_{item} 'dfm 0 goal 10.0'",
+                f"api: chip.set('metric','dfm','0','{item}','real, 10.0)"],
+            schelp=f"""
+            Metric tracking time spent by the eda executable 'exe' on a
+            per step and index basis. It does not include the siliconcompiler
+            runtime overhead or time waitig for I/O operations and
+            inter-processor communication to complete. The metric unit
+            is seconds.""")
 
-    cfg['metric'][step][index]['setupslack'] = {}
-    cfg['metric'][step][index]['setupslack'][group] = {
-        'switch': "-metric_setupslack 'step index group <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric setup slack',
-        'example': [
-            "cli: -metric_setupslack 'place 0 real 0.0'",
-            "api: chip.set('metric','place','0','setupslack','real','0')"],
-        'help': """
-        Metric tracking of worst setup slack (positive or negative) on
-        a per per step and index basis. Metric unit is nanoseconds.
-        """
-    }
-
-    cfg['metric'][step][index]['setupwns'] = {}
-    cfg['metric'][step][index]['setupwns'][group] = {
-        'switch': "-metric_setupwns 'step index group <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric setup worst negative slack',
-        'example': [
-            "cli: -metric_setupwns 'place 0 goal 0.0",
-            "api: chip.set('metric','place','0','setupwns','real','0.0')"],
-        'help': """
-        Metric tracking the worst setup timing path slack in the design (WNS)
-        on a per step and per index basis. The maximum WNS is 0.0. The metric
-        unit is nanoseconds.
-        """
-    }
-
-    cfg['metric'][step][index]['setuptns'] = {}
-    cfg['metric'][step][index]['setuptns'][group] = {
-        'switch': "-metric_setuptns 'step index group <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric setup total negative slack',
-        'example': [
-            "cli: -metric_setuptns 'place 0 goal 0.0'",
-            "api: chip.set('metric','place','0','setuptns','real','0.0')"],
-        'help': """
-        Metric tracking of total negative setup slack (TNS) on a per step basis.
-        The maximum TNS is 0.0.  Metric unit is nanoseconds.
-        """
-    }
-
-    cfg['metric'][step][index]['setuppaths'] = {}
-    cfg['metric'][step][index]['setuppaths'][group] = {
-        'switch': "-metric_setuppaths 'step index group <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric setup path violations',
-        'example': [
-            "cli: -metric_setuppaths 'place 0 real 0'",
-            "api: chip.set('metric','place','0','setuppaths','real','0')"],
-        'help': """
-        Metric tracking the total number of timing paths violating setup
-        constraints.
-        """
-    }
-
-    cfg['metric'][step][index]['cells'] = {}
-    cfg['metric'][step][index]['cells'][group] = {
-        'switch': '-metric_cells step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric instance count',
-        'example': [
-            "cli: -metric_cells 'place 0 goal 100'",
-            "api: chip.set('metric','place','0','cells','goal,'100')"],
-        'help': """
-        Metric tracking the total number of instances on a per step basis.
-        Total cells includes registers. In the case of FPGAs, the it
-        represents the number of LUTs.
-        """
-    }
-
-    cfg['metric'][step][index]['registers'] = {}
-    cfg['metric'][step][index]['registers'][group] = {
-        'switch': "-metric_registers 'step index group <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric register count',
-        'example': [
-            "cli: -metric_registers 'place 0 real 100'",
-            "api: chip.set('metric','place','0','registers','real','100')"],
-        'help': """
-        Metric tracking the total number of register cells.
-        """
-    }
-
-    cfg['metric'][step][index]['buffers'] = {}
-    cfg['metric'][step][index]['buffers'][group] = {
-        'switch': "-metric_buffers 'step index group <int>'",
-        'type': 'int',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric buffer count',
-        'example': [
-            "cli: -metric_buffers 'place 0 real 100'",
-            "api: chip.set('metric','place','0','buffers','real','100')"],
-        'help': """
-        Metric tracking the total number of buffers and inverters in
-        the design. An excessive count usually indicates a flow, design,
-        or constraints problem.
-        """
-    }
-
-    cfg['metric'][step][index]['transistors'] = {}
-    cfg['metric'][step][index]['transistors'][group] = {
-        'switch': '-metric_transistors step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric transistor count',
-        'example': [
-            "cli: -metric_transistors 'place 0 goal 100'",
-            "api: chip.set('metric','place','0','transistors','real','100')"],
-        'help': """
-        Metric tracking the total number of transistors in the design
-        on a per step basis.
-        """
-    }
-    cfg['metric'][step][index]['nets'] = {}
-    cfg['metric'][step][index]['nets'][group] = {
-        'switch': '-metric_nets step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric net count',
-        'example': [
-            "cli: -metric_nets 'place 0 real 100'",
-            "api: chip.set('metric','place','0','nets','real','100')"],
-        'help': """
-        Metric tracking the total number of net segments on a per step
-        basis.
-        """
-    }
-    cfg['metric'][step][index]['pins'] = {}
-    cfg['metric'][step][index]['pins'][group] = {
-        'switch': '-metric_pins step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric pin count',
-        'example': [
-            "cli: -metric_pins 'place 0 real 100'",
-            "api: chip.set('metric','place','0','pins','real','100')"],
-        'help': """
-        Metric tracking the total number of I/O pins on a per step
-        basis.
-        """
-    }
-    cfg['metric'][step][index]['vias'] = {}
-    cfg['metric'][step][index]['vias'][group] = {
-        'switch': '-metric_vias step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric via count',
-        'example': [
-            "cli: -metric_vias 'route 0 real 100'",
-            "api: chip.set('metric','place','0','vias','real','100')"],
-        'help': """
-        Metric tracking the total number of vias in the design.
-        """
-    }
-    cfg['metric'][step][index]['wirelength'] = {}
-    cfg['metric'][step][index]['wirelength'][group] = {
-        'switch': '-metric_wirelength step index group <float>',
-        'type': 'float',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric wirelength',
-        'example': [
-            "cli: -metric_wirelength 'route 0 real 100.00'",
-            "api: chip.set('metric','place','0','wirelength','real','100.42')"],
-        'help': """
-        Metric tracking the total wirelength in the design in meters.
-        """
-    }
-
-    cfg['metric'][step][index]['overflow'] = {}
-    cfg['metric'][step][index]['overflow'][group] = {
-        'switch': '-metric_overflow step index group <int>',
-        'type': 'int',
-        'lock': 'false',
-        'require': 'asic',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric routing overflow',
-        'example': [
-            "cli: -metric_overflow 'route 0 real 0'",
-            "api: chip.set('metric','place','0','overflow','real','0')"],
-        'help': """
-        Metric tracking the total number of overflow tracks for the routing.
-        Any non-zero number suggests an over congested design. To analyze
-        where the congestion is occurring inspect the router log files for
-        detailed per metal overflow reporting and open up the design to find
-        routing hotspots.
-        """
-    }
-
-    cfg['metric'][step][index]['memory'] = {}
-    cfg['metric'][step][index]['memory'][group] = {
-        'switch': "-metric_memory 'step index group <float>'",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric total memory',
-        'example': [
-            "cli: -metric_memory 'dfm 0 goal 10e9'",
-            "api: chip.set('metric','dfm','0','memory','real,'10e6')"],
-        'help': """
-        Metric tracking the total memory on a per step basis, specified
-        in bytes.
-        """
-    }
-
-    cfg['metric'][step][index]['exetime'] = {}
-    cfg['metric'][step][index]['exetime'][group] = {
-        'switch': "-metric_exetime 'step index group <float>",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric executable time',
-        'example': [
-            "cli: -metric_exetime 'dfm 0 goal 35.3'",
-            "api: chip.set('metric','dfm','0','exetime','real','35.3')"],
-        'help': """
-        Executable time tracks the amount of time spent by the eda
-        executable 'exe'. It does not include the siliconcompiler
-        runtime overhead or time waitig for I/O operations and
-        inter-processor communication to complete.
-        """
-    }
-
-    cfg['metric'][step][index]['tasktime'] = {}
-    cfg['metric'][step][index]['tasktime'][group] = {
-        'switch': "-metric_tasktime 'step index group <float>",
-        'type': 'float',
-        'lock': 'false',
-        'require': 'all',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Metric task time',
-        'example': [
-            "cli: -metric_tasktime 'dfm 0 goal 35.3'",
-            "api: chip.set('metric','dfm','0','tasktime','real','35.3')"],
-        'help': """
-        Task time tracks the total amount of time spent on a task from
-        beginning to end, including data transfers and pre/post processing.
-        """
-    }
+    item = 'tasktime'
+    scparam(cfg, ['metric', step, index, item, group],
+            sctype='float',
+            scope='job',
+            require='asic',
+            shorthelp=f"Metric: {item}",
+            switch=f"-metric_{item} 'step index group <float>'",
+            example=[
+                f"cli: -metric_{item} 'dfm 0 goal 10.0'",
+                f"api: chip.set('metric','dfm','0','{item}','real, 10.0)"],
+            schelp=f"""
+            Metric trakcing the total amount of time spent on a task from
+            beginning to end, including data transfers and pre/post processing.
+            The metric unit is seconds.""")
 
     return cfg
 
@@ -3120,7 +2738,6 @@ def schema_options(cfg):
         Skips a specific step when executing the flowgraph in run().
         """
     }
-
 
     cfg['copyall'] = {
         'switch': "-copyall <bool>",
