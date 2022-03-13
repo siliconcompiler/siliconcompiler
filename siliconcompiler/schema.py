@@ -779,449 +779,185 @@ def schema_pdk(cfg, stackup='default'):
 
 def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 
-    cfg['library'] = {}
-    cfg['library'][lib] = {}
-    cfg['library'][lib][corner] = {}
+    design = 'default'
+    filetype = 'default'
+    pdk = 'default'
+    name = 'default'
+    tool = 'default'
+    key = 'default'
 
-    #data related fields
-    cfg['library'][lib]['type'] = {
-        'switch': "-library_type 'lib <str>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Library type',
-        'example': ["cli: -library_type 'mylib stdcell'",
-                    "api: chip.set('library','mylib','type','stdcell')"],
-        'help': """
-        Type of the library being configured. A 'stdcell' type is reserved
-        for fixed height standard cell libraries. A 'soft' type indicates
-        a library that is provided as technology agnostic source code, and
-        a 'hard' type indicates a technology specific non stdcell library.
-        """
-    }
+    scparam(cfg, ['library', lib, 'type'],
+            sctype='str',
+            shorthelp="Library type",
+            switch="-library_type 'lib <str>'",
+            example=["cli: -library_type 'mylib logiclib'",
+                    "api: chip.set('library','mylib','type','logiclib')"],
+            schelp="""
+            Type of the library being configured. A 'logiclib' type is reserved
+            for fixed height cell libraries. A 'soft' type indicates a library
+            that is provided as target agnostic source code, and a 'hard'
+            type indicates a non-logiclib target specificlibrary.""")
 
-    cfg['library'][lib]['source'] = {
-        'switch': "-library_source 'lib <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library source files',
-        'example': [
-            "cli: -library_source 'mylib hello.v'",
-            "api: chip.set('library','mylib','source','hello.v')"],
-        'help': """
-        List of library source files. File type is inferred from the
-        file suffix. The parameter is required or 'soft' library types and
-        optional for 'hard' and 'stdcell' library types.
-        (\\*.v, \\*.vh) = Verilog
-        (\\*.vhd)      = VHDL
-        (\\*.sv)       = SystemVerilog
-        (\\*.c)        = C
-        (\\*.cpp, .cc) = C++
-        (\\*.py)       = Python
-        """
-    }
+    scparam(cfg, ['library', lib, 'design'],
+            sctype='[str]',
+            shorthelp="Library designs",
+            switch="-library_design 'lib <str>'",
+            example=["cli: -library_design 'mylib mytop'",
+                    "api: chip.set('library','mylib','design','mytop')"],
+            schelp="""
+            List of complete design functions within the library that can
+            be instantiated directly by the caller.""")
 
-    cfg['library'][lib]['testbench'] = {}
-    cfg['library'][lib]['testbench']['default'] = {
-        'switch': "-library_testbench 'lib simtype <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library testbench',
-        'example': [
-            "cli: -library_testbench 'mylib rtl ./mylib_tb.v'",
-            "api: chip.set('library','mylib','testbench','rtl','/lib_tb.v')"],
-        'help': """
-        Filepaths to testbench specified on a per library and per simtype basis.
-        Typical simulation types include rtl, spice.
-        """
-    }
+    scparam(cfg, ['library', lib, design, 'testmodule'],
+            sctype='[str]',
+            shorthelp="Testbench top module",
+            switch="-library_testmodule 'lib design <str>'",
+            example=[
+                "cli: -libtary_testmodule 'mylib hello test_top'",
+                "api: chip.set('library','mylib','hello','testmodule', 'test_top')"],
+            schelp="""Top level test module specified on a per design basis.""")
 
-    cfg['library'][lib]['waveform'] = {
-        'switch': "-library_waveform 'lib <file>'",
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'true',
-        'require': None,
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library golden waveforms',
-        'example': [
-            "cli: -library_waveform 'mylib mytrace.vcd'",
-            "api: chip.set('library','mylib','waveform','mytrace.vcd')"],
-        'help': """
-        Library waveform(s) used as a golden test vectors to ensure that
-        compilation transformations do not modify the functional behavior of
-        the source code. The waveform file must be compatible with the
-        testbench and compilation flow tools.
-        """
-    }
+    scparam(cfg, ['library', lib, design, 'source'],
+            sctype='[file]',
+            shorthelp="Library source files",
+            switch="-library_source 'lib design <file>'",
+            example=[
+                "cli: -library_source 'mylib hello hello.v'",
+                "api: chip.set('library','mylib','hello','source','hello.v')"],
+            schelp="""
+            List of library source files specified on a per design basis. File type
+            is inferred from the file suffix. The parameter is required or
+            'soft' library types and optional for 'hard' and 'stdcell'
+            library types.
+            (\\*.v, \\*.vh) = Verilog
+            (\\*.vhd)      = VHDL
+            (\\*.sv)       = SystemVerilog
+            (\\*.c)        = C
+            (\\*.cpp, .cc) = C++
+            (\\*.py)       = Python
+            """)
 
-    cfg['library'][lib]['pdk'] = {
-        'switch': "-library_pdk 'lib <str>'",
-        'require': None,
-        'type': '[str]',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': [],
-        'shorthelp': 'Library PDK',
-        'example': ["cli: -library_pdk 'mylib freepdk45",
-                    "api:  chip.set('library', 'mylib', 'pdk', 'freepdk45')"],
-        'help': """
-        List of PDK modules supported by the library. The
-        parameter is required for technology hardened ASIC libraries.
-        """
-    }
+    scparam(cfg,['library', lib, design, 'testbench'],
+            sctype='[file]',
+            shorthelp="Library testbench files",
+            switch="-library_testbench 'lib design <file>'",
+            example=[
+                "cli: -library_testbench 'mylib hello tb_top.v'",
+                "api: chip.set('library','mylib, 'hello','testbench','tb_top.v')"],
+            schelp="""
+            A list of all library testbench sources. The files are read in order
+            from first to last entered. File type is inferred from the file suffix:
+            (\\*.v, \\*.vh) = Verilog
+            (\\*.vhd)      = VHDL
+            (\\*.sv)       = SystemVerilog
+            (\\*.c)        = C
+            (\\*.cpp, .cc) = C++
+            (\\*.py)       = Python""")
 
-    cfg['library'][lib]['stackup'] = {
-        'switch': "-library_stackup 'lib <str>'",
-        'require': None,
-        'type': '[str]',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': [],
-        'shorthelp': 'Library stackup',
-        'example': ["cli: -library_stackup 'mylib M10",
-                    "api:  chip.set('library', 'mylib', 'stackup', '10')"],
-        'help': """
-        List of PDK metal stackups supported by the library. The
-        parameter is required for technology hardened ASIC libraries.
-        """
-    }
+    scparam(cfg,['library', lib, design, 'waveform'],
+            sctype='[file]',
+            shorthelp="Library golden waveforms",
+            switch= "-library_waveform 'lib design <file>'",
+            example=[
+                "cli: -library_waveform 'mylib hello mytrace.vcd'",
+                "api: chip.set('library','mylib','hello','waveform','mytrace.vcd')"],
+            schelp="""
+            Library waveform(s) used as a golden test vectors to ensure that
+            compilation transformations do not modify the functional behavior of
+            the source code. The waveform file must be compatible with the
+            testbench and compilation flow tools. The wavefor is supplied
+            on a per design basis.""")
 
-    cfg['library'][lib]['arch'] = {
-        'switch': "-library_arch 'lib <str>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Library architecture type',
-        'example': [
-            "cli: -library_arch 'mylib 12t'",
-            "api: chip.set('library','mylib','arch,'12t')"],
-        'help': """
-        A unique string that identifies the row height or performance
-        class of a standard cell library for APR. The arch must match up with
-        the name used in the pdk_aprtech dictionary. Mixing of library archs
-        in a flat place and route block is not allowed. Examples of library
-        archs include 6 track libraries, 9 track libraries, 10 track
-        libraries, etc. The parameter is optional for 'component' libtypes.
-        """
-    }
+    scparam(cfg, ['library',lib, 'pdk'],
+            sctype='[str]',
+            shorthelp="Library PDK",
+            switch="-library_pdk 'lib <str>'",
+            example=[
+                "cli: -library_pdk 'mylib freepdk45",
+                "api:  chip.set('library', 'mylib', 'pdk', 'freepdk45')"],
+            schelp="""
+            List of PDK modules supported by the library. The
+            parameter is required for technology hardened ASIC libraries.""")
 
-    ###############################
-    # Models (Timing, Power, Noise)
-    ###############################
+    scparam(cfg, ['library',lib, pdk, 'stackup'],
+            sctype='[str]',
+            shorthelp="Library stackups",
+            switch="-library_stackup 'lib pdk <str>'",
+            example=[
+                "cli: -library_stackup 'mylib freepdk45 M10",
+                "api:  chip.set('library','mylib','freepdk45','stackup','M10')"],
+            schelp="""
+            List of stackups supported for the specified PDK.""")
 
-    cfg['library'][lib]['opcond'] = {}
-    cfg['library'][lib]['opcond'][corner] = {
-        'switch': "-library_opcond 'lib corner <str>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature' : None,
-        'defvalue': None,
-        'shorthelp': 'Library operating condition',
-        'example': [
-            "cli: -library_opcond 'lib ss_1.0v_125c WORST'",
-            "api: chip.set('library','lib','opcond','ss_1.0v_125c','WORST')"],
-        'help': """
-        Default operating condition to use for mcmm optimization and
-        signoff specified on a per corner basis.
-        """
-    }
+    scparam(cfg, ['library',lib, 'arch'],
+            sctype='str',
+            shorthelp="Library architecture",
+            switch="-library_arch 'lib <str>'",
+            example=[
+                "cli: -library_arch 'mylib 12t'",
+                "api: chip.set('library','mylib','arch,'12t')"],
+            schelp="""
+            Specifier string that identifies the row height or performance
+            class of a standard cell library for APR. The arch must match up with
+            the name used in the pdk_aprtech dictionary. Mixing of library archs
+            in a flat place and route block is not allowed. Examples of library
+            archs include 6 track libraries, 9 track libraries, 10 track
+            libraries, etc. The parameter is optional for 'component'
+            libtypes.""")
 
-    cfg['library'][lib]['check'] = {}
-    cfg['library'][lib]['check'][corner] = {
-        'switch': "-library_check 'lib corner <str>'",
-        'require': None,
-        'type': '[str]',
-        'lock': 'false',
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Library corner checks',
-        'example': [
-            "cli: -library_check 'lib ss_1.0v_125c setup'",
-            "api: chip.set('library','lib','check','ss_1.0v_125c','setup')"],
-        'help': """
-        Corner checks to perform during optimization and STA signoff.
-        Names used in the 'mcmm' scenarios must align with the 'check' names
-        used in this dictionary. Standard 'check' values include setup,
-        hold, power, noise, reliability but can be extended based on eda
-        support and methodology.
-        """
-    }
+    models = ['nldm',
+              'ccs',
+              'scm',
+              'aocv']
 
-    cfg['library'][lib]['nldm'] = {}
-    cfg['library'][lib]['nldm'][corner] = {}
-    cfg['library'][lib]['nldm'][corner]['default'] = {
-        'switch': "-library_nldm 'lib corner format <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library NLDM timing model',
-        'example': [
-            "cli: -library_nldm 'lib ss lib ss.lib.gz'",
-            "api: chip.set('library','lib','nldm','ss','lib','ss.lib.gz')"],
-        'help': """
-        Filepaths to NLDM models. Timing files are specified on a per lib,
-        per corner, and per format basis. Legal file formats are lib (ascii)
-        and ldb (binary). File decompression is handled automatically for
-        gz, zip, and bz2 compression formats.
-        """
-    }
+    for item in models:
+        scparam(cfg,['library', lib, item, corner, filetype],
+                sctype='[file]',
+                shorthelp=f"Library {item.upper()} timing model",
+                switch=f"-library_{item} 'lib corner filetype <file>'",
+                example=[
+                    f"cli: -library_{item} 'lib ss lib ss.lib.gz'",
+                    f"api: chip.set('library','lib','{item}','ss','lib','ss.lib.gz')"],
+                schelp=f"""
+                Filepaths to {item.upper()} models. Timing files are specified
+                per lib, corner, and filetype basis. Acceptable file formats
+                include 'lib', 'lib.gz', and 'ldb'. """)
 
-    cfg['library'][lib]['ccs'] = {}
-    cfg['library'][lib]['ccs'][corner] = {}
-    cfg['library'][lib]['ccs'][corner]['default'] = {
-        'switch': "-library_ccs 'lib corner format <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library CCS timing model',
-        'example': [
-            "cli: -library_ccs 'lib ss lib ss.lib.gz'",
-            "api: chip.set('library','lib','ccs','ss','lib','ss.lib.gz')"],
-        'help': """
-        Filepaths to CCS models. Timing files are specified on a per lib,
-        per corner, and per format basis. Legal file formats are lib (ascii)
-        and ldb (binary). File decompression is handled automatically for
-        gz, zip, and bz2 compression formats.
-        """
-    }
+    layout = ['lef',
+              'gds',
+              'def',
+              'gerber']
 
-    cfg['library'][lib]['scm'] = {}
-    cfg['library'][lib]['scm'][corner] = {}
-    cfg['library'][lib]['scm'][corner]['default'] = {
-        'switch': "-library_scm 'lib corner format <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library SCM timing model',
-        'example': [
-            "cli: -library_scm 'lib ss lib ss.lib.gz'",
-            "api: chip.set('library','lib','scm,'ss','lib','ss.lib.gz')"],
-        'help': """
-        Filepaths to SCM models. Timing files are specified on a per lib,
-        per corner, and per format basis. Legal file formats are lib (ascii)
-        and ldb (binary). File decompression is handled automatically for
-        gz, zip, and bz2 compression formats.
-        """
-    }
+    for item in layout:
+        scparam(cfg,['library', lib, item, stackup],
+                sctype='[file]',
+                shorthelp=f'Library {item.upper()} layout files',
+                switch=f"-library_{item} 'lib stackup <file>'",
+                example=[
+                    f"cli: -library_{item} 'mylib 10M mylib.{item}'",
+                    f"api: chip.set('library','mylib','{item}','10M','mylib.{item}')"],
+                schelp=f"""
+                List of library {item.upper()} layout files specified on a
+                per stackup basis.""")
 
-    cfg['library'][lib]['aocv'] = {}
-    cfg['library'][lib]['aocv'][corner] = {
-        'switch': "-library_aocv 'lib corner <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library AOCV timing model',
-        'example': [
-            "cli: -library_aocv 'lib ss lib.aocv'",
-            "api: chip.set('library','lib','aocv','ss','lib_ss.aocv')"],
-        'help': """
-        Filepaths to AOCV models. Timing files are specified on a per lib,
-        per corner basis. File decompression is handled automatically for
-        gz, zip, and bz2 compression formats.
-        """
-    }
+    formats = ['cdl',
+               'verilog',
+               'vhdl',
+               'edif'
+               'pspice',
+               'hspice',
+               'spectre'
+               'edif']
 
-    ###############################
-    # Layout
-    ###############################
-
-    cfg['library'][lib]['lef']= {}
-    cfg['library'][lib]['lef'][stackup] = {
-        'switch': "-library_lef 'lib stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library LEF layout files',
-        'example': ["cli: -library_lef 'mylib 10M mylib.lef'",
-                    "api: chip.set('library','mylib','lef','10M','mylib.lef')"],
-        'help': """
-        List of abstracted LEF format layout views of library cells that gives a
-        complete description of the cell's place and route boundary, pin positions,
-        pin metals, and metal routing blockages specified on a per stackup
-        basis.
-        """
-    }
-
-    cfg['library'][lib]['gds']= {}
-    cfg['library'][lib]['gds'][stackup] = {
-        'switch': "-library_gds 'lib stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library GDS layout files',
-        'example': [
-            "cli: -library_gds 'mylib 10M mylib.gds'",
-            "api: chip.set('library','mylib','gds','10M,'mylib.gds')"],
-        'help': """
-        List of library GDS layout files specified on a per stackup basis.
-        """
-    }
-
-
-    cfg['library'][lib]['def']= {}
-    cfg['library'][lib]['def'][stackup] = {
-        'switch': "-library_def 'lib stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library DEF layout files',
-        'example': [
-            "cli: -library_def 'mylib 10M mymacro.def'",
-            "api: chip.set('library','mylib','def','10M,'mymacro.def')"],
-        'help': """
-        List of library DEF layout files specified on a per stackup basis.
-        """
-    }
-
-    cfg['library'][lib]['gerber']= {}
-    cfg['library'][lib]['gerber'][stackup] = {
-        'switch': "-library_gerber 'lib stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library Gerber layout files',
-        'example': [
-            "cli: -library_gerber 'mylib 4L6MIL myboard.gbr'",
-            "api: chip.set('library','mylib','gerber','4L6MIL,'myboard.gbr')"],
-        'help': """
-        List of library Gerber layout files specified on a per stackup basis.
-        """
-    }
-
-    ###############################
-    # Netlist/Design
-    ###############################
-
-    cfg['library'][lib]['netlist'] = {}
-    cfg['library'][lib]['netlist']['default'] = {
-        'switch': "-library_netlist 'lib cdl <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library LVS netlists',
-        'example': [
-            "cli: -library_netlist 'mylib cdl mylib.cdl'",
-            "api: chip.set('library','mylib','netlist','cdl','mylib.cdl')"],
-        'help': """
-        List of files containing the golden netlist used for layout versus
-        schematic (LVS) checks. For transistor level libraries such as
-        standard cell libraries and SRAM macros, this should be a CDL type
-        netlist. For higher level modules like place and route blocks, it
-        should be a verilog gate level netlist.
-        """
-    }
-    cfg['library'][lib]['spice'] = {}
-    cfg['library'][lib]['spice']['default'] = {
-        'switch': "-library_spice 'lib format <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library spice netlists',
-        'example': [
-            "cli: -library_spice 'mylib pspice mylib.sp'",
-            "api: chip.set('library','mylib','spice','pspice','mylib.sp')"],
-        'help': """
-        List of files containing simulation spice netlists specified on a
-        per format basis.
-        """
-    }
+    for item in formats:
+        scparam(cfg,['library', lib, 'netlist', item],
+            sctype='[file]',
+            shorthelp=f'Library {item} netlist',
+            switch=f"-library_{item}_netlist 'lib <file>'",
+            example=[
+                f"cli: -library_{item}_netlist 'mylib cdl mylib.{item}'",
+                f"api: chip.set('library','mylib','netlist','{item}','mylib.{item}')"],
+            schelp=f"""List of library netlists in the {item} format.""")
 
     modeltypes = ['verilog',
                   'vhdl',
@@ -1230,110 +966,67 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
                   'qemu',
                   'gem5']
 
-    cfg['library'][lib]['model'] = {}
     for item in modeltypes:
-        cfg['library'][lib]['model'][item] = {
-            'switch': f"-library_model_{item} 'lib <file>'",
-            'require': None,
-            'type': '[file]',
-            'lock': 'false',
-            'copy': 'false',
-            'defvalue': [],
-            'filehash': [],
-            'hashalgo': 'sha256',
-            'date': [],
-            'author': [],
-            'signature': [],
-            'shorthelp': f'Library {item} model',
-            'example': [
-                f"cli: -library_model_{item} 'mylib modelname'",
-                f"api: chip.set('library','mylib','model',{item},'modelname')"],
-            'help': """
-            List of library {item} models.
-            """
-        }
+        scparam(cfg,['library', lib, 'model', stackup],
+                sctype='[file]',
+                shorthelp="'Library {item} model",
+                switch=f"-library_model_{item} 'lib <file>'",
+                example=[
+                    f"cli: -library_model_{item} 'mylib model.{item}'",
+                    f"api: chip.set('library','mylib','model',{item},'model.{item}')"],
+                schelp=f"""List of library {item} models.""")
 
-    ###############################
-    # Options
-    ###############################
-
-    cfg['library'][lib]['pgmetal'] = {
-        'switch': "-library_pgmetal 'lib <str>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Library power/ground layer',
-        'example': ["cli: -library_pgmetal 'mylib m1'",
+    scparam(cfg, ['library',lib, 'pgmetal'],
+            sctype='str',
+            shorthelp="Library PG layer",
+            switch="-library_pgmetal 'lib <str>'",
+            example=["cli: -library_pgmetal 'mylib m1'",
                     "api: chip.set('library','mylib','pgmetal','m1')"],
-        'help': """
-        Top metal layer used for power and ground routing within the library.
-        The parameter can be used to guide cell power grid hookup by APR tools.
-        """
-    }
+            schelp="""
+            Top metal layer used for power and ground routing within the
+            library. The parameter can be used to guide cell power grid
+            hookup by APR tools.""")
 
+    scparam(cfg, ['library',lib, 'tag'],
+            sctype='[str]',
+            shorthelp="Library tags",
+            switch="-library_tag 'lib <str>'",
+            example=["cli: -library_tag 'mylib virtual'",
+                     "api: chip.set('library','mylib','tag','virtual')"],
+            schelp="""
+            Marks a library with a set of tags that can be used by the designer
+            and EDA tools for optimization purposes. The tags are meant to cover
+            features not currently supported by built in EDA optimization flows,
+            but which can be queried through EDA tool TCL commands and lists.
+            The example below demonstrates tagging the whole library as
+            virtual.""")
 
-    cfg['library'][lib]['tag'] = {
-        'switch': "-library_tag 'lib <str>'",
-        'require': None,
-        'type': '[str]',
-        'lock': 'false',
-        'signature' : [],
-        'defvalue': [],
-        'shorthelp': 'Library tags',
-        'example': ["cli: -library_tag 'mylib virtual'",
-                    "api: chip.set('library','mylib','tag','virtual')"],
-        'help': """
-        Marks a library with a set of tags that can be used by the designer
-        and EDA tools for optimization purposes. The tags are meant to cover
-        features not currently supported by built in EDA optimization flows,
-        but which can be queried through EDA tool TCL commands and lists.
-        The example below demonstrates tagging the whole library as virtual.
-        """
-    }
+    scparam(cfg, ['library',lib, 'site', name, 'symmetry'],
+            sctype='str',
+            shorthelp="Library site symmetry",
+            switch="-library_site_symmetry 'lib name <str>'",
+            example=[
+                "cli: -library_site_symmetry 'mylib core X Y'",
+                "api: chip.set('library','mylib','site','core','symmetry','X Y')"],
+            schelp="""
+             Site flip-symmetry based on LEF standard definition. 'X' implies
+            symmetric about the x axis, 'Y' implies symmetry about the y axis, and
+            'X Y' implies symmetry about the x and y axis.""")
 
-    name = 'default'
-    cfg['library'][lib]['site'] = {}
-    cfg['library'][lib]['site'][name] = {}
+    scparam(cfg, ['library',lib, 'site', name, 'size'],
+            sctype='(float,float)',
+            shorthelp="Library site size",
+            switch="-library_site_size 'lib name <str>'",
+            example=[
+                "cli: -library_site_size 'mylib core (1.0,1.0)'",
+                "api: chip.set('library','mylib','site','core','size',(1.0,1.0))"],
+            schelp="""
+            Size of the library size described as a (width, height) tuple in
+            microns.""")
 
-    cfg['library'][lib]['site'][name]['symmetry'] = {
-        'switch': "-library_site_symmetry 'lib name <str>'",
-        'require': None,
-        'type': 'str',
-        'lock': 'false',
-        'signature' : [],
-        'defvalue': None,
-        'shorthelp': 'Library site symmetry',
-        'example': [
-            "cli: -library_site_symmetry 'mylib core X Y'",
-            "api: chip.set('library','mylib','site','core','symmetry','X Y')"],
-        'help': """
-        Site flip-symmetry based on LEF standard definition. 'X' implies
-        symmetric about the x axis, 'Y' implies symmetry about the y axis, and
-        'X Y' implies symmetry about the x and y axis.
-        """
-    }
-
-    cfg['library'][lib]['site'][name]['size'] = {
-        'switch': "-library_site_size 'lib name (float,float)'",
-        'require': None,
-        'type': '(float,float)',
-        'lock': 'false',
-        'signature' : [],
-        'defvalue': None,
-        'shorthelp': 'Library site size',
-        'example': [
-            "cli: -library_site_size 'mylib core (1.0,1.0)'",
-            "api: chip.set('library','mylib','site','core','size',(1.0,1.0))"],
-        'help': """
-        Site flip-symmetry based on LEF standard definition. The dimensions
-        are specified in the normal (or north) orientations in microns.
-        """
-    }
-
-    # Library units
+    # Cell types
     names = ['driver',
+             'load',
              'buf',
              'tie',
              'hold',
@@ -1343,114 +1036,60 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
              'clklogic',
              'ignore',
              'filler',
-             'tapcell',
+             'tap',
              'endcap',
              'antenna']
 
-    cfg['library'][lib]['cells'] = {}
     for item in names:
-        cfg['library'][lib]['cells'][item] = {
-            'switch': f"-library_cells_{item} 'lib <str>'",
-            'require': None,
-            'type': '[str]',
-            'lock': 'false',
-            'signature' : [],
-            'defvalue': [],
-            'shorthelp': f"Library {item} cell list",
-            'example': [
-                f"cli: -library_cells_{item} 'mylib *eco*'",
-                f"api: chip.set('library','mylib','cells',{item},'*eco*')"],
-            'help': """
-            List of cells grouped by a property that can be accessed
-            directly by the designer and tools. The example below shows how
-            all cells containing the string 'eco' could be marked as dont use
-            for the tool.
-        """
-    }
+        scparam(cfg, ['library',lib, 'cells', item],
+                sctype='[str]',
+                shorthelp=f"Library {item} cell list",
+                switch=f"-library_cells_{item} 'lib <str>'",
+                example=[
+                    f"cli: -library_cells_{item} 'mylib *eco*'",
+                    f"api: chip.set('library','mylib','cells',{item},'*eco*')"],
+                schelp="""
+                List of cells grouped by a property that can be accessed
+                directly by the designer and tools. The example below shows how
+                all cells containing the string 'eco' could be marked as dont use
+                for the tool.""")
 
 
-    ###############################
-    # Tool Specific Files
-    ###############################
+    # tool specific hacks
+    scparam(cfg, ['library',lib, 'techmap', tool],
+            sctype='[file]',
+            shorthelp="Library techmap file",
+            switch="-library_techmap 'lib tool <file>'",
+            example=[
+                "cli: -library_techmap 'lib mylib yosys map.v'",
+                "api: chip.set('library', 'mylib', 'techmap', 'yosys','map.v')"],
+            schelp="""
+            Filepaths specifying mappings from tool-specific generic cells to
+            library cells.""")
 
-    tool = 'default'
-    filetype = 'default'
-    cfg['library'][lib]['techmap'] = {}
-    cfg['library'][lib]['techmap'][tool] = {
-        'switch': "-library_techmap 'lib tool <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library techmap file',
-        'example': [
-            "cli: -library_techmap 'lib mylib yosys map.v'",
-            "api: chip.set('library', 'mylib', 'techmap', 'yosys','map.v')"],
-        'help': """
-        Filepaths specifying mappings from tool-specific generic cells to
-        library cells.
-        """
-    }
+    scparam(cfg, ['library',lib, 'file', tool, key, stackup],
+            sctype='[file]',
+            shorthelp="Library named file",
+            switch="-library_file 'lib tool key stackup <file>'",
+            example=[
+                "cli: -library_file 'lib atool db 10M ~/libdb'",
+                "api: chip.set('library','lib','file','atool','db',10M,'~/libdb')"],
+            schelp="""
+            List of named files specified on a per tool and per stackup basis.
+            The parameter should only be used for specifying files that are
+            not directly supported by the Library schema.""")
 
-    key = 'default'
-    cfg['library'][lib]['file'] = {}
-    cfg['library'][lib]['file'][tool] = {}
-    cfg['library'][lib]['file'][tool][key] = {}
-    cfg['library'][lib]['file'][tool][key][stackup] = {
-        'switch': "-library_file 'lib tool key stackup <file>'",
-        'require': None,
-        'type': '[file]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library named file',
-        'example': [
-            "cli: -library_file 'lib atool db 10M ~/libdb'",
-            "api: chip.set('library','lib','file','atool','db',10M,'~/libdb')"],
-        'help': """
-        List of named files specified on a per tool and per stackup basis.
-        The parameter should only be used for specifying files that are
-        not directly supported by the SiliconCompiler Library schema.
-        """
-    }
-
-
-    cfg['library'][lib]['dir'] = {}
-    cfg['library'][lib]['dir'][tool] = {}
-    cfg['library'][lib]['dir'][tool][key] = {}
-    cfg['library'][lib]['dir'][tool][key][stackup] = {
-        'switch': "-library_dir 'lib tool key stackup <file>'",
-        'require': None,
-        'type': '[dir]',
-        'lock': 'false',
-        'copy': 'false',
-        'defvalue': [],
-        'filehash': [],
-        'hashalgo': 'sha256',
-        'date': [],
-        'author': [],
-        'signature': [],
-        'shorthelp': 'Library named directory',
-        'example': [
-            "cli: -library_file 'lib atool db 10M ~/libdb'",
-            "api: chip.set('library','lib','file','atool','db','10M','~/libdb')"],
-        'help': """
-        List of named dirtectories specified on a per tool and per stackup
-        basis. The parameter should only be used for specifying files that are
-        not directly supported by the SiliconCompiler Library schema.
-        """
-    }
+    scparam(cfg, ['library',lib, 'dir', tool, key, stackup],
+            sctype='[dir]',
+            shorthelp="Library named directory",
+            switch="-library_dir 'lib tool key stackup <dir>'",
+            example=[
+                "cli: -library_dir 'lib atool db 10M ~/libdb'",
+                "api: chip.set('library','lib','dir','atool','db',10M,'~/libdb')"],
+            schelp="""
+            List of named dirs specified on a per tool and per stackup basis.
+            The parameter should only be used for specifying dirs that are
+            not directly supported by the Library schema.""")
 
     return cfg
 
