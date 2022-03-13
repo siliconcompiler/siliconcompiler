@@ -82,7 +82,7 @@ def setup(chip):
                                                       "DFFH*"])
 
         # Tapcell
-        chip.add('library',libname,'cells','tapcell', f"TAPCELL_ASAP7_75t_{suffix}")
+        chip.add('library',libname,'cells','tap', f"TAPCELL_ASAP7_75t_{suffix}")
 
         # Endcap
         chip.add('library',libname,'cells','endcap', f"DECAPx1_ASAP7_75t_{suffix}")

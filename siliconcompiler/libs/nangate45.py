@@ -91,7 +91,7 @@ def setup(chip):
                                                   "OAI211_X1"])
 
     # Tapcell
-    chip.add('library',libname,'cells','tapcell', "FILLCELL_X1")
+    chip.add('library',libname,'cells','tap', "FILLCELL_X1")
 
     # Endcap
     chip.add('library',libname,'cells','endcap', "FILLCELL_X1")
