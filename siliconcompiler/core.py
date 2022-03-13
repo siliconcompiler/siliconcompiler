@@ -3256,7 +3256,6 @@ class Chip:
 
         ##################
         # 4. Directory setup
-
         # support for sharing data across jobs
         job = self.get('jobname')
         in_job = job
@@ -3406,7 +3405,7 @@ class Chip:
         veropt = self.get('eda', tool, 'vswitch')
         exe = self._getexe(tool)
         version = None
-        if (veropt is not None) and (exe is not None):
+        if veropt and (exe is not None):
             cmdlist = [exe]
             cmdlist.extend(veropt)
             proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
@@ -3477,7 +3476,6 @@ class Chip:
 
         ##################
         # 18. Capture cpu runtime
-
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
         self.set('metric',step, index, 'exetime', 'real', cputime)
