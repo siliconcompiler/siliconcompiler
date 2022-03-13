@@ -1278,12 +1278,12 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             File format for tool manifest handoff. Supported formats are tcl,
             yaml, and json.""")
 
-    scparam(cfg, ['eda', tool, 'woff'],
+    scparam(cfg, ['eda', tool, 'warningoff'],
             sctype='[str]',
-            shorthelp="Tool manifest file format",
-            switch="-eda_woff 'tool <str>'",
-            example=["cli: -eda_woff 'verilator COMBDLY'",
-                     "api: chip.set('eda','verilator','woff','COMBDLY')"],
+            shorthelp="Tool warning filter",
+            switch="-eda_warningoff 'tool <str>'",
+            example=["cli: -eda_warningoff 'verilator COMBDLY'",
+                     "api: chip.set('eda','verilator','warningoff','COMBDLY')"],
             schelp="""
             A list of EDA warnings for which printing should be suppressed.
             Generally this is done on a per design basis after review has
@@ -2810,6 +2810,16 @@ def schema_options(cfg):
         must be configured before calling load_target().
         """
     }
+
+    scparam(cfg, ['metricoff'],
+            sctype='[str]',
+            shorthelp="Metric summary filter",
+            switch="-metricoff '<str>'",
+            example=["cli: -metricoff 'wirelength'",
+                     "api: chip.set('metricoff','wirelength')"],
+            schelp="""
+            List of metrics to supress when printing out the run
+            summary.""")
 
     return cfg
 
