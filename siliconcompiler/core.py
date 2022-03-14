@@ -969,7 +969,6 @@ class Chip:
                     elif val == False:
                         val = "false"
                 # checking if value has been set
-
                 if field not in cfg[param]:
                     selval = cfg[param]['defvalue']
                 else:
@@ -981,8 +980,8 @@ class Chip:
                     #print(keypath, "**", param, field, val, isinstance(val, list))
                     #TODO: line below is broken, should check for field
                     if (selval in empty) | clobber:
+                        #booleans
                         if field in ('copy', 'lock'):
-                            # boolean fields
                             if val is True:
                                 cfg[param][field] = "true"
                             elif val is False:
@@ -1636,7 +1635,7 @@ class Chip:
         # TODO: Need to add skip step
         step = self.get('arg', 'step')
         index = self.get('arg', 'index')
-        if step and index and not self.get('skip', 'all'):
+        if step and index and not self.get('skipall'):
             tool = self.get('flowgraph', flow, step, index, 'tool')
             if self.valid('eda', tool, 'input', step, index):
                 required_inputs = self.get('eda', tool, 'input', step, index)
@@ -3368,7 +3367,7 @@ class Chip:
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
-        if not self.get('skip', 'check'):
+        if not self.get('skipcheck'):
             if self.check_manifest():
                 self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
                 self._haltstep(step, index, active)
@@ -3440,7 +3439,7 @@ class Chip:
 
         if tool in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
-        elif not self.get('skip', 'all'):
+        elif not self.get('skipall'):
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             self.logger.info("Running in %s", workdir)
@@ -3483,7 +3482,7 @@ class Chip:
         ##################
         # 19. Post process (could fail)
         post_error = 0
-        if (tool not in self.builtin) and (not self.get('skip', 'all')) :
+        if (tool not in self.builtin) and (not self.get('skipall')) :
             func = self.find_function(tool, 'post_process', 'tools')
             if func:
                 post_error = func(self)
@@ -3493,7 +3492,7 @@ class Chip:
 
         ##################
         # 20. Check log file (must be after post-process)
-        if (tool not in self.builtin) and (not self.get('skip', 'all')) :
+        if (tool not in self.builtin) and (not self.get('skipall')) :
             self.check_logfile(step=step, index=index, display=not quiet)
 
         ##################
@@ -3716,7 +3715,7 @@ class Chip:
 
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
-            if not self.get('skip', 'check'):
+            if not self.get('skipcheck'):
                 self.check_manifest()
 
             # Check if there were errors before proceeding with run
