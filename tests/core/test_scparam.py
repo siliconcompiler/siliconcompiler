@@ -64,6 +64,7 @@ def test_scparam():
         'require': 'all',
         'signature': None,
         'defvalue': '0.0.0',
+        'value': '0.0.0',
         'shorthelp': 'Schema version number',
         'example': ["cli: -version_schema",
                     "api: chip.get('version', 'schema')"],
@@ -87,6 +88,7 @@ def test_scparam():
         'require': 'all',
         'signature': None,
         'defvalue': None,
+        'value': None,
         'shorthelp': 'Metric total warnings',
         'example': [
             "cli: -metric_warnings 'dfm 0 goal 0'",
@@ -104,6 +106,7 @@ def test_scparam():
         'require': 'asic',
         'signature': None,
         'defvalue': None,
+        'value': None,
         'shorthelp': 'Metric instance count',
         'example': [
             "cli: -metric_cells 'place 0 goal 100'",

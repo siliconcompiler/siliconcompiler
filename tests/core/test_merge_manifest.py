@@ -19,6 +19,7 @@ def test_merge_manifest():
     new_cfg['flowgraph'][flow]['syn'] = {}
     new_cfg['flowgraph'][flow]['syn']['0'] = copy.deepcopy(new_cfg['flowgraph']['default']['default']['default'])
     new_cfg['flowgraph'][flow]['syn']['0']['tool']['value'] = 'yosys'
+    new_cfg['flowgraph'][flow]['syn']['0']['timeout']['value'] = 0
 
     chip.merge_manifest(new_cfg)
     chip.write_manifest("merged.json")
