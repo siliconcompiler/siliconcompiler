@@ -33,6 +33,7 @@ import getpass
 import distro
 import netifaces
 import webbrowser
+import pty
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from timeit import default_timer as timer
@@ -3448,30 +3449,47 @@ class Chip:
             self.logger.info('%s', cmdstr)
             timeout = self.get('flowgraph', flow, step, index, 'timeout')
             logfile = step + '.log'
-            with open(logfile, 'w') as log_writer, open(logfile, 'r') as log_reader:
-                # Use separate reader/writer file objects as hack to display
-                # live output in non-blocking way, so we can monitor the
-                # timeout. Based on https://stackoverflow.com/a/18422264.
-                cmd_start_time = time.time()
-                proc = subprocess.Popen(cmdlist,
-                                        stdout=log_writer,
-                                        stderr=subprocess.STDOUT)
-                while proc.poll() is None:
-                    # Loop until process terminates
+            if sys.platform in ('darwin', 'linux') and step in self.get('bkpt'):
+                # When we break on a step, the tool often drops into a shell.
+                # However, our usual subprocess scheme seems to break terminal
+                # echo for some tools. On POSIX-compatible systems, we can use
+                # pty to connect the tool to our terminal instead. This code
+                # doesn't handle quiet/timeout logic, since we don't want either
+                # of these features for an interactive session. Logic for
+                # forwarding to file based on
+                # https://docs.python.org/3/library/pty.html#example.
+                with open(logfile, 'wb') as log_writer:
+                    def read(fd):
+                        data = os.read(fd, 1024)
+                        log_writer.write(data)
+                        return data
+                    retcode = pty.spawn(cmdlist, read)
+            else:
+                with open(logfile, 'w') as log_writer, open(logfile, 'r') as log_reader:
+                    # Use separate reader/writer file objects as hack to display
+                    # live output in non-blocking way, so we can monitor the
+                    # timeout. Based on https://stackoverflow.com/a/18422264.
+                    cmd_start_time = time.time()
+                    proc = subprocess.Popen(cmdlist,
+                                            stdout=log_writer,
+                                            stderr=subprocess.STDOUT)
+                    while proc.poll() is None:
+                        # Loop until process terminates
+                        if not quiet:
+                            sys.stdout.write(log_reader.read())
+                        if timeout is not None and time.time() - cmd_start_time > timeout:
+                            self.logger.error(f'Step timed out after {timeout} seconds')
+                            proc.terminate()
+                            self._haltstep(step, index, active)
+                        time.sleep(0.1)
+
+                    # Read the remaining
                     if not quiet:
                         sys.stdout.write(log_reader.read())
-                    if timeout is not None and time.time() - cmd_start_time > timeout:
-                        self.logger.error(f'Step timed out after {timeout} seconds')
-                        proc.terminate()
-                        self._haltstep(step, index, active)
-                    time.sleep(0.1)
+                    retcode = proc.returncode
 
-                # Read the remaining
-                if not quiet:
-                    sys.stdout.write(log_reader.read())
-
-            if proc.returncode != 0:
-                self.logger.warning('Command failed. See log file %s', os.path.abspath(logfile))
+            if retcode != 0:
+                self.logger.warning('Command failed with code %d. See log file %s', retcode, os.path.abspath(logfile))
                 if not self.get('eda', tool, 'continue'):
                     self._haltstep(step, index, active)
 
