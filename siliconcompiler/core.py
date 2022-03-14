@@ -4124,9 +4124,20 @@ class Chip:
             for option in runtime_options(self):
                 cmdlist.extend(shlex.split(option, posix=is_posix))
 
+        envvars = {}
+        for key in self.getkeys('env'):
+            envvars[key] = self.get('env', key)
+        if (step in self.getkeys('eda', tool, 'environment') and
+            index in self.getkeys('eda', tool, 'environment', step)):
+            for key in self.getkeys('eda', tool, 'environment', step, index):
+                envvars[key] = self.get('eda', tool, 'environment', step, index, key)
+
         #create replay file
         with open('replay.sh', 'w') as f:
-            print('#!/bin/bash\n', ' '.join(cmdlist), file=f)
+            print('#!/bin/bash', file=f)
+            for key, val in envvars.items():
+                print(f'export {key}={val}', file=f)
+            print(' '.join(shlex.quote(arg) for arg in cmdlist), file=f)
         os.chmod("replay.sh", 0o755)
 
         return cmdlist
