@@ -1520,8 +1520,8 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 ###########################################################################
 # Scratch parameters (for internal use only)
 ###########################################################################
-def schema_arg(cfg):
 
+def schema_arg(cfg):
 
     scparam(cfg, ['arg', 'step'],
             sctype='str',
@@ -1556,7 +1556,6 @@ def schema_arg(cfg):
 ###########################################################################
 
 def schema_metric(cfg, step='default', index='default',group='default'):
-
 
     metrics = {'errors': 'errors',
                'warnings' :'warnings',
@@ -1843,268 +1842,79 @@ def schema_metric(cfg, step='default', index='default',group='default'):
 # Design Tracking
 ###########################################################################
 
-def schema_record(cfg, job='default', step='default', index='default'):
+def schema_record(cfg, step='default', index='default'):
 
-    cfg['record'] = {}
-    cfg['record'][job] = {}
-    cfg['record'][job][step] = {}
-    cfg['record'][job][step][index] = {}
+    # setting up local data structure
+    # <key>  : ['short help', 'example' 'extended help']
 
-
-    cfg['record'][job][step][index]['userid'] = {
-        'switch': "-record_userid 'job step index <str>'",
-        'require': None,
-        'signature': None,
-        'type': 'str',
-        'lock': 'false',
-        'defvalue': None,
-        'shorthelp': 'Record userid',
-        'example': [
-            "cli: -record_userid 'job0 syn 0 tjelvar'",
-            "api: chip.set('record','job0','syn','0','userid','tjelvar')"],
-        'help': """
-        Record tracking the userid per job, step, index.
-        """
+    records = {'userid': ['userid',
+                          'wiley',
+                          ''],
+               'publickey' : ['public key',
+                              '<key>',
+                              ''],
+               'machine' : ['machine name',
+                            'carbon',
+                            '(myhost, localhost, ...'],
+               'macaddr' : ['MAC address',
+                            '<addr>',
+                            ''],
+               'ipaddr' : ['IP address',
+                           '<addr>',
+                           ''],
+               'platform' : ['platform name',
+                             'linux',
+                             '(linux, windows, freebasd)'],
+               'distro' : ['distro name',
+                           'ubuntu',
+                           '(ubuntu, redhat, centos)'],
+               'arch' : ['hardware architecture',
+                         'x86_64',
+                         '(x86_64, rv64imafdc)'],
+               'starttime' : ['start time',
+                              '2021-09-06 12:20:20',
+                              'Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC'],
+               'endtime' : ['end time',
+                            '2021-09-06 12:20:20',
+                            'Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC'],
+               'region' : ['cloud region',
+                           'US Gov Boston',
+                           """Recommended naming methodology:
+                           * local: node is the local machine
+                           * onprem: node in on-premises IT infrastructure
+                           * public: generic public cloud
+                           * govcloud: generic US government cloud
+                           * <region>: cloud and entity specific region string name
+                           """],
+               'toolversion': ['tool version',
+                               '1.0',
+                               """The tool version captured correspnds to the 'tool'
+                               parameter within the 'eda' dictoinary'."""],
+               'osversion': ['O/S version',
+                             '20.04.1-Ubuntu',
+                             """Since there is not standard version system for operating
+                             systems, extracting information from is platform dependent.
+                             For Linux based operating systems, the 'osversion' is the
+                             version of the distro."""],
+               'kernelversion' : ['O/S kernel version',
+                                  '5.11.0-34-generic',
+                                  """Used for platforms that support a distinction
+                                  between os kernels and os distributions."""]
     }
 
-    cfg['record'][job][step][index]['publickey'] = {
-        'switch': "-record_publickey 'job step index <str>'",
-        'require': None,
-        'signature': None,
-        'type': 'str',
-        'lock': 'false',
-        'defvalue': None,
-        'shorthelp': 'Record user publickey',
-        'example': [
-            "cli: -record_publickey 'job0 syn 0 <key>'",
-            "api: chip.set('record','job0','syn','0','userid','<key>')"],
-        'help': """
-        Record tracking the user public key per job, step, index.
-        """
-    }
-
-    cfg['record'][job][step][index]['version']={}
-    cfg['record'][job][step][index]['version']['sc'] = {
-        'switch': "-record_version_sc 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record sc version',
-        'example': [
-            "cli: -record_version_sc 'job0 dfm 0 1.0'",
-            "api: chip.set('record','job0', 'dfm','0', 'version', 'sc', '1.0')"],
-        'help': """
-        Record tracking the 'sc' version number per job, step, index.
-        """
-    }
-    cfg['record'][job][step][index]['version']['tool'] = {
-        'switch': "-record_version_tool 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record tool version',
-        'example': [
-            "cli: -record_version_tool 'job0 dfm 0 1.0'",
-            "api: chip.set('record','job0','dfm','0','version','tool','1.0')"],
-        'help': """
-        Record tracking the tool version number per job, step, index.
-        """
-    }
-
-    cfg['record'][job][step][index]['starttime'] = {
-        'switch': "-record_starttime 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-         'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record start-time',
-        'example': [
-            "cli: -record_starttime 'job0 dfm 2021-09-06 12:20:20'",
-            "api: chip.set('record','job0', 'dfm','0','starttime','2021-09-06 12:20:20')"],
-        'help': """
-        Record tracking the start time stamp per job, step, index.
-        The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
-        """
-    }
-
-    cfg['record'][job][step][index]['endtime'] = {
-        'switch': "-record_endtime 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record end-time',
-        'example': ["cli: -record_endtime 'job0 dfm 0 2021-09-06 12:20:20'",
-                    "api: chip.set('record','job0', 'dfm','0','endtime','2021-09-06 12:20:20')"],
-        'help': """
-        Record tracking the end time stamp per job, step, index.
-        The date format is the ISO 8601 format YYYY-MM-DD HR:MIN:SEC.
-        """
-    }
-
-    cfg['record'][job][step][index]['machine'] = {
-        'switch': "-record_machine 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record machine name',
-        'example': [
-            "cli: -record_machine 'job0 dfm 0 carbon'",
-            "api: chip.set('record','job0', 'dfm','0','machine','carbon')"],
-        'help': """
-        Record tracking the machine name per job, step, index.
-        (eg. carbon, silicon, mars, host0)
-        """
-    }
-
-    cfg['record'][job][step][index]['region'] = {
-        'switch': "-record_region 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record cloud region',
-        'example': ["cli: -record_region 'job0 dfm 0 US Gov Boston'",
-                    "api: chip.set('record','job0', 'dfm','0', 'region','US Gov Boston')"],
-        'help': """
-        Record tracking the operational region per job, step, index.
-        Recommended naming methodology:
-         * local: node is the local machine
-         * onprem: node in on-premises IT infrastructure
-         * public: generic public cloud
-         * govcloud: generic US government cloud
-         * <region>: cloud and entity specific region string name
-        """
-    }
-
-    cfg['record'][job][step][index]['macaddr'] = {
-        'switch': "-record_macaddr 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record MAC address',
-        'example': [
-            "cli: -record_macaddr 'job0 dfm 0 <addr>'",
-            "api: chip.set('record', 'job0', 'dfm', '0', 'macaddr', '<addr>')"],
-        'help': """
-        Record tracking the MAC address per job, step, index.
-        """
-    }
-
-    cfg['record'][job][step][index]['ipaddr'] = {
-        'switch': "-record_ipaddr 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record IP address',
-        'example': [
-            "cli: -record_ipaddr 'job0 dfm 0 <addr>'",
-            "api: chip.set('record', 'job0', 'dfm', '0', 'ipaddr', '<addr>')"],
-        'help': """
-        Record tracking the IP address per job, step, index.
-        """
-    }
-
-    cfg['record'][job][step][index]['platform'] = {
-        'switch': "-record_platform 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record platform',
-        'example': [
-            "cli: -record_platform 'job0 dfm 0 linux'",
-            "api: chip.set('record', 'job0', 'dfm', '0', 'platform', 'linux')"],
-        'help': """
-        Record tracking the platform name per job, step, index.
-        (linux, windows, freebsd, macos, ...).
-        """
-    }
-
-    cfg['record'][job][step][index]['distro'] = {
-        'switch': "-record_distro 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record O/S distribution',
-        'example': [
-            "cli: -record_distro 'job0 dfm 0 ubuntu'",
-            "api: chip.set('record', 'job0', 'dfm', '0', 'distro', 'ubuntu')"],
-        'help': """
-        Record tracking the platform distribution name per job, step, index.
-        (ubuntu, centos, redhat,...).
-        """
-    }
-
-    cfg['record'][job][step][index]['version']['os'] = {
-        'switch': "-record_version_os 'job step index machine <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record O/S version',
-        'example': [
-            "cli: -record_version_os 'job0 dfm 0 20.04.1-Ubuntu'",
-            "api: chip.set('record', 'job0', 'dfm', '0', 'version', 'os', '20.04.1-Ubuntu')"],
-        'help': """
-        Record tracking the operating system version name per job, step, index.
-        Since there is not standard version system for operating systems,
-        extracting information from is platform dependent. For Linux based
-        operating systems, the 'osversion' is the version of the distro.
-        """
-    }
-
-    cfg['record'][job][step][index]['version']['kernel'] = {
-        'switch': "-record_version_kernel 'job step index <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record O/S kernel version',
-        'example': [
-            "cli: -record_version_kernel 'job0 dfm 0 5.11.0-34-generic'",
-            "api: chip.set('record', 'job0', 'dfm', '0', 'version','kernel', '5.11.0-34-generic')"],
-        'help': """
-        Record tracking the operating system kernel version per job, step, index.
-        Used for platforms that support a distinction between os kernels and
-        os distributions.
-        """
-    }
-
-    cfg['record'][job][step][index]['arch'] = {
-        'switch': "-record_arch 'job step index machine <str>'",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'signature': None,
-        'defvalue': None,
-        'shorthelp': 'Record architecture',
-        'example': [
-            "cli: -record_arch 'job0 dfm 0 x86_64'",
-            "api: chip.set('record', 'job0', 'dfm', '0', 'arch', 'x86_64')"],
-        'help': """
-        Record tracking the hardware architecture per job, step, index.
-        (eg. x86_64).
-        """
-    }
+    for item,val in records.items():
+        scparam(cfg, ['record', step, index, item],
+                sctype='str',
+                scope='job',
+                shorthelp=f"Record: {val[0]}",
+                switch=f"-metric_{item} 'step index group <str>'",
+                example=[
+                    f"cli: -metric_{item} 'dfm 0 <{val[1]}>'",
+                    f"api: chip.set('metric','dfm','0','{item}', <{val[1]}>)"],
+                schelp=f"""
+                Record tracking the {val[0]} per step and index basis.
+                val[1]
+                """)
 
     return cfg
 
