@@ -49,12 +49,12 @@ def setup(chip, mode='batch'):
 
     if mode == 'show':
         clobber = True
-        script = '/sc_display.tcl'
         option = "-no_init -gui"
     else:
         clobber = False
-        script = '/sc_apr.tcl'
         option = "-no_init"
+
+    script = '/sc_apr.tcl'
 
     # exit automatically in batch mode and not bkpt
     if (mode=='batch') and (step not in chip.get('bkpt')):

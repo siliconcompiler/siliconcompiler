@@ -3910,8 +3910,6 @@ class Chip:
         if filetype in self.getkeys('showtool'):
             # Using env variable and manifest to pass arguments
             os.environ['SC_FILENAME'] = localfile
-            self.write_manifest("sc_manifest.tcl", abspath=True)
-            self.write_manifest("sc_manifest.json", abspath=True)
             # Setting up tool
             tool = self.get('showtool', filetype)
             step = 'show'+filetype
@@ -3920,6 +3918,8 @@ class Chip:
             self.set('arg', 'index', index)
             setup_tool = self.find_function(tool, 'setup', 'tools')
             setup_tool(self, mode='show')
+            self.write_manifest("sc_manifest.tcl", abspath=True)
+            self.write_manifest("sc_manifest.json", abspath=True)
             self.set('arg', 'step', None)
             self.set('arg', 'index', None)
 

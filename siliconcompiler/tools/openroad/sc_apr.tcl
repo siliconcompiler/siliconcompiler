@@ -106,6 +106,8 @@ set openroad_pad_detail_place [lindex [dict get $sc_cfg eda $sc_tool {variable} 
 set openroad_macro_place_halo [dict get $sc_cfg eda $sc_tool {variable} $sc_step  $sc_index  macro_place_halo]
 set openroad_macro_place_channel [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  macro_place_channel]
 
+set sc_batch [expr ![string match "show*" $sc_step]]
+
 ###############################
 # Optional
 ###############################
@@ -160,6 +162,8 @@ if {[dict exists $sc_cfg "read" def $sc_step $sc_index]} {
     }
 } elseif {[file exists "inputs/$sc_design.def"]} {
     read_def "inputs/$sc_design.def"
+} elseif {$sc_step == "showdef"} {
+    read_def $env(SC_FILENAME)
 }
 
 # Read SDC (in order of priority)
@@ -190,20 +194,22 @@ set_dont_use $sc_dontuse
 set_wire_rc -clock  -layer $sc_clkmetal
 set_wire_rc -signal -layer $sc_rcmetal
 
-###############################
-# Source Step Script
-###############################
+if {$sc_batch} {
+    ###############################
+    # Source Step Script
+    ###############################
 
-source "$sc_refdir/sc_$sc_step.tcl"
+    source "$sc_refdir/sc_$sc_step.tcl"
 
-###############################
-# Write Design Data
-###############################
+    ###############################
+    # Write Design Data
+    ###############################
 
-source "$sc_refdir/sc_write.tcl"
+    source "$sc_refdir/sc_write.tcl"
 
-###############################
-# Reporting
-###############################
+    ###############################
+    # Reporting
+    ###############################
 
-source "$sc_refdir/sc_metrics.tcl"
+    source "$sc_refdir/sc_metrics.tcl"
+}
