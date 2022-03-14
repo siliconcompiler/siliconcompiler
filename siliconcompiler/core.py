@@ -4131,10 +4131,10 @@ class Chip:
             license_file = self.get('eda', tool, 'licenseserver', item)
             if license_file:
                 envvars[item] = ':'.join(license_file)
-        if (step in self.getkeys('eda', tool, 'environment') and
-            index in self.getkeys('eda', tool, 'environment', step)):
-            for key in self.getkeys('eda', tool, 'environment', step, index):
-                envvars[key] = self.get('eda', tool, 'environment', step, index, key)
+        if (step in self.getkeys('eda', tool, 'env') and
+            index in self.getkeys('eda', tool, 'env', step)):
+            for key in self.getkeys('eda', tool, 'env', step, index):
+                envvars[key] = self.get('eda', tool, 'env', step, index, key)
 
         #create replay file
         is_posix = 'win' not in sys.platform

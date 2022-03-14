@@ -68,7 +68,7 @@ def test_replay(scroot):
     chip.set('arg', 'step', step)
     chip.set('flow', 'surelog')
     chip.set('quiet', True)
-    chip.set('eda', 'surelog', 'environment', step, '0', 'SLOG_ENV', 'SUCCESS')
+    chip.set('eda', 'surelog', 'env', step, '0', 'SLOG_ENV', 'SUCCESS')
 
     chip.run()
 
