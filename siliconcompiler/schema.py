@@ -96,6 +96,7 @@ def schema_cfg():
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
+    # Software version syncs with SC releases (from _metadata)
 
     SCHEMA_VERSION = '0.8.0'
 
@@ -160,7 +161,6 @@ def schema_version(cfg, version):
 
     scparam(cfg,['version', 'software'],
             sctype='str',
-            defvalue=version,
             shorthelp="Software version number",
             switch="-version_software <str>",
             example=["cli: -version_software",
