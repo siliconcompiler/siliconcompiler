@@ -65,7 +65,7 @@ def setup(chip):
                                                      'sky130_fd_sc_hd__fill_8'])
 
     # Tapcell
-    chip.add('library', libname, 'cells','tapcell', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
+    chip.add('library', libname, 'cells','tap', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
 
     # Endcap
     chip.add('library', libname, 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')

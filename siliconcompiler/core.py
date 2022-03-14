@@ -58,7 +58,7 @@ class Chip:
     """
 
     ###########################################################################
-    def __init__(self, design=None, loglevel="INFO"):
+    def __init__(self, design=None, loglevel=None):
 
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
@@ -88,9 +88,11 @@ class Chip:
         # because of a chicken-and-egg problem: self.set() relies on the logger,
         # but the logger relies on these values.
         self.cfg['design']['value'] = design
-        self.cfg['loglevel']['value'] = loglevel
+        if loglevel:
+            self.cfg['loglevel']['value'] = loglevel
         # We set scversion directly because it has its 'lock' flag set by default.
-        self.cfg['version']['sc']['value'] = _metadata.version
+        self.cfg['version']['software']['value'] = _metadata.version
+        self.cfg['version']['software']['defvalue'] = _metadata.version
 
         self._init_logger()
 
@@ -952,9 +954,6 @@ class Chip:
                 if (not param in cfg) & ('default' in cfg):
                     cfg[param] = copy.deepcopy(cfg['default'])
                 list_type =bool(re.match(r'\[', cfg[param]['type']))
-                # copying over defvalue if value doesn't exist
-                if 'value' not in cfg[param]:
-                    cfg[param]['value'] = copy.deepcopy(cfg[param]['defvalue'])
                 # checking for illegal fields
                 if not field in cfg[param] and (field != 'value'):
                     self.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
@@ -972,14 +971,14 @@ class Chip:
                     elif val == False:
                         val = "false"
                 # checking if value has been set
-                if field not in cfg[param]:
-                    selval = cfg[param]['defvalue']
-                else:
-                    selval = cfg[param]['value']
+                # TODO: fix clobber!!
+                selval = cfg[param]['value']
                 # updating values
                 if cfg[param]['lock'] == "true":
                     self.logger.debug("Ignoring {mode}{} to [{keypath}]. Lock bit is set.")
                 elif (mode == 'set'):
+                    #print(keypath, "**", param, field, val, isinstance(val, list))
+                    #TODO: line below is broken, should check for field
                     if (selval in empty) | clobber:
                         if field in ('copy', 'lock'):
                             # boolean fields
@@ -990,18 +989,30 @@ class Chip:
                             else:
                                 self.logger.error(f'{field} must be set to boolean.')
                                 self.error = 1
-                        elif field in ('filehash', 'date', 'author', 'signature'):
-                            if isinstance(val, list):
+                        elif field in ('hashalgo', 'scope', 'require','type',
+                                       'shorthelp', 'switch', 'help'):
+                            # awlays string scalars
+                            cfg[param][field] = val
+                        elif field in ('example'):
+                            # list from default schema (already a list)
+                            cfg[param][field] = val
+                        elif field in ('signature', 'filehash', 'date', 'author'):
+                            # convert to list if appropriate
+                            if isinstance(val, list) | (not list_type):
                                 cfg[param][field] = val
                             else:
                                 cfg[param][field] = [val]
                         elif (not list_type) & (val is None):
+                            # special case for None
                             cfg[param][field] = None
                         elif (not list_type) & (not isinstance(val, list)):
+                            # convert to string for scalar value
                             cfg[param][field] = str(val)
                         elif list_type & (not isinstance(val, list)):
+                            # convert to string for list value
                             cfg[param][field] = [str(val)]
                         elif list_type & isinstance(val, list):
+                            # converting tuples to strings
                             if re.search(r'\(', cfg[param]['type']):
                                 cfg[param][field] = list(map(str,val))
                             else:
@@ -1636,7 +1647,7 @@ class Chip:
         # TODO: Need to add skip step
         step = self.get('arg', 'step')
         index = self.get('arg', 'index')
-        if step and index and not self.get('skip', 'all'):
+        if step and index and not self.get('skipall'):
             tool = self.get('flowgraph', flow, step, index, 'tool')
             if self.valid('eda', tool, 'input', step, index):
                 required_inputs = self.get('eda', tool, 'input', step, index)
@@ -3256,7 +3267,6 @@ class Chip:
 
         ##################
         # 4. Directory setup
-
         # support for sharing data across jobs
         job = self.get('jobname')
         in_job = job
@@ -3361,15 +3371,15 @@ class Chip:
         # 10. Copy Reference Scripts
         if tool not in self.builtin:
             if self.get('eda', tool, 'copy'):
-                refdir = self.find_files('eda', tool, 'refdir', step, index)
-                utils.copytree(refdir, ".", dirs_exist_ok=True)
+                for refdir in self.find_files('eda', tool, 'refdir', step, index):
+                    utils.copytree(refdir, ".", dirs_exist_ok=True)
 
         ##################
         # 11. Check manifest
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
-        if not self.get('skip', 'check'):
+        if not self.get('skipcheck'):
             if self.check_manifest():
                 self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
                 self._haltstep(step, index, active)
@@ -3394,10 +3404,10 @@ class Chip:
                 os.environ[item] = ':'.join(license_file)
 
         # Tool-specific environment variables for this task.
-        if (step in self.getkeys('eda', tool, 'environment')) and \
-           (index in self.getkeys('eda', tool, 'environment', step)):
-            for item in self.getkeys('eda', tool, 'environment', step, index):
-                os.environ[item] = self.get('eda', tool, 'environment', step, index, item)
+        if (step in self.getkeys('eda', tool, 'env')) and \
+           (index in self.getkeys('eda', tool, 'env', step)):
+            for item in self.getkeys('eda', tool, 'env', step, index):
+                os.environ[item] = self.get('eda', tool, 'env', step, index, item)
 
         ##################
         # 14. Check exe version
@@ -3406,7 +3416,7 @@ class Chip:
         veropt = self.get('eda', tool, 'vswitch')
         exe = self._getexe(tool)
         version = None
-        if (veropt is not None) and (exe is not None):
+        if veropt and (exe is not None):
             cmdlist = [exe]
             cmdlist.extend(veropt)
             proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
@@ -3441,7 +3451,7 @@ class Chip:
 
         if tool in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
-        elif not self.get('skip', 'all'):
+        elif not self.get('skipall'):
             cmdlist = self._makecmd(tool, step, index)
             cmdstr = ' '.join(cmdlist)
             self.logger.info("Running in %s", workdir)
@@ -3477,7 +3487,6 @@ class Chip:
 
         ##################
         # 18. Capture cpu runtime
-
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
         self.set('metric',step, index, 'exetime', 'real', cputime)
@@ -3485,7 +3494,7 @@ class Chip:
         ##################
         # 19. Post process (could fail)
         post_error = 0
-        if (tool not in self.builtin) and (not self.get('skip', 'all')) :
+        if (tool not in self.builtin) and (not self.get('skipall')) :
             func = self.find_function(tool, 'post_process', 'tools')
             if func:
                 post_error = func(self)
@@ -3495,7 +3504,7 @@ class Chip:
 
         ##################
         # 20. Check log file (must be after post-process)
-        if (tool not in self.builtin) and (not self.get('skip', 'all')) :
+        if (tool not in self.builtin) and (not self.get('skipall')) :
             self.check_logfile(step=step, index=index, display=not quiet)
 
         ##################
@@ -3718,7 +3727,7 @@ class Chip:
 
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
-            if not self.get('skip', 'check'):
+            if not self.get('skipcheck'):
                 self.check_manifest()
 
             # Check if there were errors before proceeding with run
@@ -4007,7 +4016,7 @@ class Chip:
             cfgtype = re.sub(r'[\[\]]', '', cfg['type'])
             for item in valuelist:
                 valuetype =  type(item)
-                if (cfgtype != valuetype.__name__):
+                if ((cfgtype != valuetype.__name__) and (item is not None)):
                     tupletype = re.match(r'\([\w\,]+\)',cfgtype)
                     #TODO: check tuples!
                     if tupletype:

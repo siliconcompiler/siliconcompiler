@@ -241,7 +241,7 @@ def post_process(chip):
                     leakage = powerlist[2]
                     total = powerlist[3]
                     chip.set('metric', step, index, 'peakpower', 'real', float(total), clobber=True)
-                    chip.set('metric', step, index, 'standbypower', 'real', float(leakage), clobber=True)
+                    chip.set('metric', step, index, 'leakagepower', 'real', float(leakage), clobber=True)
 
     #Setting Warnings and Errors
     chip.set('metric', step, index, 'errors', 'real', errors, clobber=True)

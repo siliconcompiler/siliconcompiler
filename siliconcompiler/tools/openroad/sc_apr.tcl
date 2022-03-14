@@ -84,7 +84,7 @@ set sc_clkbuf      [dict get $sc_cfg library $sc_mainlib cells clkbuf]
 set sc_filler      [dict get $sc_cfg library $sc_mainlib cells filler]
 set sc_tie         [dict get $sc_cfg library $sc_mainlib cells tie]
 set sc_ignore      [dict get $sc_cfg library $sc_mainlib cells ignore]
-set sc_tapcell     [dict get $sc_cfg library $sc_mainlib cells tapcell]
+set sc_tap         [dict get $sc_cfg library $sc_mainlib cells tap]
 set sc_endcap      [dict get $sc_cfg library $sc_mainlib cells endcap]
 
 # PDK Design Rules

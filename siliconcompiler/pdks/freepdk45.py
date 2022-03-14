@@ -77,9 +77,6 @@ def setup(chip):
     chip.set('pdk','vscribe', vscribe)
     chip.set('pdk','d0', d0)
 
-    chip.set('pdk','tapmax', 120)
-    chip.set('pdk','tapoffset', 2)
-
     # APR tech file
     for tool in ('openroad', 'klayout', 'magic'):
         chip.set('pdk','aprtech', tool, stackup, libtype, 'lef',

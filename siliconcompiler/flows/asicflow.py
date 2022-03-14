@@ -142,7 +142,7 @@ def setup(chip, flowname='asicflow'):
             # metrics
             for metric in  ('errors','drvs','holdwns','setupwns','holdtns','setuptns'):
                 chip.set('metric', step, str(index), metric, 'goal', 0)
-            for metric in ('cellarea', 'peakpower', 'standbypower'):
+            for metric in ('cellarea', 'peakpower', 'leakagepower'):
                 chip.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
         prevstep = step
 

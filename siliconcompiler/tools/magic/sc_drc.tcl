@@ -15,13 +15,18 @@
 
 source ./sc_manifest.tcl
 
-set sc_design    [dict get $sc_cfg design]
-set sc_macrolibs [dict get $sc_cfg asic macrolib]
-set sc_exclude [dict get $sc_cfg asic exclude]
-set sc_stackup [dict get $sc_cfg asic stackup]
-
 set sc_step    [dict get $sc_cfg arg step]
 set sc_index   [dict get $sc_cfg arg index]
+
+set sc_design    [dict get $sc_cfg design]
+set sc_macrolibs [dict get $sc_cfg asic macrolib]
+set sc_stackup  [dict get $sc_cfg asic stackup]
+
+if {[dict exists $sc_cfg asic exclude $sc_step $sc_index]} {
+    set sc_exclude  [dict get $sc_cfg asic exclude $sc_step $sc_index]
+} else {
+    set sc_exclude [list]
+}
 
 # Ignore specific libraries by reading their LEFs (causes magic to abstract them)
 foreach lib $sc_macrolibs {

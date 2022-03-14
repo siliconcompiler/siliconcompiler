@@ -1,13 +1,18 @@
 source ./sc_manifest.tcl
 
+set sc_step    [dict get $sc_cfg arg step]
+set sc_index   [dict get $sc_cfg arg index]
+
 set sc_design  [dict get $sc_cfg design]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
-set sc_exclude [dict get $sc_cfg asic exclude]
 set sc_stackup [dict get $sc_cfg asic stackup]
 set sc_runset [dict get $sc_cfg pdk lvs runset netgen $sc_stackup]
 
-set sc_step    [dict get $sc_cfg arg step]
-set sc_index   [dict get $sc_cfg arg index]
+if {[dict exists $sc_cfg asic exclude $sc_step $sc_index]} {
+    set sc_exclude  [dict get $sc_cfg asic exclude $sc_step $sc_index]
+} else {
+    set sc_exclude [list]
+}
 
 set layout_file "inputs/$sc_design.spice"
 if {[dict exists $sc_cfg "read" netlist $sc_step $sc_index]} {

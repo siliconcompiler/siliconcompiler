@@ -68,8 +68,6 @@ def setup(chip):
     chip.set('pdk','node', node)
     chip.set('pdk','version', rev)
     chip.set('pdk','stackup', stackup)
-    chip.set('pdk','tapmax', 25)
-    chip.set('pdk','tapoffset', 0)
 
     # APR tech file
     for tool in ('openroad', 'klayout', 'magic'):
