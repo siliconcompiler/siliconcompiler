@@ -1907,10 +1907,10 @@ def schema_record(cfg, step='default', index='default'):
                 sctype='str',
                 scope='job',
                 shorthelp=f"Record: {val[0]}",
-                switch=f"-metric_{item} 'step index group <str>'",
+                switch=f"-record_{item} 'step index group <str>'",
                 example=[
-                    f"cli: -metric_{item} 'dfm 0 <{val[1]}>'",
-                    f"api: chip.set('metric','dfm','0','{item}', <{val[1]}>)"],
+                    f"cli: -record_{item} 'dfm 0 <{val[1]}>'",
+                    f"api: chip.set('record','dfm','0','{item}', <{val[1]}>)"],
                 schelp=f"""
                 Record tracking the {val[0]} per step and index basis.
                 val[1]
