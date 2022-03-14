@@ -400,13 +400,9 @@
         "value": []
     },
     "cfg": {
-        "author": [
-            []
-        ],
+        "author": [],
         "copy": "false",
-        "date": [
-            []
-        ],
+        "date": [],
         "defvalue": [],
         "example": [
             "cli: -cfg mypdk.json",
@@ -509,13 +505,9 @@
                 },
                 "report": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -checklist_report 'ISO D000 bold my.rpt'",
@@ -568,13 +560,9 @@
                 },
                 "waiver": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -checklist_waiver 'ISO D000 bold my.txt'",
@@ -665,13 +653,9 @@
         }
     },
     "cmdfile": {
-        "author": [
-            []
-        ],
+        "author": [],
         "copy": "false",
-        "date": [
-            []
-        ],
+        "date": [],
         "defvalue": [],
         "example": [
             "cli: -f design.f",
@@ -690,13 +674,9 @@
         "value": []
     },
     "constraint": {
-        "author": [
-            []
-        ],
+        "author": [],
         "copy": "true",
-        "date": [
-            []
-        ],
+        "date": [],
         "defvalue": [],
         "example": [
             "cli: -constraint top.sdc",
@@ -731,13 +711,9 @@
         "value": "false"
     },
     "credentials": {
-        "author": [
-            []
-        ],
+        "author": [],
         "copy": "false",
-        "date": [
-            []
-        ],
+        "date": [],
         "defvalue": [],
         "example": [
             "cli: -credentials /home/user/.sc/credentials",
@@ -894,13 +870,9 @@
             "input": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -eda_input 'openroad place 0 oh_add.def'",
@@ -961,13 +933,9 @@
             "output": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -eda_output 'openroad place 0 oh_add.def'",
@@ -1006,13 +974,9 @@
             "postscript": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -eda_postscript 'yosys syn 0 post.tcl'",
@@ -1035,13 +999,9 @@
             "prescript": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -eda_prescript 'yosys syn 0 pre.tcl'",
@@ -1107,13 +1067,9 @@
                 "default": {
                     "default": {
                         "default": {
-                            "author": [
-                                []
-                            ],
+                            "author": [],
                             "copy": "false",
-                            "date": [
-                                []
-                            ],
+                            "date": [],
                             "defvalue": [],
                             "example": [
                                 "cli: -eda_report 'openroad place 0 holdtns place.log'",
@@ -1157,13 +1113,9 @@
             "script": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -eda_script 'yosys syn 0 syn.tcl'",
@@ -1489,13 +1441,9 @@
     },
     "fpga": {
         "arch": {
-            "author": [
-                []
-            ],
+            "author": [],
             "copy": "true",
-            "date": [
-                []
-            ],
+            "date": [],
             "defvalue": [],
             "example": [
                 "cli: -fpga_arch myfpga.xml",
@@ -1752,13 +1700,9 @@
             "aocv": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_aocv 'lib ss lib ss.lib.gz'",
@@ -1797,13 +1741,9 @@
             "ccs": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_ccs 'lib ss lib ss.lib.gz'",
@@ -2134,13 +2074,9 @@
                         },
                         "report": {
                             "default": {
-                                "author": [
-                                    []
-                                ],
+                                "author": [],
                                 "copy": "false",
-                                "date": [
-                                    []
-                                ],
+                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -library_checklist_report 'lib ISO D000 bold my.rpt'",
@@ -2193,13 +2129,9 @@
                         },
                         "waiver": {
                             "default": {
-                                "author": [
-                                    []
-                                ],
+                                "author": [],
                                 "copy": "false",
-                                "date": [
-                                    []
-                                ],
+                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -library_checklist_waiver 'lib ISO D000 bold my.txt'",
@@ -2223,13 +2155,9 @@
             },
             "def": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_def 'mylib 10M mylib.def'",
@@ -2250,13 +2178,9 @@
             },
             "default": {
                 "source": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_source 'mylib hello hello.v'",
@@ -2291,13 +2215,9 @@
                     "value": []
                 },
                 "testbench": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_testbench 'mylib hello tb_top.v'",
@@ -2332,13 +2252,9 @@
                     "value": []
                 },
                 "waveform": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_waveform 'mylib hello mytrace.vcd'",
@@ -2399,13 +2315,9 @@
                 "default": {
                     "default": {
                         "default": {
-                            "author": [
-                                []
-                            ],
+                            "author": [],
                             "copy": "false",
-                            "date": [
-                                []
-                            ],
+                            "date": [],
                             "defvalue": [],
                             "example": [
                                 "cli: -library_file 'lib atool db 10M ~/libdb'",
@@ -2428,13 +2340,9 @@
             },
             "gds": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_gds 'mylib 10M mylib.gds'",
@@ -2455,13 +2363,9 @@
             },
             "gerber": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_gerber 'mylib 10M mylib.gerber'",
@@ -2482,13 +2386,9 @@
             },
             "lef": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_lef 'mylib 10M mylib.lef'",
@@ -2509,13 +2409,9 @@
             },
             "model": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_model_gem5 'mylib model.gem5'",
@@ -2536,13 +2432,9 @@
             },
             "netlist": {
                 "cdl": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_cdl_netlist 'mylib cdl mylib.cdl'",
@@ -2561,13 +2453,9 @@
                     "value": []
                 },
                 "edifpspice": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_edifpspice_netlist 'mylib cdl mylib.edifpspice'",
@@ -2586,13 +2474,9 @@
                     "value": []
                 },
                 "hspice": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_hspice_netlist 'mylib cdl mylib.hspice'",
@@ -2611,13 +2495,9 @@
                     "value": []
                 },
                 "spectreedif": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_spectreedif_netlist 'mylib cdl mylib.spectreedif'",
@@ -2636,13 +2516,9 @@
                     "value": []
                 },
                 "verilog": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_verilog_netlist 'mylib cdl mylib.verilog'",
@@ -2661,13 +2537,9 @@
                     "value": []
                 },
                 "vhdl": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_vhdl_netlist 'mylib cdl mylib.vhdl'",
@@ -2689,13 +2561,9 @@
             "nldm": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_nldm 'lib ss lib ss.lib.gz'",
@@ -2852,13 +2720,9 @@
                 },
                 "doc": {
                     "datasheet": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_package_doc_datasheet 'lib datasheet.pdf'",
@@ -2893,13 +2757,9 @@
                         "value": null
                     },
                     "quickstart": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_package_doc_quickstart 'lib quickstart.pdf'",
@@ -2918,13 +2778,9 @@
                         "value": []
                     },
                     "reference": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_package_doc_reference 'lib reference.pdf'",
@@ -2943,13 +2799,9 @@
                         "value": []
                     },
                     "releasenotes": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_package_doc_releasenotes 'lib releasenotes.pdf'",
@@ -2968,13 +2820,9 @@
                         "value": []
                     },
                     "signoff": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_package_doc_signoff 'lib signoff.pdf'",
@@ -2993,13 +2841,9 @@
                         "value": []
                     },
                     "testplan": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_package_doc_testplan 'lib testplan.pdf'",
@@ -3018,13 +2862,9 @@
                         "value": []
                     },
                     "tutorial": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_package_doc_tutorial 'lib tutorial.pdf'",
@@ -3043,13 +2883,9 @@
                         "value": []
                     },
                     "userguide": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_package_doc_userguide 'lib userguide.pdf'",
@@ -3117,13 +2953,9 @@
                     "value": []
                 },
                 "licensefile": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_package_licensefile 'lib ./LICENSE'",
@@ -3289,13 +3121,9 @@
             "scm": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -library_scm 'lib ss lib ss.lib.gz'",
@@ -3369,13 +3197,9 @@
             },
             "techmap": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -library_techmap 'lib mylib yosys map.v'",
@@ -3447,13 +3271,9 @@
                 "value": []
             },
             "constraint": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "true",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -mcmm_constraint 'worst hello.sdc'",
@@ -4544,13 +4364,9 @@
         },
         "doc": {
             "datasheet": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_datasheet 'datasheet.pdf'",
@@ -4585,13 +4401,9 @@
                 "value": null
             },
             "quickstart": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_quickstart 'quickstart.pdf'",
@@ -4610,13 +4422,9 @@
                 "value": []
             },
             "reference": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_reference 'reference.pdf'",
@@ -4635,13 +4443,9 @@
                 "value": []
             },
             "releasenotes": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_releasenotes 'releasenotes.pdf'",
@@ -4660,13 +4464,9 @@
                 "value": []
             },
             "signoff": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_signoff 'signoff.pdf'",
@@ -4685,13 +4485,9 @@
                 "value": []
             },
             "testplan": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_testplan 'testplan.pdf'",
@@ -4710,13 +4506,9 @@
                 "value": []
             },
             "tutorial": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_tutorial 'tutorial.pdf'",
@@ -4735,13 +4527,9 @@
                 "value": []
             },
             "userguide": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_userguide 'userguide.pdf'",
@@ -4809,13 +4597,9 @@
             "value": []
         },
         "licensefile": {
-            "author": [
-                []
-            ],
+            "author": [],
             "copy": "false",
-            "date": [
-                []
-            ],
+            "date": [],
             "defvalue": [],
             "example": [
                 "cli: -package_licensefile './LICENSE'",
@@ -4970,13 +4754,9 @@
                 "default": {
                     "default": {
                         "default": {
-                            "author": [
-                                []
-                            ],
+                            "author": [],
                             "copy": "false",
-                            "date": [
-                                []
-                            ],
+                            "date": [],
                             "defvalue": [],
                             "example": [
                                 "cli: -pdk_aprtech 'openroad M10 12t lef tech.lef'",
@@ -5034,13 +4814,9 @@
             "default": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -pdk_devmodel 'xyce spice M10 asap7.sp'",
@@ -5086,13 +4862,9 @@
         "display": {
             "default": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "false",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -pdk_display 'klayout M10 display.lyt'",
@@ -5114,13 +4886,9 @@
         },
         "doc": {
             "datasheet": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -pdk_doc_datasheet datasheet.pdf",
@@ -5139,13 +4907,9 @@
                 "value": []
             },
             "homepage": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -pdk_doc_homepage 'index.html",
@@ -5164,13 +4928,9 @@
                 "value": []
             },
             "install": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -pdk_doc_install install.pdf",
@@ -5189,13 +4949,9 @@
                 "value": []
             },
             "quickstart": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -pdk_doc_quickstart quickstart.pdf",
@@ -5214,13 +4970,9 @@
                 "value": []
             },
             "reference": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -pdk_doc_reference reference.pdf",
@@ -5239,13 +4991,9 @@
                 "value": []
             },
             "releasenotes": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -pdk_doc_releasenotes releasenotes.pdf",
@@ -5264,13 +5012,9 @@
                 "value": []
             },
             "tutorial": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -pdk_doc_tutorial tutorial.pdf",
@@ -5289,13 +5033,9 @@
                 "value": []
             },
             "userguide": {
-                "author": [
-                    []
-                ],
+                "author": [],
                 "copy": "false",
-                "date": [
-                    []
-                ],
+                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -pdk_doc_userguide userguide.pdf",
@@ -5318,13 +5058,9 @@
             "runset": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -pdk_drc_runset 'magic M10 $PDK/drc.rs'",
@@ -5347,13 +5083,9 @@
             "waiver": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -pdk_drc_waiver 'magic M10 $PDK/drc.txt'",
@@ -5394,13 +5126,9 @@
             "runset": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -pdk_erc_runset 'magic M10 $PDK/erc.rs'",
@@ -5423,13 +5151,9 @@
             "waiver": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -pdk_erc_waiver 'magic M10 $PDK/erc.txt'",
@@ -5454,13 +5178,9 @@
             "default": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -pdk_file 'xyce spice M10 asap7.sp'",
@@ -5690,13 +5410,9 @@
                 "default": {
                     "default": {
                         "default": {
-                            "author": [
-                                []
-                            ],
+                            "author": [],
                             "copy": "false",
-                            "date": [
-                                []
-                            ],
+                            "date": [],
                             "defvalue": [],
                             "example": [
                                 "cli: -pdk_layermap 'klayout db gds M10 asap7.map'",
@@ -5722,13 +5438,9 @@
             "runset": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -pdk_lvs_runset 'magic M10 $PDK/lvs.rs'",
@@ -5751,13 +5463,9 @@
             "waiver": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -pdk_lvs_waiver 'magic M10 $PDK/lvs.txt'",
@@ -5798,13 +5506,9 @@
             "default": {
                 "default": {
                     "default": {
-                        "author": [
-                            []
-                        ],
+                        "author": [],
                         "copy": "false",
-                        "date": [
-                            []
-                        ],
+                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -pdk_pexmodel 'fastcap M10 max wire.mod'",
@@ -5980,13 +5684,9 @@
         "def": {
             "default": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "true",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -read_def 'sta 0 mydesign.def'",
@@ -6009,13 +5709,9 @@
         "gds": {
             "default": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "true",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -read_gds 'sta 0 mydesign.gds'",
@@ -6038,13 +5734,9 @@
         "gerber": {
             "default": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "true",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -read_gerber 'sta 0 mydesign.gerber'",
@@ -6067,13 +5759,9 @@
         "netlist": {
             "default": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "true",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -read_netlist 'sta 0 mydesign.netlist'",
@@ -6096,13 +5784,9 @@
         "pcf": {
             "default": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "true",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -read_pcf 'sta 0 mydesign.pcf'",
@@ -6125,13 +5809,9 @@
         "saif": {
             "default": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "true",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -read_saif 'sta 0 mydesign.saif'",
@@ -6154,13 +5834,9 @@
         "sdc": {
             "default": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "true",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -read_sdc 'sta 0 mydesign.sdc'",
@@ -6183,13 +5859,9 @@
         "sdf": {
             "default": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "true",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -read_sdf 'sta 0 mydesign.sdf'",
@@ -6212,13 +5884,9 @@
         "spef": {
             "default": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "true",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -read_spef 'sta 0 mydesign.spef'",
@@ -6241,13 +5909,9 @@
         "vcd": {
             "default": {
                 "default": {
-                    "author": [
-                        []
-                    ],
+                    "author": [],
                     "copy": "true",
-                    "date": [
-                        []
-                    ],
+                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -read_vcd 'sta 0 mydesign.vcd'",
@@ -6629,13 +6293,9 @@
         "value": []
     },
     "source": {
-        "author": [
-            []
-        ],
+        "author": [],
         "copy": "true",
-        "date": [
-            []
-        ],
+        "date": [],
         "defvalue": [],
         "example": [
             "cli: hello_world.v",
@@ -6756,13 +6416,9 @@
         }
     },
     "testbench": {
-        "author": [
-            []
-        ],
+        "author": [],
         "copy": "true",
-        "date": [
-            []
-        ],
+        "date": [],
         "defvalue": [],
         "example": [
             "cli: -testbench tb_top.v",
@@ -7009,13 +6665,9 @@
         }
     },
     "vlib": {
-        "author": [
-            []
-        ],
+        "author": [],
         "copy": "false",
-        "date": [
-            []
-        ],
+        "date": [],
         "defvalue": [],
         "example": [
             "cli: -v './mylib.v'",
@@ -7034,13 +6686,9 @@
         "value": []
     },
     "waveform": {
-        "author": [
-            []
-        ],
+        "author": [],
         "copy": "false",
-        "date": [
-            []
-        ],
+        "date": [],
         "defvalue": [],
         "example": [
             "cli: -waveform mytrace.vcd",
