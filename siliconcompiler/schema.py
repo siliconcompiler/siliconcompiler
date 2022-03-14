@@ -944,10 +944,10 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     formats = ['cdl',
                'verilog',
                'vhdl',
-               'edif'
+               'edif',
                'pspice',
                'hspice',
-               'spectre'
+               'spectre',
                'edif']
 
     for item in formats:
@@ -970,7 +970,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
     for item in modeltypes:
         scparam(cfg,['library', lib, 'model', stackup],
                 sctype='[file]',
-                shorthelp="'Library {item} model",
+                shorthelp=f"Library {item} model",
                 switch=f"-library_model_{item} 'lib <file>'",
                 example=[
                     f"cli: -library_model_{item} 'mylib model.{item}'",
