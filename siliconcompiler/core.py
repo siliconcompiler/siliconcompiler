@@ -952,9 +952,6 @@ class Chip:
                 if (not param in cfg) & ('default' in cfg):
                     cfg[param] = copy.deepcopy(cfg['default'])
                 list_type =bool(re.match(r'\[', cfg[param]['type']))
-                # copying over defvalue if value doesn't exist
-                if 'value' not in cfg[param]:
-                    cfg[param]['value'] = copy.deepcopy(cfg[param]['defvalue'])
                 # checking for illegal fields
                 if not field in cfg[param] and (field != 'value'):
                     self.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
@@ -972,6 +969,7 @@ class Chip:
                     elif val == False:
                         val = "false"
                 # checking if value has been set
+
                 if field not in cfg[param]:
                     selval = cfg[param]['defvalue']
                 else:
@@ -980,6 +978,8 @@ class Chip:
                 if cfg[param]['lock'] == "true":
                     self.logger.debug("Ignoring {mode}{} to [{keypath}]. Lock bit is set.")
                 elif (mode == 'set'):
+                    #print(keypath, "**", param, field, val, isinstance(val, list))
+                    #TODO: line below is broken, should check for field
                     if (selval in empty) | clobber:
                         if field in ('copy', 'lock'):
                             # boolean fields
