@@ -73,6 +73,7 @@ def scparam(cfg,
         cfg['example'] = example
         cfg['help'] = schelp
         cfg['defvalue'] = defvalue
+        cfg['value'] = defvalue
         cfg['signature'] = signature
 
         # file only values
