@@ -58,7 +58,7 @@ class Chip:
     """
 
     ###########################################################################
-    def __init__(self, design=None, loglevel="INFO"):
+    def __init__(self, design=None, loglevel=None):
 
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
@@ -88,9 +88,11 @@ class Chip:
         # because of a chicken-and-egg problem: self.set() relies on the logger,
         # but the logger relies on these values.
         self.cfg['design']['value'] = design
-        self.cfg['loglevel']['value'] = loglevel
+        if loglevel:
+            self.cfg['loglevel']['value'] = loglevel
         # We set scversion directly because it has its 'lock' flag set by default.
         self.cfg['version']['software']['value'] = _metadata.version
+        self.cfg['version']['software']['defvalue'] = _metadata.version
 
         self._init_logger()
 
@@ -969,10 +971,8 @@ class Chip:
                     elif val == False:
                         val = "false"
                 # checking if value has been set
-                if field not in cfg[param]:
-                    selval = cfg[param]['defvalue']
-                else:
-                    selval = cfg[param]['value']
+                # TODO: fix clobber!!
+                selval = cfg[param]['value']
                 # updating values
                 if cfg[param]['lock'] == "true":
                     self.logger.debug("Ignoring {mode}{} to [{keypath}]. Lock bit is set.")
@@ -980,8 +980,8 @@ class Chip:
                     #print(keypath, "**", param, field, val, isinstance(val, list))
                     #TODO: line below is broken, should check for field
                     if (selval in empty) | clobber:
-                        #booleans
                         if field in ('copy', 'lock'):
+                            # boolean fields
                             if val is True:
                                 cfg[param][field] = "true"
                             elif val is False:
@@ -989,18 +989,30 @@ class Chip:
                             else:
                                 self.logger.error(f'{field} must be set to boolean.')
                                 self.error = 1
-                        elif field in ('filehash', 'date', 'author', 'signature'):
-                            if isinstance(val, list):
+                        elif field in ('hashalgo', 'scope', 'require','type',
+                                       'shorthelp', 'switch', 'help'):
+                            # awlays string scalars
+                            cfg[param][field] = val
+                        elif field in ('example'):
+                            # list from default schema (already a list)
+                            cfg[param][field] = val
+                        elif field in ('signature', 'filehash', 'date', 'author'):
+                            # convert to list if appropriate
+                            if isinstance(val, list) | (not list_type):
                                 cfg[param][field] = val
                             else:
                                 cfg[param][field] = [val]
                         elif (not list_type) & (val is None):
+                            # special case for None
                             cfg[param][field] = None
                         elif (not list_type) & (not isinstance(val, list)):
+                            # convert to string for scalar value
                             cfg[param][field] = str(val)
                         elif list_type & (not isinstance(val, list)):
+                            # convert to string for list value
                             cfg[param][field] = [str(val)]
                         elif list_type & isinstance(val, list):
+                            # converting tuples to strings
                             if re.search(r'\(', cfg[param]['type']):
                                 cfg[param][field] = list(map(str,val))
                             else:
@@ -4004,7 +4016,7 @@ class Chip:
             cfgtype = re.sub(r'[\[\]]', '', cfg['type'])
             for item in valuelist:
                 valuetype =  type(item)
-                if (cfgtype != valuetype.__name__):
+                if ((cfgtype != valuetype.__name__) and (item is not None)):
                     tupletype = re.match(r'\([\w\,]+\)',cfgtype)
                     #TODO: check tuples!
                     if tupletype:
