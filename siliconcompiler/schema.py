@@ -81,8 +81,8 @@ def scparam(cfg,
             cfg['hashalgo'] = hashalgo
             cfg['copy'] = copy
             cfg['filehash'] = []
-            cfg['date'] = [],
-            cfg['author'] = [],
+            cfg['date'] = []
+            cfg['author'] = []
 
 
 #############################################################################
