@@ -19,8 +19,8 @@ class RecordGen(SphinxDirective):
 
         table = [[strong('parameter'), strong('description')]]
 
-        for item in chip.getkeys('record','default','default', 'default'):
-            shorthelp = chip.get('record','default','default', 'default', item, field='shorthelp')
+        for item in chip.getkeys('record','default','default'):
+            shorthelp = chip.get('record','default','default', item, field='shorthelp')
             if shorthelp is not None:
                 table.append([para(item),para(shorthelp)])
             else:

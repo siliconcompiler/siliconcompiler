@@ -42,15 +42,17 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
 
         keypath = ', '.join(full_keypath)
 
-        if 'value' in val:
+        if 'value' in val and val['value']:
             # Don't display false booleans
             if val['type'] == 'bool' and val['value'] == 'false':
                 continue
             if val['type'].startswith('['):
                 if len(val['value']) > 1:
                     val_node = build_list([code(v) for v in val['value']])
-                else:
+                elif len(val['value']) > 0:
                     val_node = code(val['value'][0])
+                else:
+                    val_node = para('')
             else:
                 val_node = code(val['value'])
 
@@ -75,7 +77,7 @@ def build_config_recursive(schema, keypath_prefix=[], sec_key_prefix=[]):
     for key, val in schema.items():
         if key == 'default': continue
         if 'help' in val:
-            if 'value' in val:
+            if 'value' in val and val['value']:
                 leaves.update({key: val})
         else:
             children = build_config_recursive(val, keypath_prefix=keypath_prefix+[key], sec_key_prefix=sec_key_prefix)
