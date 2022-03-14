@@ -2423,7 +2423,7 @@
                     "lock": "false",
                     "require": null,
                     "scope": "global",
-                    "shorthelp": "'Library {item} model",
+                    "shorthelp": "Library gem5 model",
                     "signature": [],
                     "switch": "-library_model_gem5 'lib <file>'",
                     "type": "[file]",
@@ -2452,24 +2452,24 @@
                     "type": "[file]",
                     "value": []
                 },
-                "edifpspice": {
+                "edif": {
                     "author": [],
                     "copy": "false",
                     "date": [],
                     "defvalue": [],
                     "example": [
-                        "cli: -library_edifpspice_netlist 'mylib cdl mylib.edifpspice'",
-                        "api: chip.set('library','mylib','netlist','edifpspice','mylib.edifpspice')"
+                        "cli: -library_edif_netlist 'mylib cdl mylib.edif'",
+                        "api: chip.set('library','mylib','netlist','edif','mylib.edif')"
                     ],
                     "filehash": [],
                     "hashalgo": "sha256",
-                    "help": "List of library netlists in the edifpspice format.",
+                    "help": "List of library netlists in the edif format.",
                     "lock": "false",
                     "require": null,
                     "scope": "global",
-                    "shorthelp": "Library edifpspice netlist",
+                    "shorthelp": "Library edif netlist",
                     "signature": [],
-                    "switch": "-library_edifpspice_netlist 'lib <file>'",
+                    "switch": "-library_edif_netlist 'lib <file>'",
                     "type": "[file]",
                     "value": []
                 },
@@ -2494,24 +2494,45 @@
                     "type": "[file]",
                     "value": []
                 },
-                "spectreedif": {
+                "pspice": {
                     "author": [],
                     "copy": "false",
                     "date": [],
                     "defvalue": [],
                     "example": [
-                        "cli: -library_spectreedif_netlist 'mylib cdl mylib.spectreedif'",
-                        "api: chip.set('library','mylib','netlist','spectreedif','mylib.spectreedif')"
+                        "cli: -library_pspice_netlist 'mylib cdl mylib.pspice'",
+                        "api: chip.set('library','mylib','netlist','pspice','mylib.pspice')"
                     ],
                     "filehash": [],
                     "hashalgo": "sha256",
-                    "help": "List of library netlists in the spectreedif format.",
+                    "help": "List of library netlists in the pspice format.",
                     "lock": "false",
                     "require": null,
                     "scope": "global",
-                    "shorthelp": "Library spectreedif netlist",
+                    "shorthelp": "Library pspice netlist",
                     "signature": [],
-                    "switch": "-library_spectreedif_netlist 'lib <file>'",
+                    "switch": "-library_pspice_netlist 'lib <file>'",
+                    "type": "[file]",
+                    "value": []
+                },
+                "spectre": {
+                    "author": [],
+                    "copy": "false",
+                    "date": [],
+                    "defvalue": [],
+                    "example": [
+                        "cli: -library_spectre_netlist 'mylib cdl mylib.spectre'",
+                        "api: chip.set('library','mylib','netlist','spectre','mylib.spectre')"
+                    ],
+                    "filehash": [],
+                    "hashalgo": "sha256",
+                    "help": "List of library netlists in the spectre format.",
+                    "lock": "false",
+                    "require": null,
+                    "scope": "global",
+                    "shorthelp": "Library spectre netlist",
+                    "signature": [],
+                    "switch": "-library_spectre_netlist 'lib <file>'",
                     "type": "[file]",
                     "value": []
                 },

@@ -5,12 +5,6 @@ import copy
 import json
 from siliconcompiler import _metadata
 
-def test_read_manifest(datadir):
-
-    chip = siliconcompiler.Chip()
-    manifest = os.path.join(datadir, 'gcd.pkg.json')
-    chip.read_manifest(manifest)
-
 def test_read_manifest_fields():
     '''Ensure that changes to fields other than 'value' are reflected by read_manifest()'''
 
@@ -55,5 +49,4 @@ def test_read_defaults(datadir):
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir
-    #test_read_manifest(datadir(__file__))
     test_read_defaults(datadir(__file__))
