@@ -1,5 +1,9 @@
-import os
 import siliconcompiler
+
+import os
+import subprocess
+import sys
+
 import pytest
 
 @pytest.mark.eda
@@ -47,6 +51,42 @@ def test_surelog_preproc_regression(datadir):
 
     with open(result, 'r') as vlog:
         assert "`MEM_ROOT" not in vlog.read()
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_replay(scroot):
+    src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
+    design = "gcd"
+    step = "import"
+
+    chip = siliconcompiler.Chip(loglevel="INFO")
+    chip.load_target('freepdk45_demo')
+
+    chip.add('source', src)
+    chip.set('design', design)
+    chip.set('mode', 'sim')
+    chip.set('arg', 'step', step)
+    chip.set('flow', 'surelog')
+    chip.set('quiet', True)
+    chip.set('eda', 'surelog', 'environment', step, '0', 'SLOG_ENV', 'SUCCESS')
+
+    chip.run()
+
+    workdir = chip._getworkdir(step=step)
+    if 'win' in sys.platform:
+        script = 'replay.bat'
+        echo = 'echo %SLOG_ENV%'
+    else:
+        script = 'replay.sh'
+        echo = 'echo $SLOG_ENV'
+
+    with open(os.path.join(workdir, script), 'a') as f:
+        f.write(echo + '\n')
+
+    p = subprocess.run(f'./{script}', stdout=subprocess.PIPE, cwd=workdir)
+
+    assert p.returncode == 0
+    assert p.stdout.decode('ascii').rstrip().split('\n')[-1] == 'SUCCESS'
 
 if __name__ == "__main__":
     from tests.fixtures import scroot
