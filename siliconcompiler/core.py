@@ -2931,6 +2931,29 @@ class Chip:
         self.add('flowgraph', flow, head, str(head_index), 'input', (tail, str(tail_index)))
 
     ###########################################################################
+    def graph(self, flow, subflow, prefix=None):
+        '''
+        Instantiates a named flow as a graph in the current flowgraph.
+
+        Args:
+            flow (str): Name of current flow.
+            subflow (str): Name of flow to instantiate in current flow
+            prefix (str): Prefix to prepend to instantiated subflow steps.
+
+        Examples:
+            >>> chip.graph('asicflow')
+            Instantiates Creates a directed edge from place to cts.
+        '''
+
+        for step in self.getkeys('flowgraph',subflow):
+            if prefix:
+                newstep = prefix + step
+            for key in self._allkeys(self.cfg['flowgraph'][subflow][step]):
+                self._copyparam(self.cfg['flowgraph'][subflow][step],
+                                self.cfg['flowgraph'][flow][newstep],
+                                key)
+
+    ###########################################################################
     def join(self, *tasks):
         '''
         Merges outputs from a list of input tasks.
