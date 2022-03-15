@@ -4138,7 +4138,7 @@ class Chip:
 
         #create replay file
         is_posix = 'win' not in sys.platform
-        script_name = 'replay.sh' if is_posix else 'replay.bat'
+        script_name = 'replay.sh' if is_posix else 'replay.cmd'
         with open(script_name, 'w') as f:
             if is_posix:
                 print('#!/bin/bash', file=f)
@@ -4147,7 +4147,8 @@ class Chip:
             for key, val in envvars.items():
                 print(f'{envvar_cmd} {key}={val}', file=f)
 
-            print(' '.join(shlex.quote(arg) for arg in cmdlist), file=f)
+            # Quote any argument with spaces
+            print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cmdlist), file=f)
         os.chmod(script_name, 0o755)
 
         return cmdlist
