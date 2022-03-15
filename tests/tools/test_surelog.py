@@ -73,7 +73,7 @@ def test_replay(scroot):
     chip.run()
 
     workdir = chip._getworkdir(step=step)
-    if 'win' in sys.platform:
+    if sys.platform == 'win32':
         script = 'replay.cmd'
         echo = 'if %errorlevel% neq 0 exit /b %errorlevel%\necho %SLOG_ENV%'
     else:

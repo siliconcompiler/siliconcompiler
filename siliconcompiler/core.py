@@ -4103,7 +4103,7 @@ class Chip:
         fullexe = self._getexe(tool)
 
         options = []
-        is_posix = ('win' not in sys.platform)
+        is_posix = (sys.platform != 'win32')
 
         for option in self.get('eda', tool, 'option', step, index):
             options.extend(shlex.split(option, posix=is_posix))
@@ -4137,7 +4137,7 @@ class Chip:
                 envvars[key] = self.get('eda', tool, 'env', step, index, key)
 
         #create replay file
-        is_posix = 'win' not in sys.platform
+        is_posix = (sys.platform != 'win32')
         script_name = 'replay.sh' if is_posix else 'replay.cmd'
         with open(script_name, 'w') as f:
             if is_posix:
