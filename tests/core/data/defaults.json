@@ -817,7 +817,7 @@
                 "default": {
                     "default": {
                         "default": {
-                            "defvalue": [],
+                            "defvalue": null,
                             "example": [
                                 "cli: -eda_env 'openroad cts 0 MYVAR 42'",
                                 "api: chip.set('eda','openroad','env','cts','0','MYVAR','42')"
@@ -827,10 +827,10 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Tool environment variables",
-                            "signature": [],
+                            "signature": null,
                             "switch": "-eda_env 'tool step index name <str>'",
-                            "type": "[str]",
-                            "value": []
+                            "type": "str",
+                            "value": null
                         }
                     }
                 }

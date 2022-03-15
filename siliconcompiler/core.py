@@ -4144,7 +4144,7 @@ class Chip:
     def _makecmd(self, tool, step, index, extra_options=None):
         '''
         Constructs a subprocess run command based on eda tool setup.
-        Creates a replay.sh command in current directory.
+        Creates a replay script in current directory.
         '''
 
         fullexe = self._getexe(tool)
@@ -4171,10 +4171,31 @@ class Chip:
             for option in runtime_options(self):
                 cmdlist.extend(shlex.split(option, posix=is_posix))
 
+        envvars = {}
+        for key in self.getkeys('env'):
+            envvars[key] = self.get('env', key)
+        for item in self.getkeys('eda', tool, 'licenseserver'):
+            license_file = self.get('eda', tool, 'licenseserver', item)
+            if license_file:
+                envvars[item] = ':'.join(license_file)
+        if (step in self.getkeys('eda', tool, 'env') and
+            index in self.getkeys('eda', tool, 'env', step)):
+            for key in self.getkeys('eda', tool, 'env', step, index):
+                envvars[key] = self.get('eda', tool, 'env', step, index, key)
+
         #create replay file
-        with open('replay.sh', 'w') as f:
-            print('#!/bin/bash\n', ' '.join(cmdlist), file=f)
-        os.chmod("replay.sh", 0o755)
+        is_posix = 'win' not in sys.platform
+        script_name = 'replay.sh' if is_posix else 'replay.bat'
+        with open(script_name, 'w') as f:
+            if is_posix:
+                print('#!/bin/bash', file=f)
+
+            envvar_cmd = 'export' if is_posix else 'set'
+            for key, val in envvars.items():
+                print(f'{envvar_cmd} {key}={val}', file=f)
+
+            print(' '.join(shlex.quote(arg) for arg in cmdlist), file=f)
+        os.chmod(script_name, 0o755)
 
         return cmdlist
 
