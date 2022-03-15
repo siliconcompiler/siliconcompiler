@@ -66,7 +66,6 @@ class Chip:
         self.cwd = os.getcwd()
         self.error = 0
         self.cfg = schema_cfg()
-        self.cfghistory = {}
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
         # such as a web server or supervisor process. Currently supported keys:
@@ -740,7 +739,7 @@ class Chip:
 
         if cfg is None:
             if job is not None:
-                cfg = self.cfghistory[job]
+                cfg = self.cfg['history'][job]
             else:
                 cfg = self.cfg
 
@@ -3837,7 +3836,55 @@ class Chip:
             sys.exit(1)
 
         # Store run in history
-        self.cfghistory[self.get('jobname')] = copy.deepcopy(self.cfg)
+        self.record_history()
+
+        # Storing manifest in job root directorya
+        filepath =  os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
+        self.write_manifest(filepath)
+
+    ##########################################################################
+    def record_history(self):
+        '''
+        Copies all non-empty parameters from current job into the history
+        dictionary.
+        '''
+
+        # initialize new dict
+        jobname = self.get('jobname')
+        self.cfg['history'][jobname] = {}
+
+        # copy in all empty values of scope job
+        allkeys = self.getkeys()
+        for key in allkeys:
+            # ignore history in case of cumulative history
+            if key[0] != 'history':
+                scope = self.get(*key, field='scope')
+                value = self.get(*key)
+                if value and (scope == 'job'):
+                    self._copyparam(self.cfg,
+                                    self.cfg['history'][jobname],
+                                    key)
+
+    ###########################################################################
+    def _copyparam(self, cfgsrc, cfgdst, keypath):
+        '''
+        Copies a parameter into the manifest history dictionary.
+        '''
+
+        # 1. decend keypath, pop each key as its used
+        # 2. create key if missing in destination dict
+        # 3. populate leaf cell when keypath empty
+        if keypath:
+            key = keypath[0]
+            keypath.pop(0)
+            if key not in cfgdst.keys():
+                cfgdst[key] = {}
+            self._copyparam(cfgsrc[key], cfgdst[key], keypath)
+        else:
+            if cfgsrc['value']:
+                #TODO: optimize? this makes it easy
+                for item in cfgsrc.keys():
+                    cfgdst[item] = cfgsrc[item]
 
     ###########################################################################
     def show(self, filename=None, extra_options=None):
