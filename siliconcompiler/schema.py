@@ -1391,7 +1391,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     name = 'default'
     scparam(cfg, ['eda', tool, 'env', step, index, name],
-            sctype='[str]',
+            sctype='str',
             scope='job',
             shorthelp="Tool environment variables",
             switch="-eda_env 'tool step index name <str>'",
