@@ -3881,10 +3881,10 @@ class Chip:
                 cfgdst[key] = {}
             self._copyparam(cfgsrc[key], cfgdst[key], keypath)
         else:
-            if cfgsrc['value']:
-                #TODO: optimize? this makes it easy
-                for item in cfgsrc.keys():
-                    cfgdst[item] = cfgsrc[item]
+            for key in cfgsrc.keys():
+                if key not in ('example', 'switch', 'help'):
+                    cfgdst[key] = copy.deepcopy(cfgsrc[key])
+
 
     ###########################################################################
     def show(self, filename=None, extra_options=None):
