@@ -100,6 +100,17 @@ only supported on Linux/MacOS platforms.
    pip install -r requirements.txt
    python -m pip install -e .
 
+Offline Install (Linux only)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We also provide packages that bundle SC with all of its Python dependencies to enable installation on machines without an external internet connection. They can be found under the "Artifacts" section of any passing nightly or release build on our `builds page <https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml>`_. The packages are named ``scdeps-<pyversion>.tar.gz``, depending on which Python version they are associated with.
+
+To install from a bundle, create a Python virtual environment following the instructions above, then perform the following commands.
+
+.. code-block:: bash
+
+   tar -xzvf scdeps-<pyversion>.tar.gz
+   pip install siliconcompiler --no-index --find-links scdeps
 
 Cloud Access
 --------------
