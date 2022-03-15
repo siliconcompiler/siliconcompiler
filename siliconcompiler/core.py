@@ -2960,8 +2960,11 @@ class Chip:
                                 key)
             # update step names
             for index in self.getkeys('flowgraph', flow, newstep):
-                for item in self.get('flowgraph', flow, newstep, index,'input'):
-                    print(item)
+                all_inputs = self.get('flowgraph', flow, newstep, index,'input')
+                self.set('flowgraph', flow, newstep, index,'input',[])
+                for in_step, in_index in all_inputs:
+                    newin = prefix + in_step
+                    self.add('flowgraph', flow, newstep, index,'input',(newin,in_index))
 
     ###########################################################################
     def join(self, *tasks):
