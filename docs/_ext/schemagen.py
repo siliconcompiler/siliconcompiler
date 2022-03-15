@@ -67,8 +67,9 @@ class SchemaGen(SphinxDirective):
 
     def parse_rst(self, content):
         rst = ViewList()
-        # use fake filename 'inline' and fake line number '1' for error reporting
-        rst.append(content, 'inline', 1)
+        # use fake filename 'inline' for error # reporting
+        for i, line in enumerate(content.split('\n')):
+            rst.append(line, 'inline', i)
         body = nodes.paragraph()
         nested_parse_with_titles(self.state, rst, body)
 

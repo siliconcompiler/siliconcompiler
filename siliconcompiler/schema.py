@@ -1,5 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+from siliconcompiler import utils
+
 import re
 import os
 import sys
@@ -49,9 +51,8 @@ def scparam(cfg,
                 schelp=schelp)
     else:
 
-        # removing leading newline and space
-        schelp = re.sub(r'\n\s*', " ", schelp)
-        schelp = schelp.strip()
+        # removing leading spaces as if schelp were a docstring
+        schelp = utils.trim(schelp)
 
         # setting valus based on types
         # note (bools are never lists)
@@ -1880,6 +1881,7 @@ def schema_record(cfg, step='default', index='default'):
                'region' : ['cloud region',
                            'US Gov Boston',
                            """Recommended naming methodology:
+
                            * local: node is the local machine
                            * onprem: node in on-premises IT infrastructure
                            * public: generic public cloud
@@ -1903,6 +1905,7 @@ def schema_record(cfg, step='default', index='default'):
     }
 
     for item,val in records.items():
+        helpext = utils.trim(val[2])
         scparam(cfg, ['record', step, index, item],
                 sctype='str',
                 scope='job',
@@ -1911,10 +1914,7 @@ def schema_record(cfg, step='default', index='default'):
                 example=[
                     f"cli: -record_{item} 'dfm 0 <{val[1]}>'",
                     f"api: chip.set('record','dfm','0','{item}', <{val[1]}>)"],
-                schelp=f"""
-                Record tracking the {val[0]} per step and index basis.
-                {val[2]}
-                """)
+                schelp=f'Record tracking the {val[0]} per step and index basis. {helpext}')
 
     return cfg
 
