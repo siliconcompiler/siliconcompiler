@@ -9,8 +9,7 @@ def test_graph():
 
     chip.graph("top","asicflow", prefix="a_")
     chip.graph("top","signoffflow", prefix="b_")
-
-    print(json.dumps(chip.cfg['flowgraph'], indent=4, sort_keys=True))
+    chip.edge("top", "a_export", "b_import")
 
     chip.write_flowgraph("top.png", flow="top")
 
