@@ -105,3 +105,35 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.PYPI_DEPLOY }}
+
+  package_offline:
+    # We want to run this on the official PEP Python-wheel building platform to
+    # ensure the downloaded wheels have the broadest compatibility. Using the
+    # '--platform' tag for 'pip download' doesn't work for us, since it requires
+    # setting --only-binary=:all: and some of our deps aren't available as
+    # wheels on some platforms.
+    container: quay.io/pypa/manylinux2014_x86_64
+    needs: [build_wheels]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: [cp36-cp36m, cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310]
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: artifact
+        path: dist
+
+    - name: Package SC
+      run: |
+        mkdir scdeps
+        $python -m pip download ./dist/siliconcompiler*${{matrix.python}}*linux*.whl -d scdeps
+        tar -czvf scdeps-${{matrix.python}}.tar.gz scdeps
+      env:
+        python: /opt/python/${{matrix.python}}/bin/python
+
+    - name: Upload package
+      uses: actions/upload-artifact@v2
+      with:
+        path: scdeps*.tar.gz
