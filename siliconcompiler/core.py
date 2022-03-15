@@ -1506,7 +1506,7 @@ class Chip:
 
             paramtype = self.get(*keypath, field='type')
             #only do something if type is file or dir
-            if 'file' in paramtype or 'dir' in paramtype:
+            if ('history' not in keypath) and ('file' in paramtype or 'dir' in paramtype):
 
                 if self.get(*keypath) is None:
                     # skip unset values (some directories are None by default)
