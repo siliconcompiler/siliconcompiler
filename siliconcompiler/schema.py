@@ -102,6 +102,7 @@ def schema_cfg():
 
     # Basic schema setup
     cfg = {}
+    cfg['history'] = {}
 
     # Version handling
     cfg = schema_version(cfg, SCHEMA_VERSION)
@@ -189,6 +190,7 @@ def schema_fpga(cfg):
     scparam(cfg,['fpga', 'arch'],
             sctype='[file]',
             copy='true',
+            scope='job',
             shorthelp="FPGA architecture file",
             switch="-fpga_arch <file>",
             example=["cli: -fpga_arch myfpga.xml",
@@ -202,6 +204,7 @@ def schema_fpga(cfg):
 
     scparam(cfg,['fpga', 'vendor'],
             sctype='str',
+            scope='job',
             shorthelp="FPGA vendor name",
             switch="-fpga_vendor <str>",
             example=["cli: -fpga_vendor acme",
@@ -214,6 +217,7 @@ def schema_fpga(cfg):
     scparam(cfg,['fpga', 'partname'],
             sctype='str',
             require='fpga',
+            scope='job',
             shorthelp="FPGA part name",
             switch="-fpga_partname <str>",
             example=["cli: -fpga_partname fpga64k",
@@ -225,6 +229,7 @@ def schema_fpga(cfg):
 
     scparam(cfg,['fpga', 'board'],
             sctype='str',
+            scope='job',
             shorthelp="FPGA board name",
             switch="-fpga_board <str>",
             example=["cli: -fpga_board parallella",
@@ -237,6 +242,7 @@ def schema_fpga(cfg):
 
     scparam(cfg,['fpga', 'program'],
             sctype='bool',
+            scope='job',
             shorthelp="FPGA program enable",
             switch="-fpga_program <bool>",
             example=["cli: -fpga_program",
@@ -245,6 +251,7 @@ def schema_fpga(cfg):
 
     scparam(cfg,['fpga', 'flash'],
             sctype='bool',
+            scope='job',
             shorthelp="FPGA flash enable",
             switch="-fpga_flash <bool>",
             example=["cli: -fpga_flash",
@@ -811,7 +818,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 
     scparam(cfg, ['library', lib, design, 'testmodule'],
             sctype='[str]',
-            shorthelp="Testbench top module",
+            shorthelp="Library testbench top module",
             switch="-library_testmodule 'lib design <str>'",
             example=[
                 "cli: -libtary_testmodule 'mylib hello test_top'",
@@ -1103,6 +1110,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     #flowgraph input
     scparam(cfg,['flowgraph', flow, step, index, 'input'],
             sctype='[(str,str)]',
+            scope='job',
             shorthelp="Flowgraph step input",
             switch="-flowgraph_input 'flow step index <(str,str)>'",
             example=[
@@ -1115,6 +1123,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     metric='default'
     scparam(cfg,['flowgraph', flow, step, index, 'weight', metric],
             sctype='float',
+            scope='job',
             shorthelp="Flowgraph metric weights",
             switch="-flowgraph_weight 'flow step metric <float>'",
             example=[
@@ -1127,6 +1136,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     # flowgraph tool
     scparam(cfg,['flowgraph', flow, step, index, 'tool'],
             sctype='str',
+            scope='job',
             shorthelp="Flowgraph tool selection",
             switch="-flowgraph_tool 'flow step <str>'",
             example=[
@@ -1139,6 +1149,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     # flowgraph arguments
     scparam(cfg,['flowgraph', flow, step, index, 'args'],
             sctype='[str]',
+            scope='job',
             shorthelp="Flowgraph setup arguments",
             switch="-flowgraph_args 'flow step index <str>'",
             example=[
@@ -1150,6 +1161,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     #flowgraph valid bits
     scparam(cfg,['flowgraph', flow, step, index, 'valid'],
             sctype='bool',
+            scope='job',
             shorthelp="Flowgraph task valid bit",
             switch="-flowgraph_valid 'flow step index <str>'",
             example=[
@@ -1163,6 +1175,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     #flowgraph timeout value
     scparam(cfg,['flowgraph', flow, step, index, 'timeout'],
             sctype='float',
+            scope='job',
             shorthelp="Flowgraph task timeout value",
             switch="-flowgraph_timeout 'flow step 0 <float>'",
             example=[
@@ -1214,6 +1227,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'exe'],
             sctype='str',
+            scope='job',
             shorthelp="Tool executable name",
             switch="-eda_exe 'tool<str>'",
             example=["cli: -eda_exe 'openroad openroad'",
@@ -1222,6 +1236,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'path'],
             sctype='dir',
+            scope='job',
             shorthelp="Tool executable path",
             switch="-eda_path 'tool <dir>'",
             example=["cli: -eda_path 'openroad /usr/local/bin'",
@@ -1235,6 +1250,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'vswitch'],
             sctype='[str]',
+            scope='job',
             shorthelp="Tool executable version switch",
             switch="-eda_vswitch 'tool <str>'",
             example=["cli: -eda_vswitch 'openroad -version'",
@@ -1246,6 +1262,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'vendor'],
             sctype='str',
+            scope='job',
             shorthelp="Tool vendor",
             switch="-eda_vendor 'tool <str>'",
             example=["cli: -eda_vendor 'yosys yosys'",
@@ -1258,6 +1275,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'version'],
             sctype='[str]',
+            scope='job',
             shorthelp="Tool version number",
             switch="-eda_version 'tool <str>'",
             example=["cli: -eda_version 'openroad 2.0'",
@@ -1271,6 +1289,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'format'],
             sctype='str',
+            scope='job',
             shorthelp="Tool manifest file format",
             switch="-eda_format 'tool <file>'",
             example=[ "cli: -eda_format 'yosys tcl'",
@@ -1281,6 +1300,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'warningoff'],
             sctype='[str]',
+            scope='job',
             shorthelp="Tool warning filter",
             switch="-eda_warningoff 'tool <str>'",
             example=["cli: -eda_warningoff 'verilator COMBDLY'",
@@ -1294,6 +1314,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'continue'],
             sctype='bool',
+            scope='job',
             shorthelp="Tool continue-on-error option",
             switch="-eda_continue 'tool <bool>'",
             example=["cli: -eda_continue 'verilator true'",
@@ -1304,6 +1325,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'copy'],
             sctype='bool',
+            scope='job',
             shorthelp="Tool copy option",
             switch="-eda_copy 'tool <bool>'",
             example=["cli: -eda_copy 'openroad true'",
@@ -1315,6 +1337,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     name = 'default'
     scparam(cfg, ['eda', tool, 'licenseserver', name],
             sctype='[str]',
+            scope='job',
             shorthelp="Tool license servers",
             switch="-eda_licenseserver 'tool name <str>'",
             example=[
@@ -1405,6 +1428,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'input', step, index],
             sctype='[file]',
+            scope='job',
             shorthelp="Tool input files",
             switch="-eda_input 'tool step index <str>'",
             example=[
@@ -1419,6 +1443,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'output', step, index],
             sctype='[file]',
+            scope='job',
             shorthelp="Tool output files",
             switch="-eda_output 'tool step index <str>'",
             example=[
@@ -1433,6 +1458,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'require', step, index],
             sctype='[str]',
+            scope='job',
             shorthelp="Tool parameter requirements",
             switch="-eda_require 'tool step index <str>'",
             example=[
@@ -1446,6 +1472,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     metric = 'default'
     scparam(cfg, ['eda', tool, 'report', step, index, metric],
             sctype='[file]',
+            scope='job',
             shorthelp="Tool report files",
             switch="-eda_report 'tool step index metric <str>'",
             example=[
@@ -1457,6 +1484,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'refdir', step, index],
             sctype='[dir]',
+            scope='job',
             shorthelp="Tool script directory",
             switch="-eda_refdir 'tool step index <dir>'",
             example=[
@@ -1468,6 +1496,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'script', step, index],
             sctype='[file]',
+            scope='job',
             shorthelp="Tool entry script",
             switch="-eda_script 'tool step index <file>'",
             example=[
@@ -1479,6 +1508,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'prescript', step, index],
             sctype='[file]',
+            scope='job',
             shorthelp="Tool pre-step script",
             switch="-eda_prescript 'tool step index <file>'",
             example=[
@@ -1493,6 +1523,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['eda', tool, 'postscript', step, index],
             sctype='[file]',
+            scope='job',
             shorthelp="Tool post-step script",
             switch="-eda_postscript 'tool step index <file>'",
             example=[
@@ -1525,6 +1556,7 @@ def schema_arg(cfg):
 
     scparam(cfg, ['arg', 'step'],
             sctype='str',
+            scope='scratch',
             shorthelp="Current step",
             switch="-arg_step <str>",
             example=["cli: -arg_step 'route'",
@@ -1538,6 +1570,7 @@ def schema_arg(cfg):
 
     scparam(cfg, ['arg', 'index'],
             sctype='str',
+            scope='scratch',
             shorthelp="Current sindex",
             switch="-arg_index <str>",
             example=["cli: -arg_index 0",
@@ -1564,16 +1597,16 @@ def schema_metric(cfg, step='default', index='default',group='default'):
 
     for item, val in metrics.items():
         scparam(cfg, ['metric', step, index, item, group],
-            sctype='int',
+                sctype='int',
                 scope='job',
-            require='all',
-            shorthelp=f"Metric: total {item}",
-            switch=f"-metric_{item} 'step index group <int>'",
-            example=[
-                f"cli: -metric_{item} 'dfm 0 goal 0'",
-                f"api: chip.set('metric','dfm','0','{item}','real',0)"],
-            schelp=f"""Metric tracking the total number of {val} on a
-            per step and index basis.""")
+                require='all',
+                shorthelp=f"Metric: total {item}",
+                switch=f"-metric_{item} 'step index group <int>'",
+                example=[
+                    f"cli: -metric_{item} 'dfm 0 goal 0'",
+                    f"api: chip.set('metric','dfm','0','{item}','real',0)"],
+                schelp=f"""Metric tracking the total number of {val} on a
+                per step and index basis.""")
 
     scparam(cfg, ['metric', step, index, 'coverage', group],
             sctype='float',
@@ -1922,6 +1955,8 @@ def schema_record(cfg, step='default', index='default'):
 # Run Options
 ###########################################################################
 
+#TODO add scope below
+
 def schema_options(cfg):
     ''' Run-time options
     '''
@@ -1952,6 +1987,7 @@ def schema_options(cfg):
     # Remote processing
     scparam(cfg, ['remote'],
             sctype='bool',
+            scope='job',
             shorthelp="Enable remote processing",
             switch="-remote <bool>",
             example=["cli: -remote",
@@ -1964,6 +2000,7 @@ def schema_options(cfg):
 
     scparam(cfg, ['credentials'],
             sctype='[file]',
+            scope='job',
             shorthelp="User credentials file",
             switch="-credentials <file>'",
             example=["cli: -credentials /home/user/.sc/credentials",
@@ -2096,6 +2133,20 @@ def schema_options(cfg):
             for specific guidelines regarding configuration parameters.""")
 
     # Configuration
+    scparam(cfg,['oformat'],
+            sctype='str',
+            scope='job',
+            shorthelp="Output format",
+            switch="-oformat <str>",
+            example=["cli: -oformat gds",
+                    "api: chip.set('oformat', 'gds')"],
+            schelp="""
+            File format to use for writing the final siliconcompiler output to
+            disk. For cases, when only one output format exists, the 'oformat'
+            parameter can be omitted. Examples of ASIC layout output formats
+            include GDS and OASIS.""")
+
+
     scparam(cfg, ['cfg'],
             sctype='[file]',
             scope='job',
@@ -2124,6 +2175,7 @@ def schema_options(cfg):
 
     scparam(cfg, ['scpath'],
             sctype='[dir]',
+            scope='job',
             shorthelp="Search path",
             switch="-scpath <dir>",
             example=["cli: -scpath '/home/$USER/sclib'",
@@ -2270,6 +2322,7 @@ def schema_options(cfg):
 
     scparam(cfg, ['metricoff'],
             sctype='[str]',
+            scope='job',
             shorthelp="Metric summary filter",
             switch="-metricoff '<str>'",
             example=["cli: -metricoff 'wirelength'",
@@ -2883,18 +2936,6 @@ def schema_design(cfg):
             the file varies and depends on the tool used. SC simply passes on
             the filepath toe the tool executable.""")
 
-    scparam(cfg,['oformat'],
-            sctype='str',
-            shorthelp="Design output format",
-            switch="-oformat <str>",
-            example=["cli: -oformat gds",
-                    "api: chip.set('oformat', 'gds')"],
-            schelp="""
-            File format to use for writing the final siliconcompiler output to
-            disk. For cases, when only one output format exists, the 'oformat'
-            parameter can be omitted. Examples of ASIC layout output formats
-            include GDS and OASIS.""")
-
     scparam(cfg,['constraint'],
             sctype='[file]',
             copy='true',
@@ -3029,6 +3070,7 @@ def schema_read(cfg, step='default', index='default'):
     for item in formats:
         scparam(cfg,['read', item, step, index],
                 sctype='[file]',
+                scope='job',
                 copy='true',
                 shorthelp=f"Read {item.upper()} file",
                 switch=f"-read_{item} 'step index <file>'",
@@ -3052,6 +3094,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'stackup'],
             sctype='str',
+            scope='job',
             require='asic',
             shorthelp="ASIC metal stackup",
             switch="-asic_stackup <str>",
@@ -3063,6 +3106,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'logiclib'],
             sctype='[str]',
+            scope='job',
             shorthelp="ASIC logic libraries",
             switch="-asic_logiclib <str>",
             example=["cli: -asic_logiclib nangate45",
@@ -3073,6 +3117,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'macrolib'],
             sctype='[str]',
+            scope='job',
             shorthelp="ASIC macro libraries",
             switch="-asic_macrolib <str>",
             example=["cli: -asic_macrolib sram64x1024",
@@ -3084,6 +3129,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'optlib', step, index],
             sctype='[str]',
+            scope='job',
             shorthelp="ASIC optimization libraries",
             switch="-asic_optlib 'step index <str>'",
             example=["cli: -asic_optlib 'place 0 asap7_lvt'",
@@ -3094,6 +3140,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'delaymodel'],
             sctype='str',
+            scope='job',
             shorthelp="ASIC delay model",
             switch="-asic_delaymodel <str>",
             example= ["cli: -asic_delaymodel ccs",
@@ -3105,6 +3152,7 @@ def schema_asic(cfg):
     net = 'default'
     scparam(cfg, ['asic', 'ndr', net],
             sctype='(float,float)',
+            scope='job',
             shorthelp="ASIC non-default routing rule",
             switch="-asic_ndr 'netname <(float,float)>",
             example= ["cli: -asic_ndr_width 'clk (0.2,0.2)",
@@ -3116,6 +3164,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'minlayer'],
             sctype='str',
+            scope='job',
             shorthelp="ASIC minimum routing layer",
             switch="-asic_minlayer <str>",
             example= ["cli: -asic_minlayer m2",
@@ -3130,6 +3179,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'maxlayer'],
             sctype='str',
+            scope='job',
             shorthelp="ASIC maximum routing layer",
             switch="-asic_maxlayer <str>",
             example= ["cli: -asic_maxlayer m2",
@@ -3144,6 +3194,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'maxfanout'],
             sctype='int',
+            scope='job',
             shorthelp="ASIC maximum fanout",
             switch="-asic_maxfanout <int>",
             example= ["cli: -asic_maxfanout 64",
@@ -3155,6 +3206,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'maxlength'],
             sctype='float',
+            scope='job',
             shorthelp="ASIC maximum wire length",
             switch="-asic_maxlength <float>",
             example= ["cli: -asic_maxlength 1000",
@@ -3166,6 +3218,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'maxcap'],
             sctype='float',
+            scope='job',
             shorthelp="ASIC maximum net capacitance",
             switch="-asic_maxcap <float>",
             example= ["cli: -asic_maxcap '0.25e-12'",
@@ -3175,6 +3228,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'maxslew'],
             sctype='float',
+            scope='job',
             shorthelp="ASIC maximum slew",
             switch="-asic_maxslew <float>",
             example= ["cli: -asic_maxslew '0.25e-9'",
@@ -3185,6 +3239,7 @@ def schema_asic(cfg):
     sigtype='default'
     scparam(cfg, ['asic', 'rclayer', sigtype],
             sctype='str',
+            scope='job',
             shorthelp="ASIC parasitics layer",
             switch="-asic_rclayer 'sigtype <str>'",
             example= ["cli: -asic_rclayer 'clk m3",
@@ -3198,6 +3253,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'vpinlayer'],
             sctype='str',
+            scope='job',
             shorthelp="ASIC vertical pin layer",
             switch="-asic_vpinlayer <str>",
             example= ["cli: -asic_vpinlayer m3",
@@ -3210,6 +3266,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'hpinlayer'],
             sctype='str',
+            scope='job',
             shorthelp="ASIC vertical pin layer",
             switch="-asic_hpinlayer <str>",
             example= ["cli: -asic_hpinlayer m4",
@@ -3222,6 +3279,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'density'],
             sctype='float',
+            scope='job',
             shorthelp="ASIC target core density",
             switch="-asic_density <float>",
             example= ["cli: -asic_density 30",
@@ -3234,6 +3292,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'coremargin'],
             sctype='float',
+            scope='job',
             shorthelp="ASIC block core margin",
             switch="-asic_coremargin <float>",
             example= ["cli: -asic_coremargin 1",
@@ -3245,6 +3304,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'aspectratio'],
             sctype='float',
+            scope='job',
             shorthelp="ASIC block aspect ratio",
             switch="-asic_aspectratio <float>",
             example= ["cli: -asic_aspectratio 2.0",
@@ -3258,6 +3318,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'diearea'],
             sctype='[(float,float)]',
+            scope='job',
             shorthelp="ASIC die area outline",
             switch="-asic_diearea <[(float,float)]>",
             example= ["cli: -asic_diearea '(0,0)'",
@@ -3270,6 +3331,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'corearea'],
             sctype='[(float,float)]',
+            scope='job',
             shorthelp="ASIC core area outline",
             switch="-asic_corearea <[(float,float)]>",
             example= ["cli: -asic_corearea '(0,0)'",
@@ -3282,6 +3344,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'exclude', step, index],
             sctype='[str]',
+            scope='job',
             shorthelp="ASIC excluded cells",
             switch="-asic_exclude 'step index <str>>",
             example=["cli: -asic_exclude drc 0 sram_macro",
@@ -3303,6 +3366,7 @@ def schema_mcmm(cfg, scenario='default'):
 
     scparam(cfg,['mcmm', scenario, 'voltage'],
             sctype='float',
+            scope='job',
             shorthelp="Scenario voltage level",
             switch="-mcmm_voltage 'scenario <float>'",
             example=["cli: -mcmm_voltage 'worst 0.9'",
@@ -3312,6 +3376,7 @@ def schema_mcmm(cfg, scenario='default'):
 
     scparam(cfg,['mcmm', scenario, 'temperature'],
             sctype='float',
+            scope='job',
             shorthelp="Scenario temperature",
             switch="-mcmm_temperature 'scenario <float>'",
             example=["cli: -mcmm_temperature 'worst 125'",
@@ -3321,6 +3386,7 @@ def schema_mcmm(cfg, scenario='default'):
 
     scparam(cfg,['mcmm', scenario, 'libcorner'],
             sctype='str',
+            scope='job',
             shorthelp="Scenario library corner",
             switch="-mcmm_libcorner 'scenario <str>'",
             example=["cli: -mcmm_libcorner 'worst ttt'",
@@ -3332,6 +3398,7 @@ def schema_mcmm(cfg, scenario='default'):
 
     scparam(cfg,['mcmm', scenario, 'pexcorner'],
             sctype='str',
+            scope='job',
             shorthelp="Scenario pex corner",
             switch="-mcmm_pexcorner 'scenario <str>'",
             example=["cli: -mcmm_pexcorner 'worst max'",
@@ -3342,6 +3409,7 @@ def schema_mcmm(cfg, scenario='default'):
 
     scparam(cfg,['mcmm', scenario, 'opcond'],
             sctype='str',
+            scope='job',
             shorthelp="Scenario operating condition",
             switch="-mcmm_opcond 'scenario <str>'",
             example=["cli: -mcmm_opcond 'worst typical_1.0'",
@@ -3352,6 +3420,7 @@ def schema_mcmm(cfg, scenario='default'):
 
     scparam(cfg,['mcmm', scenario, 'mode'],
             sctype='str',
+            scope='job',
             shorthelp="Scenario operating mode",
             switch="-mcmm_mode 'scenario <str>'",
             example=["cli: -mcmm_mode 'worst test'",
@@ -3361,6 +3430,7 @@ def schema_mcmm(cfg, scenario='default'):
 
     scparam(cfg,['mcmm', scenario, 'constraint'],
             sctype='[file]',
+            scope='job',
             copy='true',
             shorthelp="Scenario constraints files",
             switch="-mcmm_constraint 'scenario <file>'",
@@ -3373,6 +3443,7 @@ def schema_mcmm(cfg, scenario='default'):
 
     scparam(cfg,['mcmm', scenario, 'check'],
             sctype='[str]',
+            scope='job',
             shorthelp="Scenario checks",
             switch="-mcmm_check 'scenario <str>'",
             example=["cli: -mcmm_check 'worst check setup'",
