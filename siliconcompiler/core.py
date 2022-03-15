@@ -2925,17 +2925,28 @@ class Chip:
             Creates a directed edge from place to cts.
         '''
 
+        # Handling connecting edges between graphs
+        # Not completely name space safe, but feels like this limitation
+        # is a non-issue
+        module_tail = f"{tail}.export"
+        module_head = f"{head}.import"
+        if module_tail in self.getkeys('flowgraph',flow):
+            tail = module_tail
+        if module_head in self.getkeys('flowgraph',flow):
+            head = module_head
+
+        # Adding
         self.add('flowgraph', flow, head, str(head_index), 'input', (tail, str(tail_index)))
 
     ###########################################################################
-    def graph(self, flow, subflow, prefix=None):
+    def graph(self, flow, subflow, name=None):
         '''
         Instantiates a named flow as a graph in the current flowgraph.
 
         Args:
             flow (str): Name of current flow.
-            subflow (str): Name of flow to instantiate in current flow
-            prefix (str): Prefix to prepend to instantiated subflow steps.
+            subflow (str): Name of flow to instantiate
+            name (str): Name of instance
 
         Examples:
             >>> chip.graph('asicflow')
@@ -2947,10 +2958,10 @@ class Chip:
 
         # uniquify each step
         for step in self.getkeys('flowgraph',subflow):
-            if prefix is None:
+            if name is None:
                 newstep = step
             else:
-                newstep = prefix + step
+                newstep = name + "." + step
             if newstep not in self.getkeys('flowgraph', flow):
                 self.cfg['flowgraph'][flow][newstep] ={}
             # recursive copy
@@ -2963,8 +2974,24 @@ class Chip:
                 all_inputs = self.get('flowgraph', flow, newstep, index,'input')
                 self.set('flowgraph', flow, newstep, index,'input',[])
                 for in_step, in_index in all_inputs:
-                    newin = prefix + in_step
+                    newin = name + "." + in_step
                     self.add('flowgraph', flow, newstep, index,'input',(newin,in_index))
+
+
+    ###########################################################################
+    def pipeline(self, flow, plan):
+        '''
+        Creates a pipeline based on an order list of key values pairs.
+        '''
+
+        for item in plan:
+            step = list(item.keys())[0]
+            tool = list(item.values())[0]
+            self.node(flow, step, tool)
+            if step != 'import':
+                self.edge(flow, prevstep, step)
+            prevstep = step
+
 
     ###########################################################################
     def join(self, *tasks):
