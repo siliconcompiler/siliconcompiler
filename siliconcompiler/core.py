@@ -978,9 +978,7 @@ class Chip:
                 if cfg[param]['lock'] == "true":
                     self.logger.debug("Ignoring {mode}{} to [{keypath}]. Lock bit is set.")
                 elif (mode == 'set'):
-                    #print(keypath, "**", param, field, val, isinstance(val, list))
-                    #TODO: line below is broken, should check for field
-                    if (selval in empty) | clobber:
+                    if (field != 'value') or (selval in empty) or clobber:
                         if field in ('copy', 'lock'):
                             # boolean fields
                             if val is True:

@@ -111,7 +111,7 @@ def test_scparam():
         'example': [
             "cli: -metric_cells 'place 0 goal 100'",
             "api: chip.set('metric','place','0','cells','goal,'100')"],
-        'help': """Metric tracking the total number of instances on a per step basis. Total cells includes registers. In the case of FPGAs, it represents the number of LUTs."""
+        'help': """Metric tracking the total number of instances on a per step basis.\nTotal cells includes registers. In the case of FPGAs, it\nrepresents the number of LUTs."""
     }
 
     assert cfg == cfg_golden

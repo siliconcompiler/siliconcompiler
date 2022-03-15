@@ -1,5 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+from siliconcompiler import utils
+
 import re
 import os
 import sys
@@ -49,9 +51,8 @@ def scparam(cfg,
                 schelp=schelp)
     else:
 
-        # removing leading newline and space
-        schelp = re.sub(r'\n\s*', " ", schelp)
-        schelp = schelp.strip()
+        # removing leading spaces as if schelp were a docstring
+        schelp = utils.trim(schelp)
 
         # setting valus based on types
         # note (bools are never lists)
@@ -1533,7 +1534,7 @@ def schema_arg(cfg):
             Dynamic parameter passed in by the sc runtime as an argument to
             a runtime task. The parameter enables configuration code
             (usually TCL) to use control flow that depend on the current
-            'step'. The parameter is used the run() fucntion and
+            'step'. The parameter is used the run() function and
             is not intended for external use.""")
 
     scparam(cfg, ['arg', 'index'],
@@ -1546,7 +1547,7 @@ def schema_arg(cfg):
             Dynamic parameter passed in by the sc runtime as an argument to
             a runtime task. The parameter enables configuration code
             (usually TCL) to use control flow that depend on the current
-            'index'. The parameter is used the run() fucntion and
+            'index'. The parameter is used the run() function and
             is not intended for external use.""")
 
     return cfg
@@ -1880,6 +1881,7 @@ def schema_record(cfg, step='default', index='default'):
                'region' : ['cloud region',
                            'US Gov Boston',
                            """Recommended naming methodology:
+
                            * local: node is the local machine
                            * onprem: node in on-premises IT infrastructure
                            * public: generic public cloud
@@ -1889,7 +1891,7 @@ def schema_record(cfg, step='default', index='default'):
                'toolversion': ['tool version',
                                '1.0',
                                """The tool version captured correspnds to the 'tool'
-                               parameter within the 'eda' dictoinary'."""],
+                               parameter within the 'eda' dictionary."""],
                'osversion': ['O/S version',
                              '20.04.1-Ubuntu',
                              """Since there is not standard version system for operating
@@ -1903,6 +1905,7 @@ def schema_record(cfg, step='default', index='default'):
     }
 
     for item,val in records.items():
+        helpext = utils.trim(val[2])
         scparam(cfg, ['record', step, index, item],
                 sctype='str',
                 scope='job',
@@ -1911,10 +1914,7 @@ def schema_record(cfg, step='default', index='default'):
                 example=[
                     f"cli: -record_{item} 'dfm 0 <{val[1]}>'",
                     f"api: chip.set('record','dfm','0','{item}', <{val[1]}>)"],
-                schelp=f"""
-                Record tracking the {val[0]} per step and index basis.
-                {val[2]}
-                """)
+                schelp=f'Record tracking the {val[0]} per step and index basis. {helpext}')
 
     return cfg
 
@@ -2466,7 +2466,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_name '{keys}yac'",
                 f"api: chip.set({api},'name','yac')"],
-            schelp="""{shelp} name.""")
+            schelp=f"""{shelp} name.""")
 
     scparam(cfg,[*path, 'version'],
             sctype='str',
@@ -2475,7 +2475,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_version '{keys}1.0'",
                 f"api: chip.set({api},'version','1.0')"],
-            schelp="""{shelp} version. Can be a branch, tag, commit hash,
+            schelp=f"""{shelp} version. Can be a branch, tag, commit hash,
             or a semver compatible version.""")
 
     scparam(cfg,[*path, 'description'],
@@ -2485,7 +2485,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_description '{keys}Yet another cpu'",
                 f"api: chip.set({api},'description','Yet another cpu')"],
-            schelp="""{shelp} short one line description for package
+            schelp=f"""{shelp} short one line description for package
             managers and summary reports.""")
 
     scparam(cfg,[*path, 'keyword'],
@@ -2495,7 +2495,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_keyword '{keys}cpu'",
                 f"api: chip.set({api},'keyword','cpu')"],
-            schelp="""{shelp} keyword(s) used to characterize package.""")
+            schelp=f"""{shelp} keyword(s) used to characterize package.""")
 
     scparam(cfg,[*path, 'homepage'],
             sctype='str',
@@ -2504,7 +2504,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_homepage '{keys}index.html'",
                 f"api: chip.set({api},'homepage','index.html')"],
-            schelp="""{shelp} homepage.""")
+            schelp=f"""{shelp} homepage.""")
 
     scparam(cfg,[*path, 'doc', 'homepage'],
             sctype='str',
@@ -2513,7 +2513,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_doc_homepage '{keys}index.html'",
                 f"api: chip.set({api},'doc', 'homepage','index.html')"],
-            schelp="""
+            schelp=f"""
             {shelp} documentation homepage. Filepath to design docs homepage.
             Complex designs can can include a long non standard list of
             documents dependent.  A single html entry point can be used to
@@ -2536,7 +2536,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_doc_{item} '{keys}{item}.pdf'",
                 f"api: chip.set({api},'doc',{item},'{item}.pdf')"],
-            schelp=""" {shelp} list of {item} documents.""")
+            schelp=f""" {shelp} list of {item} documents.""")
 
     scparam(cfg,[*path, 'repo'],
             sctype='[str]',
@@ -2545,7 +2545,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_repo '{keys}git@github.com:aolofsson/oh.git'",
                 f"api: chip.set({api},'repo','git@github.com:aolofsson/oh.git')"],
-            schelp="""{shelp} IP address to source code repository.""")
+            schelp=f"""{shelp} IP address to source code repository.""")
 
 
     scparam(cfg,[*path, 'dependency', name],
@@ -2555,7 +2555,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_dependency '{keys}hell0 1.0'",
                 f"api: chip.set({api},'dependency','hello', '1.0')"],
-            schelp="""{shelp} dependencies specified as a key value pair.
+            schelp=f"""{shelp} dependencies specified as a key value pair.
             Versions shall follow the semver standard.""")
 
     scparam(cfg,[*path, 'target'],
@@ -2565,7 +2565,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_target '{keys}asicflow_freepdk45'",
                 f"api: chip.set({api},'target','asicflow_freepdk45')"],
-            schelp="""{shelp} list of qualified compilation targets.""")
+            schelp=f"""{shelp} list of qualified compilation targets.""")
 
     scparam(cfg,[*path, 'license'],
             sctype='[str]',
@@ -2574,7 +2574,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_license '{keys}Apache-2.0'",
                 f"api: chip.set({api},'license','Apache-2.0')"],
-            schelp="""{shelp} list of SPDX license identifiers.""")
+            schelp=f"""{shelp} list of SPDX license identifiers.""")
 
     scparam(cfg,[*path, 'licensefile'],
             sctype='[file]',
@@ -2583,7 +2583,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_licensefile '{keys}./LICENSE'",
                 f"api: chip.set({api},'licensefile','./LICENSE')"],
-            schelp="""{shelp} list of license files for {group} to be
+            schelp=f"""{shelp} list of license files for {group} to be
             applied in cases when a SPDX identifier is not available.
             (eg. proprietary licenses).list of SPDX license identifiers.""")
 
@@ -2594,7 +2594,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_location '{keys}mars'",
                 f"api: chip.set({api},'location','mars')"],
-            schelp="""{shelp} country of origin specified as standardized
+            schelp=f"""{shelp} country of origin specified as standardized
             international country codes. The field can be left blank
             if the location is unknown or global.""")
 
@@ -2605,7 +2605,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_organization '{keys}humanity'",
                 f"api: chip.set({api},'organization','humanity')"],
-            schelp="""{shelp} sponsoring organization. The field can be left
+            schelp=f"""{shelp} sponsoring organization. The field can be left
             blank if not applicable.""")
 
     scparam(cfg,[*path, 'publickey'],
@@ -2615,7 +2615,7 @@ def schema_package(cfg, group):
             example=[
                 f"cli: -{switch}_publickey '{keys}6EB695706EB69570'",
                 f"api: chip.set({api},'publickey','6EB695706EB69570')"],
-            schelp="""{shelp} public project key.""")
+            schelp=f"""{shelp} public project key.""")
 
     record = ['name',
               'email',
@@ -2633,7 +2633,7 @@ def schema_package(cfg, group):
                 example=[
                     f"cli: -{switch}_author_{item} '{keys}wiley wiley@acme.com'",
                     f"api: chip.set({api},'author','wiley','{item}','wiley@acme.com')"],
-                schelp="""{shelp} author {item} provided with full name as key and
+                schelp=f"""{shelp} author {item} provided with full name as key and
                 {item} as value.""")
 
     return cfg
@@ -2668,7 +2668,7 @@ def schema_checklist(cfg, group='checklist'):
             example=[
                 f"cli: -{emit_group}_description '{emit_switch}ISO D000 A-DESCRIPTION'",
                 f"api: chip.set({emit_api},'ISO','D000','description','A-DESCRIPTION')"],
-            schelp="""
+            schelp=f"""
             A short one line description of the {group} checklist item.""")
 
     scparam(cfg,[*path, standard, item, 'requirement'],
@@ -2678,7 +2678,7 @@ def schema_checklist(cfg, group='checklist'):
             example=[
                 f"cli: -{emit_group}_requirement '{emit_switch}ISO D000 DOCSTRING'",
                 f"api: chip.set({emit_api},'ISO','D000','requirement','DOCSTRING')"],
-            schelp="""
+            schelp=f"""
             A complete requirement description of the {group} checklist item
             entered as a multi-line string.""")
 
@@ -2689,7 +2689,7 @@ def schema_checklist(cfg, group='checklist'):
             example=[
                 f"cli: -{emit_group}_rational '{emit_switch}ISO D000 reliability'",
                 f"api: chip.set({emit_api},'ISO','D000','rationale','reliability')"],
-            schelp="""
+            schelp=f"""
             Rationale for the the {group} checklist item. Rationale should be a
             unique alphanumeric code used by the standard or a short one line
             or single word description.""")
@@ -2701,7 +2701,7 @@ def schema_checklist(cfg, group='checklist'):
             example=[
                 f"cli: -{emit_group}_criteria '{emit_switch}ISO D000 errors==0'",
                 f"api: chip.set({emit_api},'ISO','D000','criteria','errors==0')"],
-            schelp="""
+            schelp=f"""
             Simple list of signoff criteria for {group} checklist item which
             must all be met for signoff. Each signoff criteria consists of
             a metric, a relational operator, and a value in the form.
@@ -2714,7 +2714,7 @@ def schema_checklist(cfg, group='checklist'):
             example=[
                 f"cli: -{emit_group}_step '{emit_switch}ISO D000 place'",
                 f"api: chip.set({emit_api},'ISO','D000','step','place')"],
-            schelp="""
+            schelp=f"""
             Flowgraph step used to verify the {group} checklist item.
             The parameter should be left empty for manual and for tool
             flows that bypass the SC infrastructure.""")
@@ -2727,7 +2727,7 @@ def schema_checklist(cfg, group='checklist'):
             example=[
                 f"cli: -{emit_group}_index '{emit_switch}ISO D000 1'",
                 f"api: chip.set({emit_api},'ISO','D000','index','1')"],
-            schelp="""
+            schelp=f"""
             Flowgraph index used to verify the {group} checklist item.
             The parameter should be left empty for manual checks and
             for tool flows that bypass the SC infrastructure.""")
@@ -2739,7 +2739,7 @@ def schema_checklist(cfg, group='checklist'):
             example=[
                 f"cli: -{emit_group}_report '{emit_switch}ISO D000 bold my.rpt'",
                 f"api: chip.set({emit_api},'ISO','D000','report','hold', 'my.rpt')"],
-            schelp="""
+            schelp=f"""
             Filepath to report(s) of specified type documenting the successful
             validation of the {group} checklist item. Specified on a per
             metric basis.""")
@@ -2751,7 +2751,7 @@ def schema_checklist(cfg, group='checklist'):
             example=[
                 f"cli: -{emit_group}_waiver '{emit_switch}ISO D000 bold my.txt'",
                 f"api: chip.set({emit_api},'ISO','D000','waiver','hold', 'my.txt')"],
-            schelp="""
+            schelp=f"""
             Filepath to report(s) documenting waivers for the {group} checklist
             item specified on a per metric basis.""")
 
@@ -2762,7 +2762,7 @@ def schema_checklist(cfg, group='checklist'):
             example=[
                 f"cli: -{emit_group}_ok '{emit_switch}ISO D000 true'",
                 f"api: chip.set({emit_api},'ISO','D000','ok', True)"],
-            schelp="""
+            schelp=f"""
             Boolean check mark for the {group} checklist item. A value of
             True indicates a human has inspected the all item dictionary
             parameters check out.""")
