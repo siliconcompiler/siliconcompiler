@@ -2945,13 +2945,26 @@ class Chip:
             Instantiates Creates a directed edge from place to cts.
         '''
 
+        if flow not in self.getkeys('flowgraph'):
+            self.cfg['flowgraph'][flow] ={}
+
+        # uniquify each step
         for step in self.getkeys('flowgraph',subflow):
-            if prefix:
+            if prefix is None:
+                newstep = step
+            else:
                 newstep = prefix + step
+            if newstep not in self.getkeys('flowgraph', flow):
+                self.cfg['flowgraph'][flow][newstep] ={}
+            # recursive copy
             for key in self._allkeys(self.cfg['flowgraph'][subflow][step]):
                 self._copyparam(self.cfg['flowgraph'][subflow][step],
                                 self.cfg['flowgraph'][flow][newstep],
                                 key)
+            # update step names
+            for index in self.getkeys('flowgraph', flow, newstep):
+                for item in self.get('flowgraph', flow, newstep, index,'input'):
+                    print(item)
 
     ###########################################################################
     def join(self, *tasks):
