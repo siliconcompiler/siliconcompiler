@@ -10,9 +10,10 @@ def test_help():
     for key in allkeys:
         shorthelp=chip.get(*key, field='shorthelp')
         typestr=chip.get(*key, field='type')
+        scope=chip.get(*key, field='scope')
         keystr = ','.join(key)
-        row = [typestr, f',"{shorthelp}"', f',"{keystr}"']
-        print("{: <15} {: <40} {: <60}".format(*row))
+        row = [scope,f",{typestr}", f',"{shorthelp}"', f',"{keystr}"']
+        print("{: <8} {: <15} {: <40} {: <60}".format(*row))
 
 #########################
 if __name__ == "__main__":
