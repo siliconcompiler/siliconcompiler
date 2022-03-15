@@ -33,7 +33,6 @@ import getpass
 import distro
 import netifaces
 import webbrowser
-import pty
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from timeit import default_timer as timer
@@ -3473,6 +3472,7 @@ class Chip:
                         data = os.read(fd, 1024)
                         log_writer.write(data)
                         return data
+                    import pty # Note: this import throws exception on Windows
                     retcode = pty.spawn(cmdlist, read)
             else:
                 with open(logfile, 'w') as log_writer, open(logfile, 'r') as log_reader:
