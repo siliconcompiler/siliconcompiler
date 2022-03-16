@@ -56,9 +56,9 @@ def setup(chip):
     chip.set('eda', tool, 'option', step, index, '-c', clobber=False)
     chip.set('eda', tool, 'refdir', step, index, refdir, clobber=False)
 
-    if step == 'syn':
+    if re.search(r'syn', step):
         script = 'sc_syn.tcl'
-    elif step == 'lec':
+    elif re.search(r'lec', step):
         script = 'sc_lec.tcl'
     else:
         chip.logger.error(f'Yosys does not support step {step}.')
