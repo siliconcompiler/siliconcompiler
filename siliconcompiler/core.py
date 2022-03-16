@@ -3489,14 +3489,10 @@ class Chip:
                 self.logger.error(f'{tool} does not implement parse_version.')
                 self._haltstep(step, index, active)
             version = parse_version(proc.stdout)
+
             self.logger.info(f"Checking executable. Tool '{exe}' found with version '{version}'")
-            if vercheck:
-                allowed_versions = self.get('eda', tool, 'version')
-                if allowed_versions and version not in allowed_versions:
-                    allowedstr = ', '.join(allowed_versions)
-                    self.logger.error(f"Version check failed for {tool}. Check installation.")
-                    self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
-                    self._haltstep(step, index, active)
+            if vercheck and not self._check_version(version, tool):
+                self._haltstep(step, index, active)
 
         ##################
         # 15. Write manifest (tool interface) (Don't move this!)
@@ -4410,6 +4406,40 @@ class Chip:
         pathhash = hashlib.sha1(pathstr.encode('utf-8')).hexdigest()
 
         return f'{filename}_{pathhash}{ext}'
+
+    def _check_version(self, version, tool):
+        normalize_version = self.find_function(tool, 'normalize_version', 'tools')
+        allowed_versions = self.get('eda', tool, 'version')
+
+        for specifier in allowed_versions:
+            match = re.match(r'(>=|==|!=|>)\s*(.*)', specifier)
+            if match is None:
+                # For backwards compatibility, no operator means perfect match.
+                op = '=='
+                spec_version = specifier
+            else:
+                op, spec_version = match.groups()
+
+            if (normalize_version is None) and op not in ('==', '!='):
+                # If normalize_version() is not implemented, we allow direct
+                # comparison between parsed versions.
+                self.logger.error(f"{tool} does not implement normalize_version. Version specifier may only be '==' or '!='.")
+                return False
+
+            if normalize_version is not None:
+                normalized_version = normalize_version(version)
+                normalized_spec = normalize_version(spec_version)
+            else:
+                normalized_version = version
+                normalized_spec = spec_version
+
+            if not self._safecompare(normalized_version, op, normalized_spec):
+                allowedstr = ' && '.join(allowed_versions)
+                self.logger.error(f"Version check failed for {tool}. Check installation.")
+                self.logger.error(f"Found version {version}, did not satisfy {allowedstr}.")
+                return False
+
+        return True
 
 ###############################################################################
 # Package Customization classes

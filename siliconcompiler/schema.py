@@ -58,7 +58,8 @@ def scparam(cfg,
         # note (bools are never lists)
         if re.match(r'bool',sctype):
             require = 'all'
-            defvalue = 'false'
+            if defvalue is None:
+                defvalue = 'false'
         if re.match(r'\[',sctype) and signature is None:
             signature = []
         if re.match(r'\[',sctype) and defvalue is None:
@@ -2395,6 +2396,7 @@ def schema_options(cfg):
 
     scparam(cfg, ['vercheck'],
             sctype='bool',
+            defvalue='true',
             scope='job',
             shorthelp="Enable version checking",
             switch="-vercheck <bool>",
