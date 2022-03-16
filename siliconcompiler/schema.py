@@ -2186,7 +2186,7 @@ def schema_options(cfg):
     scparam(cfg, ['loglevel'],
             sctype='str',
             scope='job',
-            defvalue='WARNING',
+            defvalue='INFO',
             shorthelp="Logging level",
             switch="-loglevel <str>",
             example=["cli: -loglevel INFO",

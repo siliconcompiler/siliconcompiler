@@ -3259,7 +3259,7 @@
         }
     },
     "loglevel": {
-        "defvalue": "WARNING",
+        "defvalue": "INFO",
         "example": [
             "cli: -loglevel INFO",
             "api: chip.set('loglevel', 'INFO')"
@@ -3272,7 +3272,7 @@
         "signature": null,
         "switch": "-loglevel <str>",
         "type": "str",
-        "value": "WARNING"
+        "value": "INFO"
     },
     "mcmm": {
         "default": {
@@ -6670,7 +6670,7 @@
             "value": "0.8.0"
         },
         "software": {
-            "defvalue": "0.8.0",
+            "defvalue": null,
             "example": [
                 "cli: -version_software",
                 "api: chip.get('version', 'software')"
@@ -6683,7 +6683,7 @@
             "signature": null,
             "switch": "-version_software <str>",
             "type": "str",
-            "value": "0.8.0"
+            "value": null
         }
     },
     "vlib": {
