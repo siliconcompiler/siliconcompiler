@@ -5,22 +5,21 @@ import json
 def test_graph():
 
     chip = siliconcompiler.Chip()
-    chip.load_target('skywater130_demo')
 
     #RTL
-    chip.pipeline('rtl', [{'import' : 'surelog'},
-                          {'syn' : 'yosys'},
-                          {'export' : 'nop'},])
+    chip.pipe('rtl', [{'import' : 'surelog'},
+                      {'syn' : 'yosys'},
+                      {'export' : 'nop'},])
 
     #APR
-    chip.pipeline('apr', [{'import' : 'nop'},
-                          {'floorplan' : 'openroad'},
-                          {'physyn' : 'openroad'},
-                          {'place' : 'openroad'},
-                          {'cts' : 'openroad'},
-                          {'route' : 'openroad'},
-                          {'dfm' : 'openroad'},
-                          {'export' : 'klayout'}])
+    chip.pipe('apr', [{'import' : 'nop'},
+                      {'floorplan' : 'openroad'},
+                      {'physyn' : 'openroad'},
+                      {'place' : 'openroad'},
+                      {'cts' : 'openroad'},
+                      {'route' : 'openroad'},
+                      {'dfm' : 'openroad'},
+                      {'export' : 'klayout'}])
 
     #SIGNOFF
     chip.node('signoff', 'import', 'nop')
