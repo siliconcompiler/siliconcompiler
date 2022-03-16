@@ -2928,13 +2928,14 @@ class Chip:
         # Handling connecting edges between graphs
         # Not completely name space safe, but feels like this limitation
         # is a non-issue
+
         module_tail = f"{tail}.export"
         module_head = f"{head}.import"
         if module_tail in self.getkeys('flowgraph',flow):
             tail = module_tail
         if module_head in self.getkeys('flowgraph',flow):
             head = module_head
-
+        #TODO: add error checking
         # Adding
         self.add('flowgraph', flow, head, str(head_index), 'input', (tail, str(tail_index)))
 
@@ -2979,7 +2980,7 @@ class Chip:
 
 
     ###########################################################################
-    def pipeline(self, flow, plan):
+    def pipe(self, flow, plan):
         '''
         Creates a pipeline based on an order list of key values pairs.
         '''
