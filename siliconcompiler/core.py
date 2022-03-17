@@ -3610,7 +3610,7 @@ class Chip:
         ##################
         # 23. Make a record if tracking is enabled
         if self.get('track'):
-            self._make_record(job, step, index, wall_start, wall_end, version)
+            self._make_record(step, index, wall_start, wall_end, version)
 
         ##################
         # 24. Save a successful manifest
@@ -4271,7 +4271,7 @@ class Chip:
         return 'local'
 
     #######################################
-    def _make_record(self, job, step, index, start, end, toolversion):
+    def _make_record(self, step, index, start, end, toolversion):
         '''
         Records provenance details for a runstep.
         '''
@@ -4280,28 +4280,25 @@ class Chip:
         end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
 
         userid = getpass.getuser()
-        self.set('record', job, step, index, 'userid', userid)
-
-        scversion = self.get('version', 'sc')
-        self.set('record', job, step, index, 'version', 'sc', scversion)
+        self.set('record', step, index, 'userid', userid)
 
         if toolversion:
-            self.set('record', job, step, index, 'version', 'tool', toolversion)
+            self.set('record', step, index, 'toolversion', toolversion)
 
-        self.set('record', job, step, index, 'starttime', start_date)
-        self.set('record', job, step, index, 'endtime', end_date)
+        self.set('record', step, index, 'starttime', start_date)
+        self.set('record', step, index, 'endtime', end_date)
 
         machine = platform.node()
-        self.set('record', job, step, index, 'machine', machine)
+        self.set('record', step, index, 'machine', machine)
 
-        self.set('record', job, step, index, 'region', self._get_cloud_region())
+        self.set('record', step, index, 'region', self._get_cloud_region())
 
         try:
             gateways = netifaces.gateways()
             ipaddr, interface = gateways['default'][netifaces.AF_INET]
             macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
-            self.set('record', job, step, index, 'ipaddr', ipaddr)
-            self.set('record', job, step, index, 'macaddr', macaddr)
+            self.set('record', step, index, 'ipaddr', ipaddr)
+            self.set('record', step, index, 'macaddr', macaddr)
         except KeyError:
             self.logger.warning('Could not find default network interface info')
 
@@ -4310,11 +4307,11 @@ class Chip:
             lower_sys_name = 'macos'
         else:
             lower_sys_name = system.lower()
-        self.set('record', job, step, index, 'platform', lower_sys_name)
+        self.set('record', step, index, 'platform', lower_sys_name)
 
         if system == 'Linux':
             distro_name = distro.id()
-            self.set('record', job, step, index, 'distro', distro_name)
+            self.set('record', step, index, 'distro', distro_name)
 
         if system == 'Darwin':
             osversion, _, _ = platform.mac_ver()
@@ -4322,7 +4319,7 @@ class Chip:
             osversion = distro.version()
         else:
             osversion = platform.release()
-        self.set('record', job, step, index, 'version', 'os', osversion)
+        self.set('record', step, index, 'osversion', osversion)
 
         if system == 'Linux':
             kernelversion = platform.release()
@@ -4333,10 +4330,10 @@ class Chip:
         else:
             kernelversion = None
         if kernelversion:
-            self.set('record', job, step, index, 'version', 'kernel', kernelversion)
+            self.set('record', step, index, 'kernelversion', kernelversion)
 
         arch = platform.machine()
-        self.set('record', job, step, index, 'arch', arch)
+        self.set('record', step, index, 'arch', arch)
 
     #######################################
     def _safecompare(self, value, op, goal):
