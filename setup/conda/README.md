@@ -1,6 +1,6 @@
 # Environment and Tool Setup Using Conda
 
-The LiteX project [provides recipes](https://github.com/hdl/conda-eda) for installing many core open-source EDA tools using the Anaconda / Miniconda Python package management system.
+The [conda-eda project](https://github.com/hdl/conda-eda) provides recipes for installing many core open-source EDA tools using the Anaconda / Miniconda Python package management system.
 
 We would like to fully support this avenue of setting up a development environment, but the process currently requires a few steps outside of Conda. In the future, we hope to provide a siliconcompiler Conda recipe which can be used seamlessly with this environment.
 
