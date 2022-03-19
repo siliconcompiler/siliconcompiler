@@ -1833,10 +1833,24 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             switch=f"-metric_{item} 'step index group <float>'",
             example=[
                 f"cli: -metric_{item} 'dfm 0 goal 10e9'",
-                f"api: chip.set('metric','dfm','0','{item}','real, 10e9)"],
+                f"api: chip.set('metric','dfm','0','{item}','real', 10e9)"],
             schelp=f"""
             Metric tracking total peak program memory footprint on a per
             step and index basis, specified in bytes.""")
+
+    item = 'cpucores'
+    scparam(cfg, ['metric', step, index, item, group],
+            sctype='int',
+            scope='job',
+            require='asic',
+            shorthelp=f"Metric: {item}",
+            switch=f"-metric_{item} 'step index group <float>'",
+            example=[
+                f"cli: -metric_{item} 'dfm 0 goal 1024'",
+                f"api: chip.set('metric','dfm','0','{item}','real', 1024)"],
+            schelp=f"""
+            Metric tracking the number of machine CPU cores on a per
+            step and index basis.""")
 
     item = 'exetime'
     scparam(cfg, ['metric', step, index, item, group],
