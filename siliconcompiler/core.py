@@ -3606,6 +3606,7 @@ class Chip:
         wall_end = time.time()
         walltime = round((wall_end - wall_start),2)
         self.set('metric',step, index, 'tasktime', 'real', walltime)
+        self.logger.info(f"Finished task '{step}{index}' in {walltime}s")
 
         ##################
         # 23. Make a record if tracking is enabled
