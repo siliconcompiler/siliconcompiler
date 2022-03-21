@@ -19,10 +19,8 @@ set stat_libs ""
 foreach item $sc_scenarios {
     set libcorner [dict get $sc_cfg mcmm $item libcorner]
     foreach lib $sc_targetlibs {
-        if [dict exists dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib] {
-            set lib_file [dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib]
-            yosys read_liberty -lib $lib_file
-        }
+        set lib_file [dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib]
+        yosys read_liberty -lib $lib_file
     }
     foreach lib $sc_macrolibs {
         if [dict exists dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib] {
