@@ -1,0 +1,741 @@
+VERSION 5.8 ;
+DIVIDERCHAR "/" ;
+BUSBITCHARS "[]" ;
+DESIGN heartbeat_top ;
+UNITS DISTANCE MICRONS 1000 ;
+DIEAREA ( 0 0 ) ( 595000 651000 ) ;
+
+ROW ROW_0 unithd 0 0 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_1 unithd 0 2720 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_2 unithd 0 5440 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_3 unithd 0 8160 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_4 unithd 0 10880 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_5 unithd 0 13600 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_6 unithd 0 16320 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_7 unithd 0 19040 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_8 unithd 0 21760 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_9 unithd 0 24480 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_10 unithd 0 27200 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_11 unithd 0 29920 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_12 unithd 0 32640 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_13 unithd 0 35360 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_14 unithd 0 38080 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_15 unithd 0 40800 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_16 unithd 0 43520 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_17 unithd 0 46240 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_18 unithd 0 48960 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_19 unithd 0 51680 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_20 unithd 0 54400 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_21 unithd 0 57120 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_22 unithd 0 59840 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_23 unithd 0 62560 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_24 unithd 0 65280 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_25 unithd 0 68000 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_26 unithd 0 70720 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_27 unithd 0 73440 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_28 unithd 0 76160 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_29 unithd 0 78880 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_30 unithd 0 81600 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_31 unithd 0 84320 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_32 unithd 0 87040 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_33 unithd 0 89760 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_34 unithd 0 92480 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_35 unithd 0 95200 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_36 unithd 0 97920 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_37 unithd 0 100640 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_38 unithd 0 103360 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_39 unithd 0 106080 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_40 unithd 0 108800 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_41 unithd 0 111520 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_42 unithd 0 114240 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_43 unithd 0 116960 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_44 unithd 0 119680 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_45 unithd 0 122400 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_46 unithd 0 125120 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_47 unithd 0 127840 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_48 unithd 0 130560 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_49 unithd 0 133280 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_50 unithd 0 136000 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_51 unithd 0 138720 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_52 unithd 0 141440 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_53 unithd 0 144160 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_54 unithd 0 146880 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_55 unithd 0 149600 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_56 unithd 0 152320 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_57 unithd 0 155040 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_58 unithd 0 157760 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_59 unithd 0 160480 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_60 unithd 0 163200 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_61 unithd 0 165920 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_62 unithd 0 168640 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_63 unithd 0 171360 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_64 unithd 0 174080 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_65 unithd 0 176800 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_66 unithd 0 179520 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_67 unithd 0 182240 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_68 unithd 0 184960 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_69 unithd 0 187680 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_70 unithd 0 190400 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_71 unithd 0 193120 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_72 unithd 0 195840 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_73 unithd 0 198560 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_74 unithd 0 201280 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_75 unithd 0 204000 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_76 unithd 0 206720 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_77 unithd 0 209440 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_78 unithd 0 212160 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_79 unithd 0 214880 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_80 unithd 0 217600 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_81 unithd 0 220320 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_82 unithd 0 223040 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_83 unithd 0 225760 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_84 unithd 0 228480 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_85 unithd 0 231200 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_86 unithd 0 233920 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_87 unithd 0 236640 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_88 unithd 0 239360 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_89 unithd 0 242080 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_90 unithd 0 244800 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_91 unithd 0 247520 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_92 unithd 0 250240 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_93 unithd 0 252960 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_94 unithd 0 255680 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_95 unithd 0 258400 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_96 unithd 0 261120 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_97 unithd 0 263840 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_98 unithd 0 266560 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_99 unithd 0 269280 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_100 unithd 0 272000 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_101 unithd 0 274720 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_102 unithd 0 277440 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_103 unithd 0 280160 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_104 unithd 0 282880 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_105 unithd 0 285600 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_106 unithd 0 288320 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_107 unithd 0 291040 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_108 unithd 0 293760 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_109 unithd 0 296480 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_110 unithd 0 299200 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_111 unithd 0 301920 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_112 unithd 0 304640 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_113 unithd 0 307360 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_114 unithd 0 310080 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_115 unithd 0 312800 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_116 unithd 0 315520 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_117 unithd 0 318240 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_118 unithd 0 320960 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_119 unithd 0 323680 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_120 unithd 0 326400 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_121 unithd 0 329120 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_122 unithd 0 331840 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_123 unithd 0 334560 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_124 unithd 0 337280 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_125 unithd 0 340000 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_126 unithd 0 342720 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_127 unithd 0 345440 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_128 unithd 0 348160 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_129 unithd 0 350880 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_130 unithd 0 353600 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_131 unithd 0 356320 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_132 unithd 0 359040 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_133 unithd 0 361760 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_134 unithd 0 364480 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_135 unithd 0 367200 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_136 unithd 0 369920 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_137 unithd 0 372640 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_138 unithd 0 375360 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_139 unithd 0 378080 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_140 unithd 0 380800 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_141 unithd 0 383520 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_142 unithd 0 386240 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_143 unithd 0 388960 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_144 unithd 0 391680 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_145 unithd 0 394400 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_146 unithd 0 397120 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_147 unithd 0 399840 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_148 unithd 0 402560 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_149 unithd 0 405280 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_150 unithd 0 408000 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_151 unithd 0 410720 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_152 unithd 0 413440 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_153 unithd 0 416160 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_154 unithd 0 418880 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_155 unithd 0 421600 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_156 unithd 0 424320 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_157 unithd 0 427040 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_158 unithd 0 429760 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_159 unithd 0 432480 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_160 unithd 0 435200 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_161 unithd 0 437920 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_162 unithd 0 440640 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_163 unithd 0 443360 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_164 unithd 0 446080 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_165 unithd 0 448800 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_166 unithd 0 451520 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_167 unithd 0 454240 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_168 unithd 0 456960 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_169 unithd 0 459680 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_170 unithd 0 462400 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_171 unithd 0 465120 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_172 unithd 0 467840 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_173 unithd 0 470560 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_174 unithd 0 473280 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_175 unithd 0 476000 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_176 unithd 0 478720 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_177 unithd 0 481440 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_178 unithd 0 484160 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_179 unithd 0 486880 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_180 unithd 0 489600 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_181 unithd 0 492320 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_182 unithd 0 495040 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_183 unithd 0 497760 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_184 unithd 0 500480 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_185 unithd 0 503200 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_186 unithd 0 505920 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_187 unithd 0 508640 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_188 unithd 0 511360 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_189 unithd 0 514080 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_190 unithd 0 516800 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_191 unithd 0 519520 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_192 unithd 0 522240 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_193 unithd 0 524960 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_194 unithd 0 527680 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_195 unithd 0 530400 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_196 unithd 0 533120 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_197 unithd 0 535840 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_198 unithd 0 538560 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_199 unithd 0 541280 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_200 unithd 0 544000 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_201 unithd 0 546720 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_202 unithd 0 549440 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_203 unithd 0 552160 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_204 unithd 0 554880 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_205 unithd 0 557600 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_206 unithd 0 560320 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_207 unithd 0 563040 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_208 unithd 0 565760 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_209 unithd 0 568480 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_210 unithd 0 571200 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_211 unithd 0 573920 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_212 unithd 0 576640 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_213 unithd 0 579360 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_214 unithd 0 582080 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_215 unithd 0 584800 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_216 unithd 0 587520 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_217 unithd 0 590240 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_218 unithd 0 592960 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_219 unithd 0 595680 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_220 unithd 0 598400 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_221 unithd 0 601120 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_222 unithd 0 603840 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_223 unithd 0 606560 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_224 unithd 0 609280 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_225 unithd 0 612000 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_226 unithd 0 614720 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_227 unithd 0 617440 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_228 unithd 0 620160 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_229 unithd 0 622880 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_230 unithd 0 625600 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_231 unithd 0 628320 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_232 unithd 0 631040 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_233 unithd 0 633760 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_234 unithd 0 636480 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_235 unithd 0 639200 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_236 unithd 0 641920 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_237 unithd 0 644640 N
+    DO 1293.0 BY 1 STEP 460 0 ;
+ROW ROW_238 unithd 0 647360 FS
+    DO 1293.0 BY 1 STEP 460 0 ;
+
+TRACKS X 230 DO 1293 STEP 460
+    LAYER li1 ;
+TRACKS Y 170 DO 1915 STEP 340
+    LAYER li1 ;
+TRACKS X 170 DO 1750 STEP 340
+    LAYER met1 ;
+TRACKS Y 170 DO 1915 STEP 340
+    LAYER met1 ;
+TRACKS X 230 DO 1293 STEP 460
+    LAYER met2 ;
+TRACKS Y 230 DO 1415 STEP 460
+    LAYER met2 ;
+TRACKS X 340 DO 875 STEP 680
+    LAYER met3 ;
+TRACKS Y 340 DO 957 STEP 680
+    LAYER met3 ;
+TRACKS X 460 DO 647 STEP 920
+    LAYER met4 ;
+TRACKS Y 460 DO 708 STEP 920
+    LAYER met4 ;
+TRACKS X 1700 DO 175 STEP 3400
+    LAYER met5 ;
+TRACKS Y 1700 DO 191 STEP 3400
+    LAYER met5 ;
+
+VIAS 0 ;
+END VIAS
+
+COMPONENTS 65 ;
+   - padring.we_pads\[0\].i0.padio\[0\].i0.gpio sky130_ef_io__gpiov2_pad_wrapped
+      + FIXED ( 0 233000 ) W
+ ;
+   - padring.we_pads\[0\].i0.padio\[1\].i0.gpio sky130_ef_io__gpiov2_pad_wrapped
+      + FIXED ( 0 342000 ) W
+ ;
+   - vdd0 sky130_ef_io__vccd_hvc_pad
+      + FIXED ( 258000 453035 ) N
+ ;
+   - padring.ea_pads\[0\].i0.padio\[0\].i0.gpio sky130_ef_io__gpiov2_pad_wrapped
+      + FIXED ( 384035 287000 ) E
+ ;
+   - vss0 sky130_ef_io__vssd_hvc_pad
+      + FIXED ( 258000 0 ) S
+ ;
+   - corner_sw sky130_ef_io__corner_pad
+      + FIXED ( 0 0 ) S
+ ;
+   - corner_nw sky130_ef_io__corner_pad
+      + FIXED ( 0 451000 ) W
+ ;
+   - corner_se sky130_ef_io__corner_pad
+      + FIXED ( 391000 0 ) E
+ ;
+   - corner_ne sky130_ef_io__corner_pad
+      + FIXED ( 395000 447000 ) N
+ ;
+   - _sc_io_fill_cell_0 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 0 204000 ) W
+ ;
+   - _sc_io_fill_cell_1 sky130_ef_io__com_bus_slice_5um
+      + FIXED ( 0 224000 ) W
+ ;
+   - _sc_io_fill_cell_2 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 229000 ) W
+ ;
+   - _sc_io_fill_cell_3 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 230000 ) W
+ ;
+   - _sc_io_fill_cell_4 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 231000 ) W
+ ;
+   - _sc_io_fill_cell_5 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 232000 ) W
+ ;
+   - _sc_io_fill_cell_6 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 0 313000 ) W
+ ;
+   - _sc_io_fill_cell_7 sky130_ef_io__com_bus_slice_5um
+      + FIXED ( 0 333000 ) W
+ ;
+   - _sc_io_fill_cell_8 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 338000 ) W
+ ;
+   - _sc_io_fill_cell_9 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 339000 ) W
+ ;
+   - _sc_io_fill_cell_10 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 340000 ) W
+ ;
+   - _sc_io_fill_cell_11 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 341000 ) W
+ ;
+   - _sc_io_fill_cell_12 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 0 422000 ) W
+ ;
+   - _sc_io_fill_cell_13 sky130_ef_io__com_bus_slice_5um
+      + FIXED ( 0 442000 ) W
+ ;
+   - _sc_io_fill_cell_14 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 447000 ) W
+ ;
+   - _sc_io_fill_cell_15 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 448000 ) W
+ ;
+   - _sc_io_fill_cell_16 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 449000 ) W
+ ;
+   - _sc_io_fill_cell_17 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 0 450000 ) W
+ ;
+   - _sc_io_fill_cell_18 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 204000 453035 ) N
+ ;
+   - _sc_io_fill_cell_19 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 224000 453035 ) N
+ ;
+   - _sc_io_fill_cell_20 sky130_ef_io__com_bus_slice_10um
+      + FIXED ( 244000 453035 ) N
+ ;
+   - _sc_io_fill_cell_21 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 254000 453035 ) N
+ ;
+   - _sc_io_fill_cell_22 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 255000 453035 ) N
+ ;
+   - _sc_io_fill_cell_23 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 256000 453035 ) N
+ ;
+   - _sc_io_fill_cell_24 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 257000 453035 ) N
+ ;
+   - _sc_io_fill_cell_25 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 333000 453035 ) N
+ ;
+   - _sc_io_fill_cell_26 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 353000 453035 ) N
+ ;
+   - _sc_io_fill_cell_27 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 373000 453035 ) N
+ ;
+   - _sc_io_fill_cell_28 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 393000 453035 ) N
+ ;
+   - _sc_io_fill_cell_29 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 394000 453035 ) N
+ ;
+   - _sc_io_fill_cell_30 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 397035 200000 ) E
+ ;
+   - _sc_io_fill_cell_31 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 397035 220000 ) E
+ ;
+   - _sc_io_fill_cell_32 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 397035 240000 ) E
+ ;
+   - _sc_io_fill_cell_33 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 397035 260000 ) E
+ ;
+   - _sc_io_fill_cell_34 sky130_ef_io__com_bus_slice_5um
+      + FIXED ( 397035 280000 ) E
+ ;
+   - _sc_io_fill_cell_35 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 397035 285000 ) E
+ ;
+   - _sc_io_fill_cell_36 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 397035 286000 ) E
+ ;
+   - _sc_io_fill_cell_37 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 397035 367000 ) E
+ ;
+   - _sc_io_fill_cell_38 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 397035 387000 ) E
+ ;
+   - _sc_io_fill_cell_39 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 397035 407000 ) E
+ ;
+   - _sc_io_fill_cell_40 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 397035 427000 ) E
+ ;
+   - _sc_io_fill_cell_41 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 200000 0 ) S
+ ;
+   - _sc_io_fill_cell_42 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 220000 0 ) S
+ ;
+   - _sc_io_fill_cell_43 sky130_ef_io__com_bus_slice_10um
+      + FIXED ( 240000 0 ) S
+ ;
+   - _sc_io_fill_cell_44 sky130_ef_io__com_bus_slice_5um
+      + FIXED ( 250000 0 ) S
+ ;
+   - _sc_io_fill_cell_45 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 255000 0 ) S
+ ;
+   - _sc_io_fill_cell_46 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 256000 0 ) S
+ ;
+   - _sc_io_fill_cell_47 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 257000 0 ) S
+ ;
+   - _sc_io_fill_cell_48 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 333000 0 ) S
+ ;
+   - _sc_io_fill_cell_49 sky130_ef_io__com_bus_slice_20um
+      + FIXED ( 353000 0 ) S
+ ;
+   - _sc_io_fill_cell_50 sky130_ef_io__com_bus_slice_10um
+      + FIXED ( 373000 0 ) S
+ ;
+   - _sc_io_fill_cell_51 sky130_ef_io__com_bus_slice_5um
+      + FIXED ( 383000 0 ) S
+ ;
+   - _sc_io_fill_cell_52 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 388000 0 ) S
+ ;
+   - _sc_io_fill_cell_53 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 389000 0 ) S
+ ;
+   - _sc_io_fill_cell_54 sky130_ef_io__com_bus_slice_1um
+      + FIXED ( 390000 0 ) S
+ ;
+   - core heartbeat
+      + FIXED ( 210965 210965 ) N
+ ;
+END COMPONENTS
+
+PINS 4 ;
+    - we_pad + NET we_pad + DIRECTION INOUT + USE SIGNAL
+       + PORT
+         + LAYER met5 ( -5000 -5000 ) ( 5000 5000 )
+         + LAYER met5 ( -5000 104000 ) ( 5000 114000 )
+         + FIXED ( 77215 275500 ) N ;
+    - vdd + NET vdd + DIRECTION INOUT + USE SIGNAL
+       + PORT
+         + LAYER met5 ( -5000 -5000 ) ( 5000 5000 )
+         + FIXED ( 300500 583785 ) N ;
+    - ea_pad + NET ea_pad + DIRECTION INOUT + USE SIGNAL
+       + PORT
+         + LAYER met5 ( -5000 -5000 ) ( 5000 5000 )
+         + FIXED ( 527785 329500 ) N ;
+    - vss + NET vss + DIRECTION INOUT + USE SIGNAL
+       + PORT
+         + LAYER met5 ( -5000 -5000 ) ( 5000 5000 )
+         + FIXED ( 300500 77215 ) N ;
+END PINS
+
+BLOCKAGES 0 ;
+END BLOCKAGES
+
+SPECIALNETS 1 ;
+    - _vddio  + USE power
+ ;
+END SPECIALNETS
+
+END DESIGN
