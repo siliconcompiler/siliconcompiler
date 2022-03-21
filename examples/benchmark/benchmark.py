@@ -12,9 +12,7 @@ def main():
 
     examples = [{'heartbeat' : 1000},
                 {'picorv32' : 1000},
-                {'aes' : 1500},]
-
-    examples = [{'heartbeat' : 1000}]
+                {'aes' : 1500}]
 
     results = {}
 
@@ -25,13 +23,13 @@ def main():
         rootdir = os.path.join(parent, design)
         results[design] = {}
         for n in ['1','2','4','8','16']:
-        for n in ['4']
             wall_start = time.time()
             chip = siliconcompiler.Chip(design)
             chip.set('jobname', f"job{n}")
             chip.load_target('skywater130_demo')
             chip.set('relax', True)
             chip.set('quiet', True)
+            chip.set('remote',False)
 
             # load dsign
             chip.add('source', os.path.join(rootdir, f"{design}.v"))
@@ -43,7 +41,6 @@ def main():
             chip.set('flowarg', 'syn_np', n)
             chip.set('flowarg', 'place_np', n)
             chip.set('flowarg', 'cts_np', n)
-            chip.set('flowarg', 'route_np', n)
             chip.load_flow('asicflow')
             chip.set('flow', 'asicflow')
 
@@ -59,9 +56,8 @@ def main():
             wall_end = time.time()
             walltime = round((wall_end - wall_start),2)
             results[design][n] = walltime
-            chip.write_manifest("tmp.tcl")
-
-    print(results)
+            with open(f"results.txt", 'w') as f:
+                print(results, file=f)
 
 if __name__ == '__main__':
     main()
