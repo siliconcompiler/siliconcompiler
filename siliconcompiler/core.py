@@ -3370,9 +3370,6 @@ class Chip:
                         localcfg = json.load(f)
                     # quick copy of task history
                     self.cfg['metric'][in_step][in_index] = copy.deepcopy(localcfg['metric'][in_step][in_index])
-                    if self.get('track'):
-                        self.cfg['record'][in_step][in_index] = copy.deepcopy(localcfg['record'][in_step][in_index])
-                    #self.read_manifest(cfgfile)
 
         ##################
         # 6. Write manifest prior to step running into inputs
