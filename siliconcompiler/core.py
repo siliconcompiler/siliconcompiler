@@ -33,7 +33,6 @@ import getpass
 import distro
 import netifaces
 import webbrowser
-import pty
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from timeit import default_timer as timer
@@ -3550,6 +3549,7 @@ class Chip:
                         data = os.read(fd, 1024)
                         log_writer.write(data)
                         return data
+                    import pty # Note: this import throws exception on Windows
                     retcode = pty.spawn(cmdlist, read)
             else:
                 with open(logfile, 'w') as log_writer, open(logfile, 'r') as log_reader:
@@ -4243,7 +4243,7 @@ class Chip:
         fullexe = self._getexe(tool)
 
         options = []
-        is_posix = ('win' not in sys.platform)
+        is_posix = (sys.platform != 'win32')
 
         for option in self.get('eda', tool, 'option', step, index):
             options.extend(shlex.split(option, posix=is_posix))
@@ -4277,8 +4277,8 @@ class Chip:
                 envvars[key] = self.get('eda', tool, 'env', step, index, key)
 
         #create replay file
-        is_posix = 'win' not in sys.platform
-        script_name = 'replay.sh' if is_posix else 'replay.bat'
+        is_posix = (sys.platform != 'win32')
+        script_name = 'replay.sh' if is_posix else 'replay.cmd'
         with open(script_name, 'w') as f:
             if is_posix:
                 print('#!/bin/bash', file=f)
@@ -4287,7 +4287,8 @@ class Chip:
             for key, val in envvars.items():
                 print(f'{envvar_cmd} {key}={val}', file=f)
 
-            print(' '.join(shlex.quote(arg) for arg in cmdlist), file=f)
+            # Quote any argument with spaces
+            print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cmdlist), file=f)
         os.chmod(script_name, 0o755)
 
         return cmdlist
