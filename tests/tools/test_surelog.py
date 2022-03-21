@@ -73,17 +73,18 @@ def test_replay(scroot):
     chip.run()
 
     workdir = chip._getworkdir(step=step)
-    if 'win' in sys.platform:
-        script = 'replay.bat'
-        echo = 'echo %SLOG_ENV%'
+    if sys.platform == 'win32':
+        script = 'replay.cmd'
+        echo = 'if %errorlevel% neq 0 exit /b %errorlevel%\necho %SLOG_ENV%'
     else:
-        script = 'replay.sh'
+        script = './replay.sh'
         echo = 'echo $SLOG_ENV'
 
     with open(os.path.join(workdir, script), 'a') as f:
         f.write(echo + '\n')
 
-    p = subprocess.run(f'./{script}', stdout=subprocess.PIPE, cwd=workdir)
+    os.chdir(workdir)
+    p = subprocess.run([script], stdout=subprocess.PIPE)
 
     assert p.returncode == 0
     assert p.stdout.decode('ascii').rstrip().split('\n')[-1] == 'SUCCESS'
