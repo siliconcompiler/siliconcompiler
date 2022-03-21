@@ -1871,6 +1871,7 @@ class Chip:
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
+            #flush writes
 
     ###########################################################################
     def check_checklist(self, standard, item=None):
@@ -2687,9 +2688,10 @@ class Chip:
                     stepindex = step + index
                     for i in  self.getkeys('flowstatus'):
                         for j in  self.getkeys('flowstatus',i):
-                            for in_step, in_index in self.get('flowstatus',i,j,'select'):
-                                if (in_step + in_index) == stepindex:
-                                    indices_to_show[step] = index
+                            if 'select' in self.getkeys('flowstatus',i,j):
+                                for in_step, in_index in self.get('flowstatus',i,j,'select'):
+                                    if (in_step + in_index) == stepindex:
+                                        indices_to_show[step] = index
 
         # header for data frame
         for step in steplist:
@@ -3300,6 +3302,11 @@ class Chip:
         ##################
         # 1. Wait loop
         self.logger.info('Waiting for inputs...')
+        threads = 0
+        for a in self.getkeys('flowgraph', flow):
+            for b in self.getkeys('flowgraph', flow, a):
+                threads = threads +1
+        sleep = 0.1 + (0.2 * (threads / os.cpu_count()))
         while True:
             # Checking that there are no pending jobs
             pending = 0
@@ -3309,7 +3316,7 @@ class Chip:
             if not pending:
                 break
             # Short sleep
-            time.sleep(0.1)
+            time.sleep(sleep)
 
         ##################
         # 2. Start wall timer
@@ -3320,8 +3327,6 @@ class Chip:
         # If the job is configured to run on a cluster, collect the schema
         # and send it to a compute node for deferred execution.
         # (Run the initial 'import' stage[s] locally)
-
-        wall_start = time.time()
 
         if self.get('jobscheduler') and \
            self.get('flowgraph', flow, step, index, 'input'):
@@ -3355,12 +3360,20 @@ class Chip:
 
         all_inputs = []
         if not self.get('remote'):
+            #copy over status from
+
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 index_error = error[in_step + in_index]
                 self.set('flowstatus', in_step, in_index, 'error', index_error)
                 if not index_error:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
-                    self.read_manifest(cfgfile, clobber=False)
+                    with open(cfgfile, 'r') as f:
+                        localcfg = json.load(f)
+                    # quick copy of task history
+                    self.cfg['metric'][in_step][in_index] = copy.deepcopy(localcfg['metric'][in_step][in_index])
+                    if self.get('track'):
+                        self.cfg['record'][in_step][in_index] = copy.deepcopy(localcfg['record'][in_step][in_index])
+                    #self.read_manifest(cfgfile)
 
         ##################
         # 6. Write manifest prior to step running into inputs
@@ -3602,11 +3615,11 @@ class Chip:
                         self.hash_files(*args)
 
         ##################
-        # 22. Capture wall runtime
+        # 22. Capture wall runtime and cpu cores
         wall_end = time.time()
         walltime = round((wall_end - wall_start),2)
         self.set('metric',step, index, 'tasktime', 'real', walltime)
-        self.logger.info(f"Finished task '{step}{index}' in {walltime}s")
+        self.logger.info(f"Finished task in {walltime}s")
 
         ##################
         # 23. Make a record if tracking is enabled
@@ -3615,11 +3628,11 @@ class Chip:
 
         ##################
         # 24. Save a successful manifest
-        self.set('flowstatus', step, str(index), 'error', 0)
+        self.set('flowstatus', step, index, 'error', 0)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
-        self.write_manifest("outputs/" + self.get('design') +'.pkg.json')
+        self.write_manifest(f"outputs/{design}.pkg.json")
 
         ##################
         # 25. Clean up non-essential files
@@ -3772,8 +3785,8 @@ class Chip:
                 for index in self.getkeys('flowgraph', flow, step):
                     stepstr = step + index
                     if step in steplist and index in indexlist[step]:
-                        self.set('flowstatus', step, str(index), 'error', 1)
-                        error[stepstr] = self.get('flowstatus', step, str(index), 'error')
+                        self.set('flowstatus', step, index, 'error', 1)
+                        error[stepstr] = self.get('flowstatus', step, index, 'error')
                         active[stepstr] = 1
                         # Setting up tool is optional
                         tool = self.get('flowgraph', flow, step, index, 'tool')
@@ -3860,24 +3873,38 @@ class Chip:
         # Merge cfg back from last executed runsteps.
         # Note: any information generated in steps that do not merge into the
         # last step will not be picked up in this chip object.
+
+        #1. Use the last manifest
         laststep = steplist[-1]
         last_step_failed = True
-        for index in indexlist[laststep]:
-            lastdir = self._getworkdir(step=laststep, index=index)
+        lastdir = self._getworkdir(step=laststep, index=index)
 
-            # This no-op listdir operation is important for ensuring we have a
-            # consistent view of the filesystem when dealing with NFS. Without
-            # this, this thread is often unable to find the final manifest of
-            # runs performed on job schedulers, even if they completed
-            # successfully. Inspired by: https://stackoverflow.com/a/70029046.
-            os.listdir(os.path.dirname(lastdir))
+        # This no-op listdir operation is important for ensuring we have a
+        # consistent view of the filesystem when dealing with NFS. Without
+        # this, this thread is often unable to find the final manifest of
+        # runs performed on job schedulers, even if they completed
+        # successfully. Inspired by: https://stackoverflow.com/a/70029046.
 
-            lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
-            if os.path.isfile(lastcfg):
-                last_step_failed = False
-                local_dir = self.get('dir')
-                self.read_manifest(lastcfg, clobber=True, clear=True)
-                self.set('dir', local_dir)
+        os.listdir(os.path.dirname(lastdir))
+        lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
+        if os.path.isfile(lastcfg):
+            last_step_failed = False
+            local_dir = self.get('dir')
+            self.read_manifest(lastcfg, clobber=True, clear=True)
+            self.set('dir', local_dir)
+
+        #2. Read in flowstatus and metrics from all directories
+        for step in self.getkeys('flowgraph', flow):
+            for index in self.getkeys('flowgraph', flow, step):
+                if step in steplist and index in indexlist[step]:
+                    taskdir = self._getworkdir(step=step, index=index)
+                    os.listdir(os.path.dirname(taskdir))
+                    cfg = f"{taskdir}/outputs/{self.get('design')}.pkg.json"
+                    with open(cfg, 'r') as f:
+                        localcfg = json.load(f)
+                    self.cfg['metric'][step][index] = copy.deepcopy(localcfg['metric'][step][index])
+                    self.cfg['flowstatus'][step][index] = copy.deepcopy(localcfg['flowstatus'][step][index])
+
 
         if last_step_failed:
             # Hack to find first failed step by checking for presence of output

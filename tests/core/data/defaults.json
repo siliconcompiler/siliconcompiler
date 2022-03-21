@@ -3779,7 +3779,7 @@
                         "defvalue": null,
                         "example": [
                             "cli: -metric_memory 'dfm 0 goal 10e9'",
-                            "api: chip.set('metric','dfm','0','memory','real, 10e9)"
+                            "api: chip.set('metric','dfm','0','memory','real', 10e9)"
                         ],
                         "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis, specified in bytes.",
                         "lock": "false",
