@@ -1,5 +1,5 @@
 #!/bin/bash
-scr_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
+src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
 
 sudo yum groupinstall -y 'Development Tools'
 sudo yum install -y pkgconfig bzip2 openssl-devel pth libatomic bison flex readline-devel gawk libffi-devel git graphviz zlib-devel wget
@@ -109,7 +109,7 @@ sudo ldconfig
 cd -
 
 # Install OpenROAD tools.
-cd ${scr_path}/..
+cd ${src_path}/..
 git submodule update --init --recursive third_party/tools/openroad
 cd third_party/tools/openroad
 ./build_openroad.sh -o
