@@ -68,7 +68,7 @@ def setup(chip):
         chip.add('eda', tool, 'option', step, index,  '--cc')
     else:
         chip.logger.error(f'Step {step} not supported for verilator')
-        raise RuntimeError(f'Step {step} not supported for verilator')
+        raise siliconcompiler.SiliconCompilerError(f'Step {step} not supported for verilator')
 
     if step == 'import':
         design = chip.get('design')
@@ -152,7 +152,7 @@ def post_process(chip):
         if (modules > 1) & (chip.cfg['design']['value'] == ""):
             chip.logger.error('Multiple modules found during import, \
             but sc_design was not set')
-            raise RuntimeError('Multiple modules found during import, \
+            raise siliconcompiler.SiliconCompilerError('Multiple modules found during import, \
             but sc_design was not set')
         else:
             chip.logger.info('Setting design (topmodule) to %s', topmodule)

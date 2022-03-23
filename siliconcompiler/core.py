@@ -508,7 +508,7 @@ class Chip:
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
-            raise RuntimeError(f'Module {name} not found.')
+            raise SiliconCompilerError(f'Module {name} not found.')
 
     ##########################################################################
     def load_pdk(self, name):
@@ -533,7 +533,7 @@ class Chip:
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
-            raise RuntimeError(f'Module {name} not found.')
+            raise SiliconCompilerError(f'Module {name} not found.')
 
     ##########################################################################
     def load_flow(self, name):
@@ -558,7 +558,7 @@ class Chip:
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
-            raise RuntimeError(f'Module {name} not found.')
+            raise SiliconCompilerError(f'Module {name} not found.')
 
     ##########################################################################
     def load_lib(self, name):
@@ -583,7 +583,7 @@ class Chip:
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
-            raise RuntimeError(f'Module {name} not found.')
+            raise SiliconCompilerError(f'Module {name} not found.')
 
 
     ###########################################################################
@@ -3742,12 +3742,12 @@ class Chip:
                 cfg_file = os.path.join(cfg_dir, 'credentials')
             if (not os.path.isdir(cfg_dir)) or (not os.path.isfile(cfg_file)):
                 self.logger.error('Could not find remote server configuration - please run "sc-configure" and enter your server address and credentials.')
-                raise RuntimeError('Valid remote credentials could not be found.')
+                raise SiliconCompilerError('Valid remote credentials could not be found.')
             with open(cfg_file, 'r') as cfgf:
                 self.status['remote_cfg'] = json.loads(cfgf.read())
             if (not 'address' in self.status['remote_cfg']):
                 self.logger.error('Improperly formatted remote server configuration - please run "sc-configure" and enter your server address and credentials.')
-                raise RuntimeError('Valid remote credentials could not be found.')
+                raise SiliconCompilerError('Valid remote credentials could not be found.')
 
             # Pre-process: Run an 'import' stage locally, and upload the
             # in-progress build directory to the remote server.
@@ -3785,7 +3785,7 @@ class Chip:
                             func = self.find_function(tool, 'setup', 'tools')
                             if func is None:
                                 self.logger.error(f'setup() not found for tool {tool}')
-                                raise RuntimeError(f'setup() not found for tool {tool}')
+                                raise SiliconCompilerError(f'setup() not found for tool {tool}')
                             func(self)
                             # Need to clear index, otherwise we will skip
                             # setting up other indices. Clear step for good
@@ -3818,7 +3818,7 @@ class Chip:
             # Check if there were errors before proceeding with run
             if self.error:
                 self.logger.error(f"Check failed. See previous errors.")
-                raise RuntimeError(f"Manifest checks failed.")
+                raise SiliconCompilerError(f"Manifest checks failed.")
 
             # Create all processes
             processes = []
@@ -3853,7 +3853,7 @@ class Chip:
                 halt = halt + index_error
             if halt:
                 self.logger.error('Run() failed, exiting! See previous errors.')
-                raise RuntimeError('Run() failed, see previous errors.')
+                raise SiliconCompilerError('Run() failed, see previous errors.')
 
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
@@ -3901,7 +3901,7 @@ class Chip:
             stepdir = self._getworkdir(step=failed_step)[:-1]
             self.logger.error(f'Run() failed on step {failed_step}, exiting! '
                 f'See logs in {stepdir} for error details.')
-            raise RuntimeError(f'Run() failed on step {failed_step}! '
+            raise SiliconCompilerError(f'Run() failed on step {failed_step}! '
                 f'See logs in {stepdir} for error details.')
 
         # Store run in history
@@ -4421,3 +4421,9 @@ class Chip:
 class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
+
+class SiliconCompilerError(Exception):
+    ''' Minimal Exception wrapper used to raise sc runtime errors.
+    '''
+    def __init__(self, message):
+        super(Exception, self).__init__(message)
