@@ -118,7 +118,7 @@ def test_all_failed_min(chip):
     chip.set('flowgraph', chip.get('flow'), 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError):
         chip.run()
 
     # check that compilation failed
@@ -139,7 +139,7 @@ def test_branch_failed_join(chip):
     chip.set('flowgraph', chip.get('flow'), 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError):
         chip.run()
 
     # check that compilation failed
