@@ -170,7 +170,7 @@ def request_remote_run(chip):
             elif resp.status_code >= 400:
                 chip.logger.error(resp.json()['message'])
                 chip.logger.error('Error starting remote job run; quitting.')
-                sys.exit(1)
+                raise RuntimeError('Remote server returned unrecoverable error code.')
             else:
                 chip.logger.info(resp.text)
                 return

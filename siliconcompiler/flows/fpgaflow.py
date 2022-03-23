@@ -64,7 +64,7 @@ def setup(chip, flowname='fpgaflow'):
         partname = chip.get('fpga', 'partname')
     else:
         chip.logger.error("FPGA partname not specified")
-        sys.exit()
+        raise RuntimeError("FPGA partname not specified")
 
     # Set FPGA mode if not set
     chip.set('mode', 'fpga')

@@ -334,10 +334,10 @@ class Chip:
                 self.set('mode', cmdargs['mode'], clobber=True)
             if 'techarg' in cmdargs.keys():
                 print("NOT IMPLEMENTED")
-                sys.exit()
+                raise NotImplementedError('NOT IMPLEMENTED')
             if 'flowarg' in cmdargs.keys():
                 print("NOT IMPLEMENTED")
-                sys.exit()
+                raise NotImplementedError('NOT IMPLEMENTED')
             if 'arg_step' in cmdargs.keys():
                 self.set('arg', 'step', cmdargs['arg_step'], clobber=True)
             if 'fpga_partname' in cmdargs.keys():
@@ -508,7 +508,7 @@ class Chip:
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            raise RuntimeError(f'Module {name} not found.')
 
     ##########################################################################
     def load_pdk(self, name):
@@ -533,7 +533,7 @@ class Chip:
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            raise RuntimeError(f'Module {name} not found.')
 
     ##########################################################################
     def load_flow(self, name):
@@ -558,7 +558,7 @@ class Chip:
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            raise RuntimeError(f'Module {name} not found.')
 
     ##########################################################################
     def load_lib(self, name):
@@ -583,7 +583,7 @@ class Chip:
             func(self)
         else:
             self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            raise RuntimeError(f'Module {name} not found.')
 
 
     ###########################################################################
@@ -3641,6 +3641,8 @@ class Chip:
         if log:
             self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
         active[step + str(index)] = 0
+        # Tasks are typically run in parallel processes, so calling 'sys.exit'
+        # shouldn't exit the main thread.
         sys.exit(1)
 
     ###########################################################################
@@ -3740,12 +3742,12 @@ class Chip:
                 cfg_file = os.path.join(cfg_dir, 'credentials')
             if (not os.path.isdir(cfg_dir)) or (not os.path.isfile(cfg_file)):
                 self.logger.error('Could not find remote server configuration - please run "sc-configure" and enter your server address and credentials.')
-                sys.exit(1)
+                raise RuntimeError('Valid remote credentials could not be found.')
             with open(cfg_file, 'r') as cfgf:
                 self.status['remote_cfg'] = json.loads(cfgf.read())
             if (not 'address' in self.status['remote_cfg']):
                 self.logger.error('Improperly formatted remote server configuration - please run "sc-configure" and enter your server address and credentials.')
-                sys.exit(1)
+                raise RuntimeError('Valid remote credentials could not be found.')
 
             # Pre-process: Run an 'import' stage locally, and upload the
             # in-progress build directory to the remote server.
@@ -3783,7 +3785,7 @@ class Chip:
                             func = self.find_function(tool, 'setup', 'tools')
                             if func is None:
                                 self.logger.error(f'setup() not found for tool {tool}')
-                                sys.exit(1)
+                                raise RuntimeError(f'setup() not found for tool {tool}')
                             func(self)
                             # Need to clear index, otherwise we will skip
                             # setting up other indices. Clear step for good
@@ -3816,7 +3818,7 @@ class Chip:
             # Check if there were errors before proceeding with run
             if self.error:
                 self.logger.error(f"Check failed. See previous errors.")
-                sys.exit()
+                raise RuntimeError(f"Manifest checks failed.")
 
             # Create all processes
             processes = []
@@ -3851,7 +3853,7 @@ class Chip:
                 halt = halt + index_error
             if halt:
                 self.logger.error('Run() failed, exiting! See previous errors.')
-                sys.exit(1)
+                raise RuntimeError('Run() failed, see previous errors.')
 
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
@@ -3899,7 +3901,8 @@ class Chip:
             stepdir = self._getworkdir(step=failed_step)[:-1]
             self.logger.error(f'Run() failed on step {failed_step}, exiting! '
                 f'See logs in {stepdir} for error details.')
-            sys.exit(1)
+            raise RuntimeError(f'Run() failed on step {failed_step}! '
+                f'See logs in {stepdir} for error details.')
 
         # Store run in history
         self.record_history()
