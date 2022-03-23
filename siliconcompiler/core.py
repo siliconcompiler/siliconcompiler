@@ -33,6 +33,8 @@ import getpass
 import distro
 import netifaces
 import webbrowser
+import packaging.version
+import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from timeit import default_timer as timer
@@ -4408,38 +4410,65 @@ class Chip:
         return f'{filename}_{pathhash}{ext}'
 
     def _check_version(self, version, tool):
+        # Regex for deprecated "legacy specifier" from PyPA packaging library.
+        # Use this to parse PEP-440ish specifiers with arbitrary versions.
+
+        # TODO: should we add ~= to this list? Right now we have a slightly
+        # different list of supported operators depending on whether the tool
+        # has to normalize the version or not.
+        _regex_str = r"""
+            (?P<operator>(==|!=|<=|>=|<|>))
+            \s*
+            (?P<version>
+                [^,;\s)]* # Since this is a "legacy" specifier, and the version
+                          # string can be just about anything, we match everything
+                          # except for whitespace, a semi-colon for marker support,
+                          # a closing paren since versions can be enclosed in
+                          # them, and a comma since it's a version separator.
+            )
+            """
+        _regex = re.compile(r"^\s*" + _regex_str + r"\s*$", re.VERBOSE | re.IGNORECASE)
+
         normalize_version = self.find_function(tool, 'normalize_version', 'tools')
         allowed_versions = self.get('eda', tool, 'version')
 
         for specifier in allowed_versions:
-            match = re.match(r'(>=|==|!=|>)\s*(.*)', specifier)
-            if match is None:
-                # For backwards compatibility, no operator means perfect match.
-                op = '=='
-                spec_version = specifier
+            if normalize_version is None:
+                # Assume PEP-440 compatibility.
+                try:
+                    normalized_version = packaging.version.Version(version)
+                except packaging.version.InvalidVersion:
+                    self.logger.error(f'Version {version} reported by {tool} does not match PEP-440. {tool} must implement normalize_version().')
+                    return False
+                try:
+                    specifier_set = packaging.specifiers.SpecifierSet(specifier)
+                except packaging.specifiers.InvalidSpecifier:
+                    self.logger.error(f'Version specifier {specifier} does not match PEP-440.')
+                    return False
             else:
-                op, spec_version = match.groups()
+                split_specifiers = [s.strip() for s in specifier.split(",") if s.strip()]
+                normalized_specifiers = []
+                for spec in split_specifiers:
+                    match = re.match(_regex, spec)
+                    if match is None:
+                        self.logger.error(f'Invalid version specifier {spec}.')
+                        return False
 
-            if (normalize_version is None) and op not in ('==', '!='):
-                # If normalize_version() is not implemented, we allow direct
-                # comparison between parsed versions.
-                self.logger.error(f"{tool} does not implement normalize_version. Version specifier may only be '==' or '!='.")
-                return False
+                    operator = match.group('operator')
+                    spec_version = match.group('version')
+                    normalized_specifiers = f'{operator}{normalize_version(spec_version)}'
 
-            if normalize_version is not None:
-                normalized_version = normalize_version(version)
-                normalized_spec = normalize_version(spec_version)
-            else:
-                normalized_version = version
-                normalized_spec = spec_version
+                specifier_set = packaging.specifiers.SpecifierSet(normalized_specifiers)
+                normalized_version = packaging.version.Version(normalize_version(version))
 
-            if not self._safecompare(normalized_version, op, normalized_spec):
-                allowedstr = ' && '.join(allowed_versions)
-                self.logger.error(f"Version check failed for {tool}. Check installation.")
-                self.logger.error(f"Found version {version}, did not satisfy {allowedstr}.")
-                return False
+            if normalized_version in specifier_set:
+                return True
 
-        return True
+            allowedstr = '; '.join(allowed_versions)
+            self.logger.error(f"Version check failed for {tool}. Check installation.")
+            self.logger.error(f"Found version {version}, did not satisfy any version specifier set {allowedstr}.")
+            return False
+
 
 ###############################################################################
 # Package Customization classes
