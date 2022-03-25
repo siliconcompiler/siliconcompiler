@@ -1457,6 +1457,16 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             All files must be available for flow to continue. If a file
             is missing, the program exists on an error.""")
 
+    scparam(cfg, ['eda', tool, 'stdout'],
+            sctype='bool',
+            scope='job',
+            shorthelp="The tool sends its output to stdout",
+            switch="-eda_stdout 'tool <bool>'",
+            example=["cli: -eda_stdout 'ghdl true'",
+                    "api: chip.set('eda','ghdl','stdout',true)"],
+            schelp="""
+            Specifies that the tool sends the output to stdout and not to a file.""")
+
     scparam(cfg, ['eda', tool, 'require', step, index],
             sctype='[str]',
             scope='job',
