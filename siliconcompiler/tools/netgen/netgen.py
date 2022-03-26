@@ -68,7 +68,6 @@ def setup(chip):
         chip.add('eda', tool, 'require', step, index, ','.join(['read', 'netlist', step, index]))
     else:
         chip.add('eda', tool, 'input', step, index, f'{design}.vg')
-    chip.add('eda', tool, 'output', step, index, f'{design}.lvs.out')
 
 ################################
 # Version Check
@@ -87,13 +86,14 @@ def post_process(chip):
 
     Reads error count from output and fills in appropriate entry in metrics
     '''
+    tool = 'netgen'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     design = chip.get('design')
 
     if step == 'lvs':
         # Export metrics
-        lvs_failures = count_lvs.count_LVS_failures(f'outputs/{design}.lvs.json')
+        lvs_failures = count_lvs.count_LVS_failures(f'reports/{design}.lvs.json')
 
         # We don't count top-level pin mismatches as errors b/c we seem to get
         # false positives for disconnected pins. Report them as warnings
@@ -103,6 +103,10 @@ def post_process(chip):
         errors = lvs_failures[0] - pin_failures
         chip.set('metric', step, index, 'errors', 'real', errors)
         chip.set('metric', step, index, 'warnings', 'real', pin_failures)
+
+    report_path = f'reports/{design}.lvs.out'
+    chip.set('eda', tool, 'report', step, index, 'errors', report_path)
+    chip.set('eda', tool, 'report', step, index, 'warnings', report_path)
 
     #TODO: return error code
     return 0

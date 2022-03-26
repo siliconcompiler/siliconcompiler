@@ -75,8 +75,6 @@ def setup(chip):
         chip.add('eda', tool, 'input', step, index, f'{design}.gds')
     if step == 'extspice':
         chip.add('eda', tool, 'output', step, index, f'{design}.spice')
-    elif step == 'drc':
-        chip.add('eda', tool, 'output', step, index, f'{design}.drc')
 
 ################################
 # Version Check
@@ -94,17 +92,20 @@ def post_process(chip):
 
     Reads error count from output and fills in appropriate entry in metrics
     '''
+    tool = 'magic'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     design = chip.get('design')
 
     if step == 'drc':
-        with open(f'outputs/{design}.drc', 'r') as f:
+        report_path = f'reports/{design}.drc'
+        with open(report_path, 'r') as f:
             for line in f:
                 errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
 
                 if errors:
                     chip.set('metric', step, index, 'errors', 'real', errors.group(1))
+            chip.set('eda', tool, 'report', step, index, 'errors', report_path)
 
     #TODO: return error code
     return 0
