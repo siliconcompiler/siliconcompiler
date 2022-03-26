@@ -42,6 +42,7 @@ from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import leflib
 from siliconcompiler import utils
 from siliconcompiler import _metadata
+import psutil
 
 class Chip:
     """Object for configuring and executing hardware design flows.
@@ -3538,16 +3539,33 @@ class Chip:
                         return data
                     import pty # Note: this import throws exception on Windows
                     retcode = pty.spawn(cmdlist, read)
+
+                # TODO: Currently no memory usage tracking in breakpoints.
+                max_mem_bytes = 0
             else:
                 with open(logfile, 'w') as log_writer, open(logfile, 'r') as log_reader:
                     # Use separate reader/writer file objects as hack to display
                     # live output in non-blocking way, so we can monitor the
                     # timeout. Based on https://stackoverflow.com/a/18422264.
                     cmd_start_time = time.time()
+                    max_mem_bytes = 0
                     proc = subprocess.Popen(cmdlist,
                                             stdout=log_writer,
                                             stderr=subprocess.STDOUT)
                     while proc.poll() is None:
+                        # Gather subprocess memory usage.
+                        try:
+                            pproc = psutil.Process(proc.pid)
+                            pchildren = list(pproc.children(recursive=True))
+                            mem_uss = pproc.memory_full_info().uss
+                            for child in pchildren:
+                                mem_uss += child.memory_full_info().uss
+                            max_mem_bytes = max(max_mem_bytes, mem_uss)
+                        except psutil.Error:
+                            # Process may have already terminated or been killed.
+                            # Retain existing memory usage statistics in this case.
+                            pass
+
                         # Loop until process terminates
                         if not quiet:
                             sys.stdout.write(log_reader.read())
@@ -3568,10 +3586,11 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 18. Capture cpu runtime
+        # 18. Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
-        self.set('metric',step, index, 'exetime', 'real', cputime)
+        self.set('metric', step, index, 'exetime', 'real', cputime)
+        self.set('metric', step, index, 'memory', 'real', max_mem_bytes)
 
         ##################
         # 19. Post process (could fail)
