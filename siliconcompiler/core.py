@@ -102,7 +102,7 @@ class Chip:
         }
 
     ###########################################################################
-    def _init_logger(self, step=None, index=None):
+    def _init_logger(self, step=None, index=None, in_run=False):
 
         self.logger = logging.getLogger(uuid.uuid4().hex)
 
@@ -114,21 +114,33 @@ class Chip:
 
         loglevel = self.get('loglevel')
 
-        jobname = self.get('jobname')
-        if jobname == None:
-            jobname = '---'
-
-        if step == None:
-            step = '---'
-        if index == None:
-            index = '-'
-
-        run_info = '%-7s | %-12s | %-3s' % (jobname, step, index)
-
         if loglevel=='DEBUG':
-            logformat = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | ' + run_info + ' | %(message)s'
+            prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
         else:
-            logformat = '| %(levelname)-7s | ' + run_info + ' | %(message)s'
+            prefix = '| %(levelname)-7s'
+
+        if in_run:
+            flow = self.get('flow')
+
+            # Figure out how wide to make step and index fields
+            max_step_len = 2
+            max_index_len = 2
+            for future_step in self.getkeys('flowgraph', flow):
+                max_step_len = max(len(future_step) + 1, max_step_len)
+                for future_index in self.getkeys('flowgraph', flow, future_step):
+                    max_index_len = max(len(future_index) + 1, max_index_len)
+
+            jobname = self.get('jobname')
+
+            if step is None:
+                step = '-' * max(max_step_len // 4, 1)
+            if index is None:
+                index = '-' * max(max_index_len // 4, 1)
+
+            run_info = f'%s  | %-{max_step_len}s | %-{max_index_len}s' % (jobname, step, index)
+            logformat = ' | '.join([prefix, run_info, '%(message)s'])
+        else:
+            logformat = ' | '.join([prefix, '%(message)s'])
 
         handler = logging.StreamHandler()
         formatter = logging.Formatter(logformat)
@@ -3226,7 +3238,7 @@ class Chip:
     ###########################################################################
     def _runtask_safe(self, step, index, active, error):
         try:
-            self._init_logger(step, index)
+            self._init_logger(step, index, in_run=True)
         except:
             traceback.print_exc()
             print(f"Uncaught exception while initializing logger for step {step}")
@@ -3673,6 +3685,7 @@ class Chip:
             Runs the execution flow defined by the flowgraph dictionary.
         '''
 
+        self._init_logger(in_run=True)
         flow = self.get('flow')
 
         if not flow in self.getkeys('flowgraph'):
