@@ -3477,9 +3477,9 @@ class Chip:
                     # live output in non-blocking way, so we can monitor the
                     # timeout. Based on https://stackoverflow.com/a/18422264.
                     useStdOut = self.get('eda', tool, 'stdout')
-                    outfile = os.path.join('outputs', self.get('eda', tool, 'output', step, index)[0])
                     cmd_start_time = time.time()
                     if useStdOut:
+                        outfile = os.path.join('outputs', self.get('eda', tool, 'output', step, index)[0])
                         with open(outfile, 'w') as out_writer:
                             proc = subprocess.Popen(cmdlist,
                                                     stdout=out_writer,

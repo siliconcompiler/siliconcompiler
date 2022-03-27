@@ -1135,6 +1135,22 @@
                     }
                 }
             },
+            "stdout": {
+                "defvalue": "false",
+                "example": [
+                    "cli: -eda_stdout 'ghdl true'",
+                    "api: chip.set('eda','ghdl','stdout',true)"
+                ],
+                "help": "Specifies that the tool sends the output to stdout and not to a file.",
+                "lock": "false",
+                "require": "all",
+                "scope": "job",
+                "shorthelp": "The tool sends its output to stdout",
+                "signature": null,
+                "switch": "-eda_stdout 'tool <bool>'",
+                "type": "bool",
+                "value": "false"
+            },
             "threads": {
                 "default": {
                     "default": {
