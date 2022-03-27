@@ -40,8 +40,6 @@ def test_read_defaults(datadir):
     with open(os.path.join(datadir, 'defaults.json'), 'r') as f:
         expected = json.load(f)
 
-    print(actual)
-
     # special case (initialized in constructor)
     expected['version']['software']['defvalue'] = _metadata.version
     expected['version']['software']['value'] = _metadata.version
