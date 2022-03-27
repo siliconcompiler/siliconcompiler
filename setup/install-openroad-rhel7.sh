@@ -1,4 +1,6 @@
 #!/bin/bash
+src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
+
 sudo yum groupinstall -y 'Development Tools'
 sudo yum install -y pkgconfig bzip2 openssl-devel pth libatomic bison flex readline-devel gawk libffi-devel git graphviz zlib-devel wget
 sudo yum install -y qt5-qt3d-devel
@@ -106,11 +108,8 @@ sudo ln -s /usr/bin/tclsh8.6 /usr/bin/tclsh
 sudo ldconfig
 cd -
 
-
-cd ..
-
 # Install OpenROAD tools.
-cd ..
+cd ${src_path}/..
 git submodule update --init --recursive third_party/tools/openroad
 cd third_party/tools/openroad
 ./build_openroad.sh -o

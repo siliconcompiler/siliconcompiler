@@ -99,6 +99,9 @@ def setup(chip, flowname='asicflow'):
         'export' : 'klayout',
     }
 
+    # Clear olf flowgraph if it exists
+    if flowname in chip.getkeys('flowgraph'):
+        del chip.cfg['flowgraph'][flowname]
 
     #Remove built in steps where appropriate
     flowpipe = []

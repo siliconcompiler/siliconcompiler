@@ -11,8 +11,8 @@ set sc_techlef [dict get $sc_cfg pdk aprtech magic $sc_stackup $sc_libtype lef]
 set sc_liblef  [dict get $sc_cfg library $sc_mainlib lef $sc_stackup]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 
-if {[dict exists $sc_cfg asic exclude step index]} {
-    set sc_exclude  [dict get $sc_cfg asic exclude step index]
+if {[dict exists $sc_cfg asic exclude $sc_step $sc_index]} {
+    set sc_exclude  [dict get $sc_cfg asic exclude $sc_step $sc_index]
 } else {
     set sc_exclude [list]
 }

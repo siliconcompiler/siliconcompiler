@@ -33,7 +33,6 @@ import getpass
 import distro
 import netifaces
 import webbrowser
-import pty
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from timeit import default_timer as timer
@@ -2925,7 +2924,74 @@ class Chip:
             Creates a directed edge from place to cts.
         '''
 
+        # Handling connecting edges between graphs
+        # Not completely name space safe, but feels like this limitation
+        # is a non-issue
+
+        module_tail = f"{tail}.export"
+        module_head = f"{head}.import"
+        if module_tail in self.getkeys('flowgraph',flow):
+            tail = module_tail
+        if module_head in self.getkeys('flowgraph',flow):
+            head = module_head
+        #TODO: add error checking
+        # Adding
         self.add('flowgraph', flow, head, str(head_index), 'input', (tail, str(tail_index)))
+
+    ###########################################################################
+    def graph(self, flow, subflow, name=None):
+        '''
+        Instantiates a named flow as a graph in the current flowgraph.
+
+        Args:
+            flow (str): Name of current flow.
+            subflow (str): Name of flow to instantiate
+            name (str): Name of instance
+
+        Examples:
+            >>> chip.graph('asicflow')
+            Instantiates Creates a directed edge from place to cts.
+        '''
+
+        if flow not in self.getkeys('flowgraph'):
+            self.cfg['flowgraph'][flow] ={}
+
+        # uniquify each step
+        for step in self.getkeys('flowgraph',subflow):
+            if name is None:
+                newstep = step
+            else:
+                newstep = name + "." + step
+            if newstep not in self.getkeys('flowgraph', flow):
+                self.cfg['flowgraph'][flow][newstep] ={}
+            # recursive copy
+            for key in self._allkeys(self.cfg['flowgraph'][subflow][step]):
+                self._copyparam(self.cfg['flowgraph'][subflow][step],
+                                self.cfg['flowgraph'][flow][newstep],
+                                key)
+            # update step names
+            for index in self.getkeys('flowgraph', flow, newstep):
+                all_inputs = self.get('flowgraph', flow, newstep, index,'input')
+                self.set('flowgraph', flow, newstep, index,'input',[])
+                for in_step, in_index in all_inputs:
+                    newin = name + "." + in_step
+                    self.add('flowgraph', flow, newstep, index,'input',(newin,in_index))
+
+
+    ###########################################################################
+    def pipe(self, flow, plan):
+        '''
+        Creates a pipeline based on an order list of key values pairs.
+        '''
+
+        for item in plan:
+            step = list(item.keys())[0]
+            tool = list(item.values())[0]
+            self.node(flow, step, tool)
+            if step != 'import':
+                self.edge(flow, prevstep, step)
+            prevstep = step
+
 
     ###########################################################################
     def join(self, *tasks):
@@ -3470,6 +3536,7 @@ class Chip:
                         data = os.read(fd, 1024)
                         log_writer.write(data)
                         return data
+                    import pty # Note: this import throws exception on Windows
                     retcode = pty.spawn(cmdlist, read)
             else:
                 with open(logfile, 'w') as log_writer, open(logfile, 'r') as log_reader:
@@ -3548,11 +3615,12 @@ class Chip:
         wall_end = time.time()
         walltime = round((wall_end - wall_start),2)
         self.set('metric',step, index, 'tasktime', 'real', walltime)
+        self.logger.info(f"Finished task '{step}{index}' in {walltime}s")
 
         ##################
         # 23. Make a record if tracking is enabled
         if self.get('track'):
-            self._make_record(job, step, index, wall_start, wall_end, version)
+            self._make_record(step, index, wall_start, wall_end, version)
 
         ##################
         # 24. Save a successful manifest
@@ -4157,7 +4225,7 @@ class Chip:
         fullexe = self._getexe(tool)
 
         options = []
-        is_posix = ('win' not in sys.platform)
+        is_posix = (sys.platform != 'win32')
 
         for option in self.get('eda', tool, 'option', step, index):
             options.extend(shlex.split(option, posix=is_posix))
@@ -4191,8 +4259,8 @@ class Chip:
                 envvars[key] = self.get('eda', tool, 'env', step, index, key)
 
         #create replay file
-        is_posix = 'win' not in sys.platform
-        script_name = 'replay.sh' if is_posix else 'replay.bat'
+        is_posix = (sys.platform != 'win32')
+        script_name = 'replay.sh' if is_posix else 'replay.cmd'
         with open(script_name, 'w') as f:
             if is_posix:
                 print('#!/bin/bash', file=f)
@@ -4201,7 +4269,8 @@ class Chip:
             for key, val in envvars.items():
                 print(f'{envvar_cmd} {key}={val}', file=f)
 
-            print(' '.join(shlex.quote(arg) for arg in cmdlist), file=f)
+            # Quote any argument with spaces
+            print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cmdlist), file=f)
         os.chmod(script_name, 0o755)
 
         return cmdlist
@@ -4213,7 +4282,7 @@ class Chip:
         return 'local'
 
     #######################################
-    def _make_record(self, job, step, index, start, end, toolversion):
+    def _make_record(self, step, index, start, end, toolversion):
         '''
         Records provenance details for a runstep.
         '''
@@ -4222,28 +4291,25 @@ class Chip:
         end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
 
         userid = getpass.getuser()
-        self.set('record', job, step, index, 'userid', userid)
-
-        scversion = self.get('version', 'sc')
-        self.set('record', job, step, index, 'version', 'sc', scversion)
+        self.set('record', step, index, 'userid', userid)
 
         if toolversion:
-            self.set('record', job, step, index, 'version', 'tool', toolversion)
+            self.set('record', step, index, 'toolversion', toolversion)
 
-        self.set('record', job, step, index, 'starttime', start_date)
-        self.set('record', job, step, index, 'endtime', end_date)
+        self.set('record', step, index, 'starttime', start_date)
+        self.set('record', step, index, 'endtime', end_date)
 
         machine = platform.node()
-        self.set('record', job, step, index, 'machine', machine)
+        self.set('record', step, index, 'machine', machine)
 
-        self.set('record', job, step, index, 'region', self._get_cloud_region())
+        self.set('record', step, index, 'region', self._get_cloud_region())
 
         try:
             gateways = netifaces.gateways()
             ipaddr, interface = gateways['default'][netifaces.AF_INET]
             macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
-            self.set('record', job, step, index, 'ipaddr', ipaddr)
-            self.set('record', job, step, index, 'macaddr', macaddr)
+            self.set('record', step, index, 'ipaddr', ipaddr)
+            self.set('record', step, index, 'macaddr', macaddr)
         except KeyError:
             self.logger.warning('Could not find default network interface info')
 
@@ -4252,11 +4318,11 @@ class Chip:
             lower_sys_name = 'macos'
         else:
             lower_sys_name = system.lower()
-        self.set('record', job, step, index, 'platform', lower_sys_name)
+        self.set('record', step, index, 'platform', lower_sys_name)
 
         if system == 'Linux':
             distro_name = distro.id()
-            self.set('record', job, step, index, 'distro', distro_name)
+            self.set('record', step, index, 'distro', distro_name)
 
         if system == 'Darwin':
             osversion, _, _ = platform.mac_ver()
@@ -4264,7 +4330,7 @@ class Chip:
             osversion = distro.version()
         else:
             osversion = platform.release()
-        self.set('record', job, step, index, 'version', 'os', osversion)
+        self.set('record', step, index, 'osversion', osversion)
 
         if system == 'Linux':
             kernelversion = platform.release()
@@ -4275,10 +4341,10 @@ class Chip:
         else:
             kernelversion = None
         if kernelversion:
-            self.set('record', job, step, index, 'version', 'kernel', kernelversion)
+            self.set('record', step, index, 'kernelversion', kernelversion)
 
         arch = platform.machine()
-        self.set('record', job, step, index, 'arch', arch)
+        self.set('record', step, index, 'arch', arch)
 
     #######################################
     def _safecompare(self, value, op, goal):

@@ -1,0 +1,14 @@
+name: sc_env
+channels:
+  - LiteX-Hub
+  - conda-forge
+dependencies:
+  - pip
+  - pip:
+    - siliconcompiler
+
+  - surelog==0.0_3379_g484687d13
+  - openroad
+  - magic
+  - netgen
+  - yosys
