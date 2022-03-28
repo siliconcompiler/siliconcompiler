@@ -4409,15 +4409,12 @@ class Chip:
 
         return f'{filename}_{pathhash}{ext}'
 
-    def _check_version(self, version, tool):
-        # Regex for deprecated "legacy specifier" from PyPA packaging library.
-        # Use this to parse PEP-440ish specifiers with arbitrary versions.
-
-        # TODO: should we add ~= to this list? Right now we have a slightly
-        # different list of supported operators depending on whether the tool
-        # has to normalize the version or not.
+    def _check_version(self, reported_version, tool):
+        # Based on regex for deprecated "legacy specifier" from PyPA packaging
+        # library. Use this to parse PEP-440ish specifiers with arbitrary
+        # versions.
         _regex_str = r"""
-            (?P<operator>(==|!=|<=|>=|<|>))
+            (?P<operator>(==|!=|<=|>=|<|>|~=))
             \s*
             (?P<version>
                 [^,;\s)]* # Since this is a "legacy" specifier, and the version
@@ -4430,25 +4427,19 @@ class Chip:
         _regex = re.compile(r"^\s*" + _regex_str + r"\s*$", re.VERBOSE | re.IGNORECASE)
 
         normalize_version = self.find_function(tool, 'normalize_version', 'tools')
-        allowed_versions = self.get('eda', tool, 'version')
+        # Version is good if it matches any of the specifier sets in this list.
+        spec_sets = self.get('eda', tool, 'version')
 
-        for specifier in allowed_versions:
+        for spec_set in spec_sets:
             if normalize_version is None:
-                # Assume PEP-440 compatibility.
-                try:
-                    normalized_version = packaging.version.Version(version)
-                except packaging.version.InvalidVersion:
-                    self.logger.error(f'Version {version} reported by {tool} does not match PEP-440. {tool} must implement normalize_version().')
-                    return False
-                try:
-                    specifier_set = packaging.specifiers.SpecifierSet(specifier)
-                except packaging.specifiers.InvalidSpecifier:
-                    self.logger.error(f'Version specifier {specifier} does not match PEP-440.')
-                    return False
+                normalized_version = reported_version
+                normalized_specs = spec_set
             else:
-                split_specifiers = [s.strip() for s in specifier.split(",") if s.strip()]
-                normalized_specifiers = []
-                for spec in split_specifiers:
+                normalized_version = normalize_version(reported_version)
+
+                split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
+                normalized_specs_list = []
+                for spec in split_specs:
                     match = re.match(_regex, spec)
                     if match is None:
                         self.logger.error(f'Invalid version specifier {spec}.')
@@ -4456,18 +4447,33 @@ class Chip:
 
                     operator = match.group('operator')
                     spec_version = match.group('version')
-                    normalized_specifiers = f'{operator}{normalize_version(spec_version)}'
+                    normalized_specs_list.append(f'{operator}{normalize_version(spec_version)}')
+                    normalized_specs = ','.join(normalized_specs_list)
 
-                specifier_set = packaging.specifiers.SpecifierSet(normalized_specifiers)
-                normalized_version = packaging.version.Version(normalize_version(version))
+            try:
+                version = packaging.version.Version(normalized_version)
+            except packaging.version.InvalidVersion:
+                self.logger.error(f'Version {reported_version} reported by {tool} does not match standard.')
+                if normalize_version is None:
+                    self.logger.error('Tool driver should implement normalize_version().')
+                else:
+                    self.logger.error(f'normalize_version() returned invalid version {normalized_version}')
 
-            if normalized_version in specifier_set:
+                return False
+
+            try:
+                spec_set = packaging.specifiers.SpecifierSet(normalized_specs)
+            except packaging.specifiers.InvalidSpecifier:
+                self.logger.error(f'Version specifier set {normalized_specs} does not match standard.')
+                return False
+
+            if version in spec_set:
                 return True
 
-            allowedstr = '; '.join(allowed_versions)
-            self.logger.error(f"Version check failed for {tool}. Check installation.")
-            self.logger.error(f"Found version {version}, did not satisfy any version specifier set {allowedstr}.")
-            return False
+        allowedstr = '; '.join(spec_sets)
+        self.logger.error(f"Version check failed for {tool}. Check installation.")
+        self.logger.error(f"Found version {reported_version}, did not satisfy any version specifier set {allowedstr}.")
+        return False
 
 
 ###############################################################################
