@@ -17,6 +17,7 @@ cryptography >= 3.4.7
 graphviz >= 0.18.1
 netifaces >= 0.11.0
 distro >= 1.6.0
+packaging >= 21.3
 
 # Build dependencies
 #:build
