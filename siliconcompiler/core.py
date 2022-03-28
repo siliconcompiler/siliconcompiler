@@ -333,11 +333,11 @@ class Chip:
             if 'mode' in cmdargs.keys():
                 self.set('mode', cmdargs['mode'], clobber=True)
             if 'techarg' in cmdargs.keys():
-                print("NOT IMPLEMENTED")
-                raise NotImplementedError('NOT IMPLEMENTED')
+                print("NOT IMPLEMENTED: 'techarg' parameter")
+                raise NotImplementedError("NOT IMPLEMENTED: 'techarg' parameter")
             if 'flowarg' in cmdargs.keys():
-                print("NOT IMPLEMENTED")
-                raise NotImplementedError('NOT IMPLEMENTED')
+                print("NOT IMPLEMENTED: 'flowarg' parameter")
+                raise NotImplementedError("NOT IMPLEMENTED: 'flowarg' parameter")
             if 'arg_step' in cmdargs.keys():
                 self.set('arg', 'step', cmdargs['arg_step'], clobber=True)
             if 'fpga_partname' in cmdargs.keys():
@@ -507,8 +507,8 @@ class Chip:
         if func is not None:
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            raise SiliconCompilerError(f'Module {name} not found.')
+            self.logger.error(f'Target module {name} not found in $SCPATH or siliconcompiler/targets/.')
+            raise SiliconCompilerError(f'Target module {name} not found $SCPATH or siliconcompiler/targets/.')
 
     ##########################################################################
     def load_pdk(self, name):
@@ -532,8 +532,8 @@ class Chip:
             self._loaded_modules['pdks'].append(name)
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            raise SiliconCompilerError(f'Module {name} not found.')
+            self.logger.error(f'PDK module {name} not found in $SCPATH or siliconcompiler/pdks/.')
+            raise SiliconCompilerError(f'PDK module {name} not found in $SCPATH or siliconcompiler/pdks/.')
 
     ##########################################################################
     def load_flow(self, name):
@@ -557,8 +557,8 @@ class Chip:
             self._loaded_modules['flows'].append(name)
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            raise SiliconCompilerError(f'Module {name} not found.')
+            self.logger.error(f'Flow module {name} not found in $SCPATH or siliconcompiler/flows/.')
+            raise SiliconCompilerError(f'Flow module {name} not found in $SCPATH or siliconcompiler/flows/.')
 
     ##########################################################################
     def load_lib(self, name):
@@ -582,8 +582,8 @@ class Chip:
             self._loaded_modules['libs'].append(name)
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            raise SiliconCompilerError(f'Module {name} not found.')
+            self.logger.error(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
+            raise SiliconCompilerError(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
 
 
     ###########################################################################
