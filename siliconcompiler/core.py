@@ -3548,7 +3548,6 @@ class Chip:
                     # live output in non-blocking way, so we can monitor the
                     # timeout. Based on https://stackoverflow.com/a/18422264.
                     cmd_start_time = time.time()
-                    max_mem_bytes = 0
                     proc = subprocess.Popen(cmdlist,
                                             stdout=log_writer,
                                             stderr=subprocess.STDOUT)
