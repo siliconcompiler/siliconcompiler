@@ -48,7 +48,6 @@ def setup(chip):
     index = chip.get('arg','index')
 
 
-    chip.set('eda', tool, 'version', '0.0')
     chip.set('eda', tool, 'copy', 'true')
     chip.set('eda', tool, 'refdir', step, index,  refdir)
 

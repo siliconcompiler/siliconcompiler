@@ -50,7 +50,7 @@ def setup(chip):
     # tool setup
     chip.set('eda', tool, 'exe', tool, clobber=False)
     chip.set('eda', tool, 'vswitch', '--Version', clobber=False)
-    chip.set('eda', tool, 'version', 'v0.5.0', clobber=False)
+    chip.set('eda', tool, 'version', '0.5.0', clobber=False)
 
     options = []
     options.append("inputs" + chip.get('design') + ".bit")

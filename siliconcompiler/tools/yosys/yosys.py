@@ -50,7 +50,7 @@ def setup(chip):
     # Standard Setup
     chip.set('eda', tool, 'exe', 'yosys', clobber=False)
     chip.set('eda', tool, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, 'version', '0.13', clobber=False)
+    chip.set('eda', tool, 'version', '>=0.13', clobber=False)
     chip.set('eda', tool, 'format', 'tcl', clobber=False)
     chip.set('eda', tool, 'copy', 'true', clobber=False)
     chip.set('eda', tool, 'option', step, index, '-c', clobber=False)
@@ -116,8 +116,12 @@ def pre_process(chip):
 
 def parse_version(stdout):
     # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
-    version = stdout.split()[1]
-    return version.split('+')[0]
+    return stdout.split()[1]
+
+def normalize_version(version):
+    # Replace '+', which represents a "local version label", with '-', which is
+    # an "implicit post release number".
+    return version.replace('+', '-')
 
 ################################
 # Post_process (post executable)

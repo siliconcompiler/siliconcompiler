@@ -33,6 +33,8 @@ import getpass
 import distro
 import netifaces
 import webbrowser
+import packaging.version
+import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from timeit import default_timer as timer
@@ -3489,14 +3491,10 @@ class Chip:
                 self.logger.error(f'{tool} does not implement parse_version.')
                 self._haltstep(step, index, active)
             version = parse_version(proc.stdout)
+
             self.logger.info(f"Checking executable. Tool '{exe}' found with version '{version}'")
-            if vercheck:
-                allowed_versions = self.get('eda', tool, 'version')
-                if allowed_versions and version not in allowed_versions:
-                    allowedstr = ', '.join(allowed_versions)
-                    self.logger.error(f"Version check failed for {tool}. Check installation.")
-                    self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
-                    self._haltstep(step, index, active)
+            if vercheck and not self._check_version(version, tool):
+                self._haltstep(step, index, active)
 
         ##################
         # 15. Write manifest (tool interface) (Don't move this!)
@@ -4410,6 +4408,73 @@ class Chip:
         pathhash = hashlib.sha1(pathstr.encode('utf-8')).hexdigest()
 
         return f'{filename}_{pathhash}{ext}'
+
+    def _check_version(self, reported_version, tool):
+        # Based on regex for deprecated "legacy specifier" from PyPA packaging
+        # library. Use this to parse PEP-440ish specifiers with arbitrary
+        # versions.
+        _regex_str = r"""
+            (?P<operator>(==|!=|<=|>=|<|>|~=))
+            \s*
+            (?P<version>
+                [^,;\s)]* # Since this is a "legacy" specifier, and the version
+                          # string can be just about anything, we match everything
+                          # except for whitespace, a semi-colon for marker support,
+                          # a closing paren since versions can be enclosed in
+                          # them, and a comma since it's a version separator.
+            )
+            """
+        _regex = re.compile(r"^\s*" + _regex_str + r"\s*$", re.VERBOSE | re.IGNORECASE)
+
+        normalize_version = self.find_function(tool, 'normalize_version', 'tools')
+        # Version is good if it matches any of the specifier sets in this list.
+        spec_sets = self.get('eda', tool, 'version')
+
+        for spec_set in spec_sets:
+            if normalize_version is None:
+                normalized_version = reported_version
+                normalized_specs = spec_set
+            else:
+                normalized_version = normalize_version(reported_version)
+
+                split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
+                normalized_specs_list = []
+                for spec in split_specs:
+                    match = re.match(_regex, spec)
+                    if match is None:
+                        self.logger.error(f'Invalid version specifier {spec}.')
+                        return False
+
+                    operator = match.group('operator')
+                    spec_version = match.group('version')
+                    normalized_specs_list.append(f'{operator}{normalize_version(spec_version)}')
+                    normalized_specs = ','.join(normalized_specs_list)
+
+            try:
+                version = packaging.version.Version(normalized_version)
+            except packaging.version.InvalidVersion:
+                self.logger.error(f'Version {reported_version} reported by {tool} does not match standard.')
+                if normalize_version is None:
+                    self.logger.error('Tool driver should implement normalize_version().')
+                else:
+                    self.logger.error(f'normalize_version() returned invalid version {normalized_version}')
+
+                return False
+
+            try:
+                spec_set = packaging.specifiers.SpecifierSet(normalized_specs)
+            except packaging.specifiers.InvalidSpecifier:
+                self.logger.error(f'Version specifier set {normalized_specs} does not match standard.')
+                return False
+
+            if version in spec_set:
+                return True
+
+        allowedstr = '; '.join(spec_sets)
+        self.logger.error(f"Version check failed for {tool}. Check installation.")
+        self.logger.error(f"Found version {reported_version}, did not satisfy any version specifier set {allowedstr}.")
+        return False
+
 
 ###############################################################################
 # Package Customization classes

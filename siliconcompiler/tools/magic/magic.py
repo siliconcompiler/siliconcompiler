@@ -53,7 +53,7 @@ def setup(chip):
 
     chip.set('eda', tool, 'exe', tool)
     chip.set('eda', tool, 'vswitch', '--version')
-    chip.set('eda', tool, 'version', '8.3.274')
+    chip.set('eda', tool, 'version', '>=8.3.196')
     chip.set('eda', tool, 'format', 'tcl')
     chip.set('eda', tool, 'copy', 'true') # copy in .magicrc file
     chip.set('eda', tool, 'threads', step, index,  4)

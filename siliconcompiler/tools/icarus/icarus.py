@@ -47,7 +47,7 @@ def setup(chip):
     # Standard Setup
     chip.set('eda', tool, 'exe', 'iverilog', clobber=False)
     chip.set('eda', tool, 'vswitch', '-V', clobber=False)
-    chip.set('eda', tool, 'version', '10.3', clobber=False)
+    chip.set('eda', tool, 'version', '>=10.3', clobber=False)
     chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=False)
 
     if step == 'compile':

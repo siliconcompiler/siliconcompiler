@@ -1196,10 +1196,10 @@
             "version": {
                 "defvalue": [],
                 "example": [
-                    "cli: -eda_version 'openroad 2.0'",
-                    "api:  chip.set('eda','openroad','version','2.0')"
+                    "cli: -eda_version 'openroad >=v2.0'",
+                    "api:  chip.set('eda','openroad','version','>=v2.0')"
                 ],
-                "help": "List of acceptable versions of the tool executable to be used.\nDuring task execution, the the tool is called with the 'vswitch'\nto check the runtime executable version. When the 'vercheck'\nis set to True, of the 'version' fails to match the system\nexecutable, then the job is halted pre-execution.",
+                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. When 'vercheck' is set to\nTrue, if the version of the system executable is not allowed by any\nof the specifiers in 'version', then the job is halted\npre-execution.",
                 "lock": "false",
                 "require": null,
                 "scope": "job",
@@ -6621,7 +6621,7 @@
         }
     },
     "vercheck": {
-        "defvalue": "false",
+        "defvalue": "true",
         "example": [
             "cli: -vercheck",
             "api: chip.set('vercheck', 'true')"
@@ -6634,7 +6634,7 @@
         "signature": null,
         "switch": "-vercheck <bool>",
         "type": "bool",
-        "value": "false"
+        "value": "true"
     },
     "version": {
         "print": {
