@@ -15,7 +15,7 @@ cd -
 
 git clone https://github.com/YosysHQ/nextpnr nextpnr
 cd nextpnr
-git checkout c73d4cf6
+git checkout nextpnr-0.2
 cmake -DARCH=ice40 -DCMAKE_INSTALL_PREFIX=/usr/local .
 make -j$(nproc)
 sudo make install
