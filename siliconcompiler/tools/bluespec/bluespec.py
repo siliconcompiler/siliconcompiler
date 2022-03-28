@@ -49,7 +49,7 @@ def setup(chip):
     # This is technically the 'verbose' flag, but used alone it happens to give
     # us the version # and exit cleanly, so we'll use it here.
     chip.set('eda', tool, 'vswitch', '-v', clobber=False)
-    chip.set('eda', tool, 'version', '2021.07', clobber=False)
+    chip.set('eda', tool, 'version', '>=2021.07', clobber=False)
     chip.set('eda', tool, 'copy', False, clobber=False)
     chip.set('eda', tool, 'refdir', step, index,  refdir, clobber=False)
     chip.set('eda', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
@@ -62,7 +62,9 @@ def setup(chip):
     chip.add('eda', tool, 'require', step, index, 'source')
 
 def parse_version(stdout):
+    # Examples:
     # Bluespec Compiler, version 2021.12.1-27-g9a7d5e05 (build 9a7d5e05)
+    # Bluespec Compiler, version 2021.07 (build 4cac6eba)
 
     long_version = stdout.split()[3]
     return long_version.split('-')[0]

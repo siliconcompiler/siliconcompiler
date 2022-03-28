@@ -62,7 +62,7 @@ def setup(chip, mode='batch'):
 
     chip.set('eda', tool, 'exe', tool, clobber=clobber)
     chip.set('eda', tool, 'vswitch', '-version', clobber=clobber)
-    chip.set('eda', tool, 'version', 'v2.0', clobber=clobber)
+    chip.set('eda', tool, 'version', '>=v2.0-3078', clobber=clobber)
     chip.set('eda', tool, 'format', 'tcl', clobber=clobber)
     chip.set('eda', tool, 'copy', 'true', clobber=clobber)
     chip.set('eda', tool, 'option',  step, index, option, clobber=clobber)
@@ -147,8 +147,18 @@ def parse_version(stdout):
     # strip off the "1" prefix if it's there
     version = stdout.split()[-1]
 
-    # strip off extra details in new version styles
-    return version.split('-')[0]
+    pieces = version.split('-')
+    if len(pieces) > 1:
+        # strip off the hash in the new version style
+        return '-'.join(pieces[:-1])
+    else:
+        return pieces[0]
+
+def normalize_version(version):
+    if '.' in version:
+        return version.lstrip('v')
+    else:
+        return '0'
 
 def pre_process(chip):
     step = chip.get('arg', 'step')

@@ -55,7 +55,7 @@ def setup(chip):
     # Standard Setup
     chip.set('eda', tool, 'exe', 'verilator', clobber=False)
     chip.set('eda', tool, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, 'version', '4.028', clobber=False)
+    chip.set('eda', tool, 'version', '>=4.028', clobber=False)
     chip.set('eda', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
     # Options driven on a per step basis (use 'set' on first call!)
