@@ -33,7 +33,7 @@ def setup(chip):
     refdir = 'tools/'+tool
     chip.set('eda', tool, 'exe', 'bambu', clobber=False)
     chip.set('eda', tool, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, 'version', '0.9.6', clobber=False)
+    chip.set('eda', tool, 'version', '>=0.9.6', clobber=False)
     chip.set('eda', tool, 'refdir', step, index, refdir, clobber=False)
     chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=False)
     chip.set('eda', tool, 'option', step, index, [])

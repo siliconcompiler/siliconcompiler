@@ -46,7 +46,7 @@ if {[dict exists $sc_cfg "read" gds $sc_step $sc_index]} {
 
 gds read $gds_path
 puts $sc_design.gds
-set fout [open outputs/$sc_design.drc w]
+set fout [open reports/$sc_design.drc w]
 set oscale [cif scale out]
 set cell_name $sc_design
 magic::suspendall

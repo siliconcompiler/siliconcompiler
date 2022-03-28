@@ -36,6 +36,6 @@ foreach lib $sc_macrolibs {
     }
 }
 
-lvs "$layout_file $sc_design" "$schematic_file $sc_design" $sc_runset outputs/$sc_design.lvs.out -json
+lvs "$layout_file $sc_design" "$schematic_file $sc_design" $sc_runset reports/$sc_design.lvs.out -json
 
 exit

@@ -45,7 +45,7 @@ def setup(chip):
     chip.set('eda', tool, 'copy', 'false', clobber=clobber)
     chip.set('eda', tool, 'exe', 'ghdl', clobber=clobber)
     chip.set('eda', tool, 'vswitch', '--version', clobber=clobber)
-    chip.set('eda', tool, 'version', '2.0.0-dev', clobber=clobber)
+    chip.set('eda', tool, 'version', '>=2.0.0-dev', clobber=clobber)
     chip.set('eda', tool, 'threads', step, index, '4', clobber=clobber)
     chip.set('eda', tool, 'option', step, index, '', clobber=clobber)
 
@@ -92,6 +92,9 @@ def runtime_options(chip):
 
 def parse_version(stdout):
     # first line: GHDL 2.0.0-dev (1.0.0.r827.ge49cb7b9) [Dunoon edition]
+
+    # '*-dev' is interpreted by packaging.version as a "developmental release",
+    # which has the correct semantics. e.g. Version('2.0.0') > Version('2.0.0-dev')
     return stdout.split()[1]
 
 ################################
