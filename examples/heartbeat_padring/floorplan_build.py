@@ -567,9 +567,9 @@ def build_top():
 
     chip.set('source', 'heartbeat_top.v')
     chip.add('source', 'heartbeat.bb.v')
-    chip.add('source', 'oh/padring/hdl/oh_padring.v')
-    chip.add('source', 'oh/padring/hdl/oh_pads_domain.v')
-    chip.add('source', '{oh_dir}/padring/hdl/oh_pads_corner.v')
+    chip.add('source', f'{chip.scroot}/../third_party/designs/oh/padring/hdl/oh_padring.v')
+    chip.add('source', f'{chip.scroot}/../third_party/designs/oh/padring/hdl/oh_pads_domain.v')
+    chip.add('source', f'{chip.scroot}/../third_party/designs/oh/padring/hdl/oh_pads_corner.v')
     chip.add('source', 'asic/sky130/io/asic_iobuf.v')
     chip.add('source', 'asic/sky130/io/asic_iovdd.v')
     chip.add('source', 'asic/sky130/io/asic_iovddio.v')
