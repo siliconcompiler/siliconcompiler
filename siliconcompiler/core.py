@@ -3514,6 +3514,9 @@ class Chip:
         ##################
         # 17. Run executable (or copy inputs to outputs for builtin functions)
 
+        # TODO: Currently no memory usage tracking in breakpoints, builtins, or unexpected errors.
+        max_mem_bytes = 0
+
         if tool in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
         elif not self.get('skipall'):
@@ -3539,9 +3542,6 @@ class Chip:
                         return data
                     import pty # Note: this import throws exception on Windows
                     retcode = pty.spawn(cmdlist, read)
-
-                # TODO: Currently no memory usage tracking in breakpoints.
-                max_mem_bytes = 0
             else:
                 with open(logfile, 'w') as log_writer, open(logfile, 'r') as log_reader:
                     # Use separate reader/writer file objects as hack to display
