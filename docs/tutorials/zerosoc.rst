@@ -360,18 +360,17 @@ the RAM macro. We'll do this using the floorplan API's
 :meth:`~siliconcompiler.floorplan.Floorplan.place_macros` function, which allows
 you to place a list of macros from a starting position and a given pitch along
 the x and y-axes. To place a single macro like the ZeroSoC’s RAM, we'll just
-pass in a list of one instance, and 0s for the pitch values. Note that we
-specify ``snap=True`` to ensure the RAM's position is standard-cell aligned.
-This ensures proper alignment for routing.  Insert the following code after our
-call to ``create_diearea()``::
+pass in a list of one instance, and 0s for the pitch values. Insert the
+following code after our call to ``create_diearea()``::
 
   ram_w = fp.available_cells[RAM].width
   ram_h = fp.available_cells[RAM].height
-  ram_x = place_w + margin_left - ram_w
-  ram_y = place_h + margin_bottom - ram_h - 15 * fp.stdcell_height
+  ram_x = fp.snap(place_w + margin_left - ram_w, fp.stdcell_width)
+  # Add hand-calculated fudge factor to align left-side pins with routing tracks.
+  ram_y = place_h + margin_bottom - ram_h - 15 * fp.stdcell_height + 0.53
 
   instance_name = 'soc.ram.u_mem.gen_sky130.u_impl_sky130.gen32x512.mem'
-  fp.place_macros([(instance_name, RAM)], ram_x, ram_y, 0, 0, 'N', snap=True)
+  fp.place_macros([(instance_name, RAM)], ram_x, ram_y, 0, 0, 'N', snap=False)
 
 We use our predefined dimensions as well as the RAM size information stored in
 ``available_cells`` to place the macro in the upper-right corner of the design.
@@ -722,6 +721,7 @@ a few for-loops over the pads::
   pin_offsets = (0.495, 50.39)
 
   # Place wires/pins connecting power pads to the power ring
+  vddio_placed = False
   for pad_type, y in we_pads:
       y -= gpio_h
       for offset in pin_offsets:
@@ -730,9 +730,10 @@ a few for-loops over the pads::
                              vdd_ring_left + vwidth + pow_gap, pin_width, 'm3')
               fp.place_pins (['_vdd'], 0, y + offset, 0, 0,
                              vdd_ring_left + vwidth, pin_width, 'm3', use='power')
-          elif pad_type == VDDIO:
+          elif pad_type == VDDIO and not vddio_placed:
               fp.place_pins (['_vddio'], 0, y + offset, 0, 0,
                              margin_left, pin_width, 'm3')
+              vddio_placed = True
           elif pad_type == VSS:
               fp.place_wires(['_vss'], -pow_gap, y + offset, 0, 0,
                              vss_ring_left + vwidth + pow_gap, pin_width, 'm3')
@@ -747,9 +748,6 @@ a few for-loops over the pads::
                              pin_width, core_h - vdd_ring_top + hwidth + pow_gap, 'm3')
               fp.place_pins(['_vdd'], x + offset, vdd_ring_top - hwidth, 0, 0,
                             pin_width, core_h - vdd_ring_top + hwidth, 'm3', use='power')
-          elif pad_type == VDDIO:
-              fp.place_pins(['_vddio'], x + offset, margin_bottom + place_h, 0, 0,
-                            pin_width, core_h - (margin_bottom + place_h), 'm3')
           elif pad_type == VSS:
               fp.place_wires(['_vss'], x + offset, vss_ring_top - hwidth, 0, 0,
                              pin_width, core_h - vss_ring_top + hwidth + pow_gap, 'm3')
@@ -765,9 +763,6 @@ a few for-loops over the pads::
                              core_w - vdd_ring_right + vwidth + pow_gap, pin_width, 'm3')
               fp.place_pins(['_vdd'], vdd_ring_right - vwidth, y + pad_w - offset - pin_width, 0, 0,
                             core_w - vdd_ring_right + vwidth, pin_width, 'm3', use='power')
-          elif pad_type == VDDIO:
-              fp.place_pins(['_vddio'], margin_left + place_w, y + pad_w - offset - pin_width, 0, 0,
-                            core_w - (margin_left + place_w), pin_width, 'm3')
           elif pad_type == VSS:
               fp.place_wires(['_vss'], vss_ring_right - vwidth, y + pad_w - offset - pin_width, 0, 0,
                              core_w - vss_ring_right + vwidth + pow_gap, pin_width, 'm3')
@@ -783,9 +778,6 @@ a few for-loops over the pads::
                              pin_width, vdd_ring_bottom + hwidth + pow_gap, 'm3')
               fp.place_pins(['_vdd'], x + pad_w - offset - pin_width, 0, 0, 0,
                             pin_width, vdd_ring_bottom + hwidth, 'm3', use='power')
-          elif pad_type == VDDIO:
-              fp.place_pins(['_vddio'], x + pad_w - offset - pin_width, 0, 0, 0,
-                            pin_width, margin_bottom, 'm3')
           elif pad_type == VSS:
               fp.place_wires(['_vss'], x + pad_w - offset - pin_width, -pow_gap, 0, 0,
                              pin_width, vss_ring_bottom + hwidth + pow_gap, 'm3')

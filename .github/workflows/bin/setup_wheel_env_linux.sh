@@ -11,6 +11,8 @@ rpm -i klayout-0.27.5-0.x86_64.rpm
 # Build surelog (install prefix defined outside file)
 git submodule update --init --recursive third_party/tools/surelog
 cd third_party/tools/surelog
+# Fix insecure Git protocol
+sed -i 's/git:\/\/github.com\/nemtrif\/utfcpp/https:\/\/github.com\/nemtrif\/utfcpp/g' third_party/antlr4_fast/runtime/Cpp/runtime/CMakeLists.txt
 
 export LDFLAGS="-lrt"
 make
