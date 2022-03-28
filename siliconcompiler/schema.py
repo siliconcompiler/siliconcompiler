@@ -58,7 +58,8 @@ def scparam(cfg,
         # note (bools are never lists)
         if re.match(r'bool',sctype):
             require = 'all'
-            defvalue = 'false'
+            if defvalue is None:
+                defvalue = 'false'
         if re.match(r'\[',sctype) and signature is None:
             signature = []
         if re.match(r'\[',sctype) and defvalue is None:
@@ -1279,14 +1280,17 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             scope='job',
             shorthelp="Tool version number",
             switch="-eda_version 'tool <str>'",
-            example=["cli: -eda_version 'openroad 2.0'",
-                     "api:  chip.set('eda','openroad','version','2.0')"],
+            example=["cli: -eda_version 'openroad >=v2.0'",
+                     "api:  chip.set('eda','openroad','version','>=v2.0')"],
             schelp="""
-            List of acceptable versions of the tool executable to be used.
-            During task execution, the the tool is called with the 'vswitch'
-            to check the runtime executable version. When the 'vercheck'
-            is set to True, of the 'version' fails to match the system
-            executable, then the job is halted pre-execution.""")
+            List of acceptable versions of the tool executable to be used. Each
+            entry in this list must be a version specifier as described by Python
+            `PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.
+            During task execution, the tool is called with the 'vswitch' to
+            check the runtime executable version. When 'vercheck' is set to
+            True, if the version of the system executable is not allowed by any
+            of the specifiers in 'version', then the job is halted
+            pre-execution.""")
 
     scparam(cfg, ['eda', tool, 'format'],
             sctype='str',
@@ -2395,6 +2399,7 @@ def schema_options(cfg):
 
     scparam(cfg, ['vercheck'],
             sctype='bool',
+            defvalue='true',
             scope='job',
             shorthelp="Enable version checking",
             switch="-vercheck <bool>",

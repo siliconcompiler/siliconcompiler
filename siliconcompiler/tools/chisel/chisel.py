@@ -45,7 +45,7 @@ def setup(chip):
     refdir = 'tools/'+tool
     chip.set('eda', tool, 'exe', 'sbt', clobber=False)
     chip.set('eda', tool, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, 'version', '1.5.5', clobber=False)
+    chip.set('eda', tool, 'version', '>=1.5.5', clobber=False)
     chip.set('eda', tool, 'copy', True, clobber=False)
     chip.set('eda', tool, 'refdir', step, index,  refdir, clobber=False)
     chip.set('eda', tool, 'threads', step, index,  os.cpu_count(), clobber=False)

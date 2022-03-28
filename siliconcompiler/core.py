@@ -33,6 +33,8 @@ import getpass
 import distro
 import netifaces
 import webbrowser
+import packaging.version
+import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from timeit import default_timer as timer
@@ -102,7 +104,7 @@ class Chip:
         }
 
     ###########################################################################
-    def _init_logger(self, step=None, index=None):
+    def _init_logger(self, step=None, index=None, in_run=False):
 
         self.logger = logging.getLogger(uuid.uuid4().hex)
 
@@ -114,21 +116,33 @@ class Chip:
 
         loglevel = self.get('loglevel')
 
-        jobname = self.get('jobname')
-        if jobname == None:
-            jobname = '---'
-
-        if step == None:
-            step = '---'
-        if index == None:
-            index = '-'
-
-        run_info = '%-7s | %-12s | %-3s' % (jobname, step, index)
-
         if loglevel=='DEBUG':
-            logformat = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | ' + run_info + ' | %(message)s'
+            prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
         else:
-            logformat = '| %(levelname)-7s | ' + run_info + ' | %(message)s'
+            prefix = '| %(levelname)-7s'
+
+        if in_run:
+            flow = self.get('flow')
+
+            # Figure out how wide to make step and index fields
+            max_step_len = 2
+            max_index_len = 2
+            for future_step in self.getkeys('flowgraph', flow):
+                max_step_len = max(len(future_step) + 1, max_step_len)
+                for future_index in self.getkeys('flowgraph', flow, future_step):
+                    max_index_len = max(len(future_index) + 1, max_index_len)
+
+            jobname = self.get('jobname')
+
+            if step is None:
+                step = '-' * max(max_step_len // 4, 1)
+            if index is None:
+                index = '-' * max(max_index_len // 4, 1)
+
+            run_info = f'%s  | %-{max_step_len}s | %-{max_index_len}s' % (jobname, step, index)
+            logformat = ' | '.join([prefix, run_info, '%(message)s'])
+        else:
+            logformat = ' | '.join([prefix, '%(message)s'])
 
         handler = logging.StreamHandler()
         formatter = logging.Formatter(logformat)
@@ -333,11 +347,11 @@ class Chip:
             if 'mode' in cmdargs.keys():
                 self.set('mode', cmdargs['mode'], clobber=True)
             if 'techarg' in cmdargs.keys():
-                print("NOT IMPLEMENTED")
-                sys.exit()
+                print("NOT IMPLEMENTED: 'techarg' parameter")
+                raise NotImplementedError("NOT IMPLEMENTED: 'techarg' parameter")
             if 'flowarg' in cmdargs.keys():
-                print("NOT IMPLEMENTED")
-                sys.exit()
+                print("NOT IMPLEMENTED: 'flowarg' parameter")
+                raise NotImplementedError("NOT IMPLEMENTED: 'flowarg' parameter")
             if 'arg_step' in cmdargs.keys():
                 self.set('arg', 'step', cmdargs['arg_step'], clobber=True)
             if 'fpga_partname' in cmdargs.keys():
@@ -507,8 +521,8 @@ class Chip:
         if func is not None:
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            self.logger.error(f'Target module {name} not found in $SCPATH or siliconcompiler/targets/.')
+            raise SiliconCompilerError(f'Target module {name} not found $SCPATH or siliconcompiler/targets/.')
 
     ##########################################################################
     def load_pdk(self, name):
@@ -532,8 +546,8 @@ class Chip:
             self._loaded_modules['pdks'].append(name)
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            self.logger.error(f'PDK module {name} not found in $SCPATH or siliconcompiler/pdks/.')
+            raise SiliconCompilerError(f'PDK module {name} not found in $SCPATH or siliconcompiler/pdks/.')
 
     ##########################################################################
     def load_flow(self, name):
@@ -557,8 +571,8 @@ class Chip:
             self._loaded_modules['flows'].append(name)
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            self.logger.error(f'Flow module {name} not found in $SCPATH or siliconcompiler/flows/.')
+            raise SiliconCompilerError(f'Flow module {name} not found in $SCPATH or siliconcompiler/flows/.')
 
     ##########################################################################
     def load_lib(self, name):
@@ -582,8 +596,8 @@ class Chip:
             self._loaded_modules['libs'].append(name)
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            self.logger.error(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
+            raise SiliconCompilerError(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
 
 
     ###########################################################################
@@ -3228,7 +3242,7 @@ class Chip:
     ###########################################################################
     def _runtask_safe(self, step, index, active, error):
         try:
-            self._init_logger(step, index)
+            self._init_logger(step, index, in_run=True)
         except:
             traceback.print_exc()
             print(f"Uncaught exception while initializing logger for step {step}")
@@ -3499,14 +3513,10 @@ class Chip:
                 self.logger.error(f'{tool} does not implement parse_version.')
                 self._haltstep(step, index, active)
             version = parse_version(proc.stdout)
+
             self.logger.info(f"Checking executable. Tool '{exe}' found with version '{version}'")
-            if vercheck:
-                allowed_versions = self.get('eda', tool, 'version')
-                if allowed_versions and version not in allowed_versions:
-                    allowedstr = ', '.join(allowed_versions)
-                    self.logger.error(f"Version check failed for {tool}. Check installation.")
-                    self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
-                    self._haltstep(step, index, active)
+            if vercheck and not self._check_version(version, tool):
+                self._haltstep(step, index, active)
 
         ##################
         # 15. Write manifest (tool interface) (Don't move this!)
@@ -3651,6 +3661,8 @@ class Chip:
         if log:
             self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
         active[step + str(index)] = 0
+        # Tasks are typically run in parallel processes, so calling 'sys.exit'
+        # shouldn't exit the main thread.
         sys.exit(1)
 
     ###########################################################################
@@ -3705,6 +3717,9 @@ class Chip:
 
             self.set('arg', 'step', None)
 
+        # Re-init logger to include run info after setting up flowgraph.
+        self._init_logger(in_run=True)
+
         # Run steps if set, otherwise run whole graph
         if self.get('arg', 'step'):
             steplist = [self.get('arg', 'step')]
@@ -3750,12 +3765,12 @@ class Chip:
                 cfg_file = os.path.join(cfg_dir, 'credentials')
             if (not os.path.isdir(cfg_dir)) or (not os.path.isfile(cfg_file)):
                 self.logger.error('Could not find remote server configuration - please run "sc-configure" and enter your server address and credentials.')
-                sys.exit(1)
+                raise SiliconCompilerError('Valid remote credentials could not be found.')
             with open(cfg_file, 'r') as cfgf:
                 self.status['remote_cfg'] = json.loads(cfgf.read())
             if (not 'address' in self.status['remote_cfg']):
                 self.logger.error('Improperly formatted remote server configuration - please run "sc-configure" and enter your server address and credentials.')
-                sys.exit(1)
+                raise SiliconCompilerError('Valid remote credentials could not be found.')
 
             # Pre-process: Run an 'import' stage locally, and upload the
             # in-progress build directory to the remote server.
@@ -3793,7 +3808,7 @@ class Chip:
                             func = self.find_function(tool, 'setup', 'tools')
                             if func is None:
                                 self.logger.error(f'setup() not found for tool {tool}')
-                                sys.exit(1)
+                                raise SiliconCompilerError(f'setup() not found for tool {tool}')
                             func(self)
                             # Need to clear index, otherwise we will skip
                             # setting up other indices. Clear step for good
@@ -3826,7 +3841,7 @@ class Chip:
             # Check if there were errors before proceeding with run
             if self.error:
                 self.logger.error(f"Check failed. See previous errors.")
-                sys.exit()
+                raise SiliconCompilerError(f"Manifest checks failed.")
 
             # Create all processes
             processes = []
@@ -3861,7 +3876,7 @@ class Chip:
                 halt = halt + index_error
             if halt:
                 self.logger.error('Run() failed, exiting! See previous errors.')
-                sys.exit(1)
+                raise SiliconCompilerError('Run() failed, see previous errors.')
 
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
@@ -3923,7 +3938,8 @@ class Chip:
             stepdir = self._getworkdir(step=failed_step)[:-1]
             self.logger.error(f'Run() failed on step {failed_step}, exiting! '
                 f'See logs in {stepdir} for error details.')
-            sys.exit(1)
+            raise SiliconCompilerError(f'Run() failed on step {failed_step}! '
+                f'See logs in {stepdir} for error details.')
 
         # Store run in history
         self.record_history()
@@ -4435,6 +4451,73 @@ class Chip:
 
         return f'{filename}_{pathhash}{ext}'
 
+    def _check_version(self, reported_version, tool):
+        # Based on regex for deprecated "legacy specifier" from PyPA packaging
+        # library. Use this to parse PEP-440ish specifiers with arbitrary
+        # versions.
+        _regex_str = r"""
+            (?P<operator>(==|!=|<=|>=|<|>|~=))
+            \s*
+            (?P<version>
+                [^,;\s)]* # Since this is a "legacy" specifier, and the version
+                          # string can be just about anything, we match everything
+                          # except for whitespace, a semi-colon for marker support,
+                          # a closing paren since versions can be enclosed in
+                          # them, and a comma since it's a version separator.
+            )
+            """
+        _regex = re.compile(r"^\s*" + _regex_str + r"\s*$", re.VERBOSE | re.IGNORECASE)
+
+        normalize_version = self.find_function(tool, 'normalize_version', 'tools')
+        # Version is good if it matches any of the specifier sets in this list.
+        spec_sets = self.get('eda', tool, 'version')
+
+        for spec_set in spec_sets:
+            if normalize_version is None:
+                normalized_version = reported_version
+                normalized_specs = spec_set
+            else:
+                normalized_version = normalize_version(reported_version)
+
+                split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
+                normalized_specs_list = []
+                for spec in split_specs:
+                    match = re.match(_regex, spec)
+                    if match is None:
+                        self.logger.error(f'Invalid version specifier {spec}.')
+                        return False
+
+                    operator = match.group('operator')
+                    spec_version = match.group('version')
+                    normalized_specs_list.append(f'{operator}{normalize_version(spec_version)}')
+                    normalized_specs = ','.join(normalized_specs_list)
+
+            try:
+                version = packaging.version.Version(normalized_version)
+            except packaging.version.InvalidVersion:
+                self.logger.error(f'Version {reported_version} reported by {tool} does not match standard.')
+                if normalize_version is None:
+                    self.logger.error('Tool driver should implement normalize_version().')
+                else:
+                    self.logger.error(f'normalize_version() returned invalid version {normalized_version}')
+
+                return False
+
+            try:
+                spec_set = packaging.specifiers.SpecifierSet(normalized_specs)
+            except packaging.specifiers.InvalidSpecifier:
+                self.logger.error(f'Version specifier set {normalized_specs} does not match standard.')
+                return False
+
+            if version in spec_set:
+                return True
+
+        allowedstr = '; '.join(spec_sets)
+        self.logger.error(f"Version check failed for {tool}. Check installation.")
+        self.logger.error(f"Found version {reported_version}, did not satisfy any version specifier set {allowedstr}.")
+        return False
+
+
 ###############################################################################
 # Package Customization classes
 ###############################################################################
@@ -4442,3 +4525,9 @@ class Chip:
 class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
+
+class SiliconCompilerError(Exception):
+    ''' Minimal Exception wrapper used to raise sc runtime errors.
+    '''
+    def __init__(self, message):
+        super(Exception, self).__init__(message)

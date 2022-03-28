@@ -90,7 +90,8 @@ def setup(chip, mode="batch"):
 
     chip.set('eda', tool, 'exe', klayout_exe, clobber=True)
     chip.set('eda', tool, 'vswitch', ['-zz', '-v'], clobber=clobber)
-    chip.set('eda', tool, 'version', '0.27.8', clobber=clobber)
+    # Versions < 0.27.6 may be bundled with an incompatible version of Python.
+    chip.set('eda', tool, 'version', '>=0.27.6', clobber=clobber)
     chip.set('eda', tool, 'format', 'json', clobber=clobber)
     chip.set('eda', tool, 'copy', 'true', clobber=clobber)
     chip.set('eda', tool, 'refdir', step, index, refdir, clobber=clobber)
