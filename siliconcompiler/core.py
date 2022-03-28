@@ -46,6 +46,13 @@ from siliconcompiler import utils
 from siliconcompiler import _metadata
 import psutil
 
+class TaskStatus():
+    # Could use Python 'enum' class here, but that doesn't work nicely with
+    # schema.
+    PENDING = 'pending'
+    SUCCESS = 'complete'
+    ERROR = 'error'
+
 class Chip:
     """Object for configuring and executing hardware design flows.
 
@@ -1594,6 +1601,10 @@ class Chip:
             Returns True of the Chip object dictionary checks out.
 
         '''
+        # TODO: validate steplist: ensure that everything in steplist either has
+        # dependencies that:
+        # (a) have been run OR (b) are in the steplist
+
         flow = self.get('flow')
         steplist = self.get('steplist')
         if not steplist:
@@ -2167,7 +2178,7 @@ class Chip:
         return paths
 
     ########################################################################
-    def _collect(self, step, index, active):
+    def _collect(self, step, index):
         '''
         Collects files found in the configuration dictionary and places
         them in inputs/. The function only copies in files that have the 'copy'
@@ -2197,7 +2208,7 @@ class Chip:
                 self.logger.info(f"Copying {abspath} to '{indir}' directory")
                 shutil.copy(abspath, os.path.join(indir, filename))
             else:
-                self._haltstep(step, index, active)
+                self._haltstep(step, index)
 
         outdir = 'outputs'
         if not os.path.exists(outdir):
@@ -3133,7 +3144,7 @@ class Chip:
                 failed[step] = {}
             failed[step][index] = False
 
-            if self.get('flowstatus', step, index, 'error'):
+            if self.get('flowstatus', step, index, 'status') == TaskStatus.ERROR:
                 failed[step][index] = True
             else:
                 for metric in self.getkeys('metric', step, index):
@@ -3241,70 +3252,47 @@ class Chip:
         return None
 
     ###########################################################################
-    def _runtask_safe(self, step, index, active, error):
-        try:
-            self._init_logger(step, index, in_run=True)
-        except:
-            traceback.print_exc()
-            print(f"Uncaught exception while initializing logger for step {step}")
-            self.error = 1
-            self._haltstep(step, index, active, log=False)
-
-        try:
-            self._runtask(step, index, active, error)
-        except SystemExit:
-            # calling sys.exit() in _haltstep triggers a "SystemExit"
-            # exception, but we can ignore these -- if we call sys.exit(), we've
-            # already handled the error.
-            pass
-        except:
-            traceback.print_exc()
-            self.logger.error(f"Uncaught exception while running step {step}.")
-            self.error = 1
-            self._haltstep(step, index, active)
-
-    ###########################################################################
-    def _runtask(self, step, index, active, error):
+    def _runtask(self, step, index, status):
         '''
         Private per step run method called by run().
+
         The method takes in a step string and index string to indicated what
-        to run. Execution state coordinated through the active/error
-        multiprocessing Manager dicts.
+        to run.
 
         Execution flow:
-        T1. Wait in loop until all previous steps/indexes have completed
-        T2. Start wall timer
-        T3. Defer job to compute node if using job scheduler
-        T4. Set up working directory + chdir
-        T5. Merge manifests from all input dependancies
-        T6. Write manifest to input directory for convenience
-        T7. Reset all metrics to 0 (consider removing)
-        T8. Select inputs
-        T9. Copy data from previous step outputs into inputs
-        T10. Copy reference script directory
-        T11. Check manifest
-        T12. Run pre_process() function
-        T13. Set environment variables
-        T14. Check EXE version
-        T15. Save manifest as TCL/YAML
-        T16. Start CPU timer
-        T17. Run EXE
-        T18. stop CPU timer
-        T19. Run post_process()
-        T20. Check log file
-        T21. Hash all task files
-        T22. Stop Wall timer
-        T23. Make a task record
-        T24. Save manifest to disk
-        T25. Clean up
-        T26. chdir
-        T27. clear error/active bits and return control to run()
+        T1. Start wall timer
+        T2. Defer job to compute node if using job scheduler
+        T3. Set up working directory + chdir
+        T4. Merge manifests from all input dependancies
+        T5. Write manifest to input directory for convenience
+        T6. Reset all metrics to 0 (consider removing)
+        T7. Select inputs
+        T8. Copy data from previous step outputs into inputs
+        T9. Copy reference script directory
+        T10. Check manifest
+        T11. Run pre_process() function
+        T12. Set environment variables
+        T13. Check EXE version
+        T14. Save manifest as TCL/YAML
+        T15. Start CPU timer
+        T16. Run EXE
+        T17. stop CPU timer
+        T18. Run post_process()
+        T19. Check log file
+        T20. Hash all task files
+        T21. Stop Wall timer
+        T22. Make a task record
+        T23. Save manifest to disk
+        T24. Clean up
+        T25. chdir
 
         Note that since _runtask occurs in its own process with a separate
         address space, any changes made to the `self` object will not
         be reflected in the parent. We rely on reading/writing the chip manifest
         to the filesystem to communicate updates between processes.
         '''
+
+        self._init_logger(step, index, in_run=True)
 
         ##################
         # Shared parameters (long function!)
@@ -3314,30 +3302,11 @@ class Chip:
         quiet = self.get('quiet') and (step not in self.get('bkpt'))
 
         ##################
-        # 1. Wait loop
-        self.logger.info('Waiting for inputs...')
-        threads = 0
-        for a in self.getkeys('flowgraph', flow):
-            for b in self.getkeys('flowgraph', flow, a):
-                threads = threads +1
-        sleep = 0.1 + (0.2 * (threads / os.cpu_count()))
-        while True:
-            # Checking that there are no pending jobs
-            pending = 0
-            for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                pending = pending + active[in_step + in_index]
-            # beak out of loop when no all inputs are done
-            if not pending:
-                break
-            # Short sleep
-            time.sleep(sleep)
-
-        ##################
-        # 2. Start wall timer
+        # 1. Start wall timer
         wall_start = time.time()
 
         ##################
-        # 3. Defer job to compute node
+        # 2. Defer job to compute node
         # If the job is configured to run on a cluster, collect the schema
         # and send it to a compute node for deferred execution.
         # (Run the initial 'import' stage[s] locally)
@@ -3346,11 +3315,11 @@ class Chip:
            self.get('flowgraph', flow, step, index, 'input'):
             # Note: The _deferstep method blocks until the compute node
             # finishes processing this step, and it sets the active/error bits.
-            _deferstep(self, step, index, active, error)
+            _deferstep(self, step, index, status)
             return
 
         ##################
-        # 4. Directory setup
+        # 3. Directory setup
         # support for sharing data across jobs
         job = self.get('jobname')
         in_job = job
@@ -3370,16 +3339,16 @@ class Chip:
         os.makedirs('reports', exist_ok=True)
 
         ##################
-        # 5. Merge manifests from all input dependancies
+        # 4. Merge manifests from all input dependancies
 
         all_inputs = []
         if not self.get('remote'):
             #copy over status from
 
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                index_error = error[in_step + in_index]
-                self.set('flowstatus', in_step, in_index, 'error', index_error)
-                if not index_error:
+                in_task_status = status[in_step + in_index]
+                self.set('flowstatus', in_step, in_index, 'status', in_task_status)
+                if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     with open(cfgfile, 'r') as f:
                         localcfg = json.load(f)
@@ -3387,7 +3356,7 @@ class Chip:
                     self.cfg['metric'][in_step][in_index] = copy.deepcopy(localcfg['metric'][in_step][in_index])
 
         ##################
-        # 6. Write manifest prior to step running into inputs
+        # 5. Write manifest prior to step running into inputs
 
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
@@ -3395,7 +3364,7 @@ class Chip:
         #self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
-        # 7. Reset metrics to zero
+        # 6. Reset metrics to zero
         # TODO: There should be no need for this, but need to fix
         # without it we need to be more careful with flows to make sure
         # things like the builtin functions don't look at None values
@@ -3403,7 +3372,7 @@ class Chip:
             self.set('metric', step, index, metric, 'real', 0)
 
         ##################
-        # 8. Select inputs
+        # 7. Select inputs
 
         args = self.get('flowgraph', flow, step, index, 'args')
         inputs = self.get('flowgraph', flow, step, index, 'input')
@@ -3424,23 +3393,23 @@ class Chip:
                 sel_inputs = self.join(*inputs)
             elif tool == "verify":
                 if not self.verify(*inputs, assertion=args):
-                    self._haltstep(step, index, active)
+                    self._haltstep(step, index)
         else:
             sel_inputs = self.get('flowgraph', flow, step, index, 'input')
 
         if sel_inputs == None:
             self.logger.error(f'No inputs selected after running {tool}')
-            self._haltstep(step, index, active)
+            self._haltstep(step, index)
 
         #TODO: This should not be needed
         if step != 'import':
             self.set('flowstatus', step, index, 'select', sel_inputs)
 
         ##################
-        # 9. Copy (link) output data from previous steps
+        # 8. Copy (link) output data from previous steps
 
         if step == 'import':
-            self._collect(step, index, active)
+            self._collect(step, index)
 
         if not self.get('flowgraph', flow, step, index,'input'):
             all_inputs = []
@@ -3449,9 +3418,9 @@ class Chip:
         else:
             all_inputs = self.get('flowstatus', step, index, 'select')
         for in_step, in_index in all_inputs:
-            if self.get('flowstatus', in_step, in_index, 'error') == 1:
+            if self.get('flowstatus', in_step, in_index, 'status') == TaskStatus.ERROR:
                 self.logger.error(f'Halting step due to previous error in {in_step}{in_index}')
-                self._haltstep(step, index, active)
+                self._haltstep(step, index)
 
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
@@ -3459,34 +3428,34 @@ class Chip:
                 ignore=[f'{design}.pkg.json'], link=True)
 
         ##################
-        # 10. Copy Reference Scripts
+        # 9. Copy Reference Scripts
         if tool not in self.builtin:
             if self.get('eda', tool, 'copy'):
                 for refdir in self.find_files('eda', tool, 'refdir', step, index):
                     utils.copytree(refdir, ".", dirs_exist_ok=True)
 
         ##################
-        # 11. Check manifest
+        # 10. Check manifest
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
         if not self.get('skipcheck'):
             if self.check_manifest():
                 self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
-                self._haltstep(step, index, active)
+                self._haltstep(step, index)
 
         ##################
-        # 12. Run preprocess step for tool
+        # 11. Run preprocess step for tool
         if tool not in self.builtin:
             func = self.find_function(tool, "pre_process", 'tools')
             if func:
                 func(self)
                 if self.error:
                     self.logger.error(f"Pre-processing failed for '{tool}'")
-                    self._haltstep(step, index, active)
+                    self._haltstep(step, index)
 
         ##################
-        # 13. Set environment variables
+        # 12. Set environment variables
 
         # License file configuration.
         for item in self.getkeys('eda', tool, 'licenseserver'):
@@ -3501,7 +3470,7 @@ class Chip:
                 os.environ[item] = self.get('eda', tool, 'env', step, index, item)
 
         ##################
-        # 14. Check exe version
+        # 13. Check exe version
 
         vercheck = self.get('vercheck')
         veropt = self.get('eda', tool, 'vswitch')
@@ -3514,7 +3483,7 @@ class Chip:
             parse_version = self.find_function(tool, 'parse_version', 'tools')
             if parse_version is None:
                 self.logger.error(f'{tool} does not implement parse_version.')
-                self._haltstep(step, index, active)
+                self._haltstep(step, index)
             version = parse_version(proc.stdout)
 
             self.logger.info(f"Checking executable. Tool '{exe}' found with version '{version}'")
@@ -3522,19 +3491,19 @@ class Chip:
                 self._haltstep(step, index, active)
 
         ##################
-        # 15. Write manifest (tool interface) (Don't move this!)
+        # 14. Write manifest (tool interface) (Don't move this!)
         suffix = self.get('eda', tool, 'format')
         if suffix:
             pruneopt = bool(suffix!='tcl')
             self.write_manifest(f"sc_manifest.{suffix}", prune=pruneopt, abspath=True)
 
         ##################
-        # 16. Start CPU Timer
+        # 15. Start CPU Timer
         self.logger.debug(f"Starting executable")
         cpu_start = time.time()
 
         ##################
-        # 17. Run executable (or copy inputs to outputs for builtin functions)
+        # 16. Run executable (or copy inputs to outputs for builtin functions)
 
         # TODO: Currently no memory usage tracking in breakpoints, builtins, or unexpected errors.
         max_mem_bytes = 0
@@ -3589,7 +3558,7 @@ class Chip:
                         if timeout is not None and time.time() - cmd_start_time > timeout:
                             self.logger.error(f'Step timed out after {timeout} seconds')
                             proc.terminate()
-                            self._haltstep(step, index, active)
+                            self._haltstep(step, index)
                         time.sleep(0.1)
 
                     # Read the remaining
@@ -3600,17 +3569,17 @@ class Chip:
             if retcode != 0:
                 self.logger.warning('Command failed with code %d. See log file %s', retcode, os.path.abspath(logfile))
                 if not self.get('eda', tool, 'continue'):
-                    self._haltstep(step, index, active)
+                    self._haltstep(step, index)
 
         ##################
-        # 18. Capture cpu runtime and memory footprint.
+        # 17. Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
         self.set('metric', step, index, 'exetime', 'real', cputime)
         self.set('metric', step, index, 'memory', 'real', max_mem_bytes)
 
         ##################
-        # 19. Post process (could fail)
+        # 18. Post process (could fail)
         post_error = 0
         if (tool not in self.builtin) and (not self.get('skipall')) :
             func = self.find_function(tool, 'post_process', 'tools')
@@ -3618,15 +3587,15 @@ class Chip:
                 post_error = func(self)
                 if post_error:
                     self.logger.error('Post-processing check failed')
-                    self._haltstep(step, index, active)
+                    self._haltstep(step, index)
 
         ##################
-        # 20. Check log file (must be after post-process)
+        # 19. Check log file (must be after post-process)
         if (tool not in self.builtin) and (not self.get('skipall')) :
             self.check_logfile(step=step, index=index, display=not quiet)
 
         ##################
-        # 21. Hash files
+        # 20. Hash files
         if self.get('hash') and (tool not in self.builtin):
             # hash all outputs
             self.hash_files('eda', tool, 'output', step, index)
@@ -3638,47 +3607,38 @@ class Chip:
                         self.hash_files(*args)
 
         ##################
-        # 22. Capture wall runtime and cpu cores
+        # 21. Capture wall runtime and cpu cores
         wall_end = time.time()
         walltime = round((wall_end - wall_start),2)
         self.set('metric',step, index, 'tasktime', 'real', walltime)
         self.logger.info(f"Finished task in {walltime}s")
 
         ##################
-        # 23. Make a record if tracking is enabled
+        # 22. Make a record if tracking is enabled
         if self.get('track'):
             self._make_record(step, index, wall_start, wall_end, version)
 
         ##################
-        # 24. Save a successful manifest
-        self.set('flowstatus', step, index, 'error', 0)
+        # 23. Save a successful manifest
+        self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
         self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
 
         ##################
-        # 25. Clean up non-essential files
+        # 24. Clean up non-essential files
         if self.get('clean'):
             self.logger.error('Self clean not implemented')
 
         ##################
-        # 26. return to original directory
+        # 25. return to original directory
         os.chdir(cwd)
 
-        ##################
-        # 27. clearing active and error bits
-        # !!Do not move this code!!
-        error[step + str(index)] = 0
-        active[step + str(index)] = 0
-
     ###########################################################################
-    def _haltstep(self, step, index, active, log=True):
+    def _haltstep(self, step, index, log=True):
         if log:
             self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
-        active[step + str(index)] = 0
-        # Tasks are typically run in parallel processes, so calling 'sys.exit'
-        # shouldn't exit the main thread.
         sys.exit(1)
 
     ###########################################################################
@@ -3800,9 +3760,7 @@ class Chip:
             # Fetch results (and delete the job's data from the server).
             fetch_results(self)
         else:
-            manager = multiprocessing.Manager()
-            error = manager.dict()
-            active = manager.dict()
+            status = {}
 
             # Launch a thread for eact step in flowgraph
             # Use a shared even for errors
@@ -3812,29 +3770,27 @@ class Chip:
             for step in self.getkeys('flowgraph', flow):
                 for index in self.getkeys('flowgraph', flow, step):
                     stepstr = step + index
-                    if step in steplist and index in indexlist[step]:
-                        self.set('flowstatus', step, index, 'error', 1)
-                        error[stepstr] = self.get('flowstatus', step, index, 'error')
-                        active[stepstr] = 1
-                        # Setting up tool is optional
-                        tool = self.get('flowgraph', flow, step, index, 'tool')
-                        if tool not in self.builtin:
-                            self.set('arg','step', step)
-                            self.set('arg','index', index)
-                            func = self.find_function(tool, 'setup', 'tools')
-                            if func is None:
-                                self.logger.error(f'setup() not found for tool {tool}')
-                                raise SiliconCompilerError(f'setup() not found for tool {tool}')
-                            func(self)
-                            # Need to clear index, otherwise we will skip
-                            # setting up other indices. Clear step for good
-                            # measure.
-                            self.set('arg','step', None)
-                            self.set('arg','index', None)
+                    task_status = self.get('flowstatus', step, index, 'status')
+                    if task_status is not None:
+                        status[step + index] = task_status
                     else:
-                        self.set('flowstatus', step, str(index), 'error', 0)
-                        error[stepstr] = self.get('flowstatus', step, str(index), 'error')
-                        active[stepstr] = 0
+                        status[step + index] = TaskStatus.PENDING
+
+                    # Setting up tool is optional
+                    tool = self.get('flowgraph', flow, step, index, 'tool')
+                    if tool not in self.builtin:
+                        self.set('arg','step', step)
+                        self.set('arg','index', index)
+                        func = self.find_function(tool, 'setup', 'tools')
+                        if func is None:
+                            self.logger.error(f'setup() not found for tool {tool}')
+                            sys.exit(1)
+                        func(self)
+                        # Need to clear index, otherwise we will skip
+                        # setting up other indices. Clear step for good
+                        # measure.
+                        self.set('arg','step', None)
+                        self.set('arg','index', None)
 
             # Implement auto-update of jobincrement
             try:
@@ -3859,12 +3815,16 @@ class Chip:
                 self.logger.error(f"Check failed. See previous errors.")
                 raise SiliconCompilerError(f"Manifest checks failed.")
 
-            # Create all processes
-            processes = []
+            # For each task to run, prepare a process and store its dependencies
+            tasks_to_run = {}
+            processes = {}
             for step in steplist:
                 for index in indexlist[step]:
-                    processes.append(multiprocessing.Process(target=self._runtask_safe,
-                                                             args=(step, index, active, error,)))
+                    inputs = [step+index for step, index in self.get('flowgraph', flow, step, index, 'input')]
+                    tasks_to_run[step+index] = inputs
+
+                    processes[step+index] = multiprocessing.Process(target=self._runtask,
+                                                                    args=(step, index, status))
 
 
             # We have to deinit the chip's logger before spawning the processes
@@ -3873,26 +3833,49 @@ class Chip:
             # the primary chip's logger after the processes complete.
             self._deinit_logger()
 
-            # Start all processes
-            for p in processes:
-                p.start()
-            # Mandatory process cleanup
-            for p in processes:
-                p.join()
+            running_tasks = []
+            while len(tasks_to_run) > 0 or len(running_tasks) > 0:
+                # Check for new tasks that can be launched.
+                for task, deps in list(tasks_to_run.items()):
+                    # TODO: breakpoint logic:
+                    # if task is bkpt, then don't launch while len(running_tasks) > 0
+                    if len(deps) == 0:
+                        processes[task].start()
+                        running_tasks.append(task)
+                        del tasks_to_run[task]
+
+                # Check for completed tasks, and clear them from the from the
+                # tasks_to_run dependency lists.
+                # TODO: consider staying in this section of loop until a task is
+                # actually cleared
+                for task in list(running_tasks):
+                    if not processes[task].is_alive():
+                        running_tasks.remove(task)
+                        if processes[task].exitcode > 0:
+                            status[task] = TaskStatus.ERROR
+                        else:
+                            status[task] = TaskStatus.SUCCESS
+
+                        for deps in tasks_to_run.values():
+                            if task in deps:
+                                deps.remove(task)
+
+                # TODO: exponential back-off with max?
+                time.sleep(0.1)
 
             self._init_logger()
 
             # Make a clean exit if one of the steps failed
-            halt = 0
             for step in steplist:
-                index_error = 1
+                index_succeeded = False
                 for index in indexlist[step]:
                     stepstr = step + index
-                    index_error = index_error & error[stepstr]
-                halt = halt + index_error
-            if halt:
-                self.logger.error('Run() failed, exiting! See previous errors.')
-                raise SiliconCompilerError('Run() failed, see previous errors.')
+                    if status[stepstr] != TaskStatus.ERROR:
+                        index_succeeded = True
+                        break
+
+                if not index_succeeded:
+                    raise SiliconCompilerError('Run() failed, see previous errors.')
 
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
@@ -3955,8 +3938,6 @@ class Chip:
                     break
 
             stepdir = self._getworkdir(step=failed_step)[:-1]
-            self.logger.error(f'Run() failed on step {failed_step}, exiting! '
-                f'See logs in {stepdir} for error details.')
             raise SiliconCompilerError(f'Run() failed on step {failed_step}! '
                 f'See logs in {stepdir} for error details.')
 
