@@ -3555,11 +3555,7 @@ class Chip:
                         # Gather subprocess memory usage.
                         try:
                             pproc = psutil.Process(proc.pid)
-                            pchildren = list(pproc.children(recursive=True))
-                            mem_uss = pproc.memory_full_info().uss
-                            for child in pchildren:
-                                mem_uss += child.memory_full_info().uss
-                            max_mem_bytes = max(max_mem_bytes, mem_uss)
+                            max_mem_bytes = max(max_mem_bytes, pproc.memory_full_info().uss)
                         except psutil.Error:
                             # Process may have already terminated or been killed.
                             # Retain existing memory usage statistics in this case.
