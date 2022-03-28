@@ -3685,7 +3685,6 @@ class Chip:
             Runs the execution flow defined by the flowgraph dictionary.
         '''
 
-        self._init_logger(in_run=True)
         flow = self.get('flow')
 
         if not flow in self.getkeys('flowgraph'):
@@ -3707,6 +3706,9 @@ class Chip:
                 self.set('flowgraph', flow, 'import', '0', 'tool', 'nop')
 
             self.set('arg', 'step', None)
+
+        # Re-init logger to include run info after setting up flowgraph.
+        self._init_logger(in_run=True)
 
         # Run steps if set, otherwise run whole graph
         if self.get('arg', 'step'):
