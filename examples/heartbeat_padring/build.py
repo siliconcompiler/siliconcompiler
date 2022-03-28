@@ -12,6 +12,10 @@ from siliconcompiler.core import Chip
 # generating floorplans from scratch.
 ###
 
+# Directory prefixes for third-party files.
+OH_PREFIX = 'third_party/designs/oh'
+SKY130IO_PREFIX = 'third_party/pdks/skywater/skywater130/libs/sky130io/v0_0_2'
+
 def configure_chip(design):
     # Minimal Chip object construction.
     chip = Chip()
@@ -21,11 +25,11 @@ def configure_chip(design):
     # Include I/O macro lib.
     stackup = chip.get('asic', 'stackup')
     libname = 'io'
-    chip.add('library', libname, 'nldm', 'typical', 'lib', 'asic/sky130/io/sky130_dummy_io.lib')
-    chip.set('library', libname, 'lef', stackup, 'asic/sky130/io/sky130_ef_io.lef')
-    chip.add('library', libname, 'gds', stackup, 'asic/sky130/io/sky130_ef_io.gds')
-    chip.add('library', libname, 'gds', stackup, 'asic/sky130/io/sky130_fd_io.gds')
-    chip.add('library', libname, 'gds', stackup, 'asic/sky130/io/sky130_ef_io__gpiov2_pad_wrapped.gds')
+    chip.add('library', libname, 'nldm', 'typical', 'lib', f'{chip.scroot}/../{SKY130IO_PREFIX}/io/sky130_dummy_io.lib')
+    chip.set('library', libname, 'lef', stackup, f'{chip.scroot}/../{SKY130IO_PREFIX}/io/sky130_ef_io.lef')
+    chip.add('library', libname, 'gds', stackup, f'{chip.scroot}/../{SKY130IO_PREFIX}/io/sky130_ef_io.gds')
+    chip.add('library', libname, 'gds', stackup, f'{chip.scroot}/../{SKY130IO_PREFIX}/io/sky130_fd_io.gds')
+    chip.add('library', libname, 'gds', stackup, f'{chip.scroot}/../{SKY130IO_PREFIX}/io/sky130_ef_io__gpiov2_pad_wrapped.gds')
     chip.add('asic', 'macrolib', libname)
     chip.set('library', libname, 'type', 'component')
 
@@ -46,7 +50,7 @@ def build_core():
     # Configure the Chip object for a full build.
     core_chip.set('read', 'def', 'floorplan', '0', 'floorplan/heartbeat.def', clobber=True)
     core_chip.set('source', 'heartbeat.v')
-    core_chip.add('source', 'asic/sky130/prim_sky130_clock_gating.v')
+    core_chip.add('source', f'{core_chip.scroot}/../{SKY130IO_PREFIX}/prim_sky130_clock_gating.v')
     core_chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', ['0.15'])
     core_chip.set('eda', 'openroad', 'variable', 'route', '0', 'grt_allow_congestion', ['true'])
     core_chip.clock(name='clk', pin='clk', period=20)
@@ -86,18 +90,18 @@ def build_top():
     chip.set('source', 'heartbeat_top.v')
     chip.add('source', 'heartbeat.bb.v')
     # (Padring sources needed for the 'syn' step of asictopflow)
-    chip.add('source', f'{chip.scroot}/../third_party/designs/oh/padring/hdl/oh_padring.v')
-    chip.add('source', f'{chip.scroot}/../third_party/designs/oh/padring/hdl/oh_pads_domain.v')
-    chip.add('source', f'{chip.scroot}/../third_party/designs/oh/padring/hdl/oh_pads_corner.v')
-    chip.add('source', 'asic/sky130/io/asic_iobuf.v')
-    chip.add('source', 'asic/sky130/io/asic_iovdd.v')
-    chip.add('source', 'asic/sky130/io/asic_iovddio.v')
-    chip.add('source', 'asic/sky130/io/asic_iovss.v')
-    chip.add('source', 'asic/sky130/io/asic_iovssio.v')
-    chip.add('source', 'asic/sky130/io/asic_iocorner.v')
-    chip.add('source', 'asic/sky130/io/asic_iopoc.v')
-    chip.add('source', 'asic/sky130/io/asic_iocut.v')
-    chip.add('source', 'asic/sky130/io/sky130_io.blackbox.v')
+    chip.add('source', f'{chip.scroot}/../{OH_PREFIX}/padring/hdl/oh_padring.v')
+    chip.add('source', f'{chip.scroot}/../{OH_PREFIX}/padring/hdl/oh_pads_domain.v')
+    chip.add('source', f'{chip.scroot}/../{OH_PREFIX}/padring/hdl/oh_pads_corner.v')
+    chip.add('source', f'{chip.scroot}/../{SKY130IO_PREFIX}/io/asic_iobuf.v')
+    chip.add('source', f'{chip.scroot}/../{SKY130IO_PREFIX}/io/asic_iovdd.v')
+    chip.add('source', f'{chip.scroot}/../{SKY130IO_PREFIX}/io/asic_iovddio.v')
+    chip.add('source', f'{chip.scroot}/../{SKY130IO_PREFIX}/io/asic_iovss.v')
+    chip.add('source', f'{chip.scroot}/../{SKY130IO_PREFIX}/io/asic_iovssio.v')
+    chip.add('source', f'{chip.scroot}/../{SKY130IO_PREFIX}/io/asic_iocorner.v')
+    chip.add('source', f'{chip.scroot}/../{SKY130IO_PREFIX}/io/asic_iopoc.v')
+    chip.add('source', f'{chip.scroot}/../{SKY130IO_PREFIX}/io/asic_iocut.v')
+    chip.add('source', f'{chip.scroot}/../{SKY130IO_PREFIX}/io/sky130_io.blackbox.v')
 
     chip.write_manifest('top_manifest.json')
 
