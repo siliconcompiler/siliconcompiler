@@ -5080,50 +5080,54 @@
             "runset": {
                 "default": {
                     "default": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "example": [
-                            "cli: -pdk_drc_runset 'magic M10 $PDK/drc.rs'",
-                            "api: chip.set('pdk','drc','runset','magic','M10','$PDK/drc.rs')"
-                        ],
-                        "filehash": [],
-                        "hashalgo": "sha256",
-                        "help": "Runset files for DRC verification.",
-                        "lock": "false",
-                        "require": null,
-                        "scope": "global",
-                        "shorthelp": "PDK DRC runset files",
-                        "signature": [],
-                        "switch": "-pdk_drc_runset 'tool stackup <file>'",
-                        "type": "[file]",
-                        "value": []
+                        "default": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "example": [
+                                "cli: -pdk_drc_runset 'magic M10 basic $PDK/drc.rs'",
+                                "api: chip.set('pdk','drc','runset','magic','M10','basic','$PDK/drc.rs')"
+                            ],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "help": "Runset files for DRC verification.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "global",
+                            "shorthelp": "PDK DRC runset files",
+                            "signature": [],
+                            "switch": "-pdk_drc_runset 'tool stackup name <file>'",
+                            "type": "[file]",
+                            "value": []
+                        }
                     }
                 }
             },
             "waiver": {
                 "default": {
                     "default": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "example": [
-                            "cli: -pdk_drc_waiver 'magic M10 $PDK/drc.txt'",
-                            "api: chip.set('pdk','drc','waiver','magic','M10','$PDK/drc.txt')"
-                        ],
-                        "filehash": [],
-                        "hashalgo": "sha256",
-                        "help": "Waiver files for DRC verification.",
-                        "lock": "false",
-                        "require": null,
-                        "scope": "global",
-                        "shorthelp": "PDK DRC waiver files",
-                        "signature": [],
-                        "switch": "-pdk_drc_waiver 'tool stackup <file>'",
-                        "type": "[file]",
-                        "value": []
+                        "default": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "example": [
+                                "cli: -pdk_drc_waiver 'magic M10 basic $PDK/drc.txt'",
+                                "api: chip.set('pdk','drc','waiver','magic','M10','basic','$PDK/drc.txt')"
+                            ],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "help": "Waiver files for DRC verification.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "global",
+                            "shorthelp": "PDK DRC waiver files",
+                            "signature": [],
+                            "switch": "-pdk_drc_waiver 'tool stackup name <file>'",
+                            "type": "[file]",
+                            "value": []
+                        }
                     }
                 }
             }
@@ -5148,50 +5152,54 @@
             "runset": {
                 "default": {
                     "default": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "example": [
-                            "cli: -pdk_erc_runset 'magic M10 $PDK/erc.rs'",
-                            "api: chip.set('pdk','erc','runset','magic','M10','$PDK/erc.rs')"
-                        ],
-                        "filehash": [],
-                        "hashalgo": "sha256",
-                        "help": "Runset files for ERC verification.",
-                        "lock": "false",
-                        "require": null,
-                        "scope": "global",
-                        "shorthelp": "PDK ERC runset files",
-                        "signature": [],
-                        "switch": "-pdk_erc_runset 'tool stackup <file>'",
-                        "type": "[file]",
-                        "value": []
+                        "default": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "example": [
+                                "cli: -pdk_erc_runset 'magic M10 basic $PDK/erc.rs'",
+                                "api: chip.set('pdk','erc','runset','magic','M10','basic','$PDK/erc.rs')"
+                            ],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "help": "Runset files for ERC verification.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "global",
+                            "shorthelp": "PDK ERC runset files",
+                            "signature": [],
+                            "switch": "-pdk_erc_runset 'tool stackup name <file>'",
+                            "type": "[file]",
+                            "value": []
+                        }
                     }
                 }
             },
             "waiver": {
                 "default": {
                     "default": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "example": [
-                            "cli: -pdk_erc_waiver 'magic M10 $PDK/erc.txt'",
-                            "api: chip.set('pdk','erc','waiver','magic','M10','$PDK/erc.txt')"
-                        ],
-                        "filehash": [],
-                        "hashalgo": "sha256",
-                        "help": "Waiver files for ERC verification.",
-                        "lock": "false",
-                        "require": null,
-                        "scope": "global",
-                        "shorthelp": "PDK ERC waiver files",
-                        "signature": [],
-                        "switch": "-pdk_erc_waiver 'tool stackup <file>'",
-                        "type": "[file]",
-                        "value": []
+                        "default": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "example": [
+                                "cli: -pdk_erc_waiver 'magic M10 basic $PDK/erc.txt'",
+                                "api: chip.set('pdk','erc','waiver','magic','M10','basic','$PDK/erc.txt')"
+                            ],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "help": "Waiver files for ERC verification.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "global",
+                            "shorthelp": "PDK ERC waiver files",
+                            "signature": [],
+                            "switch": "-pdk_erc_waiver 'tool stackup name <file>'",
+                            "type": "[file]",
+                            "value": []
+                        }
                     }
                 }
             }
@@ -5460,50 +5468,54 @@
             "runset": {
                 "default": {
                     "default": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "example": [
-                            "cli: -pdk_lvs_runset 'magic M10 $PDK/lvs.rs'",
-                            "api: chip.set('pdk','lvs','runset','magic','M10','$PDK/lvs.rs')"
-                        ],
-                        "filehash": [],
-                        "hashalgo": "sha256",
-                        "help": "Runset files for LVS verification.",
-                        "lock": "false",
-                        "require": null,
-                        "scope": "global",
-                        "shorthelp": "PDK LVS runset files",
-                        "signature": [],
-                        "switch": "-pdk_lvs_runset 'tool stackup <file>'",
-                        "type": "[file]",
-                        "value": []
+                        "default": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "example": [
+                                "cli: -pdk_lvs_runset 'magic M10 basic $PDK/lvs.rs'",
+                                "api: chip.set('pdk','lvs','runset','magic','M10','basic','$PDK/lvs.rs')"
+                            ],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "help": "Runset files for LVS verification.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "global",
+                            "shorthelp": "PDK LVS runset files",
+                            "signature": [],
+                            "switch": "-pdk_lvs_runset 'tool stackup name <file>'",
+                            "type": "[file]",
+                            "value": []
+                        }
                     }
                 }
             },
             "waiver": {
                 "default": {
                     "default": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "example": [
-                            "cli: -pdk_lvs_waiver 'magic M10 $PDK/lvs.txt'",
-                            "api: chip.set('pdk','lvs','waiver','magic','M10','$PDK/lvs.txt')"
-                        ],
-                        "filehash": [],
-                        "hashalgo": "sha256",
-                        "help": "Waiver files for LVS verification.",
-                        "lock": "false",
-                        "require": null,
-                        "scope": "global",
-                        "shorthelp": "PDK LVS waiver files",
-                        "signature": [],
-                        "switch": "-pdk_lvs_waiver 'tool stackup <file>'",
-                        "type": "[file]",
-                        "value": []
+                        "default": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "example": [
+                                "cli: -pdk_lvs_waiver 'magic M10 basic $PDK/lvs.txt'",
+                                "api: chip.set('pdk','lvs','waiver','magic','M10','basic','$PDK/lvs.txt')"
+                            ],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "help": "Waiver files for LVS verification.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "global",
+                            "shorthelp": "PDK LVS waiver files",
+                            "signature": [],
+                            "switch": "-pdk_lvs_waiver 'tool stackup name <file>'",
+                            "type": "[file]",
+                            "value": []
+                        }
                     }
                 }
             }
