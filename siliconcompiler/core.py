@@ -3432,7 +3432,9 @@ class Chip:
             self.logger.error(f'No inputs selected after running {tool}')
             self._haltstep(step, index, active)
 
-        self.set('flowstatus', step, index, 'select', sel_inputs)
+        #TODO: This should not be needed
+        if step != 'import':
+            self.set('flowstatus', step, index, 'select', sel_inputs)
 
         ##################
         # 9. Copy (link) output data from previous steps
