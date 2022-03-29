@@ -3655,7 +3655,7 @@ class Chip:
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
-        self.write_manifest(f"outputs/{design}.pkg.json")
+        self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
 
         ##################
         # 25. Clean up non-essential files
