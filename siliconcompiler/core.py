@@ -44,6 +44,7 @@ from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import leflib
 from siliconcompiler import utils
 from siliconcompiler import _metadata
+import psutil
 
 class Chip:
     """Object for configuring and executing hardware design flows.
@@ -3533,6 +3534,9 @@ class Chip:
         ##################
         # 17. Run executable (or copy inputs to outputs for builtin functions)
 
+        # TODO: Currently no memory usage tracking in breakpoints, builtins, or unexpected errors.
+        max_mem_bytes = 0
+
         if tool in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
         elif not self.get('skipall'):
@@ -3568,6 +3572,15 @@ class Chip:
                                             stdout=log_writer,
                                             stderr=subprocess.STDOUT)
                     while proc.poll() is None:
+                        # Gather subprocess memory usage.
+                        try:
+                            pproc = psutil.Process(proc.pid)
+                            max_mem_bytes = max(max_mem_bytes, pproc.memory_full_info().uss)
+                        except psutil.Error:
+                            # Process may have already terminated or been killed.
+                            # Retain existing memory usage statistics in this case.
+                            pass
+
                         # Loop until process terminates
                         if not quiet:
                             sys.stdout.write(log_reader.read())
@@ -3588,10 +3601,11 @@ class Chip:
                     self._haltstep(step, index, active)
 
         ##################
-        # 18. Capture cpu runtime
+        # 18. Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
-        self.set('metric',step, index, 'exetime', 'real', cputime)
+        self.set('metric', step, index, 'exetime', 'real', cputime)
+        self.set('metric', step, index, 'memory', 'real', max_mem_bytes)
 
         ##################
         # 19. Post process (could fail)
