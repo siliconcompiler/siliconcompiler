@@ -71,8 +71,12 @@ def setup(chip, mode='batch'):
     chip.set('eda', tool, 'refdir',  step, index, refdir, clobber=clobber)
     chip.set('eda', tool, 'script',  step, index, refdir + script, clobber=clobber)
 
-    np = len(chip.getkeys('flowgraph', flow, step))
-    threads = int(math.ceil(os.cpu_count()/np))
+    # normalizing thread count based on parallelism and local
+    threads = os.cpu_count()
+    if not chip.get('remote') and step in chip.getkeys('flowgraph', flow):
+        np = len(chip.getkeys('flowgraph', flow, step))
+        threads = int(math.ceil(os.cpu_count()/np))
+
     chip.set('eda', tool, 'threads', step, index, threads, clobber=clobber)
 
     # Input/Output requirements
