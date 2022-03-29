@@ -128,6 +128,7 @@ jobs:
     - name: Package SC
       run: |
         mkdir scdeps
+        $python -m pip download pip -d scdeps
         $python -m pip download ./dist/siliconcompiler*${{matrix.python}}*linux*.whl -d scdeps
         tar -czvf scdeps-${{matrix.python}}.tar.gz scdeps
       env:
