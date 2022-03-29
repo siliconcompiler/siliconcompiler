@@ -544,23 +544,24 @@ def schema_pdk(cfg, stackup='default'):
             antenna, tracks, tapcell, viarules, em.""")
 
     checks = ['lvs', 'drc', 'erc']
+    name = 'default'
     for item in checks:
-        scparam(cfg, ['pdk', item, 'runset', tool, stackup],
+        scparam(cfg, ['pdk', item, 'runset', tool, stackup, name],
                 sctype='[file]',
                 shorthelp=f"PDK {item.upper()} runset files",
-                switch=f"-pdk_{item}_runset 'tool stackup <file>'",
+                switch=f"-pdk_{item}_runset 'tool stackup name <file>'",
                 example=[
-                    f"cli: -pdk_{item}_runset 'magic M10 $PDK/{item}.rs'",
-                    f"api: chip.set('pdk','{item}','runset','magic','M10','$PDK/{item}.rs')"],
+                    f"cli: -pdk_{item}_runset 'magic M10 basic $PDK/{item}.rs'",
+                    f"api: chip.set('pdk','{item}','runset','magic','M10','basic','$PDK/{item}.rs')"],
                 schelp=f"""Runset files for {item.upper()} verification.""")
 
-        scparam(cfg, ['pdk', item, 'waiver', tool, stackup],
+        scparam(cfg, ['pdk', item, 'waiver', tool, stackup, name],
                 sctype='[file]',
                 shorthelp=f"PDK {item.upper()} waiver files",
-                switch=f"-pdk_{item}_waiver 'tool stackup <file>'",
+                switch=f"-pdk_{item}_waiver 'tool stackup name <file>'",
                 example=[
-                    f"cli: -pdk_{item}_waiver 'magic M10 $PDK/{item}.txt'",
-                    f"api: chip.set('pdk','{item}','waiver','magic','M10','$PDK/{item}.txt')"],
+                    f"cli: -pdk_{item}_waiver 'magic M10 basic $PDK/{item}.txt'",
+                    f"api: chip.set('pdk','{item}','waiver','magic','M10','basic','$PDK/{item}.txt')"],
                 schelp=f"""Waiver files for {item.upper()} verification.""")
 
     ################
