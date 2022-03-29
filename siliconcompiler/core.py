@@ -3898,6 +3898,7 @@ class Chip:
         # successfully. Inspired by: https://stackoverflow.com/a/70029046.
 
         os.listdir(os.path.dirname(lastdir))
+
         lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
         if os.path.isfile(lastcfg):
             last_step_failed = False
@@ -3912,6 +3913,8 @@ class Chip:
                     taskdir = self._getworkdir(step=step, index=index)
                     os.listdir(os.path.dirname(taskdir))
                     cfg = f"{taskdir}/outputs/{self.get('design')}.pkg.json"
+                    if not os.path.isfile(cfg):
+                        break
                     with open(cfg, 'r') as f:
                         localcfg = json.load(f)
                     self.cfg['metric'][step][index] = copy.deepcopy(localcfg['metric'][step][index])
@@ -3940,6 +3943,7 @@ class Chip:
                 f'See logs in {stepdir} for error details.')
             raise SiliconCompilerError(f'Run() failed on step {failed_step}! '
                 f'See logs in {stepdir} for error details.')
+
 
         # Store run in history
         self.record_history()
