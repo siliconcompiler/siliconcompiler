@@ -56,6 +56,7 @@ def setup(chip):
     node = 7
     rev = 'r1p7'
     stackup = '10M'
+    wafersize = 300
     libtype = '7p5t'
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
@@ -66,6 +67,7 @@ def setup(chip):
     chip.set('pdk','foundry', foundry)
     chip.set('pdk','process', process)
     chip.set('pdk','node', node)
+    chip.set('pdk','wafersize', wafersize)
     chip.set('pdk','version', rev)
     chip.set('pdk','stackup', stackup)
 

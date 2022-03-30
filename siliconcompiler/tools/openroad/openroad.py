@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import math
 import siliconcompiler
 from siliconcompiler.floorplan import _infer_diearea
 
@@ -46,6 +47,7 @@ def setup(chip, mode='batch'):
     refdir = 'tools/'+tool
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    flow = chip.get('flow')
 
     if mode == 'show':
         clobber = True
@@ -68,7 +70,14 @@ def setup(chip, mode='batch'):
     chip.set('eda', tool, 'option',  step, index, option, clobber=clobber)
     chip.set('eda', tool, 'refdir',  step, index, refdir, clobber=clobber)
     chip.set('eda', tool, 'script',  step, index, refdir + script, clobber=clobber)
-    chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
+
+    # normalizing thread count based on parallelism and local
+    threads = os.cpu_count()
+    if not chip.get('remote') and step in chip.getkeys('flowgraph', flow):
+        np = len(chip.getkeys('flowgraph', flow, step))
+        threads = int(math.ceil(os.cpu_count()/np))
+
+    chip.set('eda', tool, 'threads', step, index, threads, clobber=clobber)
 
     # Input/Output requirements
     if step == 'floorplan':

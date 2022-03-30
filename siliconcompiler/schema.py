@@ -1837,7 +1837,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             switch=f"-metric_{item} 'step index group <float>'",
             example=[
                 f"cli: -metric_{item} 'dfm 0 goal 10e9'",
-                f"api: chip.set('metric','dfm','0','{item}','real, 10e9)"],
+                f"api: chip.set('metric','dfm','0','{item}','real', 10e9)"],
             schelp=f"""
             Metric tracking total peak program memory footprint on a per
             step and index basis, specified in bytes.""")
