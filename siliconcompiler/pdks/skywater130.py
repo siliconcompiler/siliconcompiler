@@ -88,10 +88,10 @@ def setup(chip):
                  pdkdir+'/apr/tapcell.tcl')
 
     # DRC Runsets
-    chip.set('pdk','drc','runset', 'magic', stackup, pdkdir+'/setup/magic/sky130A.tech')
+    chip.set('pdk','drc','runset', 'magic', stackup, 'basic', pdkdir+'/setup/magic/sky130A.tech')
 
     # LVS Runsets
-    chip.set('pdk','lvs','runset','netgen', stackup, pdkdir+'/setup/netgen/lvs_setup.tcl')
+    chip.set('pdk','lvs','runset','netgen', stackup, 'basic', pdkdir+'/setup/netgen/lvs_setup.tcl')
 
     # Layer map and display file
     chip.set('pdk', 'layermap', 'klayout', 'def', 'gds', stackup, pdkdir+'/setup/klayout/skywater130.lyt')
