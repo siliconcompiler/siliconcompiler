@@ -3762,11 +3762,8 @@ class Chip:
         else:
             status = {}
 
-            # Launch a thread for eact step in flowgraph
-            # Use a shared even for errors
-            # Use a manager.dict for keeping track of active processes
-            # (one unqiue dict entry per process),
-            # Set up tools and processes
+            # Populate status dict with any flowstatus values that have already
+            # been set.
             for step in self.getkeys('flowgraph', flow):
                 for index in self.getkeys('flowgraph', flow, step):
                     stepstr = step + index
@@ -3776,6 +3773,9 @@ class Chip:
                     else:
                         status[step + index] = TaskStatus.PENDING
 
+            # Setup tools for all tasks to run.
+            for step in steplist:
+                for index in indexlist[step]:
                     # Setting up tool is optional
                     tool = self.get('flowgraph', flow, step, index, 'tool')
                     if tool not in self.builtin:
@@ -3843,6 +3843,8 @@ class Chip:
                         processes[task].start()
                         running_tasks.append(task)
                         del tasks_to_run[task]
+
+                # TODO: check for potential deadlock scenario
 
                 # Check for completed tasks, and clear them from the from the
                 # tasks_to_run dependency lists.
