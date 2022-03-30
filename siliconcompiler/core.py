@@ -3839,17 +3839,30 @@ class Chip:
                 for task, deps in list(tasks_to_run.items()):
                     # TODO: breakpoint logic:
                     # if task is bkpt, then don't launch while len(running_tasks) > 0
+
+                    # Clear any tasks that have finished from dependency list.
+                    for in_task in deps:
+                        if status[in_task] != TaskStatus.PENDING:
+                            deps.remove(in_task)
+
+                    # If there are no dependencies left, launch this task and
+                    # remove from tasks_to_run.
                     if len(deps) == 0:
                         processes[task].start()
                         running_tasks.append(task)
                         del tasks_to_run[task]
 
-                # TODO: check for potential deadlock scenario
+                # Check for situation where we have stuff left to run but don't
+                # have any tasks running. This shouldn't happen, but we will get
+                # stuck in an infinite loop if it does, so we want to break out
+                # with an explicit error.
+                if len(tasks_to_run) > 0 and len(running_tasks) == 0:
+                    raise SiliconCompilerError('Tasks left to run, but no '
+                        'running tasks. Steplist may be invalid.')
 
-                # Check for completed tasks, and clear them from the from the
-                # tasks_to_run dependency lists.
-                # TODO: consider staying in this section of loop until a task is
-                # actually cleared
+                # Check for completed tasks.
+                # TODO: consider staying in this section of loop until a task
+                # actually completes.
                 for task in list(running_tasks):
                     if not processes[task].is_alive():
                         running_tasks.remove(task)
@@ -3857,10 +3870,6 @@ class Chip:
                             status[task] = TaskStatus.ERROR
                         else:
                             status[task] = TaskStatus.SUCCESS
-
-                        for deps in tasks_to_run.values():
-                            if task in deps:
-                                deps.remove(task)
 
                 # TODO: exponential back-off with max?
                 time.sleep(0.1)
