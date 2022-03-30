@@ -3488,7 +3488,7 @@ class Chip:
 
             self.logger.info(f"Checking executable. Tool '{exe}' found with version '{version}'")
             if vercheck and not self._check_version(version, tool):
-                self._haltstep(step, index, active)
+                self._haltstep(step, index)
 
         ##################
         # 14. Write manifest (tool interface) (Don't move this!)
