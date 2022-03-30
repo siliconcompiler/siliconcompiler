@@ -97,8 +97,8 @@ def test_failed_branch_min(chip):
 
     chip.run()
 
-    assert chip.get('flowstatus', 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
-    assert chip.get('flowstatus', 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
+    assert chip.get('history', 'job0', 'flowstatus', 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
+    assert chip.get('history', 'job0', 'flowstatus', 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
 
     # check that compilation succeeded
     assert chip.find_result('def', step='placemin') is not None

@@ -3841,7 +3841,7 @@ class Chip:
                     # if task is bkpt, then don't launch while len(running_tasks) > 0
 
                     # Clear any tasks that have finished from dependency list.
-                    for in_task in deps:
+                    for in_task in deps.copy():
                         if status[in_task] != TaskStatus.PENDING:
                             deps.remove(in_task)
 
@@ -3863,7 +3863,7 @@ class Chip:
                 # Check for completed tasks.
                 # TODO: consider staying in this section of loop until a task
                 # actually completes.
-                for task in list(running_tasks):
+                for task in running_tasks.copy():
                     if not processes[task].is_alive():
                         running_tasks.remove(task)
                         if processes[task].exitcode > 0:
@@ -3959,6 +3959,12 @@ class Chip:
         # Storing manifest in job root directorya
         filepath =  os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
+
+        # Hack: clear flowstatus 'status' entries so that we can run a new job
+        # with the same chip object.
+        for step in self.getkeys('flowstatus'):
+            for index in self.getkeys('flowstatus', step):
+                self.set('flowstatus', step, index, 'status', TaskStatus.PENDING)
 
     ##########################################################################
     def record_history(self):
