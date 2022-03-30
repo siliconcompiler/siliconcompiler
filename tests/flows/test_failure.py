@@ -32,7 +32,7 @@ def test_failure_notquiet(chip):
     '''
 
     # Expect that command exits early
-    with pytest.raises(SystemExit):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.run()
 
     # Check we made it past initial setup
@@ -52,7 +52,7 @@ def test_failure_quiet(chip):
     chip.set('quiet', 'true')
 
     # Expect that command exits early
-    with pytest.raises(SystemExit):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.run()
 
     # Check we made it past initial setup

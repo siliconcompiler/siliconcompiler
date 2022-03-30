@@ -1,4 +1,5 @@
 import pytest
+import siliconcompiler
 
 @pytest.mark.eda
 def test_timeout(gcd_chip):
@@ -7,5 +8,5 @@ def test_timeout(gcd_chip):
 
     # Expect that command exits early
     # TODO: automated check that run timed out vs failed for a different reason
-    with pytest.raises(SystemExit):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
