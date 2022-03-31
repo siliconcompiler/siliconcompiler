@@ -3711,12 +3711,6 @@ class Chip:
             if os.path.isdir(cur_job_dir):
                 shutil.rmtree(cur_job_dir)
 
-            # Clear flowstatus 'status' entries if we're running from scratch,
-            # so that we can use the same chip object for multiple runs.
-            for step in self.getkeys('flowstatus'):
-                for index in self.getkeys('flowstatus', step):
-                    self.set('flowstatus', step, index, 'status', TaskStatus.PENDING)
-
         # List of indices to run per step. Precomputing this ensures we won't
         # have any problems if [arg, index] gets clobbered, and reduces logic
         # repetition.
@@ -3728,6 +3722,18 @@ class Chip:
                 indexlist[step] = self.get('indexlist')
             else:
                 indexlist[step] = self.getkeys('flowgraph', flow, step)
+
+        # Reset 'flowstatus' by probing build directory.
+        for step in self.getkeys('flowgraph', flow):
+            for index in self.getkeys('flowgraph', flow, step):
+                stepdir = self._getworkdir(step=step, index=index)
+                cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
+                if not os.path.isdir(stepdir):
+                    self.set('flowstatus', step, index, 'status', TaskStatus.PENDING)
+                elif os.path.isfile(cfg):
+                    self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
+                else:
+                    self.set('flowstatus', step, index, 'status', TaskStatus.ERROR)
 
         # Set env variables
         for envvar in self.getkeys('env'):
