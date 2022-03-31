@@ -530,6 +530,7 @@ def build_core():
 
     # Run the ASIC build flow with the resulting floorplan.
     core_chip.run()
+    # (Un-comment to display a summary report)
     #core_chip.summary()
 
     # Copy stream files for padring integration.
@@ -555,7 +556,6 @@ def build_top():
     chip.set('library', libname, 'type', 'component')
     chip.set('library', libname, 'lef', stackup, 'heartbeat.lef')
     chip.set('library', libname, 'gds', stackup, 'heartbeat.gds')
-    #chip.set('library', libname, 'cells', 'heartbeat', 'heartbeat')
     chip.set('library', libname, 'netlist', 'verilog', 'heartbeat.vg')
 
     fp = Floorplan(chip)
@@ -581,6 +581,7 @@ def build_top():
 
     # Run the top-level build.
     chip.run()
+    # (Un-comment to display a summary report)
     #chip.summary()
 
 def main():

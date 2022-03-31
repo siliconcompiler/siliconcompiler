@@ -83,7 +83,6 @@ def build_top():
     chip.set('library', libname, 'type', 'component')
     chip.set('library', libname, 'lef', stackup, 'floorplan/heartbeat.lef')
     chip.set('library', libname, 'gds', stackup, 'heartbeat.gds')
-    #chip.set('library', libname, 'cells', 'heartbeat', 'heartbeat')
     chip.set('library', libname, 'netlist', 'verilog', 'heartbeat.vg')
     chip.set('read', 'def', 'export', '0', 'floorplan/heartbeat_top.def')
 
