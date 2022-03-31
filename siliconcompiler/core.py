@@ -3711,6 +3711,12 @@ class Chip:
             if os.path.isdir(cur_job_dir):
                 shutil.rmtree(cur_job_dir)
 
+            # Clear flowstatus 'status' entries if we're running from scratch,
+            # so that we can use the same chip object for multiple runs.
+            for step in self.getkeys('flowstatus'):
+                for index in self.getkeys('flowstatus', step):
+                    self.set('flowstatus', step, index, 'status', TaskStatus.PENDING)
+
         # List of indices to run per step. Precomputing this ensures we won't
         # have any problems if [arg, index] gets clobbered, and reduces logic
         # repetition.
@@ -3959,12 +3965,6 @@ class Chip:
         # Storing manifest in job root directorya
         filepath =  os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
-
-        # Hack: clear flowstatus 'status' entries so that we can run a new job
-        # with the same chip object.
-        for step in self.getkeys('flowstatus'):
-            for index in self.getkeys('flowstatus', step):
-                self.set('flowstatus', step, index, 'status', TaskStatus.PENDING)
 
     ##########################################################################
     def record_history(self):
