@@ -523,7 +523,6 @@ def build_core():
     # Configure the Chip object for a full build.
     core_chip.set('read', 'def', 'floorplan', '0', 'heartbeat.def', clobber=True)
     core_chip.set('source', 'heartbeat.v')
-    core_chip.add('source', f'{core_chip.scroot}/../{SKY130IO_PREFIX}/prim_sky130_clock_gating.v')
     core_chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', ['0.15'])
     core_chip.set('eda', 'openroad', 'variable', 'route', '0', 'grt_allow_congestion', ['true'])
     core_chip.clock(name='clk', pin='clk', period=20)
