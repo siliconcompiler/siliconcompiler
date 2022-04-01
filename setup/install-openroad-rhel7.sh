@@ -13,7 +13,7 @@ cd deps
 # These tools are out-of-date in the default package repos, but users may
 # prefer to install newer versions by using newer package lists with yum.
 #
-# The GNU toolchain takes an especially long time to build, so you
+# The GNU toolchain takes an especially long time to build, so you might
 # prefer to use SCL packages such as devtoolset-N and rh-python3N-python-devel
 if [[ ! -z "${RHEL7_OPENROAD_INSTALL_DEVTOOLS}" ]]; then
     # RHEL 7 cmake RPM is out of date.
