@@ -1,7 +1,7 @@
 '''Benchmark to measure time taken per simple task with large flowgraphs.
 
-Running this file determines the average time taken per task on long serial
-flowgraphs of 10, 100, 250, and 500 simple "echo" tasks.
+Running this file determines the average time taken per task on long serial or
+parallel flowgraphs of 10, 100, 250, and 500 simple "echo" tasks.
 
 Since it would take too long to measure the entire run with a flowgraph of such
 a length, we perform a weird trick to measure just the first "STEPS_TO_RUN"
@@ -17,7 +17,6 @@ scheduler only launches processes based on what's in the steplist).
 '''
 import siliconcompiler
 
-import os
 import signal
 import subprocess
 import sys
@@ -40,19 +39,40 @@ def run_long_serial(N):
     chip.pipe(flow, pipe)
     chip.run()
 
+def run_wide_parallel(N):
+    chip = siliconcompiler.Chip()
+    flow = 'test_long_parallel'
+
+    chip.node(flow, 'import', 'echo')
+    chip.node(flow, 'done', 'echo')
+    for n in range(N):
+        i = str(n)
+        chip.node(flow, 'run', 'echo', index=i)
+        chip.edge(flow, 'import', 'run', head_index=i)
+        chip.edge(flow, 'run', 'done', tail_index=i)
+
+    chip.set('design', 'test_long_serial')
+    chip.set('flow', flow)
+    chip.set('mode', 'sim')
+    chip.set('skipcheck', True)
+    chip.run()
+
 def main():
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 2:
         # Running this file with an argument executes the "run_long_serial"
         # benchmark.
-        N = int(sys.argv[1])
-        run_long_serial(N)
+        N = int(sys.argv[2])
+        if sys.argv[1] == 'serial':
+            run_long_serial(N)
+        elif sys.argv[1] == 'parallel':
+            run_wide_parallel(N)
         return
 
     # Without an argument, we loop over a set of values to try, and re-run this
     # script with those values provided as arguments.
     results = {}
-    for N in (10, 100, 250, 500):
-        proc = subprocess.Popen(['python', sys.argv[0], str(N)],
+    for N in (10, 100, 250):
+        proc = subprocess.Popen(['python', sys.argv[0], sys.argv[1], str(N)],
                                  stdout=subprocess.PIPE)
         for line in proc.stdout:
             line = line.decode('ascii')
