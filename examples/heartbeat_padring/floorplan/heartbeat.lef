@@ -1,0 +1,844 @@
+VERSION 5.8 ;
+BUSBITCHARS "[]" ;
+DIVIDERCHAR "/" ;
+UNITS
+  DATABASE MICRONS 1000 ;
+END UNITS
+
+MACRO heartbeat
+  FOREIGN heartbeat ;
+
+
+  SIZE 173.07 BY 229.07 ;
+  CLASS BLOCK ;
+  PIN clk
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           97.11999999999999
+           1.0
+           97.39999999999999 ;
+    END
+  END clk
+  PIN we_dout[0]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           41.92
+           1.0
+           42.2 ;
+    END
+  END we_dout[0]
+  PIN we_ie[0]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           63.54
+           1.0
+           63.82 ;
+    END
+  END we_ie[0]
+  PIN we_oen[0]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           26.279999999999998
+           1.0
+           26.56 ;
+    END
+  END we_oen[0]
+  PIN we_tech_cfg[0]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           53.879999999999995
+           1.0
+           54.16 ;
+    END
+  END we_tech_cfg[0]
+  PIN we_tech_cfg[1]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           57.099999999999994
+           1.0
+           57.379999999999995 ;
+    END
+  END we_tech_cfg[1]
+  PIN we_tech_cfg[2]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           60.31999999999999
+           1.0
+           60.599999999999994 ;
+    END
+  END we_tech_cfg[2]
+  PIN we_tech_cfg[3]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           35.48
+           1.0
+           35.76 ;
+    END
+  END we_tech_cfg[3]
+  PIN we_tech_cfg[4]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           38.699999999999996
+           1.0
+           38.98 ;
+    END
+  END we_tech_cfg[4]
+  PIN we_tech_cfg[5]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           91.14
+           1.0
+           91.42 ;
+    END
+  END we_tech_cfg[5]
+  PIN we_tech_cfg[6]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           29.499999999999996
+           1.0
+           29.779999999999998 ;
+    END
+  END we_tech_cfg[6]
+  PIN we_tech_cfg[7]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           32.72
+           1.0
+           33.0 ;
+    END
+  END we_tech_cfg[7]
+  PIN we_tech_cfg[8]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           87.92
+           1.0
+           88.2 ;
+    END
+  END we_tech_cfg[8]
+  PIN we_tech_cfg[9]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           44.67999999999999
+           1.0
+           44.959999999999994 ;
+    END
+  END we_tech_cfg[9]
+  PIN we_tech_cfg[10]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           72.74
+           1.0
+           73.02 ;
+    END
+  END we_tech_cfg[10]
+  PIN we_tech_cfg[11]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           51.12
+           1.0
+           51.4 ;
+    END
+  END we_tech_cfg[11]
+  PIN we_tech_cfg[12]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           66.3
+           1.0
+           66.58 ;
+    END
+  END we_tech_cfg[12]
+  PIN we_tech_cfg[13]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           69.52
+           1.0
+           69.8 ;
+    END
+  END we_tech_cfg[13]
+  PIN we_tech_cfg[14]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           78.72
+           1.0
+           79.0 ;
+    END
+  END we_tech_cfg[14]
+  PIN we_tech_cfg[15]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           47.89999999999999
+           1.0
+           48.17999999999999 ;
+    END
+  END we_tech_cfg[15]
+  PIN we_tech_cfg[16]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           100.34
+           1.0
+           100.62 ;
+    END
+  END we_tech_cfg[16]
+  PIN we_tech_cfg[17]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           93.89999999999999
+           1.0
+           94.17999999999999 ;
+    END
+  END we_tech_cfg[17]
+  PIN nreset
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           206.12
+           1.0
+           206.39999999999998 ;
+    END
+  END nreset
+  PIN we_dout[1]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           150.92
+           1.0
+           151.19999999999996 ;
+    END
+  END we_dout[1]
+  PIN we_ie[1]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           172.54
+           1.0
+           172.81999999999996 ;
+    END
+  END we_ie[1]
+  PIN we_oen[1]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           135.28
+           1.0
+           135.55999999999997 ;
+    END
+  END we_oen[1]
+  PIN we_tech_cfg[18]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           162.88
+           1.0
+           163.15999999999997 ;
+    END
+  END we_tech_cfg[18]
+  PIN we_tech_cfg[19]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           166.1
+           1.0
+           166.37999999999997 ;
+    END
+  END we_tech_cfg[19]
+  PIN we_tech_cfg[20]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           169.32
+           1.0
+           169.59999999999997 ;
+    END
+  END we_tech_cfg[20]
+  PIN we_tech_cfg[21]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           144.48
+           1.0
+           144.75999999999996 ;
+    END
+  END we_tech_cfg[21]
+  PIN we_tech_cfg[22]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           147.7
+           1.0
+           147.97999999999996 ;
+    END
+  END we_tech_cfg[22]
+  PIN we_tech_cfg[23]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           200.14
+           1.0
+           200.41999999999996 ;
+    END
+  END we_tech_cfg[23]
+  PIN we_tech_cfg[24]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           138.5
+           1.0
+           138.77999999999997 ;
+    END
+  END we_tech_cfg[24]
+  PIN we_tech_cfg[25]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           141.72
+           1.0
+           141.99999999999997 ;
+    END
+  END we_tech_cfg[25]
+  PIN we_tech_cfg[26]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           196.92000000000002
+           1.0
+           197.2 ;
+    END
+  END we_tech_cfg[26]
+  PIN we_tech_cfg[27]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           153.68
+           1.0
+           153.95999999999998 ;
+    END
+  END we_tech_cfg[27]
+  PIN we_tech_cfg[28]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           181.74
+           1.0
+           182.01999999999998 ;
+    END
+  END we_tech_cfg[28]
+  PIN we_tech_cfg[29]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           160.12
+           1.0
+           160.39999999999998 ;
+    END
+  END we_tech_cfg[29]
+  PIN we_tech_cfg[30]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           175.3
+           1.0
+           175.57999999999998 ;
+    END
+  END we_tech_cfg[30]
+  PIN we_tech_cfg[31]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           178.51999999999998
+           1.0
+           178.79999999999995 ;
+    END
+  END we_tech_cfg[31]
+  PIN we_tech_cfg[32]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           187.72
+           1.0
+           187.99999999999997 ;
+    END
+  END we_tech_cfg[32]
+  PIN we_tech_cfg[33]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           156.9
+           1.0
+           157.17999999999998 ;
+    END
+  END we_tech_cfg[33]
+  PIN we_tech_cfg[34]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           209.34
+           1.0
+           209.61999999999998 ;
+    END
+  END we_tech_cfg[34]
+  PIN we_tech_cfg[35]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 0.0
+           202.89999999999998
+           1.0
+           203.17999999999995 ;
+    END
+  END we_tech_cfg[35]
+  PIN ea_din
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           80.67
+           173.07
+           80.95 ;
+    END
+  END ea_din
+  PIN out
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           135.87
+           173.07
+           136.14999999999998 ;
+    END
+  END out
+  PIN ea_ie
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           114.25
+           173.07
+           114.53 ;
+    END
+  END ea_ie
+  PIN ea_oen
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           151.51
+           173.07
+           151.78999999999996 ;
+    END
+  END ea_oen
+  PIN ea_tech_cfg[0]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           123.91
+           173.07
+           124.19 ;
+    END
+  END ea_tech_cfg[0]
+  PIN ea_tech_cfg[1]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           120.69
+           173.07
+           120.97 ;
+    END
+  END ea_tech_cfg[1]
+  PIN ea_tech_cfg[2]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           117.47
+           173.07
+           117.75 ;
+    END
+  END ea_tech_cfg[2]
+  PIN ea_tech_cfg[3]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           142.31
+           173.07
+           142.58999999999997 ;
+    END
+  END ea_tech_cfg[3]
+  PIN ea_tech_cfg[4]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           139.09
+           173.07
+           139.36999999999998 ;
+    END
+  END ea_tech_cfg[4]
+  PIN ea_tech_cfg[5]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           86.64999999999999
+           173.07
+           86.92999999999999 ;
+    END
+  END ea_tech_cfg[5]
+  PIN ea_tech_cfg[6]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           148.29
+           173.07
+           148.56999999999996 ;
+    END
+  END ea_tech_cfg[6]
+  PIN ea_tech_cfg[7]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           145.07
+           173.07
+           145.34999999999997 ;
+    END
+  END ea_tech_cfg[7]
+  PIN ea_tech_cfg[8]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           89.86999999999999
+           173.07
+           90.14999999999999 ;
+    END
+  END ea_tech_cfg[8]
+  PIN ea_tech_cfg[9]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           133.10999999999999
+           173.07
+           133.38999999999996 ;
+    END
+  END ea_tech_cfg[9]
+  PIN ea_tech_cfg[10]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           105.05
+           173.07
+           105.33 ;
+    END
+  END ea_tech_cfg[10]
+  PIN ea_tech_cfg[11]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           126.66999999999999
+           173.07
+           126.94999999999999 ;
+    END
+  END ea_tech_cfg[11]
+  PIN ea_tech_cfg[12]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           111.49
+           173.07
+           111.77 ;
+    END
+  END ea_tech_cfg[12]
+  PIN ea_tech_cfg[13]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           108.27
+           173.07
+           108.55 ;
+    END
+  END ea_tech_cfg[13]
+  PIN ea_tech_cfg[14]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           99.07
+           173.07
+           99.35 ;
+    END
+  END ea_tech_cfg[14]
+  PIN ea_tech_cfg[15]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           129.89
+           173.07
+           130.16999999999996 ;
+    END
+  END ea_tech_cfg[15]
+  PIN ea_tech_cfg[16]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           77.44999999999999
+           173.07
+           77.72999999999999 ;
+    END
+  END ea_tech_cfg[16]
+  PIN ea_tech_cfg[17]
+    DIRECTION inout ;
+    USE signal ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met2 ;
+      RECT 172.07
+           83.89
+           173.07
+           84.17 ;
+    END
+  END ea_tech_cfg[17]
+  PIN _vdd
+    DIRECTION inout ;
+    USE power ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met3 ;
+      RECT 47.52999999999999
+           211.28000000000003
+           71.42999999999999
+           229.07 ;
+      LAYER met3 ;
+      RECT 97.425
+           211.28000000000003
+           121.32499999999999
+           229.07 ;
+    END
+  END _vdd
+  PIN _vss
+    DIRECTION inout ;
+    USE power ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER met3 ;
+      RECT 97.63999999999999
+           0.0
+           121.53999999999999
+           12.200000000000003 ;
+      LAYER met3 ;
+      RECT 47.745
+           0.0
+           71.645
+           12.200000000000003 ;
+    END
+  END _vss
+
+
+END heartbeat
+
+END LIBRARY
