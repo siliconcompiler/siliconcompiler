@@ -1404,22 +1404,6 @@
     "flowstatus": {
         "default": {
             "default": {
-                "error": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -flowstatus_error 'cts 10 1'",
-                        "api:  chip.set('flowstatus','cts','10','error',1)"
-                    ],
-                    "help": "Status parameter that tracks runstep errors.",
-                    "lock": "false",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Flowgraph task error status",
-                    "signature": null,
-                    "switch": "-flowstatus_error 'step index <int>'",
-                    "type": "int",
-                    "value": null
-                },
                 "select": {
                     "defvalue": [],
                     "example": [
@@ -1435,6 +1419,22 @@
                     "switch": "-flowstatus_select 'step index <(str,str)>'",
                     "type": "[(str,str)]",
                     "value": []
+                },
+                "status": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -flowstatus_status 'cts 10 success'",
+                        "api:  chip.set('flowstatus','cts','10','status', 'success')"
+                    ],
+                    "help": "Parameter that tracks the status of a task. Valid values are:\n\n* \"pending\": task has not yet completed\n* \"success\": task ran successfully\n* \"error\": task failed with an error",
+                    "lock": "false",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Flowgraph task status",
+                    "signature": null,
+                    "switch": "-flowstatus_status 'step index <str>'",
+                    "type": "str",
+                    "value": null
                 }
             }
         }

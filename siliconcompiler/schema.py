@@ -1199,14 +1199,18 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 ###########################################################################
 def schema_flowstatus(cfg, step='default', index='default'):
 
-    scparam(cfg,['flowstatus', step, index, 'error'],
-            sctype='int',
+    scparam(cfg,['flowstatus', step, index, 'status'],
+            sctype='str',
             scope='job',
-            shorthelp="Flowgraph task error status",
-            switch="-flowstatus_error 'step index <int>'",
-            example=["cli: -flowstatus_error 'cts 10 1'",
-                     "api:  chip.set('flowstatus','cts','10','error',1)"],
-            schelp="""Status parameter that tracks runstep errors.""")
+            shorthelp="Flowgraph task status",
+            switch="-flowstatus_status 'step index <str>'",
+            example=["cli: -flowstatus_status 'cts 10 success'",
+                     "api:  chip.set('flowstatus','cts','10','status', 'success')"],
+            schelp="""Parameter that tracks the status of a task. Valid values are:
+
+            * "pending": task has not yet completed
+            * "success": task ran successfully
+            * "error": task failed with an error""")
 
     scparam(cfg,['flowstatus', step, index, 'select'],
             sctype='[(str,str)]',
