@@ -1295,7 +1295,9 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             check the runtime executable version. When 'vercheck' is set to
             True, if the version of the system executable is not allowed by any
             of the specifiers in 'version', then the job is halted
-            pre-execution.""")
+            pre-execution. For backwards compatibility, entries that do not
+            conform to the standard will be interpreted as a version with an
+            '==' specifier.""")
 
     scparam(cfg, ['eda', tool, 'format'],
             sctype='str',
