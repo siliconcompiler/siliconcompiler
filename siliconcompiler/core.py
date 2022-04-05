@@ -4497,24 +4497,25 @@ class Chip:
         spec_sets = self.get('eda', tool, 'version')
 
         for spec_set in spec_sets:
-            if normalize_version is None:
-                normalized_version = reported_version
-                normalized_specs = spec_set
-            else:
-                normalized_version = normalize_version(reported_version)
-
-                split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
-                normalized_specs_list = []
-                for spec in split_specs:
-                    match = re.match(_regex, spec)
-                    if match is None:
-                        self.logger.error(f'Invalid version specifier {spec}.')
-                        return False
-
+            split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
+            specs_list = []
+            for spec in split_specs:
+                match = re.match(_regex, spec)
+                if match is None:
+                    self.logger.warning(f'Invalid version specifier {spec}. Defaulting to =={spec}.')
+                    operator = '=='
+                    spec_version = spec
+                else:
                     operator = match.group('operator')
                     spec_version = match.group('version')
-                    normalized_specs_list.append(f'{operator}{normalize_version(spec_version)}')
-                    normalized_specs = ','.join(normalized_specs_list)
+                specs_list.append((operator, spec_version))
+
+            if normalize_version is None:
+                normalized_version = reported_version
+                normalized_specs = ','.join([f'{op}{ver}' for op, ver in specs_list])
+            else:
+                normalized_version = normalize_version(reported_version)
+                normalized_specs = ','.join([f'{op}{normalize_version(ver)}' for op, ver in specs_list])
 
             try:
                 version = packaging.version.Version(normalized_version)
