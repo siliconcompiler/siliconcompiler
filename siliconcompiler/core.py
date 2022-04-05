@@ -1448,7 +1448,8 @@ class Chip:
 
 
     ###########################################################################
-    def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False, partial=False):
+
+    def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
         """
         Merges an external manifest with the current compilation manifest.
 
@@ -1469,7 +1470,16 @@ class Chip:
            Merges all parameters in my.pk.json into the Chip object
 
         """
+        self._merge_manifest(cfg, job, clobber, clear, check)
 
+    ###########################################################################
+    def _merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False, partial=False):
+        """
+        Internal merge_manifest() implementation with `partial` arg.
+
+        partial (bool): If True, perform a partial merge, only merging keypaths
+        that may have been updated during run().
+        """
         if job is not None:
             # fill ith default schema before populating
             self.cfghistory[job] = schema_cfg()
@@ -1797,7 +1807,7 @@ class Chip:
         return True
 
     ###########################################################################
-    def read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
+    def read_manifest(self, filename, job=None, clear=True, clobber=True):
         """
         Reads a manifest from disk and merges it with the current compilation manifest.
 
@@ -1809,14 +1819,21 @@ class Chip:
             job (str): Specifies non-default job to merge into.
             clear (bool): If True, disables append operations for list type.
             clobber (bool): If True, overwrites existing parameter value.
-            partial (bool): If True, perform a partial read, only merging
-                keypaths that may have been updated during run().
 
         Examples:
             >>> chip.read_manifest('mychip.json')
             Loads the file mychip.json into the current Chip object.
         """
+        self._read_manifest(filename, job=job, clear=clear, clobber=clobber)
 
+    ###########################################################################
+    def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
+        """
+        Internal read_manifest() implementation with `partial` arg.
+
+        partial (bool): If True, perform a partial merge, only merging keypaths
+        that may have been updated during run().
+        """
         abspath = os.path.abspath(filename)
         self.logger.debug('Reading manifest %s', abspath)
 
@@ -1832,7 +1849,7 @@ class Chip:
         f.close()
 
         #Merging arguments with the Chip configuration
-        self.merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
+        self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
@@ -3356,7 +3373,7 @@ class Chip:
                 self.set('flowstatus', in_step, in_index, 'status', in_task_status)
                 if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
-                    self.read_manifest(cfgfile, clobber=False, partial=True)
+                    self._read_manifest(cfgfile, clobber=False, partial=True)
 
         ##################
         # 5. Write manifest prior to step running into inputs
@@ -3934,7 +3951,7 @@ class Chip:
                 else:
                     # For manifests from other indices, just pull in possible
                     # additional info.
-                    self.read_manifest(lastcfg, clobber=False, partial=True)
+                    self._read_manifest(lastcfg, clobber=False, partial=True)
 
                 last_step_failed = False
 
