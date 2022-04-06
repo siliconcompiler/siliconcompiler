@@ -7,6 +7,8 @@ import time
 
 import pytest
 
+@pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.parametrize('steplist', [
     ['import', 'place'],
     ['import', 'place', 'placemin'],
@@ -61,6 +63,8 @@ def test_flowstatus(scroot, steplist):
     assert chip.get('flowstatus', 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
     assert chip.get('flowstatus', 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_long_branch(scroot):
     '''Test for this case:
 
@@ -111,6 +115,8 @@ def test_long_branch(scroot):
     assert chip.get('flowstatus', 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
     assert chip.get('flowstatus', 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_remote(scroot):
     # Start running an sc-server instance.
     os.mkdir('local_server_work')
