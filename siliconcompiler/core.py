@@ -3918,6 +3918,16 @@ class Chip:
                 if not index_succeeded:
                     raise SiliconCompilerError('Run() failed, see previous errors.')
 
+            # On success, write out status dict to 'flowstatus'. We do this
+            # since certain scenarios won't be caught by reading in manifests (a
+            # failing step doesn't dump a manifest). For example, if the
+            # steplist's final step has two indices and one fails.
+            for step in steplist:
+                for index in indexlist[step]:
+                    stepstr = step + index
+                    if status[stepstr] != TaskStatus.PENDING:
+                        self.set('flowstatus', step, index, 'status', status[stepstr])
+
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
@@ -3950,7 +3960,6 @@ class Chip:
                     # For manifests from other indices, just pull in possible
                     # additional info.
                     self._read_manifest(lastcfg, clobber=False, partial=True)
-
                 last_step_failed = False
 
         if last_step_failed:
