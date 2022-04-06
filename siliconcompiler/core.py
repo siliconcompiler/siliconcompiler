@@ -1448,6 +1448,7 @@ class Chip:
 
 
     ###########################################################################
+
     def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
         """
         Merges an external manifest with the current compilation manifest.
@@ -1461,13 +1462,24 @@ class Chip:
             clear (bool): If True, disables append operations for list type
             clobber (bool): If True, overwrites existing parameter value
             check (bool): If True, checks the validity of each key
+            partial (bool): If True, perform a partial merge, only merging
+                keypaths that may have been updated during run().
 
         Examples:
             >>> chip.merge_manifest('my.pkg.json')
            Merges all parameters in my.pk.json into the Chip object
 
         """
+        self._merge_manifest(cfg, job, clobber, clear, check)
 
+    ###########################################################################
+    def _merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False, partial=False):
+        """
+        Internal merge_manifest() implementation with `partial` arg.
+
+        partial (bool): If True, perform a partial merge, only merging keypaths
+        that may have been updated during run().
+        """
         if job is not None:
             # fill ith default schema before populating
             self.cfghistory[job] = schema_cfg()
@@ -1476,6 +1488,8 @@ class Chip:
             dst = self.cfg
 
         for keylist in self.getkeys(cfg=cfg):
+            if partial and keylist[0] not in ('metric', 'flowstatus', 'record'):
+                continue
             #only read in valid keypaths without 'default'
             key_valid = True
             if check:
@@ -1810,7 +1824,16 @@ class Chip:
             >>> chip.read_manifest('mychip.json')
             Loads the file mychip.json into the current Chip object.
         """
+        self._read_manifest(filename, job=job, clear=clear, clobber=clobber)
 
+    ###########################################################################
+    def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
+        """
+        Internal read_manifest() implementation with `partial` arg.
+
+        partial (bool): If True, perform a partial merge, only merging keypaths
+        that may have been updated during run().
+        """
         abspath = os.path.abspath(filename)
         self.logger.debug('Reading manifest %s', abspath)
 
@@ -1826,7 +1849,7 @@ class Chip:
         f.close()
 
         #Merging arguments with the Chip configuration
-        self.merge_manifest(localcfg, job=job, clear=clear, clobber=clobber)
+        self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
@@ -3350,10 +3373,7 @@ class Chip:
                 self.set('flowstatus', in_step, in_index, 'status', in_task_status)
                 if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
-                    with open(cfgfile, 'r') as f:
-                        localcfg = json.load(f)
-                    # quick copy of task history
-                    self.cfg['metric'][in_step][in_index] = copy.deepcopy(localcfg['metric'][in_step][in_index])
+                    self._read_manifest(cfgfile, clobber=False, partial=True)
 
         ##################
         # 5. Write manifest prior to step running into inputs
@@ -3908,40 +3928,32 @@ class Chip:
         # Note: any information generated in steps that do not merge into the
         # last step will not be picked up in this chip object.
 
-        #1. Use the last manifest
         laststep = steplist[-1]
         last_step_failed = True
-        lastdir = self._getworkdir(step=laststep, index=index)
+        for index in indexlist[laststep]:
+            lastdir = self._getworkdir(step=laststep, index=index)
 
-        # This no-op listdir operation is important for ensuring we have a
-        # consistent view of the filesystem when dealing with NFS. Without
-        # this, this thread is often unable to find the final manifest of
-        # runs performed on job schedulers, even if they completed
-        # successfully. Inspired by: https://stackoverflow.com/a/70029046.
+            # This no-op listdir operation is important for ensuring we have a
+            # consistent view of the filesystem when dealing with NFS. Without
+            # this, this thread is often unable to find the final manifest of
+            # runs performed on job schedulers, even if they completed
+            # successfully. Inspired by: https://stackoverflow.com/a/70029046.
 
-        os.listdir(os.path.dirname(lastdir))
+            os.listdir(os.path.dirname(lastdir))
 
-        lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
-        if os.path.isfile(lastcfg):
-            last_step_failed = False
-            local_dir = self.get('dir')
-            self.read_manifest(lastcfg, clobber=True, clear=True)
-            self.set('dir', local_dir)
+            lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
+            if os.path.isfile(lastcfg):
+                if last_step_failed:
+                    # If this is our first result manifest, do a full read.
+                    local_dir = self.get('dir')
+                    self.read_manifest(lastcfg, clobber=True, clear=True)
+                    self.set('dir', local_dir)
+                else:
+                    # For manifests from other indices, just pull in possible
+                    # additional info.
+                    self._read_manifest(lastcfg, clobber=False, partial=True)
 
-        #2. Read in flowstatus and metrics from all directories
-        for step in self.getkeys('flowgraph', flow):
-            for index in self.getkeys('flowgraph', flow, step):
-                if step in steplist and index in indexlist[step]:
-                    taskdir = self._getworkdir(step=step, index=index)
-                    os.listdir(os.path.dirname(taskdir))
-                    cfg = f"{taskdir}/outputs/{self.get('design')}.pkg.json"
-                    if not os.path.isfile(cfg):
-                        break
-                    with open(cfg, 'r') as f:
-                        localcfg = json.load(f)
-                    self.cfg['metric'][step][index] = copy.deepcopy(localcfg['metric'][step][index])
-                    self.cfg['flowstatus'][step][index] = copy.deepcopy(localcfg['flowstatus'][step][index])
-
+                last_step_failed = False
 
         if last_step_failed:
             # Hack to find first failed step by checking for presence of output
