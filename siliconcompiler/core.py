@@ -50,7 +50,7 @@ class TaskStatus():
     # Could use Python 'enum' class here, but that doesn't work nicely with
     # schema.
     PENDING = 'pending'
-    SUCCESS = 'complete'
+    SUCCESS = 'success'
     ERROR = 'error'
 
 class Chip:
@@ -3366,8 +3366,6 @@ class Chip:
 
         all_inputs = []
         if not self.get('remote'):
-            #copy over status from
-
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 in_task_status = status[in_step + in_index]
                 self.set('flowstatus', in_step, in_index, 'status', in_task_status)
@@ -3749,7 +3747,7 @@ class Chip:
                 stepdir = self._getworkdir(step=step, index=index)
                 cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
                 if not os.path.isdir(stepdir):
-                    self.set('flowstatus', step, index, 'status', TaskStatus.PENDING)
+                    pass
                 elif os.path.isfile(cfg):
                     self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
                 else:

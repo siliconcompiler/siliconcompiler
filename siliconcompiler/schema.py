@@ -1208,9 +1208,10 @@ def schema_flowstatus(cfg, step='default', index='default'):
                      "api:  chip.set('flowstatus','cts','10','status', 'success')"],
             schelp="""Parameter that tracks the status of a task. Valid values are:
 
-            * "pending": task has not yet completed
             * "success": task ran successfully
-            * "error": task failed with an error""")
+            * "error": task failed with an error
+
+            An empty value indicates the task has not yet been completed.""")
 
     scparam(cfg,['flowstatus', step, index, 'select'],
             sctype='[(str,str)]',
