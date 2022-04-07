@@ -3789,6 +3789,34 @@ class Chip:
 
             # Fetch results (and delete the job's data from the server).
             fetch_results(self)
+
+            # Read back configuration from final manifest.
+            cfg = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
+            if os.path.isfile(cfg):
+                local_dir = self.get('dir')
+                self.read_manifest(cfg, clobber=True, clear=True)
+                self.set('dir', local_dir)
+            else:
+                # Hack to find first failed step by checking for presence of
+                # output manifests.
+                # TODO: fetch_results() should return info about step failures.
+                failed_step = laststep
+                for step in steplist[:-1]:
+                    step_has_cfg = False
+                    for index in indexlist[step]:
+                        stepdir = self._getworkdir(step=step, index=index)
+                        cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
+                        if os.path.isfile(cfg):
+                            step_has_cfg = True
+                            break
+
+                    if not step_has_cfg:
+                        failed_step = step
+                        break
+
+                stepdir = self._getworkdir(step=failed_step)[:-1]
+                raise SiliconCompilerError(f'Run() failed on step {failed_step}! '
+                    f'See logs in {stepdir} for error details.')
         else:
             status = {}
 
@@ -3928,66 +3956,40 @@ class Chip:
                     if status[stepstr] != TaskStatus.PENDING:
                         self.set('flowstatus', step, index, 'status', status[stepstr])
 
+
+            # Merge cfg back from last executed runsteps.
+            # Note: any information generated in steps that do not merge into the
+            # last step will not be picked up in this chip object.
+            # TODO: we might as well fix this? We can add a helper function to
+            # find all steps in the steplist that don't lead to others.
+
+            laststep = steplist[-1]
+            for index in indexlist[laststep]:
+                lastdir = self._getworkdir(step=laststep, index=index)
+
+                # This no-op listdir operation is important for ensuring we have
+                # a consistent view of the filesystem when dealing with NFS.
+                # Without this, this thread is often unable to find the final
+                # manifest of runs performed on job schedulers, even if they
+                # completed successfully. Inspired by:
+                # https://stackoverflow.com/a/70029046.
+
+                os.listdir(os.path.dirname(lastdir))
+
+                lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
+                if status[laststep+index] == TaskStatus.SUCCESS:
+                    self._read_manifest(lastcfg, clobber=False, partial=True)
+                else:
+                    self.set('flowstatus', laststep, index, 'status', TaskStatus.ERROR)
+
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
-        # Merge cfg back from last executed runsteps.
-        # Note: any information generated in steps that do not merge into the
-        # last step will not be picked up in this chip object.
-
-        laststep = steplist[-1]
-        last_step_failed = True
-        for index in indexlist[laststep]:
-            lastdir = self._getworkdir(step=laststep, index=index)
-
-            # This no-op listdir operation is important for ensuring we have a
-            # consistent view of the filesystem when dealing with NFS. Without
-            # this, this thread is often unable to find the final manifest of
-            # runs performed on job schedulers, even if they completed
-            # successfully. Inspired by: https://stackoverflow.com/a/70029046.
-
-            os.listdir(os.path.dirname(lastdir))
-
-            lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
-            if os.path.isfile(lastcfg):
-                if last_step_failed:
-                    # If this is our first result manifest, do a full read.
-                    local_dir = self.get('dir')
-                    self.read_manifest(lastcfg, clobber=True, clear=True)
-                    self.set('dir', local_dir)
-                else:
-                    # For manifests from other indices, just pull in possible
-                    # additional info.
-                    self._read_manifest(lastcfg, clobber=False, partial=True)
-                last_step_failed = False
-
-        if last_step_failed:
-            # Hack to find first failed step by checking for presence of output
-            # manifests.
-            failed_step = laststep
-            for step in steplist[:-1]:
-                step_has_cfg = False
-                for index in indexlist[step]:
-                    stepdir = self._getworkdir(step=step, index=index)
-                    cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
-                    if os.path.isfile(cfg):
-                        step_has_cfg = True
-                        break
-
-                if not step_has_cfg:
-                    failed_step = step
-                    break
-
-            stepdir = self._getworkdir(step=failed_step)[:-1]
-            raise SiliconCompilerError(f'Run() failed on step {failed_step}! '
-                f'See logs in {stepdir} for error details.')
-
-
         # Store run in history
         self.record_history()
 
-        # Storing manifest in job root directorya
+        # Storing manifest in job root directory
         filepath =  os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
 
