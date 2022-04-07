@@ -85,6 +85,7 @@ def chip(scroot):
 def test_failed_branch_min(chip):
     '''Test that a minimum will allow failed inputs, as long as at least
     one passes.'''
+    flow = chip.get('flow')
 
     # Illegal value, so this branch will fail!
     chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
@@ -92,8 +93,8 @@ def test_failed_branch_min(chip):
     chip.set('eda', 'openroad', 'variable', 'place', '1', 'place_density', '0.5')
 
     # Perform minimum
-    chip.set('flowgraph', chip.get('flow'), 'placemin', '0', 'tool', 'minimum')
-    chip.set('flowgraph', chip.get('flow'), 'placemin', '0', 'input', [('place','0'), ('place','1')])
+    chip.set('flowgraph', flow, 'placemin', '0', 'tool', 'minimum')
+    chip.set('flowgraph', flow, 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     chip.run()
 
@@ -102,6 +103,12 @@ def test_failed_branch_min(chip):
 
     # check that compilation succeeded
     assert chip.find_result('def', step='placemin') is not None
+
+    # Ensure that summary/report generation can handle failed branch without
+    # error.
+    chip.set('flowgraph', flow, 'place', '0', 'weight', 'errors', 0)
+    chip.set('flowgraph', flow, 'place', '0', 'weight', 'warnings', 0)
+    chip.summary()
 
 @pytest.mark.eda
 @pytest.mark.quick
