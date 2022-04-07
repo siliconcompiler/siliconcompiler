@@ -1426,7 +1426,7 @@
                         "cli: -flowstatus_status 'cts 10 success'",
                         "api:  chip.set('flowstatus','cts','10','status', 'success')"
                     ],
-                    "help": "Parameter that tracks the status of a task. Valid values are:\n\n* \"pending\": task has not yet completed\n* \"success\": task ran successfully\n* \"error\": task failed with an error",
+                    "help": "Parameter that tracks the status of a task. Valid values are:\n\n* \"success\": task ran successfully\n* \"error\": task failed with an error\n\nAn empty value indicates the task has not yet been completed.",
                     "lock": "false",
                     "require": null,
                     "scope": "job",
