@@ -2748,6 +2748,17 @@ def schema_checklist(cfg, group='checklist'):
             A complete requirement description of the {group} checklist item
             entered as a multi-line string.""")
 
+    scparam(cfg,[*path, standard, item, 'dataformat'],
+            sctype='str',
+            shorthelp=f"{emit_help} item data format",
+            switch=f"-{emit_group}_dataformat '{emit_switch}standard item <float>'",
+            example=[
+                f"cli: -{emit_group}_dataformat 'README'",
+                f"api: chip.set({emit_api},'ISO','D000','dataformat','README')"],
+            schelp=f"""
+            Free text description of the type of data files acceptable as
+            checklist signoff validation.""")
+
     scparam(cfg,[*path, standard, item, 'rationale'],
             sctype='[str]',
             shorthelp=f"{emit_help} item rational",
