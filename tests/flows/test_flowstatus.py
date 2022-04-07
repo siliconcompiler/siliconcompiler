@@ -121,6 +121,7 @@ def test_remote(scroot):
     # Start running an sc-server instance.
     os.mkdir('local_server_work')
     srv_proc = subprocess.Popen(['sc-server',
+                                 '-port', '8081',
                                  '-nfs_mount', './local_server_work',
                                  '-cluster', 'local'])
     time.sleep(3)
@@ -130,7 +131,7 @@ def test_remote(scroot):
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
     with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps({'address': 'localhost', 'port': 8080}))
+        tmp_cred_file.write(json.dumps({'address': 'localhost', 'port': 8081}))
     chip.set('remote', True)
     chip.set('credentials', os.path.abspath(tmp_creds))
 

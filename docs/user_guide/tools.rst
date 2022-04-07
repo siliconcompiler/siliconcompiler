@@ -96,7 +96,7 @@ To leverage the run() function's internal setup checking logic, it is highly rec
 
 parse_version(stdout)
 -----------------------
-The run() function includes built in executable version checking, which can be enabled or disabled with the 'vercheck' parameter. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
+The run() function includes built in executable version checking, which can be disabled with the 'novercheck' parameter. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
 
 
   def parse_version(stdout):

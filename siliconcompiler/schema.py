@@ -1293,12 +1293,12 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             entry in this list must be a version specifier as described by Python
             `PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.
             During task execution, the tool is called with the 'vswitch' to
-            check the runtime executable version. When 'vercheck' is set to
-            True, if the version of the system executable is not allowed by any
-            of the specifiers in 'version', then the job is halted
-            pre-execution. For backwards compatibility, entries that do not
-            conform to the standard will be interpreted as a version with an
-            '==' specifier.""")
+            check the runtime executable version. If the version of the system
+            executable is not allowed by any of the specifiers in 'version',
+            then the job is halted pre-execution. For backwards compatibility,
+            entries that do not conform to the standard will be interpreted as a
+            version with an '==' specifier. This check can be disabled by
+            setting 'novercheck' to True.""")
 
     scparam(cfg, ['eda', tool, 'format'],
             sctype='str',
@@ -2405,16 +2405,16 @@ def schema_options(cfg):
             '1' is added to the jobname before updating the jobname
             parameter.""")
 
-    scparam(cfg, ['vercheck'],
+    scparam(cfg, ['novercheck'],
             sctype='bool',
-            defvalue='true',
+            defvalue='false',
             scope='job',
-            shorthelp="Enable version checking",
-            switch="-vercheck <bool>",
-            example=["cli: -vercheck",
-                    "api: chip.set('vercheck', 'true')"],
+            shorthelp="Disable version checking",
+            switch="-novercheck <bool>",
+            example=["cli: -novercheck",
+                    "api: chip.set('novercheck', 'true')"],
             schelp="""
-            Enforces strict version checking on all invoked tools if True.
+            Disables strict version checking on all invoked tools if True.
             The list of supported version numbers is defined in the
             'version' parameter in the 'eda' dictionary for each tool.""")
 

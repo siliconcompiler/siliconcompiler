@@ -3490,7 +3490,7 @@ class Chip:
         ##################
         # 13. Check exe version
 
-        vercheck = self.get('vercheck')
+        vercheck = not self.get('novercheck')
         veropt = self.get('eda', tool, 'vswitch')
         exe = self._getexe(tool)
         version = None
