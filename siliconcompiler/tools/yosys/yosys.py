@@ -99,6 +99,16 @@ def setup(chip):
     else:
         chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
 
+    # Setting up regex patterns
+    chip.set('eda', tool, 'regex', step, index, 'warnings', "Warning", clobber=False)
+    chip.set('eda', tool, 'regex', step, index, 'errors', "Error", clobber=False)
+
+    # Reports
+    for metric in ('errors', 'warnings', 'drvs', 'coverage', 'security',
+                   'luts', 'dsps', 'brams',
+                   'cellarea',
+                   'cells', 'registers', 'buffers', 'nets', 'pins'):
+        chip.set('eda', tool, 'report', step, index, metric, f"{step}.log")
 
 #############################################
 # Runtime pre processing
@@ -130,20 +140,8 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-
-    # Setting up regex patterns
-    chip.set('eda', tool, 'regex', step, index, 'warnings', "Warning", clobber=False)
-    chip.set('eda', tool, 'regex', step, index, 'errors', "Error", clobber=False)
-
-    # Reports
-    for metric in ('errors', 'warnings', 'drvs', 'coverage', 'security',
-                   'luts', 'dsps', 'brams',
-                   'cellarea',
-                   'cells', 'registers', 'buffers', 'nets', 'pins'):
-        chip.set('eda', tool, 'report', step, index, metric, f"{step}.log")
 
     # Extracting
     if step == 'syn':
