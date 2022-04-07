@@ -149,7 +149,7 @@ def setup(chip, mode='batch'):
 
     # reports
     logfile = f"{step}.log"
-    for metric in chip.getkeys('metric', step, index):
+    for metric in chip.getkeys('metric', 'default', 'default'):
         if metric not in ('runtime', 'memory',
                           'luts', 'dsps', 'brams'):
             chip.set('eda', tool, 'report', step, index, metric, logfile)
