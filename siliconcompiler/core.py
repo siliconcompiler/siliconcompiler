@@ -3747,7 +3747,7 @@ class Chip:
                 stepdir = self._getworkdir(step=step, index=index)
                 cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
                 if not os.path.isdir(stepdir):
-                    pass
+                    self.set('flowstatus', step, index, 'status', None)
                 elif os.path.isfile(cfg):
                     self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
                 else:
