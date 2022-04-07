@@ -116,6 +116,13 @@ def test_scparam():
 
     assert cfg == cfg_golden
 
+def test_defvalue():
+    '''Regression test that changing list-type value doesn't change defvalue.'''
+
+    chip = siliconcompiler.Chip()
+    assert chip.cfg['pdk']['stackup']['defvalue'] == []
+    chip.add('pdk', 'stackup', '10m')
+    assert chip.cfg['pdk']['stackup']['defvalue'] == []
 
 #########################
 if __name__ == "__main__":
