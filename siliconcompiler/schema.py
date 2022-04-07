@@ -5,7 +5,7 @@ from siliconcompiler import utils
 import re
 import os
 import sys
-import copy
+import copy as pycopy
 import json
 
 #############################################################################
@@ -75,7 +75,7 @@ def scparam(cfg,
         cfg['example'] = example
         cfg['help'] = schelp
         cfg['defvalue'] = defvalue
-        cfg['value'] = defvalue
+        cfg['value'] = pycopy.copy(defvalue)
         cfg['signature'] = signature
 
         # file only values
