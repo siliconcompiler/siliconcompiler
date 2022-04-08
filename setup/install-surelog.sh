@@ -7,7 +7,7 @@ cd third_party/tools/surelog
 # Workaround: Surelog's antlr4 dependency clones a git:// repo during its build process.
 # GitHub recently deprecated some ways of cloning via git://, so we need to use https:// instead.
 # We don't want to overwrite the user's global git config, so use $HOME to set global search path.
-# In git v2.35+, we'll be able to use $GIT_CONFIG_GLOBAL, but not many systems will support that.
+# In git v2.32+, we'll be able to use $GIT_CONFIG_GLOBAL, but not many systems will support that.
 git config --file $(pwd)/.gitconfig url."https://".insteadOf git://
 export HOME=$(pwd)
 
