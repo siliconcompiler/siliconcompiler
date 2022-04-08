@@ -154,3 +154,5 @@ def test_remote(scroot):
 
     assert chip.get('flowstatus', 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
     assert chip.get('flowstatus', 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
+
+    chip.summary()

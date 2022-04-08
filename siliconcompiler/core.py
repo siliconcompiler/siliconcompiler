@@ -2677,7 +2677,10 @@ class Chip:
         # display whole flowgraph if no steplist specified
         flow = self.get('flow')
         if not steplist:
-            steplist = self.list_steps()
+            if self.get('steplist'):
+                steplist = self.get('steplist')
+            else:
+                steplist = self.list_steps()
 
         #only report tool based steps functions
         for step in steplist:
