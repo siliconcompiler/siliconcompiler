@@ -143,6 +143,17 @@ def setup(chip, mode='batch'):
         chip.add('eda', tool, 'require', step, index, ','.join(['supply', supply, 'level']))
         chip.add('eda', tool, 'require', step, index, ','.join(['supply', supply, 'pin']))
 
+    # basic warning and error grep check on logfile
+    chip.set('eda', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
+    chip.set('eda', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
+
+    # reports
+    logfile = f"{step}.log"
+    for metric in chip.getkeys('metric', 'default', 'default'):
+        if metric not in ('runtime', 'memory',
+                          'luts', 'dsps', 'brams'):
+            chip.set('eda', tool, 'report', step, index, metric, logfile)
+
 ################################
 # Version Check
 ################################
@@ -197,21 +208,10 @@ def post_process(chip):
     '''
 
     #Check log file for errors and statistics
-    tool = 'openroad'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     design = chip.get('design')
     logfile = f"{step}.log"
-
-    # basic warning and error grep check on logfile
-    chip.set('eda', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
-    chip.set('eda', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
-
-    # reports
-    for metric in chip.getkeys('metric', step, index):
-        if metric not in ('runtime', 'memory',
-                          'luts', 'dsps', 'brams'):
-            chip.set('eda', tool, 'report', step, index, metric, logfile)
 
     # parsing log file
     errors = 0

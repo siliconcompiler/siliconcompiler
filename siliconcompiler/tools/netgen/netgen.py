@@ -69,6 +69,10 @@ def setup(chip):
     else:
         chip.add('eda', tool, 'input', step, index, f'{design}.vg')
 
+    report_path = f'reports/{design}.lvs.out'
+    chip.set('eda', tool, 'report', step, index, 'errors', report_path)
+    chip.set('eda', tool, 'report', step, index, 'warnings', report_path)
+
 ################################
 # Version Check
 ################################
@@ -86,7 +90,6 @@ def post_process(chip):
 
     Reads error count from output and fills in appropriate entry in metrics
     '''
-    tool = 'netgen'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     design = chip.get('design')
@@ -103,10 +106,6 @@ def post_process(chip):
         errors = lvs_failures[0] - pin_failures
         chip.set('metric', step, index, 'errors', 'real', errors)
         chip.set('metric', step, index, 'warnings', 'real', pin_failures)
-
-    report_path = f'reports/{design}.lvs.out'
-    chip.set('eda', tool, 'report', step, index, 'errors', report_path)
-    chip.set('eda', tool, 'report', step, index, 'warnings', report_path)
 
     #TODO: return error code
     return 0
