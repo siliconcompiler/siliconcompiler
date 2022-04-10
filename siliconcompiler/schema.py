@@ -1790,8 +1790,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                     f"cli: -metric_{item} 'place 0 goal 0.01'",
                     f"api: chip.set('metric','place','0','{item}','real', 0.01)"],
                 schelp=f"""
-                Metric tracking the {val} on a per step and index basis.
-                Metric unit is nanoseconds.""")
+                Metric tracking the {val} on a per step and index basis.""")
 
     metrics = {'macros': 'macros',
                'cells': 'cell instances',
@@ -1829,7 +1828,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                 f"api: chip.set('metric','place','0','{item}','real', 50.0)"],
             schelp=f"""
             Metric tracking the total {item} of the design on a per step
-            and index basis. The unit is meters.""")
+            and index basis.""")
 
     item = 'overflow'
     scparam(cfg, ['metric', step, index, item, group],
@@ -1861,7 +1860,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                 f"api: chip.set('metric','dfm','0','{item}','real', 10e9)"],
             schelp=f"""
             Metric tracking total peak program memory footprint on a per
-            step and index basis, specified in bytes.""")
+            step and index basis.""")
 
     item = 'exetime'
     scparam(cfg, ['metric', step, index, item, group],
@@ -1878,8 +1877,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             Metric tracking time spent by the eda executable 'exe' on a
             per step and index basis. It does not include the siliconcompiler
             runtime overhead or time waitig for I/O operations and
-            inter-processor communication to complete. The metric unit
-            is seconds.""")
+            inter-processor communication to complete.""")
 
     item = 'tasktime'
     scparam(cfg, ['metric', step, index, item, group],
@@ -1894,8 +1892,23 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                 f"api: chip.set('metric','dfm','0','{item}','real, 10.0)"],
             schelp=f"""
             Metric trakcing the total amount of time spent on a task from
-            beginning to end, including data transfers and pre/post processing.
-            The metric unit is seconds.""")
+            beginning to end, including data transfers and pre/post
+            processing.""")
+
+    item = 'totaltime'
+    scparam(cfg, ['metric', step, index, item, group],
+            sctype='float',
+            unit='s',
+            scope='job',
+            require='asic',
+            shorthelp=f"Metric: {item}",
+            switch=f"-metric_{item} 'step index group <float>'",
+            example=[
+                f"cli: -metric_{item} 'dfm 0 goal 10.0'",
+                f"api: chip.set('metric','dfm','0','{item}','real, 10.0)"],
+            schelp=f"""
+            Metric tracking the total amount of time spent from the beginning
+            of the run up to and including the current step and index.""")
 
     return cfg
 
