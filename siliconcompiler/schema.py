@@ -5,7 +5,7 @@ from siliconcompiler import utils
 import re
 import os
 import sys
-import copy
+import copy as pycopy
 import json
 
 #############################################################################
@@ -75,7 +75,7 @@ def scparam(cfg,
         cfg['example'] = example
         cfg['help'] = schelp
         cfg['defvalue'] = defvalue
-        cfg['value'] = defvalue
+        cfg['value'] = pycopy.copy(defvalue)
         cfg['signature'] = signature
 
         # file only values
@@ -1208,9 +1208,10 @@ def schema_flowstatus(cfg, step='default', index='default'):
                      "api:  chip.set('flowstatus','cts','10','status', 'success')"],
             schelp="""Parameter that tracks the status of a task. Valid values are:
 
-            * "pending": task has not yet completed
             * "success": task ran successfully
-            * "error": task failed with an error""")
+            * "error": task failed with an error
+
+            An empty value indicates the task has not yet been completed.""")
 
     scparam(cfg,['flowstatus', step, index, 'select'],
             sctype='[(str,str)]',
@@ -1292,12 +1293,12 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             entry in this list must be a version specifier as described by Python
             `PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.
             During task execution, the tool is called with the 'vswitch' to
-            check the runtime executable version. When 'vercheck' is set to
-            True, if the version of the system executable is not allowed by any
-            of the specifiers in 'version', then the job is halted
-            pre-execution. For backwards compatibility, entries that do not
-            conform to the standard will be interpreted as a version with an
-            '==' specifier.""")
+            check the runtime executable version. If the version of the system
+            executable is not allowed by any of the specifiers in 'version',
+            then the job is halted pre-execution. For backwards compatibility,
+            entries that do not conform to the standard will be interpreted as a
+            version with an '==' specifier. This check can be disabled by
+            setting 'novercheck' to True.""")
 
     scparam(cfg, ['eda', tool, 'format'],
             sctype='str',
@@ -2404,16 +2405,16 @@ def schema_options(cfg):
             '1' is added to the jobname before updating the jobname
             parameter.""")
 
-    scparam(cfg, ['vercheck'],
+    scparam(cfg, ['novercheck'],
             sctype='bool',
-            defvalue='true',
+            defvalue='false',
             scope='job',
-            shorthelp="Enable version checking",
-            switch="-vercheck <bool>",
-            example=["cli: -vercheck",
-                    "api: chip.set('vercheck', 'true')"],
+            shorthelp="Disable version checking",
+            switch="-novercheck <bool>",
+            example=["cli: -novercheck",
+                    "api: chip.set('novercheck', 'true')"],
             schelp="""
-            Enforces strict version checking on all invoked tools if True.
+            Disables strict version checking on all invoked tools if True.
             The list of supported version numbers is defined in the
             'version' parameter in the 'eda' dictionary for each tool.""")
 
@@ -2746,6 +2747,17 @@ def schema_checklist(cfg, group='checklist'):
             schelp=f"""
             A complete requirement description of the {group} checklist item
             entered as a multi-line string.""")
+
+    scparam(cfg,[*path, standard, item, 'dataformat'],
+            sctype='str',
+            shorthelp=f"{emit_help} item data format",
+            switch=f"-{emit_group}_dataformat '{emit_switch}standard item <float>'",
+            example=[
+                f"cli: -{emit_group}_dataformat 'README'",
+                f"api: chip.set({emit_api},'ISO','D000','dataformat','README')"],
+            schelp=f"""
+            Free text description of the type of data files acceptable as
+            checklist signoff validation.""")
 
     scparam(cfg,[*path, standard, item, 'rationale'],
             sctype='[str]',

@@ -50,7 +50,7 @@ class TaskStatus():
     # Could use Python 'enum' class here, but that doesn't work nicely with
     # schema.
     PENDING = 'pending'
-    SUCCESS = 'complete'
+    SUCCESS = 'success'
     ERROR = 'error'
 
 class Chip:
@@ -1448,6 +1448,7 @@ class Chip:
 
 
     ###########################################################################
+
     def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
         """
         Merges an external manifest with the current compilation manifest.
@@ -1461,13 +1462,24 @@ class Chip:
             clear (bool): If True, disables append operations for list type
             clobber (bool): If True, overwrites existing parameter value
             check (bool): If True, checks the validity of each key
+            partial (bool): If True, perform a partial merge, only merging
+                keypaths that may have been updated during run().
 
         Examples:
             >>> chip.merge_manifest('my.pkg.json')
            Merges all parameters in my.pk.json into the Chip object
 
         """
+        self._merge_manifest(cfg, job, clobber, clear, check)
 
+    ###########################################################################
+    def _merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False, partial=False):
+        """
+        Internal merge_manifest() implementation with `partial` arg.
+
+        partial (bool): If True, perform a partial merge, only merging keypaths
+        that may have been updated during run().
+        """
         if job is not None:
             # fill ith default schema before populating
             self.cfghistory[job] = schema_cfg()
@@ -1476,6 +1488,8 @@ class Chip:
             dst = self.cfg
 
         for keylist in self.getkeys(cfg=cfg):
+            if partial and keylist[0] not in ('metric', 'flowstatus', 'record'):
+                continue
             #only read in valid keypaths without 'default'
             key_valid = True
             if check:
@@ -1810,7 +1824,16 @@ class Chip:
             >>> chip.read_manifest('mychip.json')
             Loads the file mychip.json into the current Chip object.
         """
+        self._read_manifest(filename, job=job, clear=clear, clobber=clobber)
 
+    ###########################################################################
+    def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
+        """
+        Internal read_manifest() implementation with `partial` arg.
+
+        partial (bool): If True, perform a partial merge, only merging keypaths
+        that may have been updated during run().
+        """
         abspath = os.path.abspath(filename)
         self.logger.debug('Reading manifest %s', abspath)
 
@@ -1826,7 +1849,7 @@ class Chip:
         f.close()
 
         #Merging arguments with the Chip configuration
-        self.merge_manifest(localcfg, job=job, clear=clear, clobber=clobber)
+        self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
@@ -2654,7 +2677,10 @@ class Chip:
         # display whole flowgraph if no steplist specified
         flow = self.get('flow')
         if not steplist:
-            steplist = self.list_steps()
+            if self.get('steplist'):
+                steplist = self.get('steplist')
+            else:
+                steplist = self.list_steps()
 
         #only report tool based steps functions
         for step in steplist:
@@ -3343,17 +3369,12 @@ class Chip:
 
         all_inputs = []
         if not self.get('remote'):
-            #copy over status from
-
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 in_task_status = status[in_step + in_index]
                 self.set('flowstatus', in_step, in_index, 'status', in_task_status)
                 if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
-                    with open(cfgfile, 'r') as f:
-                        localcfg = json.load(f)
-                    # quick copy of task history
-                    self.cfg['metric'][in_step][in_index] = copy.deepcopy(localcfg['metric'][in_step][in_index])
+                    self._read_manifest(cfgfile, clobber=False, partial=True)
 
         ##################
         # 5. Write manifest prior to step running into inputs
@@ -3364,12 +3385,17 @@ class Chip:
         #self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
-        # 6. Reset metrics to zero
+        # 6. Reset metrics/records
+        # Make metrics zero
         # TODO: There should be no need for this, but need to fix
         # without it we need to be more careful with flows to make sure
         # things like the builtin functions don't look at None values
         for metric in self.getkeys('metric', 'default', 'default'):
             self.set('metric', step, index, metric, 'real', 0)
+
+        # Make records None
+        for record in self.getkeys('record', 'default', 'default'):
+            self.set('record', step, index, record, None)
 
         ##################
         # 7. Select inputs
@@ -3472,7 +3498,7 @@ class Chip:
         ##################
         # 13. Check exe version
 
-        vercheck = self.get('vercheck')
+        vercheck = not self.get('novercheck')
         veropt = self.get('eda', tool, 'vswitch')
         exe = self._getexe(tool)
         version = None
@@ -3729,7 +3755,7 @@ class Chip:
                 stepdir = self._getworkdir(step=step, index=index)
                 cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
                 if not os.path.isdir(stepdir):
-                    self.set('flowstatus', step, index, 'status', TaskStatus.PENDING)
+                    self.set('flowstatus', step, index, 'status', None)
                 elif os.path.isfile(cfg):
                     self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
                 else:
@@ -3771,6 +3797,34 @@ class Chip:
 
             # Fetch results (and delete the job's data from the server).
             fetch_results(self)
+
+            # Read back configuration from final manifest.
+            cfg = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
+            if os.path.isfile(cfg):
+                local_dir = self.get('dir')
+                self.read_manifest(cfg, clobber=True, clear=True)
+                self.set('dir', local_dir)
+            else:
+                # Hack to find first failed step by checking for presence of
+                # output manifests.
+                # TODO: fetch_results() should return info about step failures.
+                failed_step = laststep
+                for step in steplist[:-1]:
+                    step_has_cfg = False
+                    for index in indexlist[step]:
+                        stepdir = self._getworkdir(step=step, index=index)
+                        cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
+                        if os.path.isfile(cfg):
+                            step_has_cfg = True
+                            break
+
+                    if not step_has_cfg:
+                        failed_step = step
+                        break
+
+                stepdir = self._getworkdir(step=failed_step)[:-1]
+                raise SiliconCompilerError(f'Run() failed on step {failed_step}! '
+                    f'See logs in {stepdir} for error details.')
         else:
             status = {}
 
@@ -3900,75 +3954,50 @@ class Chip:
                 if not index_succeeded:
                     raise SiliconCompilerError('Run() failed, see previous errors.')
 
+            # On success, write out status dict to 'flowstatus'. We do this
+            # since certain scenarios won't be caught by reading in manifests (a
+            # failing step doesn't dump a manifest). For example, if the
+            # steplist's final step has two indices and one fails.
+            for step in steplist:
+                for index in indexlist[step]:
+                    stepstr = step + index
+                    if status[stepstr] != TaskStatus.PENDING:
+                        self.set('flowstatus', step, index, 'status', status[stepstr])
+
+
+            # Merge cfg back from last executed runsteps.
+            # Note: any information generated in steps that do not merge into the
+            # last step will not be picked up in this chip object.
+            # TODO: we might as well fix this? We can add a helper function to
+            # find all steps in the steplist that don't lead to others.
+
+            laststep = steplist[-1]
+            for index in indexlist[laststep]:
+                lastdir = self._getworkdir(step=laststep, index=index)
+
+                # This no-op listdir operation is important for ensuring we have
+                # a consistent view of the filesystem when dealing with NFS.
+                # Without this, this thread is often unable to find the final
+                # manifest of runs performed on job schedulers, even if they
+                # completed successfully. Inspired by:
+                # https://stackoverflow.com/a/70029046.
+
+                os.listdir(os.path.dirname(lastdir))
+
+                lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
+                if status[laststep+index] == TaskStatus.SUCCESS:
+                    self._read_manifest(lastcfg, clobber=False, partial=True)
+                else:
+                    self.set('flowstatus', laststep, index, 'status', TaskStatus.ERROR)
+
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
-        # Merge cfg back from last executed runsteps.
-        # Note: any information generated in steps that do not merge into the
-        # last step will not be picked up in this chip object.
-
-        #1. Use the last manifest
-        laststep = steplist[-1]
-        last_step_failed = True
-        lastdir = self._getworkdir(step=laststep, index=index)
-
-        # This no-op listdir operation is important for ensuring we have a
-        # consistent view of the filesystem when dealing with NFS. Without
-        # this, this thread is often unable to find the final manifest of
-        # runs performed on job schedulers, even if they completed
-        # successfully. Inspired by: https://stackoverflow.com/a/70029046.
-
-        os.listdir(os.path.dirname(lastdir))
-
-        lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
-        if os.path.isfile(lastcfg):
-            last_step_failed = False
-            local_dir = self.get('dir')
-            self.read_manifest(lastcfg, clobber=True, clear=True)
-            self.set('dir', local_dir)
-
-        #2. Read in flowstatus and metrics from all directories
-        for step in self.getkeys('flowgraph', flow):
-            for index in self.getkeys('flowgraph', flow, step):
-                if step in steplist and index in indexlist[step]:
-                    taskdir = self._getworkdir(step=step, index=index)
-                    os.listdir(os.path.dirname(taskdir))
-                    cfg = f"{taskdir}/outputs/{self.get('design')}.pkg.json"
-                    if not os.path.isfile(cfg):
-                        break
-                    with open(cfg, 'r') as f:
-                        localcfg = json.load(f)
-                    self.cfg['metric'][step][index] = copy.deepcopy(localcfg['metric'][step][index])
-                    self.cfg['flowstatus'][step][index] = copy.deepcopy(localcfg['flowstatus'][step][index])
-
-
-        if last_step_failed:
-            # Hack to find first failed step by checking for presence of output
-            # manifests.
-            failed_step = laststep
-            for step in steplist[:-1]:
-                step_has_cfg = False
-                for index in indexlist[step]:
-                    stepdir = self._getworkdir(step=step, index=index)
-                    cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
-                    if os.path.isfile(cfg):
-                        step_has_cfg = True
-                        break
-
-                if not step_has_cfg:
-                    failed_step = step
-                    break
-
-            stepdir = self._getworkdir(step=failed_step)[:-1]
-            raise SiliconCompilerError(f'Run() failed on step {failed_step}! '
-                f'See logs in {stepdir} for error details.')
-
-
         # Store run in history
         self.record_history()
 
-        # Storing manifest in job root directorya
+        # Storing manifest in job root directory
         filepath =  os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
 

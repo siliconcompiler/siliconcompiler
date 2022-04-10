@@ -439,6 +439,22 @@
                     "type": "[str]",
                     "value": []
                 },
+                "dataformat": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -checklist_dataformat 'README'",
+                        "api: chip.set('checklist','ISO','D000','dataformat','README')"
+                    ],
+                    "help": "Free text description of the type of data files acceptable as\nchecklist signoff validation.",
+                    "lock": "false",
+                    "require": null,
+                    "scope": "global",
+                    "shorthelp": "Checklist item data format",
+                    "signature": null,
+                    "switch": "-checklist_dataformat 'standard item <float>'",
+                    "type": "str",
+                    "value": null
+                },
                 "description": {
                     "defvalue": null,
                     "example": [
@@ -1199,7 +1215,7 @@
                     "cli: -eda_version 'openroad >=v2.0'",
                     "api:  chip.set('eda','openroad','version','>=v2.0')"
                 ],
-                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. When 'vercheck' is set to\nTrue, if the version of the system executable is not allowed by any\nof the specifiers in 'version', then the job is halted\npre-execution. For backwards compatibility, entries that do not\nconform to the standard will be interpreted as a version with an\n'==' specifier.",
+                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting 'novercheck' to True.",
                 "lock": "false",
                 "require": null,
                 "scope": "job",
@@ -1426,7 +1442,7 @@
                         "cli: -flowstatus_status 'cts 10 success'",
                         "api:  chip.set('flowstatus','cts','10','status', 'success')"
                     ],
-                    "help": "Parameter that tracks the status of a task. Valid values are:\n\n* \"pending\": task has not yet completed\n* \"success\": task ran successfully\n* \"error\": task failed with an error",
+                    "help": "Parameter that tracks the status of a task. Valid values are:\n\n* \"success\": task ran successfully\n* \"error\": task failed with an error\n\nAn empty value indicates the task has not yet been completed.",
                     "lock": "false",
                     "require": null,
                     "scope": "job",
@@ -2008,6 +2024,22 @@
                             "switch": "-library_checklist_criteria 'lib standard item <float>'",
                             "type": "[str]",
                             "value": []
+                        },
+                        "dataformat": {
+                            "defvalue": null,
+                            "example": [
+                                "cli: -library_checklist_dataformat 'README'",
+                                "api: chip.set('library','default','checklist','ISO','D000','dataformat','README')"
+                            ],
+                            "help": "Free text description of the type of data files acceptable as\nchecklist signoff validation.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "global",
+                            "shorthelp": "Library checklist item data format",
+                            "signature": null,
+                            "switch": "-library_checklist_dataformat 'lib standard item <float>'",
+                            "type": "str",
+                            "value": null
                         },
                         "description": {
                             "defvalue": null,
@@ -4214,6 +4246,22 @@
         "shorthelp": "Headless execution",
         "signature": null,
         "switch": "-nodisplay <bool>",
+        "type": "bool",
+        "value": "false"
+    },
+    "novercheck": {
+        "defvalue": "false",
+        "example": [
+            "cli: -novercheck",
+            "api: chip.set('novercheck', 'true')"
+        ],
+        "help": "Disables strict version checking on all invoked tools if True.\nThe list of supported version numbers is defined in the\n'version' parameter in the 'eda' dictionary for each tool.",
+        "lock": "false",
+        "require": "all",
+        "scope": "job",
+        "shorthelp": "Disable version checking",
+        "signature": null,
+        "switch": "-novercheck <bool>",
         "type": "bool",
         "value": "false"
     },
@@ -6631,22 +6679,6 @@
             "type": "str",
             "value": "mv"
         }
-    },
-    "vercheck": {
-        "defvalue": "true",
-        "example": [
-            "cli: -vercheck",
-            "api: chip.set('vercheck', 'true')"
-        ],
-        "help": "Enforces strict version checking on all invoked tools if True.\nThe list of supported version numbers is defined in the\n'version' parameter in the 'eda' dictionary for each tool.",
-        "lock": "false",
-        "require": "all",
-        "scope": "job",
-        "shorthelp": "Enable version checking",
-        "signature": null,
-        "switch": "-vercheck <bool>",
-        "type": "bool",
-        "value": "true"
     },
     "version": {
         "print": {
