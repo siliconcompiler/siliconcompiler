@@ -1591,6 +1591,45 @@ class Chip:
                         self.error = 1
 
     ###########################################################################
+    def _check_manifest_dynamic(self, step, index):
+        '''Runtime checks called from _runtask().
+
+        - Make sure expected inputs exist.
+        - Make sure all required filepaths resolve correctly.
+        '''
+        flow = self.get('flow')
+        tool = self.get('flowgraph', flow, step, index, 'tool')
+        if self.valid('eda', tool, 'input', step, index):
+            required_inputs = self.get('eda', tool, 'input', step, index)
+        else:
+            required_inputs = []
+        input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
+        for filename in required_inputs:
+            path = os.path.join(input_dir, filename)
+            if not os.path.isfile(path):
+                self.logger.error(f'Required input {filename} not received for {step}{index}.')
+                self.error = 1
+
+        if (not tool in self.builtin) and self.valid('eda', tool, 'require', step, index):
+            all_required = self.get('eda', tool, 'require', step, index)
+            for item in all_required:
+                keypath = item.split(',')
+                paramtype = self.get(*keypath, field='type')
+                if ('file' in paramtype) or ('dir' in paramtype):
+                    abspath = self.find_files(*keypath)
+                    if abspath is None or (isinstance(abspath, list) and None in abspath):
+                        self.logger.error(f"Required file keypath {keypath} can't be resolved.")
+                        self.error = 1
+
+        # Need to run this check here since file resolution can change in
+        # _runtask().
+        if 'SC_VALID_PATHS' in os.environ:
+            if not self._check_files():
+                self.error = 1
+
+        return self.error
+
+    ###########################################################################
     def check_manifest(self):
         '''
         Verifies the integrity of the pre-run compilation manifest.
@@ -1614,6 +1653,15 @@ class Chip:
             Returns True of the Chip object dictionary checks out.
 
         '''
+        # Dynamic checks
+        # We only perform these if arg, step and arg, index are set.
+        # We don't check inputs for skip all
+        # TODO: Need to add skip step
+        cur_step = self.get('arg', 'step')
+        cur_index = self.get('arg', 'index')
+        if cur_step and cur_index and not self.get('skipall'):
+            return self._check_manifest_dynamic(cur_step, cur_index)
+
         flow = self.get('flow')
         jobname = self.get('jobname')
         design = self.get('design')
@@ -1709,36 +1757,6 @@ class Chip:
 
         if not self._check_flowgraph_io():
             self.error = 1
-
-        # Dynamic checks
-        # We only perform these if arg, step and arg, index are set.
-        # We don't check inputs for skip all
-        # TODO: Need to add skip step
-        step = self.get('arg', 'step')
-        index = self.get('arg', 'index')
-        if step and index and not self.get('skipall'):
-            tool = self.get('flowgraph', flow, step, index, 'tool')
-            if self.valid('eda', tool, 'input', step, index):
-                required_inputs = self.get('eda', tool, 'input', step, index)
-            else:
-                required_inputs = []
-            input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
-            for filename in required_inputs:
-                path = os.path.join(input_dir, filename)
-                if not os.path.isfile(path):
-                    self.logger.error(f'Required input {filename} not received for {step}{index}.')
-                    self.error = 1
-
-            if (not tool in self.builtin) and self.valid('eda', tool, 'require', step, index):
-                all_required = self.get('eda', tool, 'require', step, index)
-                for item in all_required:
-                    keypath = item.split(',')
-                    paramtype = self.get(*keypath, field='type')
-                    if ('file' in paramtype) or ('dir' in paramtype):
-                        abspath = self.find_files(*keypath)
-                        if abspath is None or (isinstance(abspath, list) and None in abspath):
-                            self.logger.error(f"Required file keypath {keypath} can't be resolved.")
-                            self.error = 1
 
         return self.error
 

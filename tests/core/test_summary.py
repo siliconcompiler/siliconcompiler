@@ -2,6 +2,8 @@
 import os
 import siliconcompiler
 
+import pytest
+
 def test_summary(datadir):
 
     chip = siliconcompiler.Chip()
@@ -24,6 +26,20 @@ def test_steplist(datadir, capfd):
 
     assert 'import0' not in stdout
     assert 'syn0' in stdout
+
+@pytest.mark.eda
+def test_steplist_repeat(gcd_chip, capfd):
+    '''Regression test for #458.'''
+    with capfd.disabled():
+        gcd_chip.set('steplist', ['import', 'syn', 'floorplan'])
+        gcd_chip.set('steplist', ['syn'])
+
+    gcd_chip.summary()
+    stdout, _ = capfd.readouterr()
+
+    assert 'import0' not in stdout
+    assert 'syn0' in stdout
+    assert 'floorplan0' not in stdout
 
 #########################
 if __name__ == "__main__":
