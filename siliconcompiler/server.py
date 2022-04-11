@@ -223,7 +223,7 @@ class Server:
 
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('remote', False, clobber=True)
-        chip.set('remote', 'credentials', '', clobber=True)
+        chip.set('credentials', '', clobber=True)
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
         chip.set('source', '%s/import/%s/outputs/%s.v'%(build_dir, '0', chip.get('design')), clobber=True)
@@ -424,7 +424,7 @@ class Server:
             chip.set('dir', f'{nfs_mount}/{job_hash}', clobber=True)
             chip.set('jobscheduler', 'slurm')
             chip.set('remote', False)
-            chip.set('remote', 'credentials', '', clobber=True)
+            chip.set('credentials', '', clobber=True)
             chip.status['decrypt_key'] = base64.urlsafe_b64encode(pk)
             chip.run()
         else:

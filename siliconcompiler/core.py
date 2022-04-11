@@ -1919,7 +1919,6 @@ class Chip:
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
-            #flush writes
 
     ###########################################################################
     def check_checklist(self, standard, item=None):
@@ -2739,10 +2738,9 @@ class Chip:
                     stepindex = step + index
                     for i in  self.getkeys('flowstatus'):
                         for j in  self.getkeys('flowstatus',i):
-                            if 'select' in self.getkeys('flowstatus',i,j):
-                                for in_step, in_index in self.get('flowstatus',i,j,'select'):
-                                    if (in_step + in_index) == stepindex:
-                                        indices_to_show[step] = index
+                            for in_step, in_index in self.get('flowstatus',i,j,'select'):
+                                if (in_step + in_index) == stepindex:
+                                    indices_to_show[step] = index
 
         # header for data frame
         for step in steplist:
@@ -3428,9 +3426,7 @@ class Chip:
             self.logger.error(f'No inputs selected after running {tool}')
             self._haltstep(step, index)
 
-        #TODO: This should not be needed
-        if step != 'import':
-            self.set('flowstatus', step, index, 'select', sel_inputs)
+        self.set('flowstatus', step, index, 'select', sel_inputs)
 
         ##################
         # 8. Copy (link) output data from previous steps
