@@ -1615,6 +1615,8 @@ class Chip:
 
         '''
         flow = self.get('flow')
+        jobname = self.get('jobname')
+        design = self.get('design')
         steplist = self.get('steplist')
         if not steplist:
             steplist = self.list_steps()
@@ -1638,7 +1640,22 @@ class Chip:
 
         for step in steplist:
             for index in indexlist[step]:
+                if (jobname in self.getkeys('jobinput') and
+                    step in self.getkeys('jobinput', jobname) and
+                    index in self.getkeys('jobinput', jobname, step)):
+                    in_job = self.get('jobinput', jobname, step, index)
+                else:
+                    in_job = None
+
                 for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
+                    if in_job is not None:
+                        workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
+                        cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
+                        if not os.path.isfile(cfg):
+                            self.logger.error(f'{step}{index} relies on {in_step}{in_index} from job {in_job}, '
+                                'but this task has not been run.')
+                            self.error = 1
+                        continue
                     if in_step in steplist and in_index in indexlist[step]:
                         # we're gonna run this step, OK
                         continue
