@@ -3647,7 +3647,7 @@
                             "cli: -metric_exetime 'dfm 0 goal 10.0'",
                             "api: chip.set('metric','dfm','0','exetime','real, 10.0)"
                         ],
-                        "help": "Metric tracking time spent by the eda executable 'exe' on a\nper step and index basis. It does not include the siliconcompiler\nruntime overhead or time waitig for I/O operations and\ninter-processor communication to complete. The metric unit\nis seconds.",
+                        "help": "Metric tracking time spent by the eda executable 'exe' on a\nper step and index basis. It does not include the siliconcompiler\nruntime overhead or time waitig for I/O operations and\ninter-processor communication to complete.",
                         "lock": "false",
                         "require": "asic",
                         "scope": "job",
@@ -3684,7 +3684,7 @@
                             "cli: -metric_holdslack 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','holdslack','real', 0.01)"
                         ],
-                        "help": "Metric tracking the worst hold slack (positive or negative) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the worst hold slack (positive or negative) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -3703,7 +3703,7 @@
                             "cli: -metric_holdtns 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','holdtns','real', 0.01)"
                         ],
-                        "help": "Metric tracking the total negative hold slack (TNS) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the total negative hold slack (TNS) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -3722,7 +3722,7 @@
                             "cli: -metric_holdwns 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','holdwns','real', 0.01)"
                         ],
-                        "help": "Metric tracking the worst negative hold slack (positive values truncated to zero) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the worst negative hold slack (positive values truncated to zero) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -3834,7 +3834,7 @@
                             "cli: -metric_memory 'dfm 0 goal 10e9'",
                             "api: chip.set('metric','dfm','0','memory','real', 10e9)"
                         ],
-                        "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis, specified in bytes.",
+                        "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis.",
                         "lock": "false",
                         "require": "asic",
                         "scope": "job",
@@ -3981,7 +3981,7 @@
                             "cli: -metric_setupslack 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','setupslack','real', 0.01)"
                         ],
-                        "help": "Metric tracking the worst setup slack (positive or negative) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the worst setup slack (positive or negative) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -4000,7 +4000,7 @@
                             "cli: -metric_setuptns 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','setuptns','real', 0.01)"
                         ],
-                        "help": "Metric tracking the total negative setup slack (TNS) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the total negative setup slack (TNS) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -4019,7 +4019,7 @@
                             "cli: -metric_setupwns 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','setupwns','real', 0.01)"
                         ],
-                        "help": "Metric tracking the worst negative setup slack (positive values truncated to zero) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the worst negative setup slack (positive values truncated to zero) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -4057,7 +4057,7 @@
                             "cli: -metric_tasktime 'dfm 0 goal 10.0'",
                             "api: chip.set('metric','dfm','0','tasktime','real, 10.0)"
                         ],
-                        "help": "Metric trakcing the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post processing.\nThe metric unit is seconds.",
+                        "help": "Metric trakcing the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
                         "lock": "false",
                         "require": "asic",
                         "scope": "job",
@@ -4085,6 +4085,25 @@
                         "switch": "-metric_totalarea 'step index group <float>'",
                         "type": "float",
                         "unit": "um^2",
+                        "value": null
+                    }
+                },
+                "totaltime": {
+                    "default": {
+                        "defvalue": null,
+                        "example": [
+                            "cli: -metric_totaltime 'dfm 0 goal 10.0'",
+                            "api: chip.set('metric','dfm','0','totaltime','real, 10.0)"
+                        ],
+                        "help": "Metric tracking the total amount of time spent from the beginning\nof the run up to and including the current step and index.",
+                        "lock": "false",
+                        "require": "asic",
+                        "scope": "job",
+                        "shorthelp": "Metric: totaltime",
+                        "signature": null,
+                        "switch": "-metric_totaltime 'step index group <float>'",
+                        "type": "float",
+                        "unit": "s",
                         "value": null
                     }
                 },
@@ -4186,7 +4205,7 @@
                             "cli: -metric_wirelength 'place 0 goal 100.0'",
                             "api: chip.set('metric','place','0','wirelength','real', 50.0)"
                         ],
-                        "help": "Metric tracking the total wirelength of the design on a per step\nand index basis. The unit is meters.",
+                        "help": "Metric tracking the total wirelength of the design on a per step\nand index basis.",
                         "lock": "false",
                         "require": "asic",
                         "scope": "job",
