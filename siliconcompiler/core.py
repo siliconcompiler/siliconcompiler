@@ -1656,7 +1656,7 @@ class Chip:
                                 'but this task has not been run.')
                             self.error = 1
                         continue
-                    if in_step in steplist and in_index in indexlist[step]:
+                    if in_step in steplist and in_index in indexlist[in_step]:
                         # we're gonna run this step, OK
                         continue
                     if self.get('flowstatus', in_step, in_index, 'status') == TaskStatus.SUCCESS:
@@ -3848,7 +3848,7 @@ class Chip:
                 # Hack to find first failed step by checking for presence of
                 # output manifests.
                 # TODO: fetch_results() should return info about step failures.
-                failed_step = laststep
+                failed_step = steplist[-1]
                 for step in steplist[:-1]:
                     step_has_cfg = False
                     for index in indexlist[step]:
