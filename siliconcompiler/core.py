@@ -1621,7 +1621,7 @@ class Chip:
         if not steplist:
             steplist = self.list_steps()
 
-        #1. Checking that flowgraph and stelist are legal
+        #1. Checking that flowgraph and steplist are legal
         if flow not in self.getkeys('flowgraph'):
             self.error = 1
             self.logger.error(f"flowgraph {flow} not defined.")
