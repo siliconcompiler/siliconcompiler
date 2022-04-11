@@ -41,6 +41,10 @@ def run_scalability_test(scroot):
 # gave a bit of overhead to account for normal variation run-to-run, but we
 # might need to tune these more to not get false positives.
 
+# These tests don't require EDA tools installed, but marking them as EDA so they
+# only run daily on our runner (which is also faster than GH machines).
+
+@pytest.mark.eda
 def test_long_serial(run_scalability_test):
     steps_to_run = 10
     results = run_scalability_test('serial', (10, 100, 250), steps_to_run)
@@ -52,6 +56,7 @@ def test_long_serial(run_scalability_test):
         # Should take <1 sec per task for each trial
         assert time_per_task < 1
 
+@pytest.mark.eda
 def test_wide_parallel(run_scalability_test):
     results = run_scalability_test('parallel', (10, 100, 250))
     for n, total_time in results.items():
