@@ -3882,12 +3882,22 @@ class Chip:
                 raise SiliconCompilerError(f"Manifest checks failed.")
 
             # For each task to run, prepare a process and store its dependencies
+            jobname = self.get('jobname')
             tasks_to_run = {}
             processes = {}
             for step in steplist:
                 for index in indexlist[step]:
                     inputs = [step+index for step, index in self.get('flowgraph', flow, step, index, 'input')]
-                    tasks_to_run[step+index] = inputs
+
+                    if (jobname in self.getkeys('jobinput') and
+                        step in self.getkeys('jobinput', jobname) and
+                        index in self.getkeys('jobinput', jobname, step) and
+                        self.get('jobinput', jobname, step, index) != jobname):
+                        # If we specify a different job as input to this task,
+                        # we assume we are good to run it.
+                        tasks_to_run[step+index] = []
+                    else:
+                        tasks_to_run[step+index] = inputs
 
                     processes[step+index] = multiprocessing.Process(target=self._runtask,
                                                                     args=(step, index, status))
