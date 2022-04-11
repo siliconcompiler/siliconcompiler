@@ -16,7 +16,4 @@ def parse_version(stdout):
     return '0'
 
 def post_process(chip):
-    step = chip.get('arg', 'step')
-
-    if step == 'echo_10':
-        raise KeyboardInterrupt
+    return 0
