@@ -15,7 +15,7 @@ def main():
     # Plugging design into SC
     chip = siliconcompiler.Chip(loglevel='INFO')
     chip.set('design', design)
-    chip.add('source', rootdir+'/stdlib/hdl/'+design+'.v')
+    chip.add('source', rootdir+'/mathlib/hdl/'+design+'.v')
     chip.set('param', 'N', str(N))
     chip.set('relax', True)
     chip.set('quiet', True)
