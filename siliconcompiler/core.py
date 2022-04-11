@@ -3385,17 +3385,12 @@ class Chip:
         #self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
-        # 6. Reset metrics/records
-        # Make metrics zero
+        # 6. Make metrics zero
         # TODO: There should be no need for this, but need to fix
         # without it we need to be more careful with flows to make sure
         # things like the builtin functions don't look at None values
         for metric in self.getkeys('metric', 'default', 'default'):
             self.set('metric', step, index, metric, 'real', 0)
-
-        # Make records None
-        for record in self.getkeys('record', 'default', 'default'):
-            self.set('record', step, index, record, None)
 
         ##################
         # 7. Select inputs
@@ -3749,13 +3744,19 @@ class Chip:
             else:
                 indexlist[step] = self.getkeys('flowgraph', flow, step)
 
-        # Reset 'flowstatus' by probing build directory.
+        # Reset flowstatus/records/metrics by probing build directory.  We need
+        # to set values to None for steps we may re-run so that merging
+        # manifests from _runtask() actually updates values.
         for step in self.getkeys('flowgraph', flow):
             for index in self.getkeys('flowgraph', flow, step):
                 stepdir = self._getworkdir(step=step, index=index)
                 cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
                 if not os.path.isdir(stepdir) or (step in steplist and index in indexlist[step]):
                     self.set('flowstatus', step, index, 'status', None)
+                    for metric in self.getkeys('metric', 'default', 'default'):
+                        self.set('metric', step, index, metric, 'real', None)
+                    for record in self.getkeys('record', 'default', 'default'):
+                        self.set('record', step, index, record, None)
                 elif os.path.isfile(cfg):
                     self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
                 else:
