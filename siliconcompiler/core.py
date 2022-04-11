@@ -1376,7 +1376,6 @@ class Chip:
         if os.path.isfile(filename):
             return filename
         else:
-            self.error = 1
             return None
 
     ###########################################################################
@@ -1615,16 +1614,12 @@ class Chip:
             Returns True of the Chip object dictionary checks out.
 
         '''
-        # TODO: validate steplist: ensure that everything in steplist either has
-        # dependencies that:
-        # (a) have been run OR (b) are in the steplist
-
         flow = self.get('flow')
         steplist = self.get('steplist')
         if not steplist:
             steplist = self.list_steps()
 
-        #1. Checking that flowgraph is legal
+        #1. Checking that flowgraph and stelist are legal
         if flow not in self.getkeys('flowgraph'):
             self.error = 1
             self.logger.error(f"flowgraph {flow} not defined.")
@@ -1633,6 +1628,26 @@ class Chip:
         if 'import' not in legal_steps:
             self.error = 1
             self.logger.error("Flowgraph doesn't contain import step.")
+
+        indexlist = {}
+        for step in steplist:
+            if self.get('indexlist'):
+                indexlist[step] = self.get('indexlist')
+            else:
+                indexlist[step] = self.getkeys('flowgraph', flow, step)
+
+        for step in steplist:
+            for index in indexlist[step]:
+                for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
+                    if in_step in steplist and in_index in indexlist[step]:
+                        # we're gonna run this step, OK
+                        continue
+                    if self.get('flowstatus', in_step, in_index, 'status') == TaskStatus.SUCCESS:
+                        # this task has already completed successfully, OK
+                        continue
+                    self.logger.error(f'{step}{index} relies on {in_step}{in_index}, '
+                        'but this task has not been run and is not in the current steplist.')
+                    self.error = 1
 
         #2. Check libary names
         for item in self.get('asic', 'logiclib'):
