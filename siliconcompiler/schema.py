@@ -554,7 +554,7 @@ def schema_pdk(cfg, stackup='default'):
             files beyond the tech.lef file. Examples of extra file types include
             antenna, tracks, tapcell, viarules, em.""")
 
-    checks = ['lvs', 'drc', 'erc']
+    checks = ['lvs', 'drc', 'erc', 'fill']
     name = 'default'
     for item in checks:
         scparam(cfg, ['pdk', item, 'runset', tool, stackup, name],
@@ -564,7 +564,7 @@ def schema_pdk(cfg, stackup='default'):
                 example=[
                     f"cli: -pdk_{item}_runset 'magic M10 basic $PDK/{item}.rs'",
                     f"api: chip.set('pdk','{item}','runset','magic','M10','basic','$PDK/{item}.rs')"],
-                schelp=f"""Runset files for {item.upper()} verification.""")
+                schelp=f"""Runset files for {item.upper()} task.""")
 
         scparam(cfg, ['pdk', item, 'waiver', tool, stackup, name],
                 sctype='[file]',
@@ -573,7 +573,7 @@ def schema_pdk(cfg, stackup='default'):
                 example=[
                     f"cli: -pdk_{item}_waiver 'magic M10 basic $PDK/{item}.txt'",
                     f"api: chip.set('pdk','{item}','waiver','magic','M10','basic','$PDK/{item}.txt')"],
-                schelp=f"""Waiver files for {item.upper()} verification.""")
+                schelp=f"""Waiver files for {item.upper()} task.""")
 
     ################
     # Routing grid

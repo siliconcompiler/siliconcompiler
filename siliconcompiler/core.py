@@ -3309,8 +3309,9 @@ class Chip:
         T21. Stop Wall timer
         T22. Make a task record
         T23. Save manifest to disk
-        T24. Clean up
-        T25. chdir
+        T24. Halt if any errors found
+        T25. Clean up
+        T26. chdir
 
         Note that since _runtask occurs in its own process with a separate
         address space, any changes made to the `self` object will not
@@ -3613,7 +3614,8 @@ class Chip:
                 post_error = func(self)
                 if post_error:
                     self.logger.error('Post-processing check failed')
-                    self._haltstep(step, index)
+                    if not self.get('eda', tool, 'continue'):
+                        self._haltstep(step, index)
 
         ##################
         # 19. Check log file (must be after post-process)
@@ -3653,12 +3655,18 @@ class Chip:
         self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
 
         ##################
-        # 24. Clean up non-essential files
+        # 24. Stop if there are errors
+        if self.get('metric',step, index, 'errors', 'real') > 0:
+            if not self.get('eda', tool, 'continue'):
+                self._haltstep(step, index)
+
+        ##################
+        # 25. Clean up non-essential files
         if self.get('clean'):
             self.logger.error('Self clean not implemented')
 
         ##################
-        # 25. return to original directory
+        # 26. return to original directory
         os.chdir(cwd)
 
     ###########################################################################

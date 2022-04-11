@@ -36,6 +36,7 @@ def test_yosys_lec_broken(datadir):
     chip.set('design', 'foo')
     chip.set('mode', 'asic')
     chip.set('flow', 'yosys')
+    chip.set('eda', 'yosys', 'continue', True)
 
     chip.add('source', os.path.join(lec_dir, 'foo_broken.v'))
     chip.add('read', 'netlist', 'lec', '0', os.path.join(lec_dir, 'foo_broken.vg'))

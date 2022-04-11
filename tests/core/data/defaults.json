@@ -5171,7 +5171,7 @@
                             ],
                             "filehash": [],
                             "hashalgo": "sha256",
-                            "help": "Runset files for DRC verification.",
+                            "help": "Runset files for DRC task.",
                             "lock": "false",
                             "require": null,
                             "scope": "global",
@@ -5198,7 +5198,7 @@
                             ],
                             "filehash": [],
                             "hashalgo": "sha256",
-                            "help": "Waiver files for DRC verification.",
+                            "help": "Waiver files for DRC task.",
                             "lock": "false",
                             "require": null,
                             "scope": "global",
@@ -5244,7 +5244,7 @@
                             ],
                             "filehash": [],
                             "hashalgo": "sha256",
-                            "help": "Runset files for ERC verification.",
+                            "help": "Runset files for ERC task.",
                             "lock": "false",
                             "require": null,
                             "scope": "global",
@@ -5271,7 +5271,7 @@
                             ],
                             "filehash": [],
                             "hashalgo": "sha256",
-                            "help": "Waiver files for ERC verification.",
+                            "help": "Waiver files for ERC task.",
                             "lock": "false",
                             "require": null,
                             "scope": "global",
@@ -5308,6 +5308,62 @@
                         "switch": "-pdk_file 'tool key stackup <file>'",
                         "type": "[file]",
                         "value": []
+                    }
+                }
+            }
+        },
+        "fill": {
+            "runset": {
+                "default": {
+                    "default": {
+                        "default": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "example": [
+                                "cli: -pdk_fill_runset 'magic M10 basic $PDK/fill.rs'",
+                                "api: chip.set('pdk','fill','runset','magic','M10','basic','$PDK/fill.rs')"
+                            ],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "help": "Runset files for FILL task.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "global",
+                            "shorthelp": "PDK FILL runset files",
+                            "signature": [],
+                            "switch": "-pdk_fill_runset 'tool stackup name <file>'",
+                            "type": "[file]",
+                            "value": []
+                        }
+                    }
+                }
+            },
+            "waiver": {
+                "default": {
+                    "default": {
+                        "default": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "example": [
+                                "cli: -pdk_fill_waiver 'magic M10 basic $PDK/fill.txt'",
+                                "api: chip.set('pdk','fill','waiver','magic','M10','basic','$PDK/fill.txt')"
+                            ],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "help": "Waiver files for FILL task.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "global",
+                            "shorthelp": "PDK FILL waiver files",
+                            "signature": [],
+                            "switch": "-pdk_fill_waiver 'tool stackup name <file>'",
+                            "type": "[file]",
+                            "value": []
+                        }
                     }
                 }
             }
@@ -5568,7 +5624,7 @@
                             ],
                             "filehash": [],
                             "hashalgo": "sha256",
-                            "help": "Runset files for LVS verification.",
+                            "help": "Runset files for LVS task.",
                             "lock": "false",
                             "require": null,
                             "scope": "global",
@@ -5595,7 +5651,7 @@
                             ],
                             "filehash": [],
                             "hashalgo": "sha256",
-                            "help": "Waiver files for LVS verification.",
+                            "help": "Waiver files for LVS task.",
                             "lock": "false",
                             "require": null,
                             "scope": "global",
