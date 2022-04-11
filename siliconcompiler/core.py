@@ -3762,7 +3762,7 @@ class Chip:
             for index in self.getkeys('flowgraph', flow, step):
                 stepdir = self._getworkdir(step=step, index=index)
                 cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
-                if not os.path.isdir(stepdir):
+                if not os.path.isdir(stepdir) or (step in steplist and index in indexlist[step]):
                     self.set('flowstatus', step, index, 'status', None)
                 elif os.path.isfile(cfg):
                     self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
