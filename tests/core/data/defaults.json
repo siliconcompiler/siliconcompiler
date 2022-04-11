@@ -64,6 +64,7 @@
             "signature": [],
             "switch": "-asic_corearea <[(float,float)]>",
             "type": "[(float,float)]",
+            "unit": "um",
             "value": []
         },
         "coremargin": {
@@ -72,7 +73,7 @@
                 "cli: -asic_coremargin 1",
                 "api: chip.set('asic', 'coremargin', '1')"
             ],
-            "help": "Halo/margin between the die boundary and core placement for\nautomated floorplanning when no diearea or floorplan is\nsupplied. The value is specified in microns.",
+            "help": "Halo/margin between the die boundary and core placement for\nautomated floorplanning when no diearea or floorplan is\nsupplied.",
             "lock": "false",
             "require": null,
             "scope": "job",
@@ -80,6 +81,7 @@
             "signature": null,
             "switch": "-asic_coremargin <float>",
             "type": "float",
+            "unit": "um",
             "value": null
         },
         "delaymodel": {
@@ -128,6 +130,7 @@
             "signature": [],
             "switch": "-asic_diearea <[(float,float)]>",
             "type": "[(float,float)]",
+            "unit": "um",
             "value": []
         },
         "exclude": {
@@ -204,7 +207,7 @@
                 "cli: -asic_maxcap '0.25e-12'",
                 "api: chip.set('asic', 'maxcap', '0.25e-12')"
             ],
-            "help": "Maximum allowed capacitance per net. The number is\nspecified in Farads.",
+            "help": "Maximum allowed capacitance per net.",
             "lock": "false",
             "require": null,
             "scope": "job",
@@ -212,6 +215,7 @@
             "signature": null,
             "switch": "-asic_maxcap <float>",
             "type": "float",
+            "unit": "F",
             "value": null
         },
         "maxfanout": {
@@ -260,6 +264,7 @@
             "signature": null,
             "switch": "-asic_maxlength <float>",
             "type": "float",
+            "unit": "um",
             "value": null
         },
         "maxslew": {
@@ -268,7 +273,7 @@
                 "cli: -asic_maxslew '0.25e-9'",
                 "api: chip.set('asic', 'maxslew', '0.25e-9')"
             ],
-            "help": "Maximum allowed transition time per net. The number\nis specified in seconds.",
+            "help": "Maximum allowed transition time per net.",
             "lock": "false",
             "require": null,
             "scope": "job",
@@ -276,6 +281,7 @@
             "signature": null,
             "switch": "-asic_maxslew <float>",
             "type": "float",
+            "unit": "s",
             "value": null
         },
         "minlayer": {
@@ -624,7 +630,7 @@
                     "cli: -clock_jitter 'clk 0.01'",
                     "api: chip.set('clock','clk','jitter','0.01')"
                 ],
-                "help": "Specifies the jitter for a clock source in nanoseconds.",
+                "help": "Specifies the jitter for a clock source.",
                 "lock": "false",
                 "require": null,
                 "scope": "global",
@@ -632,6 +638,7 @@
                 "signature": null,
                 "switch": "-clock_jitter 'clkname <float>",
                 "type": "float",
+                "unit": "ns",
                 "value": null
             },
             "period": {
@@ -640,7 +647,7 @@
                     "cli: -clock_period 'clk 10'",
                     "api: chip.set('clock','clk','period','10')"
                 ],
-                "help": "Specifies the period for a clock source in nanoseconds.",
+                "help": "Specifies the period for a clock source.",
                 "lock": "false",
                 "require": null,
                 "scope": "global",
@@ -648,6 +655,7 @@
                 "signature": null,
                 "switch": "-clock_period 'clkname <float>",
                 "type": "float",
+                "unit": "ns",
                 "value": null
             },
             "pin": {
@@ -1361,6 +1369,7 @@
                         "signature": null,
                         "switch": "-flowgraph_timeout 'flow step 0 <float>'",
                         "type": "float",
+                        "unit": "s",
                         "value": null
                     },
                     "tool": {
@@ -3415,7 +3424,7 @@
                     "cli: -mcmm_temperature 'worst 125'",
                     "api: chip.set('mcmm', 'worst', 'temperature','125')"
                 ],
-                "help": "Chip temperature applied to the scenario specified in\ndegrees Celsius.",
+                "help": "Chip temperature applied to the scenario specified in degrees C.",
                 "lock": "false",
                 "require": null,
                 "scope": "job",
@@ -3431,7 +3440,7 @@
                     "cli: -mcmm_voltage 'worst 0.9'",
                     "api: chip.set('mcmm', 'worst','voltage', '0.9')"
                 ],
-                "help": "Operating voltage applied to the scenario,\nspecified in Volts.",
+                "help": "Operating voltage applied to the scenario.",
                 "lock": "false",
                 "require": null,
                 "scope": "job",
@@ -3439,6 +3448,7 @@
                 "signature": null,
                 "switch": "-mcmm_voltage 'scenario <float>'",
                 "type": "float",
+                "unit": "V",
                 "value": null
             }
         }
@@ -3461,6 +3471,7 @@
                         "signature": null,
                         "switch": "-metric_averagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": null
                     }
                 },
@@ -3507,7 +3518,7 @@
                             "cli: -metric_cellarea 'place 0 goal 100.00'",
                             "api: chip.set('metric','place','0','cellarea','real',100.00)"
                         ],
-                        "help": "Metric tracking the total cell area (ignoring fillers) occupied by the design. The\nmetric is specified in um^2.",
+                        "help": "Metric tracking the total cell area (ignoring fillers) occupied by the design.",
                         "lock": "false",
                         "require": "asic",
                         "scope": "job",
@@ -3515,6 +3526,7 @@
                         "signature": null,
                         "switch": "-metric_cellarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": null
                     }
                 },
@@ -3551,6 +3563,7 @@
                         "signature": null,
                         "switch": "-metric_coverage 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": null
                     }
                 },
@@ -3569,6 +3582,7 @@
                         "signature": null,
                         "switch": "-metric_dozepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": null
                     }
                 },
@@ -3633,7 +3647,7 @@
                             "cli: -metric_exetime 'dfm 0 goal 10.0'",
                             "api: chip.set('metric','dfm','0','exetime','real, 10.0)"
                         ],
-                        "help": "Metric tracking time spent by the eda executable 'exe' on a\nper step and index basis. It does not include the siliconcompiler\nruntime overhead or time waitig for I/O operations and\ninter-processor communication to complete. The metric unit\nis seconds.",
+                        "help": "Metric tracking time spent by the eda executable 'exe' on a\nper step and index basis. It does not include the siliconcompiler\nruntime overhead or time waitig for I/O operations and\ninter-processor communication to complete.",
                         "lock": "false",
                         "require": "asic",
                         "scope": "job",
@@ -3641,6 +3655,7 @@
                         "signature": null,
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
+                        "unit": "s",
                         "value": null
                     }
                 },
@@ -3669,7 +3684,7 @@
                             "cli: -metric_holdslack 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','holdslack','real', 0.01)"
                         ],
-                        "help": "Metric tracking the worst hold slack (positive or negative) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the worst hold slack (positive or negative) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -3677,6 +3692,7 @@
                         "signature": null,
                         "switch": "-metric_holdslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": null
                     }
                 },
@@ -3687,7 +3703,7 @@
                             "cli: -metric_holdtns 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','holdtns','real', 0.01)"
                         ],
-                        "help": "Metric tracking the total negative hold slack (TNS) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the total negative hold slack (TNS) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -3695,6 +3711,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": null
                     }
                 },
@@ -3705,7 +3722,7 @@
                             "cli: -metric_holdwns 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','holdwns','real', 0.01)"
                         ],
-                        "help": "Metric tracking the worst negative hold slack (positive values truncated to zero) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the worst negative hold slack (positive values truncated to zero) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -3713,6 +3730,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": null
                     }
                 },
@@ -3731,6 +3749,7 @@
                         "signature": null,
                         "switch": "-metric_idlepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": null
                     }
                 },
@@ -3749,6 +3768,7 @@
                         "signature": null,
                         "switch": "-metric_irdrop 'step index group <float>'",
                         "type": "float",
+                        "unit": "mv",
                         "value": null
                     }
                 },
@@ -3767,6 +3787,7 @@
                         "signature": null,
                         "switch": "-metric_leakagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": null
                     }
                 },
@@ -3813,7 +3834,7 @@
                             "cli: -metric_memory 'dfm 0 goal 10e9'",
                             "api: chip.set('metric','dfm','0','memory','real', 10e9)"
                         ],
-                        "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis, specified in bytes.",
+                        "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis.",
                         "lock": "false",
                         "require": "asic",
                         "scope": "job",
@@ -3821,6 +3842,7 @@
                         "signature": null,
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
+                        "unit": "B",
                         "value": null
                     }
                 },
@@ -3875,6 +3897,7 @@
                         "signature": null,
                         "switch": "-metric_peakpower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": null
                     }
                 },
@@ -3929,6 +3952,7 @@
                         "signature": null,
                         "switch": "-metric_security 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": null
                     }
                 },
@@ -3957,7 +3981,7 @@
                             "cli: -metric_setupslack 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','setupslack','real', 0.01)"
                         ],
-                        "help": "Metric tracking the worst setup slack (positive or negative) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the worst setup slack (positive or negative) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -3965,6 +3989,7 @@
                         "signature": null,
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": null
                     }
                 },
@@ -3975,7 +4000,7 @@
                             "cli: -metric_setuptns 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','setuptns','real', 0.01)"
                         ],
-                        "help": "Metric tracking the total negative setup slack (TNS) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the total negative setup slack (TNS) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -3983,6 +4008,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": null
                     }
                 },
@@ -3993,7 +4019,7 @@
                             "cli: -metric_setupwns 'place 0 goal 0.01'",
                             "api: chip.set('metric','place','0','setupwns','real', 0.01)"
                         ],
-                        "help": "Metric tracking the worst negative setup slack (positive values truncated to zero) on a per step and index basis.\nMetric unit is nanoseconds.",
+                        "help": "Metric tracking the worst negative setup slack (positive values truncated to zero) on a per step and index basis.",
                         "lock": "false",
                         "require": "all",
                         "scope": "job",
@@ -4001,6 +4027,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": null
                     }
                 },
@@ -4019,6 +4046,7 @@
                         "signature": null,
                         "switch": "-metric_sleeppower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": null
                     }
                 },
@@ -4029,7 +4057,7 @@
                             "cli: -metric_tasktime 'dfm 0 goal 10.0'",
                             "api: chip.set('metric','dfm','0','tasktime','real, 10.0)"
                         ],
-                        "help": "Metric trakcing the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post processing.\nThe metric unit is seconds.",
+                        "help": "Metric trakcing the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
                         "lock": "false",
                         "require": "asic",
                         "scope": "job",
@@ -4037,6 +4065,7 @@
                         "signature": null,
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
+                        "unit": "s",
                         "value": null
                     }
                 },
@@ -4047,7 +4076,7 @@
                             "cli: -metric_totalarea 'place 0 goal 100.00'",
                             "api: chip.set('metric','place','0','totalarea','real',100.00)"
                         ],
-                        "help": "Metric tracking the total physical die area occupied by the design. The\nmetric is specified in um^2.",
+                        "help": "Metric tracking the total physical die area occupied by the design.",
                         "lock": "false",
                         "require": "asic",
                         "scope": "job",
@@ -4055,6 +4084,26 @@
                         "signature": null,
                         "switch": "-metric_totalarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
+                        "value": null
+                    }
+                },
+                "totaltime": {
+                    "default": {
+                        "defvalue": null,
+                        "example": [
+                            "cli: -metric_totaltime 'dfm 0 goal 10.0'",
+                            "api: chip.set('metric','dfm','0','totaltime','real, 10.0)"
+                        ],
+                        "help": "Metric tracking the total amount of time spent from the beginning\nof the run up to and including the current step and index.",
+                        "lock": "false",
+                        "require": "asic",
+                        "scope": "job",
+                        "shorthelp": "Metric: totaltime",
+                        "signature": null,
+                        "switch": "-metric_totaltime 'step index group <float>'",
+                        "type": "float",
+                        "unit": "s",
                         "value": null
                     }
                 },
@@ -4109,6 +4158,7 @@
                         "signature": null,
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
+                        "unit": "%",
                         "value": null
                     }
                 },
@@ -4155,7 +4205,7 @@
                             "cli: -metric_wirelength 'place 0 goal 100.0'",
                             "api: chip.set('metric','place','0','wirelength','real', 50.0)"
                         ],
-                        "help": "Metric tracking the total wirelength of the design on a per step\nand index basis. The unit is meters.",
+                        "help": "Metric tracking the total wirelength of the design on a per step\nand index basis.",
                         "lock": "false",
                         "require": "asic",
                         "scope": "job",
@@ -4163,6 +4213,7 @@
                         "signature": null,
                         "switch": "-metric_wirelength 'step index group <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": null
                     }
                 }
@@ -5186,7 +5237,7 @@
                 "cli: -pdk_edgemargin 1",
                 "api:  chip.set('pdk', 'edgemargin', 1)"
             ],
-            "help": "Keep-out distance/margin from the wafer edge inwards specified in mm.\nThe wafer edge is prone to chipping and need special treatment that\npreclude placement of designs in this area. The edge value is used to\ncalculate effective dies per wafer and full factory cost.",
+            "help": "Keep-out distance/margin from the wafer edge inwards. The wafer edge\nis prone to chipping and need special treatment that preclude\nplacement of designs in this area. The edge value is used to\ncalculate effective dies per wafer and full factory cost.",
             "lock": "false",
             "require": null,
             "scope": "global",
@@ -5194,6 +5245,7 @@
             "signature": null,
             "switch": "-pdk_edgemargin <float>",
             "type": "float",
+            "unit": "mm",
             "value": null
         },
         "erc": {
@@ -5377,7 +5429,7 @@
                                 "cli: -pdk_grid_cap 'M10 m2 fast 0.2'",
                                 "api: chip.set('pdk','grid','M10','m2','cap','fast','0.2')"
                             ],
-                            "help": "Unit capacitance of a wire defined by the grid width and spacing values\nin the 'grid' structure. The value is specified as ff/um on a per\nstackup, metal, and corner basis. As a rough rule of thumb, this value\ntends to stay around 0.2ff/um. This number should only be used for\nreality confirmation. Accurate analysis should use the PEX models.",
+                            "help": "Unit capacitance of a wire defined by the grid width and spacing values\nin the 'grid' structure specified on a per\nstackup, metal, and corner basis. As a rough rule of thumb, this value\ntends to stay around 0.2ff/um. This number should only be used for\nreality confirmation. Accurate analysis should use the PEX models.",
                             "lock": "false",
                             "require": null,
                             "scope": "global",
@@ -5385,6 +5437,7 @@
                             "signature": null,
                             "switch": "-pdk_grid_cap 'stackup layer corner <float>''",
                             "type": "float",
+                            "unit": "ff/um",
                             "value": null
                         }
                     },
@@ -5427,7 +5480,7 @@
                                 "cli: -pdk_grid_res 'M10 m2 fast 0.2'",
                                 "api: chip.set('pdk','grid','M10','m2','res','fast','0.2')"
                             ],
-                            "help": "Resistance of a wire defined by the grid width and spacing values\nin the 'grid' structure.  The value is specified as ohms/um on a per\nstackup, metal, and corner basis. The parameter is only meant to be\nused as a sanity check and for coarse design planning. Accurate\nanalysis should use the TCAD PEX models.",
+                            "help": "Resistance of a wire defined by the grid width and spacing values\nin the 'grid' structure specified as ohms/um on a per\nstackup, metal, and corner basis. The parameter is only meant to be\nused as a sanity check and for coarse design planning. Accurate\nanalysis should use the TCAD PEX models.",
                             "lock": "false",
                             "require": null,
                             "scope": "global",
@@ -5435,6 +5488,7 @@
                             "signature": null,
                             "switch": "-pdk_grid_res 'stackup layer corner <float>''",
                             "type": "float",
+                            "unit": "ohm/um",
                             "value": null
                         }
                     },
@@ -5445,7 +5499,7 @@
                                 "cli: -pdk_grid_tcr 'M10 m2 fast 0.2'",
                                 "api: chip.set('pdk','grid','M10','m2','tcr','fast','0.2')"
                             ],
-                            "help": "Temperature coefficient of resistance of the wire defined by the grid\nwidth and spacing values in the 'grid' structure. The value is specified\nin %/ deg C on a per stackup, layer, and corner basis. The number is\nonly meant to be used as a sanity check and for coarse design\nplanning. Accurate analysis should use the PEX models.",
+                            "help": "Temperature coefficient of resistance of the wire defined by the grid\nwidth and spacing values in the 'grid' structure on a per stackup,\nlayer, and corner basis. The number is only meant to be used as a\nsanity check and for coarse design planning. Accurate analysis\nshould use the PEX models.",
                             "lock": "false",
                             "require": null,
                             "scope": "global",
@@ -5453,6 +5507,7 @@
                             "signature": null,
                             "switch": "-pdk_grid_tcr 'stackup layer corner <float>'",
                             "type": "float",
+                            "unit": "%/degree(T)",
                             "value": null
                         }
                     },
@@ -5462,7 +5517,7 @@
                             "cli: -pdk_grid_xoffset 'M10 m2 0.5'",
                             "api: chip.set('pdk','grid','M10','m2','xoffset','0.5')"
                         ],
-                        "help": "Defines the grid offset of a vertical metal layer specified on a per\nstackup and per metal basis, specified in um.",
+                        "help": "Defines the grid offset of a vertical metal layer specified on a per\nstackup and per metal basis.",
                         "lock": "false",
                         "require": null,
                         "scope": "global",
@@ -5470,6 +5525,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": null
                     },
                     "xpitch": {
@@ -5478,7 +5534,7 @@
                             "cli: -pdk_grid_xpitch 'M10 m1 0.5'",
                             "api: chip.set('pdk','grid','M10','m1','xpitch','0.5')"
                         ],
-                        "help": "Defines the routing pitch for vertical wires on a per stackup and\nper metal basis, specified in um.",
+                        "help": "Defines the routing pitch for vertical wires on a per stackup and\nper metal basis.",
                         "lock": "false",
                         "require": null,
                         "scope": "global",
@@ -5486,6 +5542,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xpitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": null
                     },
                     "yoffset": {
@@ -5494,7 +5551,7 @@
                             "cli: -pdk_grid_yoffset 'M10 m2 0.5'",
                             "api: chip.set('pdk','grid','M10','m2','yoffset','0.5')"
                         ],
-                        "help": "Defines the grid offset of a horizontal metal layer specified on a per\nstackup and per metal basis, specified in um.",
+                        "help": "Defines the grid offset of a horizontal metal layer specified on a per\nstackup and per metal basis.",
                         "lock": "false",
                         "require": null,
                         "scope": "global",
@@ -5502,6 +5559,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_yoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": null
                     },
                     "ypitch": {
@@ -5510,7 +5568,7 @@
                             "cli: -pdk_grid_ypitch 'M10 m1 0.5'",
                             "api: chip.set('pdk','grid','M10','m1','ypitch','0.5')"
                         ],
-                        "help": "Defines the routing pitch for horizontal wires on a per stackup and\nper metal basis, specified in um.",
+                        "help": "Defines the routing pitch for horizontal wires on a per stackup and\nper metal basis.",
                         "lock": "false",
                         "require": null,
                         "scope": "global",
@@ -5518,6 +5576,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_ypitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": null
                     }
                 }
@@ -5529,7 +5588,7 @@
                 "cli: -pdk_hscribe 0.1",
                 "api:  chip.set('pdk', 'hscribe', 0.1)"
             ],
-            "help": " Width of the horizontal scribe line (in mm) used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
+            "help": "Width of the horizontal scribe line used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
             "lock": "false",
             "require": null,
             "scope": "global",
@@ -5537,6 +5596,7 @@
             "signature": null,
             "switch": "-pdk_hscribe <float>",
             "type": "float",
+            "unit": "mm",
             "value": null
         },
         "layermap": {
@@ -5697,6 +5757,7 @@
             "signature": null,
             "switch": "-pdk_sramsize <float>",
             "type": "float",
+            "unit": "um^2",
             "value": null
         },
         "stackup": {
@@ -5759,7 +5820,7 @@
                 "cli: -pdk_vscribe 0.1",
                 "api:  chip.set('pdk', 'vscribe', 0.1)"
             ],
-            "help": " Width of the vertical scribe line (in mm) used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
+            "help": " Width of the vertical scribe line used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
             "lock": "false",
             "require": null,
             "scope": "global",
@@ -5767,6 +5828,7 @@
             "signature": null,
             "switch": "-pdk_vscribe <float>",
             "type": "float",
+            "unit": "mm",
             "value": null
         },
         "wafercost": {
@@ -5775,7 +5837,7 @@
                 "cli: -pdk_wafercost 10000",
                 "api:  chip.set('pdk', 'wafercost', 10000)"
             ],
-            "help": "Raw cost per wafer purchased specified in USD, not accounting for\nyield loss. The values is used to calculate chip full factory costs.",
+            "help": "Raw cost per wafer, not accounting for yield loss. The values is\nused to calculate chip full factory costs.",
             "lock": "false",
             "require": null,
             "scope": "global",
@@ -5783,6 +5845,7 @@
             "signature": null,
             "switch": "-pdk_wafercost <float>",
             "type": "float",
+            "unit": "USD",
             "value": null
         },
         "wafersize": {
@@ -5791,7 +5854,7 @@
                 "cli: -pdk_wafersize 300",
                 "api:  chip.set('pdk', 'wafersize', 300)"
             ],
-            "help": "Wafer diameter used in manufacturing process specified in mm. The\nstandard diameter for leading edge manufacturing is 300mm. For older\nprocess technologies and specialty fabs, smaller diameters such as\n200, 100, 125, 100 are common. The value is used to calculate dies per\nwafer and full factory chip costs.",
+            "help": "Wafer diameter used in manufacturing process. The standard diameter\nfor leading edge manufacturing is 300mm. For older process technologies\nand specialty fabs, smaller diameters such as 200, 100, 125, 100 are common.\nThe value is used to calculate dies per wafer and full factory chip costs.",
             "lock": "false",
             "require": "asic",
             "scope": "global",
@@ -5799,6 +5862,7 @@
             "signature": null,
             "switch": "-pdk_wafersize <float>",
             "type": "float",
+            "unit": "mm",
             "value": null
         }
     },
@@ -6475,7 +6539,7 @@
                     "cli: -supply_level 'vdd 1.0'",
                     "api: chip.set('supply','vdd','level','1.0')"
                 ],
-                "help": "Voltage level for the name supply, specified in Volts.",
+                "help": "Voltage level for the name supply.",
                 "lock": "false",
                 "require": null,
                 "scope": "global",
@@ -6483,15 +6547,16 @@
                 "signature": null,
                 "switch": "-supply_level 'supplyname <float>'",
                 "type": "float",
+                "unit": "V",
                 "value": null
             },
             "noise": {
                 "defvalue": null,
                 "example": [
-                    "cli: -supply_noise 'vdd 1.0'",
-                    "api: chip.set('supply','vdd','noise','1.0')"
+                    "cli: -supply_noise 'vdd 0.005",
+                    "api: chip.set('supply','vdd','noise','0.005')"
                 ],
-                "help": "Voltage noise for the name supply, specified in Volts.",
+                "help": "Voltage noise for the name supply.",
                 "lock": "false",
                 "require": null,
                 "scope": "global",
@@ -6499,6 +6564,7 @@
                 "signature": null,
                 "switch": "-supply_noise 'supplyname <float>'",
                 "type": "float",
+                "unit": "V",
                 "value": null
             },
             "pin": {

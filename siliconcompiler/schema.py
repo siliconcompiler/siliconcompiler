@@ -22,6 +22,7 @@ def scparam(cfg,
             lock='false',
             hashalgo='sha256',
             signature=None,
+            unit=None,
             shorthelp=None,
             switch=None,
             example=None,
@@ -43,8 +44,9 @@ def scparam(cfg,
                 defvalue=defvalue,
                 copy=copy,
                 lock=lock,
-                signature=signature,
                 hashalgo=hashalgo,
+                signature=signature,
+                unit=unit,
                 shorthelp=shorthelp,
                 switch=switch,
                 example=example,
@@ -77,6 +79,10 @@ def scparam(cfg,
         cfg['defvalue'] = defvalue
         cfg['value'] = pycopy.copy(defvalue)
         cfg['signature'] = signature
+
+        # units are optional
+        if unit is not None:
+            cfg['unit'] = unit
 
         # file only values
         if re.search(r'file',sctype):
@@ -347,27 +353,28 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'wafersize'],
             sctype='float',
+            unit='mm',
             require="asic",
             shorthelp="PDK process node",
             switch="-pdk_wafersize <float>",
             example=["cli: -pdk_wafersize 300",
                     "api:  chip.set('pdk', 'wafersize', 300)"],
             schelp="""
-            Wafer diameter used in manufacturing process specified in mm. The
-            standard diameter for leading edge manufacturing is 300mm. For older
-            process technologies and specialty fabs, smaller diameters such as
-            200, 100, 125, 100 are common. The value is used to calculate dies per
-            wafer and full factory chip costs.""")
+            Wafer diameter used in manufacturing process. The standard diameter
+            for leading edge manufacturing is 300mm. For older process technologies
+            and specialty fabs, smaller diameters such as 200, 100, 125, 100 are common.
+            The value is used to calculate dies per wafer and full factory chip costs.""")
 
     scparam(cfg, ['pdk', 'wafercost'],
             sctype='float',
+            unit='USD',
             shorthelp="PDK wafer cost",
             switch="-pdk_wafercost <float>",
             example=["cli: -pdk_wafercost 10000",
                      "api:  chip.set('pdk', 'wafercost', 10000)"],
             schelp="""
-            Raw cost per wafer purchased specified in USD, not accounting for
-            yield loss. The values is used to calculate chip full factory costs.""")
+            Raw cost per wafer, not accounting for yield loss. The values is
+            used to calculate chip full factory costs.""")
 
     scparam(cfg, ['pdk', 'd0'],
             sctype='float',
@@ -385,12 +392,13 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'hscribe'],
             sctype='float',
+            unit='mm',
             shorthelp="PDK horizontal scribe line width",
             switch="-pdk_hscribe <float>",
             example=["cli: -pdk_hscribe 0.1",
                      "api:  chip.set('pdk', 'hscribe', 0.1)"],
             schelp="""
-             Width of the horizontal scribe line (in mm) used during die separation.
+            Width of the horizontal scribe line used during die separation.
             The process is generally completed using a mechanical saw, but can be
             done through combinations of mechanical saws, lasers, wafer thinning,
             and chemical etching in more advanced technologies. The value is used
@@ -398,12 +406,13 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'vscribe'],
             sctype='float',
+            unit='mm',
             shorthelp="PDK vertical scribe line width",
             switch="-pdk_vscribe <float>",
             example=["cli: -pdk_vscribe 0.1",
                      "api:  chip.set('pdk', 'vscribe', 0.1)"],
             schelp="""
-             Width of the vertical scribe line (in mm) used during die separation.
+             Width of the vertical scribe line used during die separation.
             The process is generally completed using a mechanical saw, but can be
             done through combinations of mechanical saws, lasers, wafer thinning,
             and chemical etching in more advanced technologies. The value is used
@@ -411,14 +420,15 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'edgemargin'],
             sctype='float',
+            unit='mm',
             shorthelp="PDK wafer edge keep-out margin",
             switch="-pdk_edgemargin <float>",
             example=["cli: -pdk_edgemargin 1",
                      "api:  chip.set('pdk', 'edgemargin', 1)"],
             schelp="""
-            Keep-out distance/margin from the wafer edge inwards specified in mm.
-            The wafer edge is prone to chipping and need special treatment that
-            preclude placement of designs in this area. The edge value is used to
+            Keep-out distance/margin from the wafer edge inwards. The wafer edge
+            is prone to chipping and need special treatment that preclude
+            placement of designs in this area. The edge value is used to
             calculate effective dies per wafer and full factory cost.""")
 
     scparam(cfg, ['pdk', 'density'],
@@ -441,6 +451,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'sramsize'],
             sctype='float',
+            unit='um^2',
             shorthelp="PDK SRAM bitcell size",
             switch="-pdk_sramsize <float>",
             example=["cli: -pdk_sramsize 0.032",
@@ -596,6 +607,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'xpitch'],
             sctype='float',
+            unit='um',
             shorthelp="PDK routing grid vertical wire pitch",
             switch="-pdk_grid_xpitch 'stackup layer <float>'",
             example= [
@@ -603,10 +615,11 @@ def schema_pdk(cfg, stackup='default'):
                 "api: chip.set('pdk','grid','M10','m1','xpitch','0.5')"],
             schelp="""
             Defines the routing pitch for vertical wires on a per stackup and
-            per metal basis, specified in um.""")
+            per metal basis.""")
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'ypitch'],
             sctype='float',
+            unit='um',
             shorthelp="PDK routing grid horizontal wire pitch",
             switch="-pdk_grid_ypitch 'stackup layer <float>'",
             example= [
@@ -614,10 +627,11 @@ def schema_pdk(cfg, stackup='default'):
                 "api: chip.set('pdk','grid','M10','m1','ypitch','0.5')"],
             schelp="""
             Defines the routing pitch for horizontal wires on a per stackup and
-            per metal basis, specified in um.""")
+            per metal basis.""")
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'xoffset'],
             sctype='float',
+            unit='um',
             shorthelp="PDK routing grid vertical wire offset",
             switch="-pdk_grid_xoffset 'stackup layer <float>'",
             example= [
@@ -625,10 +639,11 @@ def schema_pdk(cfg, stackup='default'):
                 "api: chip.set('pdk','grid','M10','m2','xoffset','0.5')"],
             schelp="""
             Defines the grid offset of a vertical metal layer specified on a per
-            stackup and per metal basis, specified in um.""")
+            stackup and per metal basis.""")
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'yoffset'],
             sctype='float',
+            unit='um',
             shorthelp="PDK routing grid horizontal wire offset",
             switch="-pdk_grid_yoffset 'stackup layer <float>'",
             example= [
@@ -636,20 +651,7 @@ def schema_pdk(cfg, stackup='default'):
                 "api: chip.set('pdk','grid','M10','m2','yoffset','0.5')"],
             schelp="""
             Defines the grid offset of a horizontal metal layer specified on a per
-            stackup and per metal basis, specified in um.""")
-
-    scparam(cfg, ['pdk', 'grid', stackup, layer, 'adj'],
-            sctype='float',
-            shorthelp="PDK routing grid resource adjustment",
-            switch="-pdk_grid_adj 'stackup layer <float>'",
-            example= [
-                "cli: -pdk_grid_adj 'M10 m2 0.5'",
-                "api: chip.set('pdk','grid','M10','m2','adj','0.5')"],
-            schelp="""
-            Defines the routing resources adjustments for the design on a per layer
-            basis. The value is expressed as a fraction from 0 to 1. A value of
-            0.5 reduces the routing resources by 50%. If not defined, 100%
-            routing resource utilization is permitted.""")
+            stackup and per metal basis.""")
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'adj'],
             sctype='float',
@@ -667,6 +669,7 @@ def schema_pdk(cfg, stackup='default'):
     corner='default'
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'cap', corner],
             sctype='float',
+            unit='ff/um',
             shorthelp="PDK routing grid unit capacitance",
             switch="-pdk_grid_cap 'stackup layer corner <float>''",
             example= [
@@ -674,13 +677,14 @@ def schema_pdk(cfg, stackup='default'):
                 "api: chip.set('pdk','grid','M10','m2','cap','fast','0.2')"],
             schelp="""
             Unit capacitance of a wire defined by the grid width and spacing values
-            in the 'grid' structure. The value is specified as ff/um on a per
+            in the 'grid' structure specified on a per
             stackup, metal, and corner basis. As a rough rule of thumb, this value
             tends to stay around 0.2ff/um. This number should only be used for
             reality confirmation. Accurate analysis should use the PEX models.""")
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'res', corner],
             sctype='float',
+            unit='ohm/um',
             shorthelp="PDK routing grid unit resistance",
             switch="-pdk_grid_res 'stackup layer corner <float>''",
             example= [
@@ -688,13 +692,14 @@ def schema_pdk(cfg, stackup='default'):
                 "api: chip.set('pdk','grid','M10','m2','res','fast','0.2')"],
             schelp="""
             Resistance of a wire defined by the grid width and spacing values
-            in the 'grid' structure.  The value is specified as ohms/um on a per
+            in the 'grid' structure specified as ohms/um on a per
             stackup, metal, and corner basis. The parameter is only meant to be
             used as a sanity check and for coarse design planning. Accurate
             analysis should use the TCAD PEX models.""")
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'tcr', corner],
             sctype='float',
+            unit='%/degree(T)',
             shorthelp="PDK routing grid temperature coefficient",
             switch="-pdk_grid_tcr 'stackup layer corner <float>'",
             example= [
@@ -702,10 +707,10 @@ def schema_pdk(cfg, stackup='default'):
                 "api: chip.set('pdk','grid','M10','m2','tcr','fast','0.2')"],
             schelp="""
             Temperature coefficient of resistance of the wire defined by the grid
-            width and spacing values in the 'grid' structure. The value is specified
-            in %/ deg C on a per stackup, layer, and corner basis. The number is
-            only meant to be used as a sanity check and for coarse design
-            planning. Accurate analysis should use the PEX models.""")
+            width and spacing values in the 'grid' structure on a per stackup,
+            layer, and corner basis. The number is only meant to be used as a
+            sanity check and for coarse design planning. Accurate analysis
+            should use the PEX models.""")
 
     ###############
     # EDA vars
@@ -723,7 +728,6 @@ def schema_pdk(cfg, stackup='default'):
             List of named files specified on a per tool and per stackup basis.
             The parameter should only be used for specifying files that are
             not directly  supported by the SiliconCompiler PDK schema.""")
-
 
     scparam(cfg, ['pdk', 'directory', tool, key, stackup],
             sctype='[dir]',
@@ -1178,6 +1182,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     #flowgraph timeout value
     scparam(cfg,['flowgraph', flow, step, index, 'timeout'],
             sctype='float',
+            unit='s',
             scope='job',
             shorthelp="Flowgraph task timeout value",
             switch="-flowgraph_timeout 'flow step 0 <float>'",
@@ -1623,6 +1628,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
 
     scparam(cfg, ['metric', step, index, 'coverage', group],
             sctype='float',
+            unit='%',
             scope='job',
             require='all',
             shorthelp=f"Metric: coverage",
@@ -1638,6 +1644,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
 
     scparam(cfg, ['metric', step, index, 'security', group],
             sctype='float',
+            unit='%',
             scope='job',
             require='all',
             shorthelp="Metric: security",
@@ -1678,6 +1685,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
     for item, val in metrics.items():
         scparam(cfg, ['metric', step, index, item, group],
                 sctype='float',
+                unit='um^2',
                 scope='job',
                 require='asic',
                 shorthelp=f"Metric: {item}",
@@ -1686,11 +1694,11 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                     f"cli: -metric_{item} 'place 0 goal 100.00'",
                     f"api: chip.set('metric','place','0','{item}','real',100.00)"],
                 schelp=f"""
-                Metric tracking the total {val} occupied by the design. The
-                metric is specified in um^2.""")
+                Metric tracking the total {val} occupied by the design.""")
 
     scparam(cfg, ['metric', step, index, 'utilization', group],
             sctype='float',
+            unit='%',
             scope='job',
             require='asic',
             shorthelp=f"Metric: area utilization",
@@ -1712,6 +1720,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
     for item, val in metrics.items():
         scparam(cfg, ['metric', step, index, item, group],
                 sctype='float',
+                unit='mw',
                 scope='job',
                 require='all',
                 shorthelp=f"Metric: {item}",
@@ -1730,6 +1739,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
 
     scparam(cfg, ['metric', step, index, 'irdrop', group],
             sctype='float',
+            unit='mv',
             scope='job',
             require='asic',
             shorthelp=f"Metric: peak IR drop",
@@ -1771,6 +1781,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
     for item, val in metrics.items():
         scparam(cfg, ['metric', step, index, item, group],
                 sctype='float',
+                unit='ns',
                 scope='job',
                 require='all',
                 shorthelp=f"Metric: {item}",
@@ -1779,8 +1790,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                     f"cli: -metric_{item} 'place 0 goal 0.01'",
                     f"api: chip.set('metric','place','0','{item}','real', 0.01)"],
                 schelp=f"""
-                Metric tracking the {val} on a per step and index basis.
-                Metric unit is nanoseconds.""")
+                Metric tracking the {val} on a per step and index basis.""")
 
     metrics = {'macros': 'macros',
                'cells': 'cell instances',
@@ -1808,6 +1818,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
     item = 'wirelength'
     scparam(cfg, ['metric', step, index, item, group],
             sctype='float',
+            unit='um',
             scope='job',
             require='asic',
             shorthelp=f"Metric: {item}",
@@ -1817,7 +1828,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                 f"api: chip.set('metric','place','0','{item}','real', 50.0)"],
             schelp=f"""
             Metric tracking the total {item} of the design on a per step
-            and index basis. The unit is meters.""")
+            and index basis.""")
 
     item = 'overflow'
     scparam(cfg, ['metric', step, index, item, group],
@@ -1839,6 +1850,7 @@ def schema_metric(cfg, step='default', index='default',group='default'):
     item = 'memory'
     scparam(cfg, ['metric', step, index, item, group],
             sctype='float',
+            unit='B',
             scope='job',
             require='asic',
             shorthelp=f"Metric: {item}",
@@ -1848,11 +1860,12 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                 f"api: chip.set('metric','dfm','0','{item}','real', 10e9)"],
             schelp=f"""
             Metric tracking total peak program memory footprint on a per
-            step and index basis, specified in bytes.""")
+            step and index basis.""")
 
     item = 'exetime'
     scparam(cfg, ['metric', step, index, item, group],
             sctype='float',
+            unit='s',
             scope='job',
             require='asic',
             shorthelp=f"Metric: {item}",
@@ -1864,12 +1877,12 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             Metric tracking time spent by the eda executable 'exe' on a
             per step and index basis. It does not include the siliconcompiler
             runtime overhead or time waitig for I/O operations and
-            inter-processor communication to complete. The metric unit
-            is seconds.""")
+            inter-processor communication to complete.""")
 
     item = 'tasktime'
     scparam(cfg, ['metric', step, index, item, group],
             sctype='float',
+            unit='s',
             scope='job',
             require='asic',
             shorthelp=f"Metric: {item}",
@@ -1879,8 +1892,23 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                 f"api: chip.set('metric','dfm','0','{item}','real, 10.0)"],
             schelp=f"""
             Metric trakcing the total amount of time spent on a task from
-            beginning to end, including data transfers and pre/post processing.
-            The metric unit is seconds.""")
+            beginning to end, including data transfers and pre/post
+            processing.""")
+
+    item = 'totaltime'
+    scparam(cfg, ['metric', step, index, item, group],
+            sctype='float',
+            unit='s',
+            scope='job',
+            require='asic',
+            shorthelp=f"Metric: {item}",
+            switch=f"-metric_{item} 'step index group <float>'",
+            example=[
+                f"cli: -metric_{item} 'dfm 0 goal 10.0'",
+                f"api: chip.set('metric','dfm','0','{item}','real, 10.0)"],
+            schelp=f"""
+            Metric tracking the total amount of time spent from the beginning
+            of the run up to and including the current step and index.""")
 
     return cfg
 
@@ -3024,21 +3052,23 @@ def schema_design(cfg):
     #TODO: use ns, seconds, or specify in units?
     scparam(cfg,['clock', name, 'period'],
             sctype='float',
+            unit='ns',
             shorthelp="Clock period",
             switch="-clock_period 'clkname <float>",
             example=["cli: -clock_period 'clk 10'",
                     "api: chip.set('clock','clk','period','10')"],
             schelp="""
-            Specifies the period for a clock source in nanoseconds.""")
+            Specifies the period for a clock source.""")
 
     scparam(cfg,['clock', name, 'jitter'],
             sctype='float',
+            unit='ns',
             shorthelp="Clock jitter",
             switch="-clock_jitter 'clkname <float>",
             example=["cli: -clock_jitter 'clk 0.01'",
                     "api: chip.set('clock','clk','jitter','0.01')"],
             schelp="""
-            Specifies the jitter for a clock source in nanoseconds.""")
+            Specifies the jitter for a clock source.""")
 
     scparam(cfg,['supply', name, 'pin'],
             sctype='str',
@@ -3054,22 +3084,24 @@ def schema_design(cfg):
     # move to datasheet
     scparam(cfg,['supply', name, 'level'],
             sctype='float',
+            unit='V',
             shorthelp="Supply level",
             switch="-supply_level 'supplyname <float>'",
             example=["cli: -supply_level 'vdd 1.0'",
                     "api: chip.set('supply','vdd','level','1.0')"],
             schelp="""
-            Voltage level for the name supply, specified in Volts.
+            Voltage level for the name supply.
             """)
 
     scparam(cfg,['supply', name, 'noise'],
             sctype='float',
+            unit='V',
             shorthelp="Supply noise",
             switch="-supply_noise 'supplyname <float>'",
-            example=["cli: -supply_noise 'vdd 1.0'",
-                    "api: chip.set('supply','vdd','noise','1.0')"],
+            example=["cli: -supply_noise 'vdd 0.005",
+                    "api: chip.set('supply','vdd','noise','0.005')"],
             schelp="""
-            Voltage noise for the name supply, specified in Volts.
+            Voltage noise for the name supply.
             """)
 
     return cfg
@@ -3230,6 +3262,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'maxlength'],
             sctype='float',
+            unit='um',
             scope='job',
             shorthelp="ASIC maximum wire length",
             switch="-asic_maxlength <float>",
@@ -3242,23 +3275,23 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'maxcap'],
             sctype='float',
+            unit='F',
             scope='job',
             shorthelp="ASIC maximum net capacitance",
             switch="-asic_maxcap <float>",
             example= ["cli: -asic_maxcap '0.25e-12'",
                       "api: chip.set('asic', 'maxcap', '0.25e-12')"],
-            schelp="""Maximum allowed capacitance per net. The number is
-            specified in Farads.""")
+            schelp="""Maximum allowed capacitance per net.""")
 
     scparam(cfg, ['asic', 'maxslew'],
             sctype='float',
+            unit='s',
             scope='job',
             shorthelp="ASIC maximum slew",
             switch="-asic_maxslew <float>",
             example= ["cli: -asic_maxslew '0.25e-9'",
                     "api: chip.set('asic', 'maxslew', '0.25e-9')"],
-            schelp="""Maximum allowed transition time per net. The number
-            is specified in seconds.""")
+            schelp="""Maximum allowed transition time per net.""")
 
     sigtype='default'
     scparam(cfg, ['asic', 'rclayer', sigtype],
@@ -3316,6 +3349,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'coremargin'],
             sctype='float',
+            unit='um',
             scope='job',
             shorthelp="ASIC block core margin",
             switch="-asic_coremargin <float>",
@@ -3324,7 +3358,7 @@ def schema_asic(cfg):
             schelp="""
             Halo/margin between the die boundary and core placement for
             automated floorplanning when no diearea or floorplan is
-            supplied. The value is specified in microns.""")
+            supplied.""")
 
     scparam(cfg, ['asic', 'aspectratio'],
             sctype='float',
@@ -3342,6 +3376,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'diearea'],
             sctype='[(float,float)]',
+            unit='um',
             scope='job',
             shorthelp="ASIC die area outline",
             switch="-asic_diearea <[(float,float)]>",
@@ -3355,6 +3390,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'corearea'],
             sctype='[(float,float)]',
+            unit='um',
             scope='job',
             shorthelp="ASIC core area outline",
             switch="-asic_corearea <[(float,float)]>",
@@ -3390,13 +3426,13 @@ def schema_mcmm(cfg, scenario='default'):
 
     scparam(cfg,['mcmm', scenario, 'voltage'],
             sctype='float',
+            unit='V',
             scope='job',
             shorthelp="Scenario voltage level",
             switch="-mcmm_voltage 'scenario <float>'",
             example=["cli: -mcmm_voltage 'worst 0.9'",
                      "api: chip.set('mcmm', 'worst','voltage', '0.9')"],
-            schelp="""Operating voltage applied to the scenario,
-            specified in Volts.""")
+            schelp="""Operating voltage applied to the scenario.""")
 
     scparam(cfg,['mcmm', scenario, 'temperature'],
             sctype='float',
@@ -3405,8 +3441,7 @@ def schema_mcmm(cfg, scenario='default'):
             switch="-mcmm_temperature 'scenario <float>'",
             example=["cli: -mcmm_temperature 'worst 125'",
                      "api: chip.set('mcmm', 'worst', 'temperature','125')"],
-            schelp="""Chip temperature applied to the scenario specified in
-            degrees Celsius.""")
+            schelp="""Chip temperature applied to the scenario specified in degrees C.""")
 
     scparam(cfg,['mcmm', scenario, 'libcorner'],
             sctype='str',
