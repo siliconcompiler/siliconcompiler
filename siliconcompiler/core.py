@@ -108,7 +108,8 @@ class Chip:
         self._loaded_modules = {
             'flows': [],
             'pdks': [],
-            'libs': []
+            'libs': [],
+            'checklists': []
         }
 
     ###########################################################################
@@ -444,7 +445,7 @@ class Chip:
         * pdks/modulname.py
 
         If the moduletype is None, the module paths are search in the
-        order: 'targets'->'flows'->'tools'->'pdks'->'libs'):
+        order: 'targets'->'flows'->'tools'->'pdks'->'libs'->'checklists'):
 
 
         Supported functions include:
@@ -459,7 +460,7 @@ class Chip:
         Args:
             modulename (str): Name of module to import.
             funcname (str): Name of the function to find within the module.
-            moduletype (str): Type of module (flows, pdks, libs, targets).
+            moduletype (str): Type of module (flows, pdks, libs, checklists, targets).
 
         Examples:
             >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdks')
@@ -470,14 +471,16 @@ class Chip:
 
         # module search path depends on modtype
         if moduletype is None:
-            for item in ('targets', 'flows', 'pdks', 'libs'):
-                relpath = f"{item}/{modulename}.py"
-                fullpath = self._find_sc_file(relpath, missing_ok=True)
+            for item in ('targets', 'flows', 'tools', 'pdks', 'libs', 'checklists'):
+                fullpath = self.find_function(modulename, funcname, module_type=item)
                 if fullpath:
-                    break;
+                    break
+                self.logger.error(f"Could not find module {modulename}")
+                self.error = 1
+                return None
         elif moduletype in ('targets','flows', 'pdks', 'libs'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}.py", missing_ok=True)
-        elif moduletype in ('tools'):
+        elif moduletype in ('tools', 'checklists'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}/{modulename}.py", missing_ok=True)
         else:
             self.logger.error(f"Illegal module type '{moduletype}'.")
@@ -606,6 +609,31 @@ class Chip:
         else:
             self.logger.error(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
             raise SiliconCompilerError(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
+
+    ##########################################################################
+    def load_checklist(self, name):
+        """
+        Loads a checklist module and runs the setup() function.
+
+        The function searches the $SCPATH for checklist/<name>/<name>.py and runs
+        the setup function in that module if found.
+
+        Args:
+            name (str): Module name
+
+        Examples:
+            >>> chip.load_checklist('oh_tapeout')
+            Loads the 'oh_tapeout' checklist
+
+        """
+
+        func = self.find_function(name, 'setup', 'checklists')
+        if func is not None:
+            self._loaded_modules['checklists'].append(name)
+            func(self)
+        else:
+            self.logger.error(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
+            raise SiliconCompilerError(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
 
 
     ###########################################################################
