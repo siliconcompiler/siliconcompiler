@@ -10,7 +10,8 @@ def test_py(setup_example_test, microwatt_dir):
     # ensure that the submodule is cloned.
 
     setup_example_test('microwatt')
-    print(sys.path)
 
     import build
     build.main()
+
+    del sys.modules['build']

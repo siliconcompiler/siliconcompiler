@@ -26,3 +26,5 @@ def test_heartbeat_padring_without_floorplan(setup_example_test, oh_dir):
     build_top()
     assert os.path.isfile('build/heartbeat/job0/export/0/outputs/heartbeat.gds')
     assert os.path.isfile('build/heartbeat_top/job0/export/0/outputs/heartbeat_top.gds')
+
+    del sys.modules['build']
