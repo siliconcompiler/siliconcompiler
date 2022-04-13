@@ -4097,7 +4097,7 @@
                         ],
                         "help": "Metric tracking the total amount of time spent from the beginning\nof the run up to and including the current step and index.",
                         "lock": "false",
-                        "require": "asic",
+                        "require": null,
                         "scope": "job",
                         "shorthelp": "Metric: totaltime",
                         "signature": null,
