@@ -76,9 +76,14 @@ def setup(chip):
     if step == 'extspice':
         chip.add('eda', tool, 'output', step, index, f'{design}.spice')
 
+    # TODO: actually parse errors/warnings in post_process()
+    logfile = f"{step}.log"
+    chip.set('eda', tool, 'report', step, index, 'errors', logfile)
+    chip.set('eda', tool, 'report', step, index, 'warnings', logfile)
+
     if step == 'drc':
         report_path = f'reports/{design}.drc'
-        chip.set('eda', tool, 'report', step, index, 'errors', report_path)
+        chip.set('eda', tool, 'report', step, index, 'drvs', report_path)
 
 ################################
 # Version Check
@@ -107,7 +112,7 @@ def post_process(chip):
                 errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
 
                 if errors:
-                    chip.set('metric', step, index, 'errors', 'real', errors.group(1))
+                    chip.set('metric', step, index, 'drvs', 'real', errors.group(1))
 
     #TODO: return error code
     return 0

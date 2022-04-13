@@ -69,8 +69,11 @@ def setup(chip):
     else:
         chip.add('eda', tool, 'input', step, index, f'{design}.vg')
 
+    # TODO: actually parse tool errors in post_process()
+    logfile = f'{step}.log'
     report_path = f'reports/{design}.lvs.out'
-    chip.set('eda', tool, 'report', step, index, 'errors', report_path)
+    chip.set('eda', tool, 'report', step, index, 'errors', logfile)
+    chip.set('eda', tool, 'report', step, index, 'drvs', report_path)
     chip.set('eda', tool, 'report', step, index, 'warnings', report_path)
 
 ################################
@@ -104,7 +107,7 @@ def post_process(chip):
         # details.
         pin_failures = lvs_failures[3]
         errors = lvs_failures[0] - pin_failures
-        chip.set('metric', step, index, 'errors', 'real', errors)
+        chip.set('metric', step, index, 'drvs', 'real', errors)
         chip.set('metric', step, index, 'warnings', 'real', pin_failures)
 
     #TODO: return error code
