@@ -515,8 +515,8 @@
                     "date": [],
                     "defvalue": [],
                     "example": [
-                        "cli: -checklist_report 'ISO D000 bold my.rpt'",
-                        "api: chip.set('checklist','ISO','D000','report','hold', 'my.rpt')"
+                        "cli: -checklist_report 'ISO D000 my.rpt'",
+                        "api: chip.set('checklist','ISO','D000','report','my.rpt')"
                     ],
                     "filehash": [],
                     "hashalgo": "sha256",
@@ -524,9 +524,9 @@
                     "lock": "false",
                     "require": null,
                     "scope": "global",
-                    "shorthelp": "Checklist item metric report",
+                    "shorthelp": "Checklist item report",
                     "signature": [],
-                    "switch": "-checklist_report 'standard item metric <file>'",
+                    "switch": "-checklist_report 'standard item <file>'",
                     "type": "[file]",
                     "value": []
                 },
@@ -549,8 +549,8 @@
                 "tasks": {
                     "defvalue": [],
                     "example": [
-                        "cli: -checklist_task 'ISO D000 (job0, place, 0)'",
-                        "api: chip.set('checklist','ISO','D000','task',('job0', 'place', '0')"
+                        "cli: -checklist_tasks 'ISO D000 (job0,place,0)'",
+                        "api: chip.set('checklist','ISO','D000','tasks',('job0','place','0'))"
                     ],
                     "help": "Flowgraph job and task used to verify the checklist checklist item.\nThe parameter should be left empty for manual and for tool\nflows that bypass the SC infrastructure.",
                     "lock": "false",
@@ -558,7 +558,7 @@
                     "scope": "global",
                     "shorthelp": "Checklist item task",
                     "signature": [],
-                    "switch": "-checklist_task 'standard item <(str, str, str)>'",
+                    "switch": "-checklist_tasks 'standard item <(str, str, str)>'",
                     "type": "[(str,str,str)]",
                     "value": []
                 },
@@ -2086,8 +2086,8 @@
                             "date": [],
                             "defvalue": [],
                             "example": [
-                                "cli: -library_checklist_report 'lib ISO D000 bold my.rpt'",
-                                "api: chip.set('library','default','checklist','ISO','D000','report','hold', 'my.rpt')"
+                                "cli: -library_checklist_report 'lib ISO D000 my.rpt'",
+                                "api: chip.set('library','default','checklist','ISO','D000','report','my.rpt')"
                             ],
                             "filehash": [],
                             "hashalgo": "sha256",
@@ -2095,9 +2095,9 @@
                             "lock": "false",
                             "require": null,
                             "scope": "global",
-                            "shorthelp": "Library checklist item metric report",
+                            "shorthelp": "Library checklist item report",
                             "signature": [],
-                            "switch": "-library_checklist_report 'lib standard item metric <file>'",
+                            "switch": "-library_checklist_report 'lib standard item <file>'",
                             "type": "[file]",
                             "value": []
                         },
@@ -2120,8 +2120,8 @@
                         "tasks": {
                             "defvalue": [],
                             "example": [
-                                "cli: -library_checklist_task 'lib ISO D000 (job0, place, 0)'",
-                                "api: chip.set('library','default','checklist','ISO','D000','task',('job0', 'place', '0')"
+                                "cli: -library_checklist_tasks 'lib ISO D000 (job0,place,0)'",
+                                "api: chip.set('library','default','checklist','ISO','D000','tasks',('job0','place','0'))"
                             ],
                             "help": "Flowgraph job and task used to verify the library checklist item.\nThe parameter should be left empty for manual and for tool\nflows that bypass the SC infrastructure.",
                             "lock": "false",
@@ -2129,7 +2129,7 @@
                             "scope": "global",
                             "shorthelp": "Library checklist item task",
                             "signature": [],
-                            "switch": "-library_checklist_task 'lib standard item <(str, str, str)>'",
+                            "switch": "-library_checklist_tasks 'lib standard item <(str, str, str)>'",
                             "type": "[(str,str,str)]",
                             "value": []
                         },
