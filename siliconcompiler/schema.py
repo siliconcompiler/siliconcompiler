@@ -2798,10 +2798,10 @@ def schema_checklist(cfg, group='checklist'):
     scparam(cfg,[*path, standard, item, 'tasks'],
             sctype='[(str,str,str)]',
             shorthelp=f"{emit_help} item task",
-            switch=f"-{emit_group}_task '{emit_switch}standard item <(str, str, str)>'",
+            switch=f"-{emit_group}_tasks '{emit_switch}standard item <(str, str, str)>'",
             example=[
-                f"cli: -{emit_group}_task '{emit_switch}ISO D000 (job0, place, 0)'",
-                f"api: chip.set({emit_api},'ISO','D000','task',('job0', 'place', '0')"],
+                f"cli: -{emit_group}_tasks '{emit_switch}ISO D000 (job0,place,0)'",
+                f"api: chip.set({emit_api},'ISO','D000','tasks',('job0','place','0'))"],
             schelp=f"""
             Flowgraph job and task used to verify the {group} checklist item.
             The parameter should be left empty for manual and for tool
@@ -2809,11 +2809,11 @@ def schema_checklist(cfg, group='checklist'):
 
     scparam(cfg,[*path, standard, item, 'report'],
             sctype='[file]',
-            shorthelp=f"{emit_help} item metric report",
-            switch=f"-{emit_group}_report '{emit_switch}standard item metric <file>'",
+            shorthelp=f"{emit_help} item report",
+            switch=f"-{emit_group}_report '{emit_switch}standard item <file>'",
             example=[
-                f"cli: -{emit_group}_report '{emit_switch}ISO D000 bold my.rpt'",
-                f"api: chip.set({emit_api},'ISO','D000','report','hold', 'my.rpt')"],
+                f"cli: -{emit_group}_report '{emit_switch}ISO D000 my.rpt'",
+                f"api: chip.set({emit_api},'ISO','D000','report','my.rpt')"],
             schelp=f"""
             Filepath to report(s) of specified type documenting the successful
             validation of the {group} checklist item.""")
