@@ -1380,7 +1380,7 @@ class Chip:
         return result
 
     ###########################################################################
-    def find_result(self, filetype, step, jobname='job0', index='0'):
+    def find_result(self, filetype, step, jobname=None, index='0'):
         """
         Returns the absolute path of a compilation result.
 
@@ -1403,6 +1403,8 @@ class Chip:
             >>> manifest_filepath = chip.find_result('.vg', 'syn')
            Returns the absolute path to the manifest.
         """
+        if jobname is None:
+            jobname = self.get('jobname')
 
         workdir = self._getworkdir(jobname, step, index)
         design = self.get('design')
