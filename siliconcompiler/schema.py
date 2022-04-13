@@ -1617,7 +1617,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
         scparam(cfg, ['metric', step, index, item, group],
                 sctype='int',
                 scope='job',
-                require='all',
                 shorthelp=f"Metric: total {item}",
                 switch=f"-metric_{item} 'step index group <int>'",
                 example=[
@@ -1630,7 +1629,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             sctype='float',
             unit='%',
             scope='job',
-            require='all',
             shorthelp=f"Metric: coverage",
             switch="-metric_coverage 'step index group <float>'",
             example=[
@@ -1646,7 +1644,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             sctype='float',
             unit='%',
             scope='job',
-            require='all',
             shorthelp="Metric: security",
             switch="-metric_security 'step index group <float>'",
             example=[
@@ -1666,7 +1663,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
         scparam(cfg, ['metric', step, index, item, group],
                 sctype='int',
                 scope='job',
-                require='fpga',
                 shorthelp=f"Metric: {val}",
                 switch=f"-metric_{item} 'step index group <int>'",
                 example=[
@@ -1687,7 +1683,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                 sctype='float',
                 unit='um^2',
                 scope='job',
-                require='asic',
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index group <float>'",
                 example=[
@@ -1700,7 +1695,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             sctype='float',
             unit='%',
             scope='job',
-            require='asic',
             shorthelp=f"Metric: area utilization",
             switch=f"-metric_utilization step index group <float>",
             example=[
@@ -1722,7 +1716,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                 sctype='float',
                 unit='mw',
                 scope='job',
-                require='all',
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index group <float>'",
                 example=[
@@ -1741,7 +1734,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             sctype='float',
             unit='mv',
             scope='job',
-            require='asic',
             shorthelp=f"Metric: peak IR drop",
             switch="-metric_irdrop 'step index group <float>'",
             example=[
@@ -1761,7 +1753,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
         scparam(cfg, ['metric', step, index, item, group],
                 sctype='int',
                 scope='job',
-                require='all',
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index group <float>'",
                 example=[
@@ -1783,7 +1774,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                 sctype='float',
                 unit='ns',
                 scope='job',
-                require='all',
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index group <float>'",
                 example=[
@@ -1805,7 +1795,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
         scparam(cfg, ['metric', step, index, item, group],
                 sctype='int',
                 scope='job',
-                require='asic',
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index group <float>'",
                 example=[
@@ -1820,7 +1809,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             sctype='float',
             unit='um',
             scope='job',
-            require='asic',
             shorthelp=f"Metric: {item}",
             switch=f"-metric_{item} 'step index group <float>'",
             example=[
@@ -1834,7 +1822,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
     scparam(cfg, ['metric', step, index, item, group],
             sctype='int',
             scope='job',
-            require='asic',
             shorthelp=f"Metric: {item}",
             switch=f"-metric_{item} 'step index group <float>'",
             example=[
@@ -1852,7 +1839,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             sctype='float',
             unit='B',
             scope='job',
-            require='asic',
             shorthelp=f"Metric: {item}",
             switch=f"-metric_{item} 'step index group <float>'",
             example=[
@@ -1867,7 +1853,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             sctype='float',
             unit='s',
             scope='job',
-            require='asic',
             shorthelp=f"Metric: {item}",
             switch=f"-metric_{item} 'step index group <float>'",
             example=[
@@ -1884,7 +1869,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             sctype='float',
             unit='s',
             scope='job',
-            require='asic',
             shorthelp=f"Metric: {item}",
             switch=f"-metric_{item} 'step index group <float>'",
             example=[
