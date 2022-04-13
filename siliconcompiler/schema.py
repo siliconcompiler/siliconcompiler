@@ -1884,7 +1884,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             sctype='float',
             unit='s',
             scope='job',
-            require='asic',
             shorthelp=f"Metric: {item}",
             switch=f"-metric_{item} 'step index group <float>'",
             example=[
