@@ -2795,32 +2795,19 @@ def schema_checklist(cfg, group='checklist'):
             a metric, a relational operator, and a value in the form.
             'metric op value'.""")
 
-    scparam(cfg,[*path, standard, item, 'step'],
-            sctype='str',
-            shorthelp=f"{emit_help} item step",
-            switch=f"-{emit_group}_step '{emit_switch}standard item <str>'",
+    scparam(cfg,[*path, standard, item, 'tasks'],
+            sctype='[(str,str,str)]',
+            shorthelp=f"{emit_help} item task",
+            switch=f"-{emit_group}_task '{emit_switch}standard item <(str, str, str)>'",
             example=[
-                f"cli: -{emit_group}_step '{emit_switch}ISO D000 place'",
-                f"api: chip.set({emit_api},'ISO','D000','step','place')"],
+                f"cli: -{emit_group}_task '{emit_switch}ISO D000 (job0, place, 0)'",
+                f"api: chip.set({emit_api},'ISO','D000','task',('job0', 'place', '0')"],
             schelp=f"""
-            Flowgraph step used to verify the {group} checklist item.
+            Flowgraph job and task used to verify the {group} checklist item.
             The parameter should be left empty for manual and for tool
             flows that bypass the SC infrastructure.""")
 
-    scparam(cfg,[*path, standard, item, 'index'],
-            sctype='str',
-            defvalue='0',
-            shorthelp=f"{emit_help} item index",
-            switch=f"-{emit_group}_index '{emit_switch}standard item <str>'",
-            example=[
-                f"cli: -{emit_group}_index '{emit_switch}ISO D000 1'",
-                f"api: chip.set({emit_api},'ISO','D000','index','1')"],
-            schelp=f"""
-            Flowgraph index used to verify the {group} checklist item.
-            The parameter should be left empty for manual checks and
-            for tool flows that bypass the SC infrastructure.""")
-
-    scparam(cfg,[*path, standard, item, 'report', metric],
+    scparam(cfg,[*path, standard, item, 'report'],
             sctype='[file]',
             shorthelp=f"{emit_help} item metric report",
             switch=f"-{emit_group}_report '{emit_switch}standard item metric <file>'",
@@ -2829,8 +2816,7 @@ def schema_checklist(cfg, group='checklist'):
                 f"api: chip.set({emit_api},'ISO','D000','report','hold', 'my.rpt')"],
             schelp=f"""
             Filepath to report(s) of specified type documenting the successful
-            validation of the {group} checklist item. Specified on a per
-            metric basis.""")
+            validation of the {group} checklist item.""")
 
     scparam(cfg,[*path, standard, item, 'waiver', metric],
             sctype='[file]',
