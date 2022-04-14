@@ -10,4 +10,5 @@ include CMakeLists.txt
 graft siliconcompiler/leflib
 graft siliconcompiler/templates
 graft siliconcompiler/tools
+graft siliconcompiler/checklists
 graft third_party/tools/openroad/tools/OpenROAD/src/odb/src/lef

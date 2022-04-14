@@ -96,11 +96,13 @@ if not on_rtd:
 else:
     skbuild_args = {}
 
-tool_package_data = []
-for f in glob.glob('siliconcompiler/tools/**/*', recursive=True):
-    if os.path.isfile(f):
-        # strip off directory and add to list
-        tool_package_data.append(f[len('siliconcompiler/tools/'):])
+def get_package_data(item):
+    package_data = []
+    for f in glob.glob(f'siliconcompiler/{item}/**/*', recursive=True):
+        if os.path.isfile(f):
+            # strip off directory and add to list
+            package_data.append(f[len(f'siliconcompiler/{item}/'):])
+    return package_data
 
 install_reqs, extras_req = parse_reqs()
 
@@ -130,7 +132,8 @@ setup(
     #include_package_data=True,
     package_data={
         'siliconcompiler': ['templates/*.j2', 'templates/report/*'],
-        'siliconcompiler.tools': tool_package_data
+        'siliconcompiler.tools': get_package_data('tools'),
+        'siliconcompiler.checklists': get_package_data('checklists'),
     },
 
     python_requires=">=3.6",

@@ -35,7 +35,7 @@ def test_setget():
         if tuplematch:
             keypath = tuplematch.group(1).split(',')
             tuplestr = tuplematch.group(2)
-            if '(str,str)' in sctype:
+            if sctype.strip('[]').startswith('(str,'):
                 tuplestr = re.sub(r'[\(\)\'\s]','',tuplestr)
                 value = tuple(tuplestr.split(','))
             else:

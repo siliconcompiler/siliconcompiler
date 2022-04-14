@@ -108,7 +108,8 @@ class Chip:
         self._loaded_modules = {
             'flows': [],
             'pdks': [],
-            'libs': []
+            'libs': [],
+            'checklists': []
         }
 
     ###########################################################################
@@ -444,7 +445,7 @@ class Chip:
         * pdks/modulname.py
 
         If the moduletype is None, the module paths are search in the
-        order: 'targets'->'flows'->'tools'->'pdks'->'libs'):
+        order: 'targets'->'flows'->'tools'->'pdks'->'libs'->'checklists'):
 
 
         Supported functions include:
@@ -459,7 +460,7 @@ class Chip:
         Args:
             modulename (str): Name of module to import.
             funcname (str): Name of the function to find within the module.
-            moduletype (str): Type of module (flows, pdks, libs, targets).
+            moduletype (str): Type of module (flows, pdks, libs, checklists, targets).
 
         Examples:
             >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdks')
@@ -470,14 +471,16 @@ class Chip:
 
         # module search path depends on modtype
         if moduletype is None:
-            for item in ('targets', 'flows', 'pdks', 'libs'):
-                relpath = f"{item}/{modulename}.py"
-                fullpath = self._find_sc_file(relpath, missing_ok=True)
+            for item in ('targets', 'flows', 'tools', 'pdks', 'libs', 'checklists'):
+                fullpath = self.find_function(modulename, funcname, module_type=item)
                 if fullpath:
-                    break;
+                    break
+                self.logger.error(f"Could not find module {modulename}")
+                self.error = 1
+                return None
         elif moduletype in ('targets','flows', 'pdks', 'libs'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}.py", missing_ok=True)
-        elif moduletype in ('tools'):
+        elif moduletype in ('tools', 'checklists'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}/{modulename}.py", missing_ok=True)
         else:
             self.logger.error(f"Illegal module type '{moduletype}'.")
@@ -606,6 +609,31 @@ class Chip:
         else:
             self.logger.error(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
             raise SiliconCompilerError(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
+
+    ##########################################################################
+    def load_checklist(self, name):
+        """
+        Loads a checklist module and runs the setup() function.
+
+        The function searches the $SCPATH for checklist/<name>/<name>.py and runs
+        the setup function in that module if found.
+
+        Args:
+            name (str): Module name
+
+        Examples:
+            >>> chip.load_checklist('oh_tapeout')
+            Loads the 'oh_tapeout' checklist
+
+        """
+
+        func = self.find_function(name, 'setup', 'checklists')
+        if func is not None:
+            self._loaded_modules['checklists'].append(name)
+            func(self)
+        else:
+            self.logger.error(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
+            raise SiliconCompilerError(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
 
 
     ###########################################################################
@@ -770,7 +798,7 @@ class Chip:
         return self._search(cfg, keypathstr, *keypath, field=field, mode='get')
 
     ###########################################################################
-    def getkeys(self, *keypath, cfg=None):
+    def getkeys(self, *keypath, cfg=None, job=None):
         """
         Returns a list of schema dictionary keys.
 
@@ -780,8 +808,10 @@ class Chip:
         Chip object error flag.
 
         Args:
-            keypath(list str): Variable length ordered schema key list
-            cfg(dict): Alternate dictionary to access in place of self.cfg
+            keypath (list str): Variable length ordered schema key list
+            cfg (dict): Alternate dictionary to access in place of self.cfg
+            job (str): Jobname to use for dictionary access in place of the
+                current active jobname.
 
         Returns:
             List of keys found for the keypath provided.
@@ -794,7 +824,10 @@ class Chip:
         """
 
         if cfg is None:
-            cfg = self.cfg
+            if job is None:
+                cfg = self.cfg
+            else:
+                cfg = self.cfg['history'][job]
 
         if len(list(keypath)) > 0:
             keypathstr = ','.join(keypath)
@@ -1085,13 +1118,13 @@ class Chip:
                                 return_list.append(int(item))
                             elif sctype == 'float':
                                 return_list.append(float(item))
-                            elif sctype == '(str,str)':
+                            elif sctype.startswith('(str,'):
                                 if isinstance(item,tuple):
                                     return_list.append(item)
                                 else:
                                     tuplestr = re.sub(r'[\(\)\'\s]','',item)
                                     return_list.append(tuple(tuplestr.split(',')))
-                            elif sctype == '(float,float)':
+                            elif sctype.startswith('(float,'):
                                 if isinstance(item,tuple):
                                     return_list.append(item)
                                 else:
@@ -1254,7 +1287,7 @@ class Chip:
         return result
 
     ###########################################################################
-    def find_files(self, *keypath, cfg=None, missing_ok=False):
+    def find_files(self, *keypath, cfg=None, missing_ok=False, job=None):
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -1271,6 +1304,10 @@ class Chip:
             keypath (list str): Variable length schema key list.
             cfg (dict): Alternate dictionary to access in place of the default
                 chip object schema dictionary.
+            missing_ok (bool): If True, silently return None when files aren't
+                found. If False, print an error and set the error flag.
+            job (str): Jobname to use for dictionary access in place of the
+                current active jobname.
 
         Returns:
             If keys points to a scalar entry, returns an absolute path to that
@@ -1287,11 +1324,11 @@ class Chip:
         if cfg is None:
             cfg = self.cfg
 
-        copyall = self.get('copyall', cfg=cfg)
-        paramtype = self.get(*keypath, field='type', cfg=cfg)
+        copyall = self.get('copyall', cfg=cfg, job=job)
+        paramtype = self.get(*keypath, field='type', cfg=cfg, job=job)
 
         if 'file' in paramtype:
-            copy = self.get(*keypath, field='copy', cfg=cfg)
+            copy = self.get(*keypath, field='copy', cfg=cfg, job=job)
         else:
             copy = False
 
@@ -1302,7 +1339,7 @@ class Chip:
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        paths = self.get(*keypath, cfg=cfg)
+        paths = self.get(*keypath, cfg=cfg, job=job)
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
@@ -1318,7 +1355,7 @@ class Chip:
                 io = ""
             else:
                 io = keypath[2] + 's'
-            iodir = os.path.join(self._getworkdir(step=step, index=index), io)
+            iodir = os.path.join(self._getworkdir(jobname=job, step=step, index=index), io)
             for path in paths:
                 abspath = os.path.join(iodir, path)
                 if os.path.isfile(abspath):
@@ -1328,7 +1365,7 @@ class Chip:
         for path in paths:
             if (copyall or copy) and ('file' in paramtype):
                 name = self._get_imported_filename(path)
-                abspath = os.path.join(self._getworkdir(step='import'), 'outputs', name)
+                abspath = os.path.join(self._getworkdir(jobname=job, step='import'), 'outputs', name)
                 if os.path.isfile(abspath):
                     # if copy is True and file is found in import outputs,
                     # continue. Otherwise, fall through to _find_sc_file (the
@@ -1343,7 +1380,7 @@ class Chip:
         return result
 
     ###########################################################################
-    def find_result(self, filetype, step, jobname='job0', index='0'):
+    def find_result(self, filetype, step, jobname=None, index='0'):
         """
         Returns the absolute path of a compilation result.
 
@@ -1366,6 +1403,8 @@ class Chip:
             >>> manifest_filepath = chip.find_result('.vg', 'syn')
            Returns the absolute path to the manifest.
         """
+        if jobname is None:
+            jobname = self.get('jobname')
 
         workdir = self._getworkdir(jobname, step, index)
         design = self.get('design')
@@ -1971,22 +2010,29 @@ class Chip:
                 self.error = 1
 
     ###########################################################################
-    def check_checklist(self, standard, item=None):
+    def check_checklist(self, standard, items=None, check_ok=False):
         '''
-        Check an item in checklist.
+        Check items in a checklist.
 
-        Checks the status of an item in the checklist for the standard
-        provided. If the item is unspecified, all items are checked.
+        Checks the status of items in a checklist for the standard provided. If
+        a specific list of items is unspecified, all items are checked.
 
-        The function relies on the checklist 'criteria' parameter and
-        'step' parameter to check for the existence of report filess
-        and a passing metric based criteria. Checklist items with
-        empty 'report' values or unmet criteria result in error messages
-        and raising the error flag.
+        All items have an associated 'task' parameter, which indicates which
+        tasks can be used to automatically validate the item. For an item to be
+        checked, all tasks must satisfy the item's criteria, unless waivers are
+        provided. In addition, that task must have generated EDA report files
+        for each metric in the criteria.
+
+        For items without an associated task, the only requirement is that at
+        least one report has been added to that item.
+
+        When 'check_ok' is True, every item must also have its 'ok' parameter
+        set to True, indicating that a human has reviewed the item.
 
         Args:
-            standard(str): Standard to check.
-            item(str): Item to check from standard.
+            standard (str): Standard to check.
+            items (list of str): Items to check from standard.
+            check_ok (bool): Whether to check item 'ok' parameter.
 
         Returns:
             Status of item check.
@@ -1996,61 +2042,81 @@ class Chip:
             Returns status.
         '''
 
-        if item is None:
+        self.logger.info(f'Checking checklist {standard}')
+
+        if items is None:
             items = self.getkeys('checklist', standard)
-        else:
-            items = [item]
 
         flow = self.get('flow')
-        global_check = True
 
         for item in items:
-            step = self.get('checklist', standard, item, 'step')
-            index = self.get('checklist', standard, item, 'index')
             all_criteria = self.get('checklist', standard, item, 'criteria')
-            report_ok = False
-            criteria_ok = True
-            # manual
-            if step not in self.getkeys('flowgraph',flow):
-                #criteria not used, so always ok
-                criteria_ok = True
-                if len(self.getkeys('checklist',standard, item, 'report')) <2:
-                    self.logger.error(f"No report found for {item}")
-                    report_ok = False
-            else:
-                tool = self.get('flowgraph', flow, step, index, 'tool')
-                # copy report paths over to checklsit
-                for reptype in self.getkeys('eda', tool, 'report', step, index):
-                    report_ok = True
-                    report = self.get('eda', tool, 'report', step, index, reptype)
-                    self.set('checklist', standard, item, 'report', reptype, report)
-                # quantifiable checklist criteria
-                for criteria in all_criteria:
-                    m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
-                    if not m:
-                        self.logger.error(f"Illegal checklist criteria: {criteria}")
-                        return False
-                    elif m.group(1) not in self.getkeys('metric', step, index):
-                        self.logger.error(f"Critera must use legal metrics only: {criteria}")
-                        return False
+            for criteria in all_criteria:
+                m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
+                if not m:
+                    self.logger.error(f"Illegal checklist criteria: {criteria}")
+                    self.error = 1
+                    return False
+                elif m.group(1) not in self.getkeys('metric', 'default', 'default'):
+                    self.logger.error(f"Critera must use legal metrics only: {criteria}")
+                    self.error = 1
+                    return False
+
+                metric = m.group(1)
+                op = m.group(2)
+                goal = float(m.group(3))
+
+                tasks = self.get('checklist', standard, item, 'task')
+                for job, step, index in tasks:
+                    # Automated checks
+                    flow = self.get('flow', job=job)
+                    tool = self.get('flowgraph', flow, step, index, 'tool', job=job)
+
+                    value = self.get('metric', step, index, metric, 'real', job=job)
+                    criteria_ok = self._safecompare(value, op, goal)
+                    if metric in self.getkeys('checklist', standard, item, 'waiver'):
+                        waivers = self.get('checklist', standard, item, 'waiver', metric)
                     else:
-                        param = m.group(1)
-                        op = m.group(2)
-                        goal = str(m.group(3))
-                        value = str(self.get('metric', step, index, param, 'real'))
-                        criteria_ok = self._safecompare(value, op, goal)
+                        waivers = []
 
-            #item check
-            if not report_ok:
-                self.logger.error(f"Report missing for checklist: {standard} {item}")
-                global_check = False
-                self.error = 1
-            elif not criteria_ok:
-                self.logger.error(f"Criteria check failed for checklist: {standard} {item}")
-                global_check = False
-                self.error = 1
+                    criteria_str = f'{metric}{op}{goal}'
+                    if not criteria_ok and waivers:
+                        self.logger.warning(f'{item} criteria {criteria_str} unmet by task {step}{index}, but found waivers.')
+                    elif not criteria_ok:
+                        self.logger.error(f'{item} criteria {criteria_str} unmet by task {step}{index}.')
+                        self.error = 1
+                        return False
 
-        return global_check
+                    if (step in self.getkeys('eda', tool, 'report', job=job) and
+                        index in self.getkeys('eda', tool, 'report', step, job=job) and
+                        metric in self.getkeys('eda', tool, 'report', step, index, job=job)):
+                        eda_reports = self.find_files('eda', tool, 'report', step, index, metric, job=job)
+                    else:
+                        eda_reports = None
+
+                    if not eda_reports:
+                        self.logger.error(f'No EDA reports generated for metric {metric} in task {step}{index}')
+                        self.error = 1
+                        return False
+
+                    for report in eda_reports:
+                        if report not in self.get('checklist', standard, item, 'report'):
+                            self.add('checklist', standard, item, 'report', report)
+
+            if len(self.get('checklist', standard, item, 'report')) == 0:
+                # TODO: validate that report exists?
+                self.logger.error(f'No report documenting item {item}')
+                self.error = 1
+                return False
+
+            if check_ok and not self.get('checklist', standard, item, 'ok'):
+                self.logger.error(f"Item {item} 'ok' field not checked")
+                self.error = 1
+                return False
+
+        self.logger.info('Check succeeded!')
+
+        return True
 
     ###########################################################################
     def read_file(self, filename, step='import', index='0'):
@@ -4083,8 +4149,7 @@ class Chip:
             # ignore history in case of cumulative history
             if key[0] != 'history':
                 scope = self.get(*key, field='scope')
-                value = self.get(*key)
-                if value and (scope == 'job'):
+                if not self._keypath_empty(key) and (scope == 'job'):
                     self._copyparam(self.cfg,
                                     self.cfg['history'][jobname],
                                     key)
