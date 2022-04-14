@@ -546,11 +546,11 @@
                     "type": "str",
                     "value": null
                 },
-                "tasks": {
+                "task": {
                     "defvalue": [],
                     "example": [
-                        "cli: -checklist_tasks 'ISO D000 (job0,place,0)'",
-                        "api: chip.set('checklist','ISO','D000','tasks',('job0','place','0'))"
+                        "cli: -checklist_task 'ISO D000 (job0,place,0)'",
+                        "api: chip.set('checklist','ISO','D000','task',('job0','place','0'))"
                     ],
                     "help": "Flowgraph job and task used to verify the checklist checklist item.\nThe parameter should be left empty for manual and for tool\nflows that bypass the SC infrastructure.",
                     "lock": "false",
@@ -558,7 +558,7 @@
                     "scope": "global",
                     "shorthelp": "Checklist item task",
                     "signature": [],
-                    "switch": "-checklist_tasks 'standard item <(str, str, str)>'",
+                    "switch": "-checklist_task 'standard item <(str, str, str)>'",
                     "type": "[(str,str,str)]",
                     "value": []
                 },
@@ -2117,11 +2117,11 @@
                             "type": "str",
                             "value": null
                         },
-                        "tasks": {
+                        "task": {
                             "defvalue": [],
                             "example": [
-                                "cli: -library_checklist_tasks 'lib ISO D000 (job0,place,0)'",
-                                "api: chip.set('library','default','checklist','ISO','D000','tasks',('job0','place','0'))"
+                                "cli: -library_checklist_task 'lib ISO D000 (job0,place,0)'",
+                                "api: chip.set('library','default','checklist','ISO','D000','task',('job0','place','0'))"
                             ],
                             "help": "Flowgraph job and task used to verify the library checklist item.\nThe parameter should be left empty for manual and for tool\nflows that bypass the SC infrastructure.",
                             "lock": "false",
@@ -2129,7 +2129,7 @@
                             "scope": "global",
                             "shorthelp": "Library checklist item task",
                             "signature": [],
-                            "switch": "-library_checklist_tasks 'lib standard item <(str, str, str)>'",
+                            "switch": "-library_checklist_task 'lib standard item <(str, str, str)>'",
                             "type": "[(str,str,str)]",
                             "value": []
                         },

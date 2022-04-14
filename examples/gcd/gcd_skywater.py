@@ -59,20 +59,20 @@ def main():
 
     chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'waiver', 'warnings', waiver_path)
 
-    chip.set('checklist', 'oh_tapeout', 'drc_clean', 'tasks', ('signoff', 'drc', '0'))
-    chip.set('checklist', 'oh_tapeout', 'lvs_clean', 'tasks', ('signoff', 'lvs', '0'))
-    chip.set('checklist', 'oh_tapeout', 'setup_time', 'tasks', ('rtl2gds', 'dfm', '0'))
+    chip.set('checklist', 'oh_tapeout', 'drc_clean', 'task', ('signoff', 'drc', '0'))
+    chip.set('checklist', 'oh_tapeout', 'lvs_clean', 'task', ('signoff', 'lvs', '0'))
+    chip.set('checklist', 'oh_tapeout', 'setup_time', 'task', ('rtl2gds', 'dfm', '0'))
 
     for step in chip.getkeys('flowgraph', 'asicflow'):
         for index in chip.getkeys('flowgraph', 'asicflow', step):
             tool = chip.get('flowgraph', 'asicflow', step, index, 'tool')
             if tool not in chip.builtin:
-                chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'tasks', ('rtl2gds', step, index))
+                chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'task', ('rtl2gds', step, index))
     for step in chip.getkeys('flowgraph', 'signoffflow'):
         for index in chip.getkeys('flowgraph', 'signoffflow', step):
             tool = chip.get('flowgraph', 'signoffflow', step, index, 'tool')
             if tool not in chip.builtin:
-                chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'tasks', ('signoff', step, index))
+                chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'task', ('signoff', step, index))
 
     status = chip.check_checklist('oh_tapeout')
     if not status:

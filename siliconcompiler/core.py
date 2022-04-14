@@ -1999,7 +1999,7 @@ class Chip:
         Checks the status of items in a checklist for the standard provided. If
         a specific list of items is unspecified, all items are checked.
 
-        All items have an associated 'tasks' parameter, which indicates which
+        All items have an associated 'task' parameter, which indicates which
         tasks can be used to automatically validate the item. For an item to be
         checked, all tasks must satisfy the item's criteria, unless waivers are
         provided. In addition, that task must have generated EDA report files
@@ -2048,7 +2048,7 @@ class Chip:
                 op = m.group(2)
                 goal = float(m.group(3))
 
-                tasks = self.get('checklist', standard, item, 'tasks')
+                tasks = self.get('checklist', standard, item, 'task')
                 for job, step, index in tasks:
                     # Automated checks
                     flow = self.get('flow', job=job)

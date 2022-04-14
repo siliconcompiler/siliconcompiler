@@ -2795,13 +2795,13 @@ def schema_checklist(cfg, group='checklist'):
             a metric, a relational operator, and a value in the form.
             'metric op value'.""")
 
-    scparam(cfg,[*path, standard, item, 'tasks'],
+    scparam(cfg,[*path, standard, item, 'task'],
             sctype='[(str,str,str)]',
             shorthelp=f"{emit_help} item task",
-            switch=f"-{emit_group}_tasks '{emit_switch}standard item <(str, str, str)>'",
+            switch=f"-{emit_group}_task '{emit_switch}standard item <(str, str, str)>'",
             example=[
-                f"cli: -{emit_group}_tasks '{emit_switch}ISO D000 (job0,place,0)'",
-                f"api: chip.set({emit_api},'ISO','D000','tasks',('job0','place','0'))"],
+                f"cli: -{emit_group}_task '{emit_switch}ISO D000 (job0,place,0)'",
+                f"api: chip.set({emit_api},'ISO','D000','task',('job0','place','0'))"],
             schelp=f"""
             Flowgraph job and task used to verify the {group} checklist item.
             The parameter should be left empty for manual and for tool
