@@ -1,41 +1,27 @@
 '''Benchmark to measure time taken per simple task with large flowgraphs.
 
-Running this file determines the average time taken per task on long serial or
-parallel flowgraphs of 10, 100, 250, and 500 simple "echo" tasks.
+$ ./examples/benchmark/scalability.py serial <N> <S>
+Runs a serial flowgraph with N tasks and output "done" after S steps.
 
-Since it would take too long to measure the entire run with a flowgraph of such
-a length, we perform a weird trick to measure just the first "STEPS_TO_RUN"
-tasks. Instead of calling "run_long_serial()" directly, this file calls back into
-itself using "subprocess", using a CLI argument to change the codepath. That way,
-it can monitor stdout to start timing when it sees the initial "import" echo (so
-that it doesn't measure start-up time), and finish timing and end the process
-when it sees the "done" echo.
-
-While it would be more straightforward to do this with a steplist, using a
-steplist removes some of the overhead we're trying to measure (e.g. the flooding
-scheduler only launches processes based on what's in the steplist).
+$ ./examples/benchmark/scalability.py parallel <N>
+Runs a parallel flowgraph with N parallel tasks.
 '''
+
 import siliconcompiler
 
-import signal
-import subprocess
 import sys
-import time
 
-STEPS_TO_RUN = 10
-
-def run_long_serial(N):
+def run_long_serial(N, steps_to_run):
     chip = siliconcompiler.Chip()
     flow = 'test_long_serial'
     pipe = [{'import': 'echo'}]
-    pipe += [{f'measured{i}': 'echo'} for i in range(STEPS_TO_RUN - 1)]
+    pipe += [{f'measured{i}': 'echo'} for i in range(steps_to_run - 1)]
     pipe += [{'done': 'echo'}]
-    pipe += [{f'extra{i}': 'echo'} for i in range(N - (STEPS_TO_RUN + 1))]
+    pipe += [{f'extra{i}': 'echo'} for i in range(N - (steps_to_run + 1))]
 
     chip.set('design', 'test_long_serial')
     chip.set('flow', flow)
     chip.set('mode', 'sim')
-    chip.set('skipcheck', True)
     chip.pipe(flow, pipe)
     chip.run()
 
@@ -54,41 +40,16 @@ def run_wide_parallel(N):
     chip.set('design', 'test_long_serial')
     chip.set('flow', flow)
     chip.set('mode', 'sim')
-    chip.set('skipcheck', True)
     chip.run()
 
 def main():
-    if len(sys.argv) > 2:
-        # Running this file with an argument executes the "run_long_serial"
-        # benchmark.
-        N = int(sys.argv[2])
-        if sys.argv[1] == 'serial':
-            run_long_serial(N)
-        elif sys.argv[1] == 'parallel':
-            run_wide_parallel(N)
-        return
-
-    # Without an argument, we loop over a set of values to try, and re-run this
-    # script with those values provided as arguments.
-    results = {}
-    for N in (10, 100, 250):
-        proc = subprocess.Popen(['python', sys.argv[0], sys.argv[1], str(N)],
-                                 stdout=subprocess.PIPE)
-        for line in proc.stdout:
-            line = line.decode('ascii')
-            if line.startswith('import0'):
-                start = time.time()
-            if line.startswith('done'):
-                end = time.time()
-                proc.send_signal(signal.SIGINT)
-                proc.wait()
-                break
-
-        time_per_task = (end - start) / STEPS_TO_RUN
-        results[N] = time_per_task
-
-    for N, time_per_task in results.items():
-        print(f'{N}, {time_per_task}')
+    num_tasks = int(sys.argv[2])
+    if sys.argv[1] == 'serial':
+        steps_to_run = int(sys.argv[3])
+        run_long_serial(num_tasks, steps_to_run)
+    elif sys.argv[1] == 'parallel':
+        run_wide_parallel(num_tasks)
+    return
 
 if __name__ == '__main__':
     main()
