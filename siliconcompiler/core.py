@@ -1520,13 +1520,15 @@ class Chip:
         """
         if job is not None:
             # fill ith default schema before populating
-            self.cfghistory[job] = schema_cfg()
-            dst = self.cfghistory[job]
+            self.cfg['history'][job] = schema_cfg()
+            dst = self.cfg['history'][job]
         else:
             dst = self.cfg
 
         for keylist in self.getkeys(cfg=cfg):
             if partial and keylist[0] not in ('metric', 'flowstatus', 'record'):
+                continue
+            if keylist[0] == 'history':
                 continue
             #only read in valid keypaths without 'default'
             key_valid = True
@@ -1939,6 +1941,15 @@ class Chip:
 
         #Merging arguments with the Chip configuration
         self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
+
+        # Read history
+        if 'history' in localcfg and not partial:
+            for historic_job in localcfg['history'].keys():
+                self._merge_manifest(localcfg['history'][historic_job],
+                                    job=historic_job,
+                                    clear=clear,
+                                    clobber=clobber,
+                                    partial=False)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
