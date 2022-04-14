@@ -2046,7 +2046,7 @@ class Chip:
 
                 metric = m.group(1)
                 op = m.group(2)
-                goal = str(m.group(3))
+                goal = float(m.group(3))
 
                 tasks = self.get('checklist', standard, item, 'tasks')
                 for job, step, index in tasks:
@@ -2054,7 +2054,7 @@ class Chip:
                     flow = self.get('flow', job=job)
                     tool = self.get('flowgraph', flow, step, index, 'tool', job=job)
 
-                    value = str(self.get('metric', step, index, metric, 'real', job=job))
+                    value = self.get('metric', step, index, metric, 'real', job=job)
                     criteria_ok = self._safecompare(value, op, goal)
                     if metric in self.getkeys('checklist', standard, item, 'waiver'):
                         waivers = self.get('checklist', standard, item, 'waiver', metric)
@@ -2086,6 +2086,7 @@ class Chip:
                             self.add('checklist', standard, item, 'report', report)
 
             if len(self.get('checklist', standard, item, 'report')) == 0:
+                # TODO: validate that report exists?
                 self.logger.error(f'No report documenting item {item}')
                 self.error = 1
                 return False
