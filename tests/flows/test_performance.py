@@ -45,6 +45,7 @@ def run_scalability_test(scroot):
 # only run daily on our runner (which is also faster than GH machines).
 
 @pytest.mark.eda
+@pytest.mark.skip(reason='Test runner is slow')
 def test_long_serial(run_scalability_test):
     steps_to_run = 10
     results = run_scalability_test('serial', (10, 100, 250), steps_to_run)
@@ -57,6 +58,7 @@ def test_long_serial(run_scalability_test):
         assert time_per_task < 1
 
 @pytest.mark.eda
+@pytest.mark.skip(reason='Test runner is slow')
 def test_wide_parallel(run_scalability_test):
     results = run_scalability_test('parallel', (10, 100, 250))
     for n, total_time in results.items():
