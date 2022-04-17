@@ -125,6 +125,9 @@ def schema_cfg():
     # Constraints
     #cfg = schema_constraints(cfg)
 
+    # Unified package manager
+    cfg = schema_sup(cfg)
+
     # Project configuration
     cfg = schema_package(cfg, 'package')
     cfg = schema_checklist(cfg)
@@ -136,13 +139,12 @@ def schema_cfg():
 
     # Flow Information
     cfg = schema_flowgraph(cfg)
-    cfg = schema_flowstatus(cfg)
     cfg = schema_eda(cfg)
 
     # PDK
     cfg = schema_pdk(cfg)
 
-    # Package management
+    # Active library management
     cfg = schema_libs(cfg)
     cfg = schema_package(cfg, 'library')
     cfg = schema_checklist(cfg, 'library')
@@ -150,6 +152,7 @@ def schema_cfg():
     # Compilation records
     cfg = schema_metric(cfg)
     cfg = schema_record(cfg)
+    cfg = schema_flowstatus(cfg)
 
     return cfg
 
@@ -1895,6 +1898,43 @@ def schema_metric(cfg, step='default', index='default',group='default'):
 
     return cfg
 
+
+###########################################################################
+# Silicon Unified Packager (SUP)
+###########################################################################
+
+def schema_sup(cfg, module='default'):
+
+    scparam(cfg, ['registry'],
+            sctype='[dir]',
+            shorthelp=f"SUP registry",
+            switch=f"-registry <dir>",
+            example=[
+                f"cli: -registry '~/myregistry'",
+                f"api: chip.set('registry','~/myregistry')"],
+            schelp=f"""
+            List of Silicon Unified Packager (SUP) registry directories.
+            Directories can be local file system folders or
+            publicly available registries served up over http. The naming
+            convention for registry packages is:
+            <name>/<name>-<version>.json(.<gz>)?
+            """)
+
+    scparam(cfg, ['depgraph', module],
+            sctype='[str,str]',
+            shorthelp=f"SUP dependencies",
+            switch=f"-depgraph 'module <(str,str)>'",
+            example=[
+                f"cli: -depgraph 'top (cpu,1.0.1)'",
+                f"api: chip.set('depgraph','top',('cpu', '1.0.1')"],
+            schelp=f"""
+            List of Silicon Unified Packager (SUP) dependencies
+            used by the design specified on a per module basis a
+            list of string tuples ('name','version').""")
+
+    return cfg
+
+
 ###########################################################################
 # Design Tracking
 ###########################################################################
@@ -2630,7 +2670,7 @@ def schema_package(cfg, group):
             shorthelp=f"{shelp} version dependancies",
             switch=f"-{switch}_dependency '{keys}<str>'",
             example=[
-                f"cli: -{switch}_dependency '{keys}hell0 1.0'",
+                f"cli: -{switch}_dependency '{keys}hello 1.0'",
                 f"api: chip.set({api},'dependency','hello', '1.0')"],
             schelp=f"""{shelp} dependencies specified as a key value pair.
             Versions shall follow the semver standard.""")
