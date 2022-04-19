@@ -1907,7 +1907,7 @@ def schema_sup(cfg, module='default'):
 
     scparam(cfg, ['registry'],
             sctype='[dir]',
-            shorthelp=f"SUP registry",
+            shorthelp=f"Package registry",
             switch=f"-registry <dir>",
             example=[
                 f"cli: -registry '~/myregistry'",
@@ -1921,8 +1921,8 @@ def schema_sup(cfg, module='default'):
             """)
 
     scparam(cfg, ['depgraph', module],
-            sctype='[str,str]',
-            shorthelp=f"SUP dependencies",
+            sctype='[(str,str)]',
+            shorthelp=f"Package dependency list",
             switch=f"-depgraph 'module <(str,str)>'",
             example=[
                 f"cli: -depgraph 'top (cpu,1.0.1)'",
@@ -2572,7 +2572,7 @@ def schema_package(cfg, group):
         shelp = "Package"
         switch = 'package'
         keys = ""
-        api = "package"
+        api = "'package'"
 
     name = 'default'
 
@@ -2671,7 +2671,7 @@ def schema_package(cfg, group):
             switch=f"-{switch}_dependency '{keys}<str>'",
             example=[
                 f"cli: -{switch}_dependency '{keys}hello 1.0'",
-                f"api: chip.set({api},'dependency','hello', '1.0')"],
+                f"api: chip.set({api},'dependency','hello','1.0')"],
             schelp=f"""{shelp} dependencies specified as a key value pair.
             Versions shall follow the semver standard.""")
 
