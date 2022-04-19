@@ -43,7 +43,8 @@ def test_sup():
         chip.set('package', 'dependency', i, '0.0.0')
     chip.update()
 
-    # 4. Dump dependency tree
+    # 4. Dump updated manifest and depgraph
+    chip.write_manifest('top.json')
     chip.write_depgraph('tree.png')
 
 #########################
