@@ -2142,11 +2142,52 @@ class Chip:
         Update the chip dependency graph.
         '''
 
-        #1. Find all packages in registries
-        #2. Place in local hash
-        #3. Cycle through hash and update depgraph in schema
+        #1. Find all packages in cache
+        #2. Cycle through hash and update depgraph in schema
+
+        # Cache directory
+        if 'SC_CACHE' in os.environ:
+            cachedir = os.environ['SC_CACHE']
+        else:
+            cachedir = os.path.join(os.environ['HOME'],'.sc','registry')
+
+        design = self.get('design')
+
+        # Cycle through current chip dependencies
+        for item in self.getkeys('package', 'dependency'):
+            #TODO: add support for version list
+            version = self.get('package', 'dependency', item)
+            self._find_dependency(cachedir, design, item, version)
 
         return(0)
+
+    ###########################################################################
+    def _find_dependency(self, cachedir, design, dep, version):
+        '''
+        Recursive function to find dependencies in cache.
+        '''
+
+        # Register dependency in graph and check existence in cache.
+        found = False
+        for item in list(version):
+            packdir = os.path.join(cachedir, dep, item)
+            packfile = os.path.join(packdir, f"{dep}-{item}.sup")
+            self.add('depgraph', design, (dep,item))
+            if os.path.isfile(packfile):
+                found = True
+        if not found:
+            self.logger.error(f"Missing dependency {dep}-{item}. Install with sup.")
+            sys.exit()
+
+        # Look inside sup for more dependencies
+        with open(packfile, 'r') as f:
+            localcfg = json.load(f)
+        f.close()
+        if 'dependency' in localcfg['package']:
+            design = localcfg['design']['value']
+            for dep in localcfg['package']['dependency'].keys():
+                version = localcfg['package']['dependency'][dep]['value']
+                self._find_dependency(cachedir, design, dep, version)
 
     ###########################################################################
     def update_library(self, name=None):
