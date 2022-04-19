@@ -1434,22 +1434,26 @@ class Chip:
                     self.set(*keypath, abspaths, cfg=cfg)
 
     ###########################################################################
-    def _print_csv(self, cfg, file=None):
+    def _print_csv(self, cfg, fout=None):
         allkeys = self.getkeys(cfg=cfg)
         for key in allkeys:
             keypath = f'"{",".join(key)}"'
             value = self.get(*key, cfg=cfg)
             if isinstance(value,list):
                 for item in value:
-                    print(f"{keypath},{item}", file=file)
+                    fout.write(f"{keypath},{item}")
             else:
-                print(f"{keypath},{value}", file=file)
+                fout.write(f"{keypath},{value}")
 
     ###########################################################################
-    def _print_tcl(self, cfg, file=None, prefix=""):
+    def _print_tcl(self, cfg, fout=None, prefix=""):
         '''
         Prints out schema as TCL dictionary
         '''
+
+        fout.write("#############################################")
+        fout.write("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!")
+        fout.write("#############################################")
 
         allkeys = self.getkeys(cfg=cfg)
 
@@ -1480,10 +1484,9 @@ class Chip:
             valstr = ' '.join(map(str, alist)).replace(';', '\\;')
             outstr = f"{prefix} {keystr} [list {valstr}]\n"
 
-            #print out all nom default values
+            #print out all non default values
             if 'default' not in key:
-                print(outstr, file=file)
-
+                fout.write(outstr)
 
     ###########################################################################
 
@@ -1925,19 +1928,26 @@ class Chip:
         partial (bool): If True, perform a partial merge, only merging keypaths
         that may have been updated during run().
         """
-        abspath = os.path.abspath(filename)
-        self.logger.debug('Reading manifest %s', abspath)
+        filepath = os.path.abspath(filename)
+        self.logger.debug('Reading manifest %s', filepath)
 
         #Read arguments from file based on file type
-        with open(abspath, 'r') as f:
-            if abspath.endswith('.json') | abspath.endswith('.sup'):
-                localcfg = json.load(f)
-            elif abspath.endswith('.yaml') | abspath.endswith('.yml'):
-                localcfg = yaml.load(f, Loader=yaml.SafeLoader)
+
+        if filepath.endswith('.gz'):
+            fin =  gzip.open(filepath, 'r')
+        else:
+            fin =  open(filepath, 'r')
+
+        try:
+            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
+                localcfg = json.load(fin)
+            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
+                localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
             else:
+                self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
-                self.logger.error('Illegal file format. Only json/yaml supported')
-        f.close()
+        finally:
+            fin.close()
 
         #Merging arguments with the Chip configuration
         self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
@@ -1993,32 +2003,27 @@ class Chip:
         if abspath:
             self._abspath(cfgcopy)
 
-        # TODO: fix
-        #remove long help (adds no value)
-        #allkeys = self.getkeys(cfg=cfgcopy)
-        #for key in allkeys:
-        #    self.set(*key, "...", cfg=cfgcopy, field='help')
-
         # format specific dumping
-        with open(filepath, 'w') as f:
-            if filepath.endswith('.json') | filepath.endswith('.sup'):
-                print(json.dumps(cfgcopy, indent=4, sort_keys=True), file=f)
-            elif filepath.endswith('.yaml') | filepath.endswith('yml'):
-                print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-            elif filepath.endswith('.core'):
-                cfgfuse = self._dump_fusesoc(cfgcopy)
-                print("CAPI=2:", file=f)
-                print(yaml.dump(cfgfuse, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-            elif filepath.endswith('.tcl'):
-                print("#############################################", file=f)
-                print("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!", file=f)
-                print("#############################################", file=f)
-                self._print_tcl(cfgcopy, prefix="dict set sc_cfg", file=f)
-            elif filepath.endswith('.csv'):
-                self._print_csv(cfgcopy, file=f)
+        if filepath.endswith('.gz'):
+            fout =  gzip.open(filepath, 'wt', encoding='UTF-8')
+        else:
+            fout =  open(filepath, 'w')
+
+        # format specific printing
+        try:
+            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
+                fout.write(json.dumps(cfgcopy, indent=4, sort_keys=True))
+            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
+                fout.write(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False))
+            elif re.search(r'(\.tcl)(\.gz)*$', filepath):
+                self._print_tcl(cfgcopy, prefix="dict set sc_cfg", fout=fout)
+            elif re.search(r'(\.csv)(\.gz)*$', filepath):
+                self._print_csv(cfgcopy, fout=fout)
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
+        finally:
+            fout.close()
 
     ###########################################################################
     def check_checklist(self, standard, items=None, check_ok=False):
@@ -2170,7 +2175,7 @@ class Chip:
         found = False
         for item in list(version):
             packdir = os.path.join(cachedir, dep, item)
-            packfile = os.path.join(packdir, f"{dep}-{item}.sup")
+            packfile = os.path.join(packdir, f"{dep}-{item}.sup.gz")
             self.add('depgraph', design, (dep,item))
             if os.path.isfile(packfile):
                 found = True
