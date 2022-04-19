@@ -1926,7 +1926,7 @@ def schema_sup(cfg, module='default'):
             switch=f"-depgraph 'module <(str,str)>'",
             example=[
                 f"cli: -depgraph 'top (cpu,1.0.1)'",
-                f"api: chip.set('depgraph','top',('cpu', '1.0.1')"],
+                f"api: chip.set('depgraph','top',('cpu', '1.0.1'))"],
             schelp=f"""
             List of Silicon Unified Packager (SUP) dependencies
             used by the design specified on a per module basis a
