@@ -1930,7 +1930,7 @@ class Chip:
 
         #Read arguments from file based on file type
         with open(abspath, 'r') as f:
-            if abspath.endswith('.json'):
+            if abspath.endswith('.json') | abspath.endswith('.sup'):
                 localcfg = json.load(f)
             elif abspath.endswith('.yaml') | abspath.endswith('.yml'):
                 localcfg = yaml.load(f, Loader=yaml.SafeLoader)
@@ -2001,7 +2001,7 @@ class Chip:
 
         # format specific dumping
         with open(filepath, 'w') as f:
-            if filepath.endswith('.json'):
+            if filepath.endswith('.json') | filepath.endswith('.sup'):
                 print(json.dumps(cfgcopy, indent=4, sort_keys=True), file=f)
             elif filepath.endswith('.yaml') | filepath.endswith('yml'):
                 print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
@@ -2137,44 +2137,39 @@ class Chip:
         return(0)
 
     ###########################################################################
-    def package(self, filename, prune=True):
+    def update(self):
         '''
-        Create sanitized project package. (WIP)
+        Update the chip dependency graph.
+        '''
 
-        The SiliconCompiler project is filtered and exported as a JSON file.
-        If the prune option is set to True, then all metrics, records and
-        results are pruned from the package file.
+        #1. Find all packages in registries
+        #2. Place in local hash
+        #3. Cycle through hash and update depgraph in schema
 
-        Args:
-            filename (filepath): Output filepath
-            prune (bool): If True, only essential source parameters are
-                 included in the package.
+        return(0)
 
-        Examples:
-            >>> chip.package('package.json')
-            Write project information to 'package.json'
+    ###########################################################################
+    def update_library(self, name=None):
+        '''
+        Update library dictionary with dependency data.
         '''
 
         return(0)
 
     ###########################################################################
-    def publish(self, filename):
+    def write_depgraph(self, filename):
         '''
-        Publishes package to registry. (WIP)
+        Writes the package dependency tree to disk.
 
-        The filename is uploaed to a central package registry based on the
-        the user credentials found in ~/.sc/credentials.
+        Supported graphical render formats include png, svg, gif, pdf and a
+        few others. (see https://graphviz.org for more information).
 
-        Args:
-            filename (filepath): Package filename
+        Supported text formats include .md, .rst. (see the Linux 'tree'
+        command for more information).
 
-        Examples:
-            >>> chip.publish('hello.json')
-            Publish hello.json to central repository.
         '''
 
         return(0)
-
 
     ###########################################################################
     def _dump_fusesoc(self, cfg):
