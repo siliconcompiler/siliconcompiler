@@ -1905,6 +1905,18 @@ def schema_metric(cfg, step='default', index='default',group='default'):
 
 def schema_sup(cfg, module='default'):
 
+
+    scparam(cfg, ['autoinstall'],
+            sctype='bool',
+            shorthelp=f"Package auto-install option",
+            switch=f"-autoinstall <bool>",
+            example=[
+                f"cli: -autoinstall true'",
+                f"api: chip.set('autoinstall', True)"],
+            schelp=f"""
+            Enables automatic installation of missing dependencies from
+            the registry.""")
+
     scparam(cfg, ['registry'],
             sctype='[dir]',
             shorthelp=f"Package registry",
