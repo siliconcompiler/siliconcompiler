@@ -2155,9 +2155,8 @@ class Chip:
 
         # Cycle through current chip dependencies
         for item in self.getkeys('package', 'dependency'):
-            #TODO: add support for version list
-            version = self.get('package', 'dependency', item)
-            self._find_dependency(cachedir, design, item, version)
+            versions = self.get('package', 'dependency', item)
+            self._find_dependency(cachedir, design, item, versions)
 
         return(0)
 
@@ -2194,6 +2193,12 @@ class Chip:
         '''
         Update library dictionary with dependency data.
         '''
+
+        # TODO: list of parameters to copy into library?
+        # Goal should be all in package?
+        for i in self.getkeys('depgraph'):
+            for lib, version in self.get('depgraph', i):
+                self.set('library',lib,'package','version',version)
 
         return(0)
 

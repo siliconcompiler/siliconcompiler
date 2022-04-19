@@ -42,6 +42,7 @@ def test_sup():
     for i in ('a', 'b', 'c'):
         chip.set('package', 'dependency', i, '0.0.0')
     chip.update()
+    chip.update_library()
 
     # 4. Dump updated manifest and depgraph
     chip.write_manifest('top.json')
