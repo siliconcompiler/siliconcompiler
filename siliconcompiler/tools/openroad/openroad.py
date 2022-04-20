@@ -64,7 +64,7 @@ def setup(chip, mode='batch'):
 
     chip.set('eda', tool, 'exe', tool, clobber=clobber)
     chip.set('eda', tool, 'vswitch', '-version', clobber=clobber)
-    chip.set('eda', tool, 'version', '>=v2.0-3078', clobber=clobber)
+    chip.set('eda', tool, 'version', '>=v2.0-3394', clobber=clobber)
     chip.set('eda', tool, 'format', 'tcl', clobber=clobber)
     chip.set('eda', tool, 'copy', 'true', clobber=clobber)
     chip.set('eda', tool, 'option',  step, index, option, clobber=clobber)
