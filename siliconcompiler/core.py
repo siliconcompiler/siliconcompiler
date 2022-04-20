@@ -10,6 +10,7 @@ import traceback
 import asyncio
 from subprocess import run, PIPE
 import os
+import glob
 import pathlib
 import sys
 import gzip
@@ -2145,53 +2146,132 @@ class Chip:
     def update(self):
         '''
         Update the chip dependency graph.
+
+        1. Finds all packages in the local cache
+        2. Fetches all packages in the remote registry
+        3. Creates a dependency graph based on current chip dependencies and
+           dependencies read from dependency json objects.
+        4. If autoinstall is set, copy registry packages to local cache.
+        5. Error out if package is not found in local cache or in registry.
+        6. Error out if autoinstall is set and registry package is missing.
+
         '''
 
-        #1. Find all packages in cache
-        #2. Cycle through hash and update depgraph in schema
-
-        # Cache directory
-        if 'SC_CACHE' in os.environ:
-            cachedir = os.environ['SC_CACHE']
-        else:
-            cachedir = os.path.join(os.environ['HOME'],'.sc','registry')
-
+        # schema settings
+        reglist = self.get('registry')
         design = self.get('design')
+        auto = self.get('autoinstall')
+
+        # environment settings
+        if 'SC_CACHE' in os.environ:
+            cache = os.environ['SC_CACHE']
+        else:
+            cache = os.path.join(os.environ['HOME'],'.sc','registry')
+
+        # Indexing all local cache packages
+        local = self._build_index(cache)
+        remote = self._build_index(reglist)
 
         # Cycle through current chip dependencies
-        for item in self.getkeys('package', 'dependency'):
-            versions = self.get('package', 'dependency', item)
-            self._find_dependency(cachedir, design, item, versions)
+        deps = {}
+        for dep in self.getkeys('package', 'dependency'):
+            deps[dep] = self.get('package', 'dependency', dep)
 
-        return(0)
+        depgraph = self._find_deps(cache, local, remote, design, deps, auto)
+
+        # Update dependency graph
+        for dep in depgraph:
+            self.set('depgraph', dep, depgraph[dep])
+
+        return depgraph
 
     ###########################################################################
-    def _find_dependency(self, cachedir, design, dep, version):
+    def _build_index(self, dirlist):
         '''
-        Recursive function to find dependencies in cache.
+        Build a package index for a registry.
         '''
 
-        # Register dependency in graph and check existence in cache.
-        found = False
-        for item in list(version):
-            packdir = os.path.join(cachedir, dep, item)
-            packfile = os.path.join(packdir, f"{dep}-{item}.sup.gz")
-            self.add('depgraph', design, (dep,item))
-            if os.path.isfile(packfile):
-                found = True
-        if not found:
-            self.logger.error(f"Missing dependency {dep}-{item}. Install with sup.")
-            sys.exit()
+        if isinstance(dirlist,str):
+            dirlist = [dirlist]
 
-        # Look inside sup for more dependencies
-        with open(packfile, 'r') as f:
-            localcfg = json.load(f)
-        f.close()
-        if 'dependency' in localcfg['package']:
-            design = localcfg['design']['value']
-            for dep in localcfg['package']['dependency'].keys():
-                version = localcfg['package']['dependency'][dep]['value']
-                self._find_dependency(cachedir, design, dep, version)
+        index = {}
+        for item in dirlist:
+            if re.match(r'http', item):
+                #TODO
+                pass
+            else:
+                packages = os.listdir(item)
+                for i in packages:
+                    versions = os.listdir(os.path.join(item, i))
+                    index[i] = {}
+                    index[i]['dir'] = item
+                    index[i]['ver'] = []
+                    for j in versions:
+                        index[i]['ver'].append(j)
+
+        return index
+
+    ###########################################################################
+    def _install_package(self, cache, dep, ver, remote):
+        '''
+        Copies a package from remote to local.
+        The remote and local arguments are package indices of format:
+        index['dirname']['dep']
+        '''
+
+        # Check that package exists in remote registry
+        if dep in remote.keys():
+            if ver in remote[dep]['ver']:
+                ifile = os.path.join(remote[dep]['dir'],f"{dep}-{ver}.sup,gz")
+            else:
+                self.logger.error(f"Package {dep}-{ver} not found in registry.")
+                sys.exit()
+
+        ofile = os.path.join(cache,f"{dep}-{ver}.sup,gz")
+
+        # Install package
+        self.logger.info(f"Installing package {dep}-{ver} in {cache}.")
+        os.makedirs(cache, exist_ok=True)
+        shutil.copyfile(ifile, ofile)
+
+    ###########################################################################
+    def _find_deps(self, cache, local, remote, design, deps, auto, depgraph={}):
+        '''
+        Recursive function to find and install dependencies.
+        '''
+
+        # install missing dependencies
+        depgraph[design] = []
+        for dep in deps.keys():
+            #TODO: Proper PEP semver matching
+            ver = deps[dep][0]
+            depgraph[design].append((dep,ver))
+            islocal = False
+            if dep in local.keys():
+                if ver in local[dep]:
+                    islocal = True
+            # install and update local index
+            if auto and not islocal:
+                self._install_package(cache, dep, ver, remote, local)
+                local[dep]=ver
+
+            # look through dependency package files
+            package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
+            with gzip.open(package, 'r') as f:
+                localcfg = json.load(f)
+
+            # done if no more dependencies
+            if 'dependency' in localcfg['package']:
+                subdeps = {}
+                subdesign = localcfg['design']['value']
+                depgraph[subdesign] = []
+                for item in localcfg['package']['dependency'].keys():
+                    ver = localcfg['package']['dependency'][item]['value']
+                    subdeps[item] = ver
+                    depgraph[subdesign].append((item, ver))
+                    self._find_deps(cache, local, remote, subdesign, subdeps, auto, depgraph)
+
+        return depgraph
 
     ###########################################################################
     def update_library(self, name=None):
