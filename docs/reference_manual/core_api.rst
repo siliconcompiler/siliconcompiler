@@ -59,8 +59,6 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.core.Chip.load_pdk
     ~siliconcompiler.core.Chip.load_target
     ~siliconcompiler.core.Chip.merge_manifest
-    ~siliconcompiler.core.Chip.package
-    ~siliconcompiler.core.Chip.publish
     ~siliconcompiler.core.Chip.read_file
     ~siliconcompiler.core.Chip.read_manifest
     ~siliconcompiler.core.Chip.show
