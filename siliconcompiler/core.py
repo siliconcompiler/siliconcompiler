@@ -1702,6 +1702,7 @@ class Chip:
         # We only perform these if arg, step and arg, index are set.
         # We don't check inputs for skip all
         # TODO: Need to add skip step
+
         cur_step = self.get('arg', 'step')
         cur_index = self.get('arg', 'index')
         if cur_step and cur_index and not self.get('skipall'):
@@ -1769,7 +1770,7 @@ class Chip:
         allkeys = self.getkeys()
         for key in allkeys:
             keypath = ",".join(key)
-            if 'default' not in key:
+            if 'default' not in key and 'history' not in key:
                 key_empty = self._keypath_empty(key)
                 requirement = self.get(*key, field='require')
                 if key_empty and (str(requirement) == 'all'):
@@ -1929,8 +1930,12 @@ class Chip:
         partial (bool): If True, perform a partial merge, only merging keypaths
         that may have been updated during run().
         """
+
         filepath = os.path.abspath(filename)
-        self.logger.debug('Reading manifest %s', filepath)
+        self.logger.debug(f"Reading manifest {filepath}")
+        if not os.path.isfile(filepath):
+            self.logger.error(f"Manifest file not found {filepath}")
+            sys.exit()
 
         #Read arguments from file based on file type
 
@@ -2222,16 +2227,17 @@ class Chip:
         # Check that package exists in remote registry
         if dep in remote.keys():
             if ver in remote[dep]['ver']:
-                ifile = os.path.join(remote[dep]['dir'],f"{dep}-{ver}.sup,gz")
+                ifile = os.path.join(remote[dep]['dir'],dep,ver,f"{dep}-{ver}.sup.gz")
             else:
                 self.logger.error(f"Package {dep}-{ver} not found in registry.")
                 sys.exit()
 
-        ofile = os.path.join(cache,f"{dep}-{ver}.sup,gz")
+        odir = os.path.join(cache,dep,ver)
+        ofile = os.path.join(odir,f"{dep}-{ver}.sup.gz")
 
         # Install package
-        self.logger.info(f"Installing package {dep}-{ver} in {cache}.")
-        os.makedirs(cache, exist_ok=True)
+        self.logger.info(f"Installing package {dep}-{ver} in {cache}")
+        os.makedirs(odir, exist_ok=True)
         shutil.copyfile(ifile, ofile)
 
     ###########################################################################
@@ -2252,7 +2258,7 @@ class Chip:
                     islocal = True
             # install and update local index
             if auto and not islocal:
-                self._install_package(cache, dep, ver, remote, local)
+                self._install_package(cache, dep, ver, remote)
                 local[dep]=ver
 
             # look through dependency package files
