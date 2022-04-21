@@ -11,6 +11,7 @@ def test_sup():
     builddir = 'test_build'
     cachedir = 'test_cache'
     os.environ['SC_CACHE'] = cachedir
+    os.makedirs(f"{cachedir}", exist_ok=True)
 
     # 1. Create a set of dummy designs with dependencies and save to disk
     for i in ('a', 'b', 'c'):
@@ -42,7 +43,6 @@ def test_sup():
     for i in ('a', 'b', 'c'):
         chip.set('package', 'dependency', i, '0.0.0')
     chip.update()
-    chip.update_library()
 
     # 4. Dump updated manifest and depgraph
     chip.write_manifest('top.json')
