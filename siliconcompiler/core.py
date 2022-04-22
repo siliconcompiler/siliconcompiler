@@ -1454,7 +1454,7 @@ class Chip:
 
         fout.write("#############################################")
         fout.write("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!")
-        fout.write("#############################################")
+        fout.write("#############################################\n")
 
         allkeys = self.getkeys(cfg=cfg)
 
@@ -2196,7 +2196,7 @@ class Chip:
         Build a package index for a registry.
         '''
 
-        if isinstance(dirlist,str):
+        if not isinstance(dirlist, list):
             dirlist = [dirlist]
 
         index = {}
@@ -2209,10 +2209,8 @@ class Chip:
                 for i in packages:
                     versions = os.listdir(os.path.join(item, i))
                     index[i] = {}
-                    index[i]['dir'] = item
-                    index[i]['ver'] = []
                     for j in versions:
-                        index[i]['ver'].append(j)
+                        index[i][j] = item
 
         return index
 
@@ -2224,19 +2222,21 @@ class Chip:
         index['dirname']['dep']
         '''
 
+        package = f"{dep}-{ver}.sup.gz"
+
+        self.logger.info(f"Installing package {package} in {cache}")
+
         # Check that package exists in remote registry
         if dep in remote.keys():
-            if ver in remote[dep]['ver']:
-                ifile = os.path.join(remote[dep]['dir'],dep,ver,f"{dep}-{ver}.sup.gz")
-            else:
+            if ver not in list(remote[dep].keys()):
                 self.logger.error(f"Package {dep}-{ver} not found in registry.")
                 sys.exit()
 
+        ifile = os.path.join(remote[dep][ver],dep,ver,package)
         odir = os.path.join(cache,dep,ver)
-        ofile = os.path.join(odir,f"{dep}-{ver}.sup.gz")
+        ofile = os.path.join(odir,package)
 
         # Install package
-        self.logger.info(f"Installing package {dep}-{ver} in {cache}")
         os.makedirs(odir, exist_ok=True)
         shutil.copyfile(ifile, ofile)
 
@@ -2250,7 +2250,7 @@ class Chip:
         depgraph[design] = []
         for dep in deps.keys():
             #TODO: Proper PEP semver matching
-            ver = deps[dep][0]
+            ver = list(deps[dep])[0]
             depgraph[design].append((dep,ver))
             islocal = False
             if dep in local.keys():
@@ -2307,56 +2307,6 @@ class Chip:
         '''
 
         return(0)
-
-    ###########################################################################
-    def _dump_fusesoc(self, cfg):
-        '''
-        Internal function for dumping core information from chip object.
-        '''
-
-        fusesoc = {}
-
-        toplevel = self.get('design', cfg=cfg)
-
-        if self.get('name'):
-            name = self.get('name', cfg=cfg)
-        else:
-            name = toplevel
-
-        version = self.get('projversion', cfg=cfg)
-
-        # Basic information
-        fusesoc['name'] = f"{name}:{version}"
-        fusesoc['description'] = self.get('description', cfg=cfg)
-        fusesoc['filesets'] = {}
-
-        # RTL
-        #TODO: place holder fix with pre-processor list
-        files = []
-        for item in self.get('source', cfg=cfg):
-            files.append(item)
-
-        fusesoc['filesets']['rtl'] = {}
-        fusesoc['filesets']['rtl']['files'] = files
-        fusesoc['filesets']['rtl']['depend'] = {}
-        fusesoc['filesets']['rtl']['file_type'] = {}
-
-        # Constraints
-        files = []
-        for item in self.get('constraint', cfg=cfg):
-            files.append(item)
-
-        fusesoc['filesets']['constraints'] = {}
-        fusesoc['filesets']['constraints']['files'] = files
-
-        # Default Target
-        fusesoc['targets'] = {}
-        fusesoc['targets']['default'] = {
-            'filesets' : ['rtl', 'constraints', 'tb'],
-            'toplevel' : toplevel
-        }
-
-        return fusesoc
 
     ###########################################################################
 

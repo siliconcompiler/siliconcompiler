@@ -13,6 +13,7 @@ SUP comliant packages are...
 * resolved within a design through the update() core method
 * installed in the local ~/.sc/registry cache by default
 * organised according to the following directory structure
+
   <design>
          └── <version>
              ├── <jobname>
