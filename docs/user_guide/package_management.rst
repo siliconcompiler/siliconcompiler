@@ -1,18 +1,36 @@
 Package Management
 ==================
 
-The SiliconCompiler project has built in support for package management thanks to the schema
-architecture and automated generation of chip manifests at every tasks. The package management
-system for SC is called the "Silicon Unified Packager" (SUP).
+Packages are automatically created by every SiliconCompiler task. Publishing and installing
+these packages is further simplified through a set of built in package management methods
+and a standalone SiliconCompiler Unified Package ('sup') command line utility.
 
-SUP comliant packages are...
+Publishing a known good json object to a registry is simple::
+
+  from siliconcompiler.package import Sup
+  p = sc.package.Sup()
+  p.publish("daughter.pkg.json", registry)
+
+Using packages from a a set of distributed registries is equally simple::
+
+  chip = sc.Chip(design='mother')
+  chip.set('package', 'dependency', 'daughter', '1.2.3')
+  chip.set('registry', registry_list)
+  chip.set('autoinstall', True)
+  chip.update()
+  chip.run()
+
+Package management system features:
 
 * JSON files produced by the SiliconCompiler schema and core API
+* registries can be on disk folders or IP addresses compatible with the sup API.
 * named <design>.<semver>.sup.gz
 * included in a project through the 'package, dependency' schema parameter
-* resolved within a design through the update() core method
-* installed in the local ~/.sc/registry cache by default
-* organised according to the following directory structure
+* dependencies resolved within a design through the update() core API method
+* packages are installed in the local ~/.sc/registry cache by default
+* registry packages organized according to the following directory structure
+
+ .. code-block:: text
 
   <design>
          └── <version>
@@ -25,23 +43,19 @@ SUP comliant packages are...
              ├── <design>-<version>.html
              └── <design>-<version>.sup
 
-Package management can be done directly through the 'sup' command line app which includes
-the following operations:
+Package management can be performed directly from Python or at the command line through
+the 'sup' app distributed with the SiliconCompiler package.
 
-check     : Check package for legality before publishing
-publish   : Publish a package to the registry
-install   : Install a package from the registry
-uninstall : Uninstall a package
-show      : Show package information
-list      : List packages in local install cache
-index     : List packages in registry
+* check     : Check that manifest before publishing.
+* publish   : Publish chip manifest to registry.
+* install   : Install registry package in local cache.
+* uninstall : Remove package from local cache.
+* search    : Search for a package in registry.
+* info      : Display package information.
 
-Package management can also be handled automatically from within a compilatio program by using
-the core update() method.
+Key schema parameters included for package management include:
 
-The following schema parameters are used for package management:
-
-* depgraph: Resolved package dependency list (automatically updated by SC)
-* registry: List of registry filepaths and IP address.
-* autoinstall: Enables autoinstall by the core update() method
-* package, dependency: list of package dependencies for the current design
+* [depgraph]: Resolved package dependency list (automatically updated by SC)
+* [registry]: List of registry filepaths and IP address.
+* [autoinstall]: Enables autoinstall by the core update() method
+* [package, dependency]: list of package dependencies for the current design

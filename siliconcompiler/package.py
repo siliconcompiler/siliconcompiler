@@ -105,7 +105,7 @@ class Sup:
     ############################################################################
     def install(self, name, nodeps=False):
         '''
-        Install package from registry.
+        Install registry package in local cache.
 
         Args:
             name (str): Package to install in formatl <design>-(<semver>)?

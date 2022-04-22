@@ -18,8 +18,8 @@ Welcome to SiliconCompiler's documentation!
    user_guide/data_model
    user_guide/programming_model
    user_guide/execution_model
-   user_guide/package_management
    user_guide/remote_processing
+   user_guide/package_management
    user_guide/tools
    user_guide/pdks
    user_guide/flows
