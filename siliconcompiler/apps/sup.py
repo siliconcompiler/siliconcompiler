@@ -42,7 +42,7 @@ check     : Check package
 publish   : Publish package
 install   : Install package
 uninstall : Uninstall package
-show      : Show package information
+info      : Show package information
 list      : List packages in local install cache
 index     : List packages in registry
 
@@ -92,31 +92,28 @@ See https://docs.siliconcompiler.com for more information
     packlist = args.name
     registry = args.registry
 
-    package_commands = ('check', 'publish', 'show', 'install', 'uninstall')
-    global_commands = ('clear', 'list', 'index')
+    if packlist==[]:
+        packlist is None
 
-    if command in package_commands:
+    if command in ('clear'):
+        p = sc.package.Sup(registry)
+        p.clear()
+    else:
         for item in packlist:
-            p = sc.package.Sup()
+            p = sc.package.Sup(registry)
             p.chip.set('design', item)
             if command == 'check':
                 p.check(item)
             elif command == 'publish':
-                p.publish(item, registry)
+                p.publish(item, registry[0])
             elif command == 'install':
-                p.install(item, registry=registry)
+                p.install(item)
             elif command == 'uninstall':
-                p.uninstall()
-            elif command == 'show':
-                p.show()
-    else:
-        p = sc.package.Sup()
-        if command == 'clear':
-            p.clear()
-        elif command == 'list':
-            p.getlist()
-        elif command == 'index':
-            p.index()
+                p.uninstall(item)
+            elif command == 'search':
+                p.search(item)
+            elif command == 'info':
+                p.info(item)
 
 
 #########################
