@@ -2168,10 +2168,13 @@ class Chip:
         auto = self.get('autoinstall')
 
         # environment settings
-        if 'SC_CACHE' in os.environ:
-            cache = os.environ['SC_CACHE']
+        # Local cache location
+        if 'SC_HOME' in os.environ:
+            home = os.environ['SC_HOME']
         else:
-            cache = os.path.join(os.environ['HOME'],'.sc','registry')
+            home = os.environ['HOME']
+
+        cache = os.path.join(home,'.sc','registry')
 
         # Indexing all local cache packages
         local = self._build_index(cache)
@@ -2256,13 +2259,19 @@ class Chip:
             if dep in local.keys():
                 if ver in local[dep]:
                     islocal = True
+
             # install and update local index
-            if auto and not islocal:
+            if auto and islocal:
+                self.logger.info(f"Found package {dep}-{ver} in cache")
+            elif auto and not islocal:
                 self._install_package(cache, dep, ver, remote)
                 local[dep]=ver
 
             # look through dependency package files
             package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
+            if not os.path.isfile(package):
+                self.logger.error("Package missing. Try 'autoinstall' or install manually.")
+                sys.exit()
             with gzip.open(package, 'r') as f:
                 localcfg = json.load(f)
 

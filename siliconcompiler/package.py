@@ -57,8 +57,6 @@ class Sup:
         if self.chip.error > 0:
             self.chip.logger.error(f"Exiting due to previous errors.")
             sys.exit()
-        else:
-            self.chip.logger.info(f"Manifest check successful")
 
         return(0)
 
@@ -81,6 +79,8 @@ class Sup:
         # First registry entry is the default
         if registry is None:
             registry = self.registry[0]
+        elif isinstance(registry, list):
+            registry = registry[0]
 
         # Call check first
         self.check(filename)
@@ -90,9 +90,6 @@ class Sup:
         version = self.chip.get('package', 'version')
         ifile = f"{design}-{version}.sup.gz"
 
-        #TODO: prune based on packaging options
-        self.chip.write_manifest(f"{design}-{version}.sup.gz")
-
         if re.match(r'http', registry):
             #TODO
             pass
@@ -101,7 +98,7 @@ class Sup:
             odir = os.path.join(registry, design, version)
             os.makedirs(odir, exist_ok=True)
             ofile = os.path.join(odir,f"{design}-{version}.sup.gz")
-            shutil.copyfile(ifile, ofile)
+            self.chip.write_manifest(ofile)
 
         return(0)
 
