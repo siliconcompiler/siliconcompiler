@@ -12,20 +12,30 @@ class Sup:
 
     '''
 
-    def __init__(self):
+    def __init__(self, registry=None):
 
         self.chip = siliconcompiler.Chip()
-        self.registry = 'https://'
 
-        if 'SC_CACHE' in os.environ:
-            self.cache = os.environ['SC_CACHE']
+        # Local cache location
+        if 'SC_HOME' in os.environ:
+            home = os.environ['SC_HOME']
         else:
-            self.cache = os.path.join(os.environ['HOME'],'.sc','registry')
+            home = os.environ['HOME']
+
+        self.cache = os.path.join(home,'.sc','registry')
+
+        # List of remote registries
+        if registry is None:
+            self.registry = ['https://']
+        elif isinstance(registry, list):
+            self.registry = registry
+        else:
+            self.registry = [registry]
 
     ############################################################################
     def check(self, filename):
         '''
-        Checks that manifest is ready to publish.
+        Check that manifest before publishing.
 
         Args:
             filename (filepath): Path to a manifest file to be loaded
@@ -41,12 +51,14 @@ class Sup:
                 keylist[1] in ('version', 'description', 'license')):
                 if self.chip.get(*keylist) in ("null", None, []):
                     self.chip.error = 1
-                    self.chip.logger.error(f"Package missing {keylist} information")
+                    self.chip.logger.error(f"Package missing {keylist} information.")
 
         # Exit on errors
         if self.chip.error > 0:
-            self.chip.logger.info(f"Exiting due to previous errors during")
+            self.chip.logger.error(f"Exiting due to previous errors.")
             sys.exit()
+        else:
+            self.chip.logger.info(f"Manifest check successful")
 
         return(0)
 
@@ -54,7 +66,7 @@ class Sup:
     def publish(self, filename, registry=None,
                 history=True, metrics=True, imports=True, exports=True):
         '''
-        Publish a chip manifest to the registry.
+        Publish chip manifest to registry.
 
         Args:
             filename (filepath): Path to a manifest file to be loaded
@@ -66,12 +78,9 @@ class Sup:
 
         '''
 
-        if registy is None:
-            registry = self.registry
-        elif len(registry)==1:
-            registry = registry
-        else:
-            registry = registry[0]
+        # First registry entry is the default
+        if registry is None:
+            registry = self.registry[0]
 
         # Call check first
         self.check(filename)
@@ -88,6 +97,7 @@ class Sup:
             #TODO
             pass
         else:
+            self.chip.logger.info(f"Publishing {design}-{version} package to registry '{registry}'")
             odir = os.path.join(registry, design, version)
             os.makedirs(odir, exist_ok=True)
             ofile = os.path.join(odir,f"{design}-{version}.sup.gz")
@@ -96,28 +106,21 @@ class Sup:
         return(0)
 
     ############################################################################
-    def install(self, name, registry=None, nodeps=False):
+    def install(self, name, nodeps=False):
         '''
-        Install a registry package in the local cache.
+        Install package from registry.
 
         Args:
             name (str): Package to install in formatl <design>-(<semver>)?
             registry (str): List of registries tos search
-            nodeps (bool): Don't install dependency tree if True
+            nodeps (bool): Don't descend dependency tree if True
         '''
-
-        auto = True
-
-        if registry is None:
-            reglist = self.registry
-        else:
-            reglist = registry
 
         # Load the first package
         local = self.chip._build_index(self.cache)
-        remote = self.chip._build_index(reglist)
+        remote = self.chip._build_index(self.registry)
 
-        # Allo name to be with or without version
+        # Allow name to be with or without version
         m =re.match(r'(.*?)-([\d\.]+)$',name)
         if m:
             design = m.group(1)
@@ -125,104 +128,124 @@ class Sup:
         else:
             design = name
             #TODO: fix to take the latest ver
-            version = remote[design]['ver']
+            version = list(remote[design].keys())[0]
 
         deps = {}
-        deps[design] = version
+        deps[design] = [version]
 
-        #TODO: allow for installing one package only (nodeps)
-        depgraph = self.chip._find_deps(self.cache, local, remote, design, deps, True)
-
-
-        return(0)
-
-    ############################################################################
-    def uninstall(self, name, version=None):
-        '''
-        Remove a package from the local cache.
-        '''
-
-        packagedir = os.path.join(self.cachedir, design, version)
-        rmfile = os.path.join(packagedir,f"{design}-{version}.sup.gz")
-
-        #TODO:
-
-        os.remove(rmfile)
+        #TODO: allow for installing one package only (nodep tree)
+        auto=True
+        self.chip._find_deps(self.cache, local, remote, design, deps, auto)
 
         return(0)
 
     ############################################################################
-    def show(self, name):
+
+    def uninstall(self, name):
         '''
-        Shows information about a cached package.
+        Uninstall local package.
+
+        If no version is specified, all versions of the design are removed.
+
+        Args:
+            name (str): Package to remove in formatl <design>-(<semver>)?
+
         '''
 
-        local_index = self._build_index(self.cachedir)
+        # Allow name to be with or without version
+        m =re.match(r'(.*?)-([\d\.]+)$',name)
+        if m:
+            design = m.group(1)
+            ver = m.group(2)
+        else:
+            design = name
+            ver = None
 
-        print(local_index)
+        if ver is None:
+            shutil.rmtree(os.path.join(self.cache, design))
+        else:
+            shutil.rmtree(os.path.join(self.cache, design, ver))
 
         return(0)
 
+    ############################################################################
+
+    def search(self, name=None):
+        '''
+        Search for a package in registry.
+
+        Args:
+            name (str): Package to searc in format <design>-(<semver>)?
+
+        '''
+
+        remote = self.chip._build_index(self.registry)
+        local = self.chip._build_index(self.cache)
+
+        m =re.match(r'(.*?)-([\d\.]+)$',name)
+        if m:
+            design = m.group(1)
+            ver = m.group(2)
+        else:
+            design = name
+            #TODO: handle multiple versions
+            ver = None
+
+        #TODO: handle multiple registries
+        foundit = False
+        for item in remote.keys():
+            if item == design:
+                for j in remote[item].keys():
+                    reg =  remote[item][j]
+                    if ver is None:
+                        foundit = True
+                        self.chip.logger.info(f"Found package '{item}-{j}' in registry '{reg}'")
+                    elif ver == j:
+                        foundit = True
+                        self.chip.logger.info(f"Found package '{item}-{j}' in registry '{reg}'")
+                        break
+
+        if not foundit:
+            self.chip.logger.error(f"Package '{name}' is not in the registry.")
+            sys.exit()
+        else:
+            supfile = os.path.join(remote[design][j], design, j, f"{design}-{j}.sup.gz")
+
+        return supfile
+
 
     ############################################################################
+
+    def info(self, name):
+        '''
+        Display package information.
+
+        Args:
+            name (str): Package to display in format <design>-(<semver>)?
+
+        '''
+
+
+        supfile = self.search(name)
+
+        self.chip.read_manifest(supfile)
+        self.chip.write_manifest("tmp.tcl")
+
+        for key in self.chip.getkeys():
+            if key[0] == 'package':
+                value = self.chip.get(*key)
+                if value:
+                    self.chip.logger.info(f"Package '{name}' {key[1]}: {value}")
+
+    ############################################################################
+
     def clear(self):
         '''
-        Removes all packages from the local cache.
+        Removes all locally installed packages.
         '''
 
-        packagedir = os.path.join(self.cachedir, design, version)
-        rmfile = os.path.join(packagedir,f"{design}-{version}.sup.gz")
-
-        os.remove(rmfile)
-
-        return(0)
-
-    ############################################################################
-    def getlist(self):
-        '''
-        List installed packages.
-        '''
-
-        if name is None:
-            name = self.chip.get('design')
-
-        if alldeps:
-            print("fetch all deps")
-        else:
-            print("fetch one package only")
-
-        return(0)
-
-
-
-    ############################################################################
-    def getindex(self):
-        '''
-        List installed packages.
-        '''
-
-        if name is None:
-            name = self.chip.get('design')
-
-        if alldeps:
-            print("fetch all deps")
-        else:
-            print("fetch one package only")
-
-        return(0)
-
-    ############################################################################
-    def getinfo(self):
-        '''
-        List installed packages.
-        '''
-
-        if name is None:
-            name = self.chip.get('design')
-
-        if alldeps:
-            print("fetch all deps")
-        else:
-            print("fetch one package only")
+        all_packages = os.listdir(os.path.join(self.cache))
+        for item in all_packages:
+            os.removedirs(item)
 
         return(0)
