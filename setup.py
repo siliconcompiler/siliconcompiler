@@ -72,10 +72,11 @@ if 'SC_CMAKEARGS' in os.environ:
 entry_points_apps = []
 for app in os.listdir('siliconcompiler/apps'):
     name, ext = os.path.splitext(app)
-    if name.startswith('sc') and ext == '.py':
+    if (name.startswith('sc') or name.startswith('sup')) and ext == '.py':
         cli_name = name.replace('_', '-')
         entry = f'{cli_name}=siliconcompiler.apps.{name}:main'
         entry_points_apps.append(entry)
+
 entry_points = entry_points_apps + ["sc-server=siliconcompiler.server:main", "sc-crypt=siliconcompiler.crypto:main"]
 
 # Remove the _skbuild/ directory before running install procedure. This helps
