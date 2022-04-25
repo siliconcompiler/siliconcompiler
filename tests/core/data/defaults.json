@@ -1820,6 +1820,22 @@
                     "type": "[str]",
                     "value": []
                 },
+                "clkdelay": {
+                    "defvalue": [],
+                    "example": [
+                        "cli: -library_cells_clkdelay 'mylib *eco*'",
+                        "api: chip.set('library','mylib','cells',clkdelay,'*eco*')"
+                    ],
+                    "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+                    "lock": "false",
+                    "require": null,
+                    "scope": "global",
+                    "shorthelp": "Library clkdelay cell list",
+                    "signature": [],
+                    "switch": "-library_cells_clkdelay 'lib <str>'",
+                    "type": "[str]",
+                    "value": []
+                },
                 "clkgate": {
                     "defvalue": [],
                     "example": [
@@ -1833,6 +1849,22 @@
                     "shorthelp": "Library clkgate cell list",
                     "signature": [],
                     "switch": "-library_cells_clkgate 'lib <str>'",
+                    "type": "[str]",
+                    "value": []
+                },
+                "clkicg": {
+                    "defvalue": [],
+                    "example": [
+                        "cli: -library_cells_clkicg 'mylib *eco*'",
+                        "api: chip.set('library','mylib','cells',clkicg,'*eco*')"
+                    ],
+                    "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+                    "lock": "false",
+                    "require": null,
+                    "scope": "global",
+                    "shorthelp": "Library clkicg cell list",
+                    "signature": [],
+                    "switch": "-library_cells_clkicg 'lib <str>'",
                     "type": "[str]",
                     "value": []
                 },
@@ -1865,6 +1897,38 @@
                     "shorthelp": "Library clklogic cell list",
                     "signature": [],
                     "switch": "-library_cells_clklogic 'lib <str>'",
+                    "type": "[str]",
+                    "value": []
+                },
+                "decap": {
+                    "defvalue": [],
+                    "example": [
+                        "cli: -library_cells_decap 'mylib *eco*'",
+                        "api: chip.set('library','mylib','cells',decap,'*eco*')"
+                    ],
+                    "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+                    "lock": "false",
+                    "require": null,
+                    "scope": "global",
+                    "shorthelp": "Library decap cell list",
+                    "signature": [],
+                    "switch": "-library_cells_decap 'lib <str>'",
+                    "type": "[str]",
+                    "value": []
+                },
+                "delay": {
+                    "defvalue": [],
+                    "example": [
+                        "cli: -library_cells_delay 'mylib *eco*'",
+                        "api: chip.set('library','mylib','cells',delay,'*eco*')"
+                    ],
+                    "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+                    "lock": "false",
+                    "require": null,
+                    "scope": "global",
+                    "shorthelp": "Library delay cell list",
+                    "signature": [],
+                    "switch": "-library_cells_delay 'lib <str>'",
                     "type": "[str]",
                     "value": []
                 },
