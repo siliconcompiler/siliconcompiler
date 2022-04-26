@@ -2245,7 +2245,7 @@ class Chip:
         shutil.copyfile(ifile, ofile)
 
     ###########################################################################
-    def _find_deps(self, cache, local, remote, design, deps, auto, depgraph={}):
+    def _find_deps(self, cache, local, remote, design, deps, auto, depgraph={}, upstream={}):
         '''
         Recursive function to find and install dependencies.
         '''
@@ -2282,10 +2282,14 @@ class Chip:
                 subdesign = localcfg['design']['value']
                 depgraph[subdesign] = []
                 for item in localcfg['package']['dependency'].keys():
-                    ver = localcfg['package']['dependency'][item]['value']
-                    subdeps[item] = ver
-                    depgraph[subdesign].append((item, ver))
-                    self._find_deps(cache, local, remote, subdesign, subdeps, auto, depgraph)
+                    subver = localcfg['package']['dependency'][item]['value']
+                    if (item in upstream) and (upstream[item] == subver):
+                        # Circular imports are not supported.
+                        raise SiliconCompilerError(f'Cannot process circular import: {dep}-{ver} <---> {item}-{subver}.')
+                    subdeps[item] = subver
+                    upstream[item] = subver
+                    depgraph[subdesign].append((item, subver))
+                    self._find_deps(cache, local, remote, subdesign, subdeps, auto, depgraph, upstream)
 
         return depgraph
 
