@@ -389,6 +389,22 @@
             "value": null
         }
     },
+    "autoinstall": {
+        "defvalue": "false",
+        "example": [
+            "cli: -autoinstall true'",
+            "api: chip.set('autoinstall', True)"
+        ],
+        "help": "Enables automatic installation of missing dependencies from\nthe registry.",
+        "lock": "false",
+        "require": "all",
+        "scope": "global",
+        "shorthelp": "Package auto-install option",
+        "signature": null,
+        "switch": "-autoinstall <bool>",
+        "type": "bool",
+        "value": "false"
+    },
     "bkpt": {
         "defvalue": [],
         "example": [
@@ -752,6 +768,24 @@
         "switch": "-D<str>",
         "type": "[str]",
         "value": []
+    },
+    "depgraph": {
+        "default": {
+            "defvalue": [],
+            "example": [
+                "cli: -depgraph 'top (cpu,1.0.1)'",
+                "api: chip.set('depgraph','top',('cpu', '1.0.1'))"
+            ],
+            "help": "List of Silicon Unified Packager (SUP) dependencies\nused by the design specified on a per module basis a\nlist of string tuples ('name','version').",
+            "lock": "false",
+            "require": null,
+            "scope": "global",
+            "shorthelp": "Package dependency list",
+            "signature": [],
+            "switch": "-depgraph 'module <(str,str)>'",
+            "type": "[(str,str)]",
+            "value": []
+        }
     },
     "design": {
         "defvalue": null,
@@ -2779,8 +2813,8 @@
                     "default": {
                         "defvalue": [],
                         "example": [
-                            "cli: -library_package_dependency 'lib hell0 1.0'",
-                            "api: chip.set('library', 'lib', 'package','dependency','hello', '1.0')"
+                            "cli: -library_package_dependency 'lib hello 1.0'",
+                            "api: chip.set('library', 'lib', 'package','dependency','hello','1.0')"
                         ],
                         "help": "Library package dependencies specified as a key value pair.\nVersions shall follow the semver standard.",
                         "lock": "false",
@@ -4383,7 +4417,7 @@
                     "defvalue": null,
                     "example": [
                         "cli: -package_author_email 'wiley wiley@acme.com'",
-                        "api: chip.set(package,'author','wiley','email','wiley@acme.com')"
+                        "api: chip.set('package','author','wiley','email','wiley@acme.com')"
                     ],
                     "help": "Package author email provided with full name as key and\nemail as value.",
                     "lock": "false",
@@ -4399,7 +4433,7 @@
                     "defvalue": null,
                     "example": [
                         "cli: -package_author_location 'wiley wiley@acme.com'",
-                        "api: chip.set(package,'author','wiley','location','wiley@acme.com')"
+                        "api: chip.set('package','author','wiley','location','wiley@acme.com')"
                     ],
                     "help": "Package author location provided with full name as key and\nlocation as value.",
                     "lock": "false",
@@ -4415,7 +4449,7 @@
                     "defvalue": null,
                     "example": [
                         "cli: -package_author_name 'wiley wiley@acme.com'",
-                        "api: chip.set(package,'author','wiley','name','wiley@acme.com')"
+                        "api: chip.set('package','author','wiley','name','wiley@acme.com')"
                     ],
                     "help": "Package author name provided with full name as key and\nname as value.",
                     "lock": "false",
@@ -4431,7 +4465,7 @@
                     "defvalue": null,
                     "example": [
                         "cli: -package_author_organization 'wiley wiley@acme.com'",
-                        "api: chip.set(package,'author','wiley','organization','wiley@acme.com')"
+                        "api: chip.set('package','author','wiley','organization','wiley@acme.com')"
                     ],
                     "help": "Package author organization provided with full name as key and\norganization as value.",
                     "lock": "false",
@@ -4447,7 +4481,7 @@
                     "defvalue": null,
                     "example": [
                         "cli: -package_author_publickey 'wiley wiley@acme.com'",
-                        "api: chip.set(package,'author','wiley','publickey','wiley@acme.com')"
+                        "api: chip.set('package','author','wiley','publickey','wiley@acme.com')"
                     ],
                     "help": "Package author publickey provided with full name as key and\npublickey as value.",
                     "lock": "false",
@@ -4463,7 +4497,7 @@
                     "defvalue": null,
                     "example": [
                         "cli: -package_author_username 'wiley wiley@acme.com'",
-                        "api: chip.set(package,'author','wiley','username','wiley@acme.com')"
+                        "api: chip.set('package','author','wiley','username','wiley@acme.com')"
                     ],
                     "help": "Package author username provided with full name as key and\nusername as value.",
                     "lock": "false",
@@ -4481,8 +4515,8 @@
             "default": {
                 "defvalue": [],
                 "example": [
-                    "cli: -package_dependency 'hell0 1.0'",
-                    "api: chip.set(package,'dependency','hello', '1.0')"
+                    "cli: -package_dependency 'hello 1.0'",
+                    "api: chip.set('package','dependency','hello','1.0')"
                 ],
                 "help": "Package dependencies specified as a key value pair.\nVersions shall follow the semver standard.",
                 "lock": "false",
@@ -4499,7 +4533,7 @@
             "defvalue": null,
             "example": [
                 "cli: -package_description 'Yet another cpu'",
-                "api: chip.set(package,'description','Yet another cpu')"
+                "api: chip.set('package','description','Yet another cpu')"
             ],
             "help": "Package short one line description for package\nmanagers and summary reports.",
             "lock": "false",
@@ -4519,7 +4553,7 @@
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_datasheet 'datasheet.pdf'",
-                    "api: chip.set(package,'doc',datasheet,'datasheet.pdf')"
+                    "api: chip.set('package','doc',datasheet,'datasheet.pdf')"
                 ],
                 "filehash": [],
                 "hashalgo": "sha256",
@@ -4537,7 +4571,7 @@
                 "defvalue": null,
                 "example": [
                     "cli: -package_doc_homepage 'index.html'",
-                    "api: chip.set(package,'doc', 'homepage','index.html')"
+                    "api: chip.set('package','doc', 'homepage','index.html')"
                 ],
                 "help": "Package documentation homepage. Filepath to design docs homepage.\nComplex designs can can include a long non standard list of\ndocuments dependent.  A single html entry point can be used to\npresent an organized documentation dashboard to the designer.",
                 "lock": "false",
@@ -4556,7 +4590,7 @@
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_quickstart 'quickstart.pdf'",
-                    "api: chip.set(package,'doc',quickstart,'quickstart.pdf')"
+                    "api: chip.set('package','doc',quickstart,'quickstart.pdf')"
                 ],
                 "filehash": [],
                 "hashalgo": "sha256",
@@ -4577,7 +4611,7 @@
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_reference 'reference.pdf'",
-                    "api: chip.set(package,'doc',reference,'reference.pdf')"
+                    "api: chip.set('package','doc',reference,'reference.pdf')"
                 ],
                 "filehash": [],
                 "hashalgo": "sha256",
@@ -4598,7 +4632,7 @@
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_releasenotes 'releasenotes.pdf'",
-                    "api: chip.set(package,'doc',releasenotes,'releasenotes.pdf')"
+                    "api: chip.set('package','doc',releasenotes,'releasenotes.pdf')"
                 ],
                 "filehash": [],
                 "hashalgo": "sha256",
@@ -4619,7 +4653,7 @@
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_signoff 'signoff.pdf'",
-                    "api: chip.set(package,'doc',signoff,'signoff.pdf')"
+                    "api: chip.set('package','doc',signoff,'signoff.pdf')"
                 ],
                 "filehash": [],
                 "hashalgo": "sha256",
@@ -4640,7 +4674,7 @@
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_testplan 'testplan.pdf'",
-                    "api: chip.set(package,'doc',testplan,'testplan.pdf')"
+                    "api: chip.set('package','doc',testplan,'testplan.pdf')"
                 ],
                 "filehash": [],
                 "hashalgo": "sha256",
@@ -4661,7 +4695,7 @@
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_tutorial 'tutorial.pdf'",
-                    "api: chip.set(package,'doc',tutorial,'tutorial.pdf')"
+                    "api: chip.set('package','doc',tutorial,'tutorial.pdf')"
                 ],
                 "filehash": [],
                 "hashalgo": "sha256",
@@ -4682,7 +4716,7 @@
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_userguide 'userguide.pdf'",
-                    "api: chip.set(package,'doc',userguide,'userguide.pdf')"
+                    "api: chip.set('package','doc',userguide,'userguide.pdf')"
                 ],
                 "filehash": [],
                 "hashalgo": "sha256",
@@ -4701,7 +4735,7 @@
             "defvalue": null,
             "example": [
                 "cli: -package_homepage 'index.html'",
-                "api: chip.set(package,'homepage','index.html')"
+                "api: chip.set('package','homepage','index.html')"
             ],
             "help": "Package homepage.",
             "lock": "false",
@@ -4717,7 +4751,7 @@
             "defvalue": null,
             "example": [
                 "cli: -package_keyword 'cpu'",
-                "api: chip.set(package,'keyword','cpu')"
+                "api: chip.set('package','keyword','cpu')"
             ],
             "help": "Package keyword(s) used to characterize package.",
             "lock": "false",
@@ -4733,7 +4767,7 @@
             "defvalue": [],
             "example": [
                 "cli: -package_license 'Apache-2.0'",
-                "api: chip.set(package,'license','Apache-2.0')"
+                "api: chip.set('package','license','Apache-2.0')"
             ],
             "help": "Package list of SPDX license identifiers.",
             "lock": "false",
@@ -4752,7 +4786,7 @@
             "defvalue": [],
             "example": [
                 "cli: -package_licensefile './LICENSE'",
-                "api: chip.set(package,'licensefile','./LICENSE')"
+                "api: chip.set('package','licensefile','./LICENSE')"
             ],
             "filehash": [],
             "hashalgo": "sha256",
@@ -4770,7 +4804,7 @@
             "defvalue": [],
             "example": [
                 "cli: -package_location 'mars'",
-                "api: chip.set(package,'location','mars')"
+                "api: chip.set('package','location','mars')"
             ],
             "help": "Package country of origin specified as standardized\ninternational country codes. The field can be left blank\nif the location is unknown or global.",
             "lock": "false",
@@ -4786,7 +4820,7 @@
             "defvalue": null,
             "example": [
                 "cli: -package_name 'yac'",
-                "api: chip.set(package,'name','yac')"
+                "api: chip.set('package','name','yac')"
             ],
             "help": "Package name.",
             "lock": "false",
@@ -4802,7 +4836,7 @@
             "defvalue": [],
             "example": [
                 "cli: -package_organization 'humanity'",
-                "api: chip.set(package,'organization','humanity')"
+                "api: chip.set('package','organization','humanity')"
             ],
             "help": "Package sponsoring organization. The field can be left\nblank if not applicable.",
             "lock": "false",
@@ -4818,7 +4852,7 @@
             "defvalue": null,
             "example": [
                 "cli: -package_publickey '6EB695706EB69570'",
-                "api: chip.set(package,'publickey','6EB695706EB69570')"
+                "api: chip.set('package','publickey','6EB695706EB69570')"
             ],
             "help": "Package public project key.",
             "lock": "false",
@@ -4834,7 +4868,7 @@
             "defvalue": [],
             "example": [
                 "cli: -package_repo 'git@github.com:aolofsson/oh.git'",
-                "api: chip.set(package,'repo','git@github.com:aolofsson/oh.git')"
+                "api: chip.set('package','repo','git@github.com:aolofsson/oh.git')"
             ],
             "help": "Package IP address to source code repository.",
             "lock": "false",
@@ -4850,7 +4884,7 @@
             "defvalue": [],
             "example": [
                 "cli: -package_target 'asicflow_freepdk45'",
-                "api: chip.set(package,'target','asicflow_freepdk45')"
+                "api: chip.set('package','target','asicflow_freepdk45')"
             ],
             "help": "Package list of qualified compilation targets.",
             "lock": "false",
@@ -4866,7 +4900,7 @@
             "defvalue": null,
             "example": [
                 "cli: -package_version '1.0'",
-                "api: chip.set(package,'version','1.0')"
+                "api: chip.set('package','version','1.0')"
             ],
             "help": "Package version. Can be a branch, tag, commit hash,\nor a semver compatible version.",
             "lock": "false",
@@ -6391,6 +6425,22 @@
                 }
             }
         }
+    },
+    "registry": {
+        "defvalue": [],
+        "example": [
+            "cli: -registry '~/myregistry'",
+            "api: chip.set('registry','~/myregistry')"
+        ],
+        "help": "List of Silicon Unified Packager (SUP) registry directories.\nDirectories can be local file system folders or\npublicly available registries served up over http. The naming\nconvention for registry packages is:\n<name>/<name>-<version>.json(.<gz>)?",
+        "lock": "false",
+        "require": null,
+        "scope": "global",
+        "shorthelp": "Package registry",
+        "signature": [],
+        "switch": "-registry <dir>",
+        "type": "[dir]",
+        "value": []
     },
     "relax": {
         "defvalue": "false",

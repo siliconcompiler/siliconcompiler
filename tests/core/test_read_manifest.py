@@ -18,6 +18,19 @@ def test_read_manifest_fields():
     chip2.read_manifest('tmp.json')
     assert chip2.get('source', field='copy') is False
 
+
+def test_read_sup():
+    '''Test compressed read/write'''
+
+    chip = siliconcompiler.Chip()
+    chip.add('source', 'foo.v')
+    chip.write_manifest('tmp.sup.gz')
+
+    chip2 = siliconcompiler.Chip()
+    chip2.read_manifest('tmp.sup.gz')
+    assert chip2.get('source') == ['foo.v']
+
+
 def test_read_defaults(datadir):
     '''Make sure read/write operaton doesn't modify manifest'''
 
@@ -50,3 +63,4 @@ def test_read_defaults(datadir):
 if __name__ == "__main__":
     from tests.fixtures import datadir
     test_read_defaults(datadir(__file__))
+    test_read_sup()

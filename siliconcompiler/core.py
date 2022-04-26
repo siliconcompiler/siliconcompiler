@@ -10,6 +10,7 @@ import traceback
 import asyncio
 from subprocess import run, PIPE
 import os
+import glob
 import pathlib
 import sys
 import gzip
@@ -1434,22 +1435,26 @@ class Chip:
                     self.set(*keypath, abspaths, cfg=cfg)
 
     ###########################################################################
-    def _print_csv(self, cfg, file=None):
+    def _print_csv(self, cfg, fout=None):
         allkeys = self.getkeys(cfg=cfg)
         for key in allkeys:
             keypath = f'"{",".join(key)}"'
             value = self.get(*key, cfg=cfg)
             if isinstance(value,list):
                 for item in value:
-                    print(f"{keypath},{item}", file=file)
+                    fout.write(f"{keypath},{item}")
             else:
-                print(f"{keypath},{value}", file=file)
+                fout.write(f"{keypath},{value}")
 
     ###########################################################################
-    def _print_tcl(self, cfg, file=None, prefix=""):
+    def _print_tcl(self, cfg, fout=None, prefix=""):
         '''
         Prints out schema as TCL dictionary
         '''
+
+        fout.write("#############################################")
+        fout.write("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!")
+        fout.write("#############################################\n")
 
         allkeys = self.getkeys(cfg=cfg)
 
@@ -1480,10 +1485,9 @@ class Chip:
             valstr = ' '.join(map(str, alist)).replace(';', '\\;')
             outstr = f"{prefix} {keystr} [list {valstr}]\n"
 
-            #print out all nom default values
+            #print out all non default values
             if 'default' not in key:
-                print(outstr, file=file)
-
+                fout.write(outstr)
 
     ###########################################################################
 
@@ -1698,6 +1702,7 @@ class Chip:
         # We only perform these if arg, step and arg, index are set.
         # We don't check inputs for skip all
         # TODO: Need to add skip step
+
         cur_step = self.get('arg', 'step')
         cur_index = self.get('arg', 'index')
         if cur_step and cur_index and not self.get('skipall'):
@@ -1765,7 +1770,7 @@ class Chip:
         allkeys = self.getkeys()
         for key in allkeys:
             keypath = ",".join(key)
-            if 'default' not in key:
+            if 'default' not in key and 'history' not in key:
                 key_empty = self._keypath_empty(key)
                 requirement = self.get(*key, field='require')
                 if key_empty and (str(requirement) == 'all'):
@@ -1925,19 +1930,31 @@ class Chip:
         partial (bool): If True, perform a partial merge, only merging keypaths
         that may have been updated during run().
         """
-        abspath = os.path.abspath(filename)
-        self.logger.debug('Reading manifest %s', abspath)
+
+        filepath = os.path.abspath(filename)
+        self.logger.debug(f"Reading manifest {filepath}")
+        if not os.path.isfile(filepath):
+            error_message =  f"Manifest file not found {filepath}"
+            self.logger.error(error_message)
+            raise SiliconCompilerError(error_message)
 
         #Read arguments from file based on file type
-        with open(abspath, 'r') as f:
-            if abspath.endswith('.json'):
-                localcfg = json.load(f)
-            elif abspath.endswith('.yaml') | abspath.endswith('.yml'):
-                localcfg = yaml.load(f, Loader=yaml.SafeLoader)
+
+        if filepath.endswith('.gz'):
+            fin = gzip.open(filepath, 'r')
+        else:
+            fin = open(filepath, 'r')
+
+        try:
+            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
+                localcfg = json.load(fin)
+            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
+                localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
             else:
+                self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
-                self.logger.error('Illegal file format. Only json/yaml supported')
-        f.close()
+        finally:
+            fin.close()
 
         #Merging arguments with the Chip configuration
         self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
@@ -1993,32 +2010,27 @@ class Chip:
         if abspath:
             self._abspath(cfgcopy)
 
-        # TODO: fix
-        #remove long help (adds no value)
-        #allkeys = self.getkeys(cfg=cfgcopy)
-        #for key in allkeys:
-        #    self.set(*key, "...", cfg=cfgcopy, field='help')
-
         # format specific dumping
-        with open(filepath, 'w') as f:
-            if filepath.endswith('.json'):
-                print(json.dumps(cfgcopy, indent=4, sort_keys=True), file=f)
-            elif filepath.endswith('.yaml') | filepath.endswith('yml'):
-                print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-            elif filepath.endswith('.core'):
-                cfgfuse = self._dump_fusesoc(cfgcopy)
-                print("CAPI=2:", file=f)
-                print(yaml.dump(cfgfuse, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-            elif filepath.endswith('.tcl'):
-                print("#############################################", file=f)
-                print("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!", file=f)
-                print("#############################################", file=f)
-                self._print_tcl(cfgcopy, prefix="dict set sc_cfg", file=f)
-            elif filepath.endswith('.csv'):
-                self._print_csv(cfgcopy, file=f)
+        if filepath.endswith('.gz'):
+            fout = gzip.open(filepath, 'wt', encoding='UTF-8')
+        else:
+            fout = open(filepath, 'w')
+
+        # format specific printing
+        try:
+            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
+                fout.write(json.dumps(cfgcopy, indent=4, sort_keys=True))
+            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
+                fout.write(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False))
+            elif re.search(r'(\.tcl)(\.gz)*$', filepath):
+                self._print_tcl(cfgcopy, prefix="dict set sc_cfg", fout=fout)
+            elif re.search(r'(\.csv)(\.gz)*$', filepath):
+                self._print_csv(cfgcopy, fout=fout)
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
+        finally:
+            fout.close()
 
     ###########################################################################
     def check_checklist(self, standard, items=None, check_ok=False):
@@ -2137,94 +2149,174 @@ class Chip:
         return(0)
 
     ###########################################################################
-    def package(self, filename, prune=True):
+    def update(self):
         '''
-        Create sanitized project package. (WIP)
+        Update the chip dependency graph.
 
-        The SiliconCompiler project is filtered and exported as a JSON file.
-        If the prune option is set to True, then all metrics, records and
-        results are pruned from the package file.
+        1. Finds all packages in the local cache
+        2. Fetches all packages in the remote registry
+        3. Creates a dependency graph based on current chip dependencies and
+           dependencies read from dependency json objects.
+        4. If autoinstall is set, copy registry packages to local cache.
+        5. Error out if package is not found in local cache or in registry.
+        6. Error out if autoinstall is set and registry package is missing.
 
-        Args:
-            filename (filepath): Output filepath
-            prune (bool): If True, only essential source parameters are
-                 included in the package.
-
-        Examples:
-            >>> chip.package('package.json')
-            Write project information to 'package.json'
         '''
 
-        return(0)
+        # schema settings
+        reglist = self.get('registry')
+        design = self.get('design')
+        auto = self.get('autoinstall')
 
-    ###########################################################################
-    def publish(self, filename):
-        '''
-        Publishes package to registry. (WIP)
-
-        The filename is uploaed to a central package registry based on the
-        the user credentials found in ~/.sc/credentials.
-
-        Args:
-            filename (filepath): Package filename
-
-        Examples:
-            >>> chip.publish('hello.json')
-            Publish hello.json to central repository.
-        '''
-
-        return(0)
-
-
-    ###########################################################################
-    def _dump_fusesoc(self, cfg):
-        '''
-        Internal function for dumping core information from chip object.
-        '''
-
-        fusesoc = {}
-
-        toplevel = self.get('design', cfg=cfg)
-
-        if self.get('name'):
-            name = self.get('name', cfg=cfg)
+        # environment settings
+        # Local cache location
+        if 'SC_HOME' in os.environ:
+            home = os.environ['SC_HOME']
         else:
-            name = toplevel
+            home = os.environ['HOME']
 
-        version = self.get('projversion', cfg=cfg)
+        cache = os.path.join(home,'.sc','registry')
 
-        # Basic information
-        fusesoc['name'] = f"{name}:{version}"
-        fusesoc['description'] = self.get('description', cfg=cfg)
-        fusesoc['filesets'] = {}
+        # Indexing all local cache packages
+        local = self._build_index(cache)
+        remote = self._build_index(reglist)
 
-        # RTL
-        #TODO: place holder fix with pre-processor list
-        files = []
-        for item in self.get('source', cfg=cfg):
-            files.append(item)
+        # Cycle through current chip dependencies
+        deps = {}
+        for dep in self.getkeys('package', 'dependency'):
+            deps[dep] = self.get('package', 'dependency', dep)
 
-        fusesoc['filesets']['rtl'] = {}
-        fusesoc['filesets']['rtl']['files'] = files
-        fusesoc['filesets']['rtl']['depend'] = {}
-        fusesoc['filesets']['rtl']['file_type'] = {}
+        depgraph = self._find_deps(cache, local, remote, design, deps, auto)
 
-        # Constraints
-        files = []
-        for item in self.get('constraint', cfg=cfg):
-            files.append(item)
+        # Update dependency graph
+        for dep in depgraph:
+            self.set('depgraph', dep, depgraph[dep])
 
-        fusesoc['filesets']['constraints'] = {}
-        fusesoc['filesets']['constraints']['files'] = files
+        return depgraph
 
-        # Default Target
-        fusesoc['targets'] = {}
-        fusesoc['targets']['default'] = {
-            'filesets' : ['rtl', 'constraints', 'tb'],
-            'toplevel' : toplevel
-        }
+    ###########################################################################
+    def _build_index(self, dirlist):
+        '''
+        Build a package index for a registry.
+        '''
 
-        return fusesoc
+        if not isinstance(dirlist, list):
+            dirlist = [dirlist]
+
+        index = {}
+        for item in dirlist:
+            if re.match(r'http', item):
+                #TODO
+                pass
+            else:
+                packages = os.listdir(item)
+                for i in packages:
+                    versions = os.listdir(os.path.join(item, i))
+                    index[i] = {}
+                    for j in versions:
+                        index[i][j] = item
+
+        return index
+
+    ###########################################################################
+    def _install_package(self, cache, dep, ver, remote):
+        '''
+        Copies a package from remote to local.
+        The remote and local arguments are package indices of format:
+        index['dirname']['dep']
+        '''
+
+        package = f"{dep}-{ver}.sup.gz"
+
+        self.logger.info(f"Installing package {package} in {cache}")
+
+        # Check that package exists in remote registry
+        if dep in remote.keys():
+            if ver not in list(remote[dep].keys()):
+                self.logger.error(f"Package {dep}-{ver} not found in registry.")
+                sys.exit()
+
+        ifile = os.path.join(remote[dep][ver],dep,ver,package)
+        odir = os.path.join(cache,dep,ver)
+        ofile = os.path.join(odir,package)
+
+        # Install package
+        os.makedirs(odir, exist_ok=True)
+        shutil.copyfile(ifile, ofile)
+
+    ###########################################################################
+    def _find_deps(self, cache, local, remote, design, deps, auto, depgraph={}):
+        '''
+        Recursive function to find and install dependencies.
+        '''
+
+        # install missing dependencies
+        depgraph[design] = []
+        for dep in deps.keys():
+            #TODO: Proper PEP semver matching
+            ver = list(deps[dep])[0]
+            depgraph[design].append((dep,ver))
+            islocal = False
+            if dep in local.keys():
+                if ver in local[dep]:
+                    islocal = True
+
+            # install and update local index
+            if auto and islocal:
+                self.logger.info(f"Found package {dep}-{ver} in cache")
+            elif auto and not islocal:
+                self._install_package(cache, dep, ver, remote)
+                local[dep]=ver
+
+            # look through dependency package files
+            package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
+            if not os.path.isfile(package):
+                self.logger.error("Package missing. Try 'autoinstall' or install manually.")
+                sys.exit()
+            with gzip.open(package, 'r') as f:
+                localcfg = json.load(f)
+
+            # done if no more dependencies
+            if 'dependency' in localcfg['package']:
+                subdeps = {}
+                subdesign = localcfg['design']['value']
+                depgraph[subdesign] = []
+                for item in localcfg['package']['dependency'].keys():
+                    ver = localcfg['package']['dependency'][item]['value']
+                    subdeps[item] = ver
+                    depgraph[subdesign].append((item, ver))
+                    self._find_deps(cache, local, remote, subdesign, subdeps, auto, depgraph)
+
+        return depgraph
+
+    ###########################################################################
+    def update_library(self, name=None):
+        '''
+        Update library dictionary with dependency data.
+        '''
+
+        # TODO: list of parameters to copy into library?
+        # Goal should be all in package?
+        for i in self.getkeys('depgraph'):
+            for lib, version in self.get('depgraph', i):
+                self.set('library',lib,'package','version',version)
+
+        return(0)
+
+    ###########################################################################
+    def write_depgraph(self, filename):
+        '''
+        Writes the package dependency tree to disk.
+
+        Supported graphical render formats include png, svg, gif, pdf and a
+        few others. (see https://graphviz.org for more information).
+
+        Supported text formats include .md, .rst. (see the Linux 'tree'
+        command for more information).
+
+        '''
+
+        return(0)
 
     ###########################################################################
 
