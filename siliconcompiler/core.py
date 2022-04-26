@@ -2012,9 +2012,9 @@ class Chip:
 
         # format specific dumping
         if filepath.endswith('.gz'):
-            fout =  gzip.open(filepath, 'wt', encoding='UTF-8')
+            fout = gzip.open(filepath, 'wt', encoding='UTF-8')
         else:
-            fout =  open(filepath, 'w')
+            fout = open(filepath, 'w')
 
         # format specific printing
         try:
