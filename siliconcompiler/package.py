@@ -145,7 +145,7 @@ class Sup:
         If no version is specified, all versions of the design are removed.
 
         Args:
-            name (str): Package to remove in formatl <design>-(<semver>)?
+            name (str): Package to remove in format <design>-(<semver>)?
 
         '''
 
