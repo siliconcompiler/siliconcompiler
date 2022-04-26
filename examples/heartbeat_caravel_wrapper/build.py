@@ -22,6 +22,16 @@ from siliconcompiler.floorplan import Floorplan
 # can demonstrate one way to insert custom TCL commands into a tool flow.
 ###
 
+# User project wrapper area is 2.92mm x 3.52mm
+TOP_W = 2920
+TOP_H = 3520
+# Example design area is 0.9mm x 0.6mm
+CORE_W = 900
+CORE_H = 600
+# Margins are set to ~10mm, snapped to placement site dimensions (0.46mm x 2.72mm in sky130hd)
+MARGIN_W = 9.66
+MARGIN_H = 8.16
+
 def configure_chip(design):
     # Minimal Chip object construction.
     chip = Chip()
@@ -43,20 +53,17 @@ def build_core():
     core_chip.set('eda', 'openroad', 'variable', 'route', '0', 'grt_allow_congestion', ['true'])
     core_chip.clock(name='clk', pin='clk', period=20)
 
+    # Set user design die/core area.
     core_chip.set('asic', 'diearea', (0, 0))
-    #core_chip.add('asic', 'diearea', (2920, 3520))
-    core_chip.add('asic', 'diearea', (900, 600))
-    core_chip.set('asic', 'corearea', (9.66, 8.16))
-    #core_chip.add('asic', 'corearea', (2910, 3510))
-    core_chip.add('asic', 'corearea', (890.34, 591.84))
+    core_chip.add('asic', 'diearea', (CORE_W, CORE_H))
+    core_chip.set('asic', 'corearea', (MARGIN_W, MARGIN_H))
+    core_chip.add('asic', 'corearea', (CORE_W - MARGIN_W, CORE_H - MARGIN_H))
 
-    #fp = Floorplan(core_chip)
-    #fp.create_diearea([(0,0),(900,600)], corearea=[(10,10),(890,590)])
-    #fp.write_lef(f'{design}.lef')
-
+    # Create basic PDN script, with only vertical stripes.
     stackup = core_chip.get('asic', 'stackup')
     libtype = 'hd'
     with open('pdngen.tcl', 'w') as pdnf:
+        # TODO: Jinja template?
         pdnf.write('''
 # Add PDN connections for each voltage domain.
 add_global_connection -net vccd1 -pin_pattern "^vccd.*$" -power
@@ -71,8 +78,10 @@ add_pdn_stripe -grid pdn_grid -layer met4 -width 1.6 -pitch 150 -offset 75 -star
 pdngen''')
     core_chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'pdngen', 'pdngen.tcl')
 
+    # Build the core design.
     core_chip.run()
 
+    # Copy GDS/DEF/LEF files for use in the top-level build.
     jobdir = (core_chip.get('dir') +
             "/" + design + "/" +
             core_chip.get('jobname'))
@@ -87,13 +96,19 @@ def build_top():
     chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', ['0.15'])
     chip.set('eda', 'openroad', 'variable', 'route', '0', 'grt_allow_congestion', ['true'])
     chip.clock(name='clk', pin='clk', period=20)
-    # No filler cells in the top-level wrapper.
-    chip.set('library', 'sky130hd', 'cells', 'filler', [])
 
+    # Set top-level source files.
     chip.set('source', 'caravel_user_project/caravel/verilog/rtl/defines.v')
     chip.add('source', 'heartbeat.bb.v')
     chip.add('source', 'user_project_wrapper.v')
 
+    # Set top-level die/core area.
+    chip.set('asic', 'diearea', (0, 0))
+    chip.add('asic', 'diearea', (TOP_W, TOP_H))
+    chip.set('asic', 'corearea', (MARGIN_W, MARGIN_H))
+    chip.add('asic', 'corearea', (TOP_W - MARGIN_W, TOP_H - MARGIN_H))
+
+    # Add core design macro.
     libname = 'heartbeat'
     stackup = chip.get('asic', 'stackup')
     chip.add('asic', 'macrolib', libname)
@@ -103,14 +118,17 @@ def build_top():
     chip.set('library', libname, 'gds', stackup, 'heartbeat.gds')
     chip.set('library', libname, 'netlist', 'verilog', 'heartbeat.vg')
 
+    # No filler cells in the top-level wrapper.
+    chip.set('library', 'sky130hd', 'cells', 'filler', [])
+
     # No tapcells in the top-level wrapper.
+    # TODO: Should the Chip object have a 'delete' manifest method to go with 'set'/'get'/'add'?
     libtype = 'hd'
-    #chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'tapcells', None)
-    #chip.get('pdk', 'aprtech', 'openroad', stackup, libtype).pop('tapcells')
     chip.cfg['pdk']['aprtech']['openroad'][stackup][libtype].pop('tapcells')
 
-    # Generate PDN-generation script.
+    # Create PDN-generation script.
     with open('pdngen_top.tcl', 'w') as pdnf:
+        # TODO: Jinja template?
         pdnf.write('''
 # Add PDN connections for each voltage domain.
 add_global_connection -net vccd1 -pin_pattern "^vccd.*$" -power
@@ -145,21 +163,7 @@ place_cell -inst_name mprj -origin {1174.84 1689.12} -orient R0 -status FIRM
 ''')
     chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'macroplace', 'macroplace_top.tcl')
 
-
-
-    #fp = Floorplan(chip)
-    #fp.create_diearea([(0,0),(2920,3520)], corearea=[(10,10),(2910,3510)])
-    #fp.place_macros([('mprj', 'heartbeat')], 1175, 1690, 0, 0, 'N', snap=True)
-    #fp.write_lef('user_project_wrapper.lef')
-    #fp.write_def('user_project_wrapper.def')
-    #shutil.copy(f'{jobdir}/export/0/inputs/{design}.def', f'{design}.def')
-    #chip.add('read', 'def', 'export', '0', 'user_project_wrapper.def')
-
-    chip.set('asic', 'diearea', (0, 0))
-    chip.add('asic', 'diearea', (2920, 3520))
-    chip.set('asic', 'corearea', (9.66, 8.16))
-    chip.add('asic', 'corearea', (2910.34, 3511.84))
-
+    # Run the top-level build.
     chip.run()
 
 def main():
