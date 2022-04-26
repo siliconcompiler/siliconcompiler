@@ -1941,9 +1941,9 @@ class Chip:
         #Read arguments from file based on file type
 
         if filepath.endswith('.gz'):
-            fin =  gzip.open(filepath, 'r')
+            fin = gzip.open(filepath, 'r')
         else:
-            fin =  open(filepath, 'r')
+            fin = open(filepath, 'r')
 
         try:
             if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
