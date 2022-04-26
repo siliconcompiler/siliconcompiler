@@ -226,7 +226,6 @@ class Sup:
         supfile = self.search(name)
 
         self.chip.read_manifest(supfile)
-        self.chip.write_manifest("tmp.tcl")
 
         for key in self.chip.getkeys():
             if key[0] == 'package':
