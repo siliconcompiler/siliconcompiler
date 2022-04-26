@@ -427,7 +427,7 @@ class AppGen(DynamicGen):
         cmd_name = modname.replace('_', '-')
         cmd = [cmd_name, '--help']
 
-        output = subprocess.check_output(cmd).decode('ascii')
+        output = subprocess.check_output(cmd).decode('utf-8')
 
         section = build_section(cmd_name, cmd_name)
         section += literalblock(output)

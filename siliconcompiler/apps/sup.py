@@ -64,23 +64,23 @@ See https://docs.siliconcompiler.com for more information
     # Package Name
     parser.add_argument('name',
                         nargs='*',
-                        help="package name")
+                        help="package name(s)")
 
     # Options
     parser.add_argument("-v", "--version",
                         action="store_true",
                         help="show version and ext")
 
-    parser.add_argument("-registry",
+    parser.add_argument("-r", "--registry",
                         metavar='',
                         action='append',
                         help="registry list")
 
-    parser.add_argument("-loglevel",
+    parser.add_argument("-l", "--loglevel",
                         metavar='',
                         help="logging level")
 
-    parser.add_argument("-nodeps",
+    parser.add_argument("--nodeps",
                         action="store_true",
                         help="don't include dependencies")
 

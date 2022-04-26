@@ -1934,15 +1934,16 @@ class Chip:
         filepath = os.path.abspath(filename)
         self.logger.debug(f"Reading manifest {filepath}")
         if not os.path.isfile(filepath):
-            self.logger.error(f"Manifest file not found {filepath}")
-            sys.exit()
+            error_message =  f"Manifest file not found {filepath}"
+            self.logger.error(error_message)
+            raise SiliconCompilerError(error_message)
 
         #Read arguments from file based on file type
 
         if filepath.endswith('.gz'):
-            fin =  gzip.open(filepath, 'r')
+            fin = gzip.open(filepath, 'r')
         else:
-            fin =  open(filepath, 'r')
+            fin = open(filepath, 'r')
 
         try:
             if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):

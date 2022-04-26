@@ -145,7 +145,7 @@ class Sup:
         If no version is specified, all versions of the design are removed.
 
         Args:
-            name (str): Package to remove in formatl <design>-(<semver>)?
+            name (str): Package to remove in format <design>-(<semver>)?
 
         '''
 
@@ -204,7 +204,7 @@ class Sup:
 
         if not foundit:
             self.chip.logger.error(f"Package '{name}' is not in the registry.")
-            sys.exit()
+            sys.exit(1)
         else:
             supfile = os.path.join(remote[design][j], design, j, f"{design}-{j}.sup.gz")
 
@@ -226,7 +226,6 @@ class Sup:
         supfile = self.search(name)
 
         self.chip.read_manifest(supfile)
-        self.chip.write_manifest("tmp.tcl")
 
         for key in self.chip.getkeys():
             if key[0] == 'package':
