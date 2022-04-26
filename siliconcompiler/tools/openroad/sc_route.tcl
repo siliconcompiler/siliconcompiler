@@ -6,7 +6,9 @@
 # Add Fillers
 #######################
 
-filler_placement $sc_filler
+if { ! ( $sc_filler eq "" ) } {
+    filler_placement $sc_filler
+}
 
 check_placement
 

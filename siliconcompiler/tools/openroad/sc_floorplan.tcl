@@ -15,6 +15,7 @@ proc design_has_macros {} {
         return true
     }
   }
+
   return false
 }
 
@@ -65,7 +66,8 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
 
     # Need to check if we have any macros before performing macro placement,
     # since we get an error otherwise.
-    if {[design_has_macros]} {
+    if {[design_has_macros] || \
+        [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace]} {
         ###########################
         # TDMS Placement
         ###########################
@@ -78,19 +80,26 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
         # Macro placement
         ###########################
 
-        macro_placement \
-            -halo $openroad_macro_place_halo \
-            -channel $openroad_macro_place_channel
+        if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {
+            # Manual macro placement
+            source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
+        } else {
+            # Automatic macro placement
+            macro_placement \
+                -halo $openroad_macro_place_halo \
+                -channel $openroad_macro_place_channel
+        }
 
         # Note: some platforms set a "macro blockage halo" at this point, but the
         # technologies we support do not, so we don't include that step for now.
     }
 
     ###########################
-    # Power Network (not good)
+    # Power Network (if defined)
     ###########################
-    #pdngen $::env(PDN_CFG) -verbose
-
+    if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype pdngen] {
+        source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype pdngen] 0]
+    }
 } else {
     ###########################
     # Add power nets
