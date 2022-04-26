@@ -204,7 +204,7 @@ class Sup:
 
         if not foundit:
             self.chip.logger.error(f"Package '{name}' is not in the registry.")
-            sys.exit()
+            sys.exit(1)
         else:
             supfile = os.path.join(remote[design][j], design, j, f"{design}-{j}.sup.gz")
 
