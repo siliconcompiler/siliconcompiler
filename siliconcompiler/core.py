@@ -2877,6 +2877,24 @@ class Chip:
                           self.logger.info(string.strip())
 
     ###########################################################################
+    def _find_leaves(self, steplist):
+        '''Helper to find final (leaf) tasks for a given steplist.'''
+        flow = self.get('flow')
+
+        # First, iterate over the tasks to generate a set of non-leaf tasks.
+        all_tasks = set()
+        non_leaf_tasks = set()
+        for step in steplist:
+            for index in self.getkeys('flowgraph', flow, step):
+                all_tasks.add((step, index))
+                for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
+                    if in_step in steplist:
+                        non_leaf_tasks.add((in_step, in_index))
+
+        # Then, find all leaf tasks by elimination.
+        return all_tasks.difference(non_leaf_tasks)
+
+    ###########################################################################
     def summary(self, steplist=None, show_all_indices=False):
         '''
         Prints a summary of the compilation manifest.
@@ -2904,8 +2922,27 @@ class Chip:
             else:
                 steplist = self.list_steps()
 
-        #only report tool based steps functions
-        for step in steplist:
+        # Find all tasks that are part of a "winning" path.
+        selected_tasks = set()
+        to_search = []
+
+        # Start search with any successful leaf tasks.
+        leaf_tasks = self._find_leaves(steplist)
+        for task in leaf_tasks:
+            if self.get('flowstatus', *task, 'status') == TaskStatus.SUCCESS:
+                selected_tasks.add(task)
+                to_search.append(task)
+
+        # Search backwards, saving anything that was selected by leaf tasks.
+        while len(to_search) > 0:
+            task = to_search.pop(-1)
+            for selected in self.get('flowstatus', *task, 'select'):
+                if selected not in selected_tasks:
+                    selected_tasks.add(selected)
+                    to_search.append(selected)
+
+        # only report tool based steps functions
+        for step in steplist.copy():
             if self.get('flowgraph',flow, step,'0','tool') in self.builtin:
                 index = steplist.index(step)
                 del steplist[index]
@@ -2953,17 +2990,10 @@ class Chip:
             if show_all_indices:
                 indices_to_show[step] = self.getkeys('flowgraph', flow, step)
             else:
-                # Default for last step in list (could be tool or function)
-                indices_to_show[step] = ['0']
-
-                # Find winning index
+                indices_to_show[step] = []
                 for index in self.getkeys('flowgraph', flow, step):
-                    stepindex = step + index
-                    for i in  self.getkeys('flowstatus'):
-                        for j in  self.getkeys('flowstatus',i):
-                            for in_step, in_index in self.get('flowstatus',i,j,'select'):
-                                if (in_step + in_index) == stepindex:
-                                    indices_to_show[step] = index
+                    if (step, index) in selected_tasks:
+                        indices_to_show[step].append(index)
 
         # header for data frame
         for step in steplist:
