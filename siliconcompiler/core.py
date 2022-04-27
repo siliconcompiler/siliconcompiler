@@ -3267,6 +3267,35 @@ class Chip:
                 self.edge(flow, prevstep, step)
             prevstep = step
 
+    ###########################################################################
+    def single_step(self, step, tool, flow=None):
+        '''
+        Sets up a flow that runs a single tool step.
+
+        This function creates a flowgraph that runs a single tool step. If the
+        specified step name is not "import", this function adds a no-op "import"
+        step to satisfy the import requirement. This function also sets weights
+        for a few basic metrics to ensure that the summary() function displays
+        errors, warnings, and runtime.
+
+        Args:
+            step (str): Name of step
+            tool (str): Name of tool
+            flow (str): Name of flow to instantiate. If `None`, defaults to tool
+                name
+        '''
+        if flow is None:
+            flow = tool
+
+        self.node(flow, step, tool)
+
+        if step != 'import':
+            self.node(flow, 'import', 'nop')
+            self.edge('import', step)
+
+        self.set('flowgraph', flow, step, '0', 'weight', 'errors', 0)
+        self.set('flowgraph', flow, step, '0', 'weight', 'warnings', 0)
+        self.set('flowgraph', flow, step, '0', 'weight', 'runtime', 0)
 
     ###########################################################################
     def join(self, *tasks):
@@ -3920,26 +3949,6 @@ class Chip:
         '''
 
         flow = self.get('flow')
-
-        if not flow in self.getkeys('flowgraph'):
-            # If not a pre-loaded flow, we'll assume that 'flow' specifies a
-            # single-step tool run with flow being the name of the tool. Set up
-            # a basic flowgraph for this tool with a no-op import and default
-            # weights.
-            tool = flow
-            step = self.get('arg', 'step')
-            if step is None:
-                self.logger.error('arg, step must be specified for single tool flow.')
-
-            self.set('flowgraph', flow, step, '0', 'tool', tool)
-            self.set('flowgraph', flow, step, '0', 'weight', 'errors', 0)
-            self.set('flowgraph', flow, step, '0', 'weight', 'warnings', 0)
-            self.set('flowgraph', flow, step, '0', 'weight', 'runtime', 0)
-            if step != 'import':
-                self.set('flowgraph', flow, step, '0', 'input', ('import','0'))
-                self.set('flowgraph', flow, 'import', '0', 'tool', 'nop')
-
-            self.set('arg', 'step', None)
 
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
