@@ -34,6 +34,7 @@ def setup(chip):
     chip.load_flow('asictopflow')
     chip.load_flow('signoffflow')
     chip.load_lib('sky130')
+    chip.load_checklist('oh_tapeout')
 
     #3. Set default targets
     chip.set('flow', 'asicflow')

@@ -12,10 +12,7 @@
             "value": "1"
         },
         "corearea": {
-            "defvalue": [
-                "(10.07,11.2)",
-                "(90.25,91)"
-            ],
+            "defvalue": [],
             "lock": "false",
             "require": null,
             "scope": "job",
@@ -23,6 +20,7 @@
             "signature": [],
             "switch": "-asic_corearea <[(float,float)]>",
             "type": "[(float,float)]",
+            "unit": "um",
             "value": [
                 "(10.07,11.2)",
                 "(90.25,91)"
@@ -37,6 +35,7 @@
             "signature": null,
             "switch": "-asic_coremargin <float>",
             "type": "float",
+            "unit": "um",
             "value": "1.9"
         },
         "delaymodel": {
@@ -62,10 +61,7 @@
             "value": "10"
         },
         "diearea": {
-            "defvalue": [
-                "(0,0)",
-                "(100.13,100.8)"
-            ],
+            "defvalue": [],
             "lock": "false",
             "require": null,
             "scope": "job",
@@ -73,6 +69,7 @@
             "signature": [],
             "switch": "-asic_diearea <[(float,float)]>",
             "type": "[(float,float)]",
+            "unit": "um",
             "value": [
                 "(0,0)",
                 "(100.13,100.8)"
@@ -111,6 +108,7 @@
             "signature": null,
             "switch": "-asic_maxcap <float>",
             "type": "float",
+            "unit": "F",
             "value": "2e-13"
         },
         "maxfanout": {
@@ -144,6 +142,7 @@
             "signature": null,
             "switch": "-asic_maxlength <float>",
             "type": "float",
+            "unit": "um",
             "value": "1000"
         },
         "maxslew": {
@@ -155,6 +154,7 @@
             "signature": null,
             "switch": "-asic_maxslew <float>",
             "type": "float",
+            "unit": "s",
             "value": "2e-10"
         },
         "minlayer": {
@@ -230,9 +230,7 @@
         "author": [],
         "copy": "true",
         "date": [],
-        "defvalue": [
-            "gcd.sdc"
-        ],
+        "defvalue": [],
         "filehash": [],
         "hashalgo": "sha256",
         "lock": "false",
@@ -331,9 +329,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -373,9 +369,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.gds"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -485,13 +479,7 @@
             "require": {
                 "export": {
                     "0": {
-                        "defvalue": [
-                            "asic,logiclib",
-                            "asic,stackup",
-                            "pdk,layermap,klayout,def,gds,10M",
-                            "library,nangate45,gds,10M",
-                            "library,nangate45,lef,10M"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -560,7 +548,7 @@
                 "switch": "-eda_version 'tool <str>'",
                 "type": "[str]",
                 "value": [
-                    "0.27.8"
+                    ">=0.27.6"
                 ]
             },
             "vswitch": {
@@ -629,9 +617,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -651,9 +637,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -673,9 +657,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.vg"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -695,9 +677,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -717,9 +697,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -739,9 +717,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -855,11 +831,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.sdc",
-                            "gcd.vg",
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -881,11 +853,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.sdc",
-                            "gcd.vg",
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -907,11 +875,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.sdc",
-                            "gcd.vg",
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -933,11 +897,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.sdc",
-                            "gcd.vg",
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -959,11 +919,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.sdc",
-                            "gcd.vg",
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -985,11 +941,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.sdc",
-                            "gcd.vg",
-                            "gcd.def"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -1824,6 +1776,24 @@
                                 "cts.log"
                             ]
                         },
+                        "totaltime": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool report files",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "cts.log"
+                            ]
+                        },
                         "transistors": {
                             "author": [],
                             "copy": "false",
@@ -2459,6 +2429,24 @@
                             ]
                         },
                         "totalarea": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool report files",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "dfm.log"
+                            ]
+                        },
+                        "totaltime": {
                             "author": [],
                             "copy": "false",
                             "date": [],
@@ -3128,6 +3116,24 @@
                                 "floorplan.log"
                             ]
                         },
+                        "totaltime": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool report files",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "floorplan.log"
+                            ]
+                        },
                         "transistors": {
                             "author": [],
                             "copy": "false",
@@ -3763,6 +3769,24 @@
                             ]
                         },
                         "totalarea": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool report files",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "physyn.log"
+                            ]
+                        },
+                        "totaltime": {
                             "author": [],
                             "copy": "false",
                             "date": [],
@@ -4432,6 +4456,24 @@
                                 "place.log"
                             ]
                         },
+                        "totaltime": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool report files",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "place.log"
+                            ]
+                        },
                         "transistors": {
                             "author": [],
                             "copy": "false",
@@ -5067,6 +5109,24 @@
                             ]
                         },
                         "totalarea": {
+                            "author": [],
+                            "copy": "false",
+                            "date": [],
+                            "defvalue": [],
+                            "filehash": [],
+                            "hashalgo": "sha256",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool report files",
+                            "signature": [],
+                            "switch": "-eda_report 'tool step index metric <str>'",
+                            "type": "[file]",
+                            "value": [
+                                "route.log"
+                            ]
+                        },
+                        "totaltime": {
                             "author": [],
                             "copy": "false",
                             "date": [],
@@ -5198,19 +5258,7 @@
             "require": {
                 "cts": {
                     "0": {
-                        "defvalue": [
-                            "asic,logiclib",
-                            "asic,stackup",
-                            "library,nangate45,arch",
-                            "pdk,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef,10M",
-                            "eda,openroad,variable,cts,0,place_density",
-                            "eda,openroad,variable,cts,0,pad_global_place",
-                            "eda,openroad,variable,cts,0,pad_detail_place",
-                            "eda,openroad,variable,cts,0,macro_place_halo",
-                            "eda,openroad,variable,cts,0,macro_place_channel"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -5235,19 +5283,7 @@
                 },
                 "dfm": {
                     "0": {
-                        "defvalue": [
-                            "asic,logiclib",
-                            "asic,stackup",
-                            "library,nangate45,arch",
-                            "pdk,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef,10M",
-                            "eda,openroad,variable,dfm,0,place_density",
-                            "eda,openroad,variable,dfm,0,pad_global_place",
-                            "eda,openroad,variable,dfm,0,pad_detail_place",
-                            "eda,openroad,variable,dfm,0,macro_place_halo",
-                            "eda,openroad,variable,dfm,0,macro_place_channel"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -5272,19 +5308,7 @@
                 },
                 "floorplan": {
                     "0": {
-                        "defvalue": [
-                            "asic,logiclib",
-                            "asic,stackup",
-                            "library,nangate45,arch",
-                            "pdk,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef,10M",
-                            "eda,openroad,variable,floorplan,0,place_density",
-                            "eda,openroad,variable,floorplan,0,pad_global_place",
-                            "eda,openroad,variable,floorplan,0,pad_detail_place",
-                            "eda,openroad,variable,floorplan,0,macro_place_halo",
-                            "eda,openroad,variable,floorplan,0,macro_place_channel"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -5309,19 +5333,7 @@
                 },
                 "physyn": {
                     "0": {
-                        "defvalue": [
-                            "asic,logiclib",
-                            "asic,stackup",
-                            "library,nangate45,arch",
-                            "pdk,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef,10M",
-                            "eda,openroad,variable,physyn,0,place_density",
-                            "eda,openroad,variable,physyn,0,pad_global_place",
-                            "eda,openroad,variable,physyn,0,pad_detail_place",
-                            "eda,openroad,variable,physyn,0,macro_place_halo",
-                            "eda,openroad,variable,physyn,0,macro_place_channel"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -5346,19 +5358,7 @@
                 },
                 "place": {
                     "0": {
-                        "defvalue": [
-                            "asic,logiclib",
-                            "asic,stackup",
-                            "library,nangate45,arch",
-                            "pdk,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef,10M",
-                            "eda,openroad,variable,place,0,place_density",
-                            "eda,openroad,variable,place,0,pad_global_place",
-                            "eda,openroad,variable,place,0,pad_detail_place",
-                            "eda,openroad,variable,place,0,macro_place_halo",
-                            "eda,openroad,variable,place,0,macro_place_channel"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -5383,19 +5383,7 @@
                 },
                 "route": {
                     "0": {
-                        "defvalue": [
-                            "asic,logiclib",
-                            "asic,stackup",
-                            "library,nangate45,arch",
-                            "pdk,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,nldm,typical,lib",
-                            "library,nangate45,lef,10M",
-                            "eda,openroad,variable,route,0,place_density",
-                            "eda,openroad,variable,route,0,pad_global_place",
-                            "eda,openroad,variable,route,0,pad_detail_place",
-                            "eda,openroad,variable,route,0,macro_place_halo",
-                            "eda,openroad,variable,route,0,macro_place_channel"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -6059,7 +6047,7 @@
                 "switch": "-eda_version 'tool <str>'",
                 "type": "[str]",
                 "value": [
-                    "v2.0"
+                    ">=v2.0-3078"
                 ]
             },
             "vswitch": {
@@ -6113,9 +6101,7 @@
             "option": {
                 "import": {
                     "0": {
-                        "defvalue": [
-                            "-parse"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -6135,9 +6121,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "gcd.v"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -6230,9 +6214,7 @@
             "require": {
                 "import": {
                     "0": {
-                        "defvalue": [
-                            "source"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -6271,7 +6253,7 @@
                 "switch": "-eda_version 'tool <str>'",
                 "type": "[str]",
                 "value": [
-                    "1.14"
+                    ">=1.13"
                 ]
             },
             "vswitch": {
@@ -6706,12 +6688,7 @@
             "require": {
                 "syn": {
                     "0": {
-                        "defvalue": [
-                            "pdk,process",
-                            "design",
-                            "asic,logiclib",
-                            "library,nangate45,nldm,typical,lib"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -6760,7 +6737,7 @@
                 "switch": "-eda_version 'tool <str>'",
                 "type": "[str]",
                 "value": [
-                    "0.13"
+                    ">=0.13"
                 ]
             },
             "vswitch": {
@@ -6794,9 +6771,7 @@
             "cts": {
                 "0": {
                     "input": {
-                        "defvalue": [
-                            "('place', '0')"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -7195,6 +7170,17 @@
                             "value": "0"
                         },
                         "totalarea": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "totaltime": {
                             "defvalue": null,
                             "lock": "false",
                             "require": null,
@@ -7277,9 +7263,7 @@
             "dfm": {
                 "0": {
                     "input": {
-                        "defvalue": [
-                            "('route', '0')"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -7688,6 +7672,17 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "totaltime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "transistors": {
                             "defvalue": null,
                             "lock": "false",
@@ -7760,9 +7755,7 @@
             "export": {
                 "0": {
                     "input": {
-                        "defvalue": [
-                            "('dfm', '0')"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -8171,6 +8164,17 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "totaltime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "transistors": {
                             "defvalue": null,
                             "lock": "false",
@@ -8243,9 +8247,7 @@
             "floorplan": {
                 "0": {
                     "input": {
-                        "defvalue": [
-                            "('syn', '0')"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -8644,6 +8646,17 @@
                             "value": "0"
                         },
                         "totalarea": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "totaltime": {
                             "defvalue": null,
                             "lock": "false",
                             "require": null,
@@ -9122,6 +9135,17 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "totaltime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "transistors": {
                             "defvalue": null,
                             "lock": "false",
@@ -9194,9 +9218,7 @@
             "physyn": {
                 "0": {
                     "input": {
-                        "defvalue": [
-                            "('floorplan', '0')"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -9595,6 +9617,17 @@
                             "value": "0"
                         },
                         "totalarea": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "totaltime": {
                             "defvalue": null,
                             "lock": "false",
                             "require": null,
@@ -9677,9 +9710,7 @@
             "place": {
                 "0": {
                     "input": {
-                        "defvalue": [
-                            "('physyn', '0')"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -10078,6 +10109,17 @@
                             "value": "0"
                         },
                         "totalarea": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "totaltime": {
                             "defvalue": null,
                             "lock": "false",
                             "require": null,
@@ -10160,9 +10202,7 @@
             "route": {
                 "0": {
                     "input": {
-                        "defvalue": [
-                            "('cts', '0')"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -10571,6 +10611,17 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "totaltime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "transistors": {
                             "defvalue": null,
                             "lock": "false",
@@ -10643,9 +10694,7 @@
             "syn": {
                 "0": {
                     "input": {
-                        "defvalue": [
-                            "('import', '0')"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -11054,6 +11103,17 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "totaltime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "transistors": {
                             "defvalue": null,
                             "lock": "false",
@@ -11128,9 +11188,7 @@
             "export": {
                 "0": {
                     "input": {
-                        "defvalue": [
-                            "('import', '0')"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -11529,6 +11587,17 @@
                             "value": "0"
                         },
                         "totalarea": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "totaltime": {
                             "defvalue": null,
                             "lock": "false",
                             "require": null,
@@ -12007,6 +12076,17 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "totaltime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "transistors": {
                             "defvalue": null,
                             "lock": "false",
@@ -12079,10 +12159,7 @@
             "merge": {
                 "0": {
                     "input": {
-                        "defvalue": [
-                            "('export', '0')",
-                            "('syn', '0')"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -12492,6 +12569,17 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "totaltime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "transistors": {
                             "defvalue": null,
                             "lock": "false",
@@ -12564,9 +12652,7 @@
             "syn": {
                 "0": {
                     "input": {
-                        "defvalue": [
-                            "('import', '0')"
-                        ],
+                        "defvalue": [],
                         "lock": "false",
                         "require": null,
                         "scope": "job",
@@ -12975,6 +13061,17 @@
                             "type": "float",
                             "value": "0"
                         },
+                        "totaltime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
                         "transistors": {
                             "defvalue": null,
                             "lock": "false",
@@ -13049,17 +13146,6 @@
     "flowstatus": {
         "cts": {
             "0": {
-                "error": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Flowgraph task error status",
-                    "signature": null,
-                    "switch": "-flowstatus_error 'step index <int>'",
-                    "type": "int",
-                    "value": "1"
-                },
                 "select": {
                     "defvalue": [],
                     "lock": "false",
@@ -13072,22 +13158,22 @@
                     "value": [
                         "('place', '0')"
                     ]
+                },
+                "status": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Flowgraph task status",
+                    "signature": null,
+                    "switch": "-flowstatus_status 'step index <str>'",
+                    "type": "str",
+                    "value": "success"
                 }
             }
         },
         "dfm": {
             "0": {
-                "error": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Flowgraph task error status",
-                    "signature": null,
-                    "switch": "-flowstatus_error 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                },
                 "select": {
                     "defvalue": [],
                     "lock": "false",
@@ -13100,22 +13186,22 @@
                     "value": [
                         "('route', '0')"
                     ]
+                },
+                "status": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Flowgraph task status",
+                    "signature": null,
+                    "switch": "-flowstatus_status 'step index <str>'",
+                    "type": "str",
+                    "value": "success"
                 }
             }
         },
         "export": {
             "0": {
-                "error": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Flowgraph task error status",
-                    "signature": null,
-                    "switch": "-flowstatus_error 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                },
                 "select": {
                     "defvalue": [],
                     "lock": "false",
@@ -13128,22 +13214,22 @@
                     "value": [
                         "('dfm', '0')"
                     ]
+                },
+                "status": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Flowgraph task status",
+                    "signature": null,
+                    "switch": "-flowstatus_status 'step index <str>'",
+                    "type": "str",
+                    "value": "success"
                 }
             }
         },
         "floorplan": {
             "0": {
-                "error": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Flowgraph task error status",
-                    "signature": null,
-                    "switch": "-flowstatus_error 'step index <int>'",
-                    "type": "int",
-                    "value": "1"
-                },
                 "select": {
                     "defvalue": [],
                     "lock": "false",
@@ -13156,37 +13242,37 @@
                     "value": [
                         "('syn', '0')"
                     ]
+                },
+                "status": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Flowgraph task status",
+                    "signature": null,
+                    "switch": "-flowstatus_status 'step index <str>'",
+                    "type": "str",
+                    "value": "success"
                 }
             }
         },
         "import": {
             "0": {
-                "error": {
+                "status": {
                     "defvalue": null,
                     "lock": "false",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Flowgraph task error status",
+                    "shorthelp": "Flowgraph task status",
                     "signature": null,
-                    "switch": "-flowstatus_error 'step index <int>'",
-                    "type": "int",
-                    "value": "1"
+                    "switch": "-flowstatus_status 'step index <str>'",
+                    "type": "str",
+                    "value": "success"
                 }
             }
         },
         "physyn": {
             "0": {
-                "error": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Flowgraph task error status",
-                    "signature": null,
-                    "switch": "-flowstatus_error 'step index <int>'",
-                    "type": "int",
-                    "value": "1"
-                },
                 "select": {
                     "defvalue": [],
                     "lock": "false",
@@ -13199,22 +13285,22 @@
                     "value": [
                         "('floorplan', '0')"
                     ]
+                },
+                "status": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Flowgraph task status",
+                    "signature": null,
+                    "switch": "-flowstatus_status 'step index <str>'",
+                    "type": "str",
+                    "value": "success"
                 }
             }
         },
         "place": {
             "0": {
-                "error": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Flowgraph task error status",
-                    "signature": null,
-                    "switch": "-flowstatus_error 'step index <int>'",
-                    "type": "int",
-                    "value": "1"
-                },
                 "select": {
                     "defvalue": [],
                     "lock": "false",
@@ -13227,22 +13313,22 @@
                     "value": [
                         "('physyn', '0')"
                     ]
+                },
+                "status": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Flowgraph task status",
+                    "signature": null,
+                    "switch": "-flowstatus_status 'step index <str>'",
+                    "type": "str",
+                    "value": "success"
                 }
             }
         },
         "route": {
             "0": {
-                "error": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Flowgraph task error status",
-                    "signature": null,
-                    "switch": "-flowstatus_error 'step index <int>'",
-                    "type": "int",
-                    "value": "1"
-                },
                 "select": {
                     "defvalue": [],
                     "lock": "false",
@@ -13255,22 +13341,22 @@
                     "value": [
                         "('cts', '0')"
                     ]
+                },
+                "status": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Flowgraph task status",
+                    "signature": null,
+                    "switch": "-flowstatus_status 'step index <str>'",
+                    "type": "str",
+                    "value": "success"
                 }
             }
         },
         "syn": {
             "0": {
-                "error": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Flowgraph task error status",
-                    "signature": null,
-                    "switch": "-flowstatus_error 'step index <int>'",
-                    "type": "int",
-                    "value": "1"
-                },
                 "select": {
                     "defvalue": [],
                     "lock": "false",
@@ -13283,6 +13369,17 @@
                     "value": [
                         "('import', '0')"
                     ]
+                },
+                "status": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Flowgraph task status",
+                    "signature": null,
+                    "switch": "-flowstatus_status 'step index <str>'",
+                    "type": "str",
+                    "value": "success"
                 }
             }
         }
@@ -13370,9 +13467,7 @@
             },
             "cells": {
                 "buf": {
-                    "defvalue": [
-                        "BUF_X1/A/Z"
-                    ],
+                    "defvalue": [],
                     "lock": "false",
                     "require": null,
                     "scope": "global",
@@ -13385,9 +13480,7 @@
                     ]
                 },
                 "clkbuf": {
-                    "defvalue": [
-                        "BUF_X4"
-                    ],
+                    "defvalue": [],
                     "lock": "false",
                     "require": null,
                     "scope": "global",
@@ -13400,9 +13493,7 @@
                     ]
                 },
                 "driver": {
-                    "defvalue": [
-                        "BUF_X4"
-                    ],
+                    "defvalue": [],
                     "lock": "false",
                     "require": null,
                     "scope": "global",
@@ -13415,9 +13506,7 @@
                     ]
                 },
                 "endcap": {
-                    "defvalue": [
-                        "FILLCELL_X1"
-                    ],
+                    "defvalue": [],
                     "lock": "false",
                     "require": null,
                     "scope": "global",
@@ -13430,14 +13519,7 @@
                     ]
                 },
                 "filler": {
-                    "defvalue": [
-                        "FILLCELL_X1",
-                        "FILLCELL_X2",
-                        "FILLCELL_X4",
-                        "FILLCELL_X8",
-                        "FILLCELL_X16",
-                        "FILLCELL_X32"
-                    ],
+                    "defvalue": [],
                     "lock": "false",
                     "require": null,
                     "scope": "global",
@@ -13455,9 +13537,7 @@
                     ]
                 },
                 "hold": {
-                    "defvalue": [
-                        "BUF_X1"
-                    ],
+                    "defvalue": [],
                     "lock": "false",
                     "require": null,
                     "scope": "global",
@@ -13470,10 +13550,7 @@
                     ]
                 },
                 "ignore": {
-                    "defvalue": [
-                        "AOI211_X1",
-                        "OAI211_X1"
-                    ],
+                    "defvalue": [],
                     "lock": "false",
                     "require": null,
                     "scope": "global",
@@ -13487,9 +13564,7 @@
                     ]
                 },
                 "tap": {
-                    "defvalue": [
-                        "FILLCELL_X1"
-                    ],
+                    "defvalue": [],
                     "lock": "false",
                     "require": null,
                     "scope": "global",
@@ -13502,10 +13577,7 @@
                     ]
                 },
                 "tie": {
-                    "defvalue": [
-                        "LOGIC1_X1/Z",
-                        "LOGIC0_X1/Z"
-                    ],
+                    "defvalue": [],
                     "lock": "false",
                     "require": null,
                     "scope": "global",
@@ -13524,9 +13596,7 @@
                     "author": [],
                     "copy": "false",
                     "date": [],
-                    "defvalue": [
-                        "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/gds/NangateOpenCellLibrary.gds"
-                    ],
+                    "defvalue": [],
                     "filehash": [],
                     "hashalgo": "sha256",
                     "lock": "false",
@@ -13546,9 +13616,7 @@
                     "author": [],
                     "copy": "false",
                     "date": [],
-                    "defvalue": [
-                        "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/lef/NangateOpenCellLibrary.macro.mod.lef"
-                    ],
+                    "defvalue": [],
                     "filehash": [],
                     "hashalgo": "sha256",
                     "lock": "false",
@@ -13569,9 +13637,7 @@
                         "author": [],
                         "copy": "false",
                         "date": [],
-                        "defvalue": [
-                            "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/lib/NangateOpenCellLibrary_typical.lib"
-                        ],
+                        "defvalue": [],
                         "filehash": [],
                         "hashalgo": "sha256",
                         "lock": "false",
@@ -13655,9 +13721,7 @@
                     "author": [],
                     "copy": "false",
                     "date": [],
-                    "defvalue": [
-                        "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/techmap/yosys/cells_latch.v"
-                    ],
+                    "defvalue": [],
                     "filehash": [],
                     "hashalgo": "sha256",
                     "lock": "false",
@@ -13686,7 +13750,7 @@
         }
     },
     "loglevel": {
-        "defvalue": "WARNING",
+        "defvalue": "INFO",
         "lock": "false",
         "require": null,
         "scope": "job",
@@ -13760,6 +13824,7 @@
                         "signature": null,
                         "switch": "-metric_averagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -13799,6 +13864,7 @@
                         "signature": null,
                         "switch": "-metric_cellarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "494.0"
                     }
                 },
@@ -13825,6 +13891,7 @@
                         "signature": null,
                         "switch": "-metric_coverage 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -13838,6 +13905,7 @@
                         "signature": null,
                         "switch": "-metric_dozepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -13912,7 +13980,8 @@
                         "signature": null,
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
-                        "value": "1.91"
+                        "unit": "s",
+                        "value": "1.83"
                     }
                 },
                 "holdpaths": {
@@ -13938,6 +14007,7 @@
                         "signature": null,
                         "switch": "-metric_holdslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.11"
                     }
                 },
@@ -13951,6 +14021,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -13962,6 +14033,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -13975,6 +14047,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -13986,6 +14059,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -13999,6 +14073,7 @@
                         "signature": null,
                         "switch": "-metric_idlepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -14012,6 +14087,7 @@
                         "signature": null,
                         "switch": "-metric_irdrop 'step index group <float>'",
                         "type": "float",
+                        "unit": "mv",
                         "value": "0.0"
                     }
                 },
@@ -14025,6 +14101,7 @@
                         "signature": null,
                         "switch": "-metric_leakagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "1.17e-05"
                     }
                 },
@@ -14064,7 +14141,8 @@
                         "signature": null,
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "unit": "B",
+                        "value": "100048896.0"
                     }
                 },
                 "nets": {
@@ -14103,6 +14181,7 @@
                         "signature": null,
                         "switch": "-metric_peakpower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.000277"
                     }
                 },
@@ -14142,6 +14221,7 @@
                         "signature": null,
                         "switch": "-metric_security 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -14168,6 +14248,7 @@
                         "signature": null,
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "1.0"
                     }
                 },
@@ -14181,6 +14262,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -14192,6 +14274,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -14205,6 +14288,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -14216,6 +14300,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -14229,6 +14314,7 @@
                         "signature": null,
                         "switch": "-metric_sleeppower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -14242,7 +14328,8 @@
                         "signature": null,
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
-                        "value": "2.22"
+                        "unit": "s",
+                        "value": "2.12"
                     }
                 },
                 "totalarea": {
@@ -14255,7 +14342,22 @@
                         "signature": null,
                         "switch": "-metric_totalarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "6175.0"
+                    }
+                },
+                "totaltime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "asic",
+                        "scope": "job",
+                        "shorthelp": "Metric: totaltime",
+                        "signature": null,
+                        "switch": "-metric_totaltime 'step index group <float>'",
+                        "type": "float",
+                        "unit": "s",
+                        "value": "0.0"
                     }
                 },
                 "transistors": {
@@ -14294,6 +14396,7 @@
                         "signature": null,
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
+                        "unit": "%",
                         "value": "8.0"
                     }
                 },
@@ -14333,6 +14436,7 @@
                         "signature": null,
                         "switch": "-metric_wirelength 'step index group <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.0"
                     }
                 }
@@ -14350,6 +14454,7 @@
                         "signature": null,
                         "switch": "-metric_averagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -14389,6 +14494,7 @@
                         "signature": null,
                         "switch": "-metric_cellarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "494.0"
                     }
                 },
@@ -14415,6 +14521,7 @@
                         "signature": null,
                         "switch": "-metric_coverage 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -14428,6 +14535,7 @@
                         "signature": null,
                         "switch": "-metric_dozepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -14502,6 +14610,7 @@
                         "signature": null,
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
+                        "unit": "s",
                         "value": "0.31"
                     }
                 },
@@ -14528,6 +14637,7 @@
                         "signature": null,
                         "switch": "-metric_holdslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.11"
                     }
                 },
@@ -14541,6 +14651,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -14552,6 +14663,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -14565,6 +14677,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -14576,6 +14689,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -14589,6 +14703,7 @@
                         "signature": null,
                         "switch": "-metric_idlepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -14602,6 +14717,7 @@
                         "signature": null,
                         "switch": "-metric_irdrop 'step index group <float>'",
                         "type": "float",
+                        "unit": "mv",
                         "value": "0.0"
                     }
                 },
@@ -14615,6 +14731,7 @@
                         "signature": null,
                         "switch": "-metric_leakagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "1.17e-05"
                     }
                 },
@@ -14654,7 +14771,8 @@
                         "signature": null,
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "unit": "B",
+                        "value": "79347712.0"
                     }
                 },
                 "nets": {
@@ -14693,6 +14811,7 @@
                         "signature": null,
                         "switch": "-metric_peakpower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.000289"
                     }
                 },
@@ -14732,6 +14851,7 @@
                         "signature": null,
                         "switch": "-metric_security 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -14758,6 +14878,7 @@
                         "signature": null,
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.98"
                     }
                 },
@@ -14771,6 +14892,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -14782,6 +14904,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -14795,6 +14918,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -14806,6 +14930,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -14819,6 +14944,7 @@
                         "signature": null,
                         "switch": "-metric_sleeppower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -14832,7 +14958,8 @@
                         "signature": null,
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
-                        "value": "0.65"
+                        "unit": "s",
+                        "value": "0.57"
                     }
                 },
                 "totalarea": {
@@ -14845,7 +14972,22 @@
                         "signature": null,
                         "switch": "-metric_totalarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "6175.0"
+                    }
+                },
+                "totaltime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "asic",
+                        "scope": "job",
+                        "shorthelp": "Metric: totaltime",
+                        "signature": null,
+                        "switch": "-metric_totaltime 'step index group <float>'",
+                        "type": "float",
+                        "unit": "s",
+                        "value": "0.0"
                     }
                 },
                 "transistors": {
@@ -14884,6 +15026,7 @@
                         "signature": null,
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
+                        "unit": "%",
                         "value": "8.0"
                     }
                 },
@@ -14923,6 +15066,7 @@
                         "signature": null,
                         "switch": "-metric_wirelength 'step index group <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.0"
                     }
                 }
@@ -14940,6 +15084,7 @@
                         "signature": null,
                         "switch": "-metric_averagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0"
                     }
                 },
@@ -14979,6 +15124,7 @@
                         "signature": null,
                         "switch": "-metric_cellarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "0"
                     }
                 },
@@ -15005,6 +15151,7 @@
                         "signature": null,
                         "switch": "-metric_coverage 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0"
                     }
                 },
@@ -15018,6 +15165,7 @@
                         "signature": null,
                         "switch": "-metric_dozepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0"
                     }
                 },
@@ -15092,7 +15240,8 @@
                         "signature": null,
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
-                        "value": "0.81"
+                        "unit": "s",
+                        "value": "0.85"
                     }
                 },
                 "holdpaths": {
@@ -15118,6 +15267,7 @@
                         "signature": null,
                         "switch": "-metric_holdslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     }
                 },
@@ -15131,6 +15281,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -15142,6 +15293,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     }
                 },
@@ -15155,6 +15307,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -15166,6 +15319,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     }
                 },
@@ -15179,6 +15333,7 @@
                         "signature": null,
                         "switch": "-metric_idlepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0"
                     }
                 },
@@ -15192,6 +15347,7 @@
                         "signature": null,
                         "switch": "-metric_irdrop 'step index group <float>'",
                         "type": "float",
+                        "unit": "mv",
                         "value": "0"
                     }
                 },
@@ -15205,6 +15361,7 @@
                         "signature": null,
                         "switch": "-metric_leakagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0"
                     }
                 },
@@ -15244,7 +15401,8 @@
                         "signature": null,
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
-                        "value": "0"
+                        "unit": "B",
+                        "value": "367104000"
                     }
                 },
                 "nets": {
@@ -15283,6 +15441,7 @@
                         "signature": null,
                         "switch": "-metric_peakpower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0"
                     }
                 },
@@ -15322,6 +15481,7 @@
                         "signature": null,
                         "switch": "-metric_security 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0"
                     }
                 },
@@ -15348,6 +15508,7 @@
                         "signature": null,
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     }
                 },
@@ -15361,6 +15522,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -15372,6 +15534,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     }
                 },
@@ -15385,6 +15548,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -15396,6 +15560,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     }
                 },
@@ -15409,6 +15574,7 @@
                         "signature": null,
                         "switch": "-metric_sleeppower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0"
                     }
                 },
@@ -15422,7 +15588,8 @@
                         "signature": null,
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
-                        "value": "1.22"
+                        "unit": "s",
+                        "value": "1.15"
                     }
                 },
                 "totalarea": {
@@ -15435,6 +15602,21 @@
                         "signature": null,
                         "switch": "-metric_totalarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
+                        "value": "0"
+                    }
+                },
+                "totaltime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "asic",
+                        "scope": "job",
+                        "shorthelp": "Metric: totaltime",
+                        "signature": null,
+                        "switch": "-metric_totaltime 'step index group <float>'",
+                        "type": "float",
+                        "unit": "s",
                         "value": "0"
                     }
                 },
@@ -15474,6 +15656,7 @@
                         "signature": null,
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
+                        "unit": "%",
                         "value": "0"
                     }
                 },
@@ -15513,6 +15696,7 @@
                         "signature": null,
                         "switch": "-metric_wirelength 'step index group <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0"
                     }
                 }
@@ -15530,6 +15714,7 @@
                         "signature": null,
                         "switch": "-metric_averagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -15569,6 +15754,7 @@
                         "signature": null,
                         "switch": "-metric_cellarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "415.0"
                     }
                 },
@@ -15595,6 +15781,7 @@
                         "signature": null,
                         "switch": "-metric_coverage 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -15608,6 +15795,7 @@
                         "signature": null,
                         "switch": "-metric_dozepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -15682,6 +15870,7 @@
                         "signature": null,
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
+                        "unit": "s",
                         "value": "0.31"
                     }
                 },
@@ -15708,6 +15897,7 @@
                         "signature": null,
                         "switch": "-metric_holdslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.11"
                     }
                 },
@@ -15721,6 +15911,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -15732,6 +15923,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -15745,6 +15937,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -15756,6 +15949,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -15769,6 +15963,7 @@
                         "signature": null,
                         "switch": "-metric_idlepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -15782,6 +15977,7 @@
                         "signature": null,
                         "switch": "-metric_irdrop 'step index group <float>'",
                         "type": "float",
+                        "unit": "mv",
                         "value": "0.0"
                     }
                 },
@@ -15795,6 +15991,7 @@
                         "signature": null,
                         "switch": "-metric_leakagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "8.69e-06"
                     }
                 },
@@ -15834,7 +16031,8 @@
                         "signature": null,
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "unit": "B",
+                        "value": "79089664.0"
                     }
                 },
                 "nets": {
@@ -15873,6 +16071,7 @@
                         "signature": null,
                         "switch": "-metric_peakpower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.000188"
                     }
                 },
@@ -15912,6 +16111,7 @@
                         "signature": null,
                         "switch": "-metric_security 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -15938,6 +16138,7 @@
                         "signature": null,
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.79"
                     }
                 },
@@ -15951,6 +16152,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -15962,6 +16164,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -15975,6 +16178,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -15986,6 +16190,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -15999,6 +16204,7 @@
                         "signature": null,
                         "switch": "-metric_sleeppower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -16012,7 +16218,8 @@
                         "signature": null,
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
-                        "value": "0.57"
+                        "unit": "s",
+                        "value": "0.6"
                     }
                 },
                 "totalarea": {
@@ -16025,7 +16232,22 @@
                         "signature": null,
                         "switch": "-metric_totalarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "6916.67"
+                    }
+                },
+                "totaltime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "asic",
+                        "scope": "job",
+                        "shorthelp": "Metric: totaltime",
+                        "signature": null,
+                        "switch": "-metric_totaltime 'step index group <float>'",
+                        "type": "float",
+                        "unit": "s",
+                        "value": "0.0"
                     }
                 },
                 "transistors": {
@@ -16064,6 +16286,7 @@
                         "signature": null,
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
+                        "unit": "%",
                         "value": "6.0"
                     }
                 },
@@ -16103,6 +16326,7 @@
                         "signature": null,
                         "switch": "-metric_wirelength 'step index group <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.0"
                     }
                 }
@@ -16120,6 +16344,7 @@
                         "signature": null,
                         "switch": "-metric_averagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -16159,6 +16384,7 @@
                         "signature": null,
                         "switch": "-metric_cellarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "0.0"
                     }
                 },
@@ -16185,6 +16411,7 @@
                         "signature": null,
                         "switch": "-metric_coverage 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -16198,6 +16425,7 @@
                         "signature": null,
                         "switch": "-metric_dozepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -16272,7 +16500,8 @@
                         "signature": null,
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
-                        "value": "0.3"
+                        "unit": "s",
+                        "value": "0.31"
                     }
                 },
                 "holdpaths": {
@@ -16298,6 +16527,7 @@
                         "signature": null,
                         "switch": "-metric_holdslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -16311,6 +16541,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -16322,6 +16553,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -16335,6 +16567,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -16346,6 +16579,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -16359,6 +16593,7 @@
                         "signature": null,
                         "switch": "-metric_idlepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -16372,6 +16607,7 @@
                         "signature": null,
                         "switch": "-metric_irdrop 'step index group <float>'",
                         "type": "float",
+                        "unit": "mv",
                         "value": "0.0"
                     }
                 },
@@ -16385,6 +16621,7 @@
                         "signature": null,
                         "switch": "-metric_leakagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -16424,7 +16661,8 @@
                         "signature": null,
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "unit": "B",
+                        "value": "35889152.0"
                     }
                 },
                 "nets": {
@@ -16463,6 +16701,7 @@
                         "signature": null,
                         "switch": "-metric_peakpower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -16502,6 +16741,7 @@
                         "signature": null,
                         "switch": "-metric_security 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -16528,6 +16768,7 @@
                         "signature": null,
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -16541,6 +16782,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -16552,6 +16794,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -16565,6 +16808,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -16576,6 +16820,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -16589,6 +16834,7 @@
                         "signature": null,
                         "switch": "-metric_sleeppower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -16602,7 +16848,8 @@
                         "signature": null,
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
-                        "value": "0.39"
+                        "unit": "s",
+                        "value": "0.41"
                     }
                 },
                 "totalarea": {
@@ -16615,6 +16862,21 @@
                         "signature": null,
                         "switch": "-metric_totalarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
+                        "value": "0.0"
+                    }
+                },
+                "totaltime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "asic",
+                        "scope": "job",
+                        "shorthelp": "Metric: totaltime",
+                        "signature": null,
+                        "switch": "-metric_totaltime 'step index group <float>'",
+                        "type": "float",
+                        "unit": "s",
                         "value": "0.0"
                     }
                 },
@@ -16654,6 +16916,7 @@
                         "signature": null,
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -16693,6 +16956,7 @@
                         "signature": null,
                         "switch": "-metric_wirelength 'step index group <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.0"
                     }
                 }
@@ -16727,6 +16991,7 @@
                         "signature": null,
                         "switch": "-metric_averagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -16766,6 +17031,7 @@
                         "signature": null,
                         "switch": "-metric_cellarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "415.0"
                     }
                 },
@@ -16792,6 +17058,7 @@
                         "signature": null,
                         "switch": "-metric_coverage 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -16805,6 +17072,7 @@
                         "signature": null,
                         "switch": "-metric_dozepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -16879,6 +17147,7 @@
                         "signature": null,
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
+                        "unit": "s",
                         "value": "0.31"
                     }
                 },
@@ -16905,6 +17174,7 @@
                         "signature": null,
                         "switch": "-metric_holdslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.11"
                     }
                 },
@@ -16918,6 +17188,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -16929,6 +17200,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -16942,6 +17214,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -16953,6 +17226,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -16966,6 +17240,7 @@
                         "signature": null,
                         "switch": "-metric_idlepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -16979,6 +17254,7 @@
                         "signature": null,
                         "switch": "-metric_irdrop 'step index group <float>'",
                         "type": "float",
+                        "unit": "mv",
                         "value": "0.0"
                     }
                 },
@@ -16992,6 +17268,7 @@
                         "signature": null,
                         "switch": "-metric_leakagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "8.69e-06"
                     }
                 },
@@ -17031,7 +17308,8 @@
                         "signature": null,
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "unit": "B",
+                        "value": "80646144.0"
                     }
                 },
                 "nets": {
@@ -17070,6 +17348,7 @@
                         "signature": null,
                         "switch": "-metric_peakpower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.000188"
                     }
                 },
@@ -17109,6 +17388,7 @@
                         "signature": null,
                         "switch": "-metric_security 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -17135,6 +17415,7 @@
                         "signature": null,
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.79"
                     }
                 },
@@ -17148,6 +17429,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -17159,6 +17441,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -17172,6 +17455,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -17183,6 +17467,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -17196,6 +17481,7 @@
                         "signature": null,
                         "switch": "-metric_sleeppower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -17209,7 +17495,8 @@
                         "signature": null,
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
-                        "value": "0.58"
+                        "unit": "s",
+                        "value": "0.56"
                     }
                 },
                 "totalarea": {
@@ -17222,7 +17509,22 @@
                         "signature": null,
                         "switch": "-metric_totalarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "6916.67"
+                    }
+                },
+                "totaltime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "asic",
+                        "scope": "job",
+                        "shorthelp": "Metric: totaltime",
+                        "signature": null,
+                        "switch": "-metric_totaltime 'step index group <float>'",
+                        "type": "float",
+                        "unit": "s",
+                        "value": "0.0"
                     }
                 },
                 "transistors": {
@@ -17261,6 +17563,7 @@
                         "signature": null,
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
+                        "unit": "%",
                         "value": "6.0"
                     }
                 },
@@ -17300,6 +17603,7 @@
                         "signature": null,
                         "switch": "-metric_wirelength 'step index group <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.0"
                     }
                 }
@@ -17317,6 +17621,7 @@
                         "signature": null,
                         "switch": "-metric_averagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -17356,6 +17661,7 @@
                         "signature": null,
                         "switch": "-metric_cellarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "485.0"
                     }
                 },
@@ -17382,6 +17688,7 @@
                         "signature": null,
                         "switch": "-metric_coverage 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -17395,6 +17702,7 @@
                         "signature": null,
                         "switch": "-metric_dozepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -17469,7 +17777,8 @@
                         "signature": null,
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
-                        "value": "0.51"
+                        "unit": "s",
+                        "value": "0.52"
                     }
                 },
                 "holdpaths": {
@@ -17495,6 +17804,7 @@
                         "signature": null,
                         "switch": "-metric_holdslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.11"
                     }
                 },
@@ -17508,6 +17818,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -17519,6 +17830,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -17532,6 +17844,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -17543,6 +17856,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -17556,6 +17870,7 @@
                         "signature": null,
                         "switch": "-metric_idlepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -17569,6 +17884,7 @@
                         "signature": null,
                         "switch": "-metric_irdrop 'step index group <float>'",
                         "type": "float",
+                        "unit": "mv",
                         "value": "0.0"
                     }
                 },
@@ -17582,6 +17898,7 @@
                         "signature": null,
                         "switch": "-metric_leakagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "1.12e-05"
                     }
                 },
@@ -17621,7 +17938,8 @@
                         "signature": null,
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "unit": "B",
+                        "value": "186880000.0"
                     }
                 },
                 "nets": {
@@ -17660,6 +17978,7 @@
                         "signature": null,
                         "switch": "-metric_peakpower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.000205"
                     }
                 },
@@ -17699,6 +18018,7 @@
                         "signature": null,
                         "switch": "-metric_security 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -17725,6 +18045,7 @@
                         "signature": null,
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "1.01"
                     }
                 },
@@ -17738,6 +18059,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -17749,6 +18071,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -17762,6 +18085,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -17773,6 +18097,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -17786,6 +18111,7 @@
                         "signature": null,
                         "switch": "-metric_sleeppower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -17799,7 +18125,8 @@
                         "signature": null,
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
-                        "value": "0.8"
+                        "unit": "s",
+                        "value": "0.75"
                     }
                 },
                 "totalarea": {
@@ -17812,7 +18139,22 @@
                         "signature": null,
                         "switch": "-metric_totalarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "6062.5"
+                    }
+                },
+                "totaltime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "asic",
+                        "scope": "job",
+                        "shorthelp": "Metric: totaltime",
+                        "signature": null,
+                        "switch": "-metric_totaltime 'step index group <float>'",
+                        "type": "float",
+                        "unit": "s",
+                        "value": "0.0"
                     }
                 },
                 "transistors": {
@@ -17851,6 +18193,7 @@
                         "signature": null,
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
+                        "unit": "%",
                         "value": "8.0"
                     }
                 },
@@ -17890,6 +18233,7 @@
                         "signature": null,
                         "switch": "-metric_wirelength 'step index group <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.0"
                     }
                 }
@@ -17907,6 +18251,7 @@
                         "signature": null,
                         "switch": "-metric_averagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -17946,6 +18291,7 @@
                         "signature": null,
                         "switch": "-metric_cellarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "494.0"
                     }
                 },
@@ -17972,6 +18318,7 @@
                         "signature": null,
                         "switch": "-metric_coverage 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -17985,6 +18332,7 @@
                         "signature": null,
                         "switch": "-metric_dozepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -18059,6 +18407,7 @@
                         "signature": null,
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
+                        "unit": "s",
                         "value": "1.91"
                     }
                 },
@@ -18085,6 +18434,7 @@
                         "signature": null,
                         "switch": "-metric_holdslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.11"
                     }
                 },
@@ -18098,6 +18448,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -18109,6 +18460,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -18122,6 +18474,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -18133,6 +18486,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -18146,6 +18500,7 @@
                         "signature": null,
                         "switch": "-metric_idlepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -18159,6 +18514,7 @@
                         "signature": null,
                         "switch": "-metric_irdrop 'step index group <float>'",
                         "type": "float",
+                        "unit": "mv",
                         "value": "0.0"
                     }
                 },
@@ -18172,6 +18528,7 @@
                         "signature": null,
                         "switch": "-metric_leakagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "1.17e-05"
                     }
                 },
@@ -18211,7 +18568,8 @@
                         "signature": null,
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "unit": "B",
+                        "value": "814366720.0"
                     }
                 },
                 "nets": {
@@ -18250,6 +18608,7 @@
                         "signature": null,
                         "switch": "-metric_peakpower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.000289"
                     }
                 },
@@ -18289,6 +18648,7 @@
                         "signature": null,
                         "switch": "-metric_security 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -18315,6 +18675,7 @@
                         "signature": null,
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.98"
                     }
                 },
@@ -18328,6 +18689,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -18339,6 +18701,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -18352,6 +18715,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -18363,6 +18727,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -18376,6 +18741,7 @@
                         "signature": null,
                         "switch": "-metric_sleeppower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -18389,7 +18755,8 @@
                         "signature": null,
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
-                        "value": "2.27"
+                        "unit": "s",
+                        "value": "2.26"
                     }
                 },
                 "totalarea": {
@@ -18402,7 +18769,22 @@
                         "signature": null,
                         "switch": "-metric_totalarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "6175.0"
+                    }
+                },
+                "totaltime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "asic",
+                        "scope": "job",
+                        "shorthelp": "Metric: totaltime",
+                        "signature": null,
+                        "switch": "-metric_totaltime 'step index group <float>'",
+                        "type": "float",
+                        "unit": "s",
+                        "value": "0.0"
                     }
                 },
                 "transistors": {
@@ -18441,6 +18823,7 @@
                         "signature": null,
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
+                        "unit": "%",
                         "value": "8.0"
                     }
                 },
@@ -18480,6 +18863,7 @@
                         "signature": null,
                         "switch": "-metric_wirelength 'step index group <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "6300.0"
                     }
                 }
@@ -18497,6 +18881,7 @@
                         "signature": null,
                         "switch": "-metric_averagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -18536,6 +18921,7 @@
                         "signature": null,
                         "switch": "-metric_cellarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
                         "value": "414.96"
                     }
                 },
@@ -18562,6 +18948,7 @@
                         "signature": null,
                         "switch": "-metric_coverage 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -18575,6 +18962,7 @@
                         "signature": null,
                         "switch": "-metric_dozepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -18649,6 +19037,7 @@
                         "signature": null,
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
+                        "unit": "s",
                         "value": "0.71"
                     }
                 },
@@ -18675,6 +19064,7 @@
                         "signature": null,
                         "switch": "-metric_holdslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -18688,6 +19078,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -18699,6 +19090,7 @@
                         "signature": null,
                         "switch": "-metric_holdtns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -18712,6 +19104,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -18723,6 +19116,7 @@
                         "signature": null,
                         "switch": "-metric_holdwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -18736,6 +19130,7 @@
                         "signature": null,
                         "switch": "-metric_idlepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -18749,6 +19144,7 @@
                         "signature": null,
                         "switch": "-metric_irdrop 'step index group <float>'",
                         "type": "float",
+                        "unit": "mv",
                         "value": "0.0"
                     }
                 },
@@ -18762,6 +19158,7 @@
                         "signature": null,
                         "switch": "-metric_leakagepower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -18801,7 +19198,8 @@
                         "signature": null,
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
-                        "value": "0.0"
+                        "unit": "B",
+                        "value": "30666752.0"
                     }
                 },
                 "nets": {
@@ -18840,6 +19238,7 @@
                         "signature": null,
                         "switch": "-metric_peakpower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -18879,6 +19278,7 @@
                         "signature": null,
                         "switch": "-metric_security 'step index group <float>'",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -18905,6 +19305,7 @@
                         "signature": null,
                         "switch": "-metric_setupslack 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -18918,6 +19319,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -18929,6 +19331,7 @@
                         "signature": null,
                         "switch": "-metric_setuptns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -18942,6 +19345,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0"
                     },
                     "real": {
@@ -18953,6 +19357,7 @@
                         "signature": null,
                         "switch": "-metric_setupwns 'step index group <float>'",
                         "type": "float",
+                        "unit": "ns",
                         "value": "0.0"
                     }
                 },
@@ -18966,6 +19371,7 @@
                         "signature": null,
                         "switch": "-metric_sleeppower 'step index group <float>'",
                         "type": "float",
+                        "unit": "mw",
                         "value": "0.0"
                     }
                 },
@@ -18979,7 +19385,8 @@
                         "signature": null,
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
-                        "value": "0.95"
+                        "unit": "s",
+                        "value": "0.97"
                     }
                 },
                 "totalarea": {
@@ -18992,6 +19399,21 @@
                         "signature": null,
                         "switch": "-metric_totalarea 'step index group <float>'",
                         "type": "float",
+                        "unit": "um^2",
+                        "value": "0.0"
+                    }
+                },
+                "totaltime": {
+                    "real": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "require": "asic",
+                        "scope": "job",
+                        "shorthelp": "Metric: totaltime",
+                        "signature": null,
+                        "switch": "-metric_totaltime 'step index group <float>'",
+                        "type": "float",
+                        "unit": "s",
                         "value": "0.0"
                     }
                 },
@@ -19031,6 +19453,7 @@
                         "signature": null,
                         "switch": "-metric_utilization step index group <float>",
                         "type": "float",
+                        "unit": "%",
                         "value": "0.0"
                     }
                 },
@@ -19070,6 +19493,7 @@
                         "signature": null,
                         "switch": "-metric_wirelength 'step index group <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.0"
                     }
                 }
@@ -19095,6 +19519,17 @@
         "shorthelp": "Headless execution",
         "signature": null,
         "switch": "-nodisplay <bool>",
+        "type": "bool",
+        "value": "false"
+    },
+    "novercheck": {
+        "defvalue": "false",
+        "lock": "false",
+        "require": "all",
+        "scope": "job",
+        "shorthelp": "Disable version checking",
+        "signature": null,
+        "switch": "-novercheck <bool>",
         "type": "bool",
         "value": "false"
     },
@@ -19226,6 +19661,7 @@
             "signature": null,
             "switch": "-pdk_edgemargin <float>",
             "type": "float",
+            "unit": "mm",
             "value": "2"
         },
         "foundry": {
@@ -19284,6 +19720,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.095"
                     },
                     "xpitch": {
@@ -19295,6 +19732,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xpitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.19"
                     },
                     "yoffset": {
@@ -19306,6 +19744,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_yoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.07"
                     },
                     "ypitch": {
@@ -19317,6 +19756,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_ypitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.14"
                     }
                 },
@@ -19363,6 +19803,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.095"
                     },
                     "xpitch": {
@@ -19374,6 +19815,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xpitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "1.6"
                     },
                     "yoffset": {
@@ -19385,6 +19827,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_yoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.07"
                     },
                     "ypitch": {
@@ -19396,6 +19839,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_ypitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "1.6"
                     }
                 },
@@ -19442,6 +19886,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.095"
                     },
                     "xpitch": {
@@ -19453,6 +19898,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xpitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.19"
                     },
                     "yoffset": {
@@ -19464,6 +19910,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_yoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.07"
                     },
                     "ypitch": {
@@ -19475,6 +19922,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_ypitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.14"
                     }
                 },
@@ -19521,6 +19969,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.095"
                     },
                     "xpitch": {
@@ -19532,6 +19981,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xpitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.19"
                     },
                     "yoffset": {
@@ -19543,6 +19993,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_yoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.07"
                     },
                     "ypitch": {
@@ -19554,6 +20005,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_ypitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.14"
                     }
                 },
@@ -19600,6 +20052,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.095"
                     },
                     "xpitch": {
@@ -19611,6 +20064,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xpitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.28"
                     },
                     "yoffset": {
@@ -19622,6 +20076,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_yoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.07"
                     },
                     "ypitch": {
@@ -19633,6 +20088,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_ypitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.28"
                     }
                 },
@@ -19679,6 +20135,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.095"
                     },
                     "xpitch": {
@@ -19690,6 +20147,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xpitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.28"
                     },
                     "yoffset": {
@@ -19701,6 +20159,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_yoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.07"
                     },
                     "ypitch": {
@@ -19712,6 +20171,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_ypitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.28"
                     }
                 },
@@ -19758,6 +20218,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.095"
                     },
                     "xpitch": {
@@ -19769,6 +20230,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xpitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.28"
                     },
                     "yoffset": {
@@ -19780,6 +20242,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_yoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.07"
                     },
                     "ypitch": {
@@ -19791,6 +20254,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_ypitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.28"
                     }
                 },
@@ -19837,6 +20301,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.095"
                     },
                     "xpitch": {
@@ -19848,6 +20313,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xpitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.8"
                     },
                     "yoffset": {
@@ -19859,6 +20325,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_yoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.07"
                     },
                     "ypitch": {
@@ -19870,6 +20337,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_ypitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.8"
                     }
                 },
@@ -19916,6 +20384,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.095"
                     },
                     "xpitch": {
@@ -19927,6 +20396,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xpitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.8"
                     },
                     "yoffset": {
@@ -19938,6 +20408,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_yoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.07"
                     },
                     "ypitch": {
@@ -19949,6 +20420,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_ypitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.8"
                     }
                 },
@@ -19995,6 +20467,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.095"
                     },
                     "xpitch": {
@@ -20006,6 +20479,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_xpitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "1.6"
                     },
                     "yoffset": {
@@ -20017,6 +20491,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_yoffset 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "0.07"
                     },
                     "ypitch": {
@@ -20028,6 +20503,7 @@
                         "signature": null,
                         "switch": "-pdk_grid_ypitch 'stackup layer <float>'",
                         "type": "float",
+                        "unit": "um",
                         "value": "1.6"
                     }
                 }
@@ -20042,6 +20518,7 @@
             "signature": null,
             "switch": "-pdk_hscribe <float>",
             "type": "float",
+            "unit": "mm",
             "value": "0.1"
         },
         "layermap": {
@@ -20198,6 +20675,7 @@
             "signature": null,
             "switch": "-pdk_vscribe <float>",
             "type": "float",
+            "unit": "mm",
             "value": "0.1"
         },
         "wafersize": {
@@ -20209,6 +20687,7 @@
             "signature": null,
             "switch": "-pdk_wafersize <float>",
             "type": "float",
+            "unit": "mm",
             "value": "300"
         }
     },
@@ -20246,9 +20725,7 @@
         "value": "false"
     },
     "scpath": {
-        "defvalue": [
-            "/home/aolofsson/work/zeroasic/siliconcompiler/examples/gcd"
-        ],
+        "defvalue": [],
         "lock": "false",
         "require": null,
         "scope": "job",
@@ -20321,9 +20798,7 @@
         "author": [],
         "copy": "true",
         "date": [],
-        "defvalue": [
-            "gcd.v"
-        ],
+        "defvalue": [],
         "filehash": [],
         "hashalgo": "sha256",
         "lock": "false",
@@ -20448,17 +20923,6 @@
             "type": "str",
             "value": "mv"
         }
-    },
-    "vercheck": {
-        "defvalue": "false",
-        "lock": "false",
-        "require": "all",
-        "scope": "job",
-        "shorthelp": "Enable version checking",
-        "signature": null,
-        "switch": "-vercheck <bool>",
-        "type": "bool",
-        "value": "false"
     },
     "version": {
         "print": {

@@ -50,7 +50,7 @@ def setup(chip):
 
     chip.set('eda', tool, 'exe', tool)
     chip.set('eda', tool, 'vswitch', '--numeric-version')
-    chip.set('eda', tool, 'version', '0.0.9')
+    chip.set('eda', tool, 'version', '>=0.0.9')
     chip.set('eda', tool, 'threads', step, index,  4)
 
     # Since we run sv2v after the import/preprocess step, there should be no
@@ -72,7 +72,7 @@ def setup(chip):
 
 def parse_version(stdout):
     # 0.0.7-130-g1aa30ea
-    return stdout.split('-')[0]
+    return '-'.join(stdout.split('-')[:-1])
 
 ################################
 # Post_process (post executable)

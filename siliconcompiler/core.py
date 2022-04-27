@@ -10,6 +10,7 @@ import traceback
 import asyncio
 from subprocess import run, PIPE
 import os
+import glob
 import pathlib
 import sys
 import gzip
@@ -33,6 +34,8 @@ import getpass
 import distro
 import netifaces
 import webbrowser
+import packaging.version
+import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from timeit import default_timer as timer
@@ -42,6 +45,14 @@ from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import leflib
 from siliconcompiler import utils
 from siliconcompiler import _metadata
+import psutil
+
+class TaskStatus():
+    # Could use Python 'enum' class here, but that doesn't work nicely with
+    # schema.
+    PENDING = 'pending'
+    SUCCESS = 'success'
+    ERROR = 'error'
 
 class Chip:
     """Object for configuring and executing hardware design flows.
@@ -98,11 +109,12 @@ class Chip:
         self._loaded_modules = {
             'flows': [],
             'pdks': [],
-            'libs': []
+            'libs': [],
+            'checklists': []
         }
 
     ###########################################################################
-    def _init_logger(self, step=None, index=None):
+    def _init_logger(self, step=None, index=None, in_run=False):
 
         self.logger = logging.getLogger(uuid.uuid4().hex)
 
@@ -114,21 +126,33 @@ class Chip:
 
         loglevel = self.get('loglevel')
 
-        jobname = self.get('jobname')
-        if jobname == None:
-            jobname = '---'
-
-        if step == None:
-            step = '---'
-        if index == None:
-            index = '-'
-
-        run_info = '%-7s | %-12s | %-3s' % (jobname, step, index)
-
         if loglevel=='DEBUG':
-            logformat = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s | ' + run_info + ' | %(message)s'
+            prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
         else:
-            logformat = '| %(levelname)-7s | ' + run_info + ' | %(message)s'
+            prefix = '| %(levelname)-7s'
+
+        if in_run:
+            flow = self.get('flow')
+
+            # Figure out how wide to make step and index fields
+            max_step_len = 2
+            max_index_len = 2
+            for future_step in self.getkeys('flowgraph', flow):
+                max_step_len = max(len(future_step) + 1, max_step_len)
+                for future_index in self.getkeys('flowgraph', flow, future_step):
+                    max_index_len = max(len(future_index) + 1, max_index_len)
+
+            jobname = self.get('jobname')
+
+            if step is None:
+                step = '-' * max(max_step_len // 4, 1)
+            if index is None:
+                index = '-' * max(max_index_len // 4, 1)
+
+            run_info = f'%s  | %-{max_step_len}s | %-{max_index_len}s' % (jobname, step, index)
+            logformat = ' | '.join([prefix, run_info, '%(message)s'])
+        else:
+            logformat = ' | '.join([prefix, '%(message)s'])
 
         handler = logging.StreamHandler()
         formatter = logging.Formatter(logformat)
@@ -333,11 +357,11 @@ class Chip:
             if 'mode' in cmdargs.keys():
                 self.set('mode', cmdargs['mode'], clobber=True)
             if 'techarg' in cmdargs.keys():
-                print("NOT IMPLEMENTED")
-                sys.exit()
+                print("NOT IMPLEMENTED: 'techarg' parameter")
+                raise NotImplementedError("NOT IMPLEMENTED: 'techarg' parameter")
             if 'flowarg' in cmdargs.keys():
-                print("NOT IMPLEMENTED")
-                sys.exit()
+                print("NOT IMPLEMENTED: 'flowarg' parameter")
+                raise NotImplementedError("NOT IMPLEMENTED: 'flowarg' parameter")
             if 'arg_step' in cmdargs.keys():
                 self.set('arg', 'step', cmdargs['arg_step'], clobber=True)
             if 'fpga_partname' in cmdargs.keys():
@@ -422,7 +446,7 @@ class Chip:
         * pdks/modulname.py
 
         If the moduletype is None, the module paths are search in the
-        order: 'targets'->'flows'->'tools'->'pdks'->'libs'):
+        order: 'targets'->'flows'->'tools'->'pdks'->'libs'->'checklists'):
 
 
         Supported functions include:
@@ -437,7 +461,7 @@ class Chip:
         Args:
             modulename (str): Name of module to import.
             funcname (str): Name of the function to find within the module.
-            moduletype (str): Type of module (flows, pdks, libs, targets).
+            moduletype (str): Type of module (flows, pdks, libs, checklists, targets).
 
         Examples:
             >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdks')
@@ -448,14 +472,16 @@ class Chip:
 
         # module search path depends on modtype
         if moduletype is None:
-            for item in ('targets', 'flows', 'pdks', 'libs'):
-                relpath = f"{item}/{modulename}.py"
-                fullpath = self._find_sc_file(relpath, missing_ok=True)
+            for item in ('targets', 'flows', 'tools', 'pdks', 'libs', 'checklists'):
+                fullpath = self.find_function(modulename, funcname, module_type=item)
                 if fullpath:
-                    break;
+                    break
+                self.logger.error(f"Could not find module {modulename}")
+                self.error = 1
+                return None
         elif moduletype in ('targets','flows', 'pdks', 'libs'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}.py", missing_ok=True)
-        elif moduletype in ('tools'):
+        elif moduletype in ('tools', 'checklists'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}/{modulename}.py", missing_ok=True)
         else:
             self.logger.error(f"Illegal module type '{moduletype}'.")
@@ -507,8 +533,8 @@ class Chip:
         if func is not None:
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            self.logger.error(f'Target module {name} not found in $SCPATH or siliconcompiler/targets/.')
+            raise SiliconCompilerError(f'Target module {name} not found $SCPATH or siliconcompiler/targets/.')
 
     ##########################################################################
     def load_pdk(self, name):
@@ -532,8 +558,8 @@ class Chip:
             self._loaded_modules['pdks'].append(name)
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            self.logger.error(f'PDK module {name} not found in $SCPATH or siliconcompiler/pdks/.')
+            raise SiliconCompilerError(f'PDK module {name} not found in $SCPATH or siliconcompiler/pdks/.')
 
     ##########################################################################
     def load_flow(self, name):
@@ -557,8 +583,8 @@ class Chip:
             self._loaded_modules['flows'].append(name)
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            self.logger.error(f'Flow module {name} not found in $SCPATH or siliconcompiler/flows/.')
+            raise SiliconCompilerError(f'Flow module {name} not found in $SCPATH or siliconcompiler/flows/.')
 
     ##########################################################################
     def load_lib(self, name):
@@ -582,8 +608,33 @@ class Chip:
             self._loaded_modules['libs'].append(name)
             func(self)
         else:
-            self.logger.error(f'Module {name} not found.')
-            sys.exit(1)
+            self.logger.error(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
+            raise SiliconCompilerError(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
+
+    ##########################################################################
+    def load_checklist(self, name):
+        """
+        Loads a checklist module and runs the setup() function.
+
+        The function searches the $SCPATH for checklist/<name>/<name>.py and runs
+        the setup function in that module if found.
+
+        Args:
+            name (str): Module name
+
+        Examples:
+            >>> chip.load_checklist('oh_tapeout')
+            Loads the 'oh_tapeout' checklist
+
+        """
+
+        func = self.find_function(name, 'setup', 'checklists')
+        if func is not None:
+            self._loaded_modules['checklists'].append(name)
+            func(self)
+        else:
+            self.logger.error(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
+            raise SiliconCompilerError(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
 
 
     ###########################################################################
@@ -748,7 +799,7 @@ class Chip:
         return self._search(cfg, keypathstr, *keypath, field=field, mode='get')
 
     ###########################################################################
-    def getkeys(self, *keypath, cfg=None):
+    def getkeys(self, *keypath, cfg=None, job=None):
         """
         Returns a list of schema dictionary keys.
 
@@ -758,8 +809,10 @@ class Chip:
         Chip object error flag.
 
         Args:
-            keypath(list str): Variable length ordered schema key list
-            cfg(dict): Alternate dictionary to access in place of self.cfg
+            keypath (list str): Variable length ordered schema key list
+            cfg (dict): Alternate dictionary to access in place of self.cfg
+            job (str): Jobname to use for dictionary access in place of the
+                current active jobname.
 
         Returns:
             List of keys found for the keypath provided.
@@ -772,7 +825,10 @@ class Chip:
         """
 
         if cfg is None:
-            cfg = self.cfg
+            if job is None:
+                cfg = self.cfg
+            else:
+                cfg = self.cfg['history'][job]
 
         if len(list(keypath)) > 0:
             keypathstr = ','.join(keypath)
@@ -986,7 +1042,7 @@ class Chip:
                             else:
                                 self.logger.error(f'{field} must be set to boolean.')
                                 self.error = 1
-                        elif field in ('hashalgo', 'scope', 'require','type',
+                        elif field in ('hashalgo', 'scope', 'require', 'type', 'unit',
                                        'shorthelp', 'switch', 'help'):
                             # awlays string scalars
                             cfg[param][field] = val
@@ -1063,13 +1119,13 @@ class Chip:
                                 return_list.append(int(item))
                             elif sctype == 'float':
                                 return_list.append(float(item))
-                            elif sctype == '(str,str)':
+                            elif sctype.startswith('(str,'):
                                 if isinstance(item,tuple):
                                     return_list.append(item)
                                 else:
                                     tuplestr = re.sub(r'[\(\)\'\s]','',item)
                                     return_list.append(tuple(tuplestr.split(',')))
-                            elif sctype == '(float,float)':
+                            elif sctype.startswith('(float,'):
                                 if isinstance(item,tuple):
                                     return_list.append(item)
                                 else:
@@ -1232,7 +1288,7 @@ class Chip:
         return result
 
     ###########################################################################
-    def find_files(self, *keypath, cfg=None, missing_ok=False):
+    def find_files(self, *keypath, cfg=None, missing_ok=False, job=None):
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -1249,6 +1305,10 @@ class Chip:
             keypath (list str): Variable length schema key list.
             cfg (dict): Alternate dictionary to access in place of the default
                 chip object schema dictionary.
+            missing_ok (bool): If True, silently return None when files aren't
+                found. If False, print an error and set the error flag.
+            job (str): Jobname to use for dictionary access in place of the
+                current active jobname.
 
         Returns:
             If keys points to a scalar entry, returns an absolute path to that
@@ -1265,11 +1325,11 @@ class Chip:
         if cfg is None:
             cfg = self.cfg
 
-        copyall = self.get('copyall', cfg=cfg)
-        paramtype = self.get(*keypath, field='type', cfg=cfg)
+        copyall = self.get('copyall', cfg=cfg, job=job)
+        paramtype = self.get(*keypath, field='type', cfg=cfg, job=job)
 
         if 'file' in paramtype:
-            copy = self.get(*keypath, field='copy', cfg=cfg)
+            copy = self.get(*keypath, field='copy', cfg=cfg, job=job)
         else:
             copy = False
 
@@ -1280,7 +1340,7 @@ class Chip:
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        paths = self.get(*keypath, cfg=cfg)
+        paths = self.get(*keypath, cfg=cfg, job=job)
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
@@ -1296,7 +1356,7 @@ class Chip:
                 io = ""
             else:
                 io = keypath[2] + 's'
-            iodir = os.path.join(self._getworkdir(step=step, index=index), io)
+            iodir = os.path.join(self._getworkdir(jobname=job, step=step, index=index), io)
             for path in paths:
                 abspath = os.path.join(iodir, path)
                 if os.path.isfile(abspath):
@@ -1306,7 +1366,7 @@ class Chip:
         for path in paths:
             if (copyall or copy) and ('file' in paramtype):
                 name = self._get_imported_filename(path)
-                abspath = os.path.join(self._getworkdir(step='import'), 'outputs', name)
+                abspath = os.path.join(self._getworkdir(jobname=job, step='import'), 'outputs', name)
                 if os.path.isfile(abspath):
                     # if copy is True and file is found in import outputs,
                     # continue. Otherwise, fall through to _find_sc_file (the
@@ -1321,7 +1381,7 @@ class Chip:
         return result
 
     ###########################################################################
-    def find_result(self, filetype, step, jobname='job0', index='0'):
+    def find_result(self, filetype, step, jobname=None, index='0'):
         """
         Returns the absolute path of a compilation result.
 
@@ -1344,6 +1404,8 @@ class Chip:
             >>> manifest_filepath = chip.find_result('.vg', 'syn')
            Returns the absolute path to the manifest.
         """
+        if jobname is None:
+            jobname = self.get('jobname')
 
         workdir = self._getworkdir(jobname, step, index)
         design = self.get('design')
@@ -1354,7 +1416,6 @@ class Chip:
         if os.path.isfile(filename):
             return filename
         else:
-            self.error = 1
             return None
 
     ###########################################################################
@@ -1374,22 +1435,26 @@ class Chip:
                     self.set(*keypath, abspaths, cfg=cfg)
 
     ###########################################################################
-    def _print_csv(self, cfg, file=None):
+    def _print_csv(self, cfg, fout=None):
         allkeys = self.getkeys(cfg=cfg)
         for key in allkeys:
             keypath = f'"{",".join(key)}"'
             value = self.get(*key, cfg=cfg)
             if isinstance(value,list):
                 for item in value:
-                    print(f"{keypath},{item}", file=file)
+                    fout.write(f"{keypath},{item}")
             else:
-                print(f"{keypath},{value}", file=file)
+                fout.write(f"{keypath},{value}")
 
     ###########################################################################
-    def _print_tcl(self, cfg, file=None, prefix=""):
+    def _print_tcl(self, cfg, fout=None, prefix=""):
         '''
         Prints out schema as TCL dictionary
         '''
+
+        fout.write("#############################################")
+        fout.write("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!")
+        fout.write("#############################################\n")
 
         allkeys = self.getkeys(cfg=cfg)
 
@@ -1420,12 +1485,12 @@ class Chip:
             valstr = ' '.join(map(str, alist)).replace(';', '\\;')
             outstr = f"{prefix} {keystr} [list {valstr}]\n"
 
-            #print out all nom default values
+            #print out all non default values
             if 'default' not in key:
-                print(outstr, file=file)
-
+                fout.write(outstr)
 
     ###########################################################################
+
     def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
         """
         Merges an external manifest with the current compilation manifest.
@@ -1439,21 +1504,36 @@ class Chip:
             clear (bool): If True, disables append operations for list type
             clobber (bool): If True, overwrites existing parameter value
             check (bool): If True, checks the validity of each key
+            partial (bool): If True, perform a partial merge, only merging
+                keypaths that may have been updated during run().
 
         Examples:
             >>> chip.merge_manifest('my.pkg.json')
            Merges all parameters in my.pk.json into the Chip object
 
         """
+        self._merge_manifest(cfg, job, clobber, clear, check)
 
+    ###########################################################################
+    def _merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False, partial=False):
+        """
+        Internal merge_manifest() implementation with `partial` arg.
+
+        partial (bool): If True, perform a partial merge, only merging keypaths
+        that may have been updated during run().
+        """
         if job is not None:
             # fill ith default schema before populating
-            self.cfghistory[job] = schema_cfg()
-            dst = self.cfghistory[job]
+            self.cfg['history'][job] = schema_cfg()
+            dst = self.cfg['history'][job]
         else:
             dst = self.cfg
 
         for keylist in self.getkeys(cfg=cfg):
+            if partial and keylist[0] not in ('metric', 'flowstatus', 'record'):
+                continue
+            if keylist[0] == 'history':
+                continue
             #only read in valid keypaths without 'default'
             key_valid = True
             if check:
@@ -1556,6 +1636,45 @@ class Chip:
                         self.error = 1
 
     ###########################################################################
+    def _check_manifest_dynamic(self, step, index):
+        '''Runtime checks called from _runtask().
+
+        - Make sure expected inputs exist.
+        - Make sure all required filepaths resolve correctly.
+        '''
+        flow = self.get('flow')
+        tool = self.get('flowgraph', flow, step, index, 'tool')
+        if self.valid('eda', tool, 'input', step, index):
+            required_inputs = self.get('eda', tool, 'input', step, index)
+        else:
+            required_inputs = []
+        input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
+        for filename in required_inputs:
+            path = os.path.join(input_dir, filename)
+            if not os.path.isfile(path):
+                self.logger.error(f'Required input {filename} not received for {step}{index}.')
+                self.error = 1
+
+        if (not tool in self.builtin) and self.valid('eda', tool, 'require', step, index):
+            all_required = self.get('eda', tool, 'require', step, index)
+            for item in all_required:
+                keypath = item.split(',')
+                paramtype = self.get(*keypath, field='type')
+                if ('file' in paramtype) or ('dir' in paramtype):
+                    abspath = self.find_files(*keypath)
+                    if abspath is None or (isinstance(abspath, list) and None in abspath):
+                        self.logger.error(f"Required file keypath {keypath} can't be resolved.")
+                        self.error = 1
+
+        # Need to run this check here since file resolution can change in
+        # _runtask().
+        if 'SC_VALID_PATHS' in os.environ:
+            if not self._check_files():
+                self.error = 1
+
+        return self.error
+
+    ###########################################################################
     def check_manifest(self):
         '''
         Verifies the integrity of the pre-run compilation manifest.
@@ -1579,12 +1698,24 @@ class Chip:
             Returns True of the Chip object dictionary checks out.
 
         '''
+        # Dynamic checks
+        # We only perform these if arg, step and arg, index are set.
+        # We don't check inputs for skip all
+        # TODO: Need to add skip step
+
+        cur_step = self.get('arg', 'step')
+        cur_index = self.get('arg', 'index')
+        if cur_step and cur_index and not self.get('skipall'):
+            return self._check_manifest_dynamic(cur_step, cur_index)
+
         flow = self.get('flow')
+        jobname = self.get('jobname')
+        design = self.get('design')
         steplist = self.get('steplist')
         if not steplist:
             steplist = self.list_steps()
 
-        #1. Checking that flowgraph is legal
+        #1. Checking that flowgraph and steplist are legal
         if flow not in self.getkeys('flowgraph'):
             self.error = 1
             self.logger.error(f"flowgraph {flow} not defined.")
@@ -1593,6 +1724,41 @@ class Chip:
         if 'import' not in legal_steps:
             self.error = 1
             self.logger.error("Flowgraph doesn't contain import step.")
+
+        indexlist = {}
+        for step in steplist:
+            if self.get('indexlist'):
+                indexlist[step] = self.get('indexlist')
+            else:
+                indexlist[step] = self.getkeys('flowgraph', flow, step)
+
+        for step in steplist:
+            for index in indexlist[step]:
+                if (jobname in self.getkeys('jobinput') and
+                    step in self.getkeys('jobinput', jobname) and
+                    index in self.getkeys('jobinput', jobname, step)):
+                    in_job = self.get('jobinput', jobname, step, index)
+                else:
+                    in_job = None
+
+                for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
+                    if in_job is not None:
+                        workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
+                        cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
+                        if not os.path.isfile(cfg):
+                            self.logger.error(f'{step}{index} relies on {in_step}{in_index} from job {in_job}, '
+                                'but this task has not been run.')
+                            self.error = 1
+                        continue
+                    if in_step in steplist and in_index in indexlist[in_step]:
+                        # we're gonna run this step, OK
+                        continue
+                    if self.get('flowstatus', in_step, in_index, 'status') == TaskStatus.SUCCESS:
+                        # this task has already completed successfully, OK
+                        continue
+                    self.logger.error(f'{step}{index} relies on {in_step}{in_index}, '
+                        'but this task has not been run and is not in the current steplist.')
+                    self.error = 1
 
         #2. Check libary names
         for item in self.get('asic', 'logiclib'):
@@ -1604,7 +1770,7 @@ class Chip:
         allkeys = self.getkeys()
         for key in allkeys:
             keypath = ",".join(key)
-            if 'default' not in key:
+            if 'default' not in key and 'history' not in key:
                 key_empty = self._keypath_empty(key)
                 requirement = self.get(*key, field='require')
                 if key_empty and (str(requirement) == 'all'):
@@ -1637,36 +1803,6 @@ class Chip:
 
         if not self._check_flowgraph_io():
             self.error = 1
-
-        # Dynamic checks
-        # We only perform these if arg, step and arg, index are set.
-        # We don't check inputs for skip all
-        # TODO: Need to add skip step
-        step = self.get('arg', 'step')
-        index = self.get('arg', 'index')
-        if step and index and not self.get('skipall'):
-            tool = self.get('flowgraph', flow, step, index, 'tool')
-            if self.valid('eda', tool, 'input', step, index):
-                required_inputs = self.get('eda', tool, 'input', step, index)
-            else:
-                required_inputs = []
-            input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
-            for filename in required_inputs:
-                path = os.path.join(input_dir, filename)
-                if not os.path.isfile(path):
-                    self.logger.error(f'Required input {filename} not received for {step}{index}.')
-                    self.error = 1
-
-            if (not tool in self.builtin) and self.valid('eda', tool, 'require', step, index):
-                all_required = self.get('eda', tool, 'require', step, index)
-                for item in all_required:
-                    keypath = item.split(',')
-                    paramtype = self.get(*keypath, field='type')
-                    if ('file' in paramtype) or ('dir' in paramtype):
-                        abspath = self.find_files(*keypath)
-                        if abspath is None or (isinstance(abspath, list) and None in abspath):
-                            self.logger.error(f"Required file keypath {keypath} can't be resolved.")
-                            self.error = 1
 
         return self.error
 
@@ -1784,23 +1920,53 @@ class Chip:
             >>> chip.read_manifest('mychip.json')
             Loads the file mychip.json into the current Chip object.
         """
+        self._read_manifest(filename, job=job, clear=clear, clobber=clobber)
 
-        abspath = os.path.abspath(filename)
-        self.logger.debug('Reading manifest %s', abspath)
+    ###########################################################################
+    def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
+        """
+        Internal read_manifest() implementation with `partial` arg.
+
+        partial (bool): If True, perform a partial merge, only merging keypaths
+        that may have been updated during run().
+        """
+
+        filepath = os.path.abspath(filename)
+        self.logger.debug(f"Reading manifest {filepath}")
+        if not os.path.isfile(filepath):
+            error_message =  f"Manifest file not found {filepath}"
+            self.logger.error(error_message)
+            raise SiliconCompilerError(error_message)
 
         #Read arguments from file based on file type
-        with open(abspath, 'r') as f:
-            if abspath.endswith('.json'):
-                localcfg = json.load(f)
-            elif abspath.endswith('.yaml') | abspath.endswith('.yml'):
-                localcfg = yaml.load(f, Loader=yaml.SafeLoader)
+
+        if filepath.endswith('.gz'):
+            fin = gzip.open(filepath, 'r')
+        else:
+            fin = open(filepath, 'r')
+
+        try:
+            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
+                localcfg = json.load(fin)
+            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
+                localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
             else:
+                self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
-                self.logger.error('Illegal file format. Only json/yaml supported')
-        f.close()
+        finally:
+            fin.close()
 
         #Merging arguments with the Chip configuration
-        self.merge_manifest(localcfg, job=job, clear=clear, clobber=clobber)
+        self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
+
+        # Read history
+        if 'history' in localcfg and not partial:
+            for historic_job in localcfg['history'].keys():
+                self._merge_manifest(localcfg['history'][historic_job],
+                                    job=historic_job,
+                                    clear=clear,
+                                    clobber=clobber,
+                                    partial=False)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
@@ -1844,50 +2010,52 @@ class Chip:
         if abspath:
             self._abspath(cfgcopy)
 
-        # TODO: fix
-        #remove long help (adds no value)
-        #allkeys = self.getkeys(cfg=cfgcopy)
-        #for key in allkeys:
-        #    self.set(*key, "...", cfg=cfgcopy, field='help')
-
         # format specific dumping
-        with open(filepath, 'w') as f:
-            if filepath.endswith('.json'):
-                print(json.dumps(cfgcopy, indent=4, sort_keys=True), file=f)
-            elif filepath.endswith('.yaml') | filepath.endswith('yml'):
-                print(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-            elif filepath.endswith('.core'):
-                cfgfuse = self._dump_fusesoc(cfgcopy)
-                print("CAPI=2:", file=f)
-                print(yaml.dump(cfgfuse, Dumper=YamlIndentDumper, default_flow_style=False), file=f)
-            elif filepath.endswith('.tcl'):
-                print("#############################################", file=f)
-                print("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!", file=f)
-                print("#############################################", file=f)
-                self._print_tcl(cfgcopy, prefix="dict set sc_cfg", file=f)
-            elif filepath.endswith('.csv'):
-                self._print_csv(cfgcopy, file=f)
+        if filepath.endswith('.gz'):
+            fout = gzip.open(filepath, 'wt', encoding='UTF-8')
+        else:
+            fout = open(filepath, 'w')
+
+        # format specific printing
+        try:
+            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
+                fout.write(json.dumps(cfgcopy, indent=4, sort_keys=True))
+            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
+                fout.write(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False))
+            elif re.search(r'(\.tcl)(\.gz)*$', filepath):
+                self._print_tcl(cfgcopy, prefix="dict set sc_cfg", fout=fout)
+            elif re.search(r'(\.csv)(\.gz)*$', filepath):
+                self._print_csv(cfgcopy, fout=fout)
             else:
                 self.logger.error('File format not recognized %s', filepath)
                 self.error = 1
+        finally:
+            fout.close()
 
     ###########################################################################
-    def check_checklist(self, standard, item=None):
+    def check_checklist(self, standard, items=None, check_ok=False):
         '''
-        Check an item in checklist.
+        Check items in a checklist.
 
-        Checks the status of an item in the checklist for the standard
-        provided. If the item is unspecified, all items are checked.
+        Checks the status of items in a checklist for the standard provided. If
+        a specific list of items is unspecified, all items are checked.
 
-        The function relies on the checklist 'criteria' parameter and
-        'step' parameter to check for the existence of report filess
-        and a passing metric based criteria. Checklist items with
-        empty 'report' values or unmet criteria result in error messages
-        and raising the error flag.
+        All items have an associated 'task' parameter, which indicates which
+        tasks can be used to automatically validate the item. For an item to be
+        checked, all tasks must satisfy the item's criteria, unless waivers are
+        provided. In addition, that task must have generated EDA report files
+        for each metric in the criteria.
+
+        For items without an associated task, the only requirement is that at
+        least one report has been added to that item.
+
+        When 'check_ok' is True, every item must also have its 'ok' parameter
+        set to True, indicating that a human has reviewed the item.
 
         Args:
-            standard(str): Standard to check.
-            item(str): Item to check from standard.
+            standard (str): Standard to check.
+            items (list of str): Items to check from standard.
+            check_ok (bool): Whether to check item 'ok' parameter.
 
         Returns:
             Status of item check.
@@ -1897,61 +2065,81 @@ class Chip:
             Returns status.
         '''
 
-        if item is None:
+        self.logger.info(f'Checking checklist {standard}')
+
+        if items is None:
             items = self.getkeys('checklist', standard)
-        else:
-            items = [item]
 
         flow = self.get('flow')
-        global_check = True
 
         for item in items:
-            step = self.get('checklist', standard, item, 'step')
-            index = self.get('checklist', standard, item, 'index')
             all_criteria = self.get('checklist', standard, item, 'criteria')
-            report_ok = False
-            criteria_ok = True
-            # manual
-            if step not in self.getkeys('flowgraph',flow):
-                #criteria not used, so always ok
-                criteria_ok = True
-                if len(self.getkeys('checklist',standard, item, 'report')) <2:
-                    self.logger.error(f"No report found for {item}")
-                    report_ok = False
-            else:
-                tool = self.get('flowgraph', flow, step, index, 'tool')
-                # copy report paths over to checklsit
-                for reptype in self.getkeys('eda', tool, 'report', step, index):
-                    report_ok = True
-                    report = self.get('eda', tool, 'report', step, index, reptype)
-                    self.set('checklist', standard, item, 'report', reptype, report)
-                # quantifiable checklist criteria
-                for criteria in all_criteria:
-                    m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
-                    if not m:
-                        self.logger.error(f"Illegal checklist criteria: {criteria}")
-                        return False
-                    elif m.group(1) not in self.getkeys('metric', step, index):
-                        self.logger.error(f"Critera must use legal metrics only: {criteria}")
-                        return False
+            for criteria in all_criteria:
+                m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
+                if not m:
+                    self.logger.error(f"Illegal checklist criteria: {criteria}")
+                    self.error = 1
+                    return False
+                elif m.group(1) not in self.getkeys('metric', 'default', 'default'):
+                    self.logger.error(f"Critera must use legal metrics only: {criteria}")
+                    self.error = 1
+                    return False
+
+                metric = m.group(1)
+                op = m.group(2)
+                goal = float(m.group(3))
+
+                tasks = self.get('checklist', standard, item, 'task')
+                for job, step, index in tasks:
+                    # Automated checks
+                    flow = self.get('flow', job=job)
+                    tool = self.get('flowgraph', flow, step, index, 'tool', job=job)
+
+                    value = self.get('metric', step, index, metric, 'real', job=job)
+                    criteria_ok = self._safecompare(value, op, goal)
+                    if metric in self.getkeys('checklist', standard, item, 'waiver'):
+                        waivers = self.get('checklist', standard, item, 'waiver', metric)
                     else:
-                        param = m.group(1)
-                        op = m.group(2)
-                        goal = str(m.group(3))
-                        value = str(self.get('metric', step, index, param, 'real'))
-                        criteria_ok = self._safecompare(value, op, goal)
+                        waivers = []
 
-            #item check
-            if not report_ok:
-                self.logger.error(f"Report missing for checklist: {standard} {item}")
-                global_check = False
-                self.error = 1
-            elif not criteria_ok:
-                self.logger.error(f"Criteria check failed for checklist: {standard} {item}")
-                global_check = False
-                self.error = 1
+                    criteria_str = f'{metric}{op}{goal}'
+                    if not criteria_ok and waivers:
+                        self.logger.warning(f'{item} criteria {criteria_str} unmet by task {step}{index}, but found waivers.')
+                    elif not criteria_ok:
+                        self.logger.error(f'{item} criteria {criteria_str} unmet by task {step}{index}.')
+                        self.error = 1
+                        return False
 
-        return global_check
+                    if (step in self.getkeys('eda', tool, 'report', job=job) and
+                        index in self.getkeys('eda', tool, 'report', step, job=job) and
+                        metric in self.getkeys('eda', tool, 'report', step, index, job=job)):
+                        eda_reports = self.find_files('eda', tool, 'report', step, index, metric, job=job)
+                    else:
+                        eda_reports = None
+
+                    if not eda_reports:
+                        self.logger.error(f'No EDA reports generated for metric {metric} in task {step}{index}')
+                        self.error = 1
+                        return False
+
+                    for report in eda_reports:
+                        if report not in self.get('checklist', standard, item, 'report'):
+                            self.add('checklist', standard, item, 'report', report)
+
+            if len(self.get('checklist', standard, item, 'report')) == 0:
+                # TODO: validate that report exists?
+                self.logger.error(f'No report documenting item {item}')
+                self.error = 1
+                return False
+
+            if check_ok and not self.get('checklist', standard, item, 'ok'):
+                self.logger.error(f"Item {item} 'ok' field not checked")
+                self.error = 1
+                return False
+
+        self.logger.info('Check succeeded!')
+
+        return True
 
     ###########################################################################
     def read_file(self, filename, step='import', index='0'):
@@ -1961,94 +2149,178 @@ class Chip:
         return(0)
 
     ###########################################################################
-    def package(self, filename, prune=True):
+    def update(self):
         '''
-        Create sanitized project package. (WIP)
+        Update the chip dependency graph.
 
-        The SiliconCompiler project is filtered and exported as a JSON file.
-        If the prune option is set to True, then all metrics, records and
-        results are pruned from the package file.
+        1. Finds all packages in the local cache
+        2. Fetches all packages in the remote registry
+        3. Creates a dependency graph based on current chip dependencies and
+           dependencies read from dependency json objects.
+        4. If autoinstall is set, copy registry packages to local cache.
+        5. Error out if package is not found in local cache or in registry.
+        6. Error out if autoinstall is set and registry package is missing.
 
-        Args:
-            filename (filepath): Output filepath
-            prune (bool): If True, only essential source parameters are
-                 included in the package.
-
-        Examples:
-            >>> chip.package('package.json')
-            Write project information to 'package.json'
         '''
 
-        return(0)
+        # schema settings
+        reglist = self.get('registry')
+        design = self.get('design')
+        auto = self.get('autoinstall')
 
-    ###########################################################################
-    def publish(self, filename):
-        '''
-        Publishes package to registry. (WIP)
-
-        The filename is uploaed to a central package registry based on the
-        the user credentials found in ~/.sc/credentials.
-
-        Args:
-            filename (filepath): Package filename
-
-        Examples:
-            >>> chip.publish('hello.json')
-            Publish hello.json to central repository.
-        '''
-
-        return(0)
-
-
-    ###########################################################################
-    def _dump_fusesoc(self, cfg):
-        '''
-        Internal function for dumping core information from chip object.
-        '''
-
-        fusesoc = {}
-
-        toplevel = self.get('design', cfg=cfg)
-
-        if self.get('name'):
-            name = self.get('name', cfg=cfg)
+        # environment settings
+        # Local cache location
+        if 'SC_HOME' in os.environ:
+            home = os.environ['SC_HOME']
         else:
-            name = toplevel
+            home = os.environ['HOME']
 
-        version = self.get('projversion', cfg=cfg)
+        cache = os.path.join(home,'.sc','registry')
 
-        # Basic information
-        fusesoc['name'] = f"{name}:{version}"
-        fusesoc['description'] = self.get('description', cfg=cfg)
-        fusesoc['filesets'] = {}
+        # Indexing all local cache packages
+        local = self._build_index(cache)
+        remote = self._build_index(reglist)
 
-        # RTL
-        #TODO: place holder fix with pre-processor list
-        files = []
-        for item in self.get('source', cfg=cfg):
-            files.append(item)
+        # Cycle through current chip dependencies
+        deps = {}
+        for dep in self.getkeys('package', 'dependency'):
+            deps[dep] = self.get('package', 'dependency', dep)
 
-        fusesoc['filesets']['rtl'] = {}
-        fusesoc['filesets']['rtl']['files'] = files
-        fusesoc['filesets']['rtl']['depend'] = {}
-        fusesoc['filesets']['rtl']['file_type'] = {}
+        depgraph = self._find_deps(cache, local, remote, design, deps, auto)
 
-        # Constraints
-        files = []
-        for item in self.get('constraint', cfg=cfg):
-            files.append(item)
+        # Update dependency graph
+        for dep in depgraph:
+            self.set('depgraph', dep, depgraph[dep])
 
-        fusesoc['filesets']['constraints'] = {}
-        fusesoc['filesets']['constraints']['files'] = files
+        return depgraph
 
-        # Default Target
-        fusesoc['targets'] = {}
-        fusesoc['targets']['default'] = {
-            'filesets' : ['rtl', 'constraints', 'tb'],
-            'toplevel' : toplevel
-        }
+    ###########################################################################
+    def _build_index(self, dirlist):
+        '''
+        Build a package index for a registry.
+        '''
 
-        return fusesoc
+        if not isinstance(dirlist, list):
+            dirlist = [dirlist]
+
+        index = {}
+        for item in dirlist:
+            if re.match(r'http', item):
+                #TODO
+                pass
+            else:
+                packages = os.listdir(item)
+                for i in packages:
+                    versions = os.listdir(os.path.join(item, i))
+                    index[i] = {}
+                    for j in versions:
+                        index[i][j] = item
+
+        return index
+
+    ###########################################################################
+    def _install_package(self, cache, dep, ver, remote):
+        '''
+        Copies a package from remote to local.
+        The remote and local arguments are package indices of format:
+        index['dirname']['dep']
+        '''
+
+        package = f"{dep}-{ver}.sup.gz"
+
+        self.logger.info(f"Installing package {package} in {cache}")
+
+        # Check that package exists in remote registry
+        if dep in remote.keys():
+            if ver not in list(remote[dep].keys()):
+                self.logger.error(f"Package {dep}-{ver} not found in registry.")
+                sys.exit()
+
+        ifile = os.path.join(remote[dep][ver],dep,ver,package)
+        odir = os.path.join(cache,dep,ver)
+        ofile = os.path.join(odir,package)
+
+        # Install package
+        os.makedirs(odir, exist_ok=True)
+        shutil.copyfile(ifile, ofile)
+
+    ###########################################################################
+    def _find_deps(self, cache, local, remote, design, deps, auto, depgraph={}, upstream={}):
+        '''
+        Recursive function to find and install dependencies.
+        '''
+
+        # install missing dependencies
+        depgraph[design] = []
+        for dep in deps.keys():
+            #TODO: Proper PEP semver matching
+            ver = list(deps[dep])[0]
+            depgraph[design].append((dep,ver))
+            islocal = False
+            if dep in local.keys():
+                if ver in local[dep]:
+                    islocal = True
+
+            # install and update local index
+            if auto and islocal:
+                self.logger.info(f"Found package {dep}-{ver} in cache")
+            elif auto and not islocal:
+                self._install_package(cache, dep, ver, remote)
+                local[dep]=ver
+
+            # look through dependency package files
+            package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
+            if not os.path.isfile(package):
+                self.logger.error("Package missing. Try 'autoinstall' or install manually.")
+                sys.exit()
+            with gzip.open(package, 'r') as f:
+                localcfg = json.load(f)
+
+            # done if no more dependencies
+            if 'dependency' in localcfg['package']:
+                subdeps = {}
+                subdesign = localcfg['design']['value']
+                depgraph[subdesign] = []
+                for item in localcfg['package']['dependency'].keys():
+                    subver = localcfg['package']['dependency'][item]['value']
+                    if (item in upstream) and (upstream[item] == subver):
+                        # Circular imports are not supported.
+                        raise SiliconCompilerError(f'Cannot process circular import: {dep}-{ver} <---> {item}-{subver}.')
+                    subdeps[item] = subver
+                    upstream[item] = subver
+                    depgraph[subdesign].append((item, subver))
+                    self._find_deps(cache, local, remote, subdesign, subdeps, auto, depgraph, upstream)
+
+        return depgraph
+
+    ###########################################################################
+    def update_library(self, name=None):
+        '''
+        Update library dictionary with dependency data.
+        '''
+
+        # TODO: list of parameters to copy into library?
+        # Goal should be all in package?
+        for i in self.getkeys('depgraph'):
+            for lib, version in self.get('depgraph', i):
+                self.set('library',lib,'package','version',version)
+
+        return(0)
+
+    ###########################################################################
+    def write_depgraph(self, filename):
+        '''
+        Writes the package dependency tree to disk.
+
+        Supported graphical render formats include png, svg, gif, pdf and a
+        few others. (see https://graphviz.org for more information).
+
+        Supported text formats include .md, .rst. (see the Linux 'tree'
+        command for more information).
+
+        '''
+
+        return(0)
 
     ###########################################################################
 
@@ -2151,7 +2423,7 @@ class Chip:
         return paths
 
     ########################################################################
-    def _collect(self, step, index, active):
+    def _collect(self, step, index):
         '''
         Collects files found in the configuration dictionary and places
         them in inputs/. The function only copies in files that have the 'copy'
@@ -2181,7 +2453,7 @@ class Chip:
                 self.logger.info(f"Copying {abspath} to '{indir}' directory")
                 shutil.copy(abspath, os.path.join(indir, filename))
             else:
-                self._haltstep(step, index, active)
+                self._haltstep(step, index)
 
         outdir = 'outputs'
         if not os.path.exists(outdir):
@@ -2627,7 +2899,10 @@ class Chip:
         # display whole flowgraph if no steplist specified
         flow = self.get('flow')
         if not steplist:
-            steplist = self.list_steps()
+            if self.get('steplist'):
+                steplist = self.get('steplist')
+            else:
+                steplist = self.list_steps()
 
         #only report tool based steps functions
         for step in steplist:
@@ -3116,7 +3391,7 @@ class Chip:
                 failed[step] = {}
             failed[step][index] = False
 
-            if self.get('flowstatus', step, index, 'error'):
+            if self.get('flowstatus', step, index, 'status') == TaskStatus.ERROR:
                 failed[step][index] = True
             else:
                 for metric in self.getkeys('metric', step, index):
@@ -3224,70 +3499,48 @@ class Chip:
         return None
 
     ###########################################################################
-    def _runtask_safe(self, step, index, active, error):
-        try:
-            self._init_logger(step, index)
-        except:
-            traceback.print_exc()
-            print(f"Uncaught exception while initializing logger for step {step}")
-            self.error = 1
-            self._haltstep(step, index, active, log=False)
-
-        try:
-            self._runtask(step, index, active, error)
-        except SystemExit:
-            # calling sys.exit() in _haltstep triggers a "SystemExit"
-            # exception, but we can ignore these -- if we call sys.exit(), we've
-            # already handled the error.
-            pass
-        except:
-            traceback.print_exc()
-            self.logger.error(f"Uncaught exception while running step {step}.")
-            self.error = 1
-            self._haltstep(step, index, active)
-
-    ###########################################################################
-    def _runtask(self, step, index, active, error):
+    def _runtask(self, step, index, status):
         '''
         Private per step run method called by run().
+
         The method takes in a step string and index string to indicated what
-        to run. Execution state coordinated through the active/error
-        multiprocessing Manager dicts.
+        to run.
 
         Execution flow:
-        T1. Wait in loop until all previous steps/indexes have completed
-        T2. Start wall timer
-        T3. Defer job to compute node if using job scheduler
-        T4. Set up working directory + chdir
-        T5. Merge manifests from all input dependancies
-        T6. Write manifest to input directory for convenience
-        T7. Reset all metrics to 0 (consider removing)
-        T8. Select inputs
-        T9. Copy data from previous step outputs into inputs
-        T10. Copy reference script directory
-        T11. Check manifest
-        T12. Run pre_process() function
-        T13. Set environment variables
-        T14. Check EXE version
-        T15. Save manifest as TCL/YAML
-        T16. Start CPU timer
-        T17. Run EXE
-        T18. stop CPU timer
-        T19. Run post_process()
-        T20. Check log file
-        T21. Hash all task files
-        T22. Stop Wall timer
-        T23. Make a task record
-        T24. Save manifest to disk
+        T1. Start wall timer
+        T2. Defer job to compute node if using job scheduler
+        T3. Set up working directory + chdir
+        T4. Merge manifests from all input dependancies
+        T5. Write manifest to input directory for convenience
+        T6. Reset all metrics to 0 (consider removing)
+        T7. Select inputs
+        T8. Copy data from previous step outputs into inputs
+        T9. Copy reference script directory
+        T10. Check manifest
+        T11. Run pre_process() function
+        T12. Set environment variables
+        T13. Check EXE version
+        T14. Save manifest as TCL/YAML
+        T15. Start CPU timer
+        T16. Run EXE
+        T17. stop CPU timer
+        T18. Run post_process()
+        T19. Check log file
+        T20. Hash all task files
+        T21. Stop Wall timer
+        T22. Make a task record
+        T23. Save manifest to disk
+        T24. Halt if any errors found
         T25. Clean up
         T26. chdir
-        T27. clear error/active bits and return control to run()
 
         Note that since _runtask occurs in its own process with a separate
         address space, any changes made to the `self` object will not
         be reflected in the parent. We rely on reading/writing the chip manifest
         to the filesystem to communicate updates between processes.
         '''
+
+        self._init_logger(step, index, in_run=True)
 
         ##################
         # Shared parameters (long function!)
@@ -3297,40 +3550,24 @@ class Chip:
         quiet = self.get('quiet') and (step not in self.get('bkpt'))
 
         ##################
-        # 1. Wait loop
-        self.logger.info('Waiting for inputs...')
-        while True:
-            # Checking that there are no pending jobs
-            pending = 0
-            for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                pending = pending + active[in_step + in_index]
-            # beak out of loop when no all inputs are done
-            if not pending:
-                break
-            # Short sleep
-            time.sleep(0.1)
-
-        ##################
-        # 2. Start wall timer
+        # 1. Start wall timer
         wall_start = time.time()
 
         ##################
-        # 3. Defer job to compute node
+        # 2. Defer job to compute node
         # If the job is configured to run on a cluster, collect the schema
         # and send it to a compute node for deferred execution.
         # (Run the initial 'import' stage[s] locally)
-
-        wall_start = time.time()
 
         if self.get('jobscheduler') and \
            self.get('flowgraph', flow, step, index, 'input'):
             # Note: The _deferstep method blocks until the compute node
             # finishes processing this step, and it sets the active/error bits.
-            _deferstep(self, step, index, active, error)
+            _deferstep(self, step, index, status)
             return
 
         ##################
-        # 4. Directory setup
+        # 3. Directory setup
         # support for sharing data across jobs
         job = self.get('jobname')
         in_job = job
@@ -3350,19 +3587,19 @@ class Chip:
         os.makedirs('reports', exist_ok=True)
 
         ##################
-        # 5. Merge manifests from all input dependancies
+        # 4. Merge manifests from all input dependancies
 
         all_inputs = []
         if not self.get('remote'):
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                index_error = error[in_step + in_index]
-                self.set('flowstatus', in_step, in_index, 'error', index_error)
-                if not index_error:
+                in_task_status = status[in_step + in_index]
+                self.set('flowstatus', in_step, in_index, 'status', in_task_status)
+                if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
-                    self.read_manifest(cfgfile, clobber=False)
+                    self._read_manifest(cfgfile, clobber=False, partial=True)
 
         ##################
-        # 6. Write manifest prior to step running into inputs
+        # 5. Write manifest prior to step running into inputs
 
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
@@ -3370,7 +3607,7 @@ class Chip:
         #self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
-        # 7. Reset metrics to zero
+        # 6. Make metrics zero
         # TODO: There should be no need for this, but need to fix
         # without it we need to be more careful with flows to make sure
         # things like the builtin functions don't look at None values
@@ -3378,7 +3615,7 @@ class Chip:
             self.set('metric', step, index, metric, 'real', 0)
 
         ##################
-        # 8. Select inputs
+        # 7. Select inputs
 
         args = self.get('flowgraph', flow, step, index, 'args')
         inputs = self.get('flowgraph', flow, step, index, 'input')
@@ -3399,21 +3636,21 @@ class Chip:
                 sel_inputs = self.join(*inputs)
             elif tool == "verify":
                 if not self.verify(*inputs, assertion=args):
-                    self._haltstep(step, index, active)
+                    self._haltstep(step, index)
         else:
             sel_inputs = self.get('flowgraph', flow, step, index, 'input')
 
         if sel_inputs == None:
             self.logger.error(f'No inputs selected after running {tool}')
-            self._haltstep(step, index, active)
+            self._haltstep(step, index)
 
         self.set('flowstatus', step, index, 'select', sel_inputs)
 
         ##################
-        # 9. Copy (link) output data from previous steps
+        # 8. Copy (link) output data from previous steps
 
         if step == 'import':
-            self._collect(step, index, active)
+            self._collect(step, index)
 
         if not self.get('flowgraph', flow, step, index,'input'):
             all_inputs = []
@@ -3422,9 +3659,9 @@ class Chip:
         else:
             all_inputs = self.get('flowstatus', step, index, 'select')
         for in_step, in_index in all_inputs:
-            if self.get('flowstatus', in_step, in_index, 'error') == 1:
+            if self.get('flowstatus', in_step, in_index, 'status') == TaskStatus.ERROR:
                 self.logger.error(f'Halting step due to previous error in {in_step}{in_index}')
-                self._haltstep(step, index, active)
+                self._haltstep(step, index)
 
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
@@ -3432,34 +3669,34 @@ class Chip:
                 ignore=[f'{design}.pkg.json'], link=True)
 
         ##################
-        # 10. Copy Reference Scripts
+        # 9. Copy Reference Scripts
         if tool not in self.builtin:
             if self.get('eda', tool, 'copy'):
                 for refdir in self.find_files('eda', tool, 'refdir', step, index):
                     utils.copytree(refdir, ".", dirs_exist_ok=True)
 
         ##################
-        # 11. Check manifest
+        # 10. Check manifest
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
         if not self.get('skipcheck'):
             if self.check_manifest():
                 self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
-                self._haltstep(step, index, active)
+                self._haltstep(step, index)
 
         ##################
-        # 12. Run preprocess step for tool
+        # 11. Run preprocess step for tool
         if tool not in self.builtin:
             func = self.find_function(tool, "pre_process", 'tools')
             if func:
                 func(self)
                 if self.error:
                     self.logger.error(f"Pre-processing failed for '{tool}'")
-                    self._haltstep(step, index, active)
+                    self._haltstep(step, index)
 
         ##################
-        # 13. Set environment variables
+        # 12. Set environment variables
 
         # License file configuration.
         for item in self.getkeys('eda', tool, 'licenseserver'):
@@ -3474,9 +3711,9 @@ class Chip:
                 os.environ[item] = self.get('eda', tool, 'env', step, index, item)
 
         ##################
-        # 14. Check exe version
+        # 13. Check exe version
 
-        vercheck = self.get('vercheck')
+        vercheck = not self.get('novercheck')
         veropt = self.get('eda', tool, 'vswitch')
         exe = self._getexe(tool)
         version = None
@@ -3487,31 +3724,30 @@ class Chip:
             parse_version = self.find_function(tool, 'parse_version', 'tools')
             if parse_version is None:
                 self.logger.error(f'{tool} does not implement parse_version.')
-                self._haltstep(step, index, active)
+                self._haltstep(step, index)
             version = parse_version(proc.stdout)
+
             self.logger.info(f"Checking executable. Tool '{exe}' found with version '{version}'")
-            if vercheck:
-                allowed_versions = self.get('eda', tool, 'version')
-                if allowed_versions and version not in allowed_versions:
-                    allowedstr = ', '.join(allowed_versions)
-                    self.logger.error(f"Version check failed for {tool}. Check installation.")
-                    self.logger.error(f"Found version {version}, expected one of [{allowedstr}].")
-                    self._haltstep(step, index, active)
+            if vercheck and not self._check_version(version, tool):
+                self._haltstep(step, index)
 
         ##################
-        # 15. Write manifest (tool interface) (Don't move this!)
+        # 14. Write manifest (tool interface) (Don't move this!)
         suffix = self.get('eda', tool, 'format')
         if suffix:
             pruneopt = bool(suffix!='tcl')
             self.write_manifest(f"sc_manifest.{suffix}", prune=pruneopt, abspath=True)
 
         ##################
-        # 16. Start CPU Timer
+        # 15. Start CPU Timer
         self.logger.debug(f"Starting executable")
         cpu_start = time.time()
 
         ##################
-        # 17. Run executable (or copy inputs to outputs for builtin functions)
+        # 16. Run executable (or copy inputs to outputs for builtin functions)
+
+        # TODO: Currently no memory usage tracking in breakpoints, builtins, or unexpected errors.
+        max_mem_bytes = 0
 
         if tool in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
@@ -3557,13 +3793,22 @@ class Chip:
                                                 stderr=subprocess.STDOUT)
 
                     while proc.poll() is None:
+                        # Gather subprocess memory usage.
+                        try:
+                            pproc = psutil.Process(proc.pid)
+                            max_mem_bytes = max(max_mem_bytes, pproc.memory_full_info().uss)
+                        except psutil.Error:
+                            # Process may have already terminated or been killed.
+                            # Retain existing memory usage statistics in this case.
+                            pass
+
                         # Loop until process terminates
                         if not quiet:
                             sys.stdout.write(log_reader.read())
                         if timeout is not None and time.time() - cmd_start_time > timeout:
                             self.logger.error(f'Step timed out after {timeout} seconds')
                             proc.terminate()
-                            self._haltstep(step, index, active)
+                            self._haltstep(step, index)
                         time.sleep(0.1)
 
                     # Read the remaining
@@ -3574,16 +3819,17 @@ class Chip:
             if retcode != 0:
                 self.logger.warning('Command failed with code %d. See log file %s', retcode, os.path.abspath(logfile))
                 if not self.get('eda', tool, 'continue'):
-                    self._haltstep(step, index, active)
+                    self._haltstep(step, index)
 
         ##################
-        # 18. Capture cpu runtime
+        # 17. Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
-        self.set('metric',step, index, 'exetime', 'real', cputime)
+        self.set('metric', step, index, 'exetime', 'real', cputime)
+        self.set('metric', step, index, 'memory', 'real', max_mem_bytes)
 
         ##################
-        # 19. Post process (could fail)
+        # 18. Post process (could fail)
         post_error = 0
         if (tool not in self.builtin) and (not self.get('skipall')) :
             func = self.find_function(tool, 'post_process', 'tools')
@@ -3591,15 +3837,16 @@ class Chip:
                 post_error = func(self)
                 if post_error:
                     self.logger.error('Post-processing check failed')
-                    self._haltstep(step, index, active)
+                    if not self.get('eda', tool, 'continue'):
+                        self._haltstep(step, index)
 
         ##################
-        # 20. Check log file (must be after post-process)
+        # 19. Check log file (must be after post-process)
         if (tool not in self.builtin) and (not self.get('skipall')) :
             self.check_logfile(step=step, index=index, display=not quiet)
 
         ##################
-        # 21. Hash files
+        # 20. Hash files
         if self.get('hash') and (tool not in self.builtin):
             # hash all outputs
             self.hash_files('eda', tool, 'output', step, index)
@@ -3611,24 +3858,30 @@ class Chip:
                         self.hash_files(*args)
 
         ##################
-        # 22. Capture wall runtime
+        # 21. Capture wall runtime and cpu cores
         wall_end = time.time()
         walltime = round((wall_end - wall_start),2)
         self.set('metric',step, index, 'tasktime', 'real', walltime)
-        self.logger.info(f"Finished task '{step}{index}' in {walltime}s")
+        self.logger.info(f"Finished task in {walltime}s")
 
         ##################
-        # 23. Make a record if tracking is enabled
+        # 22. Make a record if tracking is enabled
         if self.get('track'):
             self._make_record(step, index, wall_start, wall_end, version)
 
         ##################
-        # 24. Save a successful manifest
-        self.set('flowstatus', step, str(index), 'error', 0)
+        # 23. Save a successful manifest
+        self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
-        self.write_manifest("outputs/" + self.get('design') +'.pkg.json')
+        self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
+
+        ##################
+        # 24. Stop if there are errors
+        if self.get('metric',step, index, 'errors', 'real') > 0:
+            if not self.get('eda', tool, 'continue'):
+                self._haltstep(step, index)
 
         ##################
         # 25. Clean up non-essential files
@@ -3639,17 +3892,10 @@ class Chip:
         # 26. return to original directory
         os.chdir(cwd)
 
-        ##################
-        # 27. clearing active and error bits
-        # !!Do not move this code!!
-        error[step + str(index)] = 0
-        active[step + str(index)] = 0
-
     ###########################################################################
-    def _haltstep(self, step, index, active, log=True):
+    def _haltstep(self, step, index, log=True):
         if log:
             self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
-        active[step + str(index)] = 0
         sys.exit(1)
 
     ###########################################################################
@@ -3704,6 +3950,9 @@ class Chip:
 
             self.set('arg', 'step', None)
 
+        # Re-init logger to include run info after setting up flowgraph.
+        self._init_logger(in_run=True)
+
         # Run steps if set, otherwise run whole graph
         if self.get('arg', 'step'):
             steplist = [self.get('arg', 'step')]
@@ -3731,6 +3980,24 @@ class Chip:
             else:
                 indexlist[step] = self.getkeys('flowgraph', flow, step)
 
+        # Reset flowstatus/records/metrics by probing build directory.  We need
+        # to set values to None for steps we may re-run so that merging
+        # manifests from _runtask() actually updates values.
+        for step in self.getkeys('flowgraph', flow):
+            for index in self.getkeys('flowgraph', flow, step):
+                stepdir = self._getworkdir(step=step, index=index)
+                cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
+                if not os.path.isdir(stepdir) or (step in steplist and index in indexlist[step]):
+                    self.set('flowstatus', step, index, 'status', None)
+                    for metric in self.getkeys('metric', 'default', 'default'):
+                        self.set('metric', step, index, metric, 'real', None)
+                    for record in self.getkeys('record', 'default', 'default'):
+                        self.set('record', step, index, record, None)
+                elif os.path.isfile(cfg):
+                    self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
+                else:
+                    self.set('flowstatus', step, index, 'status', TaskStatus.ERROR)
+
         # Set env variables
         for envvar in self.getkeys('env'):
             val = self.get('env', envvar)
@@ -3749,12 +4016,12 @@ class Chip:
                 cfg_file = os.path.join(cfg_dir, 'credentials')
             if (not os.path.isdir(cfg_dir)) or (not os.path.isfile(cfg_file)):
                 self.logger.error('Could not find remote server configuration - please run "sc-configure" and enter your server address and credentials.')
-                sys.exit(1)
+                raise SiliconCompilerError('Valid remote credentials could not be found.')
             with open(cfg_file, 'r') as cfgf:
                 self.status['remote_cfg'] = json.loads(cfgf.read())
             if (not 'address' in self.status['remote_cfg']):
                 self.logger.error('Improperly formatted remote server configuration - please run "sc-configure" and enter your server address and credentials.')
-                sys.exit(1)
+                raise SiliconCompilerError('Valid remote credentials could not be found.')
 
             # Pre-process: Run an 'import' stage locally, and upload the
             # in-progress build directory to the remote server.
@@ -3767,42 +4034,66 @@ class Chip:
 
             # Fetch results (and delete the job's data from the server).
             fetch_results(self)
-        else:
-            manager = multiprocessing.Manager()
-            error = manager.dict()
-            active = manager.dict()
 
-            # Launch a thread for eact step in flowgraph
-            # Use a shared even for errors
-            # Use a manager.dict for keeping track of active processes
-            # (one unqiue dict entry per process),
-            # Set up tools and processes
+            # Read back configuration from final manifest.
+            cfg = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
+            if os.path.isfile(cfg):
+                local_dir = self.get('dir')
+                self.read_manifest(cfg, clobber=True, clear=True)
+                self.set('dir', local_dir)
+            else:
+                # Hack to find first failed step by checking for presence of
+                # output manifests.
+                # TODO: fetch_results() should return info about step failures.
+                failed_step = steplist[-1]
+                for step in steplist[:-1]:
+                    step_has_cfg = False
+                    for index in indexlist[step]:
+                        stepdir = self._getworkdir(step=step, index=index)
+                        cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
+                        if os.path.isfile(cfg):
+                            step_has_cfg = True
+                            break
+
+                    if not step_has_cfg:
+                        failed_step = step
+                        break
+
+                stepdir = self._getworkdir(step=failed_step)[:-1]
+                raise SiliconCompilerError(f'Run() failed on step {failed_step}! '
+                    f'See logs in {stepdir} for error details.')
+        else:
+            status = {}
+
+            # Populate status dict with any flowstatus values that have already
+            # been set.
             for step in self.getkeys('flowgraph', flow):
                 for index in self.getkeys('flowgraph', flow, step):
                     stepstr = step + index
-                    if step in steplist and index in indexlist[step]:
-                        self.set('flowstatus', step, str(index), 'error', 1)
-                        error[stepstr] = self.get('flowstatus', step, str(index), 'error')
-                        active[stepstr] = 1
-                        # Setting up tool is optional
-                        tool = self.get('flowgraph', flow, step, index, 'tool')
-                        if tool not in self.builtin:
-                            self.set('arg','step', step)
-                            self.set('arg','index', index)
-                            func = self.find_function(tool, 'setup', 'tools')
-                            if func is None:
-                                self.logger.error(f'setup() not found for tool {tool}')
-                                sys.exit(1)
-                            func(self)
-                            # Need to clear index, otherwise we will skip
-                            # setting up other indices. Clear step for good
-                            # measure.
-                            self.set('arg','step', None)
-                            self.set('arg','index', None)
+                    task_status = self.get('flowstatus', step, index, 'status')
+                    if task_status is not None:
+                        status[step + index] = task_status
                     else:
-                        self.set('flowstatus', step, str(index), 'error', 0)
-                        error[stepstr] = self.get('flowstatus', step, str(index), 'error')
-                        active[stepstr] = 0
+                        status[step + index] = TaskStatus.PENDING
+
+            # Setup tools for all tasks to run.
+            for step in steplist:
+                for index in indexlist[step]:
+                    # Setting up tool is optional
+                    tool = self.get('flowgraph', flow, step, index, 'tool')
+                    if tool not in self.builtin:
+                        self.set('arg','step', step)
+                        self.set('arg','index', index)
+                        func = self.find_function(tool, 'setup', 'tools')
+                        if func is None:
+                            self.logger.error(f'setup() not found for tool {tool}')
+                            sys.exit(1)
+                        func(self)
+                        # Need to clear index, otherwise we will skip
+                        # setting up other indices. Clear step for good
+                        # measure.
+                        self.set('arg','step', None)
+                        self.set('arg','index', None)
 
             # Implement auto-update of jobincrement
             try:
@@ -3825,14 +4116,28 @@ class Chip:
             # Check if there were errors before proceeding with run
             if self.error:
                 self.logger.error(f"Check failed. See previous errors.")
-                sys.exit()
+                raise SiliconCompilerError(f"Manifest checks failed.")
 
-            # Create all processes
-            processes = []
+            # For each task to run, prepare a process and store its dependencies
+            jobname = self.get('jobname')
+            tasks_to_run = {}
+            processes = {}
             for step in steplist:
                 for index in indexlist[step]:
-                    processes.append(multiprocessing.Process(target=self._runtask_safe,
-                                                             args=(step, index, active, error,)))
+                    inputs = [step+index for step, index in self.get('flowgraph', flow, step, index, 'input')]
+
+                    if (jobname in self.getkeys('jobinput') and
+                        step in self.getkeys('jobinput', jobname) and
+                        index in self.getkeys('jobinput', jobname, step) and
+                        self.get('jobinput', jobname, step, index) != jobname):
+                        # If we specify a different job as input to this task,
+                        # we assume we are good to run it.
+                        tasks_to_run[step+index] = []
+                    else:
+                        tasks_to_run[step+index] = inputs
+
+                    processes[step+index] = multiprocessing.Process(target=self._runtask,
+                                                                    args=(step, index, status))
 
 
             # We have to deinit the chip's logger before spawning the processes
@@ -3841,79 +4146,105 @@ class Chip:
             # the primary chip's logger after the processes complete.
             self._deinit_logger()
 
-            # Start all processes
-            for p in processes:
-                p.start()
-            # Mandatory process cleanup
-            for p in processes:
-                p.join()
+            running_tasks = []
+            while len(tasks_to_run) > 0 or len(running_tasks) > 0:
+                # Check for new tasks that can be launched.
+                for task, deps in list(tasks_to_run.items()):
+                    # TODO: breakpoint logic:
+                    # if task is bkpt, then don't launch while len(running_tasks) > 0
+
+                    # Clear any tasks that have finished from dependency list.
+                    for in_task in deps.copy():
+                        if status[in_task] != TaskStatus.PENDING:
+                            deps.remove(in_task)
+
+                    # If there are no dependencies left, launch this task and
+                    # remove from tasks_to_run.
+                    if len(deps) == 0:
+                        processes[task].start()
+                        running_tasks.append(task)
+                        del tasks_to_run[task]
+
+                # Check for situation where we have stuff left to run but don't
+                # have any tasks running. This shouldn't happen, but we will get
+                # stuck in an infinite loop if it does, so we want to break out
+                # with an explicit error.
+                if len(tasks_to_run) > 0 and len(running_tasks) == 0:
+                    raise SiliconCompilerError('Tasks left to run, but no '
+                        'running tasks. Steplist may be invalid.')
+
+                # Check for completed tasks.
+                # TODO: consider staying in this section of loop until a task
+                # actually completes.
+                for task in running_tasks.copy():
+                    if not processes[task].is_alive():
+                        running_tasks.remove(task)
+                        if processes[task].exitcode > 0:
+                            status[task] = TaskStatus.ERROR
+                        else:
+                            status[task] = TaskStatus.SUCCESS
+
+                # TODO: exponential back-off with max?
+                time.sleep(0.1)
 
             self._init_logger()
 
             # Make a clean exit if one of the steps failed
-            halt = 0
             for step in steplist:
-                index_error = 1
+                index_succeeded = False
                 for index in indexlist[step]:
                     stepstr = step + index
-                    index_error = index_error & error[stepstr]
-                halt = halt + index_error
-            if halt:
-                self.logger.error('Run() failed, exiting! See previous errors.')
-                sys.exit(1)
+                    if status[stepstr] != TaskStatus.ERROR:
+                        index_succeeded = True
+                        break
+
+                if not index_succeeded:
+                    raise SiliconCompilerError('Run() failed, see previous errors.')
+
+            # On success, write out status dict to 'flowstatus'. We do this
+            # since certain scenarios won't be caught by reading in manifests (a
+            # failing step doesn't dump a manifest). For example, if the
+            # steplist's final step has two indices and one fails.
+            for step in steplist:
+                for index in indexlist[step]:
+                    stepstr = step + index
+                    if status[stepstr] != TaskStatus.PENDING:
+                        self.set('flowstatus', step, index, 'status', status[stepstr])
+
+
+            # Merge cfg back from last executed runsteps.
+            # Note: any information generated in steps that do not merge into the
+            # last step will not be picked up in this chip object.
+            # TODO: we might as well fix this? We can add a helper function to
+            # find all steps in the steplist that don't lead to others.
+
+            laststep = steplist[-1]
+            for index in indexlist[laststep]:
+                lastdir = self._getworkdir(step=laststep, index=index)
+
+                # This no-op listdir operation is important for ensuring we have
+                # a consistent view of the filesystem when dealing with NFS.
+                # Without this, this thread is often unable to find the final
+                # manifest of runs performed on job schedulers, even if they
+                # completed successfully. Inspired by:
+                # https://stackoverflow.com/a/70029046.
+
+                os.listdir(os.path.dirname(lastdir))
+
+                lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
+                if status[laststep+index] == TaskStatus.SUCCESS:
+                    self._read_manifest(lastcfg, clobber=False, partial=True)
+                else:
+                    self.set('flowstatus', laststep, index, 'status', TaskStatus.ERROR)
 
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
-        # Merge cfg back from last executed runsteps.
-        # Note: any information generated in steps that do not merge into the
-        # last step will not be picked up in this chip object.
-        laststep = steplist[-1]
-        last_step_failed = True
-        for index in indexlist[laststep]:
-            lastdir = self._getworkdir(step=laststep, index=index)
-
-            # This no-op listdir operation is important for ensuring we have a
-            # consistent view of the filesystem when dealing with NFS. Without
-            # this, this thread is often unable to find the final manifest of
-            # runs performed on job schedulers, even if they completed
-            # successfully. Inspired by: https://stackoverflow.com/a/70029046.
-            os.listdir(os.path.dirname(lastdir))
-
-            lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
-            if os.path.isfile(lastcfg):
-                last_step_failed = False
-                local_dir = self.get('dir')
-                self.read_manifest(lastcfg, clobber=True, clear=True)
-                self.set('dir', local_dir)
-
-        if last_step_failed:
-            # Hack to find first failed step by checking for presence of output
-            # manifests.
-            failed_step = laststep
-            for step in steplist[:-1]:
-                step_has_cfg = False
-                for index in indexlist[step]:
-                    stepdir = self._getworkdir(step=step, index=index)
-                    cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
-                    if os.path.isfile(cfg):
-                        step_has_cfg = True
-                        break
-
-                if not step_has_cfg:
-                    failed_step = step
-                    break
-
-            stepdir = self._getworkdir(step=failed_step)[:-1]
-            self.logger.error(f'Run() failed on step {failed_step}, exiting! '
-                f'See logs in {stepdir} for error details.')
-            sys.exit(1)
-
         # Store run in history
         self.record_history()
 
-        # Storing manifest in job root directorya
+        # Storing manifest in job root directory
         filepath =  os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
 
@@ -3934,8 +4265,7 @@ class Chip:
             # ignore history in case of cumulative history
             if key[0] != 'history':
                 scope = self.get(*key, field='scope')
-                value = self.get(*key)
-                if value and (scope == 'job'):
+                if not self._keypath_empty(key) and (scope == 'job'):
                     self._copyparam(self.cfg,
                                     self.cfg['history'][jobname],
                                     key)
@@ -4420,6 +4750,74 @@ class Chip:
 
         return f'{filename}_{pathhash}{ext}'
 
+    def _check_version(self, reported_version, tool):
+        # Based on regex for deprecated "legacy specifier" from PyPA packaging
+        # library. Use this to parse PEP-440ish specifiers with arbitrary
+        # versions.
+        _regex_str = r"""
+            (?P<operator>(==|!=|<=|>=|<|>|~=))
+            \s*
+            (?P<version>
+                [^,;\s)]* # Since this is a "legacy" specifier, and the version
+                          # string can be just about anything, we match everything
+                          # except for whitespace, a semi-colon for marker support,
+                          # a closing paren since versions can be enclosed in
+                          # them, and a comma since it's a version separator.
+            )
+            """
+        _regex = re.compile(r"^\s*" + _regex_str + r"\s*$", re.VERBOSE | re.IGNORECASE)
+
+        normalize_version = self.find_function(tool, 'normalize_version', 'tools')
+        # Version is good if it matches any of the specifier sets in this list.
+        spec_sets = self.get('eda', tool, 'version')
+
+        for spec_set in spec_sets:
+            split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
+            specs_list = []
+            for spec in split_specs:
+                match = re.match(_regex, spec)
+                if match is None:
+                    self.logger.warning(f'Invalid version specifier {spec}. Defaulting to =={spec}.')
+                    operator = '=='
+                    spec_version = spec
+                else:
+                    operator = match.group('operator')
+                    spec_version = match.group('version')
+                specs_list.append((operator, spec_version))
+
+            if normalize_version is None:
+                normalized_version = reported_version
+                normalized_specs = ','.join([f'{op}{ver}' for op, ver in specs_list])
+            else:
+                normalized_version = normalize_version(reported_version)
+                normalized_specs = ','.join([f'{op}{normalize_version(ver)}' for op, ver in specs_list])
+
+            try:
+                version = packaging.version.Version(normalized_version)
+            except packaging.version.InvalidVersion:
+                self.logger.error(f'Version {reported_version} reported by {tool} does not match standard.')
+                if normalize_version is None:
+                    self.logger.error('Tool driver should implement normalize_version().')
+                else:
+                    self.logger.error(f'normalize_version() returned invalid version {normalized_version}')
+
+                return False
+
+            try:
+                spec_set = packaging.specifiers.SpecifierSet(normalized_specs)
+            except packaging.specifiers.InvalidSpecifier:
+                self.logger.error(f'Version specifier set {normalized_specs} does not match standard.')
+                return False
+
+            if version in spec_set:
+                return True
+
+        allowedstr = '; '.join(spec_sets)
+        self.logger.error(f"Version check failed for {tool}. Check installation.")
+        self.logger.error(f"Found version {reported_version}, did not satisfy any version specifier set {allowedstr}.")
+        return False
+
+
 ###############################################################################
 # Package Customization classes
 ###############################################################################
@@ -4427,3 +4825,9 @@ class Chip:
 class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
+
+class SiliconCompilerError(Exception):
+    ''' Minimal Exception wrapper used to raise sc runtime errors.
+    '''
+    def __init__(self, message):
+        super(Exception, self).__init__(message)

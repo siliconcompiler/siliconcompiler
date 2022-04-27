@@ -96,7 +96,7 @@ For security reasons, only a subset of the full Schema parameters is currently s
      - None
    * - ``loglevel``
      - None
-   * - ``vercheck``
+   * - ``novercheck``
      - None
    * - ``checkonly``
      - None

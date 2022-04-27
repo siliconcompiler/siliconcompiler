@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import siliconcompiler
 import subprocess
 
 import pytest
@@ -97,10 +98,10 @@ def test_gcd_server_not_authenticated(gcd_chip, scroot):
     gcd_chip.set('remote', 'user', 'test_user')
     gcd_chip.set('remote', 'password', 'wrong_password')
 
-    # Run remote build. It may fail, so catch SystemExit exceptions.
+    # Run remote build. It should fail, so catch the expected exception.
     try:
         gcd_chip.run()
-    except SystemExit:
+    except siliconcompiler.SiliconCompilerError:
         pass
 
     # Kill the server process.

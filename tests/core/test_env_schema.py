@@ -19,17 +19,19 @@ def test_env(monkeypatch):
     # Set env
     chip.set('env', 'TEST', 'hello')
 
-    def fake_runtask(chip, step, index, active, error):
+    # Mock _runtask() so we can test without tools
+    def fake_runtask(chip, step, index, status):
+        chip._init_logger(step, index, in_run=True)
+
         # Ensure env variable is propagated to tasks
         assert os.environ['TEST'] == 'hello'
 
         # Logic to make sure chip.run() registers task as success
+
+        chip.set('flowstatus', step, index, 'status', siliconcompiler.TaskStatus.SUCCESS)
         outdir = chip._getworkdir(step=step, index=index)
         chip.write_manifest(os.path.join(outdir, 'outputs', f"{chip.get('design')}.pkg.json"))
-        active[step + str(index)] = 0
-        error[step + str(index)] = 0
 
-    # Mock _runtask() so we can test without tools
     monkeypatch.setattr(siliconcompiler.Chip, '_runtask', fake_runtask)
 
     chip.run()

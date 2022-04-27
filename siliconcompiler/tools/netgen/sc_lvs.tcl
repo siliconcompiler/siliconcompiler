@@ -6,7 +6,7 @@ set sc_index   [dict get $sc_cfg arg index]
 set sc_design  [dict get $sc_cfg design]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 set sc_stackup [dict get $sc_cfg asic stackup]
-set sc_runset [dict get $sc_cfg pdk lvs runset netgen $sc_stackup]
+set sc_runset [dict get $sc_cfg pdk lvs runset netgen $sc_stackup basic]
 
 if {[dict exists $sc_cfg asic exclude $sc_step $sc_index]} {
     set sc_exclude  [dict get $sc_cfg asic exclude $sc_step $sc_index]
@@ -36,6 +36,6 @@ foreach lib $sc_macrolibs {
     }
 }
 
-lvs "$layout_file $sc_design" "$schematic_file $sc_design" $sc_runset outputs/$sc_design.lvs.out -json
+lvs "$layout_file $sc_design" "$schematic_file $sc_design" $sc_runset reports/$sc_design.lvs.out -json
 
 exit

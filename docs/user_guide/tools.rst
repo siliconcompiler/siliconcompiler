@@ -35,17 +35,24 @@ SiliconCompiler execution depends on implementing adapter code "drivers" for eac
      - run()
      - yes
 
+   * - **normalize_version**
+     - Returns executable version
+     - tool version
+     - normalized version
+     - run()
+     - no
+
    * - **pre_process**
      - Pre-executable logic
      - chip
-     - chip
+     - n/a
      - run()
      - no
 
    * - **post_process**
      - Post-executable logic
      - chip
-     - chip
+     - exit code
      - run()
      - yes
 
@@ -89,14 +96,25 @@ To leverage the run() function's internal setup checking logic, it is highly rec
 
 parse_version(stdout)
 -----------------------
-The run() function includes built in executable version checking, which can be enabled or disabled with the 'vercheck' parameter. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
+The run() function includes built in executable version checking, which can be disabled with the 'novercheck' parameter. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
+
 
   def parse_version(stdout):
       # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
-      version = stdout.split()[1]
-      return version.split('+')[0]
+      return stdout.split()[1]
 
 The run() function compares the returned parsed version against the 'version' parameter specified in the setup() function to ensure that a qualified executable version is being used.
+
+normalize_version(version)
+--------------------------
+SC's version checking logic is based on Python's `PEP-440 standard <https://peps.python.org/pep-0440/>`_. In order to perform version checking for tools that do not natively provide PEP-440 compatible version numbers, this function must be implemented to convert the tool-specific versions to a PEP-440 compatible equivalent.
+
+Note that a raw version number may parse as a valid PEP-440 version but not be semantically correct. normalize_version() must be implemented in these cases to ensure version comparisons make sense. For example, we have to do this for Yosys. ::
+
+  def normalize_version(version):
+      # Replace '+', which represents a "local version label", with '-', which is
+      # an "implicit post release number".
+      return version.replace('+', '-')
 
 pre_process(chip)
 -----------------------

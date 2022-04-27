@@ -110,6 +110,7 @@ To install from a bundle, create a Python virtual environment following the inst
 .. code-block:: bash
 
    tar -xzvf scdeps-<pyversion>.tar.gz
+   pip install --upgrade pip --no-index --find-links scdeps
    pip install siliconcompiler --no-index --find-links scdeps
 
 Cloud Access

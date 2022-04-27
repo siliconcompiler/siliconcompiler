@@ -12,7 +12,9 @@ cd deps
 # cmake 3.22.1, Python 3.9.9, GNU toolchain 11.2.0
 # These tools are out-of-date in the default package repos, but users may
 # prefer to install newer versions by using newer package lists with yum.
-# The GNU toolchain takes an especially long time to build.
+#
+# The GNU toolchain takes an especially long time to build, so you might
+# prefer to use SCL packages such as devtoolset-N and rh-python3N-python-devel
 if [[ ! -z "${RHEL7_OPENROAD_INSTALL_DEVTOOLS}" ]]; then
     # RHEL 7 cmake RPM is out of date.
     wget -q https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1.tar.gz
@@ -47,15 +49,18 @@ if [[ ! -z "${RHEL7_OPENROAD_INSTALL_DEVTOOLS}" ]]; then
     make
     sudo make install
     cd -
-
-    # Boost C++ libraries.
-    wget -q https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.gz
-    tar -xf boost_1_78_0.tar.gz
-    sudo cp -R boost_1_78_0/boost/ /usr/include/boost/
 fi
 
 # Install xdot; no RPM package, but it's a Python script.
 sudo pip3 install xdot
+
+# Boost C++ libraries.
+wget -q https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.gz
+tar -xf boost_1_78_0.tar.gz
+cd boost_1_78_0
+./bootstrap.sh
+sudo ./b2 install --prefix=/usr/
+cd -
 
 # SWIG version in RHEL 7 is too old.
 sudo yum remove -y swig

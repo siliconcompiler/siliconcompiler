@@ -53,7 +53,7 @@ def setup(chip):
 
     chip.set('eda', tool, 'exe', tool)
     chip.set('eda', tool, 'vswitch', '--version')
-    chip.set('eda', tool, 'version', '8.3.274')
+    chip.set('eda', tool, 'version', '>=8.3.196')
     chip.set('eda', tool, 'format', 'tcl')
     chip.set('eda', tool, 'copy', 'true') # copy in .magicrc file
     chip.set('eda', tool, 'threads', step, index,  4)
@@ -75,8 +75,15 @@ def setup(chip):
         chip.add('eda', tool, 'input', step, index, f'{design}.gds')
     if step == 'extspice':
         chip.add('eda', tool, 'output', step, index, f'{design}.spice')
-    elif step == 'drc':
-        chip.add('eda', tool, 'output', step, index, f'{design}.drc')
+
+    # TODO: actually parse errors/warnings in post_process()
+    logfile = f"{step}.log"
+    chip.set('eda', tool, 'report', step, index, 'errors', logfile)
+    chip.set('eda', tool, 'report', step, index, 'warnings', logfile)
+
+    if step == 'drc':
+        report_path = f'reports/{design}.drc'
+        chip.set('eda', tool, 'report', step, index, 'drvs', report_path)
 
 ################################
 # Version Check
@@ -99,12 +106,13 @@ def post_process(chip):
     design = chip.get('design')
 
     if step == 'drc':
-        with open(f'outputs/{design}.drc', 'r') as f:
+        report_path = f'reports/{design}.drc'
+        with open(report_path, 'r') as f:
             for line in f:
                 errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
 
                 if errors:
-                    chip.set('metric', step, index, 'errors', 'real', errors.group(1))
+                    chip.set('metric', step, index, 'drvs', 'real', errors.group(1))
 
     #TODO: return error code
     return 0

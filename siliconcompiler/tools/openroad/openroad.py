@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import math
 import siliconcompiler
 from siliconcompiler.floorplan import _infer_diearea
 
@@ -46,6 +47,7 @@ def setup(chip, mode='batch'):
     refdir = 'tools/'+tool
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    flow = chip.get('flow')
 
     if mode == 'show':
         clobber = True
@@ -62,13 +64,20 @@ def setup(chip, mode='batch'):
 
     chip.set('eda', tool, 'exe', tool, clobber=clobber)
     chip.set('eda', tool, 'vswitch', '-version', clobber=clobber)
-    chip.set('eda', tool, 'version', 'v2.0', clobber=clobber)
+    chip.set('eda', tool, 'version', '>=v2.0-3394', clobber=clobber)
     chip.set('eda', tool, 'format', 'tcl', clobber=clobber)
     chip.set('eda', tool, 'copy', 'true', clobber=clobber)
     chip.set('eda', tool, 'option',  step, index, option, clobber=clobber)
     chip.set('eda', tool, 'refdir',  step, index, refdir, clobber=clobber)
     chip.set('eda', tool, 'script',  step, index, refdir + script, clobber=clobber)
-    chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
+
+    # normalizing thread count based on parallelism and local
+    threads = os.cpu_count()
+    if not chip.get('remote') and step in chip.getkeys('flowgraph', flow):
+        np = len(chip.getkeys('flowgraph', flow, step))
+        threads = int(math.ceil(os.cpu_count()/np))
+
+    chip.set('eda', tool, 'threads', step, index, threads, clobber=clobber)
 
     # Input/Output requirements
     if step == 'floorplan':
@@ -134,6 +143,17 @@ def setup(chip, mode='batch'):
         chip.add('eda', tool, 'require', step, index, ','.join(['supply', supply, 'level']))
         chip.add('eda', tool, 'require', step, index, ','.join(['supply', supply, 'pin']))
 
+    # basic warning and error grep check on logfile
+    chip.set('eda', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
+    chip.set('eda', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
+
+    # reports
+    logfile = f"{step}.log"
+    for metric in chip.getkeys('metric', 'default', 'default'):
+        if metric not in ('runtime', 'memory',
+                          'luts', 'dsps', 'brams'):
+            chip.set('eda', tool, 'report', step, index, metric, logfile)
+
 ################################
 # Version Check
 ################################
@@ -147,8 +167,18 @@ def parse_version(stdout):
     # strip off the "1" prefix if it's there
     version = stdout.split()[-1]
 
-    # strip off extra details in new version styles
-    return version.split('-')[0]
+    pieces = version.split('-')
+    if len(pieces) > 1:
+        # strip off the hash in the new version style
+        return '-'.join(pieces[:-1])
+    else:
+        return pieces[0]
+
+def normalize_version(version):
+    if '.' in version:
+        return version.lstrip('v')
+    else:
+        return '0'
 
 def pre_process(chip):
     step = chip.get('arg', 'step')
@@ -178,21 +208,10 @@ def post_process(chip):
     '''
 
     #Check log file for errors and statistics
-    tool = 'openroad'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     design = chip.get('design')
     logfile = f"{step}.log"
-
-    # basic warning and error grep check on logfile
-    chip.set('eda', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
-    chip.set('eda', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
-
-    # reports
-    for metric in chip.getkeys('metric', step, index):
-        if metric not in ('runtime', 'memory',
-                          'luts', 'dsps', 'brams'):
-            chip.set('eda', tool, 'report', step, index, metric, logfile)
 
     # parsing log file
     errors = 0

@@ -85,6 +85,7 @@ def chip(scroot):
 def test_failed_branch_min(chip):
     '''Test that a minimum will allow failed inputs, as long as at least
     one passes.'''
+    flow = chip.get('flow')
 
     # Illegal value, so this branch will fail!
     chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
@@ -92,16 +93,22 @@ def test_failed_branch_min(chip):
     chip.set('eda', 'openroad', 'variable', 'place', '1', 'place_density', '0.5')
 
     # Perform minimum
-    chip.set('flowgraph', chip.get('flow'), 'placemin', '0', 'tool', 'minimum')
-    chip.set('flowgraph', chip.get('flow'), 'placemin', '0', 'input', [('place','0'), ('place','1')])
+    chip.set('flowgraph', flow, 'placemin', '0', 'tool', 'minimum')
+    chip.set('flowgraph', flow, 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     chip.run()
 
-    assert chip.get('flowstatus', 'place', '0', 'error') == 1
-    assert chip.get('flowstatus', 'place', '1', 'error') == 0
+    assert chip.get('history', 'job0', 'flowstatus', 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
+    assert chip.get('history', 'job0', 'flowstatus', 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
 
     # check that compilation succeeded
     assert chip.find_result('def', step='placemin') is not None
+
+    # Ensure that summary/report generation can handle failed branch without
+    # error.
+    chip.set('flowgraph', flow, 'place', '0', 'weight', 'errors', 0)
+    chip.set('flowgraph', flow, 'place', '0', 'weight', 'warnings', 0)
+    chip.summary()
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -118,7 +125,7 @@ def test_all_failed_min(chip):
     chip.set('flowgraph', chip.get('flow'), 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early
-    with pytest.raises(SystemExit):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.run()
 
     # check that compilation failed
@@ -139,7 +146,7 @@ def test_branch_failed_join(chip):
     chip.set('flowgraph', chip.get('flow'), 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early
-    with pytest.raises(SystemExit):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.run()
 
     # check that compilation failed

@@ -50,7 +50,7 @@ def setup(chip):
     # Standard Setup
     chip.set('eda', tool, 'exe', 'yosys', clobber=False)
     chip.set('eda', tool, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, 'version', '0.13', clobber=False)
+    chip.set('eda', tool, 'version', '>=0.13', clobber=False)
     chip.set('eda', tool, 'format', 'tcl', clobber=False)
     chip.set('eda', tool, 'copy', 'true', clobber=False)
     chip.set('eda', tool, 'option', step, index, '-c', clobber=False)
@@ -99,6 +99,16 @@ def setup(chip):
     else:
         chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
 
+    # Setting up regex patterns
+    chip.set('eda', tool, 'regex', step, index, 'warnings', "Warning", clobber=False)
+    chip.set('eda', tool, 'regex', step, index, 'errors', "Error", clobber=False)
+
+    # Reports
+    for metric in ('errors', 'warnings', 'drvs', 'coverage', 'security',
+                   'luts', 'dsps', 'brams',
+                   'cellarea',
+                   'cells', 'registers', 'buffers', 'nets', 'pins'):
+        chip.set('eda', tool, 'report', step, index, metric, f"{step}.log")
 
 #############################################
 # Runtime pre processing
@@ -116,8 +126,12 @@ def pre_process(chip):
 
 def parse_version(stdout):
     # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
-    version = stdout.split()[1]
-    return version.split('+')[0]
+    return stdout.split()[1]
+
+def normalize_version(version):
+    # Replace '+', which represents a "local version label", with '-', which is
+    # an "implicit post release number".
+    return version.replace('+', '-')
 
 ################################
 # Post_process (post executable)
@@ -126,20 +140,8 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-
-    # Setting up regex patterns
-    chip.set('eda', tool, 'regex', step, index, 'warnings', "Warning", clobber=False)
-    chip.set('eda', tool, 'regex', step, index, 'errors', "Error", clobber=False)
-
-    # Reports
-    for metric in ('errors', 'warnings', 'drvs', 'coverage', 'security',
-                   'luts', 'dsps', 'brams',
-                   'cellarea',
-                   'cells', 'registers', 'buffers', 'nets', 'pins'):
-        chip.set('eda', tool, 'report', step, index, metric, f"{step}.log")
 
     # Extracting
     if step == 'syn':

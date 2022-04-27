@@ -5,7 +5,7 @@ import subprocess
 import time
 
 ###########################################################################
-def _deferstep(chip, step, index, active, error):
+def _deferstep(chip, step, index, status):
     '''
     Helper method to run an individual step on a slurm cluster.
     If a base64-encoded 'decrypt_key' is set in the Chip's status
@@ -17,7 +17,7 @@ def _deferstep(chip, step, index, active, error):
     # Ensure that error bits are up-to-date in this schema.
     for in_step, in_index in chip.get('flowgraph', chip.get('flow'), step, index, 'input'):
         #TODO: Why is this needed?
-        chip.set('flowstatus', in_step, in_index, 'error', error[f'{in_step}{in_index}'])
+        chip.set('flowstatus', in_step, in_index, 'status', status[f'{in_step}{in_index}'])
 
     # Determine which HPC job scheduler being used.
     scheduler_type = chip.get('jobscheduler')

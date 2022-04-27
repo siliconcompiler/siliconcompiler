@@ -6,6 +6,9 @@
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 sc gcd.v \
+   -package_version "0.0.0" \
+   -package_description "GCD test package" \
+   -package_license "MIT" \
    -target "freepdk45_demo" \
    -constraint "gcd.sdc" \
    -asic_diearea "(0,0)" \

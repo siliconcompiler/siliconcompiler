@@ -46,10 +46,6 @@ def remote_preprocess(chip):
         job_hash = uuid.uuid4().hex
         chip.status['jobhash'] = job_hash
 
-    manager = multiprocessing.Manager()
-    error = manager.dict()
-    active = manager.dict()
-
     # Setup up tools for all local functions
     remote_steplist = chip.getkeys('flowgraph',chip.get('flow'))
     local_step = remote_steplist[0]
@@ -68,7 +64,10 @@ def remote_preprocess(chip):
         chip.set('steplist', local_step)
 
         # Run the actual import step locally.
-        chip._runtask(local_step, index, active, error)
+        # We can pass in an empty 'status' dictionary, since _runtask() will
+        # only look up a step's depedencies in this dictionary, and the first
+        # step should have none.
+        chip._runtask(local_step, index, {})
 
     # Set 'steplist' to only the remote steps, for the future server-side run.
     remote_steplist = remote_steplist[1:]
@@ -170,7 +169,7 @@ def request_remote_run(chip):
             elif resp.status_code >= 400:
                 chip.logger.error(resp.json()['message'])
                 chip.logger.error('Error starting remote job run; quitting.')
-                sys.exit(1)
+                raise RuntimeError('Remote server returned unrecoverable error code.')
             else:
                 chip.logger.info(resp.text)
                 return

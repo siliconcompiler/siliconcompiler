@@ -40,7 +40,7 @@ def setup(chip):
     clobber = False
     chip.set('eda', tool, 'exe', 'nextpnr-ice40', clobber=clobber)
     chip.set('eda', tool, 'vswitch', '--version', clobber=clobber)
-    chip.set('eda', tool, 'version', 'c73d4cf6', clobber=clobber)
+    chip.set('eda', tool, 'version', '>=0.2', clobber=clobber)
     chip.set('eda', tool, 'option', step, index, "", clobber=clobber)
 
     topmodule = chip.get('design')
@@ -80,8 +80,14 @@ def runtime_options(chip):
 ################################
 
 def parse_version(stdout):
+    # Examples:
     # nextpnr-ice40 -- Next Generation Place and Route (Version c73d4cf6)
-    return stdout.split()[-1].rstrip(')')
+    # nextpnr-ice40 -- Next Generation Place and Route (Version nextpnr-0.2)
+    version = stdout.split()[-1].rstrip(')')
+    if version.startswith('nextpnr-'):
+        return version.split('-')[1]
+    else:
+        return version
 
 ################################
 # Setup Tool (pre executable)
