@@ -48,7 +48,8 @@ def setup(chip):
     chip.set('eda', tool, 'version', '>=2.0.0-dev', clobber=clobber)
     chip.set('eda', tool, 'threads', step, index, '4', clobber=clobber)
     chip.set('eda', tool, 'option', step, index, '', clobber=clobber)
-    chip.set('eda', tool, 'stdout', 'true', clobber=clobber)
+    chip.set('eda', tool, 'stdout', step, index, 'destination', 'output')
+    chip.set('eda', tool, 'stdout', step, index, 'suffix', 'v')
 
     # Schema requirements
     chip.add('eda', tool, 'require', step, index, 'source')

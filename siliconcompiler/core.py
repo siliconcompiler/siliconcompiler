@@ -3757,7 +3757,6 @@ class Chip:
             self.logger.info("Running in %s", workdir)
             self.logger.info('%s', cmdstr)
             timeout = self.get('flowgraph', flow, step, index, 'timeout')
-            logfile = step + '.log'
             if sys.platform in ('darwin', 'linux') and step in self.get('bkpt'):
                 # When we break on a step, the tool often drops into a shell.
                 # However, our usual subprocess scheme seems to break terminal
@@ -3767,6 +3766,7 @@ class Chip:
                 # of these features for an interactive session. Logic for
                 # forwarding to file based on
                 # https://docs.python.org/3/library/pty.html#example.
+                logfile = step + '.log'
                 with open(logfile, 'wb') as log_writer:
                     def read(fd):
                         data = os.read(fd, 1024)
@@ -3775,22 +3775,42 @@ class Chip:
                     import pty # Note: this import throws exception on Windows
                     retcode = pty.spawn(cmdlist, read)
             else:
-                with open(logfile, 'w') as log_writer, open(logfile, 'r') as log_reader:
+                stdoutFile = ''
+                if self.get('eda', tool, 'stdout', step, index, 'destination') == 'log':
+                    stdoutFile = step + "." + self.get('eda', tool, 'stdout', step, index, 'suffix')
+                elif self.get('eda', tool, 'stdout', step, index, 'destination') == 'output':
+                    stdoutFile =  os.path.join('outputs', self.get('design')) + "." + self.get('eda', tool, 'stdout', step, index, 'suffix')
+                elif self.get('eda', tool, 'stdout', step, index, 'destination') == 'none':
+                    stdoutFile =  os.devnull
+                else:
+                    destination = self.get('eda', tool, 'stdout', step, index, 'destination')
+                    self.logger.error(f'stdout/destination has no support for {destination}. Use [log|output|none].')
+                    self._haltstep(step, index)
+                stderrFile = ''
+                if self.get('eda', tool, 'stderr', step, index, 'destination') == 'log':
+                    stderrFile = step + "." + self.get('eda', tool, 'stderr', step, index, 'suffix')
+                elif self.get('eda', tool, 'stderr', step, index, 'destination') == 'output':
+                    stderrFile =  os.path.join('outputs', self.get('design')) + "." + self.get('eda', tool, 'stderr', step, index, 'suffix')
+                elif self.get('eda', tool, 'stderr', step, index, 'destination') == 'none':
+                    stderrFile =  os.devnull
+                else:
+                    destination = self.get('eda', tool, 'stderr', step, index, 'destination')
+                    self.logger.error(f'stderr/destination has no support for {destination}. Use [log|output|none].')
+                    self._haltstep(step, index)
+
+                with open(stdoutFile, 'w') as stdout_writer, open(stdoutFile, 'r') as stdout_reader, open(stderrFile, 'w') as stderr_writer, open(stderrFile, 'r') as stderr_reader:
                     # Use separate reader/writer file objects as hack to display
                     # live output in non-blocking way, so we can monitor the
                     # timeout. Based on https://stackoverflow.com/a/18422264.
-                    useStdOut = self.get('eda', tool, 'stdout')
+                    isStdoutLog = self.get('eda', tool, 'stdout', step, index, 'destination') == 'log'
+                    isStderrLog = self.get('eda', tool, 'stderr', step, index, 'destination') == 'log' and stderrFile != stdoutFile
+                    if stderrFile == stdoutFile:
+                        stderrFile = subprocess.STDOUT
+
                     cmd_start_time = time.time()
-                    if useStdOut:
-                        outfile = os.path.join('outputs', self.get('eda', tool, 'output', step, index)[0])
-                        with open(outfile, 'w') as out_writer:
-                            proc = subprocess.Popen(cmdlist,
-                                                    stdout=out_writer,
-                                                    stderr=log_writer)
-                    else:
-                        proc = subprocess.Popen(cmdlist,
-                                                stdout=log_writer,
-                                                stderr=subprocess.STDOUT)
+                    proc = subprocess.Popen(cmdlist,
+                                            stdout=stdout_writer,
+                                            stderr=stderr_writer)
 
                     while proc.poll() is None:
                         # Gather subprocess memory usage.
@@ -3804,7 +3824,10 @@ class Chip:
 
                         # Loop until process terminates
                         if not quiet:
-                            sys.stdout.write(log_reader.read())
+                            if isStdoutLog:
+                                sys.stdout.write(stdout_reader.read())
+                            if isStderrLog:
+                                sys.stdout.write(stderr_reader.read())
                         if timeout is not None and time.time() - cmd_start_time > timeout:
                             self.logger.error(f'Step timed out after {timeout} seconds')
                             proc.terminate()
@@ -3813,7 +3836,10 @@ class Chip:
 
                     # Read the remaining
                     if not quiet:
-                        sys.stdout.write(log_reader.read())
+                        if isStdoutLog:
+                            sys.stdout.write(stdout_reader.read())
+                        if isStderrLog:
+                            sys.stdout.write(stderr_reader.read())
                     retcode = proc.returncode
 
             if retcode != 0:
