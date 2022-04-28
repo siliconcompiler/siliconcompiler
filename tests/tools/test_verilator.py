@@ -20,7 +20,7 @@ def test_verilator(oh_dir):
     chip.set('relax', True)
     chip.set('quiet', True)
     chip.set('mode', 'sim')
-    chip.set('arg','step',step)
+    chip.node('verilator', step, 'verilator')
     chip.set('flow','verilator')
     chip.run()
 

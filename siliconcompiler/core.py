@@ -3300,7 +3300,6 @@ class Chip:
                 self.edge(flow, prevstep, step)
             prevstep = step
 
-
     ###########################################################################
     def join(self, *tasks):
         '''
@@ -3953,26 +3952,6 @@ class Chip:
         '''
 
         flow = self.get('flow')
-
-        if not flow in self.getkeys('flowgraph'):
-            # If not a pre-loaded flow, we'll assume that 'flow' specifies a
-            # single-step tool run with flow being the name of the tool. Set up
-            # a basic flowgraph for this tool with a no-op import and default
-            # weights.
-            tool = flow
-            step = self.get('arg', 'step')
-            if step is None:
-                self.logger.error('arg, step must be specified for single tool flow.')
-
-            self.set('flowgraph', flow, step, '0', 'tool', tool)
-            self.set('flowgraph', flow, step, '0', 'weight', 'errors', 0)
-            self.set('flowgraph', flow, step, '0', 'weight', 'warnings', 0)
-            self.set('flowgraph', flow, step, '0', 'weight', 'runtime', 0)
-            if step != 'import':
-                self.set('flowgraph', flow, step, '0', 'input', ('import','0'))
-                self.set('flowgraph', flow, 'import', '0', 'tool', 'nop')
-
-            self.set('arg', 'step', None)
 
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)

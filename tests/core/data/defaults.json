@@ -1307,7 +1307,7 @@
             "cli: -flow asicfow",
             "api: chip.set('flow','asicflow')"
         ],
-        "help": "Sets the flow for the current run. The flow name\nmust match up with an 'flow' in the flowgraph",
+        "help": "Sets the flow for the current run. The flow name\nmust match up with a 'flow' in the flowgraph",
         "lock": "false",
         "require": null,
         "scope": "job",
