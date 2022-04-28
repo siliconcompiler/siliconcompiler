@@ -1488,7 +1488,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             shorthelp="Redirection for stdout",
             switch="-eda_stdout_destination 'tool step index <str>'",
             example=["cli: -eda_stdout_destination 'ghdl import 0 log'",
-                    "api: chip.set('eda','ghdl','stdout','destination','import','0','log')"],
+                    "api: chip.set('eda','ghdl','stdout','import','0','destination','log')"],
             schelp="""
             Defines where to direct the output generated over stdout.""")
 
@@ -1499,7 +1499,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             shorthelp="file extension for stdout generated content",
             switch="-eda_stdout_suffix 'tool step index <str>'",
             example=["cli: -eda_stdout_suffix 'ghdl import 0 log'",
-                    "api: chip.set('eda','ghdl','stdout','suffix','import','0','log')"],
+                    "api: chip.set('eda','ghdl','stdout','import','0','suffix','log')"],
             schelp="""
             Specifies the file extension for the content redirected from stdout.""")
 
@@ -1510,7 +1510,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             shorthelp="Redirection for stderr",
             switch="-eda_stderr_destination 'tool step index <str>'",
             example=["cli: -eda_stderr_destination 'ghdl import 0 log'",
-                    "api: chip.set('eda','ghdl','stderr','destination','import','0','log')"],
+                    "api: chip.set('eda','ghdl','stderr','import','0','destination','log')"],
             schelp="""
             Defines where to direct the output generated over stderr.""")
 
@@ -1521,7 +1521,7 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             shorthelp="file extension for stderr generated content",
             switch="-eda_stderr_suffix 'tool step index <str>'",
             example=["cli: -eda_stderr_suffix 'ghdl import 0 log'",
-                    "api: chip.set('eda','ghdl','stderr','suffix','import','0','log')"],
+                    "api: chip.set('eda','ghdl','stderr','import','0','suffix','log')"],
             schelp="""
             Specifies the file extension for the content redirected from stderr.""")
 

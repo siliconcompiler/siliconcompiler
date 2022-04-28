@@ -1175,21 +1175,80 @@
                     }
                 }
             },
+            "stderr": {
+                "default": {
+                    "default": {
+                        "destination": {
+                            "defvalue": "log",
+                            "example": [
+                                "cli: -eda_stderr_destination 'ghdl import 0 log'",
+                                "api: chip.set('eda','ghdl','stderr','import','0','destination','log')"
+                            ],
+                            "help": "Defines where to direct the output generated over stderr.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Redirection for stderr",
+                            "signature": null,
+                            "switch": "-eda_stderr_destination 'tool step index <str>'",
+                            "type": "str",
+                            "value": "log"
+                        },
+                        "suffix": {
+                            "defvalue": "log",
+                            "example": [
+                                "cli: -eda_stderr_suffix 'ghdl import 0 log'",
+                                "api: chip.set('eda','ghdl','stderr','import','0','suffix','log')"
+                            ],
+                            "help": "Specifies the file extension for the content redirected from stderr.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "file extension for stderr generated content",
+                            "signature": null,
+                            "switch": "-eda_stderr_suffix 'tool step index <str>'",
+                            "type": "str",
+                            "value": "log"
+                        }
+                    }
+                }
+            },
             "stdout": {
-                "defvalue": "false",
-                "example": [
-                    "cli: -eda_stdout 'ghdl true'",
-                    "api: chip.set('eda','ghdl','stdout',true)"
-                ],
-                "help": "Specifies that the tool sends the output to stdout and not to a file.",
-                "lock": "false",
-                "require": "all",
-                "scope": "job",
-                "shorthelp": "The tool sends its output to stdout",
-                "signature": null,
-                "switch": "-eda_stdout 'tool <bool>'",
-                "type": "bool",
-                "value": "false"
+                "default": {
+                    "default": {
+                        "destination": {
+                            "defvalue": "log",
+                            "example": [
+                                "cli: -eda_stdout_destination 'ghdl import 0 log'",
+                                "api: chip.set('eda','ghdl','stdout','import','0','destination','log')"
+                            ],
+                            "help": "Defines where to direct the output generated over stdout.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Redirection for stdout",
+                            "signature": null,
+                            "switch": "-eda_stdout_destination 'tool step index <str>'",
+                            "type": "str",
+                            "value": "log"
+                        },
+                        "suffix": {
+                            "defvalue": "log",
+                            "example": [
+                                "cli: -eda_stdout_suffix 'ghdl import 0 log'",
+                                "api: chip.set('eda','ghdl','stdout','import','0','suffix','log')"
+                            ],
+                            "help": "Specifies the file extension for the content redirected from stdout.",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "file extension for stdout generated content",
+                            "signature": null,
+                            "switch": "-eda_stdout_suffix 'tool step index <str>'",
+                            "type": "str", "value": "log"
+                        }
+                    }
+                }
             },
             "threads": {
                 "default": {
