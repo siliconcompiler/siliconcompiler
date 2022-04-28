@@ -54,6 +54,7 @@ def test_surelog_preproc_regression(datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skipif(sys.platform=='win32', reason='Replay script not supported on Windows')
 def test_replay(scroot):
     src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
@@ -73,12 +74,8 @@ def test_replay(scroot):
     chip.run()
 
     workdir = chip._getworkdir(step=step)
-    if sys.platform == 'win32':
-        script = 'replay.cmd'
-        echo = 'if %errorlevel% neq 0 exit /b %errorlevel%\necho %SLOG_ENV%'
-    else:
-        script = './replay.sh'
-        echo = 'echo $SLOG_ENV'
+    script = './replay.sh'
+    echo = 'echo $SLOG_ENV'
 
     with open(os.path.join(workdir, script), 'a') as f:
         f.write(echo + '\n')

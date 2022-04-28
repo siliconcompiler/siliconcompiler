@@ -4556,10 +4556,9 @@ class Chip:
         fullexe = self._getexe(tool)
 
         options = []
-        is_posix = (sys.platform != 'win32')
 
         for option in self.get('eda', tool, 'option', step, index):
-            options.extend(shlex.split(option, posix=is_posix))
+            options.extend(shlex.split(option))
 
         # Add scripts files
         if self.valid('eda', tool, 'script', step, index):
@@ -4575,9 +4574,7 @@ class Chip:
         runtime_options = self.find_function(tool, 'runtime_options', 'tools')
         if runtime_options:
             for option in runtime_options(self):
-                cmdlist.extend(shlex.split(option, posix=is_posix))
-
-        is_posix = (sys.platform != 'win32')
+                cmdlist.extend(shlex.split(option))
 
         envvars = {}
         for key in self.getkeys('env'):
@@ -4587,26 +4584,23 @@ class Chip:
             if license_file:
                 envvars[item] = ':'.join(license_file)
         if self.get('eda', tool, 'path'):
-            path_var = '$PATH' if is_posix else '%PATH%'
-            envvars['PATH'] = self.get('eda', tool, 'path') + os.pathsep + path_var
+            envvars['PATH'] = self.get('eda', tool, 'path') + os.pathsep + '$PATH'
         if (step in self.getkeys('eda', tool, 'env') and
             index in self.getkeys('eda', tool, 'env', step)):
             for key in self.getkeys('eda', tool, 'env', step, index):
                 envvars[key] = self.get('eda', tool, 'env', step, index, key)
 
         #create replay file
-        script_name = 'replay.sh' if is_posix else 'replay.cmd'
+        script_name = 'replay.sh'
         with open(script_name, 'w') as f:
-            if is_posix:
-                print('#!/bin/bash', file=f)
+            print('#!/bin/bash', file=f)
 
-            envvar_cmd = 'export' if is_posix else 'set'
+            envvar_cmd = 'export'
             for key, val in envvars.items():
                 print(f'{envvar_cmd} {key}={val}', file=f)
 
-            # Quote any argument with spaces
             replay_cmdlist = [os.path.basename(cmdlist[0])] + cmdlist[1:]
-            print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in replay_cmdlist), file=f)
+            print(shlex.join(replay_cmdlist), file=f)
         os.chmod(script_name, 0o755)
 
         return cmdlist
