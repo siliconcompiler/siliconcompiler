@@ -3735,8 +3735,9 @@ class Chip:
                     self._haltstep(step, index)
             else:
                 self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
-        else:
-            self.logger.error(f'Executable {exe} not found')
+        elif tool not in self.builtin:
+            exe_base = self.get('eda', tool, 'exe')
+            self.logger.error(f'Executable {exe_base} not found')
             self._haltstep(step, index)
 
         ##################
