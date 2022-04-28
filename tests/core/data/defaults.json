@@ -1001,7 +1001,7 @@
                     "cli: -eda_path 'openroad /usr/local/bin'",
                     "api:  chip.set('eda','openroad','path','/usr/local/bin')"
                 ],
-                "help": "File system path to tool executable. The path is pre pended to the 'exe'\nparameter for batch runs and output as an environment variable for\ninteractive setup. The path parameter can be left blank if the 'exe'\nis already in the environment search path.\nTool executable name.",
+                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the 'exe' is already in the\nenvironment search path.",
                 "lock": "false",
                 "require": null,
                 "scope": "job",
@@ -6388,6 +6388,22 @@
                     "shorthelp": "Record: start time",
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "toolpath": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -record_toolpath 'dfm 0 </usr/bin/openroad>'",
+                        "api: chip.set('record','dfm','0','toolpath', </usr/bin/openroad>)"
+                    ],
+                    "help": "Record tracking the tool path per step and index basis. Full path to tool executable used to run this\ntask.",
+                    "lock": "false",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: tool path",
+                    "signature": null,
+                    "switch": "-record_toolpath 'step index <str>'",
                     "type": "str",
                     "value": null
                 },
