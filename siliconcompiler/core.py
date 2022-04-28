@@ -4577,6 +4577,8 @@ class Chip:
             for option in runtime_options(self):
                 cmdlist.extend(shlex.split(option, posix=is_posix))
 
+        is_posix = (sys.platform != 'win32')
+
         envvars = {}
         for key in self.getkeys('env'):
             envvars[key] = self.get('env', key)
@@ -4584,13 +4586,15 @@ class Chip:
             license_file = self.get('eda', tool, 'licenseserver', item)
             if license_file:
                 envvars[item] = ':'.join(license_file)
+        if self.get('eda', tool, 'path'):
+            path_var = '$PATH' if is_posix else '%PATH%'
+            envvars['PATH'] = self.get('eda', tool, 'path') + os.pathsep + path_var
         if (step in self.getkeys('eda', tool, 'env') and
             index in self.getkeys('eda', tool, 'env', step)):
             for key in self.getkeys('eda', tool, 'env', step, index):
                 envvars[key] = self.get('eda', tool, 'env', step, index, key)
 
         #create replay file
-        is_posix = (sys.platform != 'win32')
         script_name = 'replay.sh' if is_posix else 'replay.cmd'
         with open(script_name, 'w') as f:
             if is_posix:
@@ -4601,7 +4605,8 @@ class Chip:
                 print(f'{envvar_cmd} {key}={val}', file=f)
 
             # Quote any argument with spaces
-            print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cmdlist), file=f)
+            replay_cmdlist = [os.path.basename(cmdlist[0])] + cmdlist[1:]
+            print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in replay_cmdlist), file=f)
         os.chmod(script_name, 0o755)
 
         return cmdlist
