@@ -63,7 +63,7 @@ SiliconCompiler execution depends on implementing adapter code "drivers" for eac
      - sphinx
      - no
 
-For a complete example of a tool setup module, see `OpenROAD <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/openroad.py>`_. For more in depth information about the various 'eda' parameters, see the :ref:`Schema <SiliconCompiler Schema>` section of the reference manual.
+For a complete example of a tool setup module, see `OpenROAD <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/openroad.py>`_. For more in depth information about the various :keypath:`eda` parameters, see the :ref:`Schema <SiliconCompiler Schema>` section of the reference manual.
 
 
 setup(chip)
@@ -96,14 +96,14 @@ To leverage the run() function's internal setup checking logic, it is highly rec
 
 parse_version(stdout)
 -----------------------
-The run() function includes built in executable version checking, which can be disabled with the 'novercheck' parameter. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
+The run() function includes built in executable version checking, which can be disabled with the :keypath:`novercheck` parameter. The executable option to use for printing out the version number is specified with the :keypath:`eda, <tool>, vswitch` parameter within the setup() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
 
 
   def parse_version(stdout):
       # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
       return stdout.split()[1]
 
-The run() function compares the returned parsed version against the 'version' parameter specified in the setup() function to ensure that a qualified executable version is being used.
+The run() function compares the returned parsed version against the :keypath:`eda, <tool>, version` parameter specified in the setup() function to ensure that a qualified executable version is being used.
 
 normalize_version(version)
 --------------------------

@@ -54,7 +54,11 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
             else:
                 val_node = code(val['value'])
 
-            table.append([keypath(*full_keypath), val_node])
+            # HTML builder fails if we don't make a text node the parent of the
+            # reference node returned by keypath()
+            p = nodes.paragraph()
+            p += keypath(*full_keypath)
+            table.append([p, val_node])
 
     if len(table) > 1:
         return build_table(table)

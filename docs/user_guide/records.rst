@@ -1,7 +1,7 @@
 Records
 =======
 
-To support hardware provenance, the SiliconCompiler supports automated tracking of a number of execution and place of origin related parameters. Tracking is off by default in the SiliconCompiler, but can be turned on with the 'track' parameter. ::
+To support hardware provenance, the SiliconCompiler supports automated tracking of a number of execution and place of origin related parameters. Tracking is off by default in the SiliconCompiler, but can be turned on with the :keypath:`track` parameter. ::
 
   chip.set('track', True)
 
