@@ -2148,7 +2148,7 @@ def schema_options(cfg):
                      "api: chip.set('flow','asicflow')"],
             schelp="""
             Sets the flow for the current run. The flow name
-            must match up with an 'flow' in the flowgraph""")
+            must match up with a 'flow' in the flowgraph""")
 
     scparam(cfg, ['optmode'],
             sctype='str',
