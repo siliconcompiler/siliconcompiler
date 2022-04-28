@@ -3749,19 +3749,28 @@ class Chip:
         veropt = self.get('eda', tool, 'vswitch')
         exe = self._getexe(tool)
         version = None
-        if veropt and (exe is not None):
-            cmdlist = [exe]
-            cmdlist.extend(veropt)
-            proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-            parse_version = self.find_function(tool, 'parse_version', 'tools')
-            if parse_version is None:
-                self.logger.error(f'{tool} does not implement parse_version.')
-                self._haltstep(step, index)
-            version = parse_version(proc.stdout)
+        toolpath = exe # For record
+        if exe is not None:
+            exe_path, exe_base = os.path.split(exe)
+            if veropt:
+                cmdlist = [exe]
+                cmdlist.extend(veropt)
+                proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                parse_version = self.find_function(tool, 'parse_version', 'tools')
+                if parse_version is None:
+                    self.logger.error(f'{tool} does not implement parse_version.')
+                    self._haltstep(step, index)
+                version = parse_version(proc.stdout)
 
-            self.logger.info(f"Checking executable. Tool '{exe}' found with version '{version}'")
-            if vercheck and not self._check_version(version, tool):
-                self._haltstep(step, index)
+                self.logger.info(f"Tool '{exe_base}' found with version '{version}' in directory '{exe_path}'")
+                if vercheck and not self._check_version(version, tool):
+                    self._haltstep(step, index)
+            else:
+                self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
+        elif tool not in self.builtin:
+            exe_base = self.get('eda', tool, 'exe')
+            self.logger.error(f'Executable {exe_base} not found')
+            self._haltstep(step, index)
 
         ##################
         # 14. Write manifest (tool interface) (Don't move this!)
@@ -3785,8 +3794,9 @@ class Chip:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
         elif not self.get('skipall'):
             cmdlist = self._makecmd(tool, step, index)
-            cmdstr = ' '.join(cmdlist)
-            self.logger.info("Running in %s", workdir)
+            exe_base = os.path.basename(cmdlist[0])
+            cmdstr = ' '.join([exe_base] + cmdlist[1:])
+            self.logger.info('Running in %s', workdir)
             self.logger.info('%s', cmdstr)
             timeout = self.get('flowgraph', flow, step, index, 'timeout')
             logfile = step + '.log'
@@ -3890,7 +3900,7 @@ class Chip:
         ##################
         # 22. Make a record if tracking is enabled
         if self.get('track'):
-            self._make_record(step, index, wall_start, wall_end, version)
+            self._make_record(step, index, wall_start, wall_end, version, toolpath)
 
         ##################
         # 23. Save a successful manifest
@@ -4539,12 +4549,12 @@ class Chip:
         if exe is None:
             return None
 
+        syspath = os.getenv('PATH', os.defpath)
         if path:
-            exe_with_path = os.path.join(path, exe)
-        else:
-            exe_with_path = exe
+            # Prepend 'path' schema var to system path
+            syspath = self._resolve_env_vars(path) + os.pathsep + syspath
 
-        fullexe = self._resolve_env_vars(exe_with_path)
+        fullexe = shutil.which(exe, path=syspath)
 
         return fullexe
 
@@ -4558,10 +4568,9 @@ class Chip:
         fullexe = self._getexe(tool)
 
         options = []
-        is_posix = (sys.platform != 'win32')
 
         for option in self.get('eda', tool, 'option', step, index):
-            options.extend(shlex.split(option, posix=is_posix))
+            options.extend(shlex.split(option))
 
         # Add scripts files
         if self.valid('eda', tool, 'script', step, index):
@@ -4577,7 +4586,7 @@ class Chip:
         runtime_options = self.find_function(tool, 'runtime_options', 'tools')
         if runtime_options:
             for option in runtime_options(self):
-                cmdlist.extend(shlex.split(option, posix=is_posix))
+                cmdlist.extend(shlex.split(option))
 
         envvars = {}
         for key in self.getkeys('env'):
@@ -4586,24 +4595,24 @@ class Chip:
             license_file = self.get('eda', tool, 'licenseserver', item)
             if license_file:
                 envvars[item] = ':'.join(license_file)
+        if self.get('eda', tool, 'path'):
+            envvars['PATH'] = self.get('eda', tool, 'path') + os.pathsep + '$PATH'
         if (step in self.getkeys('eda', tool, 'env') and
             index in self.getkeys('eda', tool, 'env', step)):
             for key in self.getkeys('eda', tool, 'env', step, index):
                 envvars[key] = self.get('eda', tool, 'env', step, index, key)
 
         #create replay file
-        is_posix = (sys.platform != 'win32')
-        script_name = 'replay.sh' if is_posix else 'replay.cmd'
+        script_name = 'replay.sh'
         with open(script_name, 'w') as f:
-            if is_posix:
-                print('#!/bin/bash', file=f)
+            print('#!/bin/bash', file=f)
 
-            envvar_cmd = 'export' if is_posix else 'set'
+            envvar_cmd = 'export'
             for key, val in envvars.items():
                 print(f'{envvar_cmd} {key}={val}', file=f)
 
-            # Quote any argument with spaces
-            print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cmdlist), file=f)
+            replay_cmdlist = [os.path.basename(cmdlist[0])] + cmdlist[1:]
+            print(shlex.join(replay_cmdlist), file=f)
         os.chmod(script_name, 0o755)
 
         return cmdlist
@@ -4615,7 +4624,7 @@ class Chip:
         return 'local'
 
     #######################################
-    def _make_record(self, step, index, start, end, toolversion):
+    def _make_record(self, step, index, start, end, toolversion, toolpath):
         '''
         Records provenance details for a runstep.
         '''
@@ -4678,6 +4687,8 @@ class Chip:
 
         arch = platform.machine()
         self.set('record', step, index, 'arch', arch)
+
+        self.set('record', step, index, 'toolpath', toolpath)
 
     #######################################
     def _safecompare(self, value, op, goal):
