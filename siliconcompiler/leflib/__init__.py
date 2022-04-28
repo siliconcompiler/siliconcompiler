@@ -1,7 +1,8 @@
 try:
     from ._leflib import parse as _parse
 except:
-    print("WARNING! leflib hasn't been built properly. SC installation may malfunction.")
+    import sys
+    print("WARNING! leflib hasn't been built properly. SC installation may malfunction.", file=sys.stderr)
 
 def parse(path):
     ''' Parses LEF file.
