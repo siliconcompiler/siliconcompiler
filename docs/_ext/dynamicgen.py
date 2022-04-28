@@ -40,8 +40,6 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
             'value' in val and val['value'] == '0'):
             continue
 
-        keypath = ', '.join(full_keypath)
-
         if 'value' in val and val['value']:
             # Don't display false booleans
             if val['type'] == 'bool' and val['value'] == 'false':
@@ -56,7 +54,11 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
             else:
                 val_node = code(val['value'])
 
-            table.append([code(keypath), val_node])
+            # HTML builder fails if we don't make a text node the parent of the
+            # reference node returned by keypath()
+            p = nodes.paragraph()
+            p += keypath(*full_keypath)
+            table.append([p, val_node])
 
     if len(table) > 1:
         return build_table(table)
@@ -118,6 +120,8 @@ class DynamicGen(SphinxDirective):
 
     def document_module(self, module, modname, path):
         '''Build section documenting given module and name.'''
+        print(f'Generating docs for module {modname}...')
+
         s = build_section_with_target(modname, f'{modname}-ref', self.state.document)
 
         if not hasattr(module, 'make_docs'):
@@ -282,7 +286,7 @@ class FlowGen(DynamicGen):
         section = build_section('showtool', section_key)
         cfg = chip.getdict('showtool')
         pruned = chip._prune(cfg)
-        table = build_schema_value_table(pruned)
+        table = build_schema_value_table(pruned, keypath_prefix=['showtool'])
         if table is not None:
             section += table
             settings += section

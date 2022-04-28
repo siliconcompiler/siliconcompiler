@@ -763,12 +763,13 @@ class Chip:
         """
         Returns a schema parameter field.
 
-        Returns a schema parameter filed based on the keypath and value provided
-        in the ``*args``. The returned type is consistent with the type field of
-        the parameter. Fetching parameters with empty or undefined value files
-        returns None for scalar types and [] (empty list) for list types.
-        Accessing a non-existent keypath produces a logger error message and
-        raises the Chip object error flag.
+        Returns a schema parameter field based on the keypath provided in the
+        ``*keypath``. See the :ref:`Schema Reference Manual<SiliconCompiler
+        Schema>` for documentation of all supported keypaths. The returned type
+        is consistent with the type field of the parameter. Fetching parameters
+        with empty or undefined value files returns None for scalar types and []
+        (empty list) for list types.  Accessing a non-existent keypath produces
+        a logger error message and raises the Chip object error flag.
 
         Args:
             keypath(list str): Variable length schema key list.
@@ -878,11 +879,12 @@ class Chip:
         '''
         Sets a schema parameter field.
 
-        Sets a schema parameter field based on the keypath and value provided
-        in the ``*args``. New schema dictionaries are automatically created for
-        keypaths that overlap with 'default' dictionaries. The write action
-        is ignored if the parameter value is non-empty and the clobber
-        option is set to False.
+        Sets a schema parameter field based on the keypath and value provided in
+        the ``*args``. See the :ref:`Schema Reference Manual<SiliconCompiler
+        Schema>` for documentation of all supported keypaths. New schema
+        dictionaries are automatically created for keypaths that overlap with
+        'default' dictionaries. The write action is ignored if the parameter
+        value is non-empty and the clobber option is set to False.
 
         The value provided must agree with the dictionary parameter 'type'.
         Accessing a non-existent keypath or providing a value that disagrees
@@ -924,9 +926,10 @@ class Chip:
         Adds item(s) to a schema parameter list.
 
         Adds item(s) to schema parameter list based on the keypath and value
-        provided in the ``*args``. New schema dictionaries are
-        automatically created for keypaths that overlap with 'default'
-        dictionaries.
+        provided in the ``*args``.  See the :ref:`Schema Reference
+        Manual<SiliconCompiler Schema>` for documentation of all supported
+        keypaths. New schema dictionaries are automatically created for keypaths
+        that overlap with 'default' dictionaries.
 
         The value provided must agree with the dictionary parameter 'type'.
         Accessing a non-existent keypath, providing a value that disagrees

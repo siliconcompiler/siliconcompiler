@@ -2,6 +2,8 @@ from docutils import nodes
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 
+from siliconcompiler.schema import schema_cfg
+
 # Docutils helpers
 def build_table(items):
     table = nodes.table()
@@ -103,3 +105,43 @@ def flatten(cfg, prefix=()):
             flat_cfg.update(flatten(val, prefix + (key,)))
 
     return flat_cfg
+
+def keypath(*args):
+    '''Helper function for displaying Schema keypaths.'''
+    text_parts = []
+    key_parts = []
+    cfg = schema_cfg()
+    for key in args:
+        if list(cfg.keys()) != ['default']:
+            text_parts.append(f"'{key}'")
+            key_parts.append(key)
+            try:
+                cfg = cfg[key]
+            except KeyError:
+                raise ValueError(f'Invalid keypath {args}')
+        else:
+            cfg = cfg['default']
+            if key.startswith('<') and key.endswith('>'):
+                # Placeholder
+                text_parts.append(key)
+            else:
+                # Fully-qualified
+                text_parts.append(f"'{key}'")
+
+    if 'help' not in cfg:
+        # Not leaf
+        text_parts.append('...')
+
+    text = f"[{', '.join(text_parts)}]"
+    refid = '-'.join(key_parts)
+    # TODO: figure out URL automatically/figure out internal ref for PDF
+    url = f'https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html#{refid}'
+
+    # Note: The literal node returned by code() must be a child of the reference
+    # node (not the other way round), otherwise the Latex builder mangles the
+    # URL.
+    ref_node = nodes.reference(internal=False, refuri=url)
+    text_node = code(text)
+    ref_node += text_node
+
+    return ref_node
