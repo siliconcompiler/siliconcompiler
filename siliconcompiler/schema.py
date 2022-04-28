@@ -2003,6 +2003,10 @@ def schema_record(cfg, step='default', index='default'):
                                '1.0',
                                """The tool version captured correspnds to the 'tool'
                                parameter within the 'eda' dictionary."""],
+                'toolpath': ['tool path',
+                             '/usr/bin/openroad',
+                             """Full path to tool executable used to run this
+                             task."""],
                'osversion': ['O/S version',
                              '20.04.1-Ubuntu',
                              """Since there is not standard version system for operating

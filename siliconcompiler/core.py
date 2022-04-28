@@ -3717,6 +3717,7 @@ class Chip:
         veropt = self.get('eda', tool, 'vswitch')
         exe = self._getexe(tool)
         version = None
+        toolpath = exe # For record
         if exe is not None:
             exe_path, exe_base = os.path.split(exe)
             if veropt:
@@ -3866,7 +3867,7 @@ class Chip:
         ##################
         # 22. Make a record if tracking is enabled
         if self.get('track'):
-            self._make_record(step, index, wall_start, wall_end, version)
+            self._make_record(step, index, wall_start, wall_end, version, toolpath)
 
         ##################
         # 23. Save a successful manifest
@@ -4611,7 +4612,7 @@ class Chip:
         return 'local'
 
     #######################################
-    def _make_record(self, step, index, start, end, toolversion):
+    def _make_record(self, step, index, start, end, toolversion, toolpath):
         '''
         Records provenance details for a runstep.
         '''
@@ -4674,6 +4675,8 @@ class Chip:
 
         arch = platform.machine()
         self.set('record', step, index, 'arch', arch)
+
+        self.set('record', step, index, 'toolpath', toolpath)
 
     #######################################
     def _safecompare(self, value, op, goal):
