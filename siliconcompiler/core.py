@@ -3717,19 +3717,26 @@ class Chip:
         veropt = self.get('eda', tool, 'vswitch')
         exe = self._getexe(tool)
         version = None
-        if veropt and (exe is not None):
-            cmdlist = [exe]
-            cmdlist.extend(veropt)
-            proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-            parse_version = self.find_function(tool, 'parse_version', 'tools')
-            if parse_version is None:
-                self.logger.error(f'{tool} does not implement parse_version.')
-                self._haltstep(step, index)
-            version = parse_version(proc.stdout)
+        if exe is not None:
+            exe_path, exe_base = os.path.split(exe)
+            if veropt:
+                cmdlist = [exe]
+                cmdlist.extend(veropt)
+                proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                parse_version = self.find_function(tool, 'parse_version', 'tools')
+                if parse_version is None:
+                    self.logger.error(f'{tool} does not implement parse_version.')
+                    self._haltstep(step, index)
+                version = parse_version(proc.stdout)
 
-            self.logger.info(f"Checking executable. Tool '{exe}' found with version '{version}'")
-            if vercheck and not self._check_version(version, tool):
-                self._haltstep(step, index)
+                self.logger.info(f"Tool '{exe_base}' found with version '{version}' in directory '{exe_path}'")
+                if vercheck and not self._check_version(version, tool):
+                    self._haltstep(step, index)
+            else:
+                self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
+        else:
+            self.logger.error(f'Executable {exe} not found')
+            self._haltstep(step, index)
 
         ##################
         # 14. Write manifest (tool interface) (Don't move this!)
@@ -3753,8 +3760,9 @@ class Chip:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
         elif not self.get('skipall'):
             cmdlist = self._makecmd(tool, step, index)
-            cmdstr = ' '.join(cmdlist)
-            self.logger.info("Running in %s", workdir)
+            exe_base = os.path.basename(cmdlist[0])
+            cmdstr = ' '.join([exe_base] + cmdlist[1:])
+            self.logger.info('Running in %s', workdir)
             self.logger.info('%s', cmdstr)
             timeout = self.get('flowgraph', flow, step, index, 'timeout')
             logfile = step + '.log'
@@ -4527,12 +4535,12 @@ class Chip:
         if exe is None:
             return None
 
+        syspath = os.getenv('PATH', os.defpath)
         if path:
-            exe_with_path = os.path.join(path, exe)
-        else:
-            exe_with_path = exe
+            # Prepend 'path' schema var to system path
+            syspath = self._resolve_env_vars(path) + os.pathsep + syspath
 
-        fullexe = self._resolve_env_vars(exe_with_path)
+        fullexe = shutil.which(exe, path=syspath)
 
         return fullexe
 

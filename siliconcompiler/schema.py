@@ -1262,11 +1262,10 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             example=["cli: -eda_path 'openroad /usr/local/bin'",
                      "api:  chip.set('eda','openroad','path','/usr/local/bin')"],
             schelp="""
-            File system path to tool executable. The path is pre pended to the 'exe'
-            parameter for batch runs and output as an environment variable for
-            interactive setup. The path parameter can be left blank if the 'exe'
-            is already in the environment search path.
-            Tool executable name.""")
+            File system path to tool executable. The path is prepended to the
+            system PATH environment variable for batch and interactive runs. The
+            path parameter can be left blank if the 'exe' is already in the
+            environment search path.""")
 
     scparam(cfg, ['eda', tool, 'vswitch'],
             sctype='[str]',
