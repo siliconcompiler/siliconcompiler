@@ -2,6 +2,8 @@ from docutils import nodes
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 
+from siliconcompiler.schema import schema_cfg
+
 # Docutils helpers
 def build_table(items):
     table = nodes.table()
@@ -103,3 +105,34 @@ def flatten(cfg, prefix=()):
             flat_cfg.update(flatten(val, prefix + (key,)))
 
     return flat_cfg
+
+def keypath(*args):
+    text = '[' + ', '.join(args) + ']'
+    normalized_keypath = []
+    cfg = schema_cfg()
+    for key in args:
+        if list(cfg.keys()) != ['default']:
+            normalized_keypath.append(key)
+            try:
+                cfg = cfg[key]
+            except KeyError:
+                raise ValueError(f'Invalid keypath {args}')
+        else:
+            cfg = cfg['default']
+
+    refid = '-'.join(normalized_keypath)
+    # TODO: figure out URL automatically/figure out internal ref for PDF
+    url = f'https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html#{refid}'
+
+    # This weird node hierarchy (paragraph -> reference -> literal) is necessary
+    # for this to work with both Latex and HTML builders. The reference needs to
+    # be a child of a text node, otherwise the HTML builder fails. However, it
+    # cannot be a child of a literal node, otherwise the URL gets mangled by the
+    # Latex builder for some reason.
+    para_node = nodes.paragraph()
+    ref_node = nodes.reference(internal=False, refuri=url)
+    text_node = code(text)
+    para_node += ref_node
+    ref_node += text_node
+
+    return para_node

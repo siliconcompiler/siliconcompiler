@@ -764,7 +764,7 @@ class Chip:
         Returns a schema parameter field.
 
         Returns a schema parameter field based on the keypath provided in the
-        ``*args``. See the :ref:`Schema Reference Manual<SiliconCompiler
+        ``*keypath``. See the :ref:`Schema Reference Manual<SiliconCompiler
         Schema>` for documentation of all supported keypaths. The returned type
         is consistent with the type field of the parameter. Fetching parameters
         with empty or undefined value files returns None for scalar types and []
