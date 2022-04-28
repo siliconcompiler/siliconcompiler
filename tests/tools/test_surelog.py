@@ -19,7 +19,7 @@ def test_surelog(scroot):
     chip.add('source', gcd_src)
     chip.set('design', design)
     chip.set('mode', 'sim')
-    chip.set('arg', 'step', step)
+    chip.node('surelog', step, 'surelog')
     chip.set('flow', 'surelog')
 
     chip.run()
@@ -39,8 +39,8 @@ def test_surelog_preproc_regression(datadir):
     chip.add('source', src)
     chip.add('define', 'MEM_ROOT=test')
     chip.set('design', design)
-    chip.set('mode', 'asicflow')
-    chip.set('arg', 'step', step)
+    chip.set('mode', 'sim')
+    chip.node('surelog', step, 'surelog')
     chip.set('flow', 'surelog')
 
     chip.run()
@@ -65,7 +65,7 @@ def test_replay(scroot):
     chip.add('source', src)
     chip.set('design', design)
     chip.set('mode', 'sim')
-    chip.set('arg', 'step', step)
+    chip.node('surelog', step, 'surelog')
     chip.set('flow', 'surelog')
     chip.set('quiet', True)
     chip.set('eda', 'surelog', 'env', step, '0', 'SLOG_ENV', 'SUCCESS')

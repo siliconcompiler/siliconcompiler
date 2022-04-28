@@ -21,8 +21,11 @@ def test_klayout(datadir):
     chip.set('library', 'heartbeat', 'lef', '10M', library_lef)
     chip.set('library', 'heartbeat', 'gds', '10M', library_gds)
 
-    chip.set('arg', 'step', 'export')
-    chip.set('flow', 'klayout')
+    flow = 'export'
+    chip.node(flow, 'import', 'nop')
+    chip.node(flow, 'export', 'klayout')
+    chip.edge(flow, 'import', 'export')
+    chip.set('flow', flow)
 
     chip.set('eda', 'klayout', 'variable', 'export', '0', 'timestamps', 'false')
 

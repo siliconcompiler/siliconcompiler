@@ -10,10 +10,14 @@ def test_yosys_lec(datadir):
     chip = siliconcompiler.Chip()
     chip.load_target('freepdk45_demo')
 
-    chip.set('arg', 'step', 'lec')
     chip.set('design', 'foo')
     chip.set('mode', 'asic')
-    chip.set('flow', 'yosys')
+
+    flow = 'lec'
+    chip.node(flow, 'import', 'nop')
+    chip.node(flow, 'lec', 'yosys')
+    chip.edge(flow, 'import', 'lec')
+    chip.set('flow', flow)
 
     chip.add('source', os.path.join(lec_dir, 'foo.v'))
     chip.add('read', 'netlist', 'lec', '0', os.path.join(lec_dir, 'foo.vg'))
@@ -32,10 +36,15 @@ def test_yosys_lec_broken(datadir):
     chip = siliconcompiler.Chip()
     chip.load_target('freepdk45_demo')
 
-    chip.set('arg', 'step', 'lec')
     chip.set('design', 'foo')
     chip.set('mode', 'asic')
-    chip.set('flow', 'yosys')
+
+    flow = 'lec'
+    chip.node(flow, 'import', 'nop')
+    chip.node(flow, 'lec', 'yosys')
+    chip.edge(flow, 'import', 'lec')
+    chip.set('flow', flow)
+
     chip.set('eda', 'yosys', 'continue', True)
 
     chip.add('source', os.path.join(lec_dir, 'foo_broken.v'))

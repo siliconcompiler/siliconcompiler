@@ -24,8 +24,11 @@ def test_openroad(scroot):
     chip.load_target("freepdk45_demo")
 
     # set up tool for floorplan
-    chip.set('flow', 'openroad')
-    chip.set('arg', 'step', 'floorplan')
+    flow = 'floorplan'
+    chip.node(flow, 'import', 'nop')
+    chip.node(flow, 'floorplan', 'openroad')
+    chip.edge(flow, 'import', 'floorplan')
+    chip.set('flow', flow)
 
     chip.run()
 
