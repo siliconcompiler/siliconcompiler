@@ -60,6 +60,8 @@ def test_flowstatus(scroot, steplist):
 
     chip.run()
 
+    chip.summary()
+
     assert chip.get('flowstatus', 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
     assert chip.get('flowstatus', 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
 
