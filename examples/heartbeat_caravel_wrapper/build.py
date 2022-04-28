@@ -32,6 +32,9 @@ CORE_H = 600
 MARGIN_W = 9.66
 MARGIN_H = 8.16
 
+# Path to 'caravel' repository root.
+CARAVEL_ROOT = '/path/to/caravel'
+
 def configure_chip(design):
     # Minimal Chip object construction.
     chip = Chip()
@@ -59,24 +62,11 @@ def build_core():
     core_chip.set('asic', 'corearea', (MARGIN_W, MARGIN_H))
     core_chip.add('asic', 'corearea', (CORE_W - MARGIN_W, CORE_H - MARGIN_H))
 
-    # Create basic PDN script, with only vertical stripes.
+    # No routing on met4-met5.
     stackup = core_chip.get('asic', 'stackup')
     libtype = 'hd'
-    with open('pdngen.tcl', 'w') as pdnf:
-        # TODO: Jinja template?
-        pdnf.write('''
-# Add PDN connections for each voltage domain.
-add_global_connection -net vccd1 -pin_pattern "^vccd.*$" -power
-add_global_connection -net vssd1 -pin_pattern "^vssd.*$" -ground
-
-# Create single-layer core-level PDN grid.
-define_pdn_grid -name pdn_grid -starts_with POWER -voltage_domain CORE -pins {met4}
-# Add vertical stripes. (No horizontal stripes; those come from the top level.)
-add_pdn_stripe -grid pdn_grid -layer met4 -width 1.6 -pitch 150 -offset 75 -starts_with POWER
-
-# Done defining commands; execute pdngen.
-pdngen''')
-    core_chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'pdngen', 'pdngen.tcl')
+    core_chip.set('pdk','grid', stackup, 'met4', 'adj', 0.0)
+    core_chip.set('pdk','grid', stackup, 'met5', 'adj', 0.0)
 
     # Build the core design.
     core_chip.run()
@@ -95,10 +85,10 @@ def build_top():
     chip = configure_chip('user_project_wrapper')
     chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', ['0.15'])
     chip.set('eda', 'openroad', 'variable', 'route', '0', 'grt_allow_congestion', ['true'])
-    chip.clock(name='clk', pin='clk', period=20)
+    chip.clock(name='user_clock2', pin='user_clock2', period=20)
 
     # Set top-level source files.
-    chip.set('source', 'caravel_user_project/caravel/verilog/rtl/defines.v')
+    chip.set('source', f'{CARAVEL_ROOT}/verilog/rtl/defines.v')
     chip.add('source', 'heartbeat.bb.v')
     chip.add('source', 'user_project_wrapper.v')
 
@@ -118,6 +108,9 @@ def build_top():
     chip.set('library', libname, 'gds', stackup, 'heartbeat.gds')
     chip.set('library', libname, 'netlist', 'verilog', 'heartbeat.vg')
 
+    # Use pre-defined floorplan for the wrapper..
+    chip.set('read', 'def', 'floorplan', '0', f'{CARAVEL_ROOT}/def/user_project_wrapper.def')
+
     # No filler cells in the top-level wrapper.
     chip.set('library', 'sky130hd', 'cells', 'filler', [])
 
@@ -131,25 +124,24 @@ def build_top():
         # TODO: Jinja template?
         pdnf.write('''
 # Add PDN connections for each voltage domain.
-add_global_connection -net vccd1 -pin_pattern "^vccd.*$" -power
-add_global_connection -net vssd1 -pin_pattern "^vssd.*$" -ground
+add_global_connection -net VPWR -pin_pattern "^vccd1$" -power
+add_global_connection -net VGND -pin_pattern "^vssd1$" -ground
+add_global_connection -net POWER -pin_pattern "^vccd1$" -power
+add_global_connection -net GROUND -pin_pattern "^vssd1$" -ground
+add_global_connection -net vccd1 -pin_pattern "^VPWR$" -power
+add_global_connection -net vssd1 -pin_pattern "^VGND$" -ground
+add_global_connection -net vccd1 -pin_pattern "^POWER$" -power
+add_global_connection -net vssd1 -pin_pattern "^GROUND$" -ground
+add_global_connection -net vccd1 -pin_pattern "^vccd1$" -power
+add_global_connection -net vssd1 -pin_pattern "^vssd1$" -ground
+global_connect
+set_voltage_domain -name Core -power vccd1 -ground vssd1
 
-# Define top-level PDN grid.
-define_pdn_grid -name pdn_grid -starts_with POWER -voltage_domain CORE -pins {met4 met5}
-
-# Create core ring.
-add_pdn_ring -grid pdn_grid -layer {met4 met5} -widths {1.6 1.6} -spacings {1.7 1.7} -core_offset {6 6}
-
-# Add vertical / horizontal stripes.
-add_pdn_stripe -grid pdn_grid -layer met4 -width 1.6 -pitch 150 -offset 75 -starts_with POWER -extend_to_core_ring
-add_pdn_stripe -grid pdn_grid -layer met5 -width 1.6 -pitch 225 -offset 112.5 -starts_with POWER -extend_to_core_ring
-
-# Connect top-level horizontal / vertical stripes.
-add_pdn_connect -grid pdn_grid -layers {met4 met5}
-
-# Connect top-level horizontal stripes to core-level vertical stripes.
-define_pdn_grid -name core_grid -existing -obstructions {met4}
-add_pdn_connect -grid core_grid -layers {met4 met5}
+#define_pdn_grid -name top_grid -existing -obstructions {met4 met5}
+#define_pdn_grid -name core_grid -macro -grid_over_boundary -instances mprj -pin_direction horizontal -voltage_domain Core
+define_pdn_grid -name core_grid -macro -grid_over_boundary -default -pin_direction horizontal -voltage_domain Core
+add_pdn_stripe -grid core_grid -layer met1 -width 0.48 -starts_with POWER -followpins
+add_pdn_connect -grid core_grid -layers {met1 met4} -cut_pitch 0.16
 
 # Done defining commands; generate PDN.
 pdngen''')

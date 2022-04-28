@@ -63,43 +63,6 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     place_pins -hor_layers $sc_hpinmetal \
 	-ver_layers $sc_vpinmetal \
 	-random \
-
-    # Need to check if we have any macros before performing macro placement,
-    # since we get an error otherwise.
-    if {[design_has_macros] || \
-        [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace]} {
-        ###########################
-        # TDMS Placement
-        ###########################
-
-        global_placement -density $openroad_place_density \
-            -pad_left $openroad_pad_global_place \
-            -pad_right $openroad_pad_global_place
-
-        ###########################
-        # Macro placement
-        ###########################
-
-        if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {
-            # Manual macro placement
-            source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
-        } else {
-            # Automatic macro placement
-            macro_placement \
-                -halo $openroad_macro_place_halo \
-                -channel $openroad_macro_place_channel
-        }
-
-        # Note: some platforms set a "macro blockage halo" at this point, but the
-        # technologies we support do not, so we don't include that step for now.
-    }
-
-    ###########################
-    # Power Network (if defined)
-    ###########################
-    if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype pdngen] {
-        source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype pdngen] 0]
-    }
 } else {
     ###########################
     # Add power nets
@@ -127,6 +90,43 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     ###########################
     set def [dict get $sc_cfg "read" def $sc_step $sc_index]
     read_def -floorplan_initialize $def
+}
+
+# Need to check if we have any macros before performing macro placement,
+# since we get an error otherwise.
+if {[design_has_macros] || \
+    [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace]} {
+    ###########################
+    # TDMS Placement
+    ###########################
+
+    global_placement -density $openroad_place_density \
+        -pad_left $openroad_pad_global_place \
+        -pad_right $openroad_pad_global_place
+
+    ###########################
+    # Macro placement
+    ###########################
+
+    if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {
+        # Manual macro placement
+        source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
+    } else {
+        # Automatic macro placement
+        macro_placement \
+            -halo $openroad_macro_place_halo \
+            -channel $openroad_macro_place_channel
+    }
+
+    # Note: some platforms set a "macro blockage halo" at this point, but the
+    # technologies we support do not, so we don't include that step for now.
+}
+
+###########################
+# Power Network (if defined)
+###########################
+if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype pdngen] {
+    source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype pdngen] 0]
 }
 
 ###########################
