@@ -35,11 +35,11 @@ def test_parallel_path(capfd):
         flow = 'test'
         chip.set('flow', flow)
         chip.node(flow, 'import', 'nop')
-        chip.node(flow, 'placemin', 'minimum')
+        chip.node(flow, 'ctsmin', 'minimum')
 
         chip.set('flowstatus', 'import', '0', 'status', siliconcompiler.TaskStatus.SUCCESS)
-        chip.set('flowstatus', 'placemin', '0', 'status', siliconcompiler.TaskStatus.SUCCESS)
-        chip.set('flowstatus', 'placemin', '0', 'select', ('cts', '1'))
+        chip.set('flowstatus', 'ctsmin', '0', 'status', siliconcompiler.TaskStatus.SUCCESS)
+        chip.set('flowstatus', 'ctsmin', '0', 'select', ('cts', '1'))
 
         for i in ('0', '1', '2'):
             chip.node(flow, 'place', 'openroad', index=i)
@@ -49,11 +49,13 @@ def test_parallel_path(capfd):
             chip.set('flowstatus', 'cts', i, 'status', siliconcompiler.TaskStatus.SUCCESS)
 
             chip.edge(flow, 'place', 'cts', tail_index=i, head_index=i)
-            chip.edge(flow, 'cts', 'placemin', tail_index=i)
+            chip.edge(flow, 'cts', 'ctsmin', tail_index=i)
             chip.edge(flow, 'import', 'place', head_index=i)
 
             chip.set('flowstatus', 'place', i, 'select', ('import', '0'))
             chip.set('flowstatus', 'cts', i, 'select', ('place', i))
+
+    chip.write_flowgraph('test_graph.png')
 
     chip.summary()
     stdout, _ = capfd.readouterr()
