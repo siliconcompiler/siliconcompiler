@@ -1,19 +1,41 @@
 from docutils import nodes
+import sphinx.addnodes
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 
 from siliconcompiler.schema import schema_cfg
 
 # Docutils helpers
-def build_table(items):
+def build_table(items, colwidths=None, colspec=None):
+    '''Create table node.
+
+    Args:
+        - items (list of list of nodes): nested list of table contents
+        - colwidths (list of nums): relative column widths (seems to affect HTML
+            builder only)
+        - colspec (str): LaTeX column spec for overriding Sphinx defaults
+
+    Returns list of nodes, since there may be an associated TabularColumn node
+    that hints at sizing in PDF output.
+    '''
+    if colwidths is None:
+        colwidths = [1]* len(items[0]) # default to equal spacing
+    else:
+        assert len(colwidths) == len(items[0])
+
+    return_nodes = []
+    if colspec is not None:
+        colspec_node = sphinx.addnodes.tabular_col_spec()
+        colspec_node['spec'] = colspec
+        return_nodes.append(colspec_node)
+
     table = nodes.table()
     table['classes'] = ['longtable']
 
     group = nodes.tgroup(cols=len(items[0]))
     table += group
-    for _ in items[0]:
-        # not sure how colwidth affects things - columns seem to adjust to contents
-        group += nodes.colspec(colwidth=100)
+    for colwidth in colwidths:
+        group += nodes.colspec(colwidth=colwidth)
 
     body = nodes.tbody()
     group += body
@@ -26,7 +48,9 @@ def build_table(items):
             row_node += entry
             entry += col
 
-    return table
+    return_nodes.append(table)
+
+    return return_nodes
 
 def build_section(text, key):
     sec = nodes.section(ids=[nodes.make_id(key)])
