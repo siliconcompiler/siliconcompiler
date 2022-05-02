@@ -116,8 +116,9 @@ def schema_cfg():
     cfg = schema_options(cfg)
     cfg = schema_arg(cfg)
 
-    # Primary sources
+    # Design Information
     cfg = schema_design(cfg)
+    cfg = schema_model(cfg)
 
     # Constraints
     #cfg = schema_constraints(cfg)
@@ -762,6 +763,113 @@ def schema_pdk(cfg, stackup='default'):
     return cfg
 
 ###############################################################################
+# Design Modeling
+###############################################################################
+
+def schema_model(cfg):
+
+    corner = 'default'
+    filetype = 'default'
+    stackup =  'default'
+
+    # functional
+    scparam(cfg,['model', 'functional', filetype],
+            sctype='[file]',
+            shorthelp=f"Model: Functional",
+            switch=f"-model_functional 'filetype <file>'",
+            example=[
+                f"cli: -model_functional 'systemc adder.sc'",
+                f"api: chip.set('model','functional','systemc','adder.sc')"],
+            schelp=f"""
+            Filepaths to (fast) functional models specified on a per filetype
+            basis.""")
+
+    # formal
+    scparam(cfg,['model', 'formal', filetype],
+            sctype='[file]',
+            shorthelp=f"Model: Formal",
+            switch=f"-model_formal 'filetype <file>'",
+            example=[
+                f"cli: -model_formal 'smv adder.smv'",
+                f"api: chip.set('model','formal','smv','adder.smv')"],
+            schelp=f"""
+            Filepaths to formal models specified on a per filetype basis.""")
+
+    # rtl
+    scparam(cfg,['model', 'rtl', filetype],
+            sctype='[file]',
+            shorthelp=f"Model: RTL",
+            switch=f"-model_rtl 'filetype <file>'",
+            example=[
+                f"cli: -model_rtl 'systemc adder.sc'",
+                f"api: chip.set('model','rtl','systemc','adder.sc')"],
+            schelp=f"""
+            Filepaths to cycle accurate model specified on a per filetype
+            basis.""")
+
+    # IO
+    scparam(cfg,['model', 'io', filetype],
+            sctype='[file]',
+            shorthelp=f"Model: IO",
+            switch=f"-model_io 'filetype <file>'",
+            example=[
+                f"cli: -model_io 'ibis top.ibs'",
+                f"api: chip.set('model','io','ibis','top.ibis')"],
+            schelp=f"""
+            Filepaths to IO models specified on a per filetype basis.""")
+
+    # thermal
+    scparam(cfg,['model', 'thermal', filetype],
+            sctype='[file]',
+            shorthelp=f"Model: Thermal",
+            switch=f"-model_thermal 'filetype corner <file>'",
+            example=[
+                f"cli: -model_thermal 'delphi adder_thermal.sp'",
+                f"api: chip.set('model','thermal','delphi','adder_thermal.sp')"],
+            schelp=f"""
+            Filepaths to thermal models.""")
+
+    # timing
+    scparam(cfg,['model', 'timing', filetype, corner],
+            sctype='[file]',
+            shorthelp=f"Model: Timing",
+            switch=f"-model_timing 'filetype corner <file>'",
+            example=[
+                f"cli: -model_timing 'nldm-libgz ss ss.lib.gz'",
+                f"api: chip.set('model','timing','nldm-ldb','ss','ss.ldb')"],
+            schelp=f"""
+            Filepaths to static timing models specified on a per filetype and
+            per corner basis.  Examples of filetypes include: nldm, nldm-ldb,
+            nldm-libgz, ccs, ccs-libgz, ccs-ldb, scm, scm-libgz, scm-ldb,
+            aocv, aocv-libgz, aocv-ldb.""")
+
+    # power
+    scparam(cfg,['model', 'power', filetype, corner],
+            sctype='[file]',
+            shorthelp=f"Model: Power",
+            switch=f"-model_power 'filetype corner <file>'",
+            example=[
+                f"cli: -model_power 'apl ss adder.ss.apl'",
+                f"api: chip.set('model','power','apl','ss','adder.ss.apl')"],
+            schelp=f"""
+            Filepaths to power/current models.""")
+
+    # layout
+    scparam(cfg,['model', 'layout', filetype, stackup],
+            sctype='[file]',
+            shorthelp=f"Model: Layout",
+            switch=f"-model_layout 'filetype stackup <file>'",
+            example=[
+                f"cli: -model_layout 'lef 10M adder.lef'",
+                f"api: chip.set('model','layout','lef','10M','adder.lef')"],
+            schelp=f"""
+            Filepaths to abstract layout views specified on a per filetype
+            and per stackup basis.""")
+
+    return cfg
+
+
+###############################################################################
 # Library Configuration
 ###############################################################################
 
@@ -796,86 +904,6 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             List of complete design functions within the library that can
             be instantiated directly by the caller.""")
 
-    scparam(cfg, ['library', lib, design, 'testmodule'],
-            sctype='[str]',
-            shorthelp="Library testbench top module",
-            switch="-library_testmodule 'lib design <str>'",
-            example=[
-                "cli: -libtary_testmodule 'mylib hello test_top'",
-                "api: chip.set('library','mylib','hello','testmodule', 'test_top')"],
-            schelp="""Top level test module specified on a per design basis.""")
-
-    scparam(cfg, ['library', lib, design, 'source'],
-            sctype='[file]',
-            shorthelp="Library source files",
-            switch="-library_source 'lib design <file>'",
-            example=[
-                "cli: -library_source 'mylib hello hello.v'",
-                "api: chip.set('library','mylib','hello','source','hello.v')"],
-            schelp="""
-            List of library source files specified on a per design basis. File type
-            is inferred from the file suffix. The parameter is required or
-            'soft' library types and optional for 'hard' and 'stdcell'
-            library types.
-            (\\*.v, \\*.vh) = Verilog
-            (\\*.vhd)      = VHDL
-            (\\*.sv)       = SystemVerilog
-            (\\*.c)        = C
-            (\\*.cpp, .cc) = C++
-            (\\*.py)       = Python
-            """)
-
-    scparam(cfg,['library', lib, design, 'testbench'],
-            sctype='[file]',
-            shorthelp="Library testbench files",
-            switch="-library_testbench 'lib design <file>'",
-            example=[
-                "cli: -library_testbench 'mylib hello tb_top.v'",
-                "api: chip.set('library','mylib, 'hello','testbench','tb_top.v')"],
-            schelp="""
-            A list of all library testbench sources. The files are read in order
-            from first to last entered. File type is inferred from the file suffix:
-            (\\*.v, \\*.vh) = Verilog
-            (\\*.vhd)      = VHDL
-            (\\*.sv)       = SystemVerilog
-            (\\*.c)        = C
-            (\\*.cpp, .cc) = C++
-            (\\*.py)       = Python""")
-
-    scparam(cfg,['library', lib, design, 'waveform'],
-            sctype='[file]',
-            shorthelp="Library golden waveforms",
-            switch= "-library_waveform 'lib design <file>'",
-            example=[
-                "cli: -library_waveform 'mylib hello mytrace.vcd'",
-                "api: chip.set('library','mylib','hello','waveform','mytrace.vcd')"],
-            schelp="""
-            Library waveform(s) used as a golden test vectors to ensure that
-            compilation transformations do not modify the functional behavior of
-            the source code. The waveform file must be compatible with the
-            testbench and compilation flow tools. The wavefor is supplied
-            on a per design basis.""")
-
-    scparam(cfg, ['library',lib, 'pdk'],
-            sctype='[str]',
-            shorthelp="Library PDK",
-            switch="-library_pdk 'lib <str>'",
-            example=[
-                "cli: -library_pdk 'mylib freepdk45",
-                "api:  chip.set('library', 'mylib', 'pdk', 'freepdk45')"],
-            schelp="""
-            List of PDK modules supported by the library. The
-            parameter is required for technology hardened ASIC libraries.""")
-
-    scparam(cfg, ['library',lib, pdk, 'stackup'],
-            sctype='[str]',
-            shorthelp="Library stackups",
-            switch="-library_stackup 'lib pdk <str>'",
-            example=[
-                "cli: -library_stackup 'mylib freepdk45 M10",
-                "api:  chip.set('library','mylib','freepdk45','stackup','M10')"],
-            schelp="""
-            List of stackups supported for the specified PDK.""")
 
     scparam(cfg, ['library',lib, 'arch'],
             sctype='str',
@@ -893,40 +921,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
             libraries, etc. The parameter is optional for 'component'
             libtypes.""")
 
-    models = ['nldm',
-              'ccs',
-              'scm',
-              'aocv']
 
-    for item in models:
-        scparam(cfg,['library', lib, item, corner, filetype],
-                sctype='[file]',
-                shorthelp=f"Library {item.upper()} timing model",
-                switch=f"-library_{item} 'lib corner filetype <file>'",
-                example=[
-                    f"cli: -library_{item} 'lib ss lib ss.lib.gz'",
-                    f"api: chip.set('library','lib','{item}','ss','lib','ss.lib.gz')"],
-                schelp=f"""
-                Filepaths to {item.upper()} models. Timing files are specified
-                per lib, corner, and filetype basis. Acceptable file formats
-                include 'lib', 'lib.gz', and 'ldb'. """)
-
-    layout = ['lef',
-              'gds',
-              'def',
-              'gerber']
-
-    for item in layout:
-        scparam(cfg,['library', lib, item, stackup],
-                sctype='[file]',
-                shorthelp=f'Library {item.upper()} layout files',
-                switch=f"-library_{item} 'lib stackup <file>'",
-                example=[
-                    f"cli: -library_{item} 'mylib 10M mylib.{item}'",
-                    f"api: chip.set('library','mylib','{item}','10M','mylib.{item}')"],
-                schelp=f"""
-                List of library {item.upper()} layout files specified on a
-                per stackup basis.""")
 
     formats = ['cdl',
                'verilog',
