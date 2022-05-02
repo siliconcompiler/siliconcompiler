@@ -143,7 +143,6 @@ def schema_cfg():
     cfg = schema_pdk(cfg)
 
     # Active library management
-    cfg = schema_libs(cfg)
     cfg = schema_package(cfg, 'library')
     cfg = schema_checklist(cfg, 'library')
 
@@ -232,7 +231,6 @@ def schema_fpga(cfg):
                      "api:  chip.set('fpga', 'flash', True)"],
             schelp="""Specifies that the bitstream should be flashed in the board/device.
             The default is to load the bitstream into volatile memory (SRAM).""")
-
 
     return cfg
 
@@ -693,7 +691,7 @@ def schema_pdk(cfg, stackup='default'):
     key='default'
     scparam(cfg, ['pdk', 'file', tool, key, stackup],
             sctype='[file]',
-            shorthelp="PDK named file",
+            shorthelp="PDK special file",
             switch="-pdk_file 'tool key stackup <file>'",
             example=[
                 "cli: -pdk_file 'xyce spice M10 asap7.sp'",
@@ -705,7 +703,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'directory', tool, key, stackup],
             sctype='[dir]',
-            shorthelp="PDK named directory",
+            shorthelp="PDK special directory",
             switch="-pdk_directory 'tool key stackup <file>'",
             example=[
                 "cli: -pdk_directory 'xyce rfmodel M10 rftechdir'",
@@ -717,7 +715,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'variable', tool, key, stackup],
             sctype='[str]',
-            shorthelp="PDK named variable",
+            shorthelp="PDK special variable",
             switch="-pdk_variable 'tool stackup key <str>'",
             example=[
                 "cli: -pdk_variable 'xyce modeltype M10 bsim4'""",
@@ -865,218 +863,6 @@ def schema_model(cfg):
             schelp=f"""
             Filepaths to abstract layout views specified on a per filetype
             and per stackup basis.""")
-
-    return cfg
-
-
-###############################################################################
-# Library Configuration
-###############################################################################
-
-def schema_libs(cfg, lib='default', stackup='default', corner='default'):
-
-    design = 'default'
-    filetype = 'default'
-    pdk = 'default'
-    name = 'default'
-    tool = 'default'
-    key = 'default'
-
-    scparam(cfg, ['library', lib, 'type'],
-            sctype='str',
-            shorthelp="Library type",
-            switch="-library_type 'lib <str>'",
-            example=["cli: -library_type 'mylib logiclib'",
-                    "api: chip.set('library','mylib','type','logiclib')"],
-            schelp="""
-            Type of the library being configured. A 'logiclib' type is reserved
-            for fixed height cell libraries. A 'soft' type indicates a library
-            that is provided as target agnostic source code, and a 'hard'
-            type indicates a non-logiclib target specificlibrary.""")
-
-    scparam(cfg, ['library', lib, 'design'],
-            sctype='[str]',
-            shorthelp="Library designs",
-            switch="-library_design 'lib <str>'",
-            example=["cli: -library_design 'mylib mytop'",
-                    "api: chip.set('library','mylib','design','mytop')"],
-            schelp="""
-            List of complete design functions within the library that can
-            be instantiated directly by the caller.""")
-
-
-    scparam(cfg, ['library',lib, 'arch'],
-            sctype='str',
-            shorthelp="Library architecture",
-            switch="-library_arch 'lib <str>'",
-            example=[
-                "cli: -library_arch 'mylib 12t'",
-                "api: chip.set('library','mylib','arch,'12t')"],
-            schelp="""
-            Specifier string that identifies the row height or performance
-            class of a standard cell library for APR. The arch must match up with
-            the name used in the pdk_aprtech dictionary. Mixing of library archs
-            in a flat place and route block is not allowed. Examples of library
-            archs include 6 track libraries, 9 track libraries, 10 track
-            libraries, etc. The parameter is optional for 'component'
-            libtypes.""")
-
-
-
-    formats = ['cdl',
-               'verilog',
-               'vhdl',
-               'edif',
-               'pspice',
-               'hspice',
-               'spectre',
-               'edif']
-
-    for item in formats:
-        scparam(cfg,['library', lib, 'netlist', item],
-            sctype='[file]',
-            shorthelp=f'Library {item} netlist',
-            switch=f"-library_{item}_netlist 'lib <file>'",
-            example=[
-                f"cli: -library_{item}_netlist 'mylib cdl mylib.{item}'",
-                f"api: chip.set('library','mylib','netlist','{item}','mylib.{item}')"],
-            schelp=f"""List of library netlists in the {item} format.""")
-
-    modeltypes = ['verilog',
-                  'vhdl',
-                  'systemc',
-                  'iss',
-                  'qemu',
-                  'gem5']
-
-    for item in modeltypes:
-        scparam(cfg,['library', lib, 'model', stackup],
-                sctype='[file]',
-                shorthelp=f"Library {item} model",
-                switch=f"-library_model_{item} 'lib <file>'",
-                example=[
-                    f"cli: -library_model_{item} 'mylib model.{item}'",
-                    f"api: chip.set('library','mylib','model',{item},'model.{item}')"],
-                schelp=f"""List of library {item} models.""")
-
-    scparam(cfg, ['library',lib, 'pgmetal'],
-            sctype='str',
-            shorthelp="Library PG layer",
-            switch="-library_pgmetal 'lib <str>'",
-            example=["cli: -library_pgmetal 'mylib m1'",
-                    "api: chip.set('library','mylib','pgmetal','m1')"],
-            schelp="""
-            Top metal layer used for power and ground routing within the
-            library. The parameter can be used to guide cell power grid
-            hookup by APR tools.""")
-
-    scparam(cfg, ['library',lib, 'tag'],
-            sctype='[str]',
-            shorthelp="Library tags",
-            switch="-library_tag 'lib <str>'",
-            example=["cli: -library_tag 'mylib virtual'",
-                     "api: chip.set('library','mylib','tag','virtual')"],
-            schelp="""
-            Marks a library with a set of tags that can be used by the designer
-            and EDA tools for optimization purposes. The tags are meant to cover
-            features not currently supported by built in EDA optimization flows,
-            but which can be queried through EDA tool TCL commands and lists.
-            The example below demonstrates tagging the whole library as
-            virtual.""")
-
-    scparam(cfg, ['library',lib, 'site', name, 'symmetry'],
-            sctype='str',
-            shorthelp="Library site symmetry",
-            switch="-library_site_symmetry 'lib name <str>'",
-            example=[
-                "cli: -library_site_symmetry 'mylib core X Y'",
-                "api: chip.set('library','mylib','site','core','symmetry','X Y')"],
-            schelp="""
-             Site flip-symmetry based on LEF standard definition. 'X' implies
-            symmetric about the x axis, 'Y' implies symmetry about the y axis, and
-            'X Y' implies symmetry about the x and y axis.""")
-
-    scparam(cfg, ['library',lib, 'site', name, 'size'],
-            sctype='(float,float)',
-            shorthelp="Library site size",
-            switch="-library_site_size 'lib name <str>'",
-            example=[
-                "cli: -library_site_size 'mylib core (1.0,1.0)'",
-                "api: chip.set('library','mylib','site','core','size',(1.0,1.0))"],
-            schelp="""
-            Size of the library size described as a (width, height) tuple in
-            microns.""")
-
-    # Cell types
-    names = ['driver',
-             'load',
-             'buf',
-             'decap',
-             'delay',
-             'tie',
-             'hold',
-             'clkbuf',
-             'clkdelay',
-             'clkinv',
-             'clkgate',
-             'clkicg',
-             'clklogic',
-             'ignore',
-             'filler',
-             'tap',
-             'endcap',
-             'antenna']
-
-    for item in names:
-        scparam(cfg, ['library',lib, 'cells', item],
-                sctype='[str]',
-                shorthelp=f"Library {item} cell list",
-                switch=f"-library_cells_{item} 'lib <str>'",
-                example=[
-                    f"cli: -library_cells_{item} 'mylib *eco*'",
-                    f"api: chip.set('library','mylib','cells',{item},'*eco*')"],
-                schelp="""
-                List of cells grouped by a property that can be accessed
-                directly by the designer and tools. The example below shows how
-                all cells containing the string 'eco' could be marked as dont use
-                for the tool.""")
-
-
-    # tool specific hacks
-    scparam(cfg, ['library',lib, 'techmap', tool],
-            sctype='[file]',
-            shorthelp="Library techmap file",
-            switch="-library_techmap 'lib tool <file>'",
-            example=[
-                "cli: -library_techmap 'lib mylib yosys map.v'",
-                "api: chip.set('library', 'mylib', 'techmap', 'yosys','map.v')"],
-            schelp="""
-            Filepaths specifying mappings from tool-specific generic cells to
-            library cells.""")
-
-    scparam(cfg, ['library',lib, 'file', tool, key, stackup],
-            sctype='[file]',
-            shorthelp="Library named file",
-            switch="-library_file 'lib tool key stackup <file>'",
-            example=[
-                "cli: -library_file 'lib atool db 10M ~/libdb'",
-                "api: chip.set('library','lib','file','atool','db',10M,'~/libdb')"],
-            schelp="""
-            List of named files specified on a per tool and per stackup basis.
-            The parameter should only be used for specifying files that are
-            not directly supported by the Library schema.""")
-
-    scparam(cfg, ['library',lib, 'dir', tool, key, stackup],
-            sctype='[dir]',
-            shorthelp="Library named directory",
-            switch="-library_dir 'lib tool key stackup <dir>'",
-            example=[
-                "cli: -library_dir 'lib atool db 10M ~/libdb'",
-                "api: chip.set('library','lib','dir','atool','db',10M,'~/libdb')"],
-            schelp="""
-            List of named dirs specified on a per tool and per stackup basis.
-            The parameter should only be used for specifying dirs that are
-            not directly supported by the Library schema.""")
 
     return cfg
 
@@ -3421,18 +3207,115 @@ def schema_asic(cfg):
             one for the lower left corner and one for the upper right corner. All
             values are specified in microns.""")
 
-    scparam(cfg, ['asic', 'exclude', step, index],
-            sctype='[str]',
-            scope='job',
-            shorthelp="ASIC excluded cells",
-            switch="-asic_exclude 'step index <str>>",
-            example=["cli: -asic_exclude drc 0 sram_macro",
-                    "api: chip.set('asic','exclude','drc','0','sram_macro')"],
+    tool = 'default'
+    key = 'default'
+    scparam(cfg, ['asic', 'file', tool, key],
+            sctype='[file]',
+            shorthelp="ASIC special file",
+            switch="-asic_file 'tool key<file>'",
+            example=[
+                "cli: -asic_file 'yosys presyn ~/presyn.tcl'",
+                "api: chip.set('asic','file','yosys','presyn','~/presyn.tcl')"],
             schelp="""
-            List of physical cells to exclude during execution. The process
-            of exclusion is controlled by the flow step and tool setup. The list
-            is commonly used by DRC tools and GDS export tools to direct the tool
-            to exclude GDS information during GDS merge/export.""")
+            List of named files specified on a per tool basis.
+            The parameter should only be used for specifying files that are
+            not directly supported by the ASIC schema.""")
+
+    scparam(cfg, ['asic', 'dir', tool, key],
+            sctype='[dir]',
+            shorthelp="ASIC special directory",
+            switch="-asic_dir 'tool key <dir>'",
+            example=[
+                "cli: -asic_dir 'lib atool db ~/libdb'",
+                "api: chip.set('asic','dir','atool','db','~/libdb')"],
+            schelp="""
+            List of named dirs specified on a per tool basis. The parameter
+            should only be used for specifying dirs that are not directly
+            supported by the ASIC schema.""")
+
+    scparam(cfg, ['asic', 'variable', tool, key],
+            sctype='[str]',
+            shorthelp="ASIC special variable",
+            switch="-asic_variable 'tool key <str>'",
+            example=[
+                "cli: -asic_variable 'xyce modeltype bsim4'""",
+                "api: chip.set('asic','variable','xyce','modeltype','bsim4')"],
+            schelp="""
+            List of key/value strings specified on a per basis. The parameter
+            should only be used for specifying variables that are
+            not directly  supported by the SiliconCompiler PDK schema.""")
+
+
+    # Cell types
+    # TODO: Expand on the exact definitions of these types of cells.
+    # minimie typing
+    names = ['driver',
+             'load',
+             'buf',
+             'decap',
+             'delay',
+             'tie',
+             'hold',
+             'clkbuf',
+             'clkdelay',
+             'clkinv',
+             'clkgate',
+             'clkicg',
+             'clklogic',
+             'ignore',
+             'filler',
+             'tap',
+             'endcap',
+             'antenna']
+
+    for item in names:
+        scparam(cfg, ['asic', 'cells', item],
+                sctype='[str]',
+                shorthelp=f"ASIC {item} cell list",
+                switch=f"-asic_cells_{item} '<str>'",
+                example=[
+                    f"cli: -asic_cells_{item} '*eco*'",
+                    f"api: chip.set('asic','cells',{item},'*eco*')"],
+                schelp="""
+                List of cells grouped by a property that can be accessed
+                directly by the designer and tools. The example below shows how
+                all cells containing the string 'eco' could be marked as dont use
+                for the tool.""")
+
+    # Place and route parameters (optional)
+    scparam(cfg, ['asic', 'pgmetal'],
+            sctype='str',
+            shorthelp="ASIC powergrid layer",
+            switch="-asic_pgmetal '<str>'",
+            example=["cli: -asic_pgmetal m1",
+                    "api: chip.set('asic','pgmetal','m1')"],
+            schelp="""
+            Top metal layer used for power and ground routing within the
+            library. The parameter can be used to guide cell power grid
+            hookup by APR tools.""")
+
+    scparam(cfg, ['asic', 'site', key, 'symmetry'],
+            sctype='str',
+            shorthelp="ASIC site symmetry",
+            switch="-asic_site_symmetry 'key <str>'",
+            example=[
+                "cli: -library_site_symmetry 'core X Y'",
+                "api: chip.set('library','site','core','symmetry','X Y')"],
+            schelp="""
+             Site flip-symmetry based on LEF standard definition. 'X' implies
+            symmetric about the x axis, 'Y' implies symmetry about the y axis, and
+            'X Y' implies symmetry about the x and y axis.""")
+
+    scparam(cfg, ['asic', 'site', key, 'size'],
+            sctype='(float,float)',
+            shorthelp="ASIC site size",
+            switch="-asic_site_size 'key <str>'",
+            example=[
+                "cli: -asic_site_size 'core (1.0,1.0)'",
+                "api: chip.set('asic','site','core','size',(1.0,1.0))"],
+            schelp="""
+            Size of the library size described as a (width, height) tuple in
+            microns.""")
 
     return cfg
 
