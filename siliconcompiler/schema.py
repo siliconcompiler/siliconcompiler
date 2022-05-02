@@ -152,7 +152,6 @@ def schema_cfg():
     # Compilation records
     cfg = schema_metric(cfg)
     cfg = schema_record(cfg)
-    cfg = schema_flowstatus(cfg)
 
     return cfg
 
@@ -1121,7 +1120,7 @@ def schema_libs(cfg, lib='default', stackup='default', corner='default'):
 
 def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
-    #flowgraph input
+    # flowgraph input
     scparam(cfg,['flowgraph', flow, step, index, 'input'],
             sctype='[(str,str)]',
             scope='job',
@@ -1172,7 +1171,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             schelp="""User specified flowgraph string arguments specified on a per
             step and per index basis.""")
 
-    #flowgraph valid bits
+    # flowgraph valid bits
     scparam(cfg,['flowgraph', flow, step, index, 'valid'],
             sctype='bool',
             scope='job',
@@ -1186,7 +1185,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             is cleared (0), then the step/index combination is invalid and
             should not be run.""")
 
-    #flowgraph timeout value
+    # flowgraph timeout value
     scparam(cfg,['flowgraph', flow, step, index, 'timeout'],
             sctype='float',
             unit='s',
@@ -1204,20 +1203,15 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             operation progress has saturated and continued execution has
             a negative return on investment.""")
 
-    return cfg
-
-###########################################################################
-# Flow Status
-###########################################################################
-def schema_flowstatus(cfg, step='default', index='default'):
-
-    scparam(cfg,['flowstatus', step, index, 'status'],
+    # flowgraph status
+    scparam(cfg,['flowgraph', flow, step, index, 'status'],
             sctype='str',
             scope='job',
             shorthelp="Flowgraph task status",
-            switch="-flowstatus_status 'step index <str>'",
-            example=["cli: -flowstatus_status 'cts 10 success'",
-                     "api:  chip.set('flowstatus','cts','10','status', 'success')"],
+            switch="-flowgraph_status 'flow step index <str>'",
+            example=[
+                "cli: -flowgraph_status 'asicflow cts 10 success'",
+                "api:  chip.set('flowgraph','asicflow', 'cts','10','status', 'success')"],
             schelp="""Parameter that tracks the status of a task. Valid values are:
 
             * "success": task ran successfully
@@ -1225,19 +1219,21 @@ def schema_flowstatus(cfg, step='default', index='default'):
 
             An empty value indicates the task has not yet been completed.""")
 
-    scparam(cfg,['flowstatus', step, index, 'select'],
+    # flowgraph select
+    scparam(cfg,['flowgraph', flow, step, index, 'select'],
             sctype='[(str,str)]',
             scope='job',
             shorthelp="Flowgraph task select record",
-            switch="-flowstatus_select 'step index <(str,str)>'",
+            switch="-flowgraph_select 'flow step index <(str,str)>'",
             example= [
-                "cli: -flowstatus_select 'cts 0 (place,42)'",
-                "api:  chip.set('flowstatus','cts','0','select',('place','42'))"],
+                "cli: -flowgraph_select 'asicflow cts 0 (place,42)'",
+                "api:  chip.set('flowgraph','asicflow', 'cts','0','select',('place','42'))"],
             schelp="""
             List of selected inputs for the current step/index specified as
             (in_step,in_index) tuple.""")
 
     return cfg
+
 
 ###########################################################################
 # EDA Tool Setup
