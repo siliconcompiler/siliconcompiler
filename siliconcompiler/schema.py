@@ -2499,6 +2499,19 @@ def schema_options(cfg):
             Specifies that tools should be lenient and suppress some
             warnings that may or may not indicate design issues.""")
 
+    scparam(cfg, ['resume'],
+            sctype='bool',
+            scope='job',
+            shorthelp="Resume build",
+            switch="-resume <bool>",
+            example=["cli: -resume",
+                    "api: chip.set('resume', True)"],
+            schelp="""
+            If results exist for current job, then don't re-run any steps that
+            had at least one index run successfully. Useful for debugging a
+            flow that failed partway through.
+            """)
+
     scparam(cfg, ['track'],
             sctype='bool',
             scope='job',

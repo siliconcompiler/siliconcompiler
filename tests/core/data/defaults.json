@@ -6490,6 +6490,22 @@
         "type": "bool",
         "value": "false"
     },
+    "resume": {
+        "defvalue": "false",
+        "example": [
+            "cli: -resume",
+            "api: chip.set('resume', True)"
+        ],
+        "help": "If results exist for current job, then don't re-run any steps that\nhad at least one index run successfully. Useful for debugging a\nflow that failed partway through.",
+        "lock": "false",
+        "require": "all",
+        "scope": "job",
+        "shorthelp": "Resume build",
+        "signature": null,
+        "switch": "-resume <bool>",
+        "type": "bool",
+        "value": "false"
+    },
     "scpath": {
         "defvalue": [],
         "example": [
