@@ -112,9 +112,6 @@ def schema_cfg():
     cfg = {}
     cfg['history'] = {}
 
-    # Version handling
-    cfg = schema_version(cfg, SCHEMA_VERSION)
-
     # Runtime options
     cfg = schema_options(cfg)
     cfg = schema_arg(cfg)
@@ -152,40 +149,6 @@ def schema_cfg():
     # Compilation records
     cfg = schema_metric(cfg)
     cfg = schema_record(cfg)
-
-    return cfg
-
-###############################################################################
-# Minimal setup FPGA
-###############################################################################
-
-def schema_version(cfg, version):
-
-    scparam(cfg,['version', 'schema'],
-            sctype='str',
-            defvalue=version,
-            shorthelp="Schema version number",
-            switch="-version_schema <str>",
-            example=["cli: -version_schema",
-                     "api: chip.get('version', 'schema')"],
-            schelp="""SiliconCompiler schema version number.""")
-
-    scparam(cfg,['version', 'software'],
-            sctype='str',
-            shorthelp="Software version number",
-            switch="-version_software <str>",
-            example=["cli: -version_software",
-                     "api: chip.get('version', 'software')"],
-            schelp="""SiliconCompiler software version number.""")
-
-    scparam(cfg,['version', 'print'],
-            sctype='bool',
-            shorthelp="Prints version number",
-            switch="-version <bool>",
-            example=["cli: -version",
-                    "api: chip.get('version', 'print')"],
-            schelp="""Command line switch to print the schema and software
-            version numbers in an 'sc' command line app.""")
 
     return cfg
 
@@ -1995,11 +1958,17 @@ def schema_record(cfg, step='default', index='default'):
                            * govcloud: generic US government cloud
                            * <region>: cloud and entity specific region string name
                            """],
+               'schemaversion': ['schema version number',
+                               '1.0',
+                               """Version number for the Silicon Compiler Schema."""],
+               'scversion': ['software version number',
+                             '1.0',
+                             """Version number for the SiliconCompiler software."""],
                'toolversion': ['tool version',
                                '1.0',
                                """The tool version captured correspnds to the 'tool'
                                parameter within the 'eda' dictionary."""],
-                'toolpath': ['tool path',
+               'toolpath': ['tool path',
                              '/usr/bin/openroad',
                              """Full path to tool executable used to run this
                              task."""],
@@ -2038,6 +2007,16 @@ def schema_record(cfg, step='default', index='default'):
 def schema_options(cfg):
     ''' Run-time options
     '''
+
+    scparam(cfg,['option', 'version'],
+            sctype='bool',
+            shorthelp="Prints SC version numbers",
+            switch="-version <bool>",
+            example=["cli: -version",
+                    "api: chip.get('option', 'version')"],
+            schelp="""Command line switch to print the schema and software
+            version numbers in an 'sc' command line app.""")
+
 
     # Units
     units = {
