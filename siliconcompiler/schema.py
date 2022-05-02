@@ -320,26 +320,38 @@ def schema_pdk(cfg, stackup='default'):
             sctype='float',
             unit='mm',
             require="asic",
-            shorthelp="PDK process node",
+            shorthelp="PDK wafer size",
             switch="-pdk_wafersize <float>",
             example=["cli: -pdk_wafersize 300",
                     "api:  chip.set('pdk', 'wafersize', 300)"],
             schelp="""
-            Wafer diameter used in manufacturing process. The standard diameter
+            Wafer diameter used in wafer based manufacturing process. The standard diameter
             for leading edge manufacturing is 300mm. For older process technologies
             and specialty fabs, smaller diameters such as 200, 100, 125, 100 are common.
             The value is used to calculate dies per wafer and full factory chip costs.""")
 
-    scparam(cfg, ['pdk', 'wafercost'],
+    scparam(cfg, ['pdk', 'panelsize'],
+            sctype='[(float,float)]',
+            unit='mm',
+            require="asic",
+            shorthelp="PDK panel size",
+            switch="-pdk_panelsize <float>",
+            example=["cli: -pdk_panelsize (45.72,60.96)",
+                    "api:  chip.set('pdk', 'panelsize', (45.72,60.96))"],
+            schelp="""
+            List of panel sizes supported in the manufacturing process.
+            """)
+
+    scparam(cfg, ['pdk', 'unitcost'],
             sctype='float',
             unit='USD',
-            shorthelp="PDK wafer cost",
-            switch="-pdk_wafercost <float>",
-            example=["cli: -pdk_wafercost 10000",
-                     "api:  chip.set('pdk', 'wafercost', 10000)"],
+            shorthelp="PDK unit cost",
+            switch="-pdk_unitcost <float>",
+            example=["cli: -pdk_unitcost 10000",
+                     "api:  chip.set('pdk', 'unitcost', 10000)"],
             schelp="""
-            Raw cost per wafer, not accounting for yield loss. The values is
-            used to calculate chip full factory costs.""")
+            Raw cost per unit shipped by the factory, not accounting for yield
+            loss.""")
 
     scparam(cfg, ['pdk', 'd0'],
             sctype='float',
