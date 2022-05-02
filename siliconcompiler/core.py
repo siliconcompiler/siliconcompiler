@@ -3974,12 +3974,13 @@ class Chip:
         else:
             steplist = self.list_steps()
 
-            # If no step(list) was specified, the whole flow is being run
-            # start-to-finish. Delete the build dir to clear stale results.
-            cur_job_dir = f'{self.get("dir")}/{self.get("design")}/'\
-                          f'{self.get("jobname")}'
-            if os.path.isdir(cur_job_dir):
-                shutil.rmtree(cur_job_dir)
+            if not self.get('resume'):
+                # If no step(list) was specified, the whole flow is being run
+                # start-to-finish. Delete the build dir to clear stale results.
+                cur_job_dir = f'{self.get("dir")}/{self.get("design")}/'\
+                            f'{self.get("jobname")}'
+                if os.path.isdir(cur_job_dir):
+                    shutil.rmtree(cur_job_dir)
 
         # List of indices to run per step. Precomputing this ensures we won't
         # have any problems if [arg, index] gets clobbered, and reduces logic
@@ -3993,14 +3994,21 @@ class Chip:
             else:
                 indexlist[step] = self.getkeys('flowgraph', flow, step)
 
-        # Reset flowstatus/records/metrics by probing build directory.  We need
+        # Reset flowstatus/records/metrics by probing build directory. We need
         # to set values to None for steps we may re-run so that merging
         # manifests from _runtask() actually updates values.
+        should_resume = self.get('resume')
         for step in self.getkeys('flowgraph', flow):
+            all_indices_failed = True
             for index in self.getkeys('flowgraph', flow, step):
                 stepdir = self._getworkdir(step=step, index=index)
                 cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
-                if not os.path.isdir(stepdir) or (step in steplist and index in indexlist[step]):
+
+                in_steplist = step in steplist and index in indexlist[step]
+                if not os.path.isdir(stepdir) or (in_steplist and not should_resume):
+                    # If stepdir doesn't exist, we need to re-run this task. If
+                    # we're not running with -resume, we also re-run anything
+                    # in the steplist.
                     self.set('flowstatus', step, index, 'status', None)
                     for metric in self.getkeys('metric', 'default', 'default'):
                         self.set('metric', step, index, metric, 'real', None)
@@ -4008,8 +4016,20 @@ class Chip:
                         self.set('record', step, index, record, None)
                 elif os.path.isfile(cfg):
                     self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
+                    all_indices_failed = False
                 else:
                     self.set('flowstatus', step, index, 'status', TaskStatus.ERROR)
+
+            if should_resume and all_indices_failed and step in steplist:
+                # When running with -resume, we re-run any step in steplist that
+                # had all indices fail.
+                for index in self.getkeys('flowgraph', flow, step):
+                    if index in indexlist[step]:
+                        self.set('flowstatus', step, index, 'status', None)
+                        for metric in self.getkeys('metric', 'default', 'default'):
+                            self.set('metric', step, index, metric, 'real', None)
+                        for record in self.getkeys('record', 'default', 'default'):
+                            self.set('record', step, index, record, None)
 
         # Set env variables
         for envvar in self.getkeys('env'):
@@ -4137,6 +4157,9 @@ class Chip:
             processes = {}
             for step in steplist:
                 for index in indexlist[step]:
+                    if status[step+index] != TaskStatus.PENDING:
+                        continue
+
                     inputs = [step+index for step, index in self.get('flowgraph', flow, step, index, 'input')]
 
                     if (jobname in self.getkeys('jobinput') and
