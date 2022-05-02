@@ -270,6 +270,20 @@ def schema_pdk(cfg, stackup='default'):
             must match the public process name exactly. Examples of virtual
             processes include freepdk45 and asap7.""")
 
+    scparam(cfg, ['pdk', 'node'],
+            sctype='float',
+            require="asic",
+            shorthelp="PDK process node",
+            switch="-pdk_node <float>",
+            example=["cli: -pdk_node 130",
+                    "api:  chip.set('pdk', 'node', 130)"],
+            schelp="""
+            Approximate relative minimum dimension of the process target specified
+            in nanometers. The parameter is required for flows and tools that
+            leverage the value to drive technology dependent synthesis and APR
+            optimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,
+            10, 7, 5, 3.""")
+
     scparam(cfg, ['pdk', 'version'],
             sctype='str',
             shorthelp="PDK version number",
@@ -302,19 +316,15 @@ def schema_pdk(cfg, stackup='default'):
             parasitic models specified in the pdk_pexmodel and pdk_aprtech
             parameters.""")
 
-    scparam(cfg, ['pdk', 'node'],
+    scparam(cfg, ['pdk', 'thickness'],
             sctype='float',
-            require="asic",
-            shorthelp="PDK process node",
-            switch="-pdk_node <float>",
-            example=["cli: -pdk_node 130",
-                    "api:  chip.set('pdk', 'node', 130)"],
+            unit='mm',
+            shorthelp="PDK unit thickness",
+            switch="-pdk_thickness 'stackup <float>'",
+            example=["cli: -pdk_thickness '2MA4MB2MC 1.57'",
+                    "api:  chip.set('pdk', 'thickness', '2MA4MB2MC', 1.57)"],
             schelp="""
-            Approximate relative minimum dimension of the process target specified
-            in nanometers. The parameter is required for flows and tools that
-            leverage the value to drive technology dependent synthesis and APR
-            optimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,
-            10, 7, 5, 3.""")
+            Thickness of a manfuatured unit specified on a per stackup basis.""")
 
     scparam(cfg, ['pdk', 'wafersize'],
             sctype='float',
@@ -425,20 +435,6 @@ def schema_pdk(cfg, stackup='default'):
             density reported for the design across different process nodes. The
             value can be derived from a variety of sources, including the PDK DRM,
             library LEFs, conference presentations, and public analysis.""")
-
-    scparam(cfg, ['pdk', 'sramsize'],
-            sctype='float',
-            unit='um^2',
-            shorthelp="PDK SRAM bitcell size",
-            switch="-pdk_sramsize <float>",
-            example=["cli: -pdk_sramsize 0.032",
-                     "api:  chip.set('pdk', 'sramsize', '0.026')"],
-            schelp="""
-            Area of an SRAM bitcell expressed in um^2. The value can be derived
-            from a variety of sources, including the PDK DRM, library LEFs,
-            conference presentations, and public analysis. The number is a good
-            first order indicator of SRAM density for large memory arrays where
-            the bitcell dominates the array I/O logic.""")
 
     simtype = 'default'
     scparam(cfg, ['pdk', 'devmodel', tool, simtype, stackup],
