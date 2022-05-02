@@ -61,7 +61,11 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
             table.append([p, val_node])
 
     if len(table) > 1:
-        return build_table(table)
+        # This colspec creates two columns of equal width that fill the entire
+        # page, and adds line breaks if table cell contents are longer than one
+        # line. "\X" is defined by Sphinx, otherwise this is standard LaTeX.
+        colspec = r'{|\X{1}{2}|\X{1}{2}|}'
+        return build_table(table, colspec=colspec)
     else:
         return None
 

@@ -104,9 +104,16 @@ html_css_files = [
 
 # -- Options for Latex output ------------------------------------------------
 
-# Don't add blank pages after some chapters
+# Allow linebreaks on underscores (fixes long cell names running past end of
+# table cells)
+latex_preamble = r"""\newcommand{\origunderscore}{}
+\let\origunderscore\_
+\renewcommand{\_}{\allowbreak\origunderscore}
+"""
+
 latex_elements = {
-  'extraclassoptions': 'openany,oneside'
+  'extraclassoptions': 'openany,oneside', # Don't add blank pages after some chapters
+  'preamble': latex_preamble
 }
 
 # -- Options for autodoc -----------------------------------------------------
