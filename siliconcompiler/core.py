@@ -4612,7 +4612,7 @@ class Chip:
                 print(f'{envvar_cmd} {key}={val}', file=f)
 
             replay_cmdlist = [os.path.basename(cmdlist[0])] + cmdlist[1:]
-            print(shlex.join(replay_cmdlist), file=f)
+            print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in replay_cmdlist), file=f)
         os.chmod(script_name, 0o755)
 
         return cmdlist
