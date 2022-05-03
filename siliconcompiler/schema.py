@@ -131,13 +131,13 @@ def schema_cfg():
 
     # Source files
     filetype = 'default'
-    scparam(cfg,['source', 'file', filetype],
+    scparam(cfg,['source', filetype],
             sctype='[file]',
             copy='true',
             shorthelp="Source files",
             example=[
                 "cli: hello_world.v",
-                "api: chip.set('source','file','verilog','hello_world.v')"],
+                "api: chip.set('source','verilog','hello_world.v')"],
             schelp="""
             List of flow input files specifed by type. The filetype name must
             align with the parameter names within the flow and tool setup
@@ -2014,6 +2014,20 @@ def schema_option(cfg):
             defined director structure (<dir>/<design>/<jobname>/<step>/<index>)
             enables multiple levels of transparent job, step, and index
             introspection.""")
+
+    #TODO: remove?
+    scparam(cfg, ['option','jobinput','default','default','default'],
+            sctype='str',
+            scope='job',
+            shorthelp="Input job name",
+            switch="-jobinput 'job step index <str>'",
+            example=[
+                "cli: -jobinput 'job1 cts 0 job0'",
+                "api:  chip.set('option','jobinput','job1','cts,'0','job0')"],
+            schelp="""
+            Specifies jobname inputs for the current run() on a per step
+            and per index basis. During execution, the default behavior is to
+            copy inputs from the current job.""")
 
     scparam(cfg, ['option', 'steplist'],
             sctype='[str]',
