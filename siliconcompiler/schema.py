@@ -1792,12 +1792,14 @@ def schema_units(cfg):
     units = {
         'time' : 'ns',
         'length' : 'um',
+        'mass' : 'g',
         'capacitance' : 'pf',
         'resistance' : 'ohm',
         'inductance' : 'nh',
         'voltage' : 'mv',
         'current' : 'ma',
-        'power' : 'mw'
+        'power' : 'mw',
+        'energy' : 'pj'
     }
 
     for item,val in units.items():
