@@ -63,7 +63,7 @@ def setup(chip):
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
     # If you got here,  you are in asic mode
-    chip.set('mode', 'asic', clobber=True)
+    chip.set('option', 'mode', 'asic', clobber=True)
 
     # process name
     chip.set('pdk','foundry', foundry)

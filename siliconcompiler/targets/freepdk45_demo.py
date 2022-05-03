@@ -25,7 +25,7 @@ def setup(chip):
     '''
 
     #1. Defining the project
-    chip.set('target','freepdk45_demo')
+    chip.set('option', 'target', 'freepdk45_demo')
 
     #2. Load PDK, flow, libs combo
     chip.load_pdk('freepdk45')
@@ -34,7 +34,7 @@ def setup(chip):
     chip.load_lib('nangate45')
 
     #3. Set default flow
-    chip.set('flow', 'asicflow')
+    chip.set('option', 'flow', 'asicflow')
 
     #4. Select libraries
     chip.set('asic', 'logiclib', 'nangate45')
@@ -58,10 +58,10 @@ def setup(chip):
 
     #6. Timing corners
     corner = 'typical'
-    chip.set('mcmm','worst','libcorner', corner)
-    chip.set('mcmm','worst','pexcorner', corner)
-    chip.set('mcmm','worst','mode', 'func')
-    chip.set('mcmm','worst','check', ['setup','hold'])
+    chip.set('constraint','worst','libcorner', corner)
+    chip.set('constraint','worst','pexcorner', corner)
+    chip.set('constraint','worst','mode', 'func')
+    chip.set('constraint','worst','check', ['setup','hold'])
 
 #########################
 if __name__ == "__main__":

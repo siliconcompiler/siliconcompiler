@@ -8,7 +8,7 @@ def make_docs():
     verification/signoff flow.
     '''
     chip = siliconcompiler.Chip()
-    chip.set('flow', 'asictopflow')
+    chip.set('option', 'flow', 'asictopflow')
     setup(chip)
     return chip
 
@@ -25,10 +25,10 @@ def setup(chip):
     chip.edge(flow, 'export', 'merge')
     chip.edge(flow, 'syn', 'merge')
 
-    chip.set('mode', 'asic')
+    chip.set('option', 'mode', 'asic')
 
-    chip.set('showtool', 'def', 'klayout')
-    chip.set('showtool', 'gds', 'klayout')
+    chip.set('option', 'showtool', 'def', 'klayout')
+    chip.set('option', 'showtool', 'gds', 'klayout')
 
     # Set default goal
     for step in chip.getkeys('flowgraph', flow):
