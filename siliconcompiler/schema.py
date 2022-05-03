@@ -2512,125 +2512,112 @@ def schema_package(cfg):
 # Design Checklist
 ############################################
 
-def schema_checklist(cfg, group='checklist'):
-
-    if group == 'library':
-        emit_group = "library_checklist"
-        emit_switch = "lib "
-        emit_api = "'library','default','checklist'"
-        emit_help = "Library checklist"
-    else:
-        emit_group = "checklist"
-        emit_switch = ""
-        emit_api = "'checklist'"
-        emit_help = "Checklist"
-
-    path = emit_api.replace("\'","").split(',')
+def schema_checklist(cfg):
 
     item = 'default'
     standard = 'default'
     metric = 'default'
 
-    scparam(cfg,[*path, standard, item, 'description'],
+    scparam(cfg,['checklist', standard, item, 'description'],
             sctype='str',
-            shorthelp=f"{emit_help} item description",
-            switch=f"-{emit_group}_description '{emit_switch}standard item <str>",
+            shorthelp=f"Checklist item description",
+            switch=f"-checklist_description 'standard item <str>",
             example=[
-                f"cli: -{emit_group}_description '{emit_switch}ISO D000 A-DESCRIPTION'",
-                f"api: chip.set({emit_api},'ISO','D000','description','A-DESCRIPTION')"],
+                f"cli: -checklist_description 'ISO D000 A-DESCRIPTION'",
+                f"api: chip.set('checklist','ISO','D000','description','A-DESCRIPTION')"],
             schelp=f"""
-            A short one line description of the {group} checklist item.""")
+            A short one line description of the checklist item.""")
 
-    scparam(cfg,[*path, standard, item, 'requirement'],
+    scparam(cfg,['checklist', standard, item, 'requirement'],
             sctype='str',
-            shorthelp=f"{emit_help} item requirement",
-            switch=f"-{emit_group}_requirement '{emit_switch}standard item <str>",
+            shorthelp=f"Checklist item requirement",
+            switch=f"-checklist_requirement 'standard item <str>",
             example=[
-                f"cli: -{emit_group}_requirement '{emit_switch}ISO D000 DOCSTRING'",
-                f"api: chip.set({emit_api},'ISO','D000','requirement','DOCSTRING')"],
+                f"cli: -checklist_requirement 'ISO D000 DOCSTRING'",
+                f"api: chip.set('checklist','ISO','D000','requirement','DOCSTRING')"],
             schelp=f"""
-            A complete requirement description of the {group} checklist item
+            A complete requirement description of the checklist item
             entered as a multi-line string.""")
 
-    scparam(cfg,[*path, standard, item, 'dataformat'],
+    scparam(cfg,['checklist', standard, item, 'dataformat'],
             sctype='str',
-            shorthelp=f"{emit_help} item data format",
-            switch=f"-{emit_group}_dataformat '{emit_switch}standard item <float>'",
+            shorthelp=f"Checklist item data format",
+            switch=f"-checklist_dataformat 'standard item <float>'",
             example=[
-                f"cli: -{emit_group}_dataformat 'README'",
-                f"api: chip.set({emit_api},'ISO','D000','dataformat','README')"],
+                f"cli: -checklist_dataformat 'README'",
+                f"api: chip.set('checklist','ISO','D000','dataformat','README')"],
             schelp=f"""
             Free text description of the type of data files acceptable as
             checklist signoff validation.""")
 
-    scparam(cfg,[*path, standard, item, 'rationale'],
+    scparam(cfg,['checklist', standard, item, 'rationale'],
             sctype='[str]',
-            shorthelp=f"{emit_help} item rational",
-            switch=f"-{emit_group}_rationale '{emit_switch}standard item <str>",
+            shorthelp=f"Checklist item rational",
+            switch=f"-checklist_rationale 'standard item <str>",
             example=[
-                f"cli: -{emit_group}_rational '{emit_switch}ISO D000 reliability'",
-                f"api: chip.set({emit_api},'ISO','D000','rationale','reliability')"],
+                f"cli: -checklist_rational 'ISO D000 reliability'",
+                f"api: chip.set('checklist','ISO','D000','rationale','reliability')"],
             schelp=f"""
-            Rationale for the the {group} checklist item. Rationale should be a
+            Rationale for the the checklist item. Rationale should be a
             unique alphanumeric code used by the standard or a short one line
             or single word description.""")
 
-    scparam(cfg,[*path, standard, item, 'criteria'],
+    scparam(cfg,['checklist', standard, item, 'criteria'],
             sctype='[str]',
-            shorthelp=f"{emit_help} item criteria",
-            switch=f"-{emit_group}_criteria '{emit_switch}standard item <float>'",
+            shorthelp=f"Checklist item criteria",
+            switch=f"-checklist_criteria 'standard item <float>'",
             example=[
-                f"cli: -{emit_group}_criteria '{emit_switch}ISO D000 errors==0'",
-                f"api: chip.set({emit_api},'ISO','D000','criteria','errors==0')"],
+                f"cli: -checklist_criteria 'ISO D000 errors==0'",
+                f"api: chip.set('checklist','ISO','D000','criteria','errors==0')"],
             schelp=f"""
-            Simple list of signoff criteria for {group} checklist item which
+            Simple list of signoff criteria for checklist item which
             must all be met for signoff. Each signoff criteria consists of
             a metric, a relational operator, and a value in the form.
             'metric op value'.""")
 
-    scparam(cfg,[*path, standard, item, 'task'],
+    scparam(cfg,['checklist', standard, item, 'task'],
             sctype='[(str,str,str)]',
-            shorthelp=f"{emit_help} item task",
-            switch=f"-{emit_group}_task '{emit_switch}standard item <(str, str, str)>'",
+            shorthelp=f"Checklist item task",
+            switch=f"-checklist_task 'standard item <(str, str, str)>'",
             example=[
-                f"cli: -{emit_group}_task '{emit_switch}ISO D000 (job0,place,0)'",
-                f"api: chip.set({emit_api},'ISO','D000','task',('job0','place','0'))"],
+                f"cli: -checklist_task 'ISO D000 (job0,place,0)'",
+                f"api: chip.set('checklist','ISO','D000','task',('job0','place','0'))"],
             schelp=f"""
-            Flowgraph job and task used to verify the {group} checklist item.
+            Flowgraph job and task used to verify the checklist item.
             The parameter should be left empty for manual and for tool
             flows that bypass the SC infrastructure.""")
 
-    scparam(cfg,[*path, standard, item, 'report'],
+    scparam(cfg,['checklist', standard, item, 'report'],
             sctype='[file]',
-            shorthelp=f"{emit_help} item report",
-            switch=f"-{emit_group}_report '{emit_switch}standard item <file>'",
+            shorthelp=f"Checklist item report",
+            switch=f"-checklist_report 'standard item <file>'",
             example=[
-                f"cli: -{emit_group}_report '{emit_switch}ISO D000 my.rpt'",
-                f"api: chip.set({emit_api},'ISO','D000','report','my.rpt')"],
+                f"cli: -checklist_report 'ISO D000 my.rpt'",
+                f"api: chip.set('checklist','ISO','D000','report','my.rpt')"],
             schelp=f"""
             Filepath to report(s) of specified type documenting the successful
-            validation of the {group} checklist item.""")
+            validation of the checklist item.""")
 
-    scparam(cfg,[*path, standard, item, 'waiver', metric],
+    scparam(cfg,['checklist', standard, item, 'waiver', metric],
             sctype='[file]',
-            shorthelp=f"{emit_help} item metric waivers",
-            switch=f"-{emit_group}_waiver '{emit_switch}standard item metric <file>'",
+            shorthelp=f"Checklist item metric waivers",
+            switch=f"-checklist_waiver 'standard item metric <file>'",
             example=[
-                f"cli: -{emit_group}_waiver '{emit_switch}ISO D000 bold my.txt'",
-                f"api: chip.set({emit_api},'ISO','D000','waiver','hold', 'my.txt')"],
+                f"cli: -checklist_waiver 'ISO D000 bold my.txt'",
+                f"api: chip.set('checklist','ISO','D000','waiver','hold', 'my.txt')"],
             schelp=f"""
-            Filepath to report(s) documenting waivers for the {group} checklist
+            Filepath to report(s) documenting waivers for the checklist
             item specified on a per metric basis.""")
 
-    scparam(cfg,[*path, standard, item, 'ok'],
+    scparam(cfg,['checklist', standard, item, 'ok'],
             sctype='bool',
-            shorthelp=f"{emit_help} item ok",
-            switch=f"-{emit_group}_ok '{emit_switch}standard item <str>'",
+            shorthelp=f"Checklist item ok",
+            switch=f"-checklist_ok 'standard item <str>'",
             example=[
-                f"cli: -{emit_group}_ok '{emit_switch}ISO D000 true'",
-                f"api: chip.set({emit_api},'ISO','D000','ok', True)"],
+                f"cli: -checklist_ok 'ISO D000 true'",
+                f"api: chip.set('checklist','ISO','D000','ok', True)"],
             schelp=f"""
-            Boolean check mark for the {group} checklist item. A value of
+            Boolean check mark for the checklist item. A value of
             True indicates a human has inspected the all item dictionary
             parameters check out.""")
 
