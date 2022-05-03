@@ -42,7 +42,6 @@ def setup(chip):
      clobber = False
 
      chip.set('eda', tool, 'exe', tool, clobber=clobber)
-     chip.set('eda', tool, 'copy', 'false', clobber=clobber)
      chip.set('eda', tool, 'version', '0.0', clobber=clobber)
      chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
 

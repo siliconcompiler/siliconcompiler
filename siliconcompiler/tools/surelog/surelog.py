@@ -162,9 +162,6 @@ def post_process(chip):
             # in case end of file is missing a newline
             outfile.write('\n')
 
-    # Clean up
-    shutil.rmtree('slpp_all')
-
     return 0
 
 ##################################################

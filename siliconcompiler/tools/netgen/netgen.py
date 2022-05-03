@@ -51,10 +51,9 @@ def setup(chip):
     chip.set('eda', tool, 'vswitch', '-batch')
     chip.set('eda', tool, 'version', '>=1.5.192')
     chip.set('eda', tool, 'format', 'tcl')
-    chip.set('eda', tool, 'copy', 'true')
     chip.set('eda', tool, 'threads', step, index, 4)
     chip.set('eda', tool, 'refdir', step, index, refdir)
-    chip.set('eda', tool, 'script', step, index, refdir + '/' + script)
+    chip.set('eda', tool, 'script', step, index, script)
 
     # set options
     options = []

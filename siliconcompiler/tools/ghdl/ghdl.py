@@ -42,7 +42,6 @@ def setup(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    chip.set('eda', tool, 'copy', 'false', clobber=clobber)
     chip.set('eda', tool, 'exe', 'ghdl', clobber=clobber)
     chip.set('eda', tool, 'vswitch', '--version', clobber=clobber)
     chip.set('eda', tool, 'version', '>=2.0.0-dev', clobber=clobber)
