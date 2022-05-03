@@ -1321,10 +1321,37 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
     return cfg
 
 ###########################################################################
-# Scratch parameters (for internal use only)
+#  Function arguments
 ###########################################################################
 
 def schema_arg(cfg):
+
+    key = 'default'
+    scparam(cfg, ['arg', 'pdk', key],
+            sctype='[str]',
+            scope='job',
+            shorthelp="PDK argument",
+            switch="-arg_pdk 'key <str>",
+            example=[
+                "cli: -arg_pdk 'mimcap true",
+                "api: chip.set('arg','pdk','mimcap','true')"],
+            schelp="""
+            Parameter passed in as key/value pair to the technology target
+            referenced in the load_pdk() API call. See the target technology
+            for specific guidelines regarding configuration parameters.""")
+
+    scparam(cfg, ['arg', 'flow', key],
+            sctype='[str]',
+            scope='job',
+            shorthelp="Flow argument",
+            switch="-arg_flow 'key <str>",
+            example=[
+                "cli: -arg_flow 'n 100",
+                "api: chip.set('arg','flow','n', 100)"],
+            schelp="""
+            Parameter passed in as key/value pair to the flow target
+            referenced in the load_flow() API call. See the target flow
+            for specific guidelines regarding configuration parameters.""")
 
     scparam(cfg, ['arg', 'step'],
             sctype='str',
@@ -1953,31 +1980,6 @@ def schema_options(cfg):
             'systemverilog' and 'chisel'. When using the Python API, this parameter
             must be configured before calling load_target().""")
 
-    key = 'default'
-    scparam(cfg, ['techarg', key],
-            sctype='[str]',
-            scope='job',
-            shorthelp="Target technology argument",
-            switch="-techarg 'arg <str>",
-            example=["cli: -techarg 'mimcap true",
-                    "api: chip.set('techarg','mimcap', 'true')"],
-            schelp="""
-            Parameter passed in as key/value pair to the technology target
-            referenced in the load_pdk() API call. See the target technology
-            for specific guidelines regarding configuration parameters.""")
-
-    scparam(cfg, ['flowarg', key],
-            sctype='[str]',
-            scope='job',
-            shorthelp="Target flow argument",
-            switch="-flowarg 'arg <str>",
-            example=["cli: -flowarg 'n 100",
-                    "api: chip.set('flowarg','n', 100)"],
-            schelp="""
-            Parameter passed in as key/value pair to the flow target
-            referenced in the load_flow() API call. See the target flow
-            for specific guidelines regarding configuration parameters.""")
-
     # Configuration
     scparam(cfg,['oformat'],
             sctype='str',
@@ -2007,6 +2009,7 @@ def schema_options(cfg):
             can be merged into the current working manifest using the
             read_manifest() method.""")
 
+    key = 'default'
     scparam(cfg, ['env', key],
             sctype='str',
             scope='job',
