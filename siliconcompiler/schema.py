@@ -1268,7 +1268,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'keep', step, index],
             sctype='[str]',
             scope='job',
-            shorthelp="Files to keep",
+            shorthelp="Tool: files to keep",
             switch="-tool_keep 'tool step index <str>'",
             example=[
                 "cli: -tool_keep 'surelog import 0 slp_all'",
@@ -1829,34 +1829,37 @@ def schema_options(cfg):
             sctype='bool',
             shorthelp="Option: print software version",
             switch="-version <bool>",
-            example=["cli: -version",
-                    "api: chip.get('option', 'version')"],
+            example=[
+                "cli: -version",
+                "api: chip.get('option','version')"],
             schelp="""Command line switch to print the schema and software
             version numbers in an 'sc' command line app.""")
 
 
 
     # Remote processing
-    scparam(cfg, ['remote'],
+    scparam(cfg, ['option', 'remote'],
             sctype='bool',
             scope='job',
             shorthelp="Enable remote processing",
             switch="-remote <bool>",
-            example=["cli: -remote",
-                    "api: chip.set('remote', True)"],
+            example=[
+                "cli: -remote",
+                "api: chip.set('option','remote', True)"],
             schelp="""
             Sends job for remote processing if set to true. The remote
             option requires a credentials file to be placed in the home
             directory. Fore more information, see the credentials
             parameter.""")
 
-    scparam(cfg, ['credentials'],
+    scparam(cfg, ['option', 'credentials'],
             sctype='[file]',
             scope='job',
             shorthelp="User credentials file",
             switch="-credentials <file>'",
-            example=["cli: -credentials /home/user/.sc/credentials",
-                    "api: chip.set('credentials','/home/user/.sc/credentials')"],
+            example=[
+                "cli: -credentials /home/user/.sc/credentials",
+                "api: chip.set('option', 'credentials','/home/user/.sc/credentials')"],
             schelp="""
             Filepath to credentials used for remote processing. If the
             credentials parameter is empty, the remote processing client program
@@ -1867,13 +1870,14 @@ def schema_options(cfg):
             secret_key=<secret key used for authentication>
             server=<ipaddr or url>""")
 
-    scparam(cfg, ['jobscheduler'],
+    scparam(cfg, ['option', 'jobscheduler'],
             sctype='str',
             scope='job',
             shorthelp="Job scheduler name",
             switch="-jobscheduler <str>",
-            example=["cli: -jobscheduler slurm",
-                    "api: chip.set('jobscheduler','slurm')"],
+            example=[
+                "cli: -jobscheduler slurm",
+                "api: chip.set('option','jobscheduler','slurm')"],
             schelp="""
             Sets the type of job scheduler to be used for each individual
             flowgraph steps. If the parameter is undefined, the steps are executed
@@ -1884,14 +1888,15 @@ def schema_options(cfg):
             in the cluster.""")
 
     # Compilation
-    scparam(cfg, ['mode'],
+    scparam(cfg, ['option', 'mode'],
             sctype='str',
             scope='job',
             shorthelp="Compilation mode",
             switch="-mode <str>",
             require='all',
-            example=["cli: -mode asic",
-                    "api: chip.set('mode','asic')"],
+            example=[
+            "cli: -mode asic",
+            "api: chip.set('option','mode','asic')"],
             schelp="""
             Sets the operating mode of the compiler. Valid modes are:
             asic: RTL to GDS ASIC compilation
@@ -1899,7 +1904,7 @@ def schema_options(cfg):
             sim: simulation to verify design and compilation
             """)
 
-    scparam(cfg, ['target'],
+    scparam(cfg, ['option','target'],
             sctype='str',
             scope='job',
             shorthelp="Compilation target",
@@ -1912,18 +1917,18 @@ def schema_options(cfg):
             may load multiple flows and libraries.
             """)
 
-    scparam(cfg, ['flow'],
+    scparam(cfg, ['option','flow'],
             sctype='str',
             scope='job',
             shorthelp="Compilation flow",
             switch="-flow <str>",
             example=["cli: -flow asicfow",
-                     "api: chip.set('flow','asicflow')"],
+                     "api: chip.set('option','flow','asicflow')"],
             schelp="""
             Sets the flow for the current run. The flow name
             must match up with a 'flow' in the flowgraph""")
 
-    scparam(cfg, ['optmode'],
+    scparam(cfg, ['option','optmode'],
             sctype='str',
             scope='job',
             require='all',
@@ -1931,7 +1936,7 @@ def schema_options(cfg):
             shorthelp="Optimization mode",
             switch="-O<str>",
             example=["cli: -O3",
-                    "api: chip.set('optmode','3')"],
+                    "api: chip.set('option','optmode','3')"],
             schelp="""
             The compiler has modes to prioritize run time and ppa. Modes
             include.
@@ -1945,42 +1950,27 @@ def schema_options(cfg):
             """)
 
     #TODO: with modular flows does this go away?
-    scparam(cfg, ['frontend'],
+    scparam(cfg, ['option','frontend'],
             sctype='str',
             scope='job',
             defvalue='verilog',
             shorthelp="Compilation frontend",
             switch="-frontend <frontend>",
             example=["cli: -frontend systemverilog",
-                    "api: chip.set('frontend', 'systemverilog')"],
+                     "api: chip.set('option','frontend', 'systemverilog')"],
             schelp="""
             Specifies the frontend that flows should use for importing and
             processing source files. Default option is 'verilog', also supports
             'systemverilog' and 'chisel'. When using the Python API, this parameter
             must be configured before calling load_target().""")
 
-    # Configuration
-    scparam(cfg,['oformat'],
-            sctype='str',
-            scope='job',
-            shorthelp="Output format",
-            switch="-oformat <str>",
-            example=["cli: -oformat gds",
-                    "api: chip.set('oformat', 'gds')"],
-            schelp="""
-            File format to use for writing the final siliconcompiler output to
-            disk. For cases, when only one output format exists, the 'oformat'
-            parameter can be omitted. Examples of ASIC layout output formats
-            include GDS and OASIS.""")
-
-
-    scparam(cfg, ['cfg'],
+    scparam(cfg, ['option','cfg'],
             sctype='[file]',
             scope='job',
             shorthelp="Configuration manifest",
             switch="-cfg <file>",
             example=["cli: -cfg mypdk.json",
-                    "api: chip.set('cfg','mypdk.json')"],
+                    "api: chip.set('option','cfg','mypdk.json')"],
             schelp="""
             List of filepaths to JSON formatted schema configuration
             manifests. The files are read in automatically when using the
@@ -1989,127 +1979,122 @@ def schema_options(cfg):
             read_manifest() method.""")
 
     key = 'default'
-    scparam(cfg, ['env', key],
+    scparam(cfg, ['option', 'env', key],
             sctype='str',
             scope='job',
             shorthelp="Environment variables",
             switch="-env 'key <str>",
-            example=["cli: -env 'PDK_HOME /disk/mypdk'",
-                    "api: chip.set('env', 'PDK_HOME', '/disk/mypdk')"],
+            example=[
+            "cli: -env 'PDK_HOME /disk/mypdk'",
+            "api: chip.set('option','env', 'PDK_HOME', '/disk/mypdk')"],
             schelp="""
             Certain tools and reference flows require global environment
             variables to be set. These variables can be managed externally or
             specified through the env variable.""")
 
-    scparam(cfg, ['scpath'],
+    scparam(cfg, ['option', 'scpath'],
             sctype='[dir]',
             scope='job',
             shorthelp="Search path",
             switch="-scpath <dir>",
-            example=["cli: -scpath '/home/$USER/sclib'",
-                     "api: chip.set('scpath', '/home/$USER/sclib')"],
+            example=[
+                "cli: -scpath '/home/$USER/sclib'",
+                "api: chip.set('scpath', 'option', '/home/$USER/sclib')"],
             schelp="""
             Specifies python modules paths for target import.""")
 
-    scparam(cfg, ['loglevel'],
+    scparam(cfg, ['option', 'loglevel'],
             sctype='str',
             scope='job',
             defvalue='INFO',
             shorthelp="Logging level",
             switch="-loglevel <str>",
-            example=["cli: -loglevel INFO",
-                    "api: chip.set('loglevel', 'INFO')"],
+            example=[
+                "cli: -loglevel INFO",
+                "api: chip.set('option', 'loglevel', 'INFO')"],
             schelp="""
             Provides explicit control over the level of debug logging printed.
             Valid entries include INFO, DEBUG, WARNING, ERROR.""")
 
-    scparam(cfg, ['dir'],
+    scparam(cfg, ['option', 'dir'],
             sctype='dir',
             scope='job',
             defvalue='build',
             shorthelp="Build directory",
             switch="-dir <dir>",
-            example=["cli: -dir ./build_the_future",
-                    "api: chip.set('dir','./build_the_future')"],
+            example=[
+                "cli: -dir ./build_the_future",
+                "api: chip.set('option', 'dir','./build_the_future')"],
             schelp="""
             The default build directory is in the local './build' where SC was
             executed. The 'dir' parameters can be used to set an alternate
             compilation directory path.""")
 
-    scparam(cfg, ['jobname'],
+    scparam(cfg, ['option', 'jobname'],
             sctype='str',
             scope='job',
             defvalue='job0',
             shorthelp="Job name",
             switch="-jobname <str>",
-            example=["cli: -jobname may1",
-                    "api: chip.set('jobname','may1')"],
+            example=[
+                "cli: -jobname may1",
+                "api: chip.set('option','jobname','may1')"],
             schelp="""
             Jobname during invocation of run(). The jobname combined with a
             defined director structure (<dir>/<design>/<jobname>/<step>/<index>)
             enables multiple levels of transparent job, step, and index
             introspection.""")
 
-    scparam(cfg, ['jobinput','default','default','default'],
-            sctype='str',
-            scope='job',
-            shorthelp="Input job name",
-            switch="-jobinput 'job step index <str>'",
-            example=[
-                "cli: -jobinput 'job1 cts 0 job0'",
-                "api:  chip.set('jobinput', 'job1', 'cts, '0', 'job0')"],
-            schelp="""
-            Specifies jobname inputs for the current run() on a per step
-            and per index basis. During execution, the default behavior is to
-            copy inputs from the current job.""")
-
-    scparam(cfg, ['steplist'],
+    scparam(cfg, ['option', 'steplist'],
             sctype='[str]',
             scope='job',
             shorthelp="Compilation step list",
             switch="-steplist <step>",
-            example=["cli: -steplist 'import'",
-                    "api: chip.set('steplist','import')"],
+            example=[
+                "cli: -steplist 'import'",
+                "api: chip.set('option','steplist','import')"],
             schelp="""
             List of steps to execute. The default is to execute all steps
             defined in the flow graph.""")
 
-    scparam(cfg, ['skipstep'],
+    scparam(cfg, ['option', 'skipstep'],
             sctype='[str]',
             scope='job',
             shorthelp="Skip step list",
             switch="-skipstep <str>",
-            example=["cli: -skipstep lvs",
-                    "api: chip.set('skipstep', 'lvs')"],
+            example=[
+                "cli: -skipstep lvs",
+                "api: chip.set('option','skipstep','lvs')"],
             schelp="""
             List of steps to skip during execution.The default is to
             execute all steps  defined in the flow graph.""")
 
-    scparam(cfg, ['indexlist'],
+    scparam(cfg, ['option', 'indexlist'],
             sctype='[str]',
             scope='job',
             shorthelp="Compilation index list",
             switch="-indexlist <index>",
             example=["cli: -indexlist 0",
-                    "api: chip.set('indexlist','0')"],
+                    "api: chip.set('option','indexlist','0')"],
             schelp="""
             List of indices to execute. The default is to execute all
             indices for each step of a run.""")
 
-    scparam(cfg, ['bkpt'],
+    scparam(cfg, ['option', 'bkpt'],
             sctype='[str]',
             scope='job',
             shorthelp="Breakpoint list",
             switch="-bkpt <str>",
-            example=["cli: -bkpt place",
-                    "api: chip.set('bkpt','place')"],
+            example=[
+                "cli: -bkpt place",
+                "api: chip.set('option,'bkpt','place')"],
             schelp="""
             List of step stop (break) points. If the step is a TCL
             based tool, then the breakpoints stops the flow inside the
             EDA tool. If the step is a command line tool, then the flow
             drops into a Python interpreter.""")
 
-    scparam(cfg, ['msgevent'],
+    scparam(cfg, ['option', 'msgevent'],
             sctype='[str]',
             scope='job',
             shorthelp="Message event trigger",
@@ -2122,14 +2107,14 @@ def schema_options(cfg):
             messages would be sent after the completion of the syn,
             place, and cts steps.""")
 
-    scparam(cfg, ['msgcontact'],
+    scparam(cfg, ['option', 'msgcontact'],
             sctype='[str]',
             scope='job',
             shorthelp="Message contact",
             switch="-msgcontact <str>",
             example=[
                 "cli: -msgcontact 'wile.e.coyote@acme.com'",
-                "api: chip.set('msgcontact','wile.e.coyote@acme.com')"],
+                "api: chip.set('option','msgcontact','wiley@acme.com')"],
             schelp="""
             A list of phone numbers or email addresses to message
             on a event event within the msg_event param. Actual
@@ -2137,36 +2122,37 @@ def schema_options(cfg):
             dependent.""")
 
     filetype = 'default'
-    scparam(cfg, ['showtool', filetype],
+    scparam(cfg, ['option', 'showtool', filetype],
             sctype='str',
             scope='job',
             shorthelp="Select data display tool",
             switch="-showtool 'filetype <tool>'",
             example=["cli: -showtool 'gds klayout'",
-                    "api: chip.set('showtool', 'gds', 'klayout')"],
+                    "api: chip.set('option','showtool','gds','klayout')"],
             schelp="""
             Selects the tool to use by the show function for displaying
             the specified filetype.""")
 
-    scparam(cfg, ['metricoff'],
+    scparam(cfg, ['option', 'metricoff'],
             sctype='[str]',
             scope='job',
             shorthelp="Metric summary filter",
             switch="-metricoff '<str>'",
-            example=["cli: -metricoff 'wirelength'",
-                     "api: chip.set('metricoff','wirelength')"],
+            example=[
+                "cli: -metricoff 'wirelength'",
+                "api: chip.set('option','metricoff','wirelength')"],
             schelp="""
             List of metrics to supress when printing out the run
             summary.""")
 
     # Booleans
-    scparam(cfg, ['clean'],
+    scparam(cfg, ['option', 'clean'],
             sctype='bool',
             scope='job',
             shorthelp="Clean up after run",
             switch="-clean <bool>",
             example=["cli: -clean",
-                     "api: chip.set('clean', True)"],
+                     "api: chip.set('option','clean',True)"],
             schelp="""
             Clean up all intermediate and non essential files at the end
             of a task, leaving the following:
@@ -2180,48 +2166,48 @@ def schema_options(cfg):
             * any files generated by schema-specified regexes
             * files specified by :keypath:`eda, <tool>, keep`""")
 
-    scparam(cfg, ['hash'],
+    scparam(cfg, ['option', 'hash'],
             sctype='bool',
             scope='job',
             shorthelp="Enable file hashing",
             switch="-hash <bool>",
             example=["cli: -hash",
-                    "api: chip.set('hash', True)"],
+                     "api: chip.set('option','hash',True)"],
             schelp="""
             Enables hashing of all inputs and outputs during
             compilation. The hash values are stored in the hashvalue
             field of the individual parameters.""")
 
-    scparam(cfg, ['nodisplay'],
+    scparam(cfg, ['option', 'nodisplay'],
             sctype='bool',
             scope='job',
             shorthelp="Headless execution",
             switch="-nodisplay <bool>",
             example=["cli: -nodisplay",
-                    "api: chip.set('nodisplay', True)"],
+                     "api: chip.set('option','nodisplay',True)"],
             schelp="""
             The '-nodisplay' flag prevents SiliconCompiler from
             opening GUI windows such as the final metrics report.""")
 
-    scparam(cfg, ['quiet'],
+    scparam(cfg, ['option', 'quiet'],
             sctype='bool',
             scope='job',
             shorthelp="Quiet execution",
             switch="-quiet <bool>",
             example=["cli: -quiet",
-                    "api: chip.set('quiet', True)"],
+                    "api: chip.set('option','quiet',True)"],
             schelp="""
             The -quiet option forces all steps to print to a log file.
             This can be useful with Modern EDA tools which print
             significant content to the screen.""")
 
-    scparam(cfg, ['jobincr'],
+    scparam(cfg, ['option', 'jobincr'],
             sctype='bool',
             scope='job',
             shorthelp="Autoincrement jobname",
             switch="-jobincr <bool>",
             example=["cli: -jobincr",
-                    "api: chip.set('jobincr', True)"],
+                    "api: chip.set('option','jobincr',True)"],
             schelp="""
             Forces an auto-update of the jobname parameter if a directory
             matching the jobname is found in the build directory. If the
@@ -2229,109 +2215,109 @@ def schema_options(cfg):
             '1' is added to the jobname before updating the jobname
             parameter.""")
 
-    scparam(cfg, ['novercheck'],
+    scparam(cfg, ['option', 'novercheck'],
             sctype='bool',
             defvalue='false',
             scope='job',
             shorthelp="Disable version checking",
             switch="-novercheck <bool>",
             example=["cli: -novercheck",
-                    "api: chip.set('novercheck', 'true')"],
+                    "api: chip.set('option','novercheck',True)"],
             schelp="""
             Disables strict version checking on all invoked tools if True.
             The list of supported version numbers is defined in the
             'version' parameter in the 'eda' dictionary for each tool.""")
 
-    scparam(cfg, ['relax'],
+    scparam(cfg, ['option', 'relax'],
             sctype='bool',
             scope='job',
             shorthelp="Relax RTL linting",
             switch="-relax <bool>",
             example=["cli: -relax",
-                    "api: chip.set('relax', 'true')"],
+                    "api: chip.set('option','relax',True)"],
             schelp="""
             Specifies that tools should be lenient and suppress some
             warnings that may or may not indicate design issues.""")
 
-    scparam(cfg, ['resume'],
+    scparam(cfg, ['option','resume'],
             sctype='bool',
             scope='job',
             shorthelp="Resume build",
             switch="-resume <bool>",
             example=["cli: -resume",
-                    "api: chip.set('resume', True)"],
+                    "api: chip.set('option','resume',True)"],
             schelp="""
             If results exist for current job, then don't re-run any steps that
             had at least one index run successfully. Useful for debugging a
             flow that failed partway through.
             """)
 
-    scparam(cfg, ['track'],
+    scparam(cfg, ['option','track'],
             sctype='bool',
             scope='job',
             shorthelp="Enable provenance tracking",
             switch="-track <bool>",
             example=["cli: -track",
-                    "api: chip.set('track', 'true')"],
+                    "api: chip.set('option','track',True)"],
             schelp="""
             Turns on tracking of all 'record' parameters during each
             task. Tracking will result in potentially sensitive data
             being recorded in the manifest so only turn on this feature
             if you have control of the final manifest.""")
 
-    scparam(cfg, ['trace'],
+    scparam(cfg, ['option','trace'],
             sctype='bool',
             scope='job',
             shorthelp="Enable debug traces",
             switch="-trace <bool>",
             example=["cli: -trace",
-                    "api: chip.set('trace', True)"],
+                    "api: chip.set('option','trace',True)"],
             schelp="""
             Enables debug tracing during compilation and/or runtime.""")
 
-    scparam(cfg, ['skipall'],
+    scparam(cfg, ['option','skipall'],
             sctype='bool',
             scope='job',
             shorthelp="Skip all tasks",
             switch="-skipall <bool>",
             example=["cli: -skipall",
-                    "api: chip.set('skipall', 'true')"],
+                    "api: chip.set('option','skipall',True)"],
             schelp="""
             Skips the execution of all tools in run(), enabling a quick
             check of tool and setup without having to run through each
             step of a flow to completion.""")
 
-    scparam(cfg, ['skipcheck'],
+    scparam(cfg, ['option','skipcheck'],
             sctype='bool',
             scope='job',
             shorthelp="Skip manifest check",
             switch="-skipcheck <bool>",
             example=["cli: -skipcheck",
-                     "api: chip.set('skipcheck', True)"],
+                     "api: chip.set('option','skipcheck',True)"],
             schelp="""
             Bypasses the strict runtime manifest check. Can be used for
             accelerating initial bringup of tool/flow/pdk/libs targets.
             The flag should not be used for production compilation.""")
 
-    scparam(cfg, ['copyall'],
+    scparam(cfg, ['option','copyall'],
             sctype='bool',
             scope='job',
             shorthelp="Copy all inputs to build directory",
             switch="-copyall <bool>",
             example=["cli: -copyall",
-                    "api: chip.set('copyall', 'true')"],
+                    "api: chip.set('option','copyall',True)"],
             schelp="""
             Specifies that all used files should be copied into the
             build directory, overriding the per schema entry copy
             settings.""")
 
-    scparam(cfg, ['show'],
+    scparam(cfg, ['option','show'],
             sctype='bool',
             scope='job',
             shorthelp="Show layout",
             switch="-show <bool>",
             example=["cli: -show",
-                    "api: chip.set('show', 'true')"],
+                    "api: chip.set('option','show',True)"],
             schelp="""
             Specifies that the final hardware layout should be
             shown after the compilation has been completed. The

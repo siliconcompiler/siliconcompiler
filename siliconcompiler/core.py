@@ -103,7 +103,7 @@ class Chip:
         # but the logger relies on these values.
         self.cfg['design']['value'] = design
         if loglevel:
-            self.cfg['loglevel']['value'] = loglevel
+            self.cfg['option']['loglevel']['value'] = loglevel
         # We set scversion directly because it has its 'lock' flag set by default.
 
 
@@ -127,7 +127,7 @@ class Chip:
         # we should revisit it
         self.logger.propagate = False
 
-        loglevel = self.get('loglevel')
+        loglevel = self.get('option', 'loglevel')
 
         if loglevel=='DEBUG':
             prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
@@ -917,7 +917,7 @@ class Chip:
         all_args = list(args)
 
         # Special case to ensure loglevel is updated ASAP
-        if len(args) == 2 and args[0] == 'loglevel' and field == 'value':
+        if len(args) == 3 and args[1] == 'loglevel' and field == 'value':
             self.logger.setLevel(args[1])
 
         self.logger.debug(f"Setting [{keypathstr}] to {args[-1]}")
