@@ -81,11 +81,11 @@ def setup(chip, mode="batch"):
 
     if mode == 'show':
         clobber = False
-        script = '/klayout_show.py'
+        script = 'klayout_show.py'
         option = ['-nc', '-rm']
     else:
         clobber = False
-        script = '/klayout_export.py'
+        script = 'klayout_export.py'
         option = ['-zz', '-r']
 
     chip.set('eda', tool, 'exe', klayout_exe, clobber=True)
@@ -93,9 +93,8 @@ def setup(chip, mode="batch"):
     # Versions < 0.27.6 may be bundled with an incompatible version of Python.
     chip.set('eda', tool, 'version', '>=0.27.6', clobber=clobber)
     chip.set('eda', tool, 'format', 'json', clobber=clobber)
-    chip.set('eda', tool, 'copy', 'true', clobber=clobber)
     chip.set('eda', tool, 'refdir', step, index, refdir, clobber=clobber)
-    chip.set('eda', tool, 'script', step, index, refdir + script, clobber=clobber)
+    chip.set('eda', tool, 'script', step, index, script, clobber=clobber)
     chip.set('eda', tool, 'option', step, index, option, clobber=clobber)
 
     # Export GDS with timestamps by default.

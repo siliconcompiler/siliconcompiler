@@ -55,7 +55,7 @@ def setup(chip, mode='batch'):
     chip.set('eda', tool, 'vswitch', '-version', clobber=clobber)
     chip.set('eda', tool, 'version', '0', clobber=clobber)
     chip.set('eda', tool, 'refdir', step, index, refdir, clobber=clobber)
-    chip.set('eda', tool, 'script', step, index, refdir + script, clobber=clobber)
+    chip.set('eda', tool, 'script', step, index, script, clobber=clobber)
     chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
     chip.set('eda', tool, 'option', step, index, option, clobber=clobber)
 

@@ -56,7 +56,7 @@ def setup(chip, mode='batch'):
         clobber = False
         option = "-no_init"
 
-    script = '/sc_apr.tcl'
+    script = 'sc_apr.tcl'
 
     # exit automatically in batch mode and not bkpt
     if (mode=='batch') and (step not in chip.get('bkpt')):
@@ -66,10 +66,9 @@ def setup(chip, mode='batch'):
     chip.set('eda', tool, 'vswitch', '-version', clobber=clobber)
     chip.set('eda', tool, 'version', '>=v2.0-3394', clobber=clobber)
     chip.set('eda', tool, 'format', 'tcl', clobber=clobber)
-    chip.set('eda', tool, 'copy', 'true', clobber=clobber)
     chip.set('eda', tool, 'option',  step, index, option, clobber=clobber)
     chip.set('eda', tool, 'refdir',  step, index, refdir, clobber=clobber)
-    chip.set('eda', tool, 'script',  step, index, refdir + script, clobber=clobber)
+    chip.set('eda', tool, 'script',  step, index, script, clobber=clobber)
 
     # normalizing thread count based on parallelism and local
     threads = os.cpu_count()

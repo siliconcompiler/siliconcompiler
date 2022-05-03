@@ -52,7 +52,6 @@ def setup(chip):
     chip.set('eda', tool, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, 'version', '>=0.13', clobber=False)
     chip.set('eda', tool, 'format', 'tcl', clobber=False)
-    chip.set('eda', tool, 'copy', 'true', clobber=False)
     chip.set('eda', tool, 'option', step, index, '-c', clobber=False)
     chip.set('eda', tool, 'refdir', step, index, refdir, clobber=False)
 
@@ -63,7 +62,7 @@ def setup(chip):
     else:
         chip.logger.error(f'Yosys does not support step {step}.')
 
-    chip.set('eda', tool, 'script', step, index, refdir + '/' + script, clobber=False)
+    chip.set('eda', tool, 'script', step, index, script, clobber=False)
 
     # Input/output requirements
     if step == 'syn':

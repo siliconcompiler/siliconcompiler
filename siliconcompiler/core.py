@@ -1350,8 +1350,11 @@ class Chip:
 
         result = []
 
-        # Special case where we're looking to find tool outputs: check the
-        # output directory and return those files directly
+        # Special cases for various ['eda', ...] files that may be implicitly
+        # under the workdir (or refdir in the case of scripts).
+        # TODO: it may be cleaner to have a file resolution scope flag in schema
+        # (e.g. 'scpath', 'workdir', 'refdir'), rather than harcoding special
+        # cases.
         if keypath[0] == 'eda' and keypath[2] in ('input', 'output', 'report'):
             step = keypath[3]
             index = keypath[4]
@@ -1364,6 +1367,19 @@ class Chip:
                 abspath = os.path.join(iodir, path)
                 if os.path.isfile(abspath):
                     result.append(abspath)
+            return result
+        elif keypath[0] == 'eda' and keypath[2] == 'script':
+            tool = keypath[1]
+            step = keypath[3]
+            index = keypath[4]
+            refdirs = self.find_files('eda', tool, 'refdir', step, index)
+            for path in paths:
+                for refdir in refdirs:
+                    abspath = os.path.join(refdir, path)
+                    if os.path.isfile(abspath):
+                        result.append(abspath)
+                        break
+
             return result
 
         for path in paths:
@@ -3547,24 +3563,23 @@ class Chip:
         T6. Reset all metrics to 0 (consider removing)
         T7. Select inputs
         T8. Copy data from previous step outputs into inputs
-        T9. Copy reference script directory
-        T10. Check manifest
-        T11. Run pre_process() function
-        T12. Set environment variables
-        T13. Check EXE version
-        T14. Save manifest as TCL/YAML
-        T15. Start CPU timer
-        T16. Run EXE
-        T17. stop CPU timer
-        T18. Run post_process()
-        T19. Check log file
-        T20. Hash all task files
-        T21. Stop Wall timer
-        T22. Make a task record
-        T23. Save manifest to disk
-        T24. Halt if any errors found
-        T25. Clean up
-        T26. chdir
+        T9. Check manifest
+        T10. Run pre_process() function
+        T11. Set environment variables
+        T12. Check EXE version
+        T13. Save manifest as TCL/YAML
+        T14. Start CPU timer
+        T15. Run EXE
+        T16. stop CPU timer
+        T17. Run post_process()
+        T18. Check log file
+        T19. Hash all task files
+        T20. Stop Wall timer
+        T21. Make a task record
+        T22. Save manifest to disk
+        T23. Halt if any errors found
+        T24. Clean up
+        T25. chdir
 
         Note that since _runtask occurs in its own process with a separate
         address space, any changes made to the `self` object will not
@@ -3701,14 +3716,7 @@ class Chip:
                 ignore=[f'{design}.pkg.json'], link=True)
 
         ##################
-        # 9. Copy Reference Scripts
-        if tool not in self.builtin:
-            if self.get('eda', tool, 'copy'):
-                for refdir in self.find_files('eda', tool, 'refdir', step, index):
-                    utils.copytree(refdir, ".", dirs_exist_ok=True)
-
-        ##################
-        # 10. Check manifest
+        # 9. Check manifest
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
@@ -3718,7 +3726,7 @@ class Chip:
                 self._haltstep(step, index)
 
         ##################
-        # 11. Run preprocess step for tool
+        # 10. Run preprocess step for tool
         if tool not in self.builtin:
             func = self.find_function(tool, "pre_process", 'tools')
             if func:
@@ -3728,7 +3736,7 @@ class Chip:
                     self._haltstep(step, index)
 
         ##################
-        # 12. Set environment variables
+        # 11. Set environment variables
 
         # License file configuration.
         for item in self.getkeys('eda', tool, 'licenseserver'):
@@ -3743,7 +3751,7 @@ class Chip:
                 os.environ[item] = self.get('eda', tool, 'env', step, index, item)
 
         ##################
-        # 13. Check exe version
+        # 12. Check exe version
 
         vercheck = not self.get('novercheck')
         veropt = self.get('eda', tool, 'vswitch')
@@ -3773,19 +3781,19 @@ class Chip:
             self._haltstep(step, index)
 
         ##################
-        # 14. Write manifest (tool interface) (Don't move this!)
+        # 13. Write manifest (tool interface) (Don't move this!)
         suffix = self.get('eda', tool, 'format')
         if suffix:
             pruneopt = bool(suffix!='tcl')
             self.write_manifest(f"sc_manifest.{suffix}", prune=pruneopt, abspath=True)
 
         ##################
-        # 15. Start CPU Timer
+        # 14. Start CPU Timer
         self.logger.debug(f"Starting executable")
         cpu_start = time.time()
 
         ##################
-        # 16. Run executable (or copy inputs to outputs for builtin functions)
+        # 15. Run executable (or copy inputs to outputs for builtin functions)
 
         # TODO: Currently no memory usage tracking in breakpoints, builtins, or unexpected errors.
         max_mem_bytes = 0
@@ -3855,14 +3863,14 @@ class Chip:
                     self._haltstep(step, index)
 
         ##################
-        # 17. Capture cpu runtime and memory footprint.
+        # 16. Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
         self.set('metric', step, index, 'exetime', 'real', cputime)
         self.set('metric', step, index, 'memory', 'real', max_mem_bytes)
 
         ##################
-        # 18. Post process (could fail)
+        # 17. Post process (could fail)
         post_error = 0
         if (tool not in self.builtin) and (not self.get('skipall')) :
             func = self.find_function(tool, 'post_process', 'tools')
@@ -3874,12 +3882,12 @@ class Chip:
                         self._haltstep(step, index)
 
         ##################
-        # 19. Check log file (must be after post-process)
+        # 18. Check log file (must be after post-process)
         if (tool not in self.builtin) and (not self.get('skipall')) :
             self.check_logfile(step=step, index=index, display=not quiet)
 
         ##################
-        # 20. Hash files
+        # 19. Hash files
         if self.get('hash') and (tool not in self.builtin):
             # hash all outputs
             self.hash_files('eda', tool, 'output', step, index)
@@ -3891,19 +3899,19 @@ class Chip:
                         self.hash_files(*args)
 
         ##################
-        # 21. Capture wall runtime and cpu cores
+        # 20. Capture wall runtime and cpu cores
         wall_end = time.time()
         walltime = round((wall_end - wall_start),2)
         self.set('metric',step, index, 'tasktime', 'real', walltime)
         self.logger.info(f"Finished task in {walltime}s")
 
         ##################
-        # 22. Make a record if tracking is enabled
+        # 21. Make a record if tracking is enabled
         if self.get('track'):
             self._make_record(step, index, wall_start, wall_end, version, toolpath)
 
         ##################
-        # 23. Save a successful manifest
+        # 22. Save a successful manifest
         self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
@@ -3911,18 +3919,18 @@ class Chip:
         self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
 
         ##################
-        # 24. Stop if there are errors
+        # 23. Stop if there are errors
         if self.get('metric',step, index, 'errors', 'real') > 0:
             if not self.get('eda', tool, 'continue'):
                 self._haltstep(step, index)
 
         ##################
-        # 25. Clean up non-essential files
+        # 24. Clean up non-essential files
         if self.get('clean'):
-            self.logger.error('Self clean not implemented')
+            self._eda_clean(tool, step, index)
 
         ##################
-        # 26. return to original directory
+        # 25. return to original directory
         os.chdir(cwd)
 
     ###########################################################################
@@ -3930,6 +3938,34 @@ class Chip:
         if log:
             self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
         sys.exit(1)
+
+    ###########################################################################
+    def _eda_clean(self, tool, step, index):
+        '''Cleans up work directory of unecessary files.
+
+        Assumes our cwd is the workdir for step and index.
+        '''
+
+        keep = ['inputs', 'outputs', 'reports', f'{step}.log', 'replay.sh']
+
+        manifest_format = self.get('eda', tool, 'format')
+        if manifest_format:
+            keep.append(f'sc_manifest.{manifest_format}')
+
+        for suffix in self.getkeys('eda', tool, 'regex', step, index):
+            keep.append(f'{step}.{suffix}')
+
+        # Tool-specific keep files
+        if self.valid('eda', tool, 'keep', step, index):
+            keep.extend(self.get('eda', tool, 'keep', step, index))
+
+        for path in os.listdir():
+            if path in keep:
+                continue
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
 
     ###########################################################################
     def run(self):
