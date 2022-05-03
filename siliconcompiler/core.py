@@ -71,6 +71,10 @@ class Chip:
     ###########################################################################
     def __init__(self, design=None, loglevel=None):
 
+        # version numbers
+        self.scversion = _metadata.version
+        self.schemaversion = SCHEMA_VERSION
+
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
         self.cwd = os.getcwd()
@@ -101,8 +105,7 @@ class Chip:
         if loglevel:
             self.cfg['loglevel']['value'] = loglevel
         # We set scversion directly because it has its 'lock' flag set by default.
-        self.cfg['version']['software']['value'] = _metadata.version
-        self.cfg['version']['software']['defvalue'] = _metadata.version
+
 
         self._init_logger()
 

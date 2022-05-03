@@ -8,6 +8,8 @@ import sys
 import copy as pycopy
 import json
 
+SCHEMA_VERSION = '0.8.0'
+
 #############################################################################
 # PARAM DEFINITION
 #############################################################################
@@ -281,7 +283,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'version'],
             sctype='str',
-            shorthelp="PDK version number",
+            shorthelp="PDK version",
             switch="-pdk_version <str>",
             example=["cli: -pdk_version 1.0",
                     "api:  chip.set('pdk', 'version', '1.0')"],
@@ -1043,7 +1045,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'version'],
             sctype='[str]',
             scope='job',
-            shorthelp="Tool version number",
+            shorthelp="Tool version",
             switch="-tool_version 'tool <str>'",
             example=["cli: -tool_version 'openroad >=v2.0'",
                      "api:  chip.set('tool','openroad','version','>=v2.0')"],
@@ -1743,10 +1745,10 @@ def schema_record(cfg, step='default', index='default'):
                            * govcloud: generic US government cloud
                            * <region>: cloud and entity specific region string name
                            """],
-               'schemaversion': ['schema version number',
+               'schemaversion': ['schema version',
                                '1.0',
                                """Version number for the SiliconCompiler schema."""],
-               'scversion': ['software version number',
+               'scversion': ['software version',
                              '1.0',
                              """Version number for the SiliconCompiler software."""],
                'toolversion': ['tool version',
@@ -1795,7 +1797,7 @@ def schema_options(cfg):
 
     scparam(cfg,['option', 'version'],
             sctype='bool',
-            shorthelp="Prints SC version numbers",
+            shorthelp="Print SC version",
             switch="-version <bool>",
             example=["cli: -version",
                     "api: chip.get('option', 'version')"],
