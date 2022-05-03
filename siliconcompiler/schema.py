@@ -1347,17 +1347,6 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             Directs tool to continue operating even if errors are
             encountered.""")
 
-    scparam(cfg, ['eda', tool, 'copy'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Tool copy option",
-            switch="-eda_copy 'tool <bool>'",
-            example=["cli: -eda_copy 'openroad true'",
-                    "api: chip.set('eda','openroad','copy',true)"],
-            schelp="""
-            Specifies that the reference script directory should be copied and run
-            from the local run directory.""")
-
     name = 'default'
     scparam(cfg, ['eda', tool, 'licenseserver', name],
             sctype='[str]',

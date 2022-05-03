@@ -3,5 +3,9 @@
 # script. Both scripts use KLayout's pya module, so they must be run in
 # KLayout's interpreter. That means we need to use 'exec', not 'subprocess'.
 
-with open('def2stream.py', 'r') as py:
+import os
+
+mydir = os.path.dirname(__file__)
+script = os.path.join(mydir, 'def2stream.py')
+with open(script, 'r') as py:
   exec(py.read())

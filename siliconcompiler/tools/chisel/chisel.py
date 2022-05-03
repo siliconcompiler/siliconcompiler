@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import siliconcompiler
 
@@ -46,7 +47,6 @@ def setup(chip):
     chip.set('eda', tool, 'exe', 'sbt', clobber=False)
     chip.set('eda', tool, 'vswitch', '--version', clobber=False)
     chip.set('eda', tool, 'version', '>=1.5.5', clobber=False)
-    chip.set('eda', tool, 'copy', True, clobber=False)
     chip.set('eda', tool, 'refdir', step, index,  refdir, clobber=False)
     chip.set('eda', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
@@ -91,6 +91,17 @@ def runtime_options(chip):
     #     cmdlist.append(f'-P{param}={value}')
 
     return cmdlist
+
+def pre_process(chip):
+    tool = 'chisel'
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    refdir = chip.find_files('eda', tool, 'refdir', step, index)[0]
+
+    for filename in ('build.sbt', 'SCDriver.scala'):
+        src = os.path.join(refdir, filename)
+        dst = filename
+        shutil.copyfile(src, dst)
 
 ################################
 # Post_process (post executable)

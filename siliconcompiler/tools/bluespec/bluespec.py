@@ -50,7 +50,6 @@ def setup(chip):
     # us the version # and exit cleanly, so we'll use it here.
     chip.set('eda', tool, 'vswitch', '-v', clobber=False)
     chip.set('eda', tool, 'version', '>=2021.07', clobber=False)
-    chip.set('eda', tool, 'copy', False, clobber=False)
     chip.set('eda', tool, 'refdir', step, index,  refdir, clobber=False)
     chip.set('eda', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
     chip.set('eda', tool, 'option', step, index,  [], clobber=False)
