@@ -918,7 +918,7 @@ class Chip:
 
         # Special case to ensure loglevel is updated ASAP
         if len(args) == 3 and args[1] == 'loglevel' and field == 'value':
-            self.logger.setLevel(args[1])
+            self.logger.setLevel(args[2])
 
         self.logger.debug(f"Setting [{keypathstr}] to {args[-1]}")
         return self._search(cfg, keypathstr, *all_args, field=field, mode='set', clobber=clobber)

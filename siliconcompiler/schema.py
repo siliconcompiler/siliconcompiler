@@ -337,7 +337,7 @@ def schema_pdk(cfg, stackup='default'):
             parasitic models specified in the pdk_pexmodel and pdk_aprtech
             parameters.""")
 
-    scparam(cfg, ['pdk', 'thickness'],
+    scparam(cfg, ['pdk', 'thickness', stackup],
             sctype='float',
             scope='global',
             unit='mm',
@@ -1880,7 +1880,7 @@ def schema_option(cfg):
             shorthelp="Compilation target",
             switch="-target <str>",
             example=["cli: -target freepdk45_demo",
-                     "api: chip.set('target','freepdk45_demo')"],
+                     "api: chip.set('option','target','freepdk45_demo')"],
             schelp="""
             Sets a target module to be used for compilation. The target
             module must set up all paramaters needed. The target module
@@ -1969,7 +1969,7 @@ def schema_option(cfg):
             switch="-scpath <dir>",
             example=[
                 "cli: -scpath '/home/$USER/sclib'",
-                "api: chip.set('scpath', 'option', '/home/$USER/sclib')"],
+                "api: chip.set('option', 'scpath','/home/$USER/sclib')"],
             schelp="""
             Specifies python modules paths for target import.""")
 
@@ -2070,7 +2070,7 @@ def schema_option(cfg):
             shorthelp="Message event trigger",
             switch="-msgevent <str>",
             example=["cli: -msgevent export",
-                    "api: chip.set('msgevent','export')"],
+                    "api: chip.set('option','msgevent','export')"],
             schelp="""
             A list of steps after which to notify a recipient. For
             example if values of syn, place, cts are entered separate
@@ -3101,7 +3101,7 @@ def schema_asic(cfg):
             switch="-asic_site_symmetry 'key <str>'",
             example=[
                 "cli: -library_site_symmetry 'core X Y'",
-                "api: chip.set('library','site','core','symmetry','X Y')"],
+                "api: chip.set('asic','site','core','symmetry','X Y')"],
             schelp="""
              Site flip-symmetry based on LEF standard definition. 'X' implies
             symmetric about the x axis, 'Y' implies symmetry about the y axis, and
@@ -3196,7 +3196,7 @@ def schema_constraint(cfg, scenario='default'):
             shorthelp="Constraint files",
             switch="-constraint_constraint 'scenario <file>'",
             example=["cli: -constraint_file 'worst hello.sdc'",
-                     "api: chip.set('constraint','worst','constraint', 'hello.sdc')"],
+                     "api: chip.set('constraint','worst','file', 'hello.sdc')"],
             schelp="""List of timing constraint files to use for the scenario. The
             values are combined with any constraints specified by the design
             'constraint' parameter. If no constraints are found, a default
