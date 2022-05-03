@@ -1657,25 +1657,24 @@ def schema_metric(cfg, step='default', index='default',group='default'):
 
 def schema_sup(cfg, module='default'):
 
-
-    scparam(cfg, ['autoinstall'],
+    scparam(cfg, ['option', 'autoinstall'],
             sctype='bool',
             shorthelp=f"Package auto-install option",
-            switch=f"-autoinstall <bool>",
+            switch=f"-option_autoinstall <bool>",
             example=[
-                f"cli: -autoinstall true'",
-                f"api: chip.set('autoinstall', True)"],
+                f"cli: -option_autoinstall true'",
+                f"api: chip.set('option', 'autoinstall', True)"],
             schelp=f"""
             Enables automatic installation of missing dependencies from
             the registry.""")
 
-    scparam(cfg, ['registry'],
+    scparam(cfg, ['option', 'registry'],
             sctype='[dir]',
             shorthelp=f"Package registry",
-            switch=f"-registry <dir>",
+            switch=f"-option_registry <dir>",
             example=[
-                f"cli: -registry '~/myregistry'",
-                f"api: chip.set('registry','~/myregistry')"],
+                f"cli: -option_registry '~/myregistry'",
+                f"api: chip.set('option','registry','~/myregistry')"],
             schelp=f"""
             List of Silicon Unified Packager (SUP) registry directories.
             Directories can be local file system folders or
@@ -1684,13 +1683,13 @@ def schema_sup(cfg, module='default'):
             <name>/<name>-<version>.json(.<gz>)?
             """)
 
-    scparam(cfg, ['depgraph', module],
+    scparam(cfg, ['package', 'depgraph', module],
             sctype='[(str,str)]',
             shorthelp=f"Package dependency list",
-            switch=f"-depgraph 'module <(str,str)>'",
+            switch=f"-pacakge_depgraph 'module <(str,str)>'",
             example=[
-                f"cli: -depgraph 'top (cpu,1.0.1)'",
-                f"api: chip.set('depgraph','top',('cpu', '1.0.1'))"],
+                f"cli: -package_depgraph 'top (cpu,1.0.1)'",
+                f"api: chip.set('package','depgraph','top',('cpu','1.0.1'))"],
             schelp=f"""
             List of Silicon Unified Packager (SUP) dependencies
             used by the design specified on a per module basis a
