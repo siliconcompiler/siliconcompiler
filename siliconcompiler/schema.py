@@ -115,6 +115,7 @@ def schema_cfg():
     cfg['history'] = {}
 
     # Runtime options
+    cfg = schema_units(cfg)
     cfg = schema_options(cfg)
     cfg = schema_arg(cfg)
 
@@ -162,7 +163,7 @@ def schema_fpga(cfg):
             sctype='[file]',
             copy='true',
             scope='job',
-            shorthelp="FPGA architecture file",
+            shorthelp="FPGA: architecture file",
             switch="-fpga_arch <file>",
             example=["cli: -fpga_arch myfpga.xml",
                      "api:  chip.set('fpga', 'arch', 'myfpga.xml')"],
@@ -176,7 +177,7 @@ def schema_fpga(cfg):
     scparam(cfg,['fpga', 'vendor'],
             sctype='str',
             scope='job',
-            shorthelp="FPGA vendor name",
+            shorthelp="FPGA: vendor name",
             switch="-fpga_vendor <str>",
             example=["cli: -fpga_vendor acme",
                     "api:  chip.set('fpga', 'vendor', 'acme')"],
@@ -189,7 +190,7 @@ def schema_fpga(cfg):
             sctype='str',
             require='fpga',
             scope='job',
-            shorthelp="FPGA part name",
+            shorthelp="FPGA: part name",
             switch="-fpga_partname <str>",
             example=["cli: -fpga_partname fpga64k",
                      "api:  chip.set('fpga', 'partname', 'fpga64k')"],
@@ -201,7 +202,7 @@ def schema_fpga(cfg):
     scparam(cfg,['fpga', 'board'],
             sctype='str',
             scope='job',
-            shorthelp="FPGA board name",
+            shorthelp="FPGA: board name",
             switch="-fpga_board <str>",
             example=["cli: -fpga_board parallella",
                      "api:  chip.set('fpga', 'board', 'parallella')"],
@@ -214,7 +215,7 @@ def schema_fpga(cfg):
     scparam(cfg,['fpga', 'program'],
             sctype='bool',
             scope='job',
-            shorthelp="FPGA program enable",
+            shorthelp="FPGA: program enable",
             switch="-fpga_program <bool>",
             example=["cli: -fpga_program",
                      "api:  chip.set('fpga', 'program', True)"],
@@ -223,7 +224,7 @@ def schema_fpga(cfg):
     scparam(cfg,['fpga', 'flash'],
             sctype='bool',
             scope='job',
-            shorthelp="FPGA flash enable",
+            shorthelp="FPGA: flash enable",
             switch="-fpga_flash <bool>",
             example=["cli: -fpga_flash",
                      "api:  chip.set('fpga', 'flash', True)"],
@@ -246,7 +247,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'foundry'],
             sctype='str',
             require="asic",
-            shorthelp="PDK foundry name",
+            shorthelp="PDK: foundry name",
             switch="-pdk_foundry <str>",
             example=["cli: -pdk_foundry virtual",
                     "api:  chip.set('pdk', 'foundry', 'virtual')"],
@@ -258,7 +259,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'process'],
             sctype='str',
             require="asic",
-            shorthelp="PDK process name",
+            shorthelp="PDK: process name",
             switch="-pdk_process <str>",
             example=["cli: -pdk_process asap7",
                      "api:  chip.set('pdk', 'process', 'asap7')"],
@@ -270,7 +271,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'node'],
             sctype='float',
             require="asic",
-            shorthelp="PDK process node",
+            shorthelp="PDK: process node",
             switch="-pdk_node <float>",
             example=["cli: -pdk_node 130",
                     "api:  chip.set('pdk', 'node', 130)"],
@@ -283,7 +284,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'version'],
             sctype='str',
-            shorthelp="PDK version",
+            shorthelp="PDK: version",
             switch="-pdk_version <str>",
             example=["cli: -pdk_version 1.0",
                     "api:  chip.set('pdk', 'version', '1.0')"],
@@ -296,7 +297,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'stackup'],
             sctype='[str]',
             require='asic',
-            shorthelp="PDK metal stackups",
+            shorthelp="PDK: metal stackups",
             switch="-pdk_stackup <str>",
             example=["cli: -pdk_stackup 2MA4MB2MC",
                      "api: chip.add('pdk','stackup','2MA4MB2MC')"],
@@ -316,7 +317,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'thickness'],
             sctype='float',
             unit='mm',
-            shorthelp="PDK unit thickness",
+            shorthelp="PDK: unit thickness",
             switch="-pdk_thickness 'stackup <float>'",
             example=["cli: -pdk_thickness '2MA4MB2MC 1.57'",
                     "api:  chip.set('pdk', 'thickness', '2MA4MB2MC', 1.57)"],
@@ -327,7 +328,7 @@ def schema_pdk(cfg, stackup='default'):
             sctype='float',
             unit='mm',
             require="asic",
-            shorthelp="PDK wafer size",
+            shorthelp="PDK: wafer size",
             switch="-pdk_wafersize <float>",
             example=["cli: -pdk_wafersize 300",
                     "api:  chip.set('pdk', 'wafersize', 300)"],
@@ -341,7 +342,7 @@ def schema_pdk(cfg, stackup='default'):
             sctype='[(float,float)]',
             unit='mm',
             require="asic",
-            shorthelp="PDK panel size",
+            shorthelp="PDK: panel size",
             switch="-pdk_panelsize <float>",
             example=["cli: -pdk_panelsize (45.72,60.96)",
                     "api:  chip.set('pdk', 'panelsize', (45.72,60.96))"],
@@ -352,7 +353,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'unitcost'],
             sctype='float',
             unit='USD',
-            shorthelp="PDK unit cost",
+            shorthelp="PDK: unit cost",
             switch="-pdk_unitcost <float>",
             example=["cli: -pdk_unitcost 10000",
                      "api:  chip.set('pdk', 'unitcost', 10000)"],
@@ -362,7 +363,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'd0'],
             sctype='float',
-            shorthelp="PDK process defect density",
+            shorthelp="PDK: process defect density",
             switch="-pdk_d0 <float>",
             example=["cli: -pdk_d0 0.1",
                      "api:  chip.set('pdk', 'd0', 0.1)"],
@@ -377,7 +378,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'hscribe'],
             sctype='float',
             unit='mm',
-            shorthelp="PDK horizontal scribe line width",
+            shorthelp="PDK: horizontal scribe line width",
             switch="-pdk_hscribe <float>",
             example=["cli: -pdk_hscribe 0.1",
                      "api:  chip.set('pdk', 'hscribe', 0.1)"],
@@ -391,7 +392,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'vscribe'],
             sctype='float',
             unit='mm',
-            shorthelp="PDK vertical scribe line width",
+            shorthelp="PDK: vertical scribe line width",
             switch="-pdk_vscribe <float>",
             example=["cli: -pdk_vscribe 0.1",
                      "api:  chip.set('pdk', 'vscribe', 0.1)"],
@@ -405,7 +406,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'edgemargin'],
             sctype='float',
             unit='mm',
-            shorthelp="PDK wafer edge keep-out margin",
+            shorthelp="PDK: wafer edge keep-out margin",
             switch="-pdk_edgemargin <float>",
             example=["cli: -pdk_edgemargin 1",
                      "api:  chip.set('pdk', 'edgemargin', 1)"],
@@ -417,7 +418,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'density'],
             sctype='float',
-            shorthelp="PDK transistor density",
+            shorthelp="PDK: transistor density",
             switch="-pdk_density <float>",
             example=["cli: -pdk_density 100e6",
                     "api:  chip.set('pdk', 'density', 10e6)"],
@@ -436,7 +437,7 @@ def schema_pdk(cfg, stackup='default'):
     simtype = 'default'
     scparam(cfg, ['pdk', 'devmodel', tool, simtype, stackup],
             sctype='[file]',
-            shorthelp="PDK device models",
+            shorthelp="PDK: device models",
             switch="-pdk_devmodel 'tool simtype stackup <file>'",
             example=[
             "cli: -pdk_devmodel 'xyce spice M10 asap7.sp'",
@@ -455,7 +456,7 @@ def schema_pdk(cfg, stackup='default'):
     corner='default'
     scparam(cfg, ['pdk', 'pexmodel', tool, stackup, corner],
             sctype='[file]',
-            shorthelp="PDK parasitic TCAD models",
+            shorthelp="PDK: parasitic TCAD models",
             switch="-pdk_pexmodel 'tool stackup corner <file>'",
             example=[
                 "cli: -pdk_pexmodel 'fastcap M10 max wire.mod'",
@@ -473,7 +474,7 @@ def schema_pdk(cfg, stackup='default'):
     dst = 'default'
     scparam(cfg, ['pdk', 'layermap', tool, src, dst, stackup],
             sctype='[file]',
-            shorthelp="PDK layer map file",
+            shorthelp="PDK: layer map file",
             switch="-pdk_layermap 'tool src dst stackup <file>'",
             example=[
                 "cli: -pdk_layermap 'klayout db gds M10 asap7.map'",
@@ -493,7 +494,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'display', tool, stackup],
             sctype='[file]',
-            shorthelp="PDK display file",
+            shorthelp="PDK: display file",
             switch="-pdk_display 'tool stackup <file>'",
             example=[
                 "cli: -pdk_display 'klayout M10 display.lyt'",
@@ -507,7 +508,7 @@ def schema_pdk(cfg, stackup='default'):
     libarch = 'default'
     scparam(cfg, ['pdk', 'aprtech', tool, stackup, libarch, filetype],
             sctype='[file]',
-            shorthelp="PDK APR technology files",
+            shorthelp="PDK: APR technology files",
             switch="-pdk_aprtech 'tool stackup libarch filetype <file>'",
             example=[
                 "cli: -pdk_aprtech 'openroad M10 12t lef tech.lef'",
@@ -529,7 +530,7 @@ def schema_pdk(cfg, stackup='default'):
     for item in checks:
         scparam(cfg, ['pdk', item, 'runset', tool, stackup, name],
                 sctype='[file]',
-                shorthelp=f"PDK {item.upper()} runset files",
+                shorthelp=f"PDK: {item.upper()} runset files",
                 switch=f"-pdk_{item}_runset 'tool stackup name <file>'",
                 example=[
                     f"cli: -pdk_{item}_runset 'magic M10 basic $PDK/{item}.rs'",
@@ -538,7 +539,7 @@ def schema_pdk(cfg, stackup='default'):
 
         scparam(cfg, ['pdk', item, 'waiver', tool, stackup, name],
                 sctype='[file]',
-                shorthelp=f"PDK {item.upper()} waiver files",
+                shorthelp=f"PDK: {item.upper()} waiver files",
                 switch=f"-pdk_{item}_waiver 'tool stackup name <file>'",
                 example=[
                     f"cli: -pdk_{item}_waiver 'magic M10 basic $PDK/{item}.txt'",
@@ -552,7 +553,7 @@ def schema_pdk(cfg, stackup='default'):
     layer = 'default'
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'name'],
             sctype='str',
-            shorthelp="PDK routing grid name map",
+            shorthelp="PDK: routing grid name map",
             switch="-pdk_grid_name 'stackup layer <str>'",
             example=[
                 "cli: -pdk_grid_name 'M10 metal1 m1'",
@@ -565,7 +566,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'dir'],
             sctype='str',
-            shorthelp="PDK routing grid preferred direction",
+            shorthelp="PDK: routing grid preferred direction",
             switch="-pdk_grid_dir 'stackup layer <str>'",
             example=[
                 "cli: -pdk_grid_dir 'M10 m1 horizontal'",
@@ -578,7 +579,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'xpitch'],
             sctype='float',
             unit='um',
-            shorthelp="PDK routing grid vertical wire pitch",
+            shorthelp="PDK: routing grid vertical wire pitch",
             switch="-pdk_grid_xpitch 'stackup layer <float>'",
             example= [
                 "cli: -pdk_grid_xpitch 'M10 m1 0.5'",
@@ -590,7 +591,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'ypitch'],
             sctype='float',
             unit='um',
-            shorthelp="PDK routing grid horizontal wire pitch",
+            shorthelp="PDK: routing grid horizontal wire pitch",
             switch="-pdk_grid_ypitch 'stackup layer <float>'",
             example= [
                 "cli: -pdk_grid_ypitch 'M10 m1 0.5'",
@@ -602,7 +603,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'xoffset'],
             sctype='float',
             unit='um',
-            shorthelp="PDK routing grid vertical wire offset",
+            shorthelp="PDK: routing grid vertical wire offset",
             switch="-pdk_grid_xoffset 'stackup layer <float>'",
             example= [
                 "cli: -pdk_grid_xoffset 'M10 m2 0.5'",
@@ -614,7 +615,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'yoffset'],
             sctype='float',
             unit='um',
-            shorthelp="PDK routing grid horizontal wire offset",
+            shorthelp="PDK: routing grid horizontal wire offset",
             switch="-pdk_grid_yoffset 'stackup layer <float>'",
             example= [
                 "cli: -pdk_grid_yoffset 'M10 m2 0.5'",
@@ -625,7 +626,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'adj'],
             sctype='float',
-            shorthelp="PDK routing grid resource adjustment",
+            shorthelp="PDK: routing grid resource adjustment",
             switch="-pdk_grid_adj 'stackup layer <float>'",
             example= [
                 "cli: -pdk_grid_adj 'M10 m2 0.5'",
@@ -640,7 +641,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'cap', corner],
             sctype='float',
             unit='ff/um',
-            shorthelp="PDK routing grid unit capacitance",
+            shorthelp="PDK: routing grid unit capacitance",
             switch="-pdk_grid_cap 'stackup layer corner <float>''",
             example= [
                 "cli: -pdk_grid_cap 'M10 m2 fast 0.2'",
@@ -655,7 +656,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'res', corner],
             sctype='float',
             unit='ohm/um',
-            shorthelp="PDK routing grid unit resistance",
+            shorthelp="PDK: routing grid unit resistance",
             switch="-pdk_grid_res 'stackup layer corner <float>''",
             example= [
                 "cli: -pdk_grid_res 'M10 m2 fast 0.2'",
@@ -670,7 +671,7 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', 'grid', stackup, layer, 'tcr', corner],
             sctype='float',
             unit='%/degree(T)',
-            shorthelp="PDK routing grid temperature coefficient",
+            shorthelp="PDK: routing grid temperature coefficient",
             switch="-pdk_grid_tcr 'stackup layer corner <float>'",
             example= [
                 "cli: -pdk_grid_tcr 'M10 m2 fast 0.2'",
@@ -689,7 +690,7 @@ def schema_pdk(cfg, stackup='default'):
     key='default'
     scparam(cfg, ['pdk', 'file', tool, key, stackup],
             sctype='[file]',
-            shorthelp="PDK special file",
+            shorthelp="PDK: special file",
             switch="-pdk_file 'tool key stackup <file>'",
             example=[
                 "cli: -pdk_file 'xyce spice M10 asap7.sp'",
@@ -701,7 +702,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'directory', tool, key, stackup],
             sctype='[dir]',
-            shorthelp="PDK special directory",
+            shorthelp="PDK: special directory",
             switch="-pdk_directory 'tool key stackup <file>'",
             example=[
                 "cli: -pdk_directory 'xyce rfmodel M10 rftechdir'",
@@ -713,7 +714,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg, ['pdk', 'variable', tool, key, stackup],
             sctype='[str]',
-            shorthelp="PDK special variable",
+            shorthelp="PDK: special variable",
             switch="-pdk_variable 'tool stackup key <str>'",
             example=[
                 "cli: -pdk_variable 'xyce modeltype M10 bsim4'""",
@@ -729,7 +730,7 @@ def schema_pdk(cfg, stackup='default'):
 
     scparam(cfg,['pdk', 'doc', 'homepage'],
             sctype='[file]',
-            shorthelp="PDK documentation homepage",
+            shorthelp="PDK: documentation homepage",
             switch="-pdk_doc_homepage <file>",
             example=["cli: -pdk_doc_homepage 'index.html",
                      "api: chip.set('pdk','doc','homepage','index.html')"],
@@ -750,7 +751,7 @@ def schema_pdk(cfg, stackup='default'):
     for item in doctypes:
         scparam(cfg,['pdk', 'doc', item],
                 sctype='[file]',
-                shorthelp=f"PDK {item}",
+                shorthelp=f"PDK: {item}",
                 switch= f"-pdk_doc_{item} <file>",
                 example=[f"cli: -pdk_doc_{item} {item}.pdf",
                          f"api: chip.set('pdk','doc',{item},'{item}.pdf')"],
@@ -874,7 +875,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     scparam(cfg,['flowgraph', flow, step, index, 'input'],
             sctype='[(str,str)]',
             scope='job',
-            shorthelp="Flowgraph step input",
+            shorthelp="Flowgraph: step input",
             switch="-flowgraph_input 'flow step index <(str,str)>'",
             example=[
                 "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
@@ -887,7 +888,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     scparam(cfg,['flowgraph', flow, step, index, 'weight', metric],
             sctype='float',
             scope='job',
-            shorthelp="Flowgraph metric weights",
+            shorthelp="Flowgraph: metric weights",
             switch="-flowgraph_weight 'flow step metric <float>'",
             example=[
                 "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
@@ -900,7 +901,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     scparam(cfg,['flowgraph', flow, step, index, 'tool'],
             sctype='str',
             scope='job',
-            shorthelp="Flowgraph tool selection",
+            shorthelp="Flowgraph: tool selection",
             switch="-flowgraph_tool 'flow step <str>'",
             example=[
                 "cli: -flowgraph_tool 'asicflow place openroad'",
@@ -913,7 +914,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     scparam(cfg,['flowgraph', flow, step, index, 'args'],
             sctype='[str]',
             scope='job',
-            shorthelp="Flowgraph setup arguments",
+            shorthelp="Flowgraph: setup arguments",
             switch="-flowgraph_args 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_args 'asicflow cts 0 0'",
@@ -925,7 +926,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     scparam(cfg,['flowgraph', flow, step, index, 'valid'],
             sctype='bool',
             scope='job',
-            shorthelp="Flowgraph task valid bit",
+            shorthelp="Flowgraph: task valid bit",
             switch="-flowgraph_valid 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_valid 'asicflow cts 0 true'",
@@ -940,7 +941,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             sctype='float',
             unit='s',
             scope='job',
-            shorthelp="Flowgraph task timeout value",
+            shorthelp="Flowgraph: task timeout value",
             switch="-flowgraph_timeout 'flow step 0 <float>'",
             example=[
                 "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
@@ -957,7 +958,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     scparam(cfg,['flowgraph', flow, step, index, 'status'],
             sctype='str',
             scope='job',
-            shorthelp="Flowgraph task status",
+            shorthelp="Flowgraph: task status",
             switch="-flowgraph_status 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_status 'asicflow cts 10 success'",
@@ -973,7 +974,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     scparam(cfg,['flowgraph', flow, step, index, 'select'],
             sctype='[(str,str)]',
             scope='job',
-            shorthelp="Flowgraph task select record",
+            shorthelp="Flowgraph: task select record",
             switch="-flowgraph_select 'flow step index <(str,str)>'",
             example= [
                 "cli: -flowgraph_select 'asicflow cts 0 (place,42)'",
@@ -998,7 +999,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'exe'],
             sctype='str',
             scope='job',
-            shorthelp="Tool executable name",
+            shorthelp="Tool: executable name",
             switch="-tool_exe 'tool <str>'",
             example=["cli: -tool_exe 'openroad openroad'",
                      "api:  chip.set('tool','openroad','exe','openroad')"],
@@ -1007,7 +1008,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'path'],
             sctype='dir',
             scope='job',
-            shorthelp="Tool executable path",
+            shorthelp="Tool: executable path",
             switch="-tool_path 'tool <dir>'",
             example=["cli: -tool_path 'openroad /usr/local/bin'",
                      "api:  chip.set('tool','openroad','path','/usr/local/bin')"],
@@ -1020,7 +1021,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'vswitch'],
             sctype='[str]',
             scope='job',
-            shorthelp="Tool executable version switch",
+            shorthelp="Tool: executable version switch",
             switch="-tool_vswitch 'tool <str>'",
             example=["cli: -tool_vswitch 'openroad -version'",
                      "api:  chip.set('tool','openroad','vswitch','-version')"],
@@ -1032,7 +1033,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'vendor'],
             sctype='str',
             scope='job',
-            shorthelp="Tool vendor",
+            shorthelp="Tool: vendor",
             switch="-tool_vendor 'tool <str>'",
             example=["cli: -tool_vendor 'yosys yosys'",
                      "api: chip.set('tool','yosys','vendor','yosys')"],
@@ -1045,7 +1046,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'version'],
             sctype='[str]',
             scope='job',
-            shorthelp="Tool version",
+            shorthelp="Tool: version",
             switch="-tool_version 'tool <str>'",
             example=["cli: -tool_version 'openroad >=v2.0'",
                      "api:  chip.set('tool','openroad','version','>=v2.0')"],
@@ -1064,7 +1065,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'format'],
             sctype='str',
             scope='job',
-            shorthelp="Tool manifest file format",
+            shorthelp="Tool: manifest file format",
             switch="-tool_format 'tool <file>'",
             example=[ "cli: -tool_format 'yosys tcl'",
                       "api: chip.set('tool','yosys','format','tcl')"],
@@ -1075,7 +1076,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'warningoff'],
             sctype='[str]',
             scope='job',
-            shorthelp="Tool warning filter",
+            shorthelp="Tool: warning filter",
             switch="-tool_warningoff 'tool <str>'",
             example=["cli: -tool_warningoff 'verilator COMBDLY'",
                      "api: chip.set('tool','verilator','warningoff','COMBDLY')"],
@@ -1089,7 +1090,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'continue'],
             sctype='bool',
             scope='job',
-            shorthelp="Tool continue-on-error option",
+            shorthelp="Tool: continue-on-error option",
             switch="-tool_continue 'tool <bool>'",
             example=["cli: -tool_continue 'verilator true'",
                      "api: chip.set('tool','verilator','continue', true)"],
@@ -1100,7 +1101,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'copy'],
             sctype='bool',
             scope='job',
-            shorthelp="Tool copy option",
+            shorthelp="Tool: copy option",
             switch="-tool_copy 'tool <bool>'",
             example=["cli: -tool_copy 'openroad true'",
                     "api: chip.set('tool','openroad','copy',true)"],
@@ -1112,7 +1113,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'licenseserver', key],
             sctype='[str]',
             scope='job',
-            shorthelp="Tool license servers",
+            shorthelp="Tool: license servers",
             switch="-tool_licenseserver 'name key <str>'",
             example=[
                 "cli: -tool_licenseserver 'atool ACME_LICENSE 1700@server'",
@@ -1131,7 +1132,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'regex', step, index, suffix],
             sctype='[str]',
             scope='job',
-            shorthelp="Tool regex filter",
+            shorthelp="Tool: regex filter",
             switch="-tool_regex 'tool step index suffix <str>'",
             example=[
                 "cli: -tool_regex 'openroad place 0 error -v ERROR",
@@ -1160,7 +1161,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'option', step, index],
             sctype='[str]',
             scope='job',
-            shorthelp="Tool executable options",
+            shorthelp="Tool: executable options",
             switch="-tool_option 'tool step index <str>'",
             example=[
                 "cli: -tool_option 'openroad cts 0 -no_init'",
@@ -1174,7 +1175,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'variable', step, index, key],
             sctype='[str]',
             scope='job',
-            shorthelp="Tool script variables",
+            shorthelp="Tool: script variables",
             switch="-tool_variable 'tool step index key <str>'",
             example=[
                 "cli: -tool_variable 'openroad cts 0 myvar 42'",
@@ -1187,7 +1188,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'env', step, index, key],
             sctype='str',
             scope='job',
-            shorthelp="Tool environment variables",
+            shorthelp="Tool: environment variables",
             switch="-tool_env 'tool step index name <str>'",
             example=[
                 "cli: -tool_env 'openroad cts 0 MYVAR 42'",
@@ -1200,7 +1201,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'input', step, index],
             sctype='[file]',
             scope='job',
-            shorthelp="Tool input files",
+            shorthelp="Tool: input files",
             switch="-tool_input 'tool step index <str>'",
             example=[
                 "cli: -tool_input 'openroad place 0 oh_add.def'",
@@ -1215,7 +1216,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'output', step, index],
             sctype='[file]',
             scope='job',
-            shorthelp="Tool output files",
+            shorthelp="Tool: output files",
             switch="-tool_output 'tool step index <str>'",
             example=[
                 "cli: -tool_output 'openroad place 0 oh_add.def'",
@@ -1230,7 +1231,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'require', step, index],
             sctype='[str]',
             scope='job',
-            shorthelp="Tool parameter requirements",
+            shorthelp="Tool: parameter requirements",
             switch="-tool_require 'tool step index <str>'",
             example=[
                 "cli: -tool_require 'openroad cts 0 design'",
@@ -1244,7 +1245,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'report', step, index, metric],
             sctype='[file]',
             scope='job',
-            shorthelp="Tool report files",
+            shorthelp="Tool: report files",
             switch="-tool_report 'tool step index metric <str>'",
             example=[
                  "cli: -tool_report 'openroad place 0 holdtns place.log'",
@@ -1256,7 +1257,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'refdir', step, index],
             sctype='[dir]',
             scope='job',
-            shorthelp="Tool script directory",
+            shorthelp="Tool: script directory",
             switch="-tool_refdir 'tool step index <dir>'",
             example=[
                 "cli: -tool_refdir 'yosys syn 0 ./myref'",
@@ -1268,7 +1269,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'script', step, index],
             sctype='[file]',
             scope='job',
-            shorthelp="Tool entry script",
+            shorthelp="Tool: entry script",
             switch="-tool_script 'tool step index <file>'",
             example=[
                 "cli: -tool_script 'yosys syn 0 syn.tcl'",
@@ -1280,7 +1281,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
     scparam(cfg, ['tool', tool, 'threads', step, index],
             sctype='int',
             scope='job',
-            shorthelp="Tool thread parallelism",
+            shorthelp="Tool: thread parallelism",
             switch="-tool_threads 'tool step index <int>'",
             example=["cli: -tool_threads 'magic drc 0 64'",
                      "api: chip.set('tool','magic','threads','drc','0','64')"],
@@ -1302,7 +1303,7 @@ def schema_arg(cfg):
     scparam(cfg, ['arg', 'pdk', key],
             sctype='[str]',
             scope='job',
-            shorthelp="PDK argument",
+            shorthelp="ARG: PDK argument",
             switch="-arg_pdk 'key <str>",
             example=[
                 "cli: -arg_pdk 'mimcap true",
@@ -1315,7 +1316,7 @@ def schema_arg(cfg):
     scparam(cfg, ['arg', 'flow', key],
             sctype='[str]',
             scope='job',
-            shorthelp="Flow argument",
+            shorthelp="ARG: Flow argument",
             switch="-arg_flow 'key <str>",
             example=[
                 "cli: -arg_flow 'n 100",
@@ -1328,7 +1329,7 @@ def schema_arg(cfg):
     scparam(cfg, ['arg', 'step'],
             sctype='str',
             scope='scratch',
-            shorthelp="Current step",
+            shorthelp="ARG: Step argument",
             switch="-arg_step <str>",
             example=["cli: -arg_step 'route'",
                     "api: chip.set('arg', 'step', 'route')"],
@@ -1342,7 +1343,7 @@ def schema_arg(cfg):
     scparam(cfg, ['arg', 'index'],
             sctype='str',
             scope='scratch',
-            shorthelp="Current sindex",
+            shorthelp="ARG: Index argument",
             switch="-arg_index <str>",
             example=["cli: -arg_index 0",
                     "api: chip.set('arg','index','0')"],
@@ -1657,7 +1658,7 @@ def schema_sup(cfg, module='default'):
 
     scparam(cfg, ['option', 'autoinstall'],
             sctype='bool',
-            shorthelp=f"Package auto-install option",
+            shorthelp=f"Option: auto install packages",
             switch=f"-option_autoinstall <bool>",
             example=[
                 f"cli: -option_autoinstall true'",
@@ -1668,7 +1669,7 @@ def schema_sup(cfg, module='default'):
 
     scparam(cfg, ['option', 'registry'],
             sctype='[dir]',
-            shorthelp=f"Package registry",
+            shorthelp=f"Option: package registry",
             switch=f"-option_registry <dir>",
             example=[
                 f"cli: -option_registry '~/myregistry'",
@@ -1684,7 +1685,7 @@ def schema_sup(cfg, module='default'):
     scparam(cfg, ['package', 'depgraph', module],
             sctype='[(str,str)]',
             shorthelp=f"Package dependency list",
-            switch=f"-pacakge_depgraph 'module <(str,str)>'",
+            switch=f"-package_depgraph 'module <(str,str)>'",
             example=[
                 f"cli: -package_depgraph 'top (cpu,1.0.1)'",
                 f"api: chip.set('package','depgraph','top',('cpu','1.0.1'))"],
@@ -1785,6 +1786,33 @@ def schema_record(cfg, step='default', index='default'):
 
     return cfg
 
+
+def schema_units(cfg):
+    # Units
+    units = {
+        'time' : 'ns',
+        'capacitance' : 'pf',
+        'resistance' : 'ohm',
+        'inductance' : 'nh',
+        'voltage' : 'mv',
+        'current' : 'ma',
+        'power' : 'mw'
+    }
+
+    for item,val in units.items():
+        scparam(cfg, ['unit', item],
+                sctype='str',
+                defvalue=val,
+                shorthelp=f"Unit: {item}",
+                switch=f"-unit_{item} '<str>'",
+                example=[
+                    f"cli: -unit_{item} '{val}'",
+                    f"api: chip.set('unit','{item}',{val})"],
+                schelp=f"""
+                Units used for {item} when not explicitly specified.""")
+
+    return cfg
+
 ###########################################################################
 # Run Options
 ###########################################################################
@@ -1797,7 +1825,7 @@ def schema_options(cfg):
 
     scparam(cfg,['option', 'version'],
             sctype='bool',
-            shorthelp="Print SC version",
+            shorthelp="Option: print software version",
             switch="-version <bool>",
             example=["cli: -version",
                     "api: chip.get('option', 'version')"],
@@ -1805,28 +1833,6 @@ def schema_options(cfg):
             version numbers in an 'sc' command line app.""")
 
 
-    # Units
-    units = {
-        'time' : 'ns',
-        'capacitance' : 'pf',
-        'resistance' : 'ohm',
-        'inducatance' : 'nh',
-        'voltage' : 'mv',
-        'current' : 'ma',
-        'power' : 'mw'
-    }
-
-    for item,val in units.items():
-        scparam(cfg, ['unit', item],
-                sctype='str',
-                defvalue=val,
-                shorthelp=f"Units used for {item}",
-                switch=f"-record_{item} '<str>'",
-                example=[
-                    f"cli: -unit_{item} '{val}'",
-                    f"api: chip.set('unit','{item}',{val})"],
-                schelp=f"""
-                Units used for {item} when not explicitly specified.""")
 
     # Remote processing
     scparam(cfg, ['remote'],
@@ -2335,7 +2341,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'name'],
             sctype='str',
-            shorthelp=f"Package name",
+            shorthelp=f"Package: name",
             switch=f"-package_name <str>",
             example=[
                 f"cli: -package_name yac",
@@ -2344,7 +2350,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'version'],
             sctype='str',
-            shorthelp=f"Package version",
+            shorthelp=f"Package: version",
             switch=f"-package_version <str>",
             example=[
                 f"cli: -package_version 1.0",
@@ -2354,7 +2360,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'description'],
             sctype='str',
-            shorthelp=f"Package description",
+            shorthelp=f"Package: description",
             switch=f"-package_description <str>",
             example=[
                 f"cli: -package_description 'Yet another cpu'",
@@ -2364,7 +2370,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'keyword'],
             sctype='str',
-            shorthelp=f"Package keyword",
+            shorthelp=f"Package: keyword",
             switch=f"-package_keyword <str>",
             example=[
                 f"cli: -package_keyword cpu",
@@ -2373,7 +2379,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'homepage'],
             sctype='str',
-            shorthelp=f"Package project homepage",
+            shorthelp=f"Package: project homepage",
             switch=f"-package_homepage <str>",
             example=[
                 f"cli: -package_homepage index.html",
@@ -2382,7 +2388,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'doc', 'homepage'],
             sctype='str',
-            shorthelp=f"Package documentation homepage",
+            shorthelp=f"Package: documentation homepage",
             switch=f"-package_doc_homepage <str>",
             example=[
                 f"cli: -package_doc_homepage index.html",
@@ -2405,7 +2411,7 @@ def schema_package(cfg):
     for item in doctypes:
         scparam(cfg,['package', 'doc', item],
             sctype='[file]',
-            shorthelp=f"Package {item} document",
+            shorthelp=f"Package: {item} document",
             switch=f"-package_doc_{item} <str",
             example=[
                 f"cli: -package_doc_{item} {item}.pdf",
@@ -2414,7 +2420,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'repo'],
             sctype='[str]',
-            shorthelp=f"Package code repository",
+            shorthelp=f"Package: code repository",
             switch=f"-package_repo <str>",
             example=[
                 f"cli: -package_repo 'git@github.com:aolofsson/oh.git'",
@@ -2423,7 +2429,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'dependency', module],
             sctype='[str]',
-            shorthelp=f"Package version dependancies",
+            shorthelp=f"Package: version dependancies",
             switch=f"-package_dependency 'module <str>'",
             example=[
                 f"cli: -package_dependency 'hello 1.0'",
@@ -2433,7 +2439,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'target'],
             sctype='[str]',
-            shorthelp=f"Package qualified targets",
+            shorthelp=f"Package: qualified targets",
             switch=f"-package_target <str>",
             example=[
                 f"cli: -package_target 'asicflow_freepdk45'",
@@ -2442,7 +2448,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'license'],
             sctype='[str]',
-            shorthelp=f"Package license identifiers",
+            shorthelp=f"Package: license identifiers",
             switch=f"-package_license <str>",
             example=[
                 f"cli: -package_license 'Apache-2.0'",
@@ -2451,7 +2457,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'licensefile'],
             sctype='[file]',
-            shorthelp=f"Package license files",
+            shorthelp=f"Package: license files",
             switch=f"-package_licensefile <file>",
             example=[
                 f"cli: -package_licensefile './LICENSE'",
@@ -2462,7 +2468,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'location'],
             sctype='[str]',
-            shorthelp=f"Package location",
+            shorthelp=f"Package: location",
             switch=f"-package_location <file>",
             example=[
                 f"cli: -package_location 'mars'",
@@ -2473,7 +2479,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'organization'],
             sctype='[str]',
-            shorthelp=f"Package sponsoring organization",
+            shorthelp=f"Package: sponsoring organization",
             switch=f"-package_organzation <str>",
             example=[
                 f"cli: -package_organization 'humanity'",
@@ -2483,7 +2489,7 @@ def schema_package(cfg):
 
     scparam(cfg,['package', 'publickey'],
             sctype='str',
-            shorthelp=f"Package public key",
+            shorthelp=f"Package: public key",
             switch=f"-package_publickey <str>",
             example=[
                 f"cli: -package_publickey '6EB695706EB69570'",
@@ -2500,7 +2506,7 @@ def schema_package(cfg):
     for item in record:
         scparam(cfg,['package', 'author', userid, item],
                 sctype='str',
-                shorthelp=f"Package author {item}",
+                shorthelp=f"Package: author {item}",
                 switch=f"-package_author_{item} 'userid <str>'",
                 example=[
                     f"cli: -package_author_{item} 'wiley wiley@acme.com'",
@@ -2522,56 +2528,56 @@ def schema_checklist(cfg):
 
     scparam(cfg,['checklist', standard, item, 'description'],
             sctype='str',
-            shorthelp=f"Checklist item description",
-            switch=f"-checklist_description 'standard item <str>",
+            shorthelp="Checklist: item description",
+            switch="-checklist_description 'standard item <str>",
             example=[
-                f"cli: -checklist_description 'ISO D000 A-DESCRIPTION'",
-                f"api: chip.set('checklist','ISO','D000','description','A-DESCRIPTION')"],
-            schelp=f"""
+                "cli: -checklist_description 'ISO D000 A-DESCRIPTION'",
+                "api: chip.set('checklist','ISO','D000','description','A-DESCRIPTION')"],
+            schelp="""
             A short one line description of the checklist item.""")
 
     scparam(cfg,['checklist', standard, item, 'requirement'],
             sctype='str',
-            shorthelp=f"Checklist item requirement",
-            switch=f"-checklist_requirement 'standard item <str>",
+            shorthelp="Checklist: item requirement",
+            switch="-checklist_requirement 'standard item <str>",
             example=[
-                f"cli: -checklist_requirement 'ISO D000 DOCSTRING'",
-                f"api: chip.set('checklist','ISO','D000','requirement','DOCSTRING')"],
-            schelp=f"""
+                "cli: -checklist_requirement 'ISO D000 DOCSTRING'",
+                "api: chip.set('checklist','ISO','D000','requirement','DOCSTRING')"],
+            schelp="""
             A complete requirement description of the checklist item
             entered as a multi-line string.""")
 
     scparam(cfg,['checklist', standard, item, 'dataformat'],
             sctype='str',
-            shorthelp=f"Checklist item data format",
-            switch=f"-checklist_dataformat 'standard item <float>'",
+            shorthelp="Checklist: item data format",
+            switch="-checklist_dataformat 'standard item <float>'",
             example=[
-                f"cli: -checklist_dataformat 'README'",
-                f"api: chip.set('checklist','ISO','D000','dataformat','README')"],
-            schelp=f"""
+                "cli: -checklist_dataformat 'README'",
+                "api: chip.set('checklist','ISO','D000','dataformat','README')"],
+            schelp="""
             Free text description of the type of data files acceptable as
             checklist signoff validation.""")
 
     scparam(cfg,['checklist', standard, item, 'rationale'],
             sctype='[str]',
-            shorthelp=f"Checklist item rational",
-            switch=f"-checklist_rationale 'standard item <str>",
+            shorthelp="Checklist: item rational",
+            switch="-checklist_rationale 'standard item <str>",
             example=[
-                f"cli: -checklist_rational 'ISO D000 reliability'",
-                f"api: chip.set('checklist','ISO','D000','rationale','reliability')"],
-            schelp=f"""
+                "cli: -checklist_rational 'ISO D000 reliability'",
+                "api: chip.set('checklist','ISO','D000','rationale','reliability')"],
+            schelp="""
             Rationale for the the checklist item. Rationale should be a
             unique alphanumeric code used by the standard or a short one line
             or single word description.""")
 
     scparam(cfg,['checklist', standard, item, 'criteria'],
             sctype='[str]',
-            shorthelp=f"Checklist item criteria",
-            switch=f"-checklist_criteria 'standard item <float>'",
+            shorthelp="Checklist: item criteria",
+            switch="-checklist_criteria 'standard item <float>'",
             example=[
-                f"cli: -checklist_criteria 'ISO D000 errors==0'",
-                f"api: chip.set('checklist','ISO','D000','criteria','errors==0')"],
-            schelp=f"""
+                "cli: -checklist_criteria 'ISO D000 errors==0'",
+                "api: chip.set('checklist','ISO','D000','criteria','errors==0')"],
+            schelp="""
             Simple list of signoff criteria for checklist item which
             must all be met for signoff. Each signoff criteria consists of
             a metric, a relational operator, and a value in the form.
@@ -2579,46 +2585,46 @@ def schema_checklist(cfg):
 
     scparam(cfg,['checklist', standard, item, 'task'],
             sctype='[(str,str,str)]',
-            shorthelp=f"Checklist item task",
-            switch=f"-checklist_task 'standard item <(str, str, str)>'",
+            shorthelp="Checklist: item task",
+            switch="-checklist_task 'standard item <(str, str, str)>'",
             example=[
-                f"cli: -checklist_task 'ISO D000 (job0,place,0)'",
-                f"api: chip.set('checklist','ISO','D000','task',('job0','place','0'))"],
-            schelp=f"""
+                "cli: -checklist_task 'ISO D000 (job0,place,0)'",
+                "api: chip.set('checklist','ISO','D000','task',('job0','place','0'))"],
+            schelp="""
             Flowgraph job and task used to verify the checklist item.
             The parameter should be left empty for manual and for tool
             flows that bypass the SC infrastructure.""")
 
     scparam(cfg,['checklist', standard, item, 'report'],
             sctype='[file]',
-            shorthelp=f"Checklist item report",
-            switch=f"-checklist_report 'standard item <file>'",
+            shorthelp="Checklist: item report",
+            switch="-checklist_report 'standard item <file>'",
             example=[
-                f"cli: -checklist_report 'ISO D000 my.rpt'",
-                f"api: chip.set('checklist','ISO','D000','report','my.rpt')"],
-            schelp=f"""
+                "cli: -checklist_report 'ISO D000 my.rpt'",
+                "api: chip.set('checklist','ISO','D000','report','my.rpt')"],
+            schelp="""
             Filepath to report(s) of specified type documenting the successful
             validation of the checklist item.""")
 
     scparam(cfg,['checklist', standard, item, 'waiver', metric],
             sctype='[file]',
-            shorthelp=f"Checklist item metric waivers",
-            switch=f"-checklist_waiver 'standard item metric <file>'",
+            shorthelp="Checklist: item metric waivers",
+            switch="-checklist_waiver 'standard item metric <file>'",
             example=[
-                f"cli: -checklist_waiver 'ISO D000 bold my.txt'",
-                f"api: chip.set('checklist','ISO','D000','waiver','hold', 'my.txt')"],
-            schelp=f"""
+                "cli: -checklist_waiver 'ISO D000 bold my.txt'",
+                "api: chip.set('checklist','ISO','D000','waiver','hold', 'my.txt')"],
+            schelp="""
             Filepath to report(s) documenting waivers for the checklist
             item specified on a per metric basis.""")
 
     scparam(cfg,['checklist', standard, item, 'ok'],
             sctype='bool',
-            shorthelp=f"Checklist item ok",
-            switch=f"-checklist_ok 'standard item <str>'",
+            shorthelp="Checklist: item ok",
+            switch="-checklist_ok 'standard item <str>'",
             example=[
-                f"cli: -checklist_ok 'ISO D000 true'",
-                f"api: chip.set('checklist','ISO','D000','ok', True)"],
-            schelp=f"""
+                "cli: -checklist_ok 'ISO D000 true'",
+                "api: chip.set('checklist','ISO','D000','ok', True)"],
+            schelp="""
             Boolean check mark for the checklist item. A value of
             True indicates a human has inspected the all item dictionary
             parameters check out.""")
@@ -2752,23 +2758,6 @@ def schema_design(cfg):
             for FPGAs. More than one file can be supplied. Timing constraints are
             global and sourced in all MCMM scenarios.""")
 
-    scparam(cfg,['testbench'],
-            sctype='[file]',
-            copy='true',
-            shorthelp="Testbench files",
-            switch="-testbench <file>",
-            example=["cli: -testbench tb_top.v",
-                    "api: chip.set('testbench', 'tb_top.v')"],
-            schelp="""
-            A list of testbench sources. The files are read in order from first to
-            last entered. File type is inferred from the file suffix:
-            (\\*.v, \\*.vh) = Verilog
-            (\\*.vhd)      = VHDL
-            (\\*.sv)       = SystemVerilog
-            (\\*.c)        = C
-            (\\*.cpp, .cc) = C++
-            (\\*.py)       = Python""")
-
     scparam(cfg,['testmodule'],
             sctype='str',
             shorthelp="Testbench top module",
@@ -2776,84 +2765,6 @@ def schema_design(cfg):
             example=["cli: -testmodule top",
                     "api: chip.set('testmodule', 'top')"],
             schelp="""Name of the top level test module.""")
-
-    scparam(cfg,['waveform'],
-            sctype='[file]',
-            shorthelp="Testbench golden waveforms",
-            switch="-waveform <file>",
-            example=["cli: -waveform mytrace.vcd",
-                    "api: chip.set('waveform','mytrace.vcd')"],
-
-            schelp="""
-            Waveform(s) used as a golden test vectors to ensure that compilation
-            transformations do not modify the functional behavior of the source
-            code. The waveform file must be compatible with the testbench and
-            compilation flow tools.""")
-
-    #TODO: move this to datasheet
-    scparam(cfg,['clock', name, 'pin'],
-            sctype='str',
-            shorthelp="Clock driver pin",
-            switch="-clock_pin 'clkname <str>'",
-            example=["cli: -clock_pin 'clk top.pll.clkout'",
-                    "api: chip.set('clock', 'clk','pin','top.pll.clkout')"],
-            schelp="""
-            Defines a clock name alias to assign to a clock source.""")
-
-    #TODO: use ns, seconds, or specify in units?
-    scparam(cfg,['clock', name, 'period'],
-            sctype='float',
-            unit='ns',
-            shorthelp="Clock period",
-            switch="-clock_period 'clkname <float>",
-            example=["cli: -clock_period 'clk 10'",
-                    "api: chip.set('clock','clk','period','10')"],
-            schelp="""
-            Specifies the period for a clock source.""")
-
-    scparam(cfg,['clock', name, 'jitter'],
-            sctype='float',
-            unit='ns',
-            shorthelp="Clock jitter",
-            switch="-clock_jitter 'clkname <float>",
-            example=["cli: -clock_jitter 'clk 0.01'",
-                    "api: chip.set('clock','clk','jitter','0.01')"],
-            schelp="""
-            Specifies the jitter for a clock source.""")
-
-    scparam(cfg,['supply', name, 'pin'],
-            sctype='str',
-            shorthelp="Supply pin mapping",
-            switch="-supply_pin 'supplyname <str>'",
-            example=["cli: -supply_pin 'vdd vdd_0'",
-                    "api: chip.set('supply','vdd','pin','vdd_0')"],
-            schelp="""
-            Defines a supply name alias to assign to a power source.
-            A power supply source can be a list of block pins or a regulator
-            output pin.""")
-
-    # move to datasheet
-    scparam(cfg,['supply', name, 'level'],
-            sctype='float',
-            unit='V',
-            shorthelp="Supply level",
-            switch="-supply_level 'supplyname <float>'",
-            example=["cli: -supply_level 'vdd 1.0'",
-                    "api: chip.set('supply','vdd','level','1.0')"],
-            schelp="""
-            Voltage level for the name supply.
-            """)
-
-    scparam(cfg,['supply', name, 'noise'],
-            sctype='float',
-            unit='V',
-            shorthelp="Supply noise",
-            switch="-supply_noise 'supplyname <float>'",
-            example=["cli: -supply_noise 'vdd 0.005",
-                    "api: chip.set('supply','vdd','noise','0.005')"],
-            schelp="""
-            Voltage noise for the name supply.
-            """)
 
     return cfg
 
@@ -2894,7 +2805,7 @@ def schema_asic(cfg):
             sctype='str',
             scope='job',
             require='asic',
-            shorthelp="ASIC metal stackup",
+            shorthelp="ASIC: metal stackup",
             switch="-asic_stackup <str>",
             example=["cli: -asic_stackup 2MA4MB2MC",
                      "api: chip.set('asic','stackup','2MA4MB2MC')"],
@@ -2905,7 +2816,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'logiclib'],
             sctype='[str]',
             scope='job',
-            shorthelp="ASIC logic libraries",
+            shorthelp="ASIC: logic libraries",
             switch="-asic_logiclib <str>",
             example=["cli: -asic_logiclib nangate45",
                      "api: chip.set('asic', 'logiclib','nangate45')"],
@@ -2916,7 +2827,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'macrolib'],
             sctype='[str]',
             scope='job',
-            shorthelp="ASIC macro libraries",
+            shorthelp="ASIC: macro libraries",
             switch="-asic_macrolib <str>",
             example=["cli: -asic_macrolib sram64x1024",
                      "api: chip.set('asic', 'macrolib','sram64x1024')"],
@@ -2928,7 +2839,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'delaymodel'],
             sctype='str',
             scope='job',
-            shorthelp="ASIC delay model",
+            shorthelp="ASIC: delay model",
             switch="-asic_delaymodel <str>",
             example= ["cli: -asic_delaymodel ccs",
                       "api: chip.set('asic', 'delaymodel', 'ccs')"],
@@ -2940,7 +2851,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'ndr', net],
             sctype='(float,float)',
             scope='job',
-            shorthelp="ASIC non-default routing rule",
+            shorthelp="ASIC: non-default routing rule",
             switch="-asic_ndr 'netname <(float,float)>",
             example= ["cli: -asic_ndr_width 'clk (0.2,0.2)",
                     "api: chip.set('asic','ndr','clk', (0.2,0.2))"],
@@ -2952,7 +2863,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'minlayer'],
             sctype='str',
             scope='job',
-            shorthelp="ASIC minimum routing layer",
+            shorthelp="ASIC: minimum routing layer",
             switch="-asic_minlayer <str>",
             example= ["cli: -asic_minlayer m2",
                     "api: chip.set('asic', 'minlayer', 'm2')"],
@@ -2967,7 +2878,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'maxlayer'],
             sctype='str',
             scope='job',
-            shorthelp="ASIC maximum routing layer",
+            shorthelp="ASIC: maximum routing layer",
             switch="-asic_maxlayer <str>",
             example= ["cli: -asic_maxlayer m2",
                     "api: chip.set('asic', 'maxlayer', 'm2')"],
@@ -2982,7 +2893,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'maxfanout'],
             sctype='int',
             scope='job',
-            shorthelp="ASIC maximum fanout",
+            shorthelp="ASIC: maximum fanout",
             switch="-asic_maxfanout <int>",
             example= ["cli: -asic_maxfanout 64",
                     "api: chip.set('asic', 'maxfanout', '64')"],
@@ -2995,7 +2906,7 @@ def schema_asic(cfg):
             sctype='float',
             unit='um',
             scope='job',
-            shorthelp="ASIC maximum wire length",
+            shorthelp="ASIC: maximum wire length",
             switch="-asic_maxlength <float>",
             example= ["cli: -asic_maxlength 1000",
                     "api: chip.set('asic', 'maxlength', '1000')"],
@@ -3008,7 +2919,7 @@ def schema_asic(cfg):
             sctype='float',
             unit='F',
             scope='job',
-            shorthelp="ASIC maximum net capacitance",
+            shorthelp="ASIC: maximum net capacitance",
             switch="-asic_maxcap <float>",
             example= ["cli: -asic_maxcap '0.25e-12'",
                       "api: chip.set('asic', 'maxcap', '0.25e-12')"],
@@ -3018,7 +2929,7 @@ def schema_asic(cfg):
             sctype='float',
             unit='s',
             scope='job',
-            shorthelp="ASIC maximum slew",
+            shorthelp="ASIC: maximum slew",
             switch="-asic_maxslew <float>",
             example= ["cli: -asic_maxslew '0.25e-9'",
                     "api: chip.set('asic', 'maxslew', '0.25e-9')"],
@@ -3028,7 +2939,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'rclayer', sigtype],
             sctype='str',
             scope='job',
-            shorthelp="ASIC parasitics layer",
+            shorthelp="ASIC: parasitics layer",
             switch="-asic_rclayer 'sigtype <str>'",
             example= ["cli: -asic_rclayer 'clk m3",
                     "api: chip.set('asic', 'rclayer', 'clk', 'm3')"],
@@ -3042,7 +2953,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'vpinlayer'],
             sctype='str',
             scope='job',
-            shorthelp="ASIC vertical pin layer",
+            shorthelp="ASIC: vertical pin layer",
             switch="-asic_vpinlayer <str>",
             example= ["cli: -asic_vpinlayer m3",
                     "api: chip.set('asic', 'vpinlayer', 'm3')"],
@@ -3055,7 +2966,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'hpinlayer'],
             sctype='str',
             scope='job',
-            shorthelp="ASIC vertical pin layer",
+            shorthelp="ASIC: vertical pin layer",
             switch="-asic_hpinlayer <str>",
             example= ["cli: -asic_hpinlayer m4",
                     "api: chip.set('asic', 'hpinlayer', 'm4')"],
@@ -3068,7 +2979,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'density'],
             sctype='float',
             scope='job',
-            shorthelp="ASIC target core density",
+            shorthelp="ASIC: target core density",
             switch="-asic_density <float>",
             example= ["cli: -asic_density 30",
                       "api: chip.set('asic', 'density', '30')"],
@@ -3082,7 +2993,7 @@ def schema_asic(cfg):
             sctype='float',
             unit='um',
             scope='job',
-            shorthelp="ASIC block core margin",
+            shorthelp="ASIC: block core margin",
             switch="-asic_coremargin <float>",
             example= ["cli: -asic_coremargin 1",
                       "api: chip.set('asic', 'coremargin', '1')"],
@@ -3094,7 +3005,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'aspectratio'],
             sctype='float',
             scope='job',
-            shorthelp="ASIC block aspect ratio",
+            shorthelp="ASIC: block aspect ratio",
             switch="-asic_aspectratio <float>",
             example= ["cli: -asic_aspectratio 2.0",
                     "api: chip.set('asic', 'aspectratio', '2.0')"],
@@ -3109,7 +3020,7 @@ def schema_asic(cfg):
             sctype='[(float,float)]',
             unit='um',
             scope='job',
-            shorthelp="ASIC die area outline",
+            shorthelp="ASIC: die area outline",
             switch="-asic_diearea <[(float,float)]>",
             example= ["cli: -asic_diearea '(0,0)'",
                     "api: chip.set('asic', 'diearea', (0,0))"],
@@ -3123,7 +3034,7 @@ def schema_asic(cfg):
             sctype='[(float,float)]',
             unit='um',
             scope='job',
-            shorthelp="ASIC core area outline",
+            shorthelp="ASIC: core area outline",
             switch="-asic_corearea <[(float,float)]>",
             example= ["cli: -asic_corearea '(0,0)'",
                     "api: chip.set('asic', 'corearea', (0,0))"],
@@ -3137,7 +3048,7 @@ def schema_asic(cfg):
     key = 'default'
     scparam(cfg, ['asic', 'file', tool, key],
             sctype='[file]',
-            shorthelp="ASIC special file",
+            shorthelp="ASIC: special file",
             switch="-asic_file 'tool key<file>'",
             example=[
                 "cli: -asic_file 'yosys presyn ~/presyn.tcl'",
@@ -3149,7 +3060,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'dir', tool, key],
             sctype='[dir]',
-            shorthelp="ASIC special directory",
+            shorthelp="ASIC: special directory",
             switch="-asic_dir 'tool key <dir>'",
             example=[
                 "cli: -asic_dir 'lib atool db ~/libdb'",
@@ -3161,7 +3072,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'variable', tool, key],
             sctype='[str]',
-            shorthelp="ASIC special variable",
+            shorthelp="ASIC: special variable",
             switch="-asic_variable 'tool key <str>'",
             example=[
                 "cli: -asic_variable 'xyce modeltype bsim4'""",
@@ -3197,7 +3108,7 @@ def schema_asic(cfg):
     for item in names:
         scparam(cfg, ['asic', 'cells', item],
                 sctype='[str]',
-                shorthelp=f"ASIC {item} cell list",
+                shorthelp=f"ASIC: {item} cell list",
                 switch=f"-asic_cells_{item} '<str>'",
                 example=[
                     f"cli: -asic_cells_{item} '*eco*'",
@@ -3211,7 +3122,7 @@ def schema_asic(cfg):
     # Place and route parameters (optional)
     scparam(cfg, ['asic', 'pgmetal'],
             sctype='str',
-            shorthelp="ASIC powergrid layer",
+            shorthelp="ASIC: powergrid layer",
             switch="-asic_pgmetal '<str>'",
             example=["cli: -asic_pgmetal m1",
                     "api: chip.set('asic','pgmetal','m1')"],
@@ -3222,7 +3133,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'site', key, 'symmetry'],
             sctype='str',
-            shorthelp="ASIC site symmetry",
+            shorthelp="ASIC: site symmetry",
             switch="-asic_site_symmetry 'key <str>'",
             example=[
                 "cli: -library_site_symmetry 'core X Y'",
@@ -3234,7 +3145,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'site', key, 'size'],
             sctype='(float,float)',
-            shorthelp="ASIC site size",
+            shorthelp="ASIC: site size",
             switch="-asic_site_size 'key <str>'",
             example=[
                 "cli: -asic_site_size 'core (1.0,1.0)'",
