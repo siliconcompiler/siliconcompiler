@@ -1552,7 +1552,7 @@ class Chip:
             dst = self.cfg
 
         for keylist in self.getkeys(cfg=cfg):
-            if partial and keylist[0] not in ('metric', 'flowstatus', 'record'):
+            if partial and keylist[0] not in ('metric', 'record'):
                 continue
             if keylist[0] == 'history':
                 continue
@@ -3629,7 +3629,7 @@ class Chip:
         if not self.get('option', 'remote'):
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 in_task_status = status[in_step + in_index]
-                self.set('flowstatus', in_step, in_index, 'status', in_task_status)
+                self.set('flowgraph', flow, in_step, in_index, 'status', in_task_status)
                 if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self._read_manifest(cfgfile, clobber=False, partial=True)
@@ -3680,7 +3680,7 @@ class Chip:
             self.logger.error(f'No inputs selected after running {tool}')
             self._haltstep(step, index)
 
-        self.set('flowstatus', step, index, 'select', sel_inputs)
+        self.set('flowgraph', flow, step, index, 'select', sel_inputs)
 
         ##################
         # 8. Copy (link) output data from previous steps
@@ -3901,7 +3901,7 @@ class Chip:
 
         ##################
         # 22. Save a successful manifest
-        self.set('flowstatus', step, index, 'status', TaskStatus.SUCCESS)
+        self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
@@ -4019,7 +4019,7 @@ class Chip:
             else:
                 indexlist[step] = self.getkeys('flowgraph', flow, step)
 
-        # Reset flowstatus/records/metrics by probing build directory. We need
+        # Reset flowgraph/records/metrics by probing build directory. We need
         # to set values to None for steps we may re-run so that merging
         # manifests from _runtask() actually updates values.
         should_resume = self.get("option", 'resume')
@@ -4050,7 +4050,7 @@ class Chip:
                 # had all indices fail.
                 for index in self.getkeys('flowgraph', flow, step):
                     if index in indexlist[step]:
-                        self.set('flowstatus', step, index, 'status', None)
+                        self.set('flowgraph', flow, step, index, 'status', None)
                         for metric in self.getkeys('metric', 'default', 'default'):
                             self.set('metric', step, index, metric, 'real', None)
                         for record in self.getkeys('record', 'default', 'default'):
@@ -4123,7 +4123,7 @@ class Chip:
         else:
             status = {}
 
-            # Populate status dict with any flowstatus values that have already
+            # Populate status dict with any flowgraph status values that have already
             # been set.
             for step in self.getkeys('flowgraph', flow):
                 for index in self.getkeys('flowgraph', flow, step):
@@ -4262,7 +4262,7 @@ class Chip:
                 if not index_succeeded:
                     raise SiliconCompilerError('Run() failed, see previous errors.')
 
-            # On success, write out status dict to 'flowstatus'. We do this
+            # On success, write out status dict to flowgraph status'. We do this
             # since certain scenarios won't be caught by reading in manifests (a
             # failing step doesn't dump a manifest). For example, if the
             # steplist's final step has two indices and one fails.
@@ -4270,7 +4270,7 @@ class Chip:
                 for index in indexlist[step]:
                     stepstr = step + index
                     if status[stepstr] != TaskStatus.PENDING:
-                        self.set('flowstatus', step, index, 'status', status[stepstr])
+                        self.set('flowgraph', flow, step, index, 'status', status[stepstr])
 
 
             # Merge cfg back from last executed runsteps.
@@ -4296,7 +4296,7 @@ class Chip:
                 if status[laststep+index] == TaskStatus.SUCCESS:
                     self._read_manifest(lastcfg, clobber=False, partial=True)
                 else:
-                    self.set('flowstatus', laststep, index, 'status', TaskStatus.ERROR)
+                    self.set('flowgraph', flow, laststep, index, 'status', TaskStatus.ERROR)
 
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
