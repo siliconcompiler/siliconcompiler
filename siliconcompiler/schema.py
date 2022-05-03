@@ -2308,7 +2308,6 @@ def schema_option(cfg):
             final layout and tool used to display the layout is
             flow dependent.""")
 
-
     scparam(cfg, ['option', 'autoinstall'],
             sctype='bool',
             shorthelp=f"Option: auto install packages",
@@ -2428,6 +2427,17 @@ def schema_option(cfg):
             the file varies and depends on the tool used. SC simply passes on
             the filepath toe the tool executable.""")
 
+    scparam(cfg,['option', 'footprint'],
+            sctype='str',
+            shorthelp="Design footprint",
+            switch='-footprint <str>',
+            example=["cli: -fooprint 12track",
+                     "api: chip.set('option','footprint','12track')"],
+            schelp="""
+            Specifier string that identifies the design footprint. For
+            standard cell row based libraries, the footprint refers to
+            the cell library height and musth match the foorprint used in
+            the PDK to categorize apr technology files.""")
 
     return cfg
 
