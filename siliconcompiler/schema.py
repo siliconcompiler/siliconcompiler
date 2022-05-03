@@ -130,7 +130,7 @@ def schema_cfg():
     cfg = schema_package(cfg)
     cfg = schema_checklist(cfg)
     cfg = schema_design(cfg)
-    cfg = schema_read(cfg)
+    cfg = schema_input(cfg)
     cfg = schema_fpga(cfg)
     cfg = schema_asic(cfg)
     cfg = schema_mcmm(cfg)
@@ -2859,31 +2859,22 @@ def schema_design(cfg):
 # Reading Files
 ###########################
 
-def schema_read(cfg, step='default', index='default'):
+def schema_input(cfg):
 
-    formats = ['spef',
-               'sdf',
-               'vcd',
-               'saif',
-               'gds',
-               'def',
-               'gerber',
-               'netlist',
-               'sdc',
-               'pcf']
+    filetype = 'default'
 
-    for item in formats:
-        scparam(cfg,['read', item, step, index],
+    scparam(cfg,['input', filetype],
                 sctype='[file]',
                 scope='job',
                 copy='true',
-                shorthelp=f"Read {item.upper()} file",
-                switch=f"-read_{item} 'step index <file>'",
-                example=[f"cli: -read_{item} 'sta 0 mydesign.{item}'",
-                         f"api: chip.set('read','{item}','sta','0','mydesign.{item}')"],
+                shorthelp=f"Input file",
+                switch=f"-input 'filetype <file>'",
+                example=[f"cli: -input 'verilog mydesign.sv'",
+                         f"api: chip.set('input','verilog','mydesign.sv')"],
                 schelp=f"""
-                Reads files(s) formatted in {item.upper()} specified on a per step
-                and index basis.""")
+                List of file(s) of specified filetype to be used as input for the
+                current run() call.""")
+
 
     return cfg
 
