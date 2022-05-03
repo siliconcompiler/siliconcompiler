@@ -533,7 +533,7 @@ class Chip:
 
         """
 
-        self.set('target', name)
+        self.set('option', 'target', name)
 
         func = self.find_function(name, 'setup', 'targets')
         if func is not None:
@@ -4101,7 +4101,7 @@ class Chip:
             if os.path.isfile(cfg):
                 local_dir = self.get('option','dir')
                 self.read_manifest(cfg, clobber=True, clear=True)
-                self.set('dir', local_dir)
+                self.set('option', 'dir', local_dir)
             else:
                 # Hack to find first failed step by checking for presence of
                 # output manifests.
@@ -4165,7 +4165,7 @@ class Chip:
                         m = re.match(self.get('option','jobname')+r'(\d+)', item)
                         if m:
                             jobid = max(jobid, int(m.group(1)))
-                    self.set('jobid', str(jobid + 1))
+                    self.set('option', 'jobid', str(jobid + 1))
             except:
                 pass
 
