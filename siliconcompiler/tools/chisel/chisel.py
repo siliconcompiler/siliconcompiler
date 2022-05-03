@@ -57,6 +57,8 @@ def setup(chip):
     # Input/Output requirements
     chip.add('eda', tool, 'output', step, index, chip.get('design') + '.v')
 
+    chip.set('eda', tool, 'keep', step, index, ['build.sbt', 'SCDriver.scala'])
+
 def parse_version(stdout):
     # sbt version in this project: 1.5.5
     # sbt script version: 1.5.5

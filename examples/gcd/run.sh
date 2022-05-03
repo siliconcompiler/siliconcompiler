@@ -20,4 +20,5 @@ sc gcd.v \
    -relax \
    -design gcd \
    -track \
+   -clean \
    -scpath $SCRIPT_DIR

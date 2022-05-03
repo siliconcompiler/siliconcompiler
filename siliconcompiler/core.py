@@ -3927,7 +3927,7 @@ class Chip:
         ##################
         # 24. Clean up non-essential files
         if self.get('clean'):
-            self.logger.error('Self clean not implemented')
+            self._eda_clean(tool, step, index)
 
         ##################
         # 25. return to original directory
@@ -3938,6 +3938,34 @@ class Chip:
         if log:
             self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
         sys.exit(1)
+
+    ###########################################################################
+    def _eda_clean(self, tool, step, index):
+        '''Cleans up work directory of unecessary files.
+
+        Assumes our cwd is the workdir for step and index.
+        '''
+
+        keep = ['inputs', 'outputs', 'reports', f'{step}.log', 'replay.sh']
+
+        manifest_format = self.get('eda', tool, 'format')
+        if manifest_format:
+            keep.append(f'sc_manifest.{manifest_format}')
+
+        for suffix in self.getkeys('eda', tool, 'regex', step, index):
+            keep.append(f'{step}.{suffix}')
+
+        # Tool-specific keep files
+        if self.valid('eda', tool, 'keep', step, index):
+            keep.extend(self.get('eda', tool, 'keep', step, index))
+
+        for path in os.listdir():
+            if path in keep:
+                continue
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
 
     ###########################################################################
     def run(self):

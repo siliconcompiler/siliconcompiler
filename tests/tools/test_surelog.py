@@ -8,7 +8,8 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_surelog(scroot):
+@pytest.mark.parametrize('clean', [False, True])
+def test_surelog(scroot, clean):
     gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
     step = "import"
@@ -19,12 +20,19 @@ def test_surelog(scroot):
     chip.add('source', gcd_src)
     chip.set('design', design)
     chip.set('mode', 'sim')
+    chip.set('clean', clean)
     chip.node('surelog', step, 'surelog')
     chip.set('flow', 'surelog')
 
     chip.run()
 
-    assert chip.find_result('v', step=step) is not None
+    output = chip.find_result('v', step=step)
+    assert output is not None
+
+    # slpp_all/ should only exist when clean is False
+    workdir = '/'.join(output.split('/')[:-2])
+    intermediate_dir = os.path.join(workdir, 'slpp_all')
+    assert os.path.isdir(intermediate_dir) != clean
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -69,6 +77,7 @@ def test_replay(scroot):
     chip.node('surelog', step, 'surelog')
     chip.set('flow', 'surelog')
     chip.set('quiet', True)
+    chip.set('clean', True) # replay should work even with clean=True
     chip.set('eda', 'surelog', 'env', step, '0', 'SLOG_ENV', 'SUCCESS')
 
     chip.run()
