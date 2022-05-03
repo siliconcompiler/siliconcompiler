@@ -69,7 +69,10 @@ class Chip:
     """
 
     ###########################################################################
-    def __init__(self, design=None, loglevel=None):
+    def __init__(self, design, loglevel=None):
+
+        # object name anchor (required!)
+        self.design = design
 
         # version numbers
         self.scversion = _metadata.version
