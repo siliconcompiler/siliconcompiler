@@ -1486,11 +1486,15 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             defvalue='log',
             scope='job',
             shorthelp="Redirection for stdout",
-            switch="-eda_stdout_destination 'tool step index <str>'",
+            switch="-eda_stdout_destination 'tool step index [log|output|none]'",
             example=["cli: -eda_stdout_destination 'ghdl import 0 log'",
                     "api: chip.set('eda','ghdl','stdout','import','0','destination','log')"],
             schelp="""
-            Defines where to direct the output generated over stdout.""")
+            Defines where to direct the output generated over stdout.
+            Supported options are:
+            none: the stream generated to STDOUT is ignored
+            log: the generated stream is stored in <step>.<suffix>; if not in quiet mode, it is additionally dumped to the display
+            output: the generated stream is stored in outputs/<design>.<suffix>""")
 
     scparam(cfg, ['eda', tool, 'stdout', step, index, 'suffix'],
             sctype='str',
@@ -1508,11 +1512,15 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             defvalue='log',
             scope='job',
             shorthelp="Redirection for stderr",
-            switch="-eda_stderr_destination 'tool step index <str>'",
+            switch="-eda_stderr_destination 'tool step index [log|output|none]'",
             example=["cli: -eda_stderr_destination 'ghdl import 0 log'",
                     "api: chip.set('eda','ghdl','stderr','import','0','destination','log')"],
             schelp="""
-            Defines where to direct the output generated over stderr.""")
+            Defines where to direct the output generated over stderr.
+            Supported options are:
+            none: the stream generated to STDERR is ignored
+            log: the generated stream is stored in <step>.<suffix>; if not in quiet mode, it is additionally dumped to the display
+            output: the generated stream is stored in outputs/<design>.<suffix>""")
 
     scparam(cfg, ['eda', tool, 'stderr', step, index, 'suffix'],
             sctype='str',

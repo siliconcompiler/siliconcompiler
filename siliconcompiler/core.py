@@ -3775,37 +3775,43 @@ class Chip:
                     import pty # Note: this import throws exception on Windows
                     retcode = pty.spawn(cmdlist, read)
             else:
-                stdoutFile = ''
+                stdout_file = ''
+                stdout_suffix = self.get('eda', tool, 'stdout', step, index, 'suffix')
                 if self.get('eda', tool, 'stdout', step, index, 'destination') == 'log':
-                    stdoutFile = step + "." + self.get('eda', tool, 'stdout', step, index, 'suffix')
+                    stdout_file = step + "." + stdout_suffix
                 elif self.get('eda', tool, 'stdout', step, index, 'destination') == 'output':
-                    stdoutFile =  os.path.join('outputs', self.get('design')) + "." + self.get('eda', tool, 'stdout', step, index, 'suffix')
+                    stdout_file =  os.path.join('outputs', self.get('design')) + "." + stdout_suffix
                 elif self.get('eda', tool, 'stdout', step, index, 'destination') == 'none':
-                    stdoutFile =  os.devnull
+                    stdout_file =  os.devnull
                 else:
                     destination = self.get('eda', tool, 'stdout', step, index, 'destination')
                     self.logger.error(f'stdout/destination has no support for {destination}. Use [log|output|none].')
                     self._haltstep(step, index)
-                stderrFile = ''
+                stderr_file = ''
+                stderr_suffix = self.get('eda', tool, 'stderr', step, index, 'suffix')
                 if self.get('eda', tool, 'stderr', step, index, 'destination') == 'log':
-                    stderrFile = step + "." + self.get('eda', tool, 'stderr', step, index, 'suffix')
+                    stderr_file = step + "." + stderr_suffix
                 elif self.get('eda', tool, 'stderr', step, index, 'destination') == 'output':
-                    stderrFile =  os.path.join('outputs', self.get('design')) + "." + self.get('eda', tool, 'stderr', step, index, 'suffix')
+                    stderr_file =  os.path.join('outputs', self.get('design')) + "." + stderr_suffix
                 elif self.get('eda', tool, 'stderr', step, index, 'destination') == 'none':
-                    stderrFile =  os.devnull
+                    stderr_file =  os.devnull
                 else:
                     destination = self.get('eda', tool, 'stderr', step, index, 'destination')
                     self.logger.error(f'stderr/destination has no support for {destination}. Use [log|output|none].')
                     self._haltstep(step, index)
 
-                with open(stdoutFile, 'w') as stdout_writer, open(stdoutFile, 'r') as stdout_reader, open(stderrFile, 'w') as stderr_writer, open(stderrFile, 'r') as stderr_reader:
+                with open(stdout_file, 'w') as stdout_writer, open(stdout_file, 'r') as stdout_reader, open(stderr_file, 'w') as stderr_writer, open(stderr_file, 'r') as stderr_reader:
                     # Use separate reader/writer file objects as hack to display
                     # live output in non-blocking way, so we can monitor the
                     # timeout. Based on https://stackoverflow.com/a/18422264.
-                    isStdoutLog = self.get('eda', tool, 'stdout', step, index, 'destination') == 'log'
-                    isStderrLog = self.get('eda', tool, 'stderr', step, index, 'destination') == 'log' and stderrFile != stdoutFile
-                    if stderrFile == stdoutFile:
-                        stderrFile = subprocess.STDOUT
+                    is_stdout_log = self.get('eda', tool, 'stdout', step, index, 'destination') == 'log'
+                    is_stderr_log = self.get('eda', tool, 'stderr', step, index, 'destination') == 'log' and stderr_file != stdout_file
+                    # if STDOUT and STDERR are to be redirected to the same file, 
+                    # use a single writer
+                    if stderr_file == stdout_file:
+                        stderr_writer.close()
+                        stderr_reader.close()
+                        stderr_writer = subprocess.STDOUT
 
                     cmd_start_time = time.time()
                     proc = subprocess.Popen(cmdlist,
@@ -3824,9 +3830,9 @@ class Chip:
 
                         # Loop until process terminates
                         if not quiet:
-                            if isStdoutLog:
+                            if is_stdout_log:
                                 sys.stdout.write(stdout_reader.read())
-                            if isStderrLog:
+                            if is_stderr_log:
                                 sys.stdout.write(stderr_reader.read())
                         if timeout is not None and time.time() - cmd_start_time > timeout:
                             self.logger.error(f'Step timed out after {timeout} seconds')
@@ -3836,9 +3842,9 @@ class Chip:
 
                     # Read the remaining
                     if not quiet:
-                        if isStdoutLog:
+                        if is_stdout_log:
                             sys.stdout.write(stdout_reader.read())
-                        if isStderrLog:
+                        if is_stderr_log:
                             sys.stdout.write(stderr_reader.read())
                     retcode = proc.returncode
 
