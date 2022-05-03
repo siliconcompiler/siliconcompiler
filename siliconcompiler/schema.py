@@ -19,7 +19,7 @@ def scparam(cfg,
             sctype=None,
             require=None,
             defvalue=None,
-            scope='global',
+            scope='job',
             copy='false',
             lock='false',
             hashalgo='sha256',
@@ -112,42 +112,66 @@ def schema_cfg():
 
     # Basic schema setup
     cfg = {}
+
+    # Place holder dictioaries updated by core methods()
     cfg['history'] = {}
+    cfg['library'] = {}
 
-    # Runtime options
-    cfg = schema_units(cfg)
-    cfg = schema_options(cfg)
+    # Compilation Entry Point
+    scparam(cfg,['design'],
+            sctype='str',
+            require='all',
+            shorthelp="Design top module name",
+            switch="-design <str>",
+            example=["cli: -design hello_world",
+                    "api: chip.set('design', 'hello_world')"],
+            schelp="""Name of the top level module to compile.
+            Required for all designs with more than one module.""")
+
+    # Source files
+    filetype = 'default'
+    scparam(cfg,['source', 'file', filetype],
+            sctype='[file]',
+            scope='job',
+            copy='true',
+            shorthelp="Source files",
+            example=[
+                "cli: hello_world.v",
+                "api: chip.set('source','file','verilog','hello_world.v')"],
+            schelp="""
+            List of flow input files specifed by type. The filetype name must
+            align with the parameter names within the flow and tool setup
+            scripts. Filetypes accepted by the SC flows include: python, c,
+            systemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,
+            saif, vcd, spef, sdf.""")
+
+    # Inputs and constraints
+    cfg = schema_constraint(cfg)
+
+    # Options
+    cfg = schema_option(cfg)
     cfg = schema_arg(cfg)
+    cfg = schema_unit(cfg)
 
-    # Design Information
-    cfg = schema_design(cfg)
-    cfg = schema_model(cfg)
-
-    # Constraints
-    #cfg = schema_constraints(cfg)
-
-    # Unified package manager
-    cfg = schema_sup(cfg)
-
-    # Project configuration
-    cfg = schema_package(cfg)
-    cfg = schema_checklist(cfg)
-    cfg = schema_design(cfg)
-    cfg = schema_input(cfg)
+    # Technology configuration
     cfg = schema_fpga(cfg)
     cfg = schema_asic(cfg)
-    cfg = schema_mcmm(cfg)
-
-    # Flow Information
-    cfg = schema_flowgraph(cfg)
-    cfg = schema_tool(cfg)
-
-    # PDK
     cfg = schema_pdk(cfg)
 
-    # Compilation records
+    # Flows
+    cfg = schema_tool(cfg)
+    cfg = schema_flowgraph(cfg)
+
+    # Metrics
+    cfg = schema_checklist(cfg)
     cfg = schema_metric(cfg)
     cfg = schema_record(cfg)
+
+    # Modeling
+    cfg = schema_model(cfg)
+
+    # Packaging
+    cfg = schema_package(cfg)
 
     return cfg
 
@@ -1301,7 +1325,7 @@ def schema_arg(cfg):
     key = 'default'
     scparam(cfg, ['arg', 'pdk', key],
             sctype='[str]',
-            scope='job',
+            scope='scratch',
             shorthelp="ARG: PDK argument",
             switch="-arg_pdk 'key <str>",
             example=[
@@ -1314,7 +1338,7 @@ def schema_arg(cfg):
 
     scparam(cfg, ['arg', 'flow', key],
             sctype='[str]',
-            scope='job',
+            scope='scratch',
             shorthelp="ARG: Flow argument",
             switch="-arg_flow 'key <str>",
             example=[
@@ -1648,54 +1672,6 @@ def schema_metric(cfg, step='default', index='default',group='default'):
 
     return cfg
 
-
-###########################################################################
-# Silicon Unified Packager (SUP)
-###########################################################################
-
-def schema_sup(cfg, module='default'):
-
-    scparam(cfg, ['option', 'autoinstall'],
-            sctype='bool',
-            shorthelp=f"Option: auto install packages",
-            switch=f"-option_autoinstall <bool>",
-            example=[
-                f"cli: -option_autoinstall true'",
-                f"api: chip.set('option', 'autoinstall', True)"],
-            schelp=f"""
-            Enables automatic installation of missing dependencies from
-            the registry.""")
-
-    scparam(cfg, ['option', 'registry'],
-            sctype='[dir]',
-            shorthelp=f"Option: package registry",
-            switch=f"-option_registry <dir>",
-            example=[
-                f"cli: -option_registry '~/myregistry'",
-                f"api: chip.set('option','registry','~/myregistry')"],
-            schelp=f"""
-            List of Silicon Unified Packager (SUP) registry directories.
-            Directories can be local file system folders or
-            publicly available registries served up over http. The naming
-            convention for registry packages is:
-            <name>/<name>-<version>.json(.<gz>)?
-            """)
-
-    scparam(cfg, ['package', 'depgraph', module],
-            sctype='[(str,str)]',
-            shorthelp=f"Package dependency list",
-            switch=f"-package_depgraph 'module <(str,str)>'",
-            example=[
-                f"cli: -package_depgraph 'top (cpu,1.0.1)'",
-                f"api: chip.set('package','depgraph','top',('cpu','1.0.1'))"],
-            schelp=f"""
-            List of Silicon Unified Packager (SUP) dependencies
-            used by the design specified on a per module basis a
-            list of string tuples ('name','version').""")
-
-    return cfg
-
-
 ###########################################################################
 # Design Tracking
 ###########################################################################
@@ -1785,9 +1761,15 @@ def schema_record(cfg, step='default', index='default'):
 
     return cfg
 
+###########################################################################
+# Global units
+###########################################################################
 
-def schema_units(cfg):
-    # Units
+def schema_unit(cfg):
+    '''
+
+    '''
+
     units = {
         'time' : 'ns',
         'length' : 'um',
@@ -1804,6 +1786,7 @@ def schema_units(cfg):
     for item,val in units.items():
         scparam(cfg, ['unit', item],
                 sctype='str',
+                scope='job',
                 defvalue=val,
                 shorthelp=f"Unit: {item}",
                 switch=f"-unit_{item} '<str>'",
@@ -1819,15 +1802,13 @@ def schema_units(cfg):
 # Run Options
 ###########################################################################
 
-#TODO add scope below
-
-def schema_options(cfg):
-    ''' Run-time options
+def schema_option(cfg):
+    ''' Technology agnostic run time options
     '''
 
     scparam(cfg,['option', 'version'],
             sctype='bool',
-            shorthelp="Option: print software version",
+            shorthelp="Pint software version",
             switch="-version <bool>",
             example=[
                 "cli: -version",
@@ -1835,9 +1816,6 @@ def schema_options(cfg):
             schelp="""Command line switch to print the schema and software
             version numbers in an 'sc' command line app.""")
 
-
-
-    # Remote processing
     scparam(cfg, ['option', 'remote'],
             sctype='bool',
             scope='job',
@@ -2239,7 +2217,7 @@ def schema_options(cfg):
             Specifies that tools should be lenient and suppress some
             warnings that may or may not indicate design issues.""")
 
-    scparam(cfg, ['option','resume'],
+    scparam(cfg, ['option', 'resume'],
             sctype='bool',
             scope='job',
             shorthelp="Resume build",
@@ -2252,7 +2230,7 @@ def schema_options(cfg):
             flow that failed partway through.
             """)
 
-    scparam(cfg, ['option','track'],
+    scparam(cfg, ['option', 'track'],
             sctype='bool',
             scope='job',
             shorthelp="Enable provenance tracking",
@@ -2265,7 +2243,7 @@ def schema_options(cfg):
             being recorded in the manifest so only turn on this feature
             if you have control of the final manifest.""")
 
-    scparam(cfg, ['option','trace'],
+    scparam(cfg, ['option', 'trace'],
             sctype='bool',
             scope='job',
             shorthelp="Enable debug traces",
@@ -2275,7 +2253,7 @@ def schema_options(cfg):
             schelp="""
             Enables debug tracing during compilation and/or runtime.""")
 
-    scparam(cfg, ['option','skipall'],
+    scparam(cfg, ['option', 'skipall'],
             sctype='bool',
             scope='job',
             shorthelp="Skip all tasks",
@@ -2287,7 +2265,7 @@ def schema_options(cfg):
             check of tool and setup without having to run through each
             step of a flow to completion.""")
 
-    scparam(cfg, ['option','skipcheck'],
+    scparam(cfg, ['option', 'skipcheck'],
             sctype='bool',
             scope='job',
             shorthelp="Skip manifest check",
@@ -2299,7 +2277,7 @@ def schema_options(cfg):
             accelerating initial bringup of tool/flow/pdk/libs targets.
             The flag should not be used for production compilation.""")
 
-    scparam(cfg, ['option','copyall'],
+    scparam(cfg, ['option', 'copyall'],
             sctype='bool',
             scope='job',
             shorthelp="Copy all inputs to build directory",
@@ -2311,7 +2289,7 @@ def schema_options(cfg):
             build directory, overriding the per schema entry copy
             settings.""")
 
-    scparam(cfg, ['option','show'],
+    scparam(cfg, ['option', 'show'],
             sctype='bool',
             scope='job',
             shorthelp="Show layout",
@@ -2324,6 +2302,127 @@ def schema_options(cfg):
             final layout and tool used to display the layout is
             flow dependent.""")
 
+
+    scparam(cfg, ['option', 'autoinstall'],
+            sctype='bool',
+            shorthelp=f"Option: auto install packages",
+            switch=f"-option_autoinstall <bool>",
+            example=[
+                f"cli: -option_autoinstall true'",
+                f"api: chip.set('option', 'autoinstall', True)"],
+            schelp=f"""
+            Enables automatic installation of missing dependencies from
+            the registry.""")
+
+    scparam(cfg, ['option', 'registry'],
+            sctype='[dir]',
+            shorthelp=f"Option: package registry",
+            switch=f"-option_registry <dir>",
+            example=[
+                f"cli: -option_registry '~/myregistry'",
+                f"api: chip.set('option','registry','~/myregistry')"],
+            schelp=f"""
+            List of Silicon Unified Packager (SUP) registry directories.
+            Directories can be local file system folders or
+            publicly available registries served up over http. The naming
+            convention for registry packages is:
+            <name>/<name>-<version>.json(.<gz>)?
+            """)
+
+    scparam(cfg,['option', 'entrypoint'],
+            sctype='str',
+            shorthelp="Program entry point",
+            switch="-entrypoint <str>",
+            example=["cli: -entrypoint top",
+                    "api: chip.set('option', 'entrypoint', 'top')"],
+            schelp="""Alternative entrypoint for compilation and
+            simulation. The default entry point is 'design'.""")
+
+    scparam(cfg,['option', 'idir'],
+            sctype='[dir]',
+            shorthelp="Design search paths",
+            switch=['+incdir+<dir>', '-I <dir>'],
+            example=[
+                "cli: '+incdir+./mylib'",
+                "api: chip.set('option','idir','./mylib')"],
+            schelp="""
+            Search paths to look for files included in the design using
+            the ```include`` statement.""")
+
+    scparam(cfg,['option', 'ydir'],
+            sctype='[dir]',
+            shorthelp="Design module search paths",
+            switch='-y <dir>',
+            example=[
+                "cli: -y './mylib'",
+                "api: chip.set('option','ydir','./mylib')"],
+            schelp="""
+            Search paths to look for verilog modules found in the the
+            source list. The import engine will look for modules inside
+            files with the specified +libext+ param suffix.""")
+
+    scparam(cfg,['option', 'vlib'],
+            sctype='[file]',
+            shorthelp="Design libraries",
+            switch='-v <file>',
+            example=["cli: -v './mylib.v'",
+                     "api: chip.set('option', 'vlib','./mylib.v')"],
+            schelp="""
+            List of library files to be read in. Modules found in the
+            libraries are not interpreted as root modules.""")
+
+    scparam(cfg,['option', 'define'],
+            sctype='[str]',
+            shorthelp="Design pre-processor symbol",
+            switch="-D<str>",
+            example=["cli: -DCFG_ASIC=1",
+                     "api: chip.set('option','define','CFG_ASIC=1')"],
+            schelp="""Symbol definition for source preprocessor.""")
+
+    scparam(cfg,['option', 'libext'],
+            sctype='[str]',
+            shorthelp="Design file extensions",
+            switch="+libext+<str>",
+            example=[
+                "cli: +libext+sv",
+                "api: chip.set('option','libext','sv')"],
+            schelp="""
+            List of file extensions that should be used for finding modules.
+            For example, if -y is specified as ./lib", and '.v' is specified as
+            libext then the files ./lib/\\*.v ", will be searched for
+            module matches.""")
+
+    name = 'default'
+    scparam(cfg,['option', 'param', name],
+            sctype='str',
+            shorthelp="Design parameter",
+            switch="-param 'name <str>'",
+            example=[
+                "cli: -param 'N 64'",
+                "api: chip.set('option','param','N', '64')"],
+            schelp="""
+            Sets a top verilog level design module parameter. The value
+            is limited to basic data literals. The parameter override is
+            passed into tools such as Verilator and Yosys. The parameters
+            support Verilog integer literals (64'h4, 2'b0, 4) and strings.
+            Name of the top level module to compile.""")
+
+
+    scparam(cfg,['option', 'cmdfile'],
+            sctype='[file]',
+            shorthelp="Design compilation command file",
+            switch='-f <file>',
+            example=["cli: -f design.f",
+                     "api: chip.set('option', 'cmdfile','design.f')"],
+            schelp="""
+            Read the specified file, and act as if all text inside it was specified
+            as command line parameters. Supported by most verilog simulators
+            including Icarus and Verilator. The format of the file is not strongly
+            standardized. Support for comments and environment variables within
+            the file varies and depends on the tool used. SC simply passes on
+            the filepath toe the tool executable.""")
+
+
     return cfg
 
 ############################################
@@ -2334,6 +2433,18 @@ def schema_package(cfg):
 
     userid = 'default'
     module = 'default'
+
+    scparam(cfg, ['package', 'depgraph', module],
+            sctype='[(str,str)]',
+            shorthelp=f"Package dependency list",
+            switch=f"-package_depgraph 'module <(str,str)>'",
+            example=[
+                f"cli: -package_depgraph 'top (cpu,1.0.1)'",
+                f"api: chip.set('package','depgraph','top',('cpu','1.0.1'))"],
+            schelp=f"""
+            List of Silicon Unified Packager (SUP) dependencies
+            used by the design specified on a per module basis a
+            list of string tuples ('name','version').""")
 
     scparam(cfg,['package', 'name'],
             sctype='str',
@@ -2624,166 +2735,6 @@ def schema_checklist(cfg):
             Boolean check mark for the checklist item. A value of
             True indicates a human has inspected the all item dictionary
             parameters check out.""")
-
-    return cfg
-
-############################################
-# Design Setup
-############################################
-
-def schema_design(cfg):
-    ''' Design Sources
-    '''
-    name = 'default'
-
-    scparam(cfg,['design'],
-            sctype='str',
-            require='all',
-            shorthelp="Design top module name",
-            switch="-design <str>",
-            example=["cli: -design hello_world",
-                    "api: chip.set('design', 'hello_world')"],
-            schelp="""Name of the top level module to compile.
-            Required for all designs with more than one module.""")
-
-    scparam(cfg,['source'],
-            sctype='[file]',
-            copy='true',
-            shorthelp="Design source files",
-            example=["cli: hello_world.v",
-                     "api: chip.set('source', 'hello_world.v')"],
-            schelp="""
-            A list of source files to read in for elaboration. The files are read
-            in order from first to last entered. File type is inferred from the
-            file suffix.
-            (\\*.v, \\*.vh) = Verilog
-            (\\*.vhd)       = VHDL
-            (\\*.sv)        = SystemVerilog
-            (\\*.c)         = C
-            (\\*.cpp, .cc)  = C++
-            (\\*.py)        = Python""")
-
-    scparam(cfg,['param', name],
-            sctype='str',
-            shorthelp="Design parameter",
-            switch="-param 'name <str>'",
-            example=["cli: -param 'N 64'",
-                    "api: chip.set('param','N', '64')"],
-            schelp="""
-            Sets a top level module parameter. The value
-            is limited to basic data literals. The parameter override is
-            passed into tools such as Verilator and Yosys. The parameters
-            support Verilog integer literals (64'h4, 2'b0, 4) and strings.
-            Name of the top level module to compile.""")
-
-    scparam(cfg,['define'],
-            sctype='[str]',
-            shorthelp="Design pre-processor symbol",
-            switch="-D<str>",
-            example=["cli: -DCFG_ASIC=1",
-                     "api: chip.set('define','CFG_ASIC=1')"],
-            schelp="""Symbol definition for source preprocessor.""")
-
-    scparam(cfg,['idir'],
-            sctype='[dir]',
-            shorthelp="Design search paths",
-            switch=['+incdir+<dir>', '-I <dir>'],
-            example=["cli: '+incdir+./mylib'",
-                    "api: chip.set('idir','./mylib')"],
-            schelp="""
-            Search paths to look for files included in the design using
-            the ```include`` statement.""")
-
-    scparam(cfg,['ydir'],
-            sctype='[dir]',
-            shorthelp="Design module search paths",
-            switch='-y <dir>',
-            example=["cli: -y './mylib'",
-                    "api: chip.set('ydir','./mylib')"],
-            schelp="""
-            Search paths to look for verilog modules found in the the
-            source list. The import engine will look for modules inside
-            files with the specified +libext+ param suffix.""")
-
-    scparam(cfg,['vlib'],
-            sctype='[file]',
-            shorthelp="Design libraries",
-            switch='-v <file>',
-            example=["cli: -v './mylib.v'",
-                     "api: chip.set('vlib','./mylib.v')"],
-            schelp="""
-            List of library files to be read in. Modules found in the
-            libraries are not interpreted as root modules.""")
-
-    scparam(cfg,['libext'],
-            sctype='[str]',
-            shorthelp="Design file extensions",
-            switch="+libext+<str>",
-            example=["cli: +libext+sv",
-                    "api: chip.set('libext','sv')"],
-            schelp="""
-            List of file extensions that should be used for finding modules.
-            For example, if -y is specified as ./lib", and '.v' is specified as
-            libext then the files ./lib/\\*.v ", will be searched for
-            module matches.""")
-
-    scparam(cfg,['cmdfile'],
-            sctype='[file]',
-            shorthelp="Design compilation command file",
-            switch='-f <file>',
-            example=["cli: -f design.f",
-                     "api: chip.set('cmdfile','design.f')"],
-            schelp="""
-            Read the specified file, and act as if all text inside it was specified
-            as command line parameters. Supported by most verilog simulators
-            including Icarus and Verilator. The format of the file is not strongly
-            standardized. Support for comments and environment variables within
-            the file varies and depends on the tool used. SC simply passes on
-            the filepath toe the tool executable.""")
-
-    scparam(cfg,['constraint'],
-            sctype='[file]',
-            copy='true',
-            shorthelp="Design constraints files",
-            switch="-constraint <file>",
-            example=["cli: -constraint top.sdc",
-                    "api: chip.set('constraint','top.sdc')"],
-            schelp="""
-            List of global constraints for the design to use during compilation.
-            Types of constraints include timing (SDC) and pin mappings files (PCF)
-            for FPGAs. More than one file can be supplied. Timing constraints are
-            global and sourced in all MCMM scenarios.""")
-
-    scparam(cfg,['testmodule'],
-            sctype='str',
-            shorthelp="Testbench top module",
-            switch="-testmodule <str>",
-            example=["cli: -testmodule top",
-                    "api: chip.set('testmodule', 'top')"],
-            schelp="""Name of the top level test module.""")
-
-    return cfg
-
-###########################
-# Reading Files
-###########################
-
-def schema_input(cfg):
-
-    filetype = 'default'
-
-    scparam(cfg,['input', filetype],
-                sctype='[file]',
-                scope='job',
-                copy='true',
-                shorthelp=f"Input file",
-                switch=f"-input 'filetype <file>'",
-                example=[f"cli: -input 'verilog mydesign.sv'",
-                         f"api: chip.set('input','verilog','mydesign.sv')"],
-                schelp=f"""
-                List of file(s) of specified filetype to be used as input for the
-                current run() call.""")
-
 
     return cfg
 
@@ -3079,9 +3030,8 @@ def schema_asic(cfg):
             not directly  supported by the SiliconCompiler PDK schema.""")
 
 
-    # Cell types
     # TODO: Expand on the exact definitions of these types of cells.
-    # minimie typing
+    # minimize typing
     names = ['driver',
              'load',
              'buf',
@@ -3153,95 +3103,94 @@ def schema_asic(cfg):
     return cfg
 
 ############################################
-# MCMM Constraints
+# Constraints
 ############################################
 
-def schema_mcmm(cfg, scenario='default'):
-    '''Scenario based timing analysis.'''
+def schema_constraint(cfg, scenario='default'):
 
-    scparam(cfg,['mcmm', scenario, 'voltage'],
+    scparam(cfg,['constraint', scenario, 'voltage'],
             sctype='float',
             unit='V',
             scope='job',
             shorthelp="Scenario voltage level",
-            switch="-mcmm_voltage 'scenario <float>'",
-            example=["cli: -mcmm_voltage 'worst 0.9'",
-                     "api: chip.set('mcmm', 'worst','voltage', '0.9')"],
+            switch="-constraint_voltage 'scenario <float>'",
+            example=["cli: -constraint_voltage 'worst 0.9'",
+                     "api: chip.set('constraint', 'worst','voltage', '0.9')"],
             schelp="""Operating voltage applied to the scenario.""")
 
-    scparam(cfg,['mcmm', scenario, 'temperature'],
+    scparam(cfg,['constraint', scenario, 'temperature'],
             sctype='float',
             scope='job',
             shorthelp="Scenario temperature",
-            switch="-mcmm_temperature 'scenario <float>'",
-            example=["cli: -mcmm_temperature 'worst 125'",
-                     "api: chip.set('mcmm', 'worst', 'temperature','125')"],
+            switch="-constraint_temperature 'scenario <float>'",
+            example=["cli: -constraint_temperature 'worst 125'",
+                     "api: chip.set('constraint', 'worst', 'temperature','125')"],
             schelp="""Chip temperature applied to the scenario specified in degrees C.""")
 
-    scparam(cfg,['mcmm', scenario, 'libcorner'],
+    scparam(cfg,['constraint', scenario, 'libcorner'],
             sctype='str',
             scope='job',
             shorthelp="Scenario library corner",
-            switch="-mcmm_libcorner 'scenario <str>'",
-            example=["cli: -mcmm_libcorner 'worst ttt'",
-                    "api: chip.set('mcmm', 'worst', 'libcorner', 'ttt')"],
+            switch="-constraint_libcorner 'scenario <str>'",
+            example=["cli: -constraint_libcorner 'worst ttt'",
+                    "api: chip.set('constraint', 'worst', 'libcorner', 'ttt')"],
             schelp="""Library corner applied to the scenario to scale
             library timing models based on the libcorner value for models
             that support it. The parameter is ignored for libraries that
             have one hard coded model per libcorner.""")
 
-    scparam(cfg,['mcmm', scenario, 'pexcorner'],
+    scparam(cfg,['constraint', scenario, 'pexcorner'],
             sctype='str',
             scope='job',
             shorthelp="Scenario pex corner",
-            switch="-mcmm_pexcorner 'scenario <str>'",
-            example=["cli: -mcmm_pexcorner 'worst max'",
-                    "api: chip.set('mcmm', 'worst', 'pexcorner', 'max')"],
+            switch="-constraint_pexcorner 'scenario <str>'",
+            example=["cli: -constraint_pexcorner 'worst max'",
+                    "api: chip.set('constraint', 'worst', 'pexcorner', 'max')"],
             schelp="""Parasitic corner applied to the scenario. The
             'pexcorner' string must match a corner found in the pdk
             pexmodel setup.""")
 
-    scparam(cfg,['mcmm', scenario, 'opcond'],
+    scparam(cfg,['constraint', scenario, 'opcond'],
             sctype='str',
             scope='job',
             shorthelp="Scenario operating condition",
-            switch="-mcmm_opcond 'scenario <str>'",
-            example=["cli: -mcmm_opcond 'worst typical_1.0'",
-                     "api: chip.set('mcmm', 'worst', 'opcond',  'typical_1.0')"],
+            switch="-constraint_opcond 'scenario <str>'",
+            example=["cli: -constraint_opcond 'worst typical_1.0'",
+                     "api: chip.set('constraint', 'worst', 'opcond',  'typical_1.0')"],
             schelp="""Operating condition applied to the scenario. The value
             can be used to access specific conditions within the library
             timing models from the 'logiclib' timing models.""")
 
-    scparam(cfg,['mcmm', scenario, 'mode'],
+    scparam(cfg,['constraint', scenario, 'mode'],
             sctype='str',
             scope='job',
             shorthelp="Scenario operating mode",
-            switch="-mcmm_mode 'scenario <str>'",
-            example=["cli: -mcmm_mode 'worst test'",
-                     "api: chip.set('mcmm',  'worst','mode', 'test')"],
+            switch="-constraint_mode 'scenario <str>'",
+            example=["cli: -constraint_mode 'worst test'",
+                     "api: chip.set('constraint',  'worst','mode', 'test')"],
             schelp="""Operating mode for the scenario. Operating mode strings
             can be values such as test, functional, standby.""")
 
-    scparam(cfg,['mcmm', scenario, 'constraint'],
+    scparam(cfg,['constraint', scenario, 'file'],
             sctype='[file]',
             scope='job',
             copy='true',
             shorthelp="Scenario constraints files",
-            switch="-mcmm_constraint 'scenario <file>'",
-            example=["cli: -mcmm_constraint 'worst hello.sdc'",
-                     "api: chip.set('mcmm','worst','constraint', 'hello.sdc')"],
+            switch="-constraint_constraint 'scenario <file>'",
+            example=["cli: -constraint_file 'worst hello.sdc'",
+                     "api: chip.set('constraint','worst','constraint', 'hello.sdc')"],
             schelp="""List of timing constraint files to use for the scenario. The
             values are combined with any constraints specified by the design
             'constraint' parameter. If no constraints are found, a default
             constraint file is used based on the clock definitions.""")
 
-    scparam(cfg,['mcmm', scenario, 'check'],
+    scparam(cfg,['constraint', scenario, 'check'],
             sctype='[str]',
             scope='job',
             shorthelp="Scenario checks",
-            switch="-mcmm_check 'scenario <str>'",
-            example=["cli: -mcmm_check 'worst check setup'",
-                    "api: chip.add('mcmm','worst','check','setup')"],
+            switch="-constraint_check 'scenario <str>'",
+            example=["cli: -constraint_check 'worst check setup'",
+                    "api: chip.add('constraint','worst','check','setup')"],
             schelp="""
             List of checks for to perform for the scenario. The checks must
             align with the capabilities of the EDA tools and flow being used.
