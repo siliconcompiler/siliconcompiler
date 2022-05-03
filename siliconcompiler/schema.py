@@ -1791,6 +1791,7 @@ def schema_units(cfg):
     # Units
     units = {
         'time' : 'ns',
+        'length' : 'um',
         'capacitance' : 'pf',
         'resistance' : 'ohm',
         'inductance' : 'nh',
