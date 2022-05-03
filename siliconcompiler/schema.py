@@ -2923,17 +2923,6 @@ def schema_asic(cfg):
             and route. Macro libraries are used for resolving instances but are
             not used as targets for logic synthesis.""")
 
-    scparam(cfg, ['asic', 'optlib', step, index],
-            sctype='[str]',
-            scope='job',
-            shorthelp="ASIC optimization libraries",
-            switch="-asic_optlib 'step index <str>'",
-            example=["cli: -asic_optlib 'place 0 asap7_lvt'",
-                     "api: chip.set('asic','optlib','place','0','asap7_lvt')"],
-            schelp="""
-            List of logical libraries used during synthesis and place and route
-            specified on a per step and per index basis.""")
-
     scparam(cfg, ['asic', 'delaymodel'],
             sctype='str',
             scope='job',
