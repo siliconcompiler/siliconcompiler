@@ -1229,7 +1229,6 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             by check() to verify that all parameters have been set up before
             step execution begins.""")
 
-
     scparam(cfg, ['tool', tool, 'report', step, index, metric],
             sctype='[file]',
             scope='job',
@@ -1266,50 +1265,19 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             Path to the entry script called by the executable specified
             on a per tool and per step basis.""")
 
-<<<<<<< HEAD
-    scparam(cfg, ['tool', tool, 'threads', step, index],
-=======
-    scparam(cfg, ['eda', tool, 'prescript', step, index],
-            sctype='[file]',
-            scope='job',
-            shorthelp="Tool pre-step script",
-            switch="-eda_prescript 'tool step index <file>'",
-            example=[
-                 "cli: -eda_prescript 'yosys syn 0 pre.tcl'",
-                "api: chip.set('eda','yosys','prescript','syn','0','pre.tcl')"],
-            schelp="""
-            Path to a user supplied script to execute after reading in the design
-            but before the main execution stage of the step. Exact entry point
-            depends on the step and main script being executed. An example
-            of a prescript entry point would be immediately before global
-            placement.""")
-
-    scparam(cfg, ['eda', tool, 'postscript', step, index],
-            sctype='[file]',
-            scope='job',
-            shorthelp="Tool post-step script",
-            switch="-eda_postscript 'tool step index <file>'",
-            example=[
-                "cli: -eda_postscript 'yosys syn 0 post.tcl'",
-                "api: chip.set('eda','yosys','postscript','syn','0','post.tcl')"],
-            schelp="""
-            Path to a user supplied script to be executed after all built in
-            tasks (except for data export) have completed.""")
-
-    scparam(cfg, ['eda', tool, 'keep', step, index],
+    scparam(cfg, ['tool', tool, 'keep', step, index],
             sctype='[str]',
             scope='job',
             shorthelp="Files to keep",
-            switch="-eda_keep 'tool step index <str>'",
+            switch="-tool_keep 'tool step index <str>'",
             example=[
-                "cli: -eda_keep 'surelog import 0 slp_all'",
-                "api: chip.set('eda','surelog','script','import','0','slpp_all')"],
+                "cli: -tool_keep 'surelog import 0 slp_all'",
+                "api: chip.set('tool','surelog','script','import','0','slpp_all')"],
             schelp="""
             Names of additional files and directories in the work directory that
             should be kept when :keypath:`clean` is true.""")
 
-    scparam(cfg, ['eda', tool, 'threads', step, index],
->>>>>>> 7189bac435bacf5ab94d582f143249fbd51a0b75
+    scparam(cfg, ['tool', tool, 'threads', step, index],
             sctype='int',
             scope='job',
             shorthelp="Tool: thread parallelism",

@@ -13,7 +13,7 @@ def test_help():
         scope=chip.get(*key, field='scope')
         keystr = ','.join(key)
         row = [scope,f",{typestr}", f',"{shorthelp}"', f',"{keystr}"']
-        print("{: <8} {: <15} {: <40} {: <60}".format(*row))
+        print("{: <8} {: <20} {: <45} {: <60}".format(*row))
 
 #########################
 if __name__ == "__main__":
