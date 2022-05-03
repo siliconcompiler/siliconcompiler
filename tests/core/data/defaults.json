@@ -837,22 +837,6 @@
                 "type": "bool",
                 "value": "false"
             },
-            "copy": {
-                "defvalue": "false",
-                "example": [
-                    "cli: -eda_copy 'openroad true'",
-                    "api: chip.set('eda','openroad','copy',true)"
-                ],
-                "help": "Specifies that the reference script directory should be copied and run\nfrom the local run directory.",
-                "lock": "false",
-                "require": "all",
-                "scope": "job",
-                "shorthelp": "Tool copy option",
-                "signature": null,
-                "switch": "-eda_copy 'tool <bool>'",
-                "type": "bool",
-                "value": "false"
-            },
             "env": {
                 "default": {
                     "default": {
