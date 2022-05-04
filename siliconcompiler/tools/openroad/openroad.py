@@ -24,10 +24,9 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg', 'step', '<step>')
     chip.set('arg', 'index', '<index>')
-    chip.set('design', '<design>')
     # TODO: how to make it clear in docs that certain settings are
     # target-dependent?
     chip.load_target('freepdk45_demo')
@@ -47,7 +46,7 @@ def setup(chip, mode='batch'):
     refdir = 'tools/'+tool
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    flow = chip.get('flow')
+    flow = chip.get('option', 'flow')
 
     if mode == 'show':
         clobber = True
@@ -59,38 +58,38 @@ def setup(chip, mode='batch'):
     script = 'sc_apr.tcl'
 
     # exit automatically in batch mode and not bkpt
-    if (mode=='batch') and (step not in chip.get('bkpt')):
+    if (mode=='batch') and (step not in chip.get('option', 'bkpt')):
         option += " -exit"
 
-    chip.set('eda', tool, 'exe', tool, clobber=clobber)
-    chip.set('eda', tool, 'vswitch', '-version', clobber=clobber)
-    chip.set('eda', tool, 'version', '>=v2.0-3394', clobber=clobber)
-    chip.set('eda', tool, 'format', 'tcl', clobber=clobber)
-    chip.set('eda', tool, 'option',  step, index, option, clobber=clobber)
-    chip.set('eda', tool, 'refdir',  step, index, refdir, clobber=clobber)
-    chip.set('eda', tool, 'script',  step, index, script, clobber=clobber)
+    chip.set('tool', tool, 'exe', tool, clobber=clobber)
+    chip.set('tool', tool, 'vswitch', '-version', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-3394', clobber=clobber)
+    chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
+    chip.set('tool', tool, 'option',  step, index, option, clobber=clobber)
+    chip.set('tool', tool, 'refdir',  step, index, refdir, clobber=clobber)
+    chip.set('tool', tool, 'script',  step, index, script, clobber=clobber)
 
     # normalizing thread count based on parallelism and local
     threads = os.cpu_count()
-    if not chip.get('remote') and step in chip.getkeys('flowgraph', flow):
+    if not chip.get('option', 'remote') and step in chip.getkeys('flowgraph', flow):
         np = len(chip.getkeys('flowgraph', flow, step))
         threads = int(math.ceil(os.cpu_count()/np))
 
-    chip.set('eda', tool, 'threads', step, index, threads, clobber=clobber)
+    chip.set('tool', tool, 'threads', step, index, threads, clobber=clobber)
 
     # Input/Output requirements
     if step == 'floorplan':
-        if (not chip.valid('read', 'netlist', step, index) or
-            not chip.get('read', 'netlist', step, index)):
-            chip.add('eda', tool, 'input', step, index, chip.get('design') +'.vg')
+        if (not chip.valid('source', 'netlist') or
+            not chip.get('source', 'netlist')):
+            chip.add('tool', tool, 'input', step, index, chip.design +'.vg')
     else:
-        if (not chip.valid('read', 'def', step, index) or
-            not chip.get('read', 'def', step, index)):
-            chip.add('eda', tool, 'input', step, index, chip.get('design') +'.def')
+        if (not chip.valid('source', 'def') or
+            not chip.get('source', 'def')):
+            chip.add('tool', tool, 'input', step, index, chip.design +'.def')
 
-    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.sdc')
-    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.vg')
-    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.def')
+    chip.add('tool', tool, 'output', step, index, chip.design + '.sdc')
+    chip.add('tool', tool, 'output', step, index, chip.design + '.vg')
+    chip.add('tool', tool, 'output', step, index, chip.design + '.def')
 
     # openroad makes use of these parameters
     targetlibs = chip.get('asic', 'logiclib')
@@ -98,17 +97,20 @@ def setup(chip, mode='batch'):
     if stackup and targetlibs:
         mainlib = targetlibs[0]
         macrolibs = chip.get('asic', 'macrolib')
-        libtype = str(chip.get('library', mainlib, 'arch'))
+        #Note: only one footprint supported in maainlib
+        libtype = chip.getkeys('library', mainlib, 'asic', 'footprint')[0]
 
-        chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
-        chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'stackup']))
-        chip.add('eda', tool, 'require', step, index, ",".join(['library', mainlib, 'arch']))
-        chip.add('eda', tool, 'require', step, index, ",".join(['pdk', 'aprtech', 'openroad', stackup, libtype, 'lef']))
+        chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
+        chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'stackup',]))
+        chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'alias']))
+        chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
+        chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
+        chip.add('tool', tool, 'require', step, index, ",".join(['pdk', 'aprtech', 'openroad', stackup, libtype, 'lef']))
 
         for lib in (targetlibs + macrolibs):
-            for corner in chip.getkeys('library', lib, 'nldm'):
-                chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', corner, 'lib']))
-            chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'lef', stackup]))
+            for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
+                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', 'nldm', corner]))
+            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
     else:
         chip.error = 1
         chip.logger.error(f'Stackup and logiclib parameters required for OpenROAD.')
@@ -128,30 +130,30 @@ def setup(chip, mode='batch'):
             value = chip.get('pdk', 'variable', tool, stackup, variable)
             # Clobber needs to be False here, since a user might want to
             # overwrite these.
-            chip.set('eda', tool, 'variable', step, index, variable, value,
+            chip.set('tool', tool, 'variable', step, index, variable, value,
                      clobber=False)
 
-        keypath = ','.join(['eda', tool, 'variable', step, index, variable])
-        chip.add('eda', tool, 'require', step, index, keypath)
+        keypath = ','.join(['tool', tool, 'variable', step, index, variable])
+        chip.add('tool', tool, 'require', step, index, keypath)
 
-    for clock in chip.getkeys('clock'):
-        chip.add('eda', tool, 'require', step, index, ','.join(['clock', clock, 'period']))
-        chip.add('eda', tool, 'require', step, index, ','.join(['clock', clock, 'pin']))
+    #for clock in chip.getkeys('clock'):
+    #    chip.add('tool', tool, 'require', step, index, ','.join(['clock', clock, 'period']))
+    #    chip.add('tool', tool, 'require', step, index, ','.join(['clock', clock, 'pin']))
 
-    for supply in chip.getkeys('supply'):
-        chip.add('eda', tool, 'require', step, index, ','.join(['supply', supply, 'level']))
-        chip.add('eda', tool, 'require', step, index, ','.join(['supply', supply, 'pin']))
+    #for supply in chip.getkeys('supply'):
+    #    chip.add('tool', tool, 'require', step, index, ','.join(['supply', supply, 'level']))
+    #    chip.add('tool', tool, 'require', step, index, ','.join(['supply', supply, 'pin']))
 
     # basic warning and error grep check on logfile
-    chip.set('eda', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
-    chip.set('eda', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
 
     # reports
     logfile = f"{step}.log"
     for metric in chip.getkeys('metric', 'default', 'default'):
         if metric not in ('runtime', 'memory',
                           'luts', 'dsps', 'brams'):
-            chip.set('eda', tool, 'report', step, index, metric, logfile)
+            chip.set('tool', tool, 'report', step, index, metric, logfile)
 
 ################################
 # Version Check
@@ -209,7 +211,6 @@ def post_process(chip):
     #Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    design = chip.get('design')
     logfile = f"{step}.log"
 
     # parsing log file
@@ -268,7 +269,7 @@ def post_process(chip):
     #Temporary superhack!rm
     #Getting cell count and net number from DEF
     if errors == 0:
-        with open("outputs/" + design + ".def") as f:
+        with open("outputs/" + chip.design + ".def") as f:
             for line in f:
                 cells = re.search(r'^COMPONENTS (\d+)', line)
                 nets = re.search(r'^NETS (\d+)', line)
@@ -282,8 +283,7 @@ def post_process(chip):
 
     if step == 'sta':
         # Copy along GDS for verification steps that rely on it
-        design = chip.get('design')
-        shutil.copy(f'inputs/{design}.gds', f'outputs/{design}.gds')
+        shutil.copy(f'inputs/{chip.design}.gds', f'outputs/{chip.design}.gds')
 
     #Return 0 if successful
     return 0

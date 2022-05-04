@@ -2,7 +2,7 @@
 # Reading SC Schema
 ###############################
 
-source ./sc_manifest.tcl
+source ./sc_manifest.tcl  > /dev/null
 
 ###############################
 # Openroad Hard Coded Constants
@@ -16,15 +16,15 @@ set openroad_cluster_size 30
 # Schema Adapter
 ###############################
 
-set sc_tool    openroad
-set sc_step    [dict get $sc_cfg arg step]
-set sc_index   [dict get $sc_cfg arg index]
+set sc_tool   openroad
+set sc_step   [dict get $sc_cfg arg step]
+set sc_index  [dict get $sc_cfg arg index]
 
-set sc_refdir [dict get $sc_cfg eda $sc_tool refdir $sc_step $sc_index ]
+set sc_refdir [dict get $sc_cfg tool $sc_tool refdir $sc_step $sc_index ]
 
 # Design
 set sc_design     [dict get $sc_cfg design]
-set sc_optmode    [dict get $sc_cfg optmode]
+set sc_optmode    [dict get $sc_cfg option optmode]
 
 # APR Parameters
 set sc_process     [dict get $sc_cfg pdk process]
@@ -44,7 +44,7 @@ set sc_maxfanout   [dict get $sc_cfg asic maxfanout]
 set sc_maxlength   [dict get $sc_cfg asic maxlength]
 set sc_maxcap      [dict get $sc_cfg asic maxcap]
 set sc_maxslew     [dict get $sc_cfg asic maxslew]
-set sc_scenarios   [dict keys [dict get $sc_cfg mcmm]]
+set sc_scenarios   [dict keys [dict get $sc_cfg constraint]]
 
 # PDK agnostic design rule translation
 dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
@@ -71,35 +71,36 @@ dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
 }
 
 # Library
-set sc_libtype     [dict get $sc_cfg library $sc_mainlib arch]
-set sc_site        [lindex [dict get $sc_cfg library $sc_mainlib site] 0]
-set sc_filler      [dict get $sc_cfg library $sc_mainlib cells filler]
-set sc_dontuse     [dict get $sc_cfg library $sc_mainlib cells ignore]
-set sc_clkbuf      [dict get $sc_cfg library $sc_mainlib cells clkbuf]
-set sc_filler      [dict get $sc_cfg library $sc_mainlib cells filler]
-set sc_tie         [dict get $sc_cfg library $sc_mainlib cells tie]
-set sc_ignore      [dict get $sc_cfg library $sc_mainlib cells ignore]
-set sc_tap         [dict get $sc_cfg library $sc_mainlib cells tap]
-set sc_endcap      [dict get $sc_cfg library $sc_mainlib cells endcap]
+set sc_libtype     [dict keys [dict get $sc_cfg library $sc_mainlib asic footprint]]
+set sc_site        [dict get $sc_cfg library $sc_mainlib asic footprint $sc_libtype alias]
+set sc_filler      [dict get $sc_cfg library $sc_mainlib asic cells filler]
+set sc_dontuse     [dict get $sc_cfg library $sc_mainlib asic cells ignore]
+set sc_clkbuf      [dict get $sc_cfg library $sc_mainlib asic cells clkbuf]
+set sc_filler      [dict get $sc_cfg library $sc_mainlib asic cells filler]
+set sc_tie         [dict get $sc_cfg library $sc_mainlib asic cells tie]
+set sc_ignore      [dict get $sc_cfg library $sc_mainlib asic cells ignore]
+set sc_tap         [dict get $sc_cfg library $sc_mainlib asic cells tap]
+set sc_endcap      [dict get $sc_cfg library $sc_mainlib asic cells endcap]
 
 # PDK Design Rules
 set sc_techlef     [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype lef]
 
-if {[dict exists $sc_cfg supply]} {
-    set sc_supplies    [dict keys [dict get $sc_cfg supply]]
-} else {
-    set sc_supplies    [list]
-}
+#TODO: tie to datasheet
+#if {[dict exists $sc_cfg supply]} {
+#    set sc_supplies    [dict keys [dict get $sc_cfg supply]]
+#} else {
+#    set sc_supplies    [list]
+#}
 
-set sc_threads     [dict get $sc_cfg eda $sc_tool threads $sc_step $sc_index ]
+set sc_threads     [dict get $sc_cfg tool $sc_tool threads $sc_step $sc_index ]
 
 # Sweep parameters
 
-set openroad_place_density [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  place_density] 0]
-set openroad_pad_global_place [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  pad_global_place] 0]
-set openroad_pad_detail_place [lindex [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  pad_detail_place] 0]
-set openroad_macro_place_halo [dict get $sc_cfg eda $sc_tool {variable} $sc_step  $sc_index  macro_place_halo]
-set openroad_macro_place_channel [dict get $sc_cfg eda $sc_tool {variable} $sc_step $sc_index  macro_place_channel]
+set openroad_place_density [lindex [dict get $sc_cfg tool $sc_tool {variable} $sc_step $sc_index  place_density] 0]
+set openroad_pad_global_place [lindex [dict get $sc_cfg tool $sc_tool {variable} $sc_step $sc_index  pad_global_place] 0]
+set openroad_pad_detail_place [lindex [dict get $sc_cfg tool $sc_tool {variable} $sc_step $sc_index  pad_detail_place] 0]
+set openroad_macro_place_halo [dict get $sc_cfg tool $sc_tool {variable} $sc_step  $sc_index  macro_place_halo]
+set openroad_macro_place_channel [dict get $sc_cfg tool $sc_tool {variable} $sc_step $sc_index  macro_place_channel]
 
 set sc_batch [expr ![string match "show*" $sc_step]]
 
@@ -120,11 +121,11 @@ read_lef  $sc_techlef
 
 # Read Liberty
 foreach item $sc_scenarios {
-    set libcorner [dict get $sc_cfg mcmm $item libcorner]
+    set corner [dict get $sc_cfg constraint $item libcorner]
     foreach lib "$sc_targetlibs $sc_macrolibs" {
 	#Liberty
-	if {[dict exists $sc_cfg library $lib nldm]} {
-	    set lib_file [dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib]
+	if {[dict exists $sc_cfg library $lib model timing $sc_delaymodel]} {
+	    set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $corner]
 	    read_liberty $lib_file
 	}
     }
@@ -132,7 +133,7 @@ foreach item $sc_scenarios {
 
 # Read Lefs
 foreach lib "$sc_targetlibs $sc_macrolibs" {
-    read_lef [dict get $sc_cfg library $lib lef $sc_stackup]
+    read_lef [dict get $sc_cfg library $lib model layout lef $sc_stackup]
 }
 
 # Read Verilog
@@ -148,10 +149,10 @@ if {$sc_step == "floorplan"} {
 }
 
 # Read DEF
-if {[dict exists $sc_cfg "read" def $sc_step $sc_index]} {
+if {[dict exists $sc_cfg "source" def]} {
     if {$sc_step != "floorplan"} {
         # Floorplan initialize handled separately in sc_floorplan.tcl
-        foreach def [dict get $sc_cfg "read" def $sc_step $sc_index] {
+        foreach def [dict get $sc_cfg "source" def] {
             read_def $def
         }
     }
@@ -162,8 +163,8 @@ if {[dict exists $sc_cfg "read" def $sc_step $sc_index]} {
 }
 
 # Read SDC (in order of priority)
-if {[dict exists $sc_cfg "read" sdc $sc_step $sc_index]} {
-    foreach sdc [dict get $sc_cfg "read" sdc $sc_step $sc_index] {
+if {[dict exists $sc_cfg "source" sdc]} {
+    foreach sdc [dict get $sc_cfg "source" sdc] {
 	# read step constraint if exists
 	read_sdc $sdc
     }

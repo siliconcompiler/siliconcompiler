@@ -19,7 +19,7 @@ proc design_has_macros {} {
 }
 
 # Auto-generate floorplan if not defined yet
-if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
+if {[expr ! [dict exists $sc_cfg "source" def]]} {
 
     #########################
     #Init Floorplan
@@ -29,10 +29,6 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     set sc_corearea  [dict get $sc_cfg asic corearea]
     set sc_diesize   [regsub -all {[\,\)\(]} $sc_diearea " "]
     set sc_coresize  [regsub -all {[\,\)\(]} $sc_corearea " "]
-    puts $sc_diearea
-    puts $sc_corearea
-    puts $sc_diesize
-    puts $sc_coresize
 
     #TODO: if there is more than one site, pick the first one?
     initialize_floorplan -die_area $sc_diesize \
@@ -116,7 +112,7 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     ###########################
     # Initialize floorplan
     ###########################
-    set def [dict get $sc_cfg "read" def $sc_step $sc_index]
+    set def [dict get $sc_cfg "source" def]
     read_def -floorplan_initialize $def
 }
 
