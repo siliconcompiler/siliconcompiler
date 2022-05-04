@@ -1361,7 +1361,7 @@ class Chip:
         # TODO: it may be cleaner to have a file resolution scope flag in schema
         # (e.g. 'scpath', 'workdir', 'refdir'), rather than harcoding special
         # cases.
-        if keypath[0] == 'eda' and keypath[2] in ('input', 'output', 'report'):
+        if keypath[0] == 'tool' and keypath[2] in ('input', 'output', 'report'):
             step = keypath[3]
             index = keypath[4]
             if keypath[2] == 'report':
@@ -1374,11 +1374,11 @@ class Chip:
                 if os.path.isfile(abspath):
                     result.append(abspath)
             return result
-        elif keypath[0] == 'eda' and keypath[2] == 'script':
+        elif keypath[0] == 'tool' and keypath[2] == 'script':
             tool = keypath[1]
             step = keypath[3]
             index = keypath[4]
-            refdirs = self.find_files('eda', tool, 'refdir', step, index)
+            refdirs = self.find_files('tool', tool, 'refdir', step, index)
             for path in paths:
                 for refdir in refdirs:
                     abspath = os.path.join(refdir, path)
@@ -1669,7 +1669,7 @@ class Chip:
         '''
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
-        if self.valid('eda', tool, 'input', step, index):
+        if self.valid('tool', tool, 'input', step, index):
             required_inputs = self.get('tool', tool, 'input', step, index)
         else:
             required_inputs = []
@@ -1680,7 +1680,7 @@ class Chip:
                 self.logger.error(f'Required input {filename} not received for {step}{index}.')
                 self.error = 1
 
-        if (not tool in self.builtin) and self.valid('eda', tool, 'require', step, index):
+        if (not tool in self.builtin) and self.valid('tool', tool, 'require', step, index):
             all_required = self.get('tool', tool, 'require', step, index)
             for item in all_required:
                 keypath = item.split(',')
@@ -1818,7 +1818,7 @@ class Chip:
                             if self._keypath_empty(keypath):
                                 self.error = 1
                                 self.logger.error(f"Value empty for [{keypath}] for {tool}.")
-                    if self._keypath_empty(['eda', tool, 'exe']):
+                    if self._keypath_empty(['tool', tool, 'exe']):
                         self.error = 1
                         self.logger.error(f'Executable not specified for tool {tool}')
 
@@ -2864,7 +2864,7 @@ class Chip:
         checks = {}
         regex_list = []
         if self.valid('tool', tool, 'regex', step, index, 'default'):
-            regex_list = self.getkeys('eda', tool, 'regex', step, index)
+            regex_list = self.getkeys('tool', tool, 'regex', step, index)
         for suffix in regex_list:
             checks[suffix] = {}
             checks[suffix]['report'] = open(f"{step}.{suffix}", "w")
@@ -3948,7 +3948,7 @@ class Chip:
             keep.append(f'{step}.{suffix}')
 
         # Tool-specific keep files
-        if self.valid('eda', tool, 'keep', step, index):
+        if self.valid('tool', tool, 'keep', step, index):
             keep.extend(self.get('tool', tool, 'keep', step, index))
 
         for path in os.listdir():
