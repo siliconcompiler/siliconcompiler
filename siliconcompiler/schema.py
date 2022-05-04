@@ -367,7 +367,6 @@ def schema_pdk(cfg, stackup='default'):
             sctype='[(float,float)]',
             scope='global',
             unit='mm',
-            require="asic",
             shorthelp="PDK: panel size",
             switch="-pdk_panelsize <float>",
             example=["cli: -pdk_panelsize (45.72,60.96)",
@@ -1863,7 +1862,6 @@ def schema_option(cfg):
             scope='job',
             shorthelp="Compilation mode",
             switch="-mode <str>",
-            require='all',
             example=[
             "cli: -mode asic",
             "api: chip.set('option','mode','asic')"],
@@ -2404,7 +2402,7 @@ def schema_option(cfg):
             switch="-param 'name <str>'",
             example=[
                 "cli: -param 'N 64'",
-                "api: chip.set('option','param','N', '64')"],
+                "api: chip.set('option','param','N','64')"],
             schelp="""
             Sets a top verilog level design module parameter. The value
             is limited to basic data literals. The parameter override is
@@ -2426,18 +2424,6 @@ def schema_option(cfg):
             standardized. Support for comments and environment variables within
             the file varies and depends on the tool used. SC simply passes on
             the filepath toe the tool executable.""")
-
-    scparam(cfg,['option', 'footprint'],
-            sctype='str',
-            shorthelp="Design footprint",
-            switch='-footprint <str>',
-            example=["cli: -fooprint 12track",
-                     "api: chip.set('option','footprint','12track')"],
-            schelp="""
-            Specifier string that identifies the design footprint. For
-            standard cell row based libraries, the footprint refers to
-            the cell library height and musth match the foorprint used in
-            the PDK to categorize apr technology files.""")
 
     return cfg
 
@@ -2793,14 +2779,23 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'stackup'],
             sctype='str',
             scope='job',
-            require='asic',
-            shorthelp="ASIC: metal stackup",
+            shorthelp="ASIC Stackup target",
             switch="-asic_stackup <str>",
             example=["cli: -asic_stackup 2MA4MB2MC",
                      "api: chip.set('asic','stackup','2MA4MB2MC')"],
             schelp="""
-            Target stackup to use in the design. The stackup is required
+            Target ASIC stackup to use in the design. The stackup is required
             parameter for PDKs with multiple metal stackups.""")
+
+    scparam(cfg, ['asic', 'pdk'],
+            sctype='str',
+            scope='job',
+            shorthelp="ASIC PDK target",
+            switch="-asic_pdk <str>",
+            example=["cli: -asic_pdk freepdk45",
+                     "api: chip.set('asic','pdk','freepdk45')"],
+            schelp="""
+            Target ASIC PDK to use in the design.""")
 
     scparam(cfg, ['asic', 'logiclib'],
             sctype='[str]',
@@ -3119,28 +3114,43 @@ def schema_asic(cfg):
             library. The parameter can be used to guide cell power grid
             hookup by APR tools.""")
 
-    scparam(cfg, ['asic', 'site', key, 'symmetry'],
-            sctype='str',
-            shorthelp="ASIC: site symmetry",
-            switch="-asic_site_symmetry 'key <str>'",
+    # footprint
+    key = 'default'
+    scparam(cfg,['asic', 'footprint', key, 'alias'],
+            sctype='[str]',
+            shorthelp="Design footprint aliases",
+            switch="-asic_footprint_alias 'key <str>'",
             example=[
-                "cli: -library_site_symmetry 'core X Y'",
-                "api: chip.set('asic','site','core','symmetry','X Y')"],
+                "cli: -footprint_alias '12track FreeCell'",
+                "api: chip.set('asic','footprint','12track','alias','FreeCell')"],
             schelp="""
-             Site flip-symmetry based on LEF standard definition. 'X' implies
+            Alias for the footprint key that is sometimes needed when the footprint can
+            be referenced by multiple names. The key is the 'official' footprint.""")
+
+    scparam(cfg, ['asic', 'footprint', key, 'symmetry'],
+            sctype='str',
+            shorthelp="Footprint symmetry",
+            switch="-asic_footprint_symmetry 'key <str>'",
+            example=[
+                "cli: -asic_footprint_symmetry 'core X Y'",
+                "api: chip.set('asic','footprint','core','symmetry','X Y')"],
+            schelp="""
+            Footprint symmetry based on LEF standard definition. 'X' implies
             symmetric about the x axis, 'Y' implies symmetry about the y axis, and
             'X Y' implies symmetry about the x and y axis.""")
 
-    scparam(cfg, ['asic', 'site', key, 'size'],
+
+    scparam(cfg, ['asic', 'footprint', key, 'size'],
             sctype='(float,float)',
-            shorthelp="ASIC: site size",
-            switch="-asic_site_size 'key <str>'",
+            shorthelp="Footprint size",
+            switch="-asic_footprint_size 'key <str>'",
             example=[
-                "cli: -asic_site_size 'core (1.0,1.0)'",
-                "api: chip.set('asic','site','core','size',(1.0,1.0))"],
+                "cli: -asic_footprint_size 'core (1.0,1.0)'",
+                "api: chip.set('asic','footprint','core','size',(1.0,1.0))"],
             schelp="""
-            Size of the library size described as a (width, height) tuple in
+            Size of the footprint described as a (width, height) tuple in
             microns.""")
+
 
     return cfg
 
