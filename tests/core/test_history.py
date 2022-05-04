@@ -3,7 +3,7 @@ import siliconcompiler
 
 def test_history(datadir):
 
-    chip = siliconcompiler.Chip('test')
+    chip = siliconcompiler.Chip('gcd')
 
     # mandatory to have manifest loaded
     manifest = os.path.join(datadir, 'gcd.pkg.json')

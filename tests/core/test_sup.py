@@ -38,11 +38,11 @@ def test_sup():
 
     # 2. Package up dependecies using sup
     for i in ('a', 'b', 'c'):
-        p = sc.package.Sup()
+        p = sc.package.Sup(i)
         p.publish(f"{builddir}/{i}/job0/export/outputs/{i}.pkg.json", registry)
         for j in ('0', '1', '2'):
             dep2 = i+j
-            p = sc.package.Sup()
+            p = sc.package.Sup(dep2)
             p.publish(f"{builddir}/{dep2}/job0/export/outputs/{dep2}.pkg.json", registry)
 
     # 3. Create top object and update dependencies
@@ -58,7 +58,7 @@ def test_sup():
     chip.update()
 
     # 4. Dump updated manifest and depgraph
-    chip.write_manifest('top.tcl')
+    #chip.write_manifest('top.tcl')
     #chip.write_depgraph('tree.png')
 
 #########################
@@ -76,7 +76,7 @@ def test_sup_circ_import():
     packs = {}
     for i in ('A', 'B'):
         os.makedirs(f"{builddir}/{i}/job0/export/outputs", exist_ok=True)
-        p = sc.Chip(design=i)
+        p = sc.Chip(i)
         p.load_target('freepdk45_demo')
         p.set('package', 'version', '0.0.0')
         p.set('package', 'license', 'MIT')
@@ -91,12 +91,12 @@ def test_sup_circ_import():
 
     # Package each dependency with SUP.
     for i in ('A', 'B'):
-        pp = sc.package.Sup()
+        pp = sc.package.Sup(i)
         pp.publish(f"{builddir}/{i}/job0/export/outputs/{i}.pkg.json", registry)
 
     # Attempt to build a design with each circular dependency, verify errors are thrown.
     for i in ('A', 'B'):
-        chip = sc.Chip(design='top')
+        chip = sc.Chip('top')
         chip.load_target('freepdk45_demo')
         chip.set('option', 'registry', registry)
         chip.set('package', 'version', f"0.0.0")

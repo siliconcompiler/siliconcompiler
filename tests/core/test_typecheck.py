@@ -2,12 +2,11 @@
 import siliconcompiler
 
 def test_typecheck():
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('top')
 
     error = 0
 
     #basic get/set test
-    chip.set('design', 'top' )
     design = chip.get('design')
     if design != "top":
         error = 1

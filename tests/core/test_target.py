@@ -3,7 +3,7 @@ import pytest
 
 def test_target_valid():
     '''Basic test of target function.'''
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
     chip.load_target('freepdk45_demo')
 
     assert chip.get('option', 'mode') == 'asic'
@@ -11,7 +11,7 @@ def test_target_valid():
 @pytest.mark.skip(reason="not needed with new target???")
 def test_target_flipped_error():
     '''Ensure that we error out if the user mixes up PDK name and flow.'''
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     # Test that call triggers a system exit with status code 1
     # source: https://medium.com/python-pandemonium/testing-sys-exit-with-pytest-10c6e5f7726f
@@ -23,7 +23,7 @@ def test_target_flipped_error():
 def test_target_fpga_valid():
     '''Ensure that the FPGA flow allows an arbitrary partname and sets mode
     correctly.'''
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
     chip.set('fpga', 'partname', 'myfpga')
     chip.load_flow('fpgaflow')
     chip.set('option', 'flow', 'fpgaflow')
@@ -32,7 +32,7 @@ def test_target_fpga_valid():
 
 def test_target_pdk_error():
     '''Ensure that we error out in ASIC mode if given an invalid PDK name.'''
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
     with pytest.raises(siliconcompiler.SiliconCompilerError) as pytest_wrapped_e:
         chip.load_flow('asicflow')
         chip.load_pdk('fakepdk')
@@ -40,6 +40,6 @@ def test_target_pdk_error():
 
 @pytest.mark.parametrize('pdk', ['asap7', 'freepdk45', 'skywater130'])
 def test_pdk(pdk):
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
     chip.load_pdk(pdk)
     assert chip.get('pdk', 'process') == pdk

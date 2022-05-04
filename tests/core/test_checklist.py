@@ -7,8 +7,7 @@ def test_checklist():
     '''API test for help method
     '''
 
-    chip = siliconcompiler.Chip(loglevel="INFO")
-    chip.set('design', 'test')
+    chip = siliconcompiler.Chip('test')
     chip.load_target('freepdk45_demo')
 
     # Test won't work if file doesn't exist
@@ -17,7 +16,7 @@ def test_checklist():
         f.write('test')
 
     chip.set('metric','syn','0', 'errors', 'real', 1)
-    chip.set('eda', 'yosys', 'report', 'syn', '0', 'errors', 'yosys.log')
+    chip.set('tool', 'yosys', 'report', 'syn', '0', 'errors', 'yosys.log')
     chip.record_history()
 
     #automated fail

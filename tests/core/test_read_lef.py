@@ -3,7 +3,7 @@ import siliconcompiler
 import os
 
 def test_read_lef(scroot):
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     freepdk45_tlef = os.path.join(scroot,
                                   'third_party',
