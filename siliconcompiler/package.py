@@ -12,9 +12,10 @@ class Sup:
 
     '''
 
-    def __init__(self, registry=None):
+    def __init__(self, design, registry=None):
 
-        self.chip = siliconcompiler.Chip()
+        #TODO: when starting sup, do we know the
+        self.chip = siliconcompiler.Chip(design)
 
         # Local cache location
         if 'SC_HOME' in os.environ:
