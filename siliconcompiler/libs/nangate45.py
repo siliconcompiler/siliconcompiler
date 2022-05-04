@@ -7,13 +7,13 @@ def make_docs():
     Nangate open standard cell library for FreePDK45.
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('nangate45')
     setup(chip)
     return chip
 
 def setup(chip):
 
-    lib = siliconcompiler.Chip()
+
 
     libname = 'nangate45'
     foundry = 'virtual'
@@ -33,14 +33,26 @@ def setup(chip):
                           libname,
                           version)
 
-    # name
-    lib.set('design', libname)
+
+    # create local chip object
+    lib = siliconcompiler.Chip(libname)
 
     # version
     lib.set('package', 'version', version)
 
+    # list of stackups supported
+    chip.set('asic', 'stackup', stackup)
+
+    # list of pdks supported
+    chip.set('asic', 'pdk', process)
+
+    # footprint/type/sites
+    lib.set('asic', 'footprint', libtype, 'alias', 'FreePDK45_38x28_10R_NP_162NW_34O')
+    lib.set('asic', 'footprint', libtype, 'symmetry', 'Y')
+    lib.set('asic', 'footprint', libtype, 'size', (0.19,1.4))
+
     # timing
-    lib.add('model', 'timing', 'nldm-lib', corner,
+    lib.add('model', 'timing', 'nldm', corner,
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
@@ -50,17 +62,6 @@ def setup(chip):
     # gds
     lib.add('model', 'layout', 'gds', stackup,
              libdir+'/gds/NangateOpenCellLibrary.gds')
-
-    # site name
-    lib.set('asic', 'site',
-            'FreePDK45_38x28_10R_NP_162NW_34O',
-            'symmetry',
-            'Y')
-
-    lib.set('asic', 'site',
-            'FreePDK45_38x28_10R_NP_162NW_34O',
-            'size',
-            (0.19,1.4))
 
     # driver
     lib.add('asic', 'cells','driver', "BUF_X4")
@@ -104,6 +105,7 @@ def setup(chip):
 
     # TODO: this needs to be cleaned up
     chip.cfg['library'][libname] = copy.deepcopy(lib.cfg)
+    del chip.cfg['library'][libname]['pdk']
 
 #########################
 if __name__ == "__main__":
