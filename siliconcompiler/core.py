@@ -4627,9 +4627,10 @@ class Chip:
         fullexe = self._getexe(tool)
 
         options = []
+        is_posix = (sys.platform != 'win32')
 
         for option in self.get('eda', tool, 'option', step, index):
-            options.extend(shlex.split(option))
+            options.extend(shlex.split(option, posix=is_posix))
 
         # Add scripts files
         if self.valid('eda', tool, 'script', step, index):
@@ -4645,7 +4646,7 @@ class Chip:
         runtime_options = self.find_function(tool, 'runtime_options', 'tools')
         if runtime_options:
             for option in runtime_options(self):
-                cmdlist.extend(shlex.split(option))
+                cmdlist.extend(shlex.split(option, posix=is_posix))
 
         envvars = {}
         for key in self.getkeys('env'):
