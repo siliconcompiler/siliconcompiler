@@ -5,24 +5,9 @@ from siliconcompiler.schema import scparam
 
 def test_scparam():
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     cfg = {}
-
-    # version number
-    scparam(cfg,['version','schema'],
-            sctype='str',
-            defvalue='0.0.0',
-            require='all',
-            scope='global',
-            shorthelp='Schema version number',
-            switch="-version_schema <str>",
-            example=[
-                "cli: -version_schema",
-                "api: chip.get('version', 'schema')"],
-            schelp="""
-            SiliconCompiler schema version number.
-            """)
 
     # metrics
     scparam(cfg,['metric','default','default','cells','default'],
@@ -55,21 +40,6 @@ def test_scparam():
 
     # golden version
     cfg_golden = {}
-    cfg_golden['version'] = {}
-    cfg_golden['version']['schema'] = {
-        'switch': "-version_schema <str>",
-        'type': 'str',
-        'lock': 'false',
-        'scope':'global',
-        'require': 'all',
-        'signature': None,
-        'defvalue': '0.0.0',
-        'value': '0.0.0',
-        'shorthelp': 'Schema version number',
-        'example': ["cli: -version_schema",
-                    "api: chip.get('version', 'schema')"],
-        'help': """SiliconCompiler schema version number."""
-    }
 
     step='default'
     index='default'
@@ -119,7 +89,7 @@ def test_scparam():
 def test_defvalue():
     '''Regression test that changing list-type value doesn't change defvalue.'''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
     assert chip.cfg['pdk']['stackup']['defvalue'] == []
     chip.add('pdk', 'stackup', '10m')
     assert chip.cfg['pdk']['stackup']['defvalue'] == []

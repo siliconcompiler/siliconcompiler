@@ -6,7 +6,7 @@ def test_target_valid():
     chip = siliconcompiler.Chip()
     chip.load_target('freepdk45_demo')
 
-    assert chip.get('mode') == 'asic'
+    assert chip.get('option', 'mode') == 'asic'
 
 @pytest.mark.skip(reason="not needed with new target???")
 def test_target_flipped_error():
@@ -24,11 +24,11 @@ def test_target_fpga_valid():
     '''Ensure that the FPGA flow allows an arbitrary partname and sets mode
     correctly.'''
     chip = siliconcompiler.Chip()
-    chip.set('fpga','partname','myfpga')
+    chip.set('fpga', 'partname', 'myfpga')
     chip.load_flow('fpgaflow')
-    chip.set('flow', 'fpgaflow')
+    chip.set('option', 'flow', 'fpgaflow')
 
-    assert chip.get('mode') == 'fpga'
+    assert chip.get('option', 'mode') == 'fpga'
 
 def test_target_pdk_error():
     '''Ensure that we error out in ASIC mode if given an invalid PDK name.'''

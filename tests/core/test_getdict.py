@@ -3,7 +3,7 @@ import siliconcompiler
 
 def test_getdict():
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
     chip.load_target('freepdk45_demo')
     localcfg = chip.getdict('pdk')
 

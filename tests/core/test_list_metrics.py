@@ -4,7 +4,7 @@ import siliconcompiler
 
 def test_list_metrics(datadir):
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
     chip.list_metrics()
 
 #########################

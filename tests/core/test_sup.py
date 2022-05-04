@@ -18,7 +18,7 @@ def test_sup():
     # 1. Create a set of dummy designs with dependencies and save to disk
     for i in ('a', 'b', 'c'):
         os.makedirs(f"{builddir}/{i}/job0/export/outputs", exist_ok=True)
-        l1 = sc.Chip(design=i)
+        l1 = sc.Chip(i)
         l1.load_target('freepdk45_demo')
         l1.set('package', 'version', '0.0.0')
         l1.set('package', 'license', 'MIT')
@@ -27,7 +27,7 @@ def test_sup():
             dep2 = i+j
             os.makedirs(f"{builddir}/{dep2}/job0/export/outputs", exist_ok=True)
             l1.add('package', 'dependency', dep2, f"0.0.{j}")
-            l2 = sc.Chip(design=dep2)
+            l2 = sc.Chip(dep2)
             l2.load_target('freepdk45_demo')
             l2.set('package', 'version', f"0.0.{j}")
             l2.set('package', 'license', 'MIT')
@@ -46,15 +46,15 @@ def test_sup():
             p.publish(f"{builddir}/{dep2}/job0/export/outputs/{dep2}.pkg.json", registry)
 
     # 3. Create top object and update dependencies
-    chip = sc.Chip(design='top')
+    chip = sc.Chip('top')
     chip.load_target('freepdk45_demo')
-    chip.set('registry', registry)
+    chip.set('option', 'registry', registry)
     chip.set('package', 'version', f"0.0.0")
     chip.set('package', 'license', 'MIT')
     chip.set('package', 'description', 'sup?')
     for i in ('a', 'b', 'c'):
         chip.set('package', 'dependency', i, '0.0.0')
-    chip.set('autoinstall', True)
+    chip.set('option', 'autoinstall', True)
     chip.update()
 
     # 4. Dump updated manifest and depgraph
@@ -98,12 +98,12 @@ def test_sup_circ_import():
     for i in ('A', 'B'):
         chip = sc.Chip(design='top')
         chip.load_target('freepdk45_demo')
-        chip.set('registry', registry)
+        chip.set('option', 'registry', registry)
         chip.set('package', 'version', f"0.0.0")
         chip.set('package', 'license', 'MIT')
         chip.set('package', 'description', 'sup?')
         chip.set('package', 'dependency', i, '0.0.0')
-        chip.set('autoinstall', True)
+        chip.set('option', 'autoinstall', True)
         with pytest.raises(sc.SiliconCompilerError) as pytest_wrapped_e:
             chip.update()
 

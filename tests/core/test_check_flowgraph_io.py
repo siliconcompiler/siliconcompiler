@@ -1,14 +1,12 @@
 import siliconcompiler
 
 def test_check_flowgraph():
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('foo')
 
-
-    chip.set('design', 'foo')
-    chip.add('source', 'foo.v')
+    chip.add('source', 'rtl', 'foo.v')
 
     flow = 'test'
-    chip.set('flow', flow)
+    chip.set('option', 'flow', flow)
     chip.node(flow, 'import', 'surelog')
     chip.node(flow, 'syn', 'yosys')
     chip.edge(flow, 'import', 'syn')
@@ -31,12 +29,11 @@ def test_check_flowgraph():
     assert chip._check_flowgraph_io()
 
 def test_check_flowgraph_join():
-    chip = siliconcompiler.Chip()
 
-    chip.set('design', 'foo')
+    chip = siliconcompiler.Chip('foo')
 
     flow = 'test'
-    chip.set('flow', flow)
+    chip.set('option', 'flow', flow)
     chip.node(flow, 'prejoin1', 'fake_out')
     chip.node(flow, 'prejoin2', 'fake_out')
     chip.node(flow, 'dojoin', 'join')
@@ -46,19 +43,18 @@ def test_check_flowgraph_join():
     chip.edge(flow, 'prejoin2', 'dojoin')
     chip.edge(flow, 'dojoin', 'postjoin')
 
-    chip.set('eda', 'fake_out', 'output', 'prejoin1', '0', 'a.v')
-    chip.set('eda', 'fake_out', 'output', 'prejoin2', '0', 'b.v')
-    chip.set('eda', 'fake_in', 'input', 'postjoin', '0', ['a.v', 'b.v'])
+    chip.set('tool', 'fake_out', 'output', 'prejoin1', '0', 'a.v')
+    chip.set('tool', 'fake_out', 'output', 'prejoin2', '0', 'b.v')
+    chip.set('tool', 'fake_in', 'input', 'postjoin', '0', ['a.v', 'b.v'])
 
     assert chip._check_flowgraph_io()
 
 def test_check_flowgraph_min():
-    chip = siliconcompiler.Chip()
 
-    chip.set('design', 'foo')
+    chip = siliconcompiler.Chip('foo')
 
     flow = 'test'
-    chip.set('flow', flow)
+    chip.set('option', 'flow', flow)
     chip.node(flow, 'premin', 'fake_out', index=0)
     chip.node(flow, 'premin', 'fake_out', index=1)
     chip.node(flow, 'domin', 'minimum')
@@ -68,19 +64,18 @@ def test_check_flowgraph_min():
     chip.edge(flow, 'premin', 'domin', tail_index=1)
     chip.edge(flow, 'domin', 'postmin')
 
-    chip.set('eda', 'fake_out', 'output', 'premin', '0', ['a.v', 'common.v'])
-    chip.set('eda', 'fake_out', 'output', 'premin', '1', ['b.v', 'common.v'])
-    chip.set('eda', 'fake_in', 'input', 'postmin', '0', 'common.v')
+    chip.set('tool', 'fake_out', 'output', 'premin', '0', ['a.v', 'common.v'])
+    chip.set('tool', 'fake_out', 'output', 'premin', '1', ['b.v', 'common.v'])
+    chip.set('tool', 'fake_in', 'input', 'postmin', '0', 'common.v')
 
     assert chip._check_flowgraph_io()
 
 def test_check_flowgraph_min_fail():
-    chip = siliconcompiler.Chip()
 
-    chip.set('design', 'foo')
+    chip = siliconcompiler.Chip('foo')
 
     flow = 'test'
-    chip.set('flow', flow)
+    chip.set('option', 'flow', flow)
     chip.node(flow, 'premin', 'fake_out', index=0)
     chip.node(flow, 'premin', 'fake_out', index=1)
     chip.node(flow, 'domin', 'minimum')
@@ -90,8 +85,8 @@ def test_check_flowgraph_min_fail():
     chip.edge(flow, 'premin', 'domin', tail_index=1)
     chip.edge(flow, 'domin', 'postmin')
 
-    chip.set('eda', 'fake_out', 'output', 'premin', '0', ['a.v'])
-    chip.set('eda', 'fake_out', 'output', 'premin', '1', ['b.v'])
-    chip.set('eda', 'fake_in', 'input', 'postmin', '0', 'a.v')
+    chip.set('tool', 'fake_out', 'output', 'premin', '0', ['a.v'])
+    chip.set('tool', 'fake_out', 'output', 'premin', '1', ['b.v'])
+    chip.set('tool', 'fake_in', 'input', 'postmin', '0', 'a.v')
 
     assert not chip._check_flowgraph_io()

@@ -9,21 +9,21 @@ def test_read_manifest_fields():
     '''Ensure that changes to fields other than 'value' are reflected by read_manifest()'''
 
     chip = siliconcompiler.Chip()
-    chip.set('source', False, field='copy')
-    chip.add('source', 'foo.v')
+    chip.set('source', 'verilog', False, field='copy')
+    chip.add('source', 'verilog', 'foo.v')
     chip.write_manifest('tmp.json')
 
     # fresh chip, so we don't retain anything from `chip` in-memory
     chip2 = siliconcompiler.Chip()
     chip2.read_manifest('tmp.json')
-    assert chip2.get('source', field='copy') is False
+    assert chip2.get('source', 'verilog', field='copy') is False
 
 
 def test_read_sup():
     '''Test compressed read/write'''
 
     chip = siliconcompiler.Chip()
-    chip.add('source', 'foo.v')
+    chip.add('source', 'verilog', 'foo.v')
     chip.write_manifest('tmp.sup.gz')
 
     chip2 = siliconcompiler.Chip()

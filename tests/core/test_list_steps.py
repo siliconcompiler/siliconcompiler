@@ -1,7 +1,7 @@
 import siliconcompiler
 
 def test_list_steps():
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
     flow = 'test'
     chip.node(flow, 'A', 'join')
 
