@@ -64,6 +64,7 @@ def setup(chip):
 
     # If you got here,  you are in asic mode
     chip.set('option', 'mode', 'asic', clobber=True)
+    chip.set('asic', 'pdk', process, clobber=True)
 
     # process name
     chip.set('pdk','foundry', foundry)
