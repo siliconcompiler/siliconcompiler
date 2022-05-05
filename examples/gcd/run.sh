@@ -10,7 +10,7 @@ sc gcd.v \
    -package_description "GCD test package" \
    -package_license "MIT" \
    -target "freepdk45_demo" \
-   -constraint "gcd.sdc" \
+   -constraint_file "gcd.sdc" \
    -asic_diearea "(0,0)" \
    -asic_diearea "(100.13,100.8)" \
    -asic_corearea "(10.07,11.2)" \

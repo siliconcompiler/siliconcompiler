@@ -3822,27 +3822,27 @@ class Chip:
                     retcode = pty.spawn(cmdlist, read)
             else:
                 stdout_file = ''
-                stdout_suffix = self.get('eda', tool, 'stdout', step, index, 'suffix')
-                if self.get('eda', tool, 'stdout', step, index, 'destination') == 'log':
+                stdout_suffix = self.get('tool', tool, 'stdout', step, index, 'suffix')
+                if self.get('tool', tool, 'stdout', step, index, 'destination') == 'log':
                     stdout_file = step + "." + stdout_suffix
-                elif self.get('eda', tool, 'stdout', step, index, 'destination') == 'output':
+                elif self.get('tool', tool, 'stdout', step, index, 'destination') == 'output':
                     stdout_file =  os.path.join('outputs', self.get('design')) + "." + stdout_suffix
-                elif self.get('eda', tool, 'stdout', step, index, 'destination') == 'none':
+                elif self.get('tool', tool, 'stdout', step, index, 'destination') == 'none':
                     stdout_file =  os.devnull
                 else:
-                    destination = self.get('eda', tool, 'stdout', step, index, 'destination')
+                    destination = self.get('tool', tool, 'stdout', step, index, 'destination')
                     self.logger.error(f'stdout/destination has no support for {destination}. Use [log|output|none].')
                     self._haltstep(step, index)
                 stderr_file = ''
-                stderr_suffix = self.get('eda', tool, 'stderr', step, index, 'suffix')
-                if self.get('eda', tool, 'stderr', step, index, 'destination') == 'log':
+                stderr_suffix = self.get('tool', tool, 'stderr', step, index, 'suffix')
+                if self.get('tool', tool, 'stderr', step, index, 'destination') == 'log':
                     stderr_file = step + "." + stderr_suffix
-                elif self.get('eda', tool, 'stderr', step, index, 'destination') == 'output':
+                elif self.get('tool', tool, 'stderr', step, index, 'destination') == 'output':
                     stderr_file =  os.path.join('outputs', self.get('design')) + "." + stderr_suffix
-                elif self.get('eda', tool, 'stderr', step, index, 'destination') == 'none':
+                elif self.get('tool', tool, 'stderr', step, index, 'destination') == 'none':
                     stderr_file =  os.devnull
                 else:
-                    destination = self.get('eda', tool, 'stderr', step, index, 'destination')
+                    destination = self.get('tool', tool, 'stderr', step, index, 'destination')
                     self.logger.error(f'stderr/destination has no support for {destination}. Use [log|output|none].')
                     self._haltstep(step, index)
 
@@ -3850,8 +3850,8 @@ class Chip:
                     # Use separate reader/writer file objects as hack to display
                     # live output in non-blocking way, so we can monitor the
                     # timeout. Based on https://stackoverflow.com/a/18422264.
-                    is_stdout_log = self.get('eda', tool, 'stdout', step, index, 'destination') == 'log'
-                    is_stderr_log = self.get('eda', tool, 'stderr', step, index, 'destination') == 'log' and stderr_file != stdout_file
+                    is_stdout_log = self.get('tool', tool, 'stdout', step, index, 'destination') == 'log'
+                    is_stderr_log = self.get('tool', tool, 'stderr', step, index, 'destination') == 'log' and stderr_file != stdout_file
                     # if STDOUT and STDERR are to be redirected to the same file,
                     # use a single writer
                     if stderr_file == stdout_file:
