@@ -63,6 +63,14 @@ def setup(chip):
     lib.add('model', 'layout', 'gds', stackup,
              libdir+'/gds/NangateOpenCellLibrary.gds')
 
+
+    # Techmap
+    lib.add('asic', 'file', 'yosys', 'techmap',
+            libdir + '/techmap/yosys/cells_latch.v')
+
+    lib.set('asic', 'pgmetal', 'm1')
+
+
     # driver
     lib.add('asic', 'cells','driver', "BUF_X4")
 
@@ -97,15 +105,7 @@ def setup(chip):
     # Endcap
     lib.add('asic', 'cells','endcap', "FILLCELL_X1")
 
-    # Techmap
-    lib.add('asic', 'file', 'yosys', 'techmap',
-            libdir + '/techmap/yosys/cells_latch.v')
-
-    lib.set('asic', 'pgmetal', 'm1')
-
-    # TODO: this needs to be cleaned up
-    chip.cfg['library'][libname] = copy.deepcopy(lib.cfg)
-    del chip.cfg['library'][libname]['pdk']
+    return lib
 
 #########################
 if __name__ == "__main__":

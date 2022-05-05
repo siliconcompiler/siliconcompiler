@@ -31,12 +31,11 @@ def setup(chip):
     chip.edge(flow, 'lvs', 'signoff')
     chip.edge(flow, 'drc', 'signoff')
 
-    chip.set('mode', 'asic')
+    chip.set('option', 'mode', 'asic')
 
-    chip.set('showtool', 'def', 'klayout')
-    chip.set('showtool', 'gds', 'klayout')
+    chip.set('option', 'showtool', 'def', 'klayout')
+    chip.set('option', 'showtool', 'gds', 'klayout')
 
     # Set default goal
     for step in chip.getkeys('flowgraph', flow):
         chip.set('metric', step, '0', 'errors', 'goal', 0)
-
