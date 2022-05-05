@@ -47,6 +47,8 @@ def setup(chip):
     chip.set('eda', tool, 'version', '>=2.0.0-dev', clobber=clobber)
     chip.set('eda', tool, 'threads', step, index, '4', clobber=clobber)
     chip.set('eda', tool, 'option', step, index, '', clobber=clobber)
+    chip.set('eda', tool, 'stdout', step, index, 'destination', 'output')
+    chip.set('eda', tool, 'stdout', step, index, 'suffix', 'v')
 
     # Schema requirements
     chip.add('eda', tool, 'require', step, index, 'source')
@@ -73,6 +75,7 @@ def runtime_options(chip):
     options.append('--synth')
     options.append('--std=08')
     options.append('--out=verilog')
+    options.append('--no-formal')
 
     # Add sources
     for value in chip.find_files('source'):
@@ -103,28 +106,7 @@ def parse_version(stdout):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-
-    # Hack: since ghdl outputs netlist to stdout, we produce the Verilog output
-    # by copying the log.
-
-    design = chip.get('design')
-    step = chip.get('arg', 'step')
-    logname = f'{step}.log'
-    outname = os.path.join('outputs', f'{design}.v')
-
-    # Since the log will also contain warnings and stuff, iterate till we find
-    # the first Verilog module before copying things out.
-    # TODO: find a more robust solution!
-    with open(logname, 'r') as infile, \
-         open(outname, 'w') as outfile:
-
-        for line in infile:
-            if line.startswith('module'):
-                outfile.write(line)
-                break
-        for line in infile:
-            outfile.write(line)
-
+    
     return 0
 
 ##################################################

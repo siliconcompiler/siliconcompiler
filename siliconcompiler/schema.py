@@ -1254,6 +1254,58 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             All files must be available for flow to continue. If a file
             is missing, the program exists on an error.""")
 
+    scparam(cfg, ['tool', tool, 'stdout', step, index, 'destination'],
+            sctype='str',
+            defvalue='log',
+            scope='job',
+            shorthelp="Redirection for stdout",
+            switch="-tool_stdout_destination 'tool step index [log|output|none]'",
+            example=["cli: -tool_stdout_destination 'ghdl import 0 log'",
+                    "api: chip.set('tool','ghdl','stdout','import','0','destination','log')"],
+            schelp="""
+            Defines where to direct the output generated over stdout.
+            Supported options are:
+            none: the stream generated to STDOUT is ignored
+            log: the generated stream is stored in <step>.<suffix>; if not in quiet mode, it is additionally dumped to the display
+            output: the generated stream is stored in outputs/<design>.<suffix>""")
+
+    scparam(cfg, ['tool', tool, 'stdout', step, index, 'suffix'],
+            sctype='str',
+            defvalue='log',
+            scope='job',
+            shorthelp="file extension for stdout generated content",
+            switch="-tool_stdout_suffix 'tool step index <str>'",
+            example=["cli: -tool_stdout_suffix 'ghdl import 0 log'",
+                    "api: chip.set('tool','ghdl','stdout','import','0','suffix','log')"],
+            schelp="""
+            Specifies the file extension for the content redirected from stdout.""")
+
+    scparam(cfg, ['tool', tool, 'stderr', step, index, 'destination'],
+            sctype='str',
+            defvalue='log',
+            scope='job',
+            shorthelp="Redirection for stderr",
+            switch="-tool_stderr_destination 'tool step index [log|output|none]'",
+            example=["cli: -tool_stderr_destination 'ghdl import 0 log'",
+                    "api: chip.set('tool','ghdl','stderr','import','0','destination','log')"],
+            schelp="""
+            Defines where to direct the output generated over stderr.
+            Supported options are:
+            none: the stream generated to STDERR is ignored
+            log: the generated stream is stored in <step>.<suffix>; if not in quiet mode, it is additionally dumped to the display
+            output: the generated stream is stored in outputs/<design>.<suffix>""")
+
+    scparam(cfg, ['tool', tool, 'stderr', step, index, 'suffix'],
+            sctype='str',
+            defvalue='log',
+            scope='job',
+            shorthelp="file extension for stderr generated content",
+            switch="-tool_stderr_suffix 'tool step index <str>'",
+            example=["cli: -tool_stderr_suffix 'ghdl import 0 log'",
+                    "api: chip.set('tool','ghdl','stderr','import','0','suffix','log')"],
+            schelp="""
+            Specifies the file extension for the content redirected from stderr.""")
+
     scparam(cfg, ['tool', tool, 'require', step, index],
             sctype='[str]',
             shorthelp="Tool: parameter requirements",
