@@ -36,6 +36,7 @@ def test_sup():
         #don't move
         l1.write_manifest(f"{builddir}/{i}/job0/export/outputs/{i}.pkg.json")
 
+
     # 2. Package up dependecies using sup
     for i in ('a', 'b', 'c'):
         p = sc.package.Sup(i)

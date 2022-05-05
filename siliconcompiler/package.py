@@ -87,18 +87,17 @@ class Sup:
         self.check(filename)
 
         # extract basic information
-        design = self.chip.get('design')
         version = self.chip.get('package', 'version')
-        ifile = f"{design}-{version}.sup.gz"
+        ifile = f"{self.chip.design}-{version}.sup.gz"
 
         if re.match(r'http', registry):
             #TODO
             pass
         else:
-            self.chip.logger.info(f"Publishing {design}-{version} package to registry '{registry}'")
-            odir = os.path.join(registry, design, version)
+            self.chip.logger.info(f"Publishing {self.chip.design}-{version} package to registry '{registry}'")
+            odir = os.path.join(registry, self.chip.design, version)
             os.makedirs(odir, exist_ok=True)
-            ofile = os.path.join(odir,f"{design}-{version}.sup.gz")
+            ofile = os.path.join(odir,f"{self.chip.design}-{version}.sup.gz")
             self.chip.write_manifest(ofile)
 
         return(0)

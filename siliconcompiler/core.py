@@ -1560,7 +1560,7 @@ class Chip:
         for keylist in self.getkeys(cfg=cfg):
             if partial and keylist[0] not in ('metric', 'record'):
                 continue
-            if keylist[0] == 'history':
+            if keylist[0] in ('history', 'library'):
                 continue
             #only read in valid keypaths without 'default'
             key_valid = True
@@ -1611,7 +1611,7 @@ class Chip:
 
             paramtype = self.get(*keypath, field='type')
             #only do something if type is file or dir
-            if ('history' not in keypath) and ('file' in paramtype or 'dir' in paramtype):
+            if ('history' not in keypath and 'library' not in keypath) and ('file' in paramtype or 'dir' in paramtype):
 
                 if self.get(*keypath) is None:
                     # skip unset values (some directories are None by default)
@@ -1798,7 +1798,7 @@ class Chip:
         allkeys = self.getkeys()
         for key in allkeys:
             keypath = ",".join(key)
-            if 'default' not in key and 'history' not in key:
+            if 'default' not in key and 'history' not in key and 'library' not in key:
                 key_empty = self._keypath_empty(key)
                 requirement = self.get(*key, field='require')
                 if key_empty and (str(requirement) == 'all'):
@@ -1984,17 +1984,23 @@ class Chip:
         finally:
             fin.close()
 
-        #Merging arguments with the Chip configuration
+        # Merging arguments with the Chip configuration
         self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
+
+        # Add library stubs to not interfere with check_manifest
+        if not partial:
+            if 'library' in localcfg:
+                for lib in localcfg['library'].keys():
+                    self.cfg['library'][lib] = {}
 
         # Read history
         if 'history' in localcfg and not partial:
             for historic_job in localcfg['history'].keys():
                 self._merge_manifest(localcfg['history'][historic_job],
-                                    job=historic_job,
-                                    clear=clear,
-                                    clobber=clobber,
-                                    partial=False)
+                                     job=historic_job,
+                                     clear=clear,
+                                     clobber=clobber,
+                                     partial=False)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
