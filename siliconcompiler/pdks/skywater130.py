@@ -35,7 +35,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<pdk>')
     setup(chip)
 
     return chip
@@ -66,7 +66,8 @@ def setup(chip):
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
     #if you are calling this file, you are in asic mode
-    chip.set('mode','asic', clobber = True)
+    chip.set('option', 'mode','asic', clobber = True)
+    chip.set('asic', 'pdk', process, clobber=True)
 
     # process name
     chip.set('pdk','foundry', foundry)
@@ -85,7 +86,7 @@ def setup(chip):
 
     # Openroad specific files
     chip.set('pdk','aprtech','openroad', stackup, libtype,'tapcells',
-                 pdkdir+'/apr/tapcell.tcl')
+             pdkdir+'/apr/tapcell.tcl')
 
     # DRC Runsets
     chip.set('pdk','drc','runset', 'magic', stackup, 'basic', pdkdir+'/setup/magic/sky130A.tech')

@@ -10,7 +10,7 @@ def make_docs():
     open-source asicflow.
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<target>')
     setup(chip)
     return chip
 
@@ -26,7 +26,7 @@ def setup(chip):
 
     #1. Defining the project
     project = 'skywater130_demo'
-    chip.set('target', project)
+    chip.set('option', 'target', project)
 
     #2. Load PDK, flow, libs
     chip.load_pdk('skywater130')
@@ -37,7 +37,7 @@ def setup(chip):
     chip.load_checklist('oh_tapeout')
 
     #3. Set default targets
-    chip.set('flow', 'asicflow')
+    chip.set('option', 'flow', 'asicflow')
 
     #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
@@ -63,10 +63,10 @@ def setup(chip):
 
     #5. Timing corners
     corner = 'typical'
-    chip.set('mcmm','worst','libcorner', corner)
-    chip.set('mcmm','worst','pexcorner', corner)
-    chip.set('mcmm','worst','mode', 'func')
-    chip.add('mcmm','worst','check', ['setup','hold'])
+    chip.set('constraint', 'worst', 'libcorner', corner)
+    chip.set('constraint', 'worst', 'pexcorner', corner)
+    chip.set('constraint', 'worst', 'mode', 'func')
+    chip.add('constraint', 'worst', 'check', ['setup','hold'])
 
 #########################
 if __name__ == "__main__":

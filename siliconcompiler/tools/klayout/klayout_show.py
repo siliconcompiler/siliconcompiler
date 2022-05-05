@@ -13,7 +13,7 @@ with open('sc_manifest.json', 'r') as f:
 # Extract info from manifest
 sc_stackup = sc_cfg['pdk']['stackup']['value'][0]
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
-sc_libtype = sc_cfg['library'][sc_mainlib]['asic']['footprint']
+sc_libtype = list(sc_cfg['library'][sc_mainlib]['asic']['footprint'].keys())[0]
 
 try:
     tech_file = sc_cfg['pdk']['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
