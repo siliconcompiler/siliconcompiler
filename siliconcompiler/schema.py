@@ -1266,8 +1266,9 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             Defines where to direct the output generated over stdout.
             Supported options are:
             none: the stream generated to STDOUT is ignored
-            log: the generated stream is stored in <step>.<suffix>; if not in quiet mode, it is additionally dumped to the display
-            output: the generated stream is stored in outputs/<design>.<suffix>""")
+            log: the generated stream is stored in <step>.<suffix>; if not in quiet mode,
+            it is additionally dumped to the display output: the generated stream is stored
+            in outputs/<design>.<suffix>""")
 
     scparam(cfg, ['tool', tool, 'stdout', step, index, 'suffix'],
             sctype='str',
@@ -1292,8 +1293,9 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             Defines where to direct the output generated over stderr.
             Supported options are:
             none: the stream generated to STDERR is ignored
-            log: the generated stream is stored in <step>.<suffix>; if not in quiet mode, it is additionally dumped to the display
-            output: the generated stream is stored in outputs/<design>.<suffix>""")
+            log: the generated stream is stored in <step>.<suffix>; if not in quiet mode,
+            it is additionally dumped to the display output: the generated stream is
+            stored in outputs/<design>.<suffix>""")
 
     scparam(cfg, ['tool', tool, 'stderr', step, index, 'suffix'],
             sctype='str',
