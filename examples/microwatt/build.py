@@ -70,8 +70,8 @@ def main():
     # Yosys.
     flow = 'vhdlsyn'
     chip.node(flow, 'import', 'ghdl')
-    # chip.node(flow, 'syn', 'yosys')
-    # chip.edge(flow, 'import', 'syn')
+    chip.node(flow, 'syn', 'yosys')
+    chip.edge(flow, 'import', 'syn')
 
     chip.set('flow', flow)
 

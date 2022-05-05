@@ -1469,6 +1469,58 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             All files must be available for flow to continue. If a file
             is missing, the program exists on an error.""")
 
+    scparam(cfg, ['eda', tool, 'stdout', step, index, 'destination'],
+            sctype='str',
+            defvalue='log',
+            scope='job',
+            shorthelp="Redirection for stdout",
+            switch="-eda_stdout_destination 'tool step index [log|output|none]'",
+            example=["cli: -eda_stdout_destination 'ghdl import 0 log'",
+                    "api: chip.set('eda','ghdl','stdout','import','0','destination','log')"],
+            schelp="""
+            Defines where to direct the output generated over stdout.
+            Supported options are:
+            none: the stream generated to STDOUT is ignored
+            log: the generated stream is stored in <step>.<suffix>; if not in quiet mode, it is additionally dumped to the display
+            output: the generated stream is stored in outputs/<design>.<suffix>""")
+
+    scparam(cfg, ['eda', tool, 'stdout', step, index, 'suffix'],
+            sctype='str',
+            defvalue='log',
+            scope='job',
+            shorthelp="file extension for stdout generated content",
+            switch="-eda_stdout_suffix 'tool step index <str>'",
+            example=["cli: -eda_stdout_suffix 'ghdl import 0 log'",
+                    "api: chip.set('eda','ghdl','stdout','import','0','suffix','log')"],
+            schelp="""
+            Specifies the file extension for the content redirected from stdout.""")
+
+    scparam(cfg, ['eda', tool, 'stderr', step, index, 'destination'],
+            sctype='str',
+            defvalue='log',
+            scope='job',
+            shorthelp="Redirection for stderr",
+            switch="-eda_stderr_destination 'tool step index [log|output|none]'",
+            example=["cli: -eda_stderr_destination 'ghdl import 0 log'",
+                    "api: chip.set('eda','ghdl','stderr','import','0','destination','log')"],
+            schelp="""
+            Defines where to direct the output generated over stderr.
+            Supported options are:
+            none: the stream generated to STDERR is ignored
+            log: the generated stream is stored in <step>.<suffix>; if not in quiet mode, it is additionally dumped to the display
+            output: the generated stream is stored in outputs/<design>.<suffix>""")
+
+    scparam(cfg, ['eda', tool, 'stderr', step, index, 'suffix'],
+            sctype='str',
+            defvalue='log',
+            scope='job',
+            shorthelp="file extension for stderr generated content",
+            switch="-eda_stderr_suffix 'tool step index <str>'",
+            example=["cli: -eda_stderr_suffix 'ghdl import 0 log'",
+                    "api: chip.set('eda','ghdl','stderr','import','0','suffix','log')"],
+            schelp="""
+            Specifies the file extension for the content redirected from stderr.""")
+
     scparam(cfg, ['eda', tool, 'require', step, index],
             sctype='[str]',
             scope='job',
