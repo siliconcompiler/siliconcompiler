@@ -13,6 +13,7 @@ def main(root='.'):
     chip.set('option', 'track', True)
     chip.set('option', 'skipcheck', True)
     chip.set('option', 'novercheck', True)
+    chip.set('option', 'nodisplay', True)
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
     chip.load_target("freepdk45_demo")
