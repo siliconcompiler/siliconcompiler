@@ -2972,7 +2972,7 @@ class Chip:
         # Custom reporting modes
         paramlist = []
         for item in self.getkeys('option', 'param'):
-            paramlist.append(item+"="+self.get('option', 'param',item))
+            paramlist.append(item+"="+self.get('option', 'param', item))
 
         if paramlist:
             paramstr = ', '.join(paramlist)
@@ -3074,15 +3074,10 @@ class Chip:
             shutil.copyfile(os.path.join(templ_dir, 'bootstrap.min.css'),
                             os.path.join(web_dir, 'bootstrap.min.css'))
 
-            # Call 'show()' to generate a low-res PNG of the design.
-            results_gds = self.find_result('gds', step='export')
-            if results_gds:
-                self.show(results_gds,
-                          ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
-
             # Generate results page by passing the Chip manifest into the Jinja2 template.
             env = Environment(loader=FileSystemLoader(templ_dir))
             results_page = os.path.join(web_dir, 'report.html')
+            results_gds = self.find_result('gds', step='export')
             with open(results_page, 'w') as wf:
                 wf.write(env.get_template('sc_report.j2').render(
                     manifest = self.cfg,
@@ -3092,8 +3087,12 @@ class Chip:
                     results_fn = results_gds
                 ))
 
-            # Try to open the results page in a browser, only if '-nodisplay' is not set.
+            # Try to open the results and layout only if '-nodisplay' is not set.
             if not self.get('option', 'nodisplay'):
+                # Call 'show()' to generate a low-res PNG of the design.
+                if results_gds:
+                    self.show(results_gds,
+                              ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
                 try:
                     webbrowser.get(results_page)
                 except webbrowser.Error:
