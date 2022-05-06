@@ -8,8 +8,8 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('nangate45')
-    setup(chip)
-    return chip
+    lib = setup(chip)
+    return lib
 
 def setup(chip):
 

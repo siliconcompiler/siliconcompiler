@@ -55,7 +55,7 @@ def setup(chip):
     stackup = '5M1LI'
 
     # TODO: eventualy support hs libtype as well
-    libtype = 'hd'
+    libtype = 'unithd'
     node = 130
     # TODO: dummy numbers, only matter for cost estimation
     wafersize = 300
