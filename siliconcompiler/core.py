@@ -613,9 +613,8 @@ class Chip:
         if func is not None:
             self._loaded_modules['libs'].append(name)
             lib = func(self)
-            libname = lib.design
-            self.cfg['library'][libname] = copy.deepcopy(lib.cfg)
-            del self.cfg['library'][libname]['pdk']
+            self.cfg['library'][name] = copy.deepcopy(lib.cfg)
+            del self.cfg['library'][name]['pdk']
         else:
             self.logger.error(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
             raise SiliconCompilerError(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
