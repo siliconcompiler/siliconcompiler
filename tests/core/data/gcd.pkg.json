@@ -7568,7 +7568,7 @@
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
                         "unit": "s",
-                        "value": "1.85"
+                        "value": "1.84"
                     }
                 },
                 "holdpaths": {
@@ -7729,7 +7729,7 @@
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
                         "unit": "B",
-                        "value": "100253696.0"
+                        "value": "100204544.0"
                     }
                 },
                 "nets": {
@@ -7916,7 +7916,7 @@
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
                         "unit": "s",
-                        "value": "2.06"
+                        "value": "2.05"
                     }
                 },
                 "totalarea": {
@@ -8359,7 +8359,7 @@
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
                         "unit": "B",
-                        "value": "79560704.0"
+                        "value": "79716352.0"
                     }
                 },
                 "nets": {
@@ -8546,7 +8546,7 @@
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
                         "unit": "s",
-                        "value": "0.55"
+                        "value": "0.57"
                     }
                 },
                 "totalarea": {
@@ -8989,7 +8989,7 @@
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
                         "unit": "B",
-                        "value": "368103424"
+                        "value": "367468544"
                     }
                 },
                 "nets": {
@@ -9176,7 +9176,7 @@
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
                         "unit": "s",
-                        "value": "1.14"
+                        "value": "1.15"
                     }
                 },
                 "totalarea": {
@@ -9458,7 +9458,7 @@
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
                         "unit": "s",
-                        "value": "0.32"
+                        "value": "0.33"
                     }
                 },
                 "holdpaths": {
@@ -9619,7 +9619,7 @@
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
                         "unit": "B",
-                        "value": "79032320.0"
+                        "value": "77869056.0"
                     }
                 },
                 "nets": {
@@ -9806,7 +9806,7 @@
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
                         "unit": "s",
-                        "value": "0.51"
+                        "value": "0.48"
                     }
                 },
                 "totalarea": {
@@ -10896,7 +10896,7 @@
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
                         "unit": "B",
-                        "value": "78729216.0"
+                        "value": "79056896.0"
                     }
                 },
                 "nets": {
@@ -11083,7 +11083,7 @@
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
                         "unit": "s",
-                        "value": "0.56"
+                        "value": "0.55"
                     }
                 },
                 "totalarea": {
@@ -11526,7 +11526,7 @@
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
                         "unit": "B",
-                        "value": "161628160.0"
+                        "value": "182071296.0"
                     }
                 },
                 "nets": {
@@ -11713,7 +11713,7 @@
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
                         "unit": "s",
-                        "value": "0.74"
+                        "value": "0.73"
                     }
                 },
                 "totalarea": {
@@ -11995,7 +11995,7 @@
                         "switch": "-metric_exetime 'step index group <float>'",
                         "type": "float",
                         "unit": "s",
-                        "value": "1.91"
+                        "value": "1.92"
                     }
                 },
                 "holdpaths": {
@@ -12156,7 +12156,7 @@
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
                         "unit": "B",
-                        "value": "804904960.0"
+                        "value": "816275456.0"
                     }
                 },
                 "nets": {
@@ -12343,7 +12343,7 @@
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
                         "unit": "s",
-                        "value": "2.14"
+                        "value": "2.19"
                     }
                 },
                 "totalarea": {
@@ -12786,7 +12786,7 @@
                         "switch": "-metric_memory 'step index group <float>'",
                         "type": "float",
                         "unit": "B",
-                        "value": "31117312.0"
+                        "value": "31080448.0"
                     }
                 },
                 "nets": {
@@ -12973,7 +12973,7 @@
                         "switch": "-metric_tasktime 'step index group <float>'",
                         "type": "float",
                         "unit": "s",
-                        "value": "0.87"
+                        "value": "0.91"
                     }
                 },
                 "totalarea": {
@@ -13218,7 +13218,7 @@
             "signature": null,
             "switch": "-nodisplay <bool>",
             "type": "bool",
-            "value": "false"
+            "value": "true"
         },
         "novercheck": {
             "defvalue": "false",
@@ -14569,7 +14569,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:35"
+                    "value": "2022-05-05 21:08:33"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14657,7 +14657,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:33"
+                    "value": "2022-05-05 21:08:31"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -14727,7 +14727,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:39"
+                    "value": "2022-05-05 21:08:36"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14815,7 +14815,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:38"
+                    "value": "2022-05-05 21:08:35"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -14885,7 +14885,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:40"
+                    "value": "2022-05-05 21:08:37"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14973,7 +14973,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:39"
+                    "value": "2022-05-05 21:08:36"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -15043,7 +15043,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:31"
+                    "value": "2022-05-05 21:08:29"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -15131,7 +15131,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:31"
+                    "value": "2022-05-05 21:08:28"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -15201,7 +15201,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:29"
+                    "value": "2022-05-05 21:08:27"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -15289,7 +15289,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:29"
+                    "value": "2022-05-05 21:08:26"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -15359,7 +15359,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:32"
+                    "value": "2022-05-05 21:08:30"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -15447,7 +15447,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:32"
+                    "value": "2022-05-05 21:08:29"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -15517,7 +15517,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:33"
+                    "value": "2022-05-05 21:08:31"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -15605,7 +15605,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:32"
+                    "value": "2022-05-05 21:08:30"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -15675,7 +15675,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:38"
+                    "value": "2022-05-05 21:08:35"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -15763,7 +15763,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:36"
+                    "value": "2022-05-05 21:08:33"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -15833,7 +15833,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:31"
+                    "value": "2022-05-05 21:08:28"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -15921,7 +15921,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-03 22:42:30"
+                    "value": "2022-05-05 21:08:27"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -16225,6 +16225,62 @@
                         "value": [
                             "klayout_export.py"
                         ]
+                    }
+                }
+            },
+            "stderr": {
+                "export": {
+                    "0": {
+                        "destination": {
+                            "defvalue": "log",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Redirection for stderr",
+                            "signature": null,
+                            "switch": "-tool_stderr_destination 'tool step index [log|output|none]'",
+                            "type": "str",
+                            "value": "log"
+                        },
+                        "suffix": {
+                            "defvalue": "log",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "file extension for stderr generated content",
+                            "signature": null,
+                            "switch": "-tool_stderr_suffix 'tool step index <str>'",
+                            "type": "str",
+                            "value": "log"
+                        }
+                    }
+                }
+            },
+            "stdout": {
+                "export": {
+                    "0": {
+                        "destination": {
+                            "defvalue": "log",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Redirection for stdout",
+                            "signature": null,
+                            "switch": "-tool_stdout_destination 'tool step index [log|output|none]'",
+                            "type": "str",
+                            "value": "log"
+                        },
+                        "suffix": {
+                            "defvalue": "log",
+                            "lock": "false",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "file extension for stdout generated content",
+                            "signature": null,
+                            "switch": "-tool_stdout_suffix 'tool step index <str>'",
+                            "type": "str",
+                            "value": "log"
+                        }
                     }
                 }
             },

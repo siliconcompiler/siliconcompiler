@@ -10,6 +10,8 @@ def gcd_chip():
     chip.add('source', 'sdc', os.path.join(gcd_ex_dir, 'gcd.sdc'))
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
+    chip.set('option', 'novercheck', 'true')
+    chip.set('option', 'nodisplay', 'true')
     chip.set('option', 'quiet', 'true')
     chip.set('option', 'relax', 'true')
 

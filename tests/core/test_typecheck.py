@@ -13,14 +13,14 @@ def test_typecheck():
 
     #Check list access
     inlist = ['import','syn']
-    chip.set('steplist', inlist)
-    if (inlist != chip.get('steplist')):
+    chip.set('option', 'steplist', inlist)
+    if (inlist != chip.get('option', 'steplist')):
         error = 1
 
     #Check scalar to list access
     inscalar = 'import'
-    chip.set('steplist', 'import')
-    outlist = chip.get('steplist')
+    chip.set('option', 'steplist', 'import')
+    outlist = chip.get('option', 'steplist')
     if (outlist != [inscalar]):
         error = 1
 
