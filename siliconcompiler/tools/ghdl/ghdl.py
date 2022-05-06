@@ -76,6 +76,9 @@ def runtime_options(chip):
     options.append('--std=08')
     options.append('--out=verilog')
     options.append('--no-formal')
+    # allow non-standard packages 
+    # (std_logic_arith, std_logic_signed, std_logic_unsigned, std_logic_textio)
+    options.append('-fsynopsys')
 
     # Add sources
     for value in chip.find_files('source'):
