@@ -78,14 +78,15 @@ def _wire_to_rect(wire):
 def _get_tech_lef_data(chip, tool):
     stackup = chip.get('asic', 'stackup')
     libname = chip.get('asic', 'logiclib')[0]
-    libtype = chip.get('library', libname, 'arch')
+    libtype = chip.get('library', libname, 'asic', 'footprint')[0]
 
     tech_lef = chip.find_files('pdk', 'aprtech', tool, stackup, libtype, 'lef')[0]
     return leflib.parse(tech_lef)
 
 def _get_stdcell_info(chip, tech_lef_data):
     libname = chip.get('asic', 'logiclib')[0]
-    site_name = chip.getkeys('library', libname, 'site')[0]
+    site_name = chip.get('library', libname, 'asic', 'footprint', libtype, 'alias')
+
     if 'sites' not in tech_lef_data or site_name not in tech_lef_data['sites']:
         raise ValueError('Site {site_name} not found in tech LEF.')
 
@@ -1377,7 +1378,8 @@ class Floorplan:
 def _find_cell_area(chip, startstep, startindex):
     '''Helper to work back through the preceeding flowgraph steps to find a step
     that's set the cellarea.'''
-    select = chip.get('flowstatus', startstep, startindex, 'select')
+    flow = chip.get('option','flow')
+    select = chip.get('flowgraph', flow, startstep, startindex, 'select')
     for step, index in select:
         cell_area = chip.get('metric', step, index, 'cellarea', 'real')
         if cell_area:
