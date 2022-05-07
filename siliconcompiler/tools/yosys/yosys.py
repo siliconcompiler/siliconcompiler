@@ -72,10 +72,10 @@ def setup(chip):
         chip.add('tool', tool, 'output', step, index, chip.design + '_netlist.json')
         chip.add('tool', tool, 'output', step, index, chip.design + '.blif')
     elif step == 'lec':
-        if (not chip.valid('read', 'netlist', step, index) or
-            not chip.get('read', 'netlist', step, index)):
+        if (not chip.valid('source', 'netlist', step, index) or
+            not chip.get('source', 'netlist', step, index)):
             chip.set('tool', tool, 'input', step, index, chip.design + '.vg')
-        if not chip.get('source'):
+        if not chip.get('source', 'verilog'):
             chip.set('tool', tool, 'input', step, index, chip.design + '.v')
 
     # Schema requirements

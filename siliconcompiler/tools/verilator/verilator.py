@@ -32,7 +32,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','import')
     chip.set('arg','index','<index>')
     setup(chip)
@@ -53,29 +53,29 @@ def setup(chip):
     index = chip.get('arg','index')
 
     # Standard Setup
-    chip.set('eda', tool, 'exe', 'verilator', clobber=False)
-    chip.set('eda', tool, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, 'version', '>=4.028', clobber=False)
-    chip.set('eda', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'exe', 'verilator', clobber=False)
+    chip.set('tool', tool, 'vswitch', '--version', clobber=False)
+    chip.set('tool', tool, 'version', '>=4.028', clobber=False)
+    chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
     # Options driven on a per step basis (use 'set' on first call!)
-    chip.set('eda', tool, 'option', step, index,  '-sv', clobber=False)
+    chip.set('tool', tool, 'option', step, index,  '-sv', clobber=False)
 
     # Differentiate between import step and compilation
     if step in ['import', 'lint']:
-        chip.add('eda', tool, 'option', step, index,  ['--lint-only','--debug'])
+        chip.add('tool', tool, 'option', step, index,  ['--lint-only','--debug'])
     elif (step == 'compile'):
-        chip.add('eda', tool, 'option', step, index,  '--cc')
+        chip.add('tool', tool, 'option', step, index,  '--cc')
     else:
         chip.logger.error(f'Step {step} not supported for verilator')
         raise siliconcompiler.SiliconCompilerError(f'Step {step} not supported for verilator')
 
     if step == 'import':
         design = chip.get('design')
-        chip.set('eda', tool, 'output', step, index, f'{design}.v')
+        chip.set('tool', tool, 'output', step, index, f'{design}.v')
 
     # Schema requirements
-    chip.add('eda', tool, 'require', step, index, 'source')
+    chip.add('tool', tool, 'require', step, index, ",".join(['source', 'verilog']))
 
 ################################
 #  Custom runtime options
@@ -93,21 +93,21 @@ def runtime_options(chip):
     cmdlist = []
 
     # source files
-    for value in chip.find_files('ydir'):
+    for value in chip.find_files('option', 'ydir'):
         cmdlist.append('-y ' + value)
-    for value in chip.find_files('vlib'):
+    for value in chip.find_files('option', 'vlib'):
         cmdlist.append('-v ' + value)
-    for value in chip.find_files('idir'):
+    for value in chip.find_files('option', 'idir'):
         cmdlist.append('-I' + value)
-    for value in chip.get('define'):
+    for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('cmdfile'):
+    for value in chip.find_files('option', 'cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('source'):
+    for value in chip.find_files('source', 'verilog'):
         cmdlist.append(value)
 
     #  make warnings non-fatal in relaxed mode
-    if chip.get('relax'):
+    if chip.get('option', 'relax'):
         cmdlist.append('-Wno-fatal')
 
     return cmdlist
