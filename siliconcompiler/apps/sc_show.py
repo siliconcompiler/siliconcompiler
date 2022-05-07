@@ -22,7 +22,14 @@ def main():
 
     """
 
-    chip = siliconcompiler.Chip()
+
+    # find design name for object init
+    design = 'none'
+    for i , item in enumerate(sys.argv):
+        if item == "-design":
+            design = sys.argv[i+1]
+
+    chip = siliconcompiler.Chip(design)
     chip.create_cmdline(progname,
                         switchlist=['design', 'read_def', 'read_gds', 'loglevel', 'cfg'],
                         description=description)
