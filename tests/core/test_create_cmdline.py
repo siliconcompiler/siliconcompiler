@@ -8,7 +8,9 @@ def test_cli_multi_source(monkeypatch):
 
     # I think it doesn't matter if these files actually exist, since we're just
     # checking that the CLI app parses them correctly
-    args = ['sc', 'examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v',
+    args = ['sc',
+            "-source 'verilog examples/ibex/ibex_alu.v'",
+            "-source 'verilog 'examples/ibex/ibex_branch_predict.v'",
             '-target', 'freepdk45_demo']
 
     monkeypatch.setattr('sys.argv', args)
@@ -26,7 +28,9 @@ def test_cli_include_flag(monkeypatch):
 
     # It doesn't matter that these files/dirs don't exist, since we're just
     # checking that the CLI app parses them correctly
-    args = ['sc', 'source.v', '-I', 'include/inc1', '+incdir+include/inc2']
+    args = ['sc',
+            "-source 'verilog source.v'",
+            '-I', 'include/inc1', '+incdir+include/inc2']
 
     monkeypatch.setattr('sys.argv', args)
     chip.create_cmdline('sc')
