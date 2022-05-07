@@ -1259,7 +1259,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             sctype='str',
             defvalue='log',
             scope='job',
-            shorthelp="Redirection for stdout",
+            shorthelp="Tool: Destination for stdout",
             switch="-tool_stdout_destination 'tool step index [log|output|none]'",
             example=["cli: -tool_stdout_destination 'ghdl import 0 log'",
                     "api: chip.set('tool','ghdl','stdout','import','0','destination','log')"],
@@ -1275,7 +1275,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             sctype='str',
             defvalue='log',
             scope='job',
-            shorthelp="file extension for stdout generated content",
+            shorthelp="Tool: File suffix for redirected stdout",
             switch="-tool_stdout_suffix 'tool step index <str>'",
             example=["cli: -tool_stdout_suffix 'ghdl import 0 log'",
                     "api: chip.set('tool','ghdl','stdout','import','0','suffix','log')"],
@@ -1286,7 +1286,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             sctype='str',
             defvalue='log',
             scope='job',
-            shorthelp="Redirection for stderr",
+            shorthelp="Tool: Destination for stderr",
             switch="-tool_stderr_destination 'tool step index [log|output|none]'",
             example=["cli: -tool_stderr_destination 'ghdl import 0 log'",
                     "api: chip.set('tool','ghdl','stderr','import','0','destination','log')"],
@@ -1302,7 +1302,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             sctype='str',
             defvalue='log',
             scope='job',
-            shorthelp="file extension for stderr generated content",
+            shorthelp="Tool: File suffix for redirected stderr",
             switch="-tool_stderr_suffix 'tool step index <str>'",
             example=["cli: -tool_stderr_suffix 'ghdl import 0 log'",
                     "api: chip.set('tool','ghdl','stderr','import','0','suffix','log')"],
@@ -3173,7 +3173,7 @@ def schema_asic(cfg):
     key = 'default'
     scparam(cfg,['asic', 'footprint', key, 'alias'],
             sctype='[str]',
-            shorthelp="Design footprint aliases",
+            shorthelp="ASIC: Footprint name aliases",
             switch="-asic_footprint_alias 'key <str>'",
             example=[
                 "cli: -footprint_alias '12track FreeCell'",
@@ -3184,7 +3184,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'footprint', key, 'symmetry'],
             sctype='str',
-            shorthelp="Footprint symmetry",
+            shorthelp="ASIC: Footprint symmetry",
             switch="-asic_footprint_symmetry 'key <str>'",
             example=[
                 "cli: -asic_footprint_symmetry 'core X Y'",
@@ -3197,7 +3197,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'footprint', key, 'size'],
             sctype='(float,float)',
-            shorthelp="Footprint size",
+            shorthelp="ASUC: Footprint size",
             switch="-asic_footprint_size 'key <str>'",
             example=[
                 "cli: -asic_footprint_size 'core (1.0,1.0)'",
