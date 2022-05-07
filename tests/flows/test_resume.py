@@ -6,11 +6,11 @@ import os
 @pytest.mark.eda
 def test_resume(gcd_chip):
     # Set a value that will cause place to break
-    gcd_chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
+    gcd_chip.set('tool', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
-    
+
     # Ensure flow failed at placement, and store last modified time of floorplan
     fp_result = gcd_chip.find_result('def', step='floorplan')
     assert fp_result is not None
@@ -20,7 +20,7 @@ def test_resume(gcd_chip):
     assert gcd_chip.find_result('gds', step='export') is None
 
     # Fix place step and re-run
-    gcd_chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', '0.15')
+    gcd_chip.set('tool', 'openroad', 'variable', 'place', '0', 'place_density', '0.15')
     gcd_chip.set('resume', True)
     gcd_chip.run()
 

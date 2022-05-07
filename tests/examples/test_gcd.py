@@ -24,7 +24,7 @@ def test_py(setup_example_test):
     chip = siliconcompiler.Chip()
     chip.read_manifest(manifest)
 
-    assert chip.get('eda', 'yosys', 'report', 'syn', '0', 'cellarea') == ['syn.log']
+    assert chip.get('tool', 'yosys', 'report', 'syn', '0', 'cellarea') == ['syn.log']
 
 @pytest.mark.eda
 @pytest.mark.quick

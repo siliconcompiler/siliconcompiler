@@ -12,11 +12,11 @@ def test_openroad(scroot):
 
     design = "oh_fifo_sync"
 
-    chip = siliconcompiler.Chip()
-    chip.set('design', design)
+    chip = siliconcompiler.Chip(design)
 
-    chip.set('read', 'netlist', 'floorplan', '0', netlist)
-    chip.set('quiet', True)
+    chip.set('source', 'netlist', netlist)
+    chip.set('option', 'quiet', True)
+    chip.set('option', 'novercheck', True)
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
 
@@ -28,7 +28,7 @@ def test_openroad(scroot):
     chip.node(flow, 'import', 'nop')
     chip.node(flow, 'floorplan', 'openroad')
     chip.edge(flow, 'import', 'floorplan')
-    chip.set('flow', flow)
+    chip.set('option', 'flow', flow)
 
     chip.run()
 

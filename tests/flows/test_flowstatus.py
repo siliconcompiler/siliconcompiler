@@ -21,14 +21,13 @@ def test_flowstatus(scroot, steplist):
     jobname = 'issue_repro'
     design = "oh_fifo_sync"
 
-    chip = siliconcompiler.Chip()
-    chip.set('design', design)
+    chip = siliconcompiler.Chip(design)
     for index in ('0', '1'):
-        chip.set('read', 'netlist', 'place', index, netlist)
-        chip.set('read', 'def', 'place', index, def_file)
-    chip.set('mode', 'asic')
-    chip.set('quiet', True)
-    chip.set('jobname', jobname)
+        chip.set('source', 'netlist', netlist)
+        chip.set('source', 'def', def_file)
+    chip.set('option', 'mode', 'asic')
+    chip.set('option', 'quiet', True)
+    chip.set('option', 'jobname', jobname)
 
     chip.load_target('freepdk45_demo')
 
@@ -43,9 +42,9 @@ def test_flowstatus(scroot, steplist):
     chip.edge(flow, 'import', 'place', head_index='1')
 
     # Illegal value, so this branch will fail!
-    chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
     # Legal value, so this branch should succeed
-    chip.set('eda', 'openroad', 'variable', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'variable', 'place', '1', 'place_density', '0.5')
 
     # Perform minimum
     chip.node(flow, 'placemin', 'minimum')
@@ -55,15 +54,15 @@ def test_flowstatus(scroot, steplist):
     chip.node(flow, 'cts', 'openroad')
     chip.edge(flow, 'placemin', 'cts')
 
-    chip.set('steplist', steplist)
-    chip.set('flow', flow)
+    chip.set('option', 'steplist', steplist)
+    chip.set('option', 'flow', flow)
 
     chip.run()
 
     chip.summary()
 
-    assert chip.get('flowstatus', 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
-    assert chip.get('flowstatus', 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
+    assert chip.get('flowgraph', flow, 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
+    assert chip.get('flowgraph', flow, 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -79,14 +78,13 @@ def test_long_branch(scroot):
     jobname = 'issue_repro'
     design = "oh_fifo_sync"
 
-    chip = siliconcompiler.Chip()
-    chip.set('design', design)
+    chip = siliconcompiler.Chip(design)
     for index in ('0', '1'):
-        chip.set('read', 'netlist', 'place', index, netlist)
-        chip.set('read', 'def', 'place', index, def_file)
-    chip.set('mode', 'asic')
-    chip.set('quiet', True)
-    chip.set('jobname', jobname)
+        chip.set('source', 'netlist', index, netlist)
+        chip.set('source', 'def', index, def_file)
+    chip.set('option', 'mode', 'asic')
+    chip.set('option', 'quiet', True)
+    chip.set('option', 'jobname', jobname)
 
     chip.load_target('freepdk45_demo')
 
@@ -101,21 +99,21 @@ def test_long_branch(scroot):
     chip.edge(flow, 'import', 'place', head_index='1')
 
     # Illegal value, so this branch will fail!
-    chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
     # Legal value, so this branch should succeed
-    chip.set('eda', 'openroad', 'variable', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'variable', 'place', '1', 'place_density', '0.5')
 
     chip.node(flow, 'cts', 'openroad', index='0')
     chip.node(flow, 'cts', 'openroad', index='1')
     chip.edge(flow, 'place', 'cts', tail_index='0', head_index='0')
     chip.edge(flow, 'place', 'cts', tail_index='1', head_index='1')
 
-    chip.set('flow', flow)
+    chip.set('option', 'flow', flow)
 
     chip.run()
 
-    assert chip.get('flowstatus', 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
-    assert chip.get('flowstatus', 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
+    assert chip.get('flowgraph', flow, 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
+    assert chip.get('flowgraph', flow, 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -128,33 +126,33 @@ def test_remote(scroot):
                                  '-cluster', 'local'])
     time.sleep(3)
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('gcd')
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
     with open(tmp_creds, 'w') as tmp_cred_file:
         tmp_cred_file.write(json.dumps({'address': 'localhost', 'port': 8081}))
-    chip.set('remote', True)
-    chip.set('credentials', os.path.abspath(tmp_creds))
+    chip.set('option', 'remote', True)
+    chip.set('option', 'credentials', os.path.abspath(tmp_creds))
 
     src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
-    chip.set('design', 'gcd')
-    chip.set('source', src)
 
-    chip.set('flowarg', 'place_np', '2')
+    chip.set('source', 'verilog', src)
+
+    chip.set('arg', 'flow', 'place_np', '2')
     # Illegal value, so this branch will fail!
-    chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'variable', 'place', '0', 'place_density', 'asdf')
     # Legal value, so this branch should succeed
-    chip.set('eda', 'openroad', 'variable', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'variable', 'place', '1', 'place_density', '0.5')
 
     chip.load_target('freepdk45_demo')
-
+    flow = chip.get('option', 'flow')
     chip.run()
 
     # Kill the server process.
     srv_proc.kill()
 
-    assert chip.get('flowstatus', 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
-    assert chip.get('flowstatus', 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
+    assert chip.get('flowgraph', flow, 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
+    assert chip.get('flowgraph', flow, 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
 
     chip.summary()

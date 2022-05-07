@@ -5,14 +5,12 @@ import pytest
 @pytest.mark.eda
 def test_picorv32(picorv32_dir):
     source = os.path.join(picorv32_dir, 'picorv32.v')
-    design = "picorv32"
 
-    chip = siliconcompiler.Chip(loglevel="INFO")
+    chip = siliconcompiler.Chip("picorv32")
     chip.load_target('freepdk45_demo')
 
-    chip.add('source', source)
-    chip.set('design', design)
-    chip.set('steplist', ['import'])
+    chip.add('source', 'verilog', source)
+    chip.set('option', 'steplist', ['import'])
     chip.run()
 
     assert chip.find_result('v', step='import') is not None

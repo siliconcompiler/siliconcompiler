@@ -10,7 +10,7 @@ def test_cli_multi_source(monkeypatch):
     # checking that the CLI app parses them correctly
     args = ['sc',
             "-source 'verilog examples/ibex/ibex_alu.v'",
-            "-source 'verilog 'examples/ibex/ibex_branch_predict.v'",
+            "-source 'verilog examples/ibex/ibex_branch_predict.v'",
             '-target', 'freepdk45_demo']
 
     monkeypatch.setattr('sys.argv', args)

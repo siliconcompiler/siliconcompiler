@@ -2347,7 +2347,7 @@
         "autoinstall": {
             "defvalue": "false",
             "example": [
-                "cli: -option_autoinstall true'",
+                "cli: -autoinstall true'",
                 "api: chip.set('option', 'autoinstall', True)"
             ],
             "help": "Enables automatic installation of missing dependencies from\nthe registry.",
@@ -2356,7 +2356,7 @@
             "scope": "job",
             "shorthelp": "Option: auto install packages",
             "signature": null,
-            "switch": "-option_autoinstall <bool>",
+            "switch": "-autoinstall <bool>",
             "type": "bool",
             "value": "false"
         },
@@ -2871,7 +2871,7 @@
         "registry": {
             "defvalue": [],
             "example": [
-                "cli: -option_registry '~/myregistry'",
+                "cli: -registry '~/myregistry'",
                 "api: chip.set('option','registry','~/myregistry')"
             ],
             "help": "List of Silicon Unified Packager (SUP) registry directories.\nDirectories can be local file system folders or\npublicly available registries served up over http. The naming\nconvention for registry packages is:\n<name>/<name>-<version>.json(.<gz>)?",
@@ -2880,7 +2880,7 @@
             "scope": "job",
             "shorthelp": "Option: package registry",
             "signature": [],
-            "switch": "-option_registry <dir>",
+            "switch": "-registry <dir>",
             "type": "[dir]",
             "value": []
         },
@@ -4970,7 +4970,7 @@
             "date": [],
             "defvalue": [],
             "example": [
-                "cli: hello_world.v",
+                "cli: -source 'filetype hello_world.v'",
                 "api: chip.set('source','verilog','hello_world.v')"
             ],
             "filehash": [],
@@ -4981,7 +4981,7 @@
             "scope": "job",
             "shorthelp": "Source files",
             "signature": [],
-            "switch": null,
+            "switch": "-source 'filetype <str>'",
             "type": "[file]",
             "value": []
         }
