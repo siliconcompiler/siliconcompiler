@@ -230,48 +230,48 @@ class Chip:
 
         # Get all keys from global dictionary or override at command line
         allkeys = self.getkeys()
-
+        switchmap = {}
         # Iterate over all keys to add parser argument
-        for key in allkeys:
+        # and setup up a reverse switch to key hash table
+        for keypath in allkeys:
             #Fetch fields from leaf cell
-            helpstr = self.get(*key, field='shorthelp')
-            typestr = self.get(*key, field='type')
+            helpstr = self.get(*keypath, field='shorthelp')
+            typestr = self.get(*keypath, field='type')
             #Switch field fully describes switch format
-            switch = self.get(*key, field='switch')
+            switch = self.get(*keypath, field='switch')
             if switch is None:
                 switches = []
             elif isinstance(switch, list):
                 switches = switch
             else:
                 switches = [switch]
-
             switchstrs = []
             dest = None
             for switch in switches:
                 switchmatch = re.match(r'(-[\w_]+)\s+(.*)', switch)
                 gccmatch = re.match(r'(-[\w_]+)(.*)', switch)
                 plusmatch = re.match(r'(\+[\w_\+]+)(.*)', switch)
+                # Handling the fact that all options can be entered
+                # without the option prefix
+                if keypath[0]=='option':
+                    dest = f"option_{keypath[1]}"
+                else:
+                    dest = keypath[0]
                 if switchmatch:
                     switchstr = switchmatch.group(1)
                     if re.search('_', switchstr):
-                        this_dest = re.sub('-','',switchstr)
-                    else:
-                        this_dest = key[0]
+                        dest = re.sub('-','',switchstr)
                 elif gccmatch:
                     switchstr = gccmatch.group(1)
-                    this_dest = key[0]
                 elif plusmatch:
                     switchstr = plusmatch.group(1)
-                    this_dest = key[0]
-
                 switchstrs.append(switchstr)
-                if dest is None:
-                    dest = this_dest
-                elif dest != this_dest:
-                    raise ValueError('Destination for each switch in list must match')
+
+            # Creating map between switch field posiation and keypath
+            switchmap[dest] = keypath
 
             #Four switch types (source, scalar, list, bool)
-            if ('source' not in key) & ((switchlist == []) | (dest in switchlist)):
+            if ((switchlist == []) | (dest in switchlist)):
                 if typestr == 'bool':
                     parser.add_argument(*switchstrs,
                                         metavar='',
@@ -329,17 +329,10 @@ class Chip:
             print(_metadata.version)
             sys.exit(0)
 
-        # Required positional source file argument
-        if ((switchlist == []) &
-            (not '-cfg' in scargs)) | ('source' in switchlist) :
-            parser.add_argument('source',
-                                nargs='*',
-                                help=self.get('source', field='shorthelp'))
-
         #Grab argument from pre-process sysargs
         #print(scargs)
         cmdargs = vars(parser.parse_args(scargs))
-        #print(cmdargs)
+        print(cmdargs)
         #sys.exit()
 
         # Print banner
@@ -355,17 +348,17 @@ class Chip:
             self.name = cmdargs['design']
 
         # 2. set loglevel if set at command line
-        if 'loglevel' in cmdargs.keys():
-            self.logger.setLevel(cmdargs['loglevel'])
+        if 'option_loglevel' in cmdargs.keys():
+            self.logger.setLevel(cmdargs['option_loglevel'])
 
         # 3. read in target if set
-        if 'target' in cmdargs.keys():
-            if 'mode' in cmdargs.keys():
-                self.set('mode', cmdargs['mode'], clobber=True)
-            if 'techarg' in cmdargs.keys():
+        if 'option_target' in cmdargs.keys():
+            if 'option_mode' in cmdargs.keys():
+                self.set('option', 'mode', cmdargs['option_mode'], clobber=True)
+            if 'arg_pdk' in cmdargs.keys():
                 print("NOT IMPLEMENTED: 'techarg' parameter")
                 raise NotImplementedError("NOT IMPLEMENTED: 'techarg' parameter")
-            if 'flowarg' in cmdargs.keys():
+            if 'arg_flow' in cmdargs.keys():
                 print("NOT IMPLEMENTED: 'flowarg' parameter")
                 raise NotImplementedError("NOT IMPLEMENTED: 'flowarg' parameter")
             if 'arg_step' in cmdargs.keys():
@@ -373,67 +366,45 @@ class Chip:
             if 'fpga_partname' in cmdargs.keys():
                 self.set('fpga', 'partname', cmdargs['fpga_partname'], clobber=True)
             # running target command
-            self.load_target(cmdargs['target'])
+            self.load_target(cmdargs['option_target'])
 
         # 4. read in all cfg files
-        if 'cfg' in cmdargs.keys():
-            for item in cmdargs['cfg']:
+        if 'option_cfg' in cmdargs.keys():
+            for item in cmdargs['option_cfg']:
                 self.read_manifest(item, clobber=True, clear=True)
 
-        # insert all parameters in dictionary
-        self.logger.info('Setting commandline arguments')
-        allkeys = self.getkeys()
-
-        for key, val in cmdargs.items():
-
-            # Unifying around no underscores for now
-            keylist = key.split('_')
-
-            orderhash = {}
-            # Find keypath with matching keys
-            for keypath in allkeys:
-                match = True
-                for item in keylist:
-                    if item in keypath:
-                        orderhash[item] = keypath.index(item)
-                    else:
-                        match = False
-                if match:
-                    chosenpath = keypath
-                    break
+        # 5. Cycle through all command args and write to manifest
+        for switch, vals in cmdargs.items():
 
             # Turn everything into a list for uniformity
-            if isinstance(val, list):
-                val_list = val
-            else:
-                val_list = [val]
+            if not isinstance(vals, list):
+                vals = [vals]
 
-            for item in val_list:
-                #space used to separate values!
-                extrakeys = item.split(' ')
-                for i in range(len(extrakeys)):
-                    # look for the first default statement
-                    # "delete' default in temp list by setting to None
-                    if 'default' in chosenpath:
-                        next_default = chosenpath.index('default')
-                        orderhash[extrakeys[i]] = next_default
-                        chosenpath[next_default] = None
+            # Cycle throug all items in list types
+            for item in vals:
+                args = [None] * (len(switchmap[switch])+1)
+                # First place the sub switches in order
+                for subswitch in switch.split('_'):
+                    for index,value in enumerate(switchmap[switch]):
+                        if subswitch == value:
+                            args[index] = subswitch
+                # Now place space items left to right based on empty slots
+                for j in range(len(args)):
+                    if args[j] is None:
+                        for i in item.split(' '):
+                            args[j] = i
+                            break
+                # Ensureing last item is the data we want
+                args[-1] = item.split(' ')[-1]
+                # Storing in manifest
+                self.logger.info(f"Command line argument entered: {args}")
+                if self.valid(*args[:-1], quiet=True):
+                    if re.match(r'\[', self.get(*args[:-1], field='type')):
+                        self.add(*args)
                     else:
-                        # Creating a sorted list based on key placement
-                        args = list(dict(sorted(orderhash.items(),
-                                                key=lambda orderhash: orderhash[1])))
-                        # Adding data value
-                        args = args + [extrakeys[i]]
-                        # Set/add value based on type
-
-                        #Check that keypath is valid
-                        if self.valid(*args[:-1], quiet=True):
-                            if re.match(r'\[', self.get(*args[:-1], field='type')):
-                                self.add(*args)
-                            else:
-                                self.set(*args, clobber=True)
-                        else:
-                            self.set(*args, clobber=True)
+                        self.set(*args, clobber=True)
+                else:
+                    self.set(*args, clobber=True)
 
     #########################################################################
     def find_function(self, modulename, funcname, moduletype=None):
@@ -496,10 +467,8 @@ class Chip:
 
         # try loading module if found
         if fullpath:
-            if moduletype == 'tools':
-                self.logger.debug(f"Loading function '{funcname}' from module '{modulename}'")
-            else:
-                self.logger.info(f"Loading function '{funcname}' from module '{modulename}'")
+            self.logger.debug(f"Loading function '{funcname}' from module '{modulename}'")
+
             try:
                 spec = importlib.util.spec_from_file_location(modulename, fullpath)
                 imported = importlib.util.module_from_spec(spec)
@@ -561,6 +530,7 @@ class Chip:
 
         func = self.find_function(name, 'setup', 'pdks')
         if func is not None:
+            self.logger.info(f"Loading PDK '{name}'")
             self._loaded_modules['pdks'].append(name)
             func(self)
         else:
@@ -586,6 +556,7 @@ class Chip:
 
         func = self.find_function(name, 'setup', 'flows')
         if func is not None:
+            self.logger.info(f"Loading flow '{name}'")
             self._loaded_modules['flows'].append(name)
             func(self)
         else:
@@ -611,6 +582,7 @@ class Chip:
 
         func = self.find_function(name, 'setup', 'libs')
         if func is not None:
+            self.logger.info(f"Loading library '{name}'")
             self._loaded_modules['libs'].append(name)
             lib = func(self)
             self.cfg['library'][name] = copy.deepcopy(lib.cfg)
@@ -638,6 +610,7 @@ class Chip:
 
         func = self.find_function(name, 'setup', 'checklists')
         if func is not None:
+            self.logger.info(f"Loading checklist '{name}'")
             self._loaded_modules['checklists'].append(name)
             func(self)
         else:
