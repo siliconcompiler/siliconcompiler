@@ -37,8 +37,14 @@ def main():
     ------------------------------------------------------------
     """
 
+    # find design name for object init
+    design = 'none'
+    for i , item in enumerate(sys.argv):
+        if item == "-design":
+            design = sys.argv[i+1]
+
     # Create a base chip class.
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip(design)
 
     # Read command-line inputs and generate Chip objects to run the flow on.
     chip.create_cmdline(progname,
@@ -57,14 +63,14 @@ def main():
         chip.set('design', topmodule)
 
     # Set demo target if none specified
-    if not chip.get('target'):
+    if not chip.get('option', 'target'):
         chip.load_target("freepdk45_demo")
 
     # Storing user entered steplist/args before running
     if chip.get('arg','step'):
         steplist = [chip.get('arg','step')]
     else:
-        steplist = chip.get('steplist')
+        steplist = chip.get('option', 'steplist')
 
     # Run flow
     chip.run()

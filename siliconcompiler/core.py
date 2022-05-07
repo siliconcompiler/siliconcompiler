@@ -332,7 +332,7 @@ class Chip:
         #Grab argument from pre-process sysargs
         #print(scargs)
         cmdargs = vars(parser.parse_args(scargs))
-        print(cmdargs)
+        #print(cmdargs)
         #sys.exit()
 
         # Print banner
