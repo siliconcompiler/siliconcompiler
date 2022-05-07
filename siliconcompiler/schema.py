@@ -135,8 +135,9 @@ def schema_cfg():
             sctype='[file]',
             copy='true',
             shorthelp="Source files",
+            switch="-source 'filetype <str>'",
             example=[
-                "cli: hello_world.v",
+                "cli: -source 'filetype hello_world.v'",
                 "api: chip.set('source','verilog','hello_world.v')"],
             schelp="""
             List of flow input files specifed by type. The filetype name must
@@ -2363,9 +2364,9 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'autoinstall'],
             sctype='bool',
             shorthelp=f"Option: auto install packages",
-            switch=f"-option_autoinstall <bool>",
+            switch=f"-autoinstall <bool>",
             example=[
-                f"cli: -option_autoinstall true'",
+                f"cli: -autoinstall true'",
                 f"api: chip.set('option', 'autoinstall', True)"],
             schelp=f"""
             Enables automatic installation of missing dependencies from
@@ -2374,9 +2375,9 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'registry'],
             sctype='[dir]',
             shorthelp=f"Option: package registry",
-            switch=f"-option_registry <dir>",
+            switch=f"-registry <dir>",
             example=[
-                f"cli: -option_registry '~/myregistry'",
+                f"cli: -registry '~/myregistry'",
                 f"api: chip.set('option','registry','~/myregistry')"],
             schelp=f"""
             List of Silicon Unified Packager (SUP) registry directories.
