@@ -1459,7 +1459,7 @@ def schema_arg(cfg):
 # Metrics to Track
 ###########################################################################
 
-def schema_metric(cfg, step='default', index='default',group='default'):
+def schema_metric(cfg, step='default', index='default'):
 
     metrics = {'errors': 'errors',
                'warnings' :'warnings',
@@ -1467,38 +1467,38 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                'unconstrained' : 'unconstrained timing paths'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item, group],
+        scparam(cfg, ['metric', step, index, item],
                 sctype='int',
                 shorthelp=f"Metric: total {item}",
-                switch=f"-metric_{item} 'step index group <int>'",
+                switch=f"-metric_{item} 'step index <int>'",
                 example=[
-                    f"cli: -metric_{item} 'dfm 0 goal 0'",
-                    f"api: chip.set('metric','dfm','0','{item}','real',0)"],
+                    f"cli: -metric_{item} 'dfm 0 0'",
+                    f"api: chip.set('metric','dfm','0','{item}', 0)"],
                 schelp=f"""Metric tracking the total number of {val} on a
                 per step and index basis.""")
 
-    scparam(cfg, ['metric', step, index, 'coverage', group],
+    scparam(cfg, ['metric', step, index, 'coverage'],
             sctype='float',
             unit='%',
             shorthelp=f"Metric: coverage",
-            switch="-metric_coverage 'step index group <float>'",
+            switch="-metric_coverage 'step index <float>'",
             example=[
-                "cli: -metric_coverage 'place 0 goal 99.9'",
-                "api: chip.set('metric','place','0','coverage','goal',99.9)"],
+                "cli: -metric_coverage 'place 0 99.9'",
+                "api: chip.set('metric','place','0','coverage', 99.9)"],
             schelp=f"""
             Metric tracking the test coverage in the design expressed as a percentage
             with 100 meaning full coverage. The meaning of the metric depends on the
             task being executed. It can refer to code coverage, feature coverage,
             stuck at fault coverage.""")
 
-    scparam(cfg, ['metric', step, index, 'security', group],
+    scparam(cfg, ['metric', step, index, 'security'],
             sctype='float',
             unit='%',
             shorthelp="Metric: security",
-            switch="-metric_security 'step index group <float>'",
+            switch="-metric_security 'step index <float>'",
             example=[
-                "cli: -metric_security 'place 0 goal 100'",
-                "api: chip.set('metric','place','0','security','goal',100)"],
+                "cli: -metric_security 'place 0 100'",
+                "api: chip.set('metric','place','0','security', 100)"],
             schelp=f"""
             Metric tracking the level of security (1/vulnerability) of the design.
             A completely secure design would have a score of 100. There is no
@@ -1510,14 +1510,14 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                'brams' : 'FPGA BRAM tiles'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item, group],
+        scparam(cfg, ['metric', step, index, item],
                 sctype='int',
 
                 shorthelp=f"Metric: {val}",
-                switch=f"-metric_{item} 'step index group <int>'",
+                switch=f"-metric_{item} 'step index <int>'",
                 example=[
-                    f"cli: -metric_{item} 'place 0 goal 100'",
-                    f"api: chip.set('metric','place','0','{item}','real',100)"],
+                    f"cli: -metric_{item} 'place 0 100'",
+                    f"api: chip.set('metric','place','0','{item}', 100)"],
                 schelp=f"""
                 Metric tracking the total {val} used by the design as reported
                 by the implementation tool. There is no standardized definition
@@ -1529,25 +1529,25 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                'totalarea' :'physical die area'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item, group],
+        scparam(cfg, ['metric', step, index, item],
                 sctype='float',
                 unit='um^2',
                 shorthelp=f"Metric: {item}",
-                switch=f"-metric_{item} 'step index group <float>'",
+                switch=f"-metric_{item} 'step index <float>'",
                 example=[
-                    f"cli: -metric_{item} 'place 0 goal 100.00'",
-                    f"api: chip.set('metric','place','0','{item}','real',100.00)"],
+                    f"cli: -metric_{item} 'place 0 100.00'",
+                    f"api: chip.set('metric','place','0','{item}', 100.00)"],
                 schelp=f"""
                 Metric tracking the total {val} occupied by the design.""")
 
-    scparam(cfg, ['metric', step, index, 'utilization', group],
+    scparam(cfg, ['metric', step, index, 'utilization'],
             sctype='float',
             unit='%',
             shorthelp=f"Metric: area utilization",
-            switch=f"-metric_utilization step index group <float>",
+            switch=f"-metric_utilization step index <float>",
             example=[
-                f"cli: -metric_utilization 'place 0 goal 50.00'",
-                f"api: chip.set('metric','place','0','utilization','real',50.00)"],
+                f"cli: -metric_utilization 'place 0 50.00'",
+                f"api: chip.set('metric','place','0','utilization', 50.00)"],
             schelp=f"""
             Metric tracking the area utilization of the design calculated as
             100 * (cellarea/totalarea).""")
@@ -1560,14 +1560,14 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                'sleeppower': 'power consumed with some or all power rails gated off'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item, group],
+        scparam(cfg, ['metric', step, index, item],
                 sctype='float',
                 unit='mw',
                 shorthelp=f"Metric: {item}",
-                switch=f"-metric_{item} 'step index group <float>'",
+                switch=f"-metric_{item} 'step index <float>'",
                 example=[
-                    f"cli: -metric_{item} 'place 0 goal 0.01'",
-                    f"api: chip.set('metric','place','0','{item}','real',0.01)"],
+                    f"cli: -metric_{item} 'place 0 0.01'",
+                    f"api: chip.set('metric','place','0','{item}', 0.01)"],
                 schelp=f"""
                 Metric tracking the {val} of the design specified on a per step
                 and index basis. Power metric depend heavily on the method
@@ -1577,14 +1577,14 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                 usually be reflected inside a datasheet given the approprate
                 footnote conditions.""")
 
-    scparam(cfg, ['metric', step, index, 'irdrop', group],
+    scparam(cfg, ['metric', step, index, 'irdrop'],
             sctype='float',
             unit='mv',
             shorthelp=f"Metric: peak IR drop",
-            switch="-metric_irdrop 'step index group <float>'",
+            switch="-metric_irdrop 'step index <float>'",
             example=[
-                f"cli: -metric_irdrop 'place 0 real 0.05'",
-                f"api: chip.set('metric','place','0','irdrop','real',0.05)"],
+                f"cli: -metric_irdrop 'place 0 0.05'",
+                f"api: chip.set('metric','place','0','irdrop', 0.05)"],
             schelp=f"""
             Metric tracking the peak IR drop in the design based on extracted
             power and ground rail parasitics, library power models, and
@@ -1596,13 +1596,13 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                'setuppaths': 'setup'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item, group],
+        scparam(cfg, ['metric', step, index, item],
                 sctype='int',
                 shorthelp=f"Metric: {item}",
-                switch=f"-metric_{item} 'step index group <float>'",
+                switch=f"-metric_{item} 'step index <float>'",
                 example=[
-                    f"cli: -metric_{item} 'place 0 goal 10'",
-                    f"api: chip.set('metric','place','0','{item}','real',10)"],
+                    f"cli: -metric_{item} 'place 0 10'",
+                    f"api: chip.set('metric','place','0','{item}', 10)"],
                 schelp=f"""
                 Metric tracking the total number of timing paths violating {val}
                 constraints.""")
@@ -1615,14 +1615,14 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                'setuptns': 'total negative setup slack (TNS)'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item, group],
+        scparam(cfg, ['metric', step, index, item],
                 sctype='float',
                 unit='ns',
                 shorthelp=f"Metric: {item}",
-                switch=f"-metric_{item} 'step index group <float>'",
+                switch=f"-metric_{item} 'step index <float>'",
                 example=[
                     f"cli: -metric_{item} 'place 0 goal 0.01'",
-                    f"api: chip.set('metric','place','0','{item}','real', 0.01)"],
+                    f"api: chip.set('metric','place','0','{item}', 0.01)"],
                 schelp=f"""
                 Metric tracking the {val} on a per step and index basis.""")
 
@@ -1636,38 +1636,38 @@ def schema_metric(cfg, step='default', index='default',group='default'):
                'vias': 'vias'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item, group],
+        scparam(cfg, ['metric', step, index, item],
                 sctype='int',
                 shorthelp=f"Metric: {item}",
-                switch=f"-metric_{item} 'step index group <float>'",
+                switch=f"-metric_{item} 'step index <float>'",
                 example=[
-                    f"cli: -metric_{item} 'place 0 goal 100'",
-                    f"api: chip.set('metric','place','0','{item}','real', 50)"],
+                    f"cli: -metric_{item} 'place 0 100'",
+                    f"api: chip.set('metric','place','0','{item}', 50)"],
                 schelp=f"""
                 Metric tracking the total number of {val} in the design
                 on a per step and index basis.""")
 
     item = 'wirelength'
-    scparam(cfg, ['metric', step, index, item, group],
+    scparam(cfg, ['metric', step, index, item],
             sctype='float',
             unit='um',
             shorthelp=f"Metric: {item}",
-            switch=f"-metric_{item} 'step index group <float>'",
+            switch=f"-metric_{item} 'step index <float>'",
             example=[
-                f"cli: -metric_{item} 'place 0 goal 100.0'",
-                f"api: chip.set('metric','place','0','{item}','real', 50.0)"],
+                f"cli: -metric_{item} 'place 0 100.0'",
+                f"api: chip.set('metric','place','0','{item}', 50.0)"],
             schelp=f"""
             Metric tracking the total {item} of the design on a per step
             and index basis.""")
 
     item = 'overflow'
-    scparam(cfg, ['metric', step, index, item, group],
+    scparam(cfg, ['metric', step, index, item],
             sctype='int',
             shorthelp=f"Metric: {item}",
-            switch=f"-metric_{item} 'step index group <float>'",
+            switch=f"-metric_{item} 'step index <float>'",
             example=[
-                f"cli: -metric_{item} 'place 0 goal 0'",
-                f"api: chip.set('metric','place','0','{item}','real', 50)"],
+                f"cli: -metric_{item} 'place 0 0'",
+                f"api: chip.set('metric','place','0','{item}', 50)"],
             schelp=f"""
             Metric tracking the total number of overflow tracks for the routing
             on per step and index basis. Any non-zero number suggests an over
@@ -1676,28 +1676,28 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             reporting and open up the design to find routing hotspots.""")
 
     item = 'memory'
-    scparam(cfg, ['metric', step, index, item, group],
+    scparam(cfg, ['metric', step, index, item],
             sctype='float',
             unit='B',
             scope='job',
             shorthelp=f"Metric: {item}",
-            switch=f"-metric_{item} 'step index group <float>'",
+            switch=f"-metric_{item} 'step index <float>'",
             example=[
-                f"cli: -metric_{item} 'dfm 0 goal 10e9'",
-                f"api: chip.set('metric','dfm','0','{item}','real', 10e9)"],
+                f"cli: -metric_{item} 'dfm 0 10e9'",
+                f"api: chip.set('metric','dfm','0','{item}', 10e9)"],
             schelp=f"""
             Metric tracking total peak program memory footprint on a per
             step and index basis.""")
 
     item = 'exetime'
-    scparam(cfg, ['metric', step, index, item, group],
+    scparam(cfg, ['metric', step, index, item],
             sctype='float',
             unit='s',
             shorthelp=f"Metric: {item}",
-            switch=f"-metric_{item} 'step index group <float>'",
+            switch=f"-metric_{item} 'step index <float>'",
             example=[
-                f"cli: -metric_{item} 'dfm 0 goal 10.0'",
-                f"api: chip.set('metric','dfm','0','{item}','real, 10.0)"],
+                f"cli: -metric_{item} 'dfm 0 10.0'",
+                f"api: chip.set('metric','dfm','0','{item}', 10.0)"],
             schelp=f"""
             Metric tracking time spent by the eda executable 'exe' on a
             per step and index basis. It does not include the siliconcompiler
@@ -1705,28 +1705,28 @@ def schema_metric(cfg, step='default', index='default',group='default'):
             inter-processor communication to complete.""")
 
     item = 'tasktime'
-    scparam(cfg, ['metric', step, index, item, group],
+    scparam(cfg, ['metric', step, index, item],
             sctype='float',
             unit='s',
             shorthelp=f"Metric: {item}",
-            switch=f"-metric_{item} 'step index group <float>'",
+            switch=f"-metric_{item} 'step index <float>'",
             example=[
-                f"cli: -metric_{item} 'dfm 0 goal 10.0'",
-                f"api: chip.set('metric','dfm','0','{item}','real, 10.0)"],
+                f"cli: -metric_{item} 'dfm 0 10.0'",
+                f"api: chip.set('metric','dfm','0','{item}', 10.0)"],
             schelp=f"""
             Metric trakcing the total amount of time spent on a task from
             beginning to end, including data transfers and pre/post
             processing.""")
 
     item = 'totaltime'
-    scparam(cfg, ['metric', step, index, item, group],
+    scparam(cfg, ['metric', step, index, item],
             sctype='float',
             unit='s',
             shorthelp=f"Metric: {item}",
-            switch=f"-metric_{item} 'step index group <float>'",
+            switch=f"-metric_{item} 'step index <float>'",
             example=[
-                f"cli: -metric_{item} 'dfm 0 goal 10.0'",
-                f"api: chip.set('metric','dfm','0','{item}','real, 10.0)"],
+                f"cli: -metric_{item} 'dfm 0 10.0'",
+                f"api: chip.set('metric','dfm','0','{item}', 10.0)"],
             schelp=f"""
             Metric tracking the total amount of time spent from the beginning
             of the run up to and including the current step and index.""")
