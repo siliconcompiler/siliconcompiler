@@ -29,7 +29,7 @@ def test_klayout(datadir):
     chip.edge(flow, 'import', 'export')
     chip.set('option', 'flow', flow)
 
-    chip.set('tool', 'klayout', 'variable', 'export', '0', 'timestamps', 'false')
+    chip.set('tool', 'klayout', 'var', 'export', '0', 'timestamps', 'false')
 
     chip.run()
 

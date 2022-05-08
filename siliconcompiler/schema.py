@@ -767,12 +767,12 @@ def schema_pdk(cfg, stackup='default'):
             sctype='[str]',
             scope='global',
             shorthelp="PDK: special variable",
-            switch="-pdk_variable 'pdkname tool stackup key <str>'",
+            switch="-pdk_var 'pdkname tool stackup key <str>'",
             example=[
-                "cli: -pdk_variable 'asap7 xyce modeltype M10 bsim4'""",
+                "cli: -pdk_var 'asap7 xyce modeltype M10 bsim4'""",
                 "api: chip.set('pdk','asap7','var','xyce','modeltype','M10','bsim4')"],
             schelp="""
-             List of key/value strings specified on a per tool and per stackup basis.
+            List of key/value strings specified on a per tool and per stackup basis.
             The parameter should only be used for specifying variables that are
             not directly  supported by the SiliconCompiler PDK schema.""")
 
@@ -3331,7 +3331,7 @@ def schema_asic(cfg):
             schelp="""
             List of key/value strings specified on a per basis. The parameter
             should only be used for specifying variables that are
-            not directly  supported by the SiliconCompiler PDK schema.""")
+            not directly supported by the SiliconCompiler PDK schema.""")
 
 
     # TODO: Expand on the exact definitions of these types of cells.
