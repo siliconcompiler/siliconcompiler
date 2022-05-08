@@ -35,7 +35,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip('<pdk>')
+    chip = siliconcompiler.Chip('skywater130')
     setup(chip)
 
     return chip
@@ -64,10 +64,6 @@ def setup(chip):
     edgemargin = 2
 
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
-
-    #if you are calling this file, you are in asic mode
-    chip.set('option', 'mode','asic', clobber = True)
-    chip.set('asic', 'pdk', process, clobber=True)
 
     # process name
     chip.set('pdk','foundry', foundry)

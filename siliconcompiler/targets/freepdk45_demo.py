@@ -24,8 +24,11 @@ def setup(chip):
     Target setup
     '''
 
-    #1. Defining the project
+    #0. Defining the project
     chip.set('option', 'target', 'freepdk45_demo')
+
+    #1. Setting to ASIC mode
+    chip.set('option', 'mode','asic')
 
     #2. Load PDK, flow, libs combo
     chip.load_pdk('freepdk45')

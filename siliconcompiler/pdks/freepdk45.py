@@ -29,7 +29,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('freepdk45')
     setup(chip)
 
     return chip

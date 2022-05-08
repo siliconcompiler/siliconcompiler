@@ -6,12 +6,16 @@ def make_docs():
     ASAP 7 7.5-track standard cell library.
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('asap7sc7p5t')
     setup(chip)
     return chip
 
 def setup(chip):
 
+
+    group = 'asap7sc7p5t'
+    vt = 'rvt'
+    libname = f'{group}_{vt}'
     foundry = 'virtual'
     process = 'asap7'
     stackup = '10M'

@@ -41,7 +41,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('asap7')
     setup(chip)
 
     return chip
@@ -59,9 +59,6 @@ def setup(chip):
     wafersize = 300
     libtype = '7p5t'
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
-
-    # If you got here,  you are in asic mode
-    chip.set('mode', 'asic', clobber=True)
 
     # process name
     chip.set('pdk','foundry', foundry)

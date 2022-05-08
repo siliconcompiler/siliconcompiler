@@ -21,12 +21,15 @@ def make_docs():
 
 def setup(chip):
     '''
-    Template project file.
+    Skywater130 Demo Target
     '''
 
-    #1. Defining the project
+    #0. Defining the project
     project = 'skywater130_demo'
     chip.set('option', 'target', project)
+
+    #1. Setting to ASIC mode
+    chip.set('option', 'mode','asic')
 
     #2. Load PDK, flow, libs
     chip.load_pdk('skywater130')

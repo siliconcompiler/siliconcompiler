@@ -12,12 +12,12 @@ def make_docs():
 
 def setup(chip):
     '''
-    Target setup
+    ASAP7 Demo Target
     '''
 
-    #1. Defining the project
+    #0. Defining the project
     target = 'asap7_demo'
-    chip.set('target', target)
+    chip.set('option', 'target', target)
 
     #2. Load PDK, flow, libs combo
     chip.load_pdk('asap7')
