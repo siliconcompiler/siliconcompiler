@@ -216,7 +216,7 @@ class Server:
 
         # Create the working directory for the given 'job hash' if necessary.
         subprocess.run(['mkdir', '-p', jobs_dir])
-        chip.set('dir', build_dir, clobber=True)
+        chip.set('option', 'builddir', build_dir, clobber=True)
         # Link to the 'import' directory if necessary.
         subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, job_nameid)])
         #subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
@@ -421,14 +421,14 @@ class Server:
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Run the job with slurm clustering.
-            chip.set('dir', f'{nfs_mount}/{job_hash}', clobber=True)
+            chip.set('option', 'builddir', f'{nfs_mount}/{job_hash}', clobber=True)
             chip.set('jobscheduler', 'slurm')
             chip.set('remote', False)
             chip.set('credentials', '', clobber=True)
             chip.status['decrypt_key'] = base64.urlsafe_b64encode(pk)
             chip.run()
         else:
-            chip.set('dir', build_dir, clobber=True)
+            chip.set('option', 'builddir', build_dir, clobber=True)
             # Run the build command locally.
             from_dir = '%s/%s'%(nfs_mount, job_hash)
             to_dir   = '/tmp/%s_%s'%(job_hash, job_nameid)
@@ -486,7 +486,7 @@ class Server:
         job_hash = chip.status['jobhash']
         top_module = chip.get('design')
         sc_sources = chip.get('source')
-        build_dir = chip.get('dir')
+        build_dir = chip.get('option', 'builddir')
         jobid = chip.get('jobname')
 
         # Mark the job hash as being busy.

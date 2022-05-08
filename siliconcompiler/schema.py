@@ -2251,18 +2251,18 @@ def schema_option(cfg):
             Provides explicit control over the level of debug logging printed.
             Valid entries include INFO, DEBUG, WARNING, ERROR.""")
 
-    scparam(cfg, ['option', 'dir'],
+    scparam(cfg, ['option', 'builddir'],
             sctype='dir',
             scope='job',
             defvalue='build',
             shorthelp="Build directory",
-            switch="-dir <dir>",
+            switch="-builddir <dir>",
             example=[
-                "cli: -dir ./build_the_future",
-                "api: chip.set('option', 'dir','./build_the_future')"],
+                "cli: -builddir ./build_the_future",
+                "api: chip.set('option', 'builddir','./build_the_future')"],
             schelp="""
             The default build directory is in the local './build' where SC was
-            executed. The 'dir' parameters can be used to set an alternate
+            executed. The 'builddir' parameter can be used to set an alternate
             compilation directory path.""")
 
     scparam(cfg, ['option', 'jobname'],

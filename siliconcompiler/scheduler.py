@@ -48,7 +48,7 @@ def _deferstep(chip, step, index, status):
 
     # Job data is not encrypted, so it can be run in shared storage.
     # Write out the current schema for the compute node to pick up.
-    job_dir = "/".join([chip.get('dir'),
+    job_dir = "/".join([chip.get('option', 'builddir'),
                         chip.get('design'),
                         chip.get('jobname')])
     cfg_dir = f'{job_dir}/configs'
@@ -91,7 +91,7 @@ def _deferstep(chip, step, index, status):
 
         # If a maximum disk space was defined, ensure that it is respected.
         if 'max_fs_bytes' in chip.status:
-            du_cmd = subprocess.run(['du', '-sb', chip.get('dir')],
+            du_cmd = subprocess.run(['du', '-sb', chip.get('option', 'builddir')],
                                     stdout=subprocess.PIPE)
             cur_fs_bytes = int(du_cmd.stdout.decode().split()[0])
             if cur_fs_bytes > int(chip.status['max_fs_bytes']):

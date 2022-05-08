@@ -535,7 +535,7 @@ def build_core():
 
     # Copy stream files for padring integration.
     design = core_chip.get('design')
-    jobdir = (core_chip.get('dir') +
+    jobdir = (core_chip.get('option', 'builddir') +
             "/" + design + "/" +
             core_chip.get('jobname'))
     shutil.copy(f'{jobdir}/export/0/outputs/{design}.gds', f'{design}.gds')

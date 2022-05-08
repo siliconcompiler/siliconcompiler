@@ -93,7 +93,7 @@ def remote_run(chip):
     request_remote_run(chip)
 
     # Remove the local 'import.tar.gz' archive.
-    local_archive = stepdir = os.path.join(chip.get('dir'),
+    local_archive = stepdir = os.path.join(chip.get('option', 'builddir'),
                                            chip.get('design'),
                                            chip.get('jobname'),
                                            'import.tar.gz')
@@ -132,7 +132,7 @@ def request_remote_run(chip):
             'job_hash': chip.status['jobhash'],
         }
     }
-    local_build_dir = stepdir = os.path.join(chip.get('dir'),
+    local_build_dir = stepdir = os.path.join(chip.get('option', 'builddir'),
                                              chip.get('design'),
                                              job_nameid)
     rcfg = chip.status['remote_cfg']
@@ -290,7 +290,7 @@ def fetch_results(chip):
     top_design = chip.get('design')
     job_hash = chip.status['jobhash']
     job_nameid = f"{chip.get('jobname')}"
-    local_dir = chip.get('dir')
+    local_dir = chip.get('option', 'builddir')
 
     # Authenticated jobs get a zip file full of other zip files.
     # So we need to extract and delete those.

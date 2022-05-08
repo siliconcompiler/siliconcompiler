@@ -1574,7 +1574,7 @@ class Chip:
 
     ###########################################################################
     def _check_files(self):
-        allowed_paths = [os.path.join(self.cwd, self.get('option', 'dir'))]
+        allowed_paths = [os.path.join(self.cwd, self.get('option', 'builddir'))]
         allowed_paths.extend(os.environ['SC_VALID_PATHS'].split(os.pathsep))
 
         for keypath in self.getkeys():
@@ -2489,7 +2489,7 @@ class Chip:
 
         design = self.get('design')
         jobname = self.get('option', 'jobname')
-        buildpath = self.get('option', 'dir')
+        buildpath = self.get('option', 'builddir')
 
         if step:
             steplist = [step]
@@ -3029,7 +3029,7 @@ class Chip:
 
         # Create a report for the Chip object which can be viewed in a web browser.
         # Place report files in the build's root directory.
-        web_dir = os.path.join(self.get('option', 'dir'),
+        web_dir = os.path.join(self.get('option', 'builddir'),
                                self.get('design'),
                                self.get('option', 'jobname'))
         if os.path.isdir(web_dir):
@@ -4121,9 +4121,9 @@ class Chip:
             # Read back configuration from final manifest.
             cfg = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
             if os.path.isfile(cfg):
-                local_dir = self.get('option','dir')
+                local_dir = self.get('option','builddir')
                 self.read_manifest(cfg, clobber=True, clear=True)
-                self.set('option', 'dir', local_dir)
+                self.set('option', 'builddir', local_dir)
             else:
                 # Hack to find first failed step by checking for presence of
                 # output manifests.
@@ -4180,7 +4180,7 @@ class Chip:
 
             # Implement auto-update of jobincrement
             try:
-                alljobs = os.listdir(self.get('option','dir') + "/" + self.get('design'))
+                alljobs = os.listdir(self.get('option','builddir') + "/" + self.get('design'))
                 if self.get('option','jobincr'):
                     jobid = 0
                     for item in alljobs:
@@ -4450,7 +4450,7 @@ class Chip:
 
         # Opening file from temp directory
         cwd = os.getcwd()
-        showdir = self.get('option','dir') + "/_show"
+        showdir = self.get('option','builddir') + "/_show"
         os.makedirs(showdir, exist_ok=True)
         os.chdir(showdir)
 
@@ -4794,7 +4794,7 @@ class Chip:
             jobname = self.get('option','jobname')
 
         dirlist =[self.cwd,
-                  self.get('option','dir'),
+                  self.get('option','builddir'),
                   self.get('design'),
                   jobname]
 
