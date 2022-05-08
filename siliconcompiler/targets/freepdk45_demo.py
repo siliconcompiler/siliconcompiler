@@ -10,7 +10,7 @@ def make_docs():
     asicflow.
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('freepdk45_demo')
     setup(chip)
     return chip
 
