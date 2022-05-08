@@ -37,7 +37,7 @@ def test_invalid(gcd_chip):
 @pytest.mark.eda
 def test_invalid_jobinput(gcd_chip):
     gcd_chip.set('jobname', 'job1')
-    gcd_chip.set('jobinput', 'job1', 'syn', '0', 'job0')
+    gcd_chip.set('jobinput', 'syn', '0', 'job0')
     gcd_chip.set('steplist', 'syn')
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()

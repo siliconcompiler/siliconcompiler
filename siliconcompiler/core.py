@@ -1736,10 +1736,9 @@ class Chip:
         for step in steplist:
             for index in indexlist[step]:
                 in_job = None
-                if (jobname in self.getkeys('option', 'jobinput') and
-                    step in self.getkeys('option', 'jobinput', jobname) and
-                    index in self.getkeys('option', 'jobinput', jobname, step)):
-                    in_job = self.get('option', 'jobinput', jobname, step, index)
+                if (step in self.getkeys('option', 'jobinput') and
+                    index in self.getkeys('option', 'jobinput', step)):
+                    in_job = self.get('option', 'jobinput', step, index)
 
                 for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                     if in_job is not None:
@@ -1878,8 +1877,8 @@ class Chip:
                         # inputs need to already be copied into the build
                         # directory.
                         jobname = self.get('option', 'jobname')
-                        if self.valid('option', 'jobinput', jobname, step, index):
-                            in_job = self.get('option', 'jobinput', jobname, step, index)
+                        if self.valid('option', 'jobinput', step, index):
+                            in_job = self.get('option', 'jobinput', step, index)
                         else:
                             in_job = jobname
                         workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
@@ -3590,10 +3589,9 @@ class Chip:
         # support for sharing data across jobs
         job = self.get('option', 'jobname')
         in_job = job
-        if job in self.getkeys('option', 'jobinput'):
-            if step in self.getkeys('option', 'jobinput',job):
-                if index in self.getkeys('option', 'jobinput',job,step):
-                    in_job = self.get('option', 'jobinput', job, step, index)
+        if step in self.getkeys('option', 'jobinput'):
+            if index in self.getkeys('option', 'jobinput', step):
+                in_job = self.get('option', 'jobinput', step, index)
 
         workdir = self._getworkdir(step=step,index=index)
         cwd = os.getcwd()
@@ -4212,10 +4210,9 @@ class Chip:
 
                     inputs = [step+index for step, index in self.get('flowgraph', flow, step, index, 'input')]
 
-                    if (jobname in self.getkeys('option','jobinput') and
-                        step in self.getkeys('option','jobinput', jobname) and
-                        index in self.getkeys('option','jobinput', jobname, step) and
-                        self.get('option','jobinput', jobname, step, index) != jobname):
+                    if (step in self.getkeys('option','jobinput') and
+                        index in self.getkeys('option','jobinput', step) and
+                        self.get('option','jobinput', step, index) != jobname):
                         # If we specify a different job as input to this task,
                         # we assume we are good to run it.
                         tasks_to_run[step+index] = []

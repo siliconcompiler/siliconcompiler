@@ -2281,14 +2281,14 @@ def schema_option(cfg):
             introspection.""")
 
     #TODO: remove?
-    scparam(cfg, ['option','jobinput','default','default','default'],
+    scparam(cfg, ['option','jobinput','default','default'],
             sctype='str',
             scope='job',
             shorthelp="Input job name",
-            switch="-jobinput 'job step index <str>'",
+            switch="-jobinput 'step index <str>'",
             example=[
-                "cli: -jobinput 'job1 cts 0 job0'",
-                "api:  chip.set('option','jobinput','job1','cts,'0','job0')"],
+                "cli: -jobinput 'cts 0 job0'",
+                "api:  chip.set('option','jobinput','cts,'0','job0')"],
             schelp="""
             Specifies jobname inputs for the current run() on a per step
             and per index basis. During execution, the default behavior is to
