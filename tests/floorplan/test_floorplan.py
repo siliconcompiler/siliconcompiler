@@ -6,8 +6,7 @@ from siliconcompiler.core import Chip
 from siliconcompiler.floorplan import Floorplan
 
 def _fp(datadir):
-    c = Chip(loglevel='INFO')
-    c.set('design', 'test', clobber=True)
+    c = Chip('test')
     c.load_target('freepdk45_demo')
     stackup = '10M'
     lib = 'ram'
@@ -79,8 +78,7 @@ def test_padring(datadir):
 
     test_dir = os.path.dirname(os.path.abspath(__file__))
 
-    chip = Chip(loglevel='INFO')
-    chip.set('design', 'mypadring', clobber=True)
+    chip = Chip('mypadring')
     chip.load_target('freepdk45_demo')
 
     macro = 'io'
@@ -163,8 +161,7 @@ def test_padring(datadir):
     fp.write_def('padring.def')
 
 def test_vias_at_intersection():
-    c = Chip(loglevel='INFO')
-    c.set('design', 'test')
+    c = Chip('test')
     c.load_target('skywater130_demo')
 
     fp = Floorplan(c)
@@ -182,8 +179,7 @@ def test_vias_at_intersection():
     fp.write_def('test.def')
 
 def test_place_vias(datadir):
-    c = Chip()
-    c.set('design', 'test', clobber=True)
+    c = Chip('test')
     c.load_target('freepdk45_demo')
     stackup = '10M'
     lib = 'ram'
