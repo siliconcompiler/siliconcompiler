@@ -949,13 +949,26 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     scparam(cfg,['flowgraph', flow, step, index, 'weight', metric],
             sctype='float',
             shorthelp="Flowgraph: metric weights",
-            switch="-flowgraph_weight 'flow step metric <float>'",
+            switch="-flowgraph_weight 'flow step index metric <float>'",
             example=[
                 "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
                 "api:  chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"],
             schelp="""Weights specified on a per step and per metric basis used to give
             effective "goodnes" score for a step by calculating the sum all step
             real metrics results by the corresponding per step weights.""")
+
+    scparam(cfg,['flowgraph', flow, step, index, 'goal', metric],
+            sctype='float',
+            shorthelp="Flowgraph: metric goals",
+            switch="-flowgraph_goal 'flow step index metric <float>'",
+            example=[
+                "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
+                "api:  chip.set('flowgraph','asicflow','cts','0','goal','errors', 0)"],
+            schelp="""Goals specified on a per step and per metric basis used to
+            determine whether a certain task can be considered when merging
+            multiple tasks at a minimum or maximum node. A task is considered
+            failing if the absolute value of any of its metrics are larger than
+            the goal for that metric, if set.""")
 
     # flowgraph tool
     scparam(cfg,['flowgraph', flow, step, index, 'tool'],
