@@ -221,7 +221,7 @@ tech_file = sc_cfg['pdk'][sc_pdk]['layermap']['klayout']['def']['gds'][sc_stacku
 
 design = sc_cfg['design']['value']
 try:
-  in_def = sc_cfg['source']['def']['value'][0]
+  in_def = sc_cfg['input']['def']['value'][0]
 except (KeyError, IndexError):
   in_def = os.path.join('inputs', f'{design}.def')
 out_gds = os.path.join('outputs', f'{design}.gds')
@@ -244,7 +244,7 @@ if 'macrolib' in sc_cfg['asic']:
 sc_step = sc_cfg['arg']['step']['value']
 sc_index = sc_cfg['arg']['index']['value']
 
-sc_klayout_vars = sc_cfg['tool']['klayout']['variable'][sc_step][sc_index]
+sc_klayout_vars = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]
 if 'timestamps' in sc_klayout_vars:
   sc_timestamps = sc_klayout_vars['timestamps']['value'] == ['true']
 else:

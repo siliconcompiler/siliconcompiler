@@ -97,7 +97,7 @@ def setup(chip, mode="batch"):
     chip.set('tool', tool, 'option', step, index, option, clobber=clobber)
 
     # Export GDS with timestamps by default.
-    chip.set('tool', tool, 'variable', step, index, 'timestamps', 'true', clobber=False)
+    chip.set('tool', tool, 'var', step, index, 'timestamps', 'true', clobber=False)
 
     # Input/Output requirements
     if (not chip.valid('input', 'def') or

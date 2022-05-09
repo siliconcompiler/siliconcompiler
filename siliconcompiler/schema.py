@@ -763,14 +763,14 @@ def schema_pdk(cfg, stackup='default'):
             The parameter should only be used for specifying files that are
             not directly  supported by the SiliconCompiler PDK schema.""")
 
-    scparam(cfg, ['pdk', pdkname, 'variable', tool, key, stackup],
+    scparam(cfg, ['pdk', pdkname, 'var', tool, key, stackup],
             sctype='[str]',
             scope='global',
             shorthelp="PDK: special variable",
             switch="-pdk_variable 'pdkname tool stackup key <str>'",
             example=[
                 "cli: -pdk_variable 'asap7 xyce modeltype M10 bsim4'""",
-                "api: chip.set('pdk','asap7','variable','xyce','modeltype','M10','bsim4')"],
+                "api: chip.set('pdk','asap7','var','xyce','modeltype','M10','bsim4')"],
             schelp="""
              List of key/value strings specified on a per tool and per stackup basis.
             The parameter should only be used for specifying variables that are
@@ -1404,13 +1404,13 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             For multiple argument options, each option is a separate list element.
             """)
 
-    scparam(cfg, ['tool', tool, 'variable', step, index, key],
+    scparam(cfg, ['tool', tool, 'var', step, index, key],
             sctype='[str]',
             shorthelp="Tool: script variables",
             switch="-tool_variable 'tool step index key <str>'",
             example=[
                 "cli: -tool_variable 'openroad cts 0 myvar 42'",
-                "api: chip.set('tool','openroad','variable','cts','0','myvar','42')"],
+                "api: chip.set('tool','openroad','var','cts','0','myvar','42')"],
             schelp="""
             Tool script variables specified as key value pairs. Variable
             names and value types must match the name and type of tool and reference
@@ -3321,13 +3321,13 @@ def schema_asic(cfg):
             should only be used for specifying dirs that are not directly
             supported by the ASIC schema.""")
 
-    scparam(cfg, ['asic', 'variable', tool, key],
+    scparam(cfg, ['asic', 'var', tool, key],
             sctype='[str]',
             shorthelp="ASIC: special variable",
             switch="-asic_variable 'tool key <str>'",
             example=[
                 "cli: -asic_variable 'xyce modeltype bsim4'""",
-                "api: chip.set('asic','variable','xyce','modeltype','bsim4')"],
+                "api: chip.set('asic','var','xyce','modeltype','bsim4')"],
             schelp="""
             List of key/value strings specified on a per basis. The parameter
             should only be used for specifying variables that are

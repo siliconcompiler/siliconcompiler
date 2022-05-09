@@ -47,6 +47,7 @@ def setup(chip, mode='batch'):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     flow = chip.get('option', 'flow')
+    pdkname = chip.get('option', 'pdk')
 
     if mode == 'show':
         clobber = True
@@ -105,7 +106,7 @@ def setup(chip, mode='batch'):
         chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'alias']))
         chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
         chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
-        chip.add('tool', tool, 'require', step, index, ",".join(['pdk', 'aprtech', 'openroad', stackup, libtype, 'lef']))
+        chip.add('tool', tool, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
 
         for lib in (targetlibs + macrolibs):
             for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
@@ -126,14 +127,14 @@ def setup(chip, mode='batch'):
         # For each OpenROAD tool variable, read default from PDK and write it
         # into schema. If PDK doesn't contain a default, the value must be set
         # by the user, so we add the variable keypath as a requirement.
-        if chip.valid('pdk', 'variable', tool, stackup, variable):
-            value = chip.get('pdk', 'variable', tool, stackup, variable)
+        if chip.valid('pdk', pdkname, 'var', tool, stackup, variable):
+            value = chip.get('pdk', pdkname, 'var', tool, stackup, variable)
             # Clobber needs to be False here, since a user might want to
             # overwrite these.
-            chip.set('tool', tool, 'variable', step, index, variable, value,
+            chip.set('tool', tool, 'var', step, index, variable, value,
                      clobber=False)
 
-        keypath = ','.join(['tool', tool, 'variable', step, index, variable])
+        keypath = ','.join(['tool', tool, 'var', step, index, variable])
         chip.add('tool', tool, 'require', step, index, keypath)
 
     #for clock in chip.getkeys('clock'):
