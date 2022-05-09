@@ -135,12 +135,29 @@ def schema_cfg():
             sctype='[file]',
             copy='true',
             shorthelp="Source files",
-            switch="-source 'filetype <str>'",
+            switch="-source 'filetype <file>'",
             example=[
                 "cli: -source 'filetype hello_world.v'",
                 "api: chip.set('source','verilog','hello_world.v')"],
             schelp="""
             List of flow input files specifed by type. The filetype name must
+            align with the parameter names within the flow and tool setup
+            scripts. Filetypes accepted by the SC flows include: python, c,
+            systemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,
+            saif, vcd, spef, sdf.""")
+
+    # Outputs
+    filetype = 'default'
+    scparam(cfg,['output', filetype],
+            sctype='[file]',
+            copy='true',
+            shorthelp="Output files",
+            switch="-output 'filetype <file>'",
+            example=[
+                "cli: -output 'verilog hello_world.vg'",
+                "api: chip.set('output','verilog','hello_world.vg')"],
+            schelp="""
+            List of flow output files specifed by type. The filetype name must
             align with the parameter names within the flow and tool setup
             scripts. Filetypes accepted by the SC flows include: python, c,
             systemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,
