@@ -1381,7 +1381,7 @@ def _find_cell_area(chip, startstep, startindex):
     flow = chip.get('option','flow')
     select = chip.get('flowgraph', flow, startstep, startindex, 'select')
     for step, index in select:
-        cell_area = chip.get('metric', step, index, 'cellarea', 'real')
+        cell_area = chip.get('metric', step, index, 'cellarea')
         if cell_area:
             return cell_area
 

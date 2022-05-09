@@ -273,41 +273,29 @@ def schema_pdk(cfg, stackup='default'):
 
     tool = 'default'
     filetype = 'default'
+    pdkname = 'default'
 
-    scparam(cfg, ['pdk', 'foundry'],
+    scparam(cfg, ['pdk', pdkname, 'foundry'],
             sctype='str',
             scope='global',
             require="asic",
             shorthelp="PDK: foundry name",
-            switch="-pdk_foundry <str>",
-            example=["cli: -pdk_foundry virtual",
-                    "api:  chip.set('pdk', 'foundry', 'virtual')"],
+            switch="-pdk_foundry 'pdkname <str>'",
+            example=["cli: -pdk_foundry 'asap7 virtual'",
+                    "api:  chip.set('pdk', 'asap7', 'foundry', 'virtual')"],
             schelp="""
             Name of foundry corporation. Examples include intel, gf, tsmc,
             samsung, skywater, virtual. The \'virtual\' keyword is reserved for
             simulated non-manufacturable processes.""")
 
-    scparam(cfg, ['pdk', 'process'],
-            sctype='str',
-            scope='global',
-            require="asic",
-            shorthelp="PDK: process name",
-            switch="-pdk_process <str>",
-            example=["cli: -pdk_process asap7",
-                     "api:  chip.set('pdk', 'process', 'asap7')"],
-            schelp="""
-            Public name of the foundry process. The string is case insensitive and
-            must match the public process name exactly. Examples of virtual
-            processes include freepdk45 and asap7.""")
-
-    scparam(cfg, ['pdk', 'node'],
+    scparam(cfg, ['pdk', pdkname, 'node'],
             sctype='float',
             scope='global',
             require="asic",
             shorthelp="PDK: process node",
-            switch="-pdk_node <float>",
-            example=["cli: -pdk_node 130",
-                    "api:  chip.set('pdk', 'node', 130)"],
+            switch="-pdk_node 'pdkname <float>'",
+            example=["cli: -pdk_node 'asap7 130'",
+                    "api:  chip.set('pdk', 'asap7', 'node', 130)"],
             schelp="""
             Approximate relative minimum dimension of the process target specified
             in nanometers. The parameter is required for flows and tools that
@@ -315,27 +303,27 @@ def schema_pdk(cfg, stackup='default'):
             optimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,
             10, 7, 5, 3.""")
 
-    scparam(cfg, ['pdk', 'version'],
+    scparam(cfg, ['pdk', pdkname, 'version'],
             sctype='str',
             scope='global',
             shorthelp="PDK: version",
-            switch="-pdk_version <str>",
-            example=["cli: -pdk_version 1.0",
-                    "api:  chip.set('pdk', 'version', '1.0')"],
+            switch="-pdk_version 'pdkname <str>'",
+            example=["cli: -pdk_version 'asap7 1.0'",
+                    "api:  chip.set('pdk', 'asap7', 'version', '1.0')"],
             schelp="""
             Alphanumeric string specifying the version of the PDK. Verification of
             correct PDK and IP versions is a hard ASIC tapeout require in all
             commercial foundries. The version number can be used for design manifest
             tracking and tapeout checklists.""")
 
-    scparam(cfg, ['pdk', 'stackup'],
+    scparam(cfg, ['pdk', pdkname, 'stackup'],
             sctype='[str]',
             scope='global',
             require='asic',
             shorthelp="PDK: metal stackups",
-            switch="-pdk_stackup <str>",
-            example=["cli: -pdk_stackup 2MA4MB2MC",
-                     "api: chip.add('pdk','stackup','2MA4MB2MC')"],
+            switch="-pdk_stackup 'pdkname <str>'",
+            example=["cli: -pdk_stackup 'asap7 2MA4MB2MC'",
+                     "api: chip.add('pdk', 'asap7','stackup','2MA4MB2MC')"],
             schelp="""
             List of all metal stackups offered in the process node. Older process
             nodes may only offer a single metal stackup, while advanced nodes
@@ -349,63 +337,63 @@ def schema_pdk(cfg, stackup='default'):
             parasitic models specified in the pdk_pexmodel and pdk_aprtech
             parameters.""")
 
-    scparam(cfg, ['pdk', 'thickness', stackup],
+    scparam(cfg, ['pdk', pdkname, 'thickness', stackup],
             sctype='float',
             scope='global',
             unit='mm',
             shorthelp="PDK: unit thickness",
-            switch="-pdk_thickness 'stackup <float>'",
-            example=["cli: -pdk_thickness '2MA4MB2MC 1.57'",
-                    "api:  chip.set('pdk', 'thickness', '2MA4MB2MC', 1.57)"],
+            switch="-pdk_thickness 'pdkname stackup <float>'",
+            example=["cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
+                    "api:  chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"],
             schelp="""
             Thickness of a manfuatured unit specified on a per stackup basis.""")
 
-    scparam(cfg, ['pdk', 'wafersize'],
+    scparam(cfg, ['pdk', pdkname, 'wafersize'],
             sctype='float',
             scope='global',
             unit='mm',
             require="asic",
             shorthelp="PDK: wafer size",
-            switch="-pdk_wafersize <float>",
-            example=["cli: -pdk_wafersize 300",
-                    "api:  chip.set('pdk', 'wafersize', 300)"],
+            switch="-pdk_wafersize 'pdkname <float>'",
+            example=["cli: -pdk_wafersize 'asap7 300'",
+                    "api:  chip.set('pdk', 'asap7', 'wafersize', 300)"],
             schelp="""
             Wafer diameter used in wafer based manufacturing process. The standard diameter
             for leading edge manufacturing is 300mm. For older process technologies
             and specialty fabs, smaller diameters such as 200, 100, 125, 100 are common.
             The value is used to calculate dies per wafer and full factory chip costs.""")
 
-    scparam(cfg, ['pdk', 'panelsize'],
+    scparam(cfg, ['pdk', pdkname, 'panelsize'],
             sctype='[(float,float)]',
             scope='global',
             unit='mm',
             shorthelp="PDK: panel size",
-            switch="-pdk_panelsize <float>",
-            example=["cli: -pdk_panelsize (45.72,60.96)",
-                    "api:  chip.set('pdk', 'panelsize', (45.72,60.96))"],
+            switch="-pdk_panelsize 'pdkname <float>'",
+            example=["cli: -pdk_panelsize 'asap7 (45.72,60.96)'",
+                    "api:  chip.set('pdk', 'asap7', 'panelsize', (45.72,60.96))"],
             schelp="""
             List of panel sizes supported in the manufacturing process.
             """)
 
-    scparam(cfg, ['pdk', 'unitcost'],
+    scparam(cfg, ['pdk', pdkname, 'unitcost'],
             sctype='float',
             scope='global',
             unit='USD',
             shorthelp="PDK: unit cost",
-            switch="-pdk_unitcost <float>",
-            example=["cli: -pdk_unitcost 10000",
-                     "api:  chip.set('pdk', 'unitcost', 10000)"],
+            switch="-pdk_unitcost 'pdkname <float>'",
+            example=["cli: -pdk_unitcost 'asap7 10000'",
+                     "api:  chip.set('pdk', 'asap7', 'unitcost', 10000)"],
             schelp="""
             Raw cost per unit shipped by the factory, not accounting for yield
             loss.""")
 
-    scparam(cfg, ['pdk', 'd0'],
+    scparam(cfg, ['pdk', pdkname, 'd0'],
             sctype='float',
             scope='global',
             shorthelp="PDK: process defect density",
-            switch="-pdk_d0 <float>",
-            example=["cli: -pdk_d0 0.1",
-                     "api:  chip.set('pdk', 'd0', 0.1)"],
+            switch="-pdk_d0 'pdkname <float>'",
+            example=["cli: -pdk_d0 'asap7 0.1'",
+                     "api:  chip.set('pdk', 'asap7', 'd0', 0.1)"],
             schelp="""
             Process defect density (d0) expressed as random defects per cm^2. The
             value is used to calculate yield losses as a function of area, which in
@@ -414,14 +402,14 @@ def schema_pdk(cfg, stackup='default'):
             calculated as dy = exp(-area * d0/100). The Murphy based yield is
             calculated as dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.""")
 
-    scparam(cfg, ['pdk', 'hscribe'],
+    scparam(cfg, ['pdk', pdkname, 'hscribe'],
             sctype='float',
             scope='global',
             unit='mm',
             shorthelp="PDK: horizontal scribe line width",
-            switch="-pdk_hscribe <float>",
-            example=["cli: -pdk_hscribe 0.1",
-                     "api:  chip.set('pdk', 'hscribe', 0.1)"],
+            switch="-pdk_hscribe 'pdkname <float>'",
+            example=["cli: -pdk_hscribe 'asap7 0.1'",
+                     "api:  chip.set('pdk', 'asap7', 'hscribe', 0.1)"],
             schelp="""
             Width of the horizontal scribe line used during die separation.
             The process is generally completed using a mechanical saw, but can be
@@ -429,14 +417,14 @@ def schema_pdk(cfg, stackup='default'):
             and chemical etching in more advanced technologies. The value is used
             to calculate effective dies per wafer and full factory cost.""")
 
-    scparam(cfg, ['pdk', 'vscribe'],
+    scparam(cfg, ['pdk', pdkname, 'vscribe'],
             sctype='float',
             scope='global',
             unit='mm',
             shorthelp="PDK: vertical scribe line width",
-            switch="-pdk_vscribe <float>",
-            example=["cli: -pdk_vscribe 0.1",
-                     "api:  chip.set('pdk', 'vscribe', 0.1)"],
+            switch="-pdk_vscribe 'pdkname <float>'",
+            example=["cli: -pdk_vscribe 'asap7 0.1'",
+                     "api:  chip.set('pdk', 'asap7', 'vscribe', 0.1)"],
             schelp="""
              Width of the vertical scribe line used during die separation.
             The process is generally completed using a mechanical saw, but can be
@@ -444,27 +432,28 @@ def schema_pdk(cfg, stackup='default'):
             and chemical etching in more advanced technologies. The value is used
             to calculate effective dies per wafer and full factory cost.""")
 
-    scparam(cfg, ['pdk', 'edgemargin'],
+    scparam(cfg, ['pdk', pdkname, 'edgemargin'],
             sctype='float',
             scope='global',
             unit='mm',
             shorthelp="PDK: wafer edge keep-out margin",
-            switch="-pdk_edgemargin <float>",
-            example=["cli: -pdk_edgemargin 1",
-                     "api:  chip.set('pdk', 'edgemargin', 1)"],
+            switch="-pdk_edgemargin 'pdkname <float>'",
+            example=[
+                "cli: -pdk_edgemargin 'asap7 1'",
+                "api:  chip.set('pdk', 'asap7', 'edgemargin', 1)"],
             schelp="""
-            Keep-out distance/margin from the wafer edge inwards. The wafer edge
+            Keep-out distance/margin from the edge inwards. The edge
             is prone to chipping and need special treatment that preclude
             placement of designs in this area. The edge value is used to
-            calculate effective dies per wafer and full factory cost.""")
+            calculate effective units per wafer/panel and full factory cost.""")
 
-    scparam(cfg, ['pdk', 'density'],
+    scparam(cfg, ['pdk', pdkname, 'density'],
             sctype='float',
             scope='global',
             shorthelp="PDK: transistor density",
-            switch="-pdk_density <float>",
-            example=["cli: -pdk_density 100e6",
-                    "api:  chip.set('pdk', 'density', 10e6)"],
+            switch="-pdk_density 'pdkname <float>'",
+            example=["cli: -pdk_density 'asap7 100e6'",
+                    "api:  chip.set('pdk', 'asap7', 'density', 10e6)"],
             schelp="""
             Approximate logic density expressed as # transistors / mm^2
             calculated as:
@@ -478,14 +467,14 @@ def schema_pdk(cfg, stackup='default'):
             library LEFs, conference presentations, and public analysis.""")
 
     simtype = 'default'
-    scparam(cfg, ['pdk', 'devmodel', tool, simtype, stackup],
+    scparam(cfg, ['pdk', pdkname, 'devmodel', tool, simtype, stackup],
             sctype='[file]',
             scope='global',
             shorthelp="PDK: device models",
-            switch="-pdk_devmodel 'tool simtype stackup <file>'",
+            switch="-pdk_devmodel 'pdkname tool simtype stackup <file>'",
             example=[
-            "cli: -pdk_devmodel 'xyce spice M10 asap7.sp'",
-            "api: chip.set('pdk','devmodel','xyce','spice','M10','asap7.sp')"],
+            "cli: -pdk_devmodel 'asap7 xyce spice M10 asap7.sp'",
+            "api: chip.set('pdk','asap7','devmodel','xyce','spice','M10','asap7.sp')"],
             schelp="""
             List of filepaths to PDK device models for different simulation
             purposes and for different tools. Examples of device model types
@@ -498,14 +487,14 @@ def schema_pdk(cfg, stackup='default'):
             device types include spice, em (electromigration), and aging.""")
 
     corner='default'
-    scparam(cfg, ['pdk', 'pexmodel', tool, stackup, corner],
+    scparam(cfg, ['pdk', pdkname, 'pexmodel', tool, stackup, corner],
             sctype='[file]',
             scope='global',
             shorthelp="PDK: parasitic TCAD models",
-            switch="-pdk_pexmodel 'tool stackup corner <file>'",
+            switch="-pdk_pexmodel 'pdkname tool stackup corner <file>'",
             example=[
-                "cli: -pdk_pexmodel 'fastcap M10 max wire.mod'",
-                "api: chip.set('pdk','pexmodel','fastcap','M10','max','wire.mod')"],
+                "cli: -pdk_pexmodel 'asap7 fastcap M10 max wire.mod'",
+                "api: chip.set('pdk','asap7','pexmodel','fastcap','M10','max','wire.mod')"],
             schelp="""
             List of filepaths to PDK wire TCAD models used during automated
             synthesis, APR, and signoff verification. Pexmodels are specified on
@@ -517,14 +506,14 @@ def schema_pdk(cfg, stackup='default'):
 
     src = 'default'
     dst = 'default'
-    scparam(cfg, ['pdk', 'layermap', tool, src, dst, stackup],
+    scparam(cfg, ['pdk', pdkname, 'layermap', tool, src, dst, stackup],
             sctype='[file]',
             scope='global',
             shorthelp="PDK: layer map file",
-            switch="-pdk_layermap 'tool src dst stackup <file>'",
+            switch="-pdk_layermap 'pdkname tool src dst stackup <file>'",
             example=[
-                "cli: -pdk_layermap 'klayout db gds M10 asap7.map'",
-                "api: chip.set('pdk','layermap','klayout','db','gds','M10','asap7.map')"],
+                "cli: -pdk_layermap 'asap7 klayout db gds M10 asap7.map'",
+                "api: chip.set('pdk','asap7','layermap','klayout','db','gds','M10','asap7.map')"],
             schelp="""
             Files describing input/output mapping for streaming layout data from
             one format to another. A foundry PDK will include an official layer
@@ -538,14 +527,14 @@ def schema_pdk(cfg, stackup='default'):
             or file formats (like 'gds').""")
 
 
-    scparam(cfg, ['pdk', 'display', tool, stackup],
+    scparam(cfg, ['pdk', pdkname, 'display', tool, stackup],
             sctype='[file]',
             scope='global',
             shorthelp="PDK: display file",
-            switch="-pdk_display 'tool stackup <file>'",
+            switch="-pdk_display 'pdkname tool stackup <file>'",
             example=[
-                "cli: -pdk_display 'klayout M10 display.lyt'",
-                "api: chip.set('pdk','display','klayout','M10','display.cfg')"],
+                "cli: -pdk_display 'asap7 klayout M10 display.lyt'",
+                "api: chip.set('pdk','asap7','display','klayout','M10','display.cfg')"],
             schelp="""
             Display configuration files describing colors and pattern schemes for
             all layers in the PDK. The display configuration file is entered on a
@@ -553,14 +542,14 @@ def schema_pdk(cfg, stackup='default'):
 
     #TODO: create firm list of accepted files
     libarch = 'default'
-    scparam(cfg, ['pdk', 'aprtech', tool, stackup, libarch, filetype],
+    scparam(cfg, ['pdk', pdkname, 'aprtech', tool, stackup, libarch, filetype],
             sctype='[file]',
             scope='global',
             shorthelp="PDK: APR technology files",
-            switch="-pdk_aprtech 'tool stackup libarch filetype <file>'",
+            switch="-pdk_aprtech 'pdkname tool stackup libarch filetype <file>'",
             example=[
-                "cli: -pdk_aprtech 'openroad M10 12t lef tech.lef'",
-                "api: chip.set('pdk','aprtech','openroad','M10','12t','lef','tech.lef')"],
+                "cli: -pdk_aprtech 'asap7 openroad M10 12t lef tech.lef'",
+                "api: chip.set('pdk','asap7','aprtech','openroad','M10','12t','lef','tech.lef')"],
             schelp="""
             Technology file containing setup information needed to enable DRC clean APR
             for the specified stackup, libarch, and format. The 'libarch' specifies the
@@ -576,24 +565,24 @@ def schema_pdk(cfg, stackup='default'):
     checks = ['lvs', 'drc', 'erc', 'fill']
     name = 'default'
     for item in checks:
-        scparam(cfg, ['pdk', item, 'runset', tool, stackup, name],
+        scparam(cfg, ['pdk', pdkname, item, 'runset', tool, stackup, name],
                 sctype='[file]',
                 scope='global',
                 shorthelp=f"PDK: {item.upper()} runset files",
-                switch=f"-pdk_{item}_runset 'tool stackup name <file>'",
+                switch=f"-pdk_{item}_runset 'pdkname tool stackup name <file>'",
                 example=[
-                    f"cli: -pdk_{item}_runset 'magic M10 basic $PDK/{item}.rs'",
-                    f"api: chip.set('pdk','{item}','runset','magic','M10','basic','$PDK/{item}.rs')"],
+                    f"cli: -pdk_{item}_runset 'asap7 magic M10 basic $PDK/{item}.rs'",
+                    f"api: chip.set('pdk', 'asap7','{item}','runset','magic','M10','basic','$PDK/{item}.rs')"],
                 schelp=f"""Runset files for {item.upper()} task.""")
 
-        scparam(cfg, ['pdk', item, 'waiver', tool, stackup, name],
+        scparam(cfg, ['pdk', pdkname, item, 'waiver', tool, stackup, name],
                 sctype='[file]',
                 scope='global',
                 shorthelp=f"PDK: {item.upper()} waiver files",
                 switch=f"-pdk_{item}_waiver 'tool stackup name <file>'",
                 example=[
-                    f"cli: -pdk_{item}_waiver 'magic M10 basic $PDK/{item}.txt'",
-                    f"api: chip.set('pdk','{item}','waiver','magic','M10','basic','$PDK/{item}.txt')"],
+                    f"cli: -pdk_{item}_waiver 'asap7 magic M10 basic $PDK/{item}.txt'",
+                    f"api: chip.set('pdk', 'asap7','{item}','waiver','magic','M10','basic','$PDK/{item}.txt')"],
                 schelp=f"""Waiver files for {item.upper()} task.""")
 
     ################
@@ -601,93 +590,93 @@ def schema_pdk(cfg, stackup='default'):
     ################
 
     layer = 'default'
-    scparam(cfg, ['pdk', 'grid', stackup, layer, 'name'],
+    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'name'],
             sctype='str',
             scope='global',
             shorthelp="PDK: routing grid name map",
-            switch="-pdk_grid_name 'stackup layer <str>'",
+            switch="-pdk_grid_name 'pdkname stackup layer <str>'",
             example=[
-                "cli: -pdk_grid_name 'M10 metal1 m1'",
-                "api: chip.set('pdk','grid','M10','metal1','name','m1')"],
+                "cli: -pdk_grid_name 'asap7 M10 metal1 m1'",
+                "api: chip.set('pdk','asap7','grid','M10','metal1','name','m1')"],
             schelp="""
             Maps PDK metal names to the SC standardized layer stack
             starting with m1 as the lowest routing layer and ending
             with m<n> as the highest routing layer. The map is
             specified on a per metal stack basis.""")
 
-    scparam(cfg, ['pdk', 'grid', stackup, layer, 'dir'],
+    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'dir'],
             sctype='str',
             scope='global',
             shorthelp="PDK: routing grid preferred direction",
-            switch="-pdk_grid_dir 'stackup layer <str>'",
+            switch="-pdk_grid_dir 'pdkname stackup layer <str>'",
             example=[
-                "cli: -pdk_grid_dir 'M10 m1 horizontal'",
-                "api: chip.set('pdk','grid','M10','m1','dir','horizontal')"],
+                "cli: -pdk_grid_dir 'asap7 M10 m1 horizontal'",
+                "api: chip.set('pdk','asap7','grid','M10','m1','dir','horizontal')"],
             schelp="""
             Preferred routing direction specified on a per stackup
             and per metal basis. Valid routing directions are horizontal
             and vertical.""")
 
-    scparam(cfg, ['pdk', 'grid', stackup, layer, 'xpitch'],
+    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'xpitch'],
             sctype='float',
             scope='global',
             unit='um',
             shorthelp="PDK: routing grid vertical wire pitch",
-            switch="-pdk_grid_xpitch 'stackup layer <float>'",
+            switch="-pdk_grid_xpitch 'pdkname stackup layer <float>'",
             example= [
-                "cli: -pdk_grid_xpitch 'M10 m1 0.5'",
-                "api: chip.set('pdk','grid','M10','m1','xpitch','0.5')"],
+                "cli: -pdk_grid_xpitch 'asap7 M10 m1 0.5'",
+                "api: chip.set('pdk', 'asap7','grid','M10','m1','xpitch','0.5')"],
             schelp="""
             Defines the routing pitch for vertical wires on a per stackup and
             per metal basis.""")
 
-    scparam(cfg, ['pdk', 'grid', stackup, layer, 'ypitch'],
+    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'ypitch'],
             sctype='float',
             scope='global',
             unit='um',
             shorthelp="PDK: routing grid horizontal wire pitch",
-            switch="-pdk_grid_ypitch 'stackup layer <float>'",
+            switch="-pdk_grid_ypitch 'pdkname stackup layer <float>'",
             example= [
-                "cli: -pdk_grid_ypitch 'M10 m1 0.5'",
-                "api: chip.set('pdk','grid','M10','m1','ypitch','0.5')"],
+                "cli: -pdk_grid_ypitch 'asap7 M10 m1 0.5'",
+                "api: chip.set('pdk','asap7','grid','M10','m1','ypitch','0.5')"],
             schelp="""
             Defines the routing pitch for horizontal wires on a per stackup and
             per metal basis.""")
 
-    scparam(cfg, ['pdk', 'grid', stackup, layer, 'xoffset'],
+    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'xoffset'],
             sctype='float',
             scope='global',
             unit='um',
             shorthelp="PDK: routing grid vertical wire offset",
-            switch="-pdk_grid_xoffset 'stackup layer <float>'",
+            switch="-pdk_grid_xoffset 'pdkname stackup layer <float>'",
             example= [
-                "cli: -pdk_grid_xoffset 'M10 m2 0.5'",
-                "api: chip.set('pdk','grid','M10','m2','xoffset','0.5')"],
+                "cli: -pdk_grid_xoffset 'asap7 M10 m2 0.5'",
+                "api: chip.set('pdk','asap7','grid','M10','m2','xoffset','0.5')"],
             schelp="""
             Defines the grid offset of a vertical metal layer specified on a per
             stackup and per metal basis.""")
 
-    scparam(cfg, ['pdk', 'grid', stackup, layer, 'yoffset'],
+    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'yoffset'],
             sctype='float',
             scope='global',
             unit='um',
             shorthelp="PDK: routing grid horizontal wire offset",
-            switch="-pdk_grid_yoffset 'stackup layer <float>'",
+            switch="-pdk_grid_yoffset 'pdkname stackup layer <float>'",
             example= [
-                "cli: -pdk_grid_yoffset 'M10 m2 0.5'",
-                "api: chip.set('pdk','grid','M10','m2','yoffset','0.5')"],
+                "cli: -pdk_grid_yoffset 'asap7 M10 m2 0.5'",
+                "api: chip.set('pdk', 'asap7','grid','M10','m2','yoffset','0.5')"],
             schelp="""
             Defines the grid offset of a horizontal metal layer specified on a per
             stackup and per metal basis.""")
 
-    scparam(cfg, ['pdk', 'grid', stackup, layer, 'adj'],
+    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'adj'],
             sctype='float',
             scope='global',
             shorthelp="PDK: routing grid resource adjustment",
-            switch="-pdk_grid_adj 'stackup layer <float>'",
+            switch="-pdk_grid_adj 'pdkname stackup layer <float>'",
             example= [
-                "cli: -pdk_grid_adj 'M10 m2 0.5'",
-                "api: chip.set('pdk','grid','M10','m2','adj','0.5')"],
+                "cli: -pdk_grid_adj 'asap7 M10 m2 0.5'",
+                "api: chip.set('pdk','asap7','grid','M10','m2','adj','0.5')"],
             schelp="""
             Defines the routing resources adjustments for the design on a per layer
             basis. The value is expressed as a fraction from 0 to 1. A value of
@@ -695,15 +684,15 @@ def schema_pdk(cfg, stackup='default'):
             routing resource utilization is permitted.""")
 
     corner='default'
-    scparam(cfg, ['pdk', 'grid', stackup, layer, 'cap', corner],
+    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'cap', corner],
             sctype='float',
             scope='global',
             unit='ff/um',
             shorthelp="PDK: routing grid unit capacitance",
-            switch="-pdk_grid_cap 'stackup layer corner <float>''",
+            switch="-pdk_grid_cap 'pdkname stackup layer corner <float>''",
             example= [
-                "cli: -pdk_grid_cap 'M10 m2 fast 0.2'",
-                "api: chip.set('pdk','grid','M10','m2','cap','fast','0.2')"],
+                "cli: -pdk_grid_cap 'asap7 M10 m2 fast 0.2'",
+                "api: chip.set('pdk','asap7','grid','M10','m2','cap','fast','0.2')"],
             schelp="""
             Unit capacitance of a wire defined by the grid width and spacing values
             in the 'grid' structure specified on a per
@@ -711,15 +700,15 @@ def schema_pdk(cfg, stackup='default'):
             tends to stay around 0.2ff/um. This number should only be used for
             reality confirmation. Accurate analysis should use the PEX models.""")
 
-    scparam(cfg, ['pdk', 'grid', stackup, layer, 'res', corner],
+    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'res', corner],
             sctype='float',
             scope='global',
             unit='ohm/um',
             shorthelp="PDK: routing grid unit resistance",
-            switch="-pdk_grid_res 'stackup layer corner <float>''",
+            switch="-pdk_grid_res 'pdkname stackup layer corner <float>''",
             example= [
-                "cli: -pdk_grid_res 'M10 m2 fast 0.2'",
-                "api: chip.set('pdk','grid','M10','m2','res','fast','0.2')"],
+                "cli: -pdk_grid_res 'asap7 M10 m2 fast 0.2'",
+                "api: chip.set('pdk','asap7','grid','M10','m2','res','fast','0.2')"],
             schelp="""
             Resistance of a wire defined by the grid width and spacing values
             in the 'grid' structure specified as ohms/um on a per
@@ -727,15 +716,15 @@ def schema_pdk(cfg, stackup='default'):
             used as a sanity check and for coarse design planning. Accurate
             analysis should use the TCAD PEX models.""")
 
-    scparam(cfg, ['pdk', 'grid', stackup, layer, 'tcr', corner],
+    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'tcr', corner],
             sctype='float',
             scope='global',
             unit='%/degree(T)',
             shorthelp="PDK: routing grid temperature coefficient",
-            switch="-pdk_grid_tcr 'stackup layer corner <float>'",
+            switch="-pdk_grid_tcr 'pdkname stackup layer corner <float>'",
             example= [
-                "cli: -pdk_grid_tcr 'M10 m2 fast 0.2'",
-                "api: chip.set('pdk','grid','M10','m2','tcr','fast','0.2')"],
+                "cli: -pdk_grid_tcr 'asap7 M10 m2 fast 0.2'",
+                "api: chip.set('pdk','asap7','grid','M10','m2','tcr','fast','0.2')"],
             schelp="""
             Temperature coefficient of resistance of the wire defined by the grid
             width and spacing values in the 'grid' structure on a per stackup,
@@ -748,40 +737,40 @@ def schema_pdk(cfg, stackup='default'):
     ###############
 
     key='default'
-    scparam(cfg, ['pdk', 'file', tool, key, stackup],
+    scparam(cfg, ['pdk', pdkname, 'file', tool, key, stackup],
             sctype='[file]',
             scope='global',
             shorthelp="PDK: special file",
-            switch="-pdk_file 'tool key stackup <file>'",
+            switch="-pdk_file 'pdkname tool key stackup <file>'",
             example=[
-                "cli: -pdk_file 'xyce spice M10 asap7.sp'",
-                "api: chip.set('pdk','file','xyce','spice','M10','asap7.sp')"],
+                "cli: -pdk_file 'asap7 xyce spice M10 asap7.sp'",
+                "api: chip.set('pdk','asap7','file','xyce','spice','M10','asap7.sp')"],
             schelp="""
             List of named files specified on a per tool and per stackup basis.
             The parameter should only be used for specifying files that are
             not directly  supported by the SiliconCompiler PDK schema.""")
 
-    scparam(cfg, ['pdk', 'directory', tool, key, stackup],
+    scparam(cfg, ['pdk', pdkname, 'directory', tool, key, stackup],
             sctype='[dir]',
             scope='global',
             shorthelp="PDK: special directory",
-            switch="-pdk_directory 'tool key stackup <file>'",
+            switch="-pdk_directory 'pdkname tool key stackup <file>'",
             example=[
-                "cli: -pdk_directory 'xyce rfmodel M10 rftechdir'",
-                "api: chip.set('pdk','directory','xyce','rfmodel','M10','rftechdir')"],
+                "cli: -pdk_directory 'asap7 xyce rfmodel M10 rftechdir'",
+                "api: chip.set('pdk','asap7','directory','xyce','rfmodel','M10','rftechdir')"],
             schelp="""
             List of named directories specified on a per tool and per stackup basis.
             The parameter should only be used for specifying files that are
             not directly  supported by the SiliconCompiler PDK schema.""")
 
-    scparam(cfg, ['pdk', 'variable', tool, key, stackup],
+    scparam(cfg, ['pdk', pdkname, 'variable', tool, key, stackup],
             sctype='[str]',
             scope='global',
             shorthelp="PDK: special variable",
-            switch="-pdk_variable 'tool stackup key <str>'",
+            switch="-pdk_variable 'pdkname tool stackup key <str>'",
             example=[
-                "cli: -pdk_variable 'xyce modeltype M10 bsim4'""",
-                "api: chip.set('pdk','variable','xyce','modeltype','M10','bsim4')"],
+                "cli: -pdk_variable 'asap7 xyce modeltype M10 bsim4'""",
+                "api: chip.set('pdk','asap7','variable','xyce','modeltype','M10','bsim4')"],
             schelp="""
              List of key/value strings specified on a per tool and per stackup basis.
             The parameter should only be used for specifying variables that are
@@ -791,13 +780,13 @@ def schema_pdk(cfg, stackup='default'):
     # Docs
     ###############
 
-    scparam(cfg,['pdk', 'doc', 'homepage'],
+    scparam(cfg,['pdk', pdkname, 'doc', 'homepage'],
             sctype='[file]',
             scope='global',
             shorthelp="PDK: documentation homepage",
-            switch="-pdk_doc_homepage <file>",
-            example=["cli: -pdk_doc_homepage 'index.html",
-                     "api: chip.set('pdk','doc','homepage','index.html')"],
+            switch="-pdk_doc_homepage 'pdkname <file>'",
+            example=["cli: -pdk_doc_homepage 'asap7 index.html'",
+                     "api: chip.set('pdk','asap7','doc','homepage','index.html')"],
             schelp="""
             Filepath to PDK docs homepage. Modern PDKs can include tens or
             hundreds of individual documents. A single html entry point can
@@ -813,13 +802,13 @@ def schema_pdk(cfg, stackup='default'):
                 'tutorial']
 
     for item in doctypes:
-        scparam(cfg,['pdk', 'doc', item],
+        scparam(cfg,['pdk', pdkname, 'doc', item],
                 sctype='[file]',
                 scope='global',
                 shorthelp=f"PDK: {item}",
-                switch= f"-pdk_doc_{item} <file>",
-                example=[f"cli: -pdk_doc_{item} {item}.pdf",
-                         f"api: chip.set('pdk','doc',{item},'{item}.pdf')"],
+                switch= f"-pdk_doc_{item} 'pdkname <file>'",
+                example=[f"cli: -pdk_doc_{item} 'asap7 {item}.pdf'",
+                         f"api: chip.set('pdk','asap7','doc',{item},'{item}.pdf')"],
                 schelp=f"""Filepath to {item} document.""")
 
     return cfg
@@ -2155,13 +2144,24 @@ def schema_option(cfg):
     scparam(cfg, ['option','flow'],
             sctype='str',
             scope='job',
-            shorthelp="Compilation flow",
+            shorthelp="Flow target",
             switch="-flow <str>",
             example=["cli: -flow asicfow",
                      "api: chip.set('option','flow','asicflow')"],
             schelp="""
             Sets the flow for the current run. The flow name
             must match up with a 'flow' in the flowgraph""")
+
+    scparam(cfg, ['option','pdk'],
+            sctype='str',
+            scope='job',
+            shorthelp="PDK target",
+            switch="-pdk <str>",
+            example=["cli: -pdk asap7",
+                     "api: chip.set('option','pdk','asap7')"],
+            schelp="""
+            Sets the pdk for the current run. The pdk name
+            must match up with a 'pdk' loaded with load_pdk.""")
 
     scparam(cfg, ['option','optmode'],
             sctype='str',

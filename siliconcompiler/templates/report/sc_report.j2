@@ -119,9 +119,9 @@
                     {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
                       <td>(failed)</td>
                     {% elif step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ manifest["metric"][step][index][mk]["real"]["value"] }}</a></td>
+                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ manifest["metric"][step][index][mk]["value"] }}</a></td>
                     {% else %}
-                      <td>{{ manifest["metric"][step][index][mk]["real"]["value"] }}</td>
+                      <td>{{ manifest["metric"][step][index][mk]["value"] }}</td>
                     {% endif %}
                   {% endfor %}
                 {% endfor %}
@@ -155,9 +155,9 @@
                     {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
                       <td>(failed)</td>
                     {% elif step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ manifest["metric"][step][index][mk]["real"]["value"] }}</a></td>
+                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ manifest["metric"][step][index][mk]["value"] }}</a></td>
                     {% else %}
-                      <td>{{ manifest["metric"][step][index][mk]["real"]["value"] }}</td>
+                      <td>{{ manifest["metric"][step][index][mk]["value"] }}</td>
                     {% endif %}
                   {% endfor %}
                 </tr>

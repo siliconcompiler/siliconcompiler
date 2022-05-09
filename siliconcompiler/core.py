@@ -2101,7 +2101,7 @@ class Chip:
                     flow = self.get('option', 'flow', job=job)
                     tool = self.get('flowgraph', flow, step, index, 'tool', job=job)
 
-                    value = self.get('metric', step, index, metric, 'real', job=job)
+                    value = self.get('metric', step, index, metric,  job=job)
                     criteria_ok = self._safecompare(value, op, goal)
                     if metric in self.getkeys('checklist', standard, item, 'waiver'):
                         waivers = self.get('checklist', standard, item, 'waiver', metric)
@@ -3010,7 +3010,7 @@ class Chip:
                 for index in indices_to_show[step]:
                     value = None
                     if 'real' in self.getkeys('metric', step, index, metric):
-                        value = self.get('metric', step, index, metric, 'real')
+                        value = self.get('metric', step, index, metric)
 
                     if value is None:
                         value = 'ERR'
@@ -3415,9 +3415,9 @@ class Chip:
                 failed[step][index] = True
             else:
                 for metric in self.getkeys('metric', step, index):
-                    if 'goal' in self.getkeys('metric', step, index, metric):
-                        goal = self.get('metric', step, index, metric, 'goal')
-                        real = self.get('metric', step, index, metric, 'real')
+                    if self.valid('flowgraph', flow, step, index, 'goal', metric):
+                        goal = self.get('flowgraph', flow, step, index, 'goal', metric)
+                        real = self.get('metric', step, index, metric)
                         if abs(real) > goal:
                             self.logger.warning(f"Step {step}{index} failed "
                                 f"because it didn't meet goals for '{metric}' "
@@ -3432,7 +3432,7 @@ class Chip:
             min_val[metric] = float("inf")
             for step, index in steplist:
                 if not failed[step][index]:
-                    real = self.get('metric', step, index, metric, 'real')
+                    real = self.get('metric', step, index, metric)
                     max_val[metric] = max(max_val[metric], real)
                     min_val[metric] = min(min_val[metric], real)
 
@@ -3450,7 +3450,7 @@ class Chip:
                     # skip if weight is 0 or None
                     continue
 
-                real = self.get('metric', step, index, metric, 'real')
+                real = self.get('metric', step, index, metric)
 
                 if not (max_val[metric] - min_val[metric]) == 0:
                     scaled = (real - min_val[metric]) / (max_val[metric] - min_val[metric])
@@ -3631,7 +3631,7 @@ class Chip:
         # without it we need to be more careful with flows to make sure
         # things like the builtin functions don't look at None values
         for metric in self.getkeys('metric', 'default', 'default'):
-            self.set('metric', step, index, metric, 'real', 0)
+            self.set('metric', step, index, metric, 0)
 
         ##################
         # 7. Select inputs
@@ -3880,8 +3880,8 @@ class Chip:
         # 16. Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
-        self.set('metric', step, index, 'exetime', 'real', cputime)
-        self.set('metric', step, index, 'memory', 'real', max_mem_bytes)
+        self.set('metric', step, index, 'exetime', cputime)
+        self.set('metric', step, index, 'memory', max_mem_bytes)
 
         ##################
         # 17. Post process (could fail)
@@ -3916,7 +3916,7 @@ class Chip:
         # 20. Capture wall runtime and cpu cores
         wall_end = time.time()
         walltime = round((wall_end - wall_start),2)
-        self.set('metric',step, index, 'tasktime', 'real', walltime)
+        self.set('metric',step, index, 'tasktime', walltime)
         self.logger.info(f"Finished task in {walltime}s")
 
         ##################
@@ -3934,7 +3934,7 @@ class Chip:
 
         ##################
         # 23. Stop if there are errors
-        if self.get('metric',step, index, 'errors', 'real') > 0:
+        if self.get('metric',step, index, 'errors') > 0:
             if not self.get('tool', tool, 'continue'):
                 self._haltstep(step, index)
 
@@ -4061,7 +4061,7 @@ class Chip:
                     # in the steplist.
                     self.set('flowgraph', flow, step, index, 'status', None)
                     for metric in self.getkeys('metric', 'default', 'default'):
-                        self.set('metric', step, index, metric, 'real', None)
+                        self.set('metric', step, index, metric, None)
                     for record in self.getkeys('record', 'default', 'default'):
                         self.set('record', step, index, record, None)
                 elif os.path.isfile(cfg):
@@ -4077,7 +4077,7 @@ class Chip:
                     if index in indexlist[step]:
                         self.set('flowgraph', flow, step, index, 'status', None)
                         for metric in self.getkeys('metric', 'default', 'default'):
-                            self.set('metric', step, index, metric, 'real', None)
+                            self.set('metric', step, index, metric,  None)
                         for record in self.getkeys('record', 'default', 'default'):
                             self.set('record', step, index, record, None)
 
