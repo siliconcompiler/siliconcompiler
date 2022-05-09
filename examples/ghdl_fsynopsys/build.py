@@ -6,6 +6,7 @@ def main():
     chip.set('design', 'binary_4_bit_adder_top')
     chip.add('source', 'binary_4_bit_adder_top.vhd')
     chip.set('frontend', 'vhdl')
+    chip.set('eda', 'ghdl', 'globaloption','-fsynopsys')
 
     chip.load_target('freepdk45_demo')
 

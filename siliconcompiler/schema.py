@@ -1347,6 +1347,19 @@ def schema_eda(cfg, tool='default', step='default', index='default'):
             Directs tool to continue operating even if errors are
             encountered.""")
 
+    scparam(cfg, ['eda', tool, 'globaloption'],
+            sctype='[str]',
+            scope='job',
+            shorthelp="option passed at all steps",
+            switch="-eda_globaloption 'tool <str>'",
+            example=["cli: -eda_globaloption 'ghdl -fsynopsys'",
+                     "api: chip.set('eda','ghdl','globaloption','-fsynopsys')"],
+            schelp="""
+            List of command line options for the tool executable, specified on
+            a per tool basis. Options must not include spaces.
+            For multiple argument options, each option is a separate list element.
+            """)
+
     name = 'default'
     scparam(cfg, ['eda', tool, 'licenseserver', name],
             sctype='[str]',

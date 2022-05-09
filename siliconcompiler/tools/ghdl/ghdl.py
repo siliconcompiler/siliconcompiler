@@ -46,7 +46,8 @@ def setup(chip):
     chip.set('eda', tool, 'vswitch', '--version', clobber=clobber)
     chip.set('eda', tool, 'version', '>=2.0.0-dev', clobber=clobber)
     chip.set('eda', tool, 'threads', step, index, '4', clobber=clobber)
-    chip.set('eda', tool, 'option', step, index, '', clobber=clobber)
+    options = ['--synth', '--std=08', '--out=verilog', '--no-formal']
+    chip.set('eda', tool, 'option', step, index, options, clobber=clobber)
     chip.set('eda', tool, 'stdout', step, index, 'destination', 'output')
     chip.set('eda', tool, 'stdout', step, index, 'suffix', 'v')
 
@@ -66,19 +67,7 @@ def runtime_options(chip):
     ''' Custom runtime options, returnst list of command line options.
     '''
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
     options = []
-
-    # Synthesize inputs and output Verilog netlist
-    options.append('--synth')
-    options.append('--std=08')
-    options.append('--out=verilog')
-    options.append('--no-formal')
-    # allow non-standard packages 
-    # (std_logic_arith, std_logic_signed, std_logic_unsigned, std_logic_textio)
-    options.append('-fsynopsys')
 
     # Add sources
     for value in chip.find_files('source'):

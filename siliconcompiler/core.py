@@ -4672,6 +4672,8 @@ class Chip:
 
         for option in self.get('eda', tool, 'option', step, index):
             options.extend(shlex.split(option, posix=is_posix))
+        for option in self.get('eda', tool, 'globaloption'):
+            options.extend(shlex.split(option, posix=is_posix))
 
         # Add scripts files
         if self.valid('eda', tool, 'script', step, index):
