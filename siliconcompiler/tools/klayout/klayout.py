@@ -100,8 +100,8 @@ def setup(chip, mode="batch"):
     chip.set('tool', tool, 'variable', step, index, 'timestamps', 'true', clobber=False)
 
     # Input/Output requirements
-    if (not chip.valid('source', 'def') or
-        not chip.get('source', 'def')):
+    if (not chip.valid('input', 'def') or
+        not chip.get('input', 'def')):
         chip.add('tool', tool, 'input', step, index, chip.design + '.def')
     chip.add('tool', tool, 'output', step, index, chip.design + '.gds')
 
@@ -109,12 +109,13 @@ def setup(chip, mode="batch"):
     if mode != 'show':
         targetlibs = chip.get('asic', 'logiclib')
         stackup = chip.get('asic', 'stackup')
+        pdk = chip.get('option', 'pdk')
         if bool(stackup) & bool(targetlibs):
             macrolibs = chip.get('asic', 'macrolib')
 
             chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
             chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'stackup']))
-            chip.add('tool', tool, 'require', step, index,  ",".join(['pdk', 'layermap', 'klayout', 'def','gds', stackup]))
+            chip.add('tool', tool, 'require', step, index,  ",".join(['pdk', pdk, 'layermap', 'klayout', 'def','gds', stackup]))
 
             for lib in (targetlibs + macrolibs):
                 chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'gds', stackup]))

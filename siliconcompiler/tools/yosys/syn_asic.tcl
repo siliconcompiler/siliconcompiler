@@ -10,7 +10,6 @@ set sc_tie         [dict get $sc_cfg library $sc_mainlib asic cells tie]
 set sc_buf         [dict get $sc_cfg library $sc_mainlib asic cells buf]
 set sc_scenarios   [dict keys [dict get $sc_cfg constraint]]
 
-
 ########################################################
 # Read Libraries
 ########################################################

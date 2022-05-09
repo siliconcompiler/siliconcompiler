@@ -211,12 +211,13 @@ with open('sc_manifest.json', 'r') as f:
 # Extract info from manifest
 sc_step = sc_cfg['arg']['step']['value']
 sc_index = sc_cfg['arg']['index']['value']
+sc_pdk = sc_cfg['option']['pdk']['value'][0]
 
-sc_stackup = sc_cfg['pdk']['stackup']['value'][0]
+sc_stackup = sc_cfg['pdk'][sc_pdk]['stackup']['value'][0]
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
 sc_libtype = sc_cfg['library'][sc_mainlib]['asic']['footprint']
 
-tech_file = sc_cfg['pdk']['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
+tech_file = sc_cfg['pdk'][sc_pdk]['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
 
 design = sc_cfg['design']['value']
 try:

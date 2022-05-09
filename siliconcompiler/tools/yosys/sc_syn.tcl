@@ -23,6 +23,7 @@ set sc_design      [dict get $sc_cfg design]
 set sc_mode        [dict get $sc_cfg option mode]
 set sc_flow        [dict get $sc_cfg option flow]
 set sc_optmode     [dict get $sc_cfg option optmode]
+set sc_pdk         [dict get $sc_cfg option pdk]
 
 ########################################################
 # Design Inputs

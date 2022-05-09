@@ -79,12 +79,12 @@ def setup(chip, mode='batch'):
 
     # Input/Output requirements
     if step == 'floorplan':
-        if (not chip.valid('source', 'netlist') or
-            not chip.get('source', 'netlist')):
+        if (not chip.valid('input', 'netlist') or
+            not chip.get('input', 'netlist')):
             chip.add('tool', tool, 'input', step, index, chip.design +'.vg')
     else:
-        if (not chip.valid('source', 'def') or
-            not chip.get('source', 'def')):
+        if (not chip.valid('input', 'def') or
+            not chip.get('input', 'def')):
             chip.add('tool', tool, 'input', step, index, chip.design +'.def')
 
     chip.add('tool', tool, 'output', step, index, chip.design + '.sdc')
@@ -241,30 +241,30 @@ def post_process(chip):
                 cellarea = round(float(area.group(1)), 2)
                 utilization = round(float(area.group(2)), 2)
                 totalarea = round(cellarea/(utilization/100), 2)
-                chip.set('metric', step, index, 'cellarea', 'real', cellarea, clobber=True)
-                chip.set('metric', step, index, 'totalarea', 'real', totalarea, clobber=True)
-                chip.set('metric', step, index, 'utilization', 'real', utilization, clobber=True)
+                chip.set('metric', step, index, 'cellarea', cellarea, clobber=True)
+                chip.set('metric', step, index, 'totalarea', totalarea, clobber=True)
+                chip.set('metric', step, index, 'utilization', utilization, clobber=True)
             elif tns:
-                chip.set('metric', step, index, 'setuptns', 'real', round(float(tns.group(1)), 2), clobber=True)
+                chip.set('metric', step, index, 'setuptns', round(float(tns.group(1)), 2), clobber=True)
             elif wns:
-                chip.set('metric', step, index, 'setupwns', 'real', round(float(wns.group(1)), 2), clobber=True)
+                chip.set('metric', step, index, 'setupwns', round(float(wns.group(1)), 2), clobber=True)
             elif slack:
-                chip.set('metric', step, index, metric, 'real', round(float(slack.group(1)), 2), clobber=True)
+                chip.set('metric', step, index, metric, round(float(slack.group(1)), 2), clobber=True)
             elif wirelength:
-                chip.set('metric', step, index, 'wirelength', 'real', round(float(wirelength.group(1)), 2), clobber=True)
+                chip.set('metric', step, index, 'wirelength', round(float(wirelength.group(1)), 2), clobber=True)
             elif vias:
-                chip.set('metric', step, index, 'vias', 'real', int(vias.group(1)), clobber=True)
+                chip.set('metric', step, index, 'vias', int(vias.group(1)), clobber=True)
             elif metric == "power":
                 if power:
                     powerlist = power.group(1).split()
                     leakage = powerlist[2]
                     total = powerlist[3]
-                    chip.set('metric', step, index, 'peakpower', 'real', float(total), clobber=True)
-                    chip.set('metric', step, index, 'leakagepower', 'real', float(leakage), clobber=True)
+                    chip.set('metric', step, index, 'peakpower', float(total), clobber=True)
+                    chip.set('metric', step, index, 'leakagepower', float(leakage), clobber=True)
 
     #Setting Warnings and Errors
-    chip.set('metric', step, index, 'errors', 'real', errors, clobber=True)
-    chip.set('metric', step, index, 'warnings', 'real', warnings, clobber=True)
+    chip.set('metric', step, index, 'errors', errors, clobber=True)
+    chip.set('metric', step, index, 'warnings', warnings, clobber=True)
 
     #Temporary superhack!rm
     #Getting cell count and net number from DEF
@@ -275,11 +275,11 @@ def post_process(chip):
                 nets = re.search(r'^NETS (\d+)', line)
                 pins = re.search(r'^PINS (\d+)', line)
                 if cells:
-                    chip.set('metric', step, index, 'cells', 'real', int(cells.group(1)), clobber=True)
+                    chip.set('metric', step, index, 'cells', int(cells.group(1)), clobber=True)
                 elif nets:
-                    chip.set('metric', step, index, 'nets', 'real', int(nets.group(1)), clobber=True)
+                    chip.set('metric', step, index, 'nets', int(nets.group(1)), clobber=True)
                 elif pins:
-                    chip.set('metric', step, index, 'pins', 'real', int(pins.group(1)), clobber=True)
+                    chip.set('metric', step, index, 'pins', int(pins.group(1)), clobber=True)
 
     if step == 'sta':
         # Copy along GDS for verification steps that rely on it

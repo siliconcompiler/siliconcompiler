@@ -11,16 +11,17 @@ with open('sc_manifest.json', 'r') as f:
     sc_cfg = json.load(f)
 
 # Extract info from manifest
-sc_stackup = sc_cfg['pdk']['stackup']['value'][0]
+sc_pdk = sc_cfg['option']['pdk']['value'][0]
+sc_stackup = sc_cfg['pdk'][sc_pdk]['stackup']['value'][0]
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
 sc_libtype = list(sc_cfg['library'][sc_mainlib]['asic']['footprint'].keys())[0]
 
 try:
-    tech_file = sc_cfg['pdk']['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
+    tech_file = sc_cfg['pdk'][sc_pdk]['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
 except KeyError:
     tech_file = None
 try:
-    lyp_path = sc_cfg['pdk']['display']['klayout'][sc_stackup]['value'][0]
+    lyp_path = sc_cfg['pdk'][sc_pdk]['display']['klayout'][sc_stackup]['value'][0]
 except KeyError:
     lyp_path = None
 
@@ -32,7 +33,7 @@ if 'macrolib' in sc_cfg['asic']:
 
 # Tech / library LEF files are optional.
 try:
-    tech_lef = sc_cfg['pdk']['aprtech']['klayout'][sc_stackup][sc_libtype]['lef']['value'][0]
+    tech_lef = sc_cfg['pdk'][sc_pdk]['aprtech']['klayout'][sc_stackup][sc_libtype]['lef']['value'][0]
 except KeyError:
     tech_lef = None
 try:

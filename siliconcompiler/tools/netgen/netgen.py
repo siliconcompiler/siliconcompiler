@@ -104,8 +104,8 @@ def post_process(chip):
         # details.
         pin_failures = lvs_failures[3]
         errors = lvs_failures[0] - pin_failures
-        chip.set('metric', step, index, 'drvs', 'real', errors)
-        chip.set('metric', step, index, 'warnings', 'real', pin_failures)
+        chip.set('metric', step, index, 'drvs', errors)
+        chip.set('metric', step, index, 'warnings', pin_failures)
 
     #TODO: return error code
     return 0

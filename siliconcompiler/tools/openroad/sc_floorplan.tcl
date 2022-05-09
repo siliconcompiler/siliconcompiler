@@ -40,13 +40,13 @@ if {[expr ! [dict exists $sc_cfg "source" def]]} {
     ###########################
 
     set metal_list ""
-    dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
+    dict for {key value} [dict get $sc_cfg pdk $sc_pdk grid $sc_stackup] {
 	lappend metal_list $key
     }
 
     # source tracks from file if found, else else use schema entries
-    if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tracks] {
-	source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tracks]]
+    if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks] {
+	source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks]]
     } else {
 	make_tracks
     }
@@ -120,8 +120,8 @@ if {[expr ! [dict exists $sc_cfg "source" def]]} {
 # Tap Cells
 ###########################
 
-if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tapcells] {
-    source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tapcells] 0]
+if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tapcells] {
+    source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tapcells] 0]
 }
 
 remove_buffers

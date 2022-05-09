@@ -67,7 +67,7 @@ def setup(chip):
     chip.add('tool', tool, 'output', step, index, chip.design + '.v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, ",".join(['source', 'verilog']))
+    chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
 
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
@@ -118,7 +118,7 @@ def runtime_options(chip):
         cmdlist.append('-D' + value)
     for value in chip.find_files('option', 'cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('source', 'verilog'):
+    for value in chip.find_files('input', 'verilog'):
         cmdlist.append(value)
 
     cmdlist.append('-top ' + chip.design)
@@ -160,6 +160,9 @@ def post_process(chip):
                 outfile.write(infile.read())
             # in case end of file is missing a newline
             outfile.write('\n')
+
+
+    #TODO: find errors/warnings during import
 
     return 0
 
