@@ -152,7 +152,7 @@ def setup(chip):
         if layer in ('metal10'):
             chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'vertical')
         else:
-            chip.set('pdk','grid', stackup, layer, 'dir', 'horizontal')
+            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'horizontal')
 
     # Defaults for OpenROAD tool variables
     chip.set('pdk', process, 'var', 'openroad', stackup, 'place_density', ['0.3'])
