@@ -56,7 +56,7 @@ def setup(chip):
     chip.set('eda', tool, 'refdir',  step, index, refdir, clobber=False)
     chip.set('eda', tool, 'script',  step, index, refdir + script, clobber=False)
     for key in variables:
-        chip.set('eda', tool, 'variable', step, index, key, variables[key], clobber=False)
+        chip.set('eda', tool, 'var', step, index, key, variables[key], clobber=False)
 
     # Required for checker
     chip.add('eda', tool, 'output', step, index, outputs)

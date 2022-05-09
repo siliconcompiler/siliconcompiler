@@ -1574,7 +1574,7 @@ class Chip:
 
     ###########################################################################
     def _check_files(self):
-        allowed_paths = [os.path.join(self.cwd, self.get('option', 'dir'))]
+        allowed_paths = [os.path.join(self.cwd, self.get('option', 'builddir'))]
         allowed_paths.extend(os.environ['SC_VALID_PATHS'].split(os.pathsep))
 
         for keypath in self.getkeys():
@@ -1736,10 +1736,9 @@ class Chip:
         for step in steplist:
             for index in indexlist[step]:
                 in_job = None
-                if (jobname in self.getkeys('option', 'jobinput') and
-                    step in self.getkeys('option', 'jobinput', jobname) and
-                    index in self.getkeys('option', 'jobinput', jobname, step)):
-                    in_job = self.get('option', 'jobinput', jobname, step, index)
+                if (step in self.getkeys('option', 'jobinput') and
+                    index in self.getkeys('option', 'jobinput', step)):
+                    in_job = self.get('option', 'jobinput', step, index)
 
                 for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                     if in_job is not None:
@@ -1878,8 +1877,8 @@ class Chip:
                         # inputs need to already be copied into the build
                         # directory.
                         jobname = self.get('option', 'jobname')
-                        if self.valid('option', 'jobinput', jobname, step, index):
-                            in_job = self.get('option', 'jobinput', jobname, step, index)
+                        if self.valid('option', 'jobinput', step, index):
+                            in_job = self.get('option', 'jobinput', step, index)
                         else:
                             in_job = jobname
                         workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
@@ -2489,7 +2488,7 @@ class Chip:
 
         design = self.get('design')
         jobname = self.get('option', 'jobname')
-        buildpath = self.get('option', 'dir')
+        buildpath = self.get('option', 'builddir')
 
         if step:
             steplist = [step]
@@ -3029,7 +3028,7 @@ class Chip:
 
         # Create a report for the Chip object which can be viewed in a web browser.
         # Place report files in the build's root directory.
-        web_dir = os.path.join(self.get('option', 'dir'),
+        web_dir = os.path.join(self.get('option', 'builddir'),
                                self.get('design'),
                                self.get('option', 'jobname'))
         if os.path.isdir(web_dir):
@@ -3590,10 +3589,9 @@ class Chip:
         # support for sharing data across jobs
         job = self.get('option', 'jobname')
         in_job = job
-        if job in self.getkeys('option', 'jobinput'):
-            if step in self.getkeys('option', 'jobinput',job):
-                if index in self.getkeys('option', 'jobinput',job,step):
-                    in_job = self.get('option', 'jobinput', job, step, index)
+        if step in self.getkeys('option', 'jobinput'):
+            if index in self.getkeys('option', 'jobinput', step):
+                in_job = self.get('option', 'jobinput', step, index)
 
         workdir = self._getworkdir(step=step,index=index)
         cwd = os.getcwd()
@@ -4121,9 +4119,9 @@ class Chip:
             # Read back configuration from final manifest.
             cfg = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
             if os.path.isfile(cfg):
-                local_dir = self.get('option','dir')
+                local_dir = self.get('option','builddir')
                 self.read_manifest(cfg, clobber=True, clear=True)
-                self.set('option', 'dir', local_dir)
+                self.set('option', 'builddir', local_dir)
             else:
                 # Hack to find first failed step by checking for presence of
                 # output manifests.
@@ -4180,7 +4178,7 @@ class Chip:
 
             # Implement auto-update of jobincrement
             try:
-                alljobs = os.listdir(self.get('option','dir') + "/" + self.get('design'))
+                alljobs = os.listdir(self.get('option','builddir') + "/" + self.get('design'))
                 if self.get('option','jobincr'):
                     jobid = 0
                     for item in alljobs:
@@ -4212,10 +4210,9 @@ class Chip:
 
                     inputs = [step+index for step, index in self.get('flowgraph', flow, step, index, 'input')]
 
-                    if (jobname in self.getkeys('option','jobinput') and
-                        step in self.getkeys('option','jobinput', jobname) and
-                        index in self.getkeys('option','jobinput', jobname, step) and
-                        self.get('option','jobinput', jobname, step, index) != jobname):
+                    if (step in self.getkeys('option','jobinput') and
+                        index in self.getkeys('option','jobinput', step) and
+                        self.get('option','jobinput', step, index) != jobname):
                         # If we specify a different job as input to this task,
                         # we assume we are good to run it.
                         tasks_to_run[step+index] = []
@@ -4450,7 +4447,7 @@ class Chip:
 
         # Opening file from temp directory
         cwd = os.getcwd()
-        showdir = self.get('option','dir') + "/_show"
+        showdir = self.get('option','builddir') + "/_show"
         os.makedirs(showdir, exist_ok=True)
         os.chdir(showdir)
 
@@ -4794,7 +4791,7 @@ class Chip:
             jobname = self.get('option','jobname')
 
         dirlist =[self.cwd,
-                  self.get('option','dir'),
+                  self.get('option','builddir'),
                   self.get('design'),
                   jobname]
 

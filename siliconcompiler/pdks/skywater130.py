@@ -140,11 +140,11 @@ def setup(chip):
     chip.set('pdk', process, 'grid', stackup, 'met5', 'adj', 0.5)
 
     # Defaults for OpenROAD tool variables
-    chip.set('pdk', process, 'variable', 'openroad', stackup, 'place_density', ['0.6'])
-    chip.set('pdk', process, 'variable', 'openroad', stackup, 'pad_global_place', ['4'])
-    chip.set('pdk', process, 'variable', 'openroad', stackup, 'pad_detail_place', ['2'])
-    chip.set('pdk', process, 'variable', 'openroad', stackup, 'macro_place_halo', ['1', '1'])
-    chip.set('pdk', process, 'variable', 'openroad', stackup, 'macro_place_channel', ['80', '80'])
+    chip.set('pdk', process, 'var', 'openroad', stackup, 'place_density', ['0.6'])
+    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_global_place', ['4'])
+    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_detail_place', ['2'])
+    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_halo', ['1', '1'])
+    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_channel', ['80', '80'])
 
 #########################
 if __name__ == "__main__":

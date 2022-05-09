@@ -767,12 +767,12 @@ def schema_pdk(cfg, stackup='default'):
             sctype='[str]',
             scope='global',
             shorthelp="PDK: special variable",
-            switch="-pdk_variable 'pdkname tool stackup key <str>'",
+            switch="-pdk_var 'pdkname tool stackup key <str>'",
             example=[
-                "cli: -pdk_variable 'asap7 xyce modeltype M10 bsim4'""",
+                "cli: -pdk_var 'asap7 xyce modeltype M10 bsim4'""",
                 "api: chip.set('pdk','asap7','var','xyce','modeltype','M10','bsim4')"],
             schelp="""
-             List of key/value strings specified on a per tool and per stackup basis.
+            List of key/value strings specified on a per tool and per stackup basis.
             The parameter should only be used for specifying variables that are
             not directly  supported by the SiliconCompiler PDK schema.""")
 
@@ -2251,18 +2251,18 @@ def schema_option(cfg):
             Provides explicit control over the level of debug logging printed.
             Valid entries include INFO, DEBUG, WARNING, ERROR.""")
 
-    scparam(cfg, ['option', 'dir'],
+    scparam(cfg, ['option', 'builddir'],
             sctype='dir',
             scope='job',
             defvalue='build',
             shorthelp="Build directory",
-            switch="-dir <dir>",
+            switch="-builddir <dir>",
             example=[
-                "cli: -dir ./build_the_future",
-                "api: chip.set('option', 'dir','./build_the_future')"],
+                "cli: -builddir ./build_the_future",
+                "api: chip.set('option', 'builddir','./build_the_future')"],
             schelp="""
             The default build directory is in the local './build' where SC was
-            executed. The 'dir' parameters can be used to set an alternate
+            executed. The 'builddir' parameter can be used to set an alternate
             compilation directory path.""")
 
     scparam(cfg, ['option', 'jobname'],
@@ -2281,14 +2281,14 @@ def schema_option(cfg):
             introspection.""")
 
     #TODO: remove?
-    scparam(cfg, ['option','jobinput','default','default','default'],
+    scparam(cfg, ['option','jobinput','default','default'],
             sctype='str',
             scope='job',
             shorthelp="Input job name",
-            switch="-jobinput 'job step index <str>'",
+            switch="-jobinput 'step index <str>'",
             example=[
-                "cli: -jobinput 'job1 cts 0 job0'",
-                "api:  chip.set('option','jobinput','job1','cts,'0','job0')"],
+                "cli: -jobinput 'cts 0 job0'",
+                "api:  chip.set('option','jobinput','cts,'0','job0')"],
             schelp="""
             Specifies jobname inputs for the current run() on a per step
             and per index basis. During execution, the default behavior is to
@@ -3331,7 +3331,7 @@ def schema_asic(cfg):
             schelp="""
             List of key/value strings specified on a per basis. The parameter
             should only be used for specifying variables that are
-            not directly  supported by the SiliconCompiler PDK schema.""")
+            not directly supported by the SiliconCompiler PDK schema.""")
 
 
     # TODO: Expand on the exact definitions of these types of cells.

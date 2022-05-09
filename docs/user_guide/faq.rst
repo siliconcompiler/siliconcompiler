@@ -58,7 +58,7 @@ How do I...
 ... change the build directory?
     .. code-block:: python
 
-       chip.set('dir', <dirpath>)
+       chip.set('option', 'builddir', <dirpath>)
 
 ... use the setup json file from a previous run?
     .. code-block:: python

@@ -45,7 +45,7 @@ def main():
         chip.set('option', 'jobname', newid)
 
         # Specifying that imports are copied from job0
-        chip.set('option', 'jobinput', newid, step, index, 'job0')
+        chip.set('option', 'jobinput', step, index, 'job0')
 
         # Make a run
         chip.run()
