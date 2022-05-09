@@ -120,7 +120,7 @@ def schema_cfg():
     cfg['history'] = {}
     cfg['library'] = {}
 
-    # Compilation Entry Point
+    # Design topmodule/entrypoint
     scparam(cfg,['design'],
             sctype='str',
             scope='global',
@@ -132,39 +132,27 @@ def schema_cfg():
             schelp="""Name of the top level module to compile.
             Required for all designs with more than one module.""")
 
-    # Source files
-    filetype = 'default'
-    scparam(cfg,['source', filetype],
-            sctype='[file]',
-            copy='true',
-            shorthelp="Source files",
-            switch="-source 'filetype <file>'",
-            example=[
-                "cli: -source 'filetype hello_world.v'",
-                "api: chip.set('source','verilog','hello_world.v')"],
-            schelp="""
-            List of flow input files specifed by type. The filetype name must
-            align with the parameter names within the flow and tool setup
-            scripts. Filetypes accepted by the SC flows include: python, c,
-            systemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,
-            saif, vcd, spef, sdf.""")
+    # input/output
+    io = {'input': ['Input','true'],
+          'output': ['Output','false']
+    }
 
-    # Outputs
     filetype = 'default'
-    scparam(cfg,['output', filetype],
-            sctype='[file]',
-            copy='true',
-            shorthelp="Output files",
-            switch="-output 'filetype <file>'",
-            example=[
-                "cli: -output 'verilog hello_world.vg'",
-                "api: chip.set('output','verilog','hello_world.vg')"],
-            schelp="""
-            List of flow output files specifed by type. The filetype name must
-            align with the parameter names within the flow and tool setup
-            scripts. Filetypes accepted by the SC flows include: python, c,
-            systemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,
-            saif, vcd, spef, sdf.""")
+    for item, val in io.items():
+        scparam(cfg,[item, filetype],
+                sctype='[file]',
+                copy=f"{val[1]}",
+                shorthelp=f"{val[0]} files",
+                switch=f"-{item} 'filetype <file>'",
+                example=[
+                    f"cli: -{item} 'verilog hello_world.v'",
+                    f"api: chip.set({item},'verilog','hello_world.v')"],
+                schelp="""
+                List of {item} files specifed by type. The filetype name must
+                align with the parameter names within the flow and tool setup
+                scripts. Examples of acceptable file types include python, c,
+                systemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,
+                saif, vcd, spef, sdf.""")
 
     # Inputs and constraints
     cfg = schema_constraint(cfg)
