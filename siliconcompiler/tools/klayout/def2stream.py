@@ -211,7 +211,7 @@ with open('sc_manifest.json', 'r') as f:
 # Extract info from manifest
 sc_step = sc_cfg['arg']['step']['value']
 sc_index = sc_cfg['arg']['index']['value']
-sc_pdk = sc_cfg['option']['pdk']['value'][0]
+sc_pdk = sc_cfg['asic']['pdk']['value']
 
 sc_stackup = sc_cfg['pdk'][sc_pdk]['stackup']['value'][0]
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]

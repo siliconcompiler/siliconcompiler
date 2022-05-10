@@ -1036,7 +1036,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     scparam(cfg, ['datasheet', 'pin', name, 'ground', mode],
                 sctype='str',
                 shorthelp=f"Datasheet: pin related power supply",
-                switch=f"-datasheet_pin_supply 'name mode <str>'",
+                switch=f"-datasheet_pin_ground 'name mode <str>'",
                 example=[
                     f"cli: -datasheet_pin_supply 'ina global vdd'",
                     f"api: chip.set('datasheet','pin','ina','supply','global','vdd')"],

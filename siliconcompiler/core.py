@@ -1514,6 +1514,15 @@ class Chip:
         """
         self._merge_manifest(cfg, job, clobber, clear, check)
 
+    def _key_may_be_updated(self, keypath):
+        '''Helper that returns whether `keypath` can be updated mid-run.'''
+        # TODO: cleaner way to manage this?
+        if keypath[0] in ('metric', 'record'):
+            return True
+        if keypath[0] == 'flowgraph' and keypath[4] in ('select', 'status'):
+            return True
+        return False
+
     ###########################################################################
     def _merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False, partial=False):
         """
@@ -1530,7 +1539,7 @@ class Chip:
             dst = self.cfg
 
         for keylist in self.getkeys(cfg=cfg):
-            if partial and keylist[0] not in ('metric', 'record'):
+            if partial and not self._key_may_be_updated(keylist):
                 continue
             if keylist[0] in ('history', 'library'):
                 continue
@@ -2826,7 +2835,6 @@ class Chip:
         # Using manifest to get defaults
 
         flow = self.get('option', 'flow')
-        design = self.get('design')
 
         if jobname is None:
             jobname = self.get('option', 'jobname')
@@ -2958,8 +2966,9 @@ class Chip:
                      ]
 
         if self.get('option', 'mode') == 'asic':
-            info_list.extend(["foundry : " + self.get('pdk', 'foundry'),
-                              "process : " + self.get('pdk', 'process'),
+            pdk = self.get('asic', 'pdk')
+            info_list.extend(["foundry : " + self.get('pdk', pdk, 'foundry'),
+                              "process : " + pdk,
                               "targetlibs : "+" ".join(self.get('asic', 'logiclib'))])
         elif self.get('option', 'mode') == 'fpga':
             info_list.extend(["partname : "+self.get('fpga','partname')])
@@ -3007,9 +3016,7 @@ class Chip:
             row = []
             for step in steplist:
                 for index in indices_to_show[step]:
-                    value = None
-                    if 'real' in self.getkeys('metric', step, index, metric):
-                        value = self.get('metric', step, index, metric)
+                    value = self.get('metric', step, index, metric)
 
                     if value is None:
                         value = 'ERR'
@@ -4025,8 +4032,7 @@ class Chip:
             if not self.get('option', 'resume'):
                 # If no step(list) was specified, the whole flow is being run
                 # start-to-finish. Delete the build dir to clear stale results.
-                cur_job_dir = f'{self.get("option", "dir")}/{self.get("design")}/'\
-                            f'{self.get("option", "jobname")}'
+                cur_job_dir = self._getworkdir()
                 if os.path.isdir(cur_job_dir):
                     shutil.rmtree(cur_job_dir)
 

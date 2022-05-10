@@ -1,14 +1,8 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 #Standard Modules
-import sys
-import logging
 import os
-import re
-import json
 import sys
-import uuid
-from multiprocessing import Process
 
 #Shorten siliconcompiler as sc
 import siliconcompiler

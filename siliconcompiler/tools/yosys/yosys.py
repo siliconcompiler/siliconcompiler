@@ -80,7 +80,6 @@ def setup(chip):
 
     # Schema requirements
     if chip.get('option', 'mode') == 'asic':
-        chip.add('tool', tool, 'require', step, index, ",".join(['pdk', 'process']))
         chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
 
         targetlibs = chip.get('asic', 'logiclib')
