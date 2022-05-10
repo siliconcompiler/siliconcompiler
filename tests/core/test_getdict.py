@@ -7,7 +7,7 @@ def test_getdict():
     chip.load_target('freepdk45_demo')
     localcfg = chip.getdict('pdk')
 
-    assert localcfg['process']['value'] == 'freepdk45'
+    assert localcfg['freepdk45']['foundry']['value'] == 'virtual'
 
 #########################
 if __name__ == "__main__":

@@ -95,7 +95,7 @@ def setup(chip, flowname='fpgaflow'):
         for metric in ('errors','warnings','drvs','unconstrained',
                        'holdwns','holdtns', 'holdpaths',
                        'setupwns', 'setuptns', 'setuppaths'):
-            chip.set('metric', step, index, metric, 'goal', 0)
+            chip.set('flowgraph', flowname, step, index, 'goal', metric, 0)
         # Metrics
         for metric in ('luts','dsps','brams','registers',
                        'pins','peakpower','leakagepower'):

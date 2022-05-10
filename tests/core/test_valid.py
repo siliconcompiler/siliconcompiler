@@ -13,13 +13,13 @@ def test_valid():
     valid = chip.valid('asic','minlayer')
     assert valid
     #dynamic valid
-    valid = chip.valid('pdk','grid', '10M', 'metal1', 'name')
+    valid = chip.valid('pdk', 'freepdk45', 'grid', '10M', 'metal1', 'name')
     assert valid
     #valid b/c of default (valid for set)
-    valid = chip.valid('pdk','grid', 'M10', 'metal1', 'name', default_valid=True)
+    valid = chip.valid('pdk', 'freepdk45', 'grid', 'M10', 'metal1', 'name', default_valid=True)
     assert valid
     #dynamic with default fields
-    valid = chip.valid('pdk','grid', 'default', 'default', 'name')
+    valid = chip.valid('pdk', 'freepdk45', 'grid', 'default', 'default', 'name')
     assert  valid
     #not working
     valid = chip.valid('blah')

@@ -67,7 +67,6 @@ def setup(chip):
 
     # process name
     chip.set('pdk', process, 'foundry', foundry)
-    chip.set('pdk', process, 'process', process)
     chip.set('pdk', process, 'node', node)
     chip.set('pdk', process, 'version', rev)
     chip.set('pdk', process, 'stackup', stackup)

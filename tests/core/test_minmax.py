@@ -40,15 +40,15 @@ def chip():
                 chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
                 chip.set('flowgraph', flow, step, str(index), 'input', (flowpipe[i-1],'0'))
             #weight
-            chip.set('flowgraph', flow, step, str(index), 'weight',  'cellarea', 1.0)
+            chip.set('flowgraph', flow, step, str(index), 'weight', 'cellarea', 1.0)
             #goal
-            chip.set('metric', step, str(index), 'setupwns', 'goal', 0.0)
-            chip.set('metric', step, str(index), 'setupwns', 'real', 0.0)
+            chip.set('flowgraph', flow, step, str(index), 'goal', 'setupwns', 0.0)
+            chip.set('metric', step, str(index), 'setupwns', 0.0)
 
     # creating fake syn results
     for index in range(N):
         for metric in chip.getkeys('flowgraph', flow, 'syn', str(index), 'weight'):
-            chip.set('metric', 'syn',str(index), metric, 'real', 1000-index*1 + 42.0)
+            chip.set('metric', 'syn', str(index), metric, 1000-index*1 + 42.0)
 
     return chip
 
@@ -114,7 +114,7 @@ def test_winner_fails_goal_negative(chip):
     flow = chip.get('option', 'flow')
     N = len(chip.getkeys('flowgraph', flow, 'syn'))
 
-    chip.set('metric', 'syn', '9', 'setupwns', 'real', -1)
+    chip.set('metric', 'syn', '9', 'setupwns', -1)
 
     steplist = []
     for i in range(N):
@@ -129,8 +129,8 @@ def test_winner_fails_goal_positive(chip):
     flow = chip.get('option', 'flow')
     N = len(chip.getkeys('flowgraph', flow, 'syn'))
 
-    chip.set('metric', 'syn', '9', 'errors', 'goal', 0)
-    chip.set('metric', 'syn', '9', 'errors', 'real', 1)
+    chip.set('flowgraph', flow, 'syn', '9', 'goal', 'errors', 0)
+    chip.set('metric', 'syn', '9', 'errors', 1)
 
     steplist = []
     for i in range(N):

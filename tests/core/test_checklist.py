@@ -15,7 +15,7 @@ def test_checklist():
     with open('build/test/job0/syn/0/yosys.log', 'w') as f:
         f.write('test')
 
-    chip.set('metric','syn','0', 'errors', 'real', 1)
+    chip.set('metric','syn','0', 'errors', 1)
     chip.set('tool', 'yosys', 'report', 'syn', '0', 'errors', 'yosys.log')
     chip.record_history()
 

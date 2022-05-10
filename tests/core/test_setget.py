@@ -63,6 +63,7 @@ def test_setget():
         elif match.group(1) == 'add':
             chip.add(*args)
 
+        print(keypath)
         result = chip.get(*keypath)
         assert result == value, f'Expected value {value} from keypath {keypath}. Got {result}.'
 
@@ -72,21 +73,21 @@ def test_setget():
 
 def test_set_field_bool():
     chip = siliconcompiler.Chip('test')
-    chip.set('source', 'txt', False, field='copy')
-    assert chip.get('source', 'txt', field='copy') is False
+    chip.set('input', 'txt', False, field='copy')
+    assert chip.get('input', 'txt', field='copy') is False
 
 def test_set_field_error():
     chip = siliconcompiler.Chip('test')
-    chip.set('source', 'txt', 'asdf', field='copy')
+    chip.set('input', 'txt', 'asdf', field='copy')
     # expect copy flag unchanged and error triggered
-    assert chip.get('source', 'txt', field='copy') is True
+    assert chip.get('input', 'txt', field='copy') is True
     assert chip.error == 1
 
 def test_set_add_field_list():
     chip = siliconcompiler.Chip('test')
-    chip.set('source', 'txt', 'Alyssa P. Hacker', field='author')
-    chip.add('source', 'txt', 'Ben Bitdiddle', field='author')
-    assert chip.get('source', 'txt', field='author') == ['Alyssa P. Hacker', 'Ben Bitdiddle']
+    chip.set('input', 'txt', 'Alyssa P. Hacker', field='author')
+    chip.add('input', 'txt', 'Ben Bitdiddle', field='author')
+    assert chip.get('input', 'txt', field='author') == ['Alyssa P. Hacker', 'Ben Bitdiddle']
 
 #########################
 if __name__ == "__main__":

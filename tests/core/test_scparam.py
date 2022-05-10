@@ -59,6 +59,7 @@ def test_scparam():
         'signature': None,
         'defvalue': None,
         'value': None,
+        'notes': None,
         'shorthelp': 'Metric total warnings',
         'example': [
             "cli: -metric_warnings 'dfm 0 goal 0'",
@@ -77,6 +78,7 @@ def test_scparam():
         'signature': None,
         'defvalue': None,
         'value': None,
+        'notes': None,
         'shorthelp': 'Metric instance count',
         'example': [
             "cli: -metric_cells 'place 0 goal 100'",
@@ -90,9 +92,9 @@ def test_defvalue():
     '''Regression test that changing list-type value doesn't change defvalue.'''
 
     chip = siliconcompiler.Chip('test')
-    assert chip.cfg['pdk']['stackup']['defvalue'] == []
-    chip.add('pdk', 'stackup', '10m')
-    assert chip.cfg['pdk']['stackup']['defvalue'] == []
+    assert chip.cfg['asic']['logiclib']['defvalue'] == []
+    chip.add('asic', 'logiclib', 'mylib')
+    assert chip.cfg['asic']['logiclib']['defvalue'] == []
 
 #########################
 if __name__ == "__main__":

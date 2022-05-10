@@ -3,8 +3,6 @@ import siliconcompiler
 def test_check_flowgraph():
     chip = siliconcompiler.Chip('foo')
 
-    chip.add('source', 'rtl', 'foo.v')
-
     flow = 'test'
     chip.set('option', 'flow', flow)
     chip.node(flow, 'import', 'surelog')

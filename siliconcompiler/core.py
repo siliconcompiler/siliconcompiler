@@ -2204,7 +2204,7 @@ class Chip:
 
         # Update dependency graph
         for dep in depgraph:
-            self.set('depgraph', dep, depgraph[dep])
+            self.set('package', 'depgraph', dep, depgraph[dep])
 
         return depgraph
 

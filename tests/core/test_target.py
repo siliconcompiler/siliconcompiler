@@ -42,4 +42,4 @@ def test_target_pdk_error():
 def test_pdk(pdk):
     chip = siliconcompiler.Chip('test')
     chip.load_pdk(pdk)
-    assert chip.get('pdk', 'process') == pdk
+    assert chip.getkeys('pdk')[0] == pdk

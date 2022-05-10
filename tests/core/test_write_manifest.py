@@ -4,11 +4,11 @@ import siliconcompiler
 def test_write_manifest():
 
     chip = siliconcompiler.Chip('top')
-    chip.add('source', 'sdc','top.sdc')
-    chip.add('source', 'verilog', 'top.v')
-    chip.add('source', 'verilog', 'a.v')
-    chip.add('source', 'verilog', 'b.v')
-    chip.add('source', 'verilog', 'c.v')
+    chip.add('input', 'sdc','top.sdc')
+    chip.add('input', 'verilog', 'top.v')
+    chip.add('input', 'verilog', 'a.v')
+    chip.add('input', 'verilog', 'b.v')
+    chip.add('input', 'verilog', 'c.v')
 
     chip.write_manifest('top.pkg.json')
     chip.write_manifest('top.csv')

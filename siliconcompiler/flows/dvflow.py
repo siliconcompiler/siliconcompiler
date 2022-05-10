@@ -70,7 +70,7 @@ def setup(chip, flow='dflow'):
         np = 1
 
     # Setting mode as 'sim'
-    chip.set('mode', 'sim')
+    chip.set('option', 'mode', 'sim')
 
     # Flow setup
     for step in flowpipe:

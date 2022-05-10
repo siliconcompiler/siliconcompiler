@@ -952,8 +952,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 f"cli: -datasheet_max_voltage 'vdd (-0.4,1.1)>'",
                 f"api: chip.set('datasheet','max','voltage','vdd', (-0.4,1.1))"],
-            schelp=f"""Device absolute maximum minimum/maximum voltage not to be
-            exceeded, specified specified on a per pin basis.""")
+            schelp=f"""Device absolute minimum/maximum voltage not to be
+            exceeded, specified on a per pin basis.""")
 
     # Absolute max temperatures
     metrics = {'storagetemp': 'max storage temperature',
@@ -1038,8 +1038,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 shorthelp=f"Datasheet: pin related power supply",
                 switch=f"-datasheet_pin_ground 'name mode <str>'",
                 example=[
-                    f"cli: -datasheet_pin_supply 'ina global vdd'",
-                    f"api: chip.set('datasheet','pin','ina','supply','global','vdd')"],
+                    f"cli: -datasheet_pin_supply 'ina ground vdd'",
+                    f"api: chip.set('datasheet','pin','ina','ground','global','vdd')"],
             schelp=f"""Pin related ground rail specified on a per mode basis.""")
 
     # Standard
