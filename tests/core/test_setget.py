@@ -2,6 +2,26 @@
 import siliconcompiler
 import re
 
+def _cast(val, sctype):
+    if sctype.startswith('['):
+        # TODO: doesn't handle examples w/ multiple list items (we do not have
+        # currently)
+        subtype = sctype.strip('[]')
+        return [_cast(val.strip('[]'), subtype)]
+    elif sctype.startswith('('):
+        vals = val.strip('()').split(',')
+        subtypes = sctype.strip('()').split(',')
+        return tuple(_cast(v.strip(), subtype.strip()) for v, subtype in zip(vals, subtypes))
+    elif sctype == 'float':
+        return float(val)
+    elif sctype == 'int':
+        return int(val)
+    elif sctype == 'bool':
+        return bool(val)
+    else:
+        # everything else (str, file, dir) is treated like a string
+        return val
+
 def test_setget():
     '''API test for set/get methods
 
@@ -30,40 +50,22 @@ def test_setget():
         if match.group(1) == 'get':
             continue
 
+        # Remove ' and whitespace from args
         argstring = re.sub(r'[\'\s]', '', match.group(2))
-        tuplematch = re.match(r'(.*?),\((.*,.*)\)', argstring)
-        if tuplematch:
-            keypath = tuplematch.group(1).split(',')
-            tuplestr = tuplematch.group(2)
-            if sctype.strip('[]').startswith('(str,'):
-                tuplestr = re.sub(r'[\(\)\'\s]','',tuplestr)
-                value = tuple(tuplestr.split(','))
-            else:
-                value = tuple(map(float, tuplestr.split(',')))
-            if re.match(r'\[',sctype):
-                value = [value]
-            args =  keypath + [value]
-        else:
-            keypath =  argstring.split(',')[:-1]
-            value = argstring.split(',')[-1]
-            if sctype == "float":
-                value = float(value)
-            elif sctype == "bool":
-                    value = bool(sctype=='true')
-            elif sctype == "int":
-                value = int(value)
-            if re.match(r'\[',sctype):
-                value = [value]
-            args = keypath + [value]
+
+        # Passing len(key) as second argument to split ensures we only split up
+        # to len(key) commas, preserving tuple values.
+        *keypath, value = argstring.split(',', len(key))
+
+        value = _cast(value, sctype)
 
         if match.group(1) == 'set':
             if DEBUG:
-                print(args)
-            chip.set(*args, clobber=True)
+                print(*keypath, value)
+            chip.set(*keypath, value, clobber=True)
         elif match.group(1) == 'add':
-            chip.add(*args)
+            chip.add(*keypath, value)
 
-        print(keypath)
         result = chip.get(*keypath)
         assert result == value, f'Expected value {value} from keypath {keypath}. Got {result}.'
 
