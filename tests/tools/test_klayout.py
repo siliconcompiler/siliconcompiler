@@ -17,7 +17,7 @@ def test_klayout(datadir):
     chip = siliconcompiler.Chip('heartbeat_wrapper')
     chip.load_target('freepdk45_demo')
 
-    chip.set('source', 'def', in_def)
+    chip.set('input', 'def', in_def)
 
     chip.add('asic', 'macrolib', 'heartbeat')
     chip.set('model', 'library', 'heartbeat', 'lef', '10M', library_lef)

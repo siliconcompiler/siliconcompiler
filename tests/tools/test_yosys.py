@@ -18,12 +18,12 @@ def test_yosys_lec(datadir):
     chip.edge(flow, 'import', 'lec')
     chip.set('option', 'flow', flow)
 
-    chip.add('source', 'verilog', os.path.join(lec_dir, 'foo.v'))
-    chip.add('source', 'netlist', os.path.join(lec_dir, 'foo.vg'))
+    chip.add('input', 'verilog', os.path.join(lec_dir, 'foo.v'))
+    chip.add('input', 'netlist', os.path.join(lec_dir, 'foo.vg'))
 
     chip.run()
 
-    errors = chip.get('metric', 'lec', '0', 'errors', 'real')
+    errors = chip.get('metric', 'lec', '0', 'errors')
 
     assert errors == 0
 
@@ -45,12 +45,12 @@ def test_yosys_lec_broken(datadir):
 
     chip.set('tool', 'yosys', 'continue', True)
 
-    chip.add('source', 'verilog', os.path.join(lec_dir, 'foo_broken.v'))
-    chip.add('source', 'netlist', os.path.join(lec_dir, 'foo_broken.vg'))
+    chip.add('input', 'verilog', os.path.join(lec_dir, 'foo_broken.v'))
+    chip.add('input', 'netlist', os.path.join(lec_dir, 'foo_broken.vg'))
 
     chip.run()
 
-    errors = chip.get('metric', 'lec', '0', 'errors', 'real')
+    errors = chip.get('metric', 'lec', '0', 'errors')
 
     assert errors == 2
 

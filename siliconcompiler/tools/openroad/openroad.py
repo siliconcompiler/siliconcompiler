@@ -190,7 +190,7 @@ def pre_process(chip):
     if (step != 'floorplan' or
         chip.get('asic', 'diearea') or
         chip.get('asic', 'corearea') or
-        ('floorplan' in chip.getkeys('read', 'def'))):
+        (chip.valid('input', 'def') and chip.get('input', 'def'))):
         return
 
     r = _infer_diearea(chip)
@@ -198,6 +198,8 @@ def pre_process(chip):
         return
     diearea, corearea = r
 
+    # TODO: this feels like a hack: putting these here puts them in
+    # sc_manifest.tcl, but they don't remain in the manifest in future steps.
     chip.set('asic', 'diearea', diearea)
     chip.set('asic', 'corearea', corearea)
 

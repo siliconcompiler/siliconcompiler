@@ -75,7 +75,7 @@ def setup(chip):
         chip.set('tool', tool, 'output', step, index, f'{design}.v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, ",".join(['source', 'verilog']))
+    chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
 
 ################################
 #  Custom runtime options

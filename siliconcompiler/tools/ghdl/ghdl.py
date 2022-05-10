@@ -51,7 +51,7 @@ def setup(chip):
     chip.set('tool', tool, 'stdout', step, index, 'suffix', 'v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'source')
+    chip.add('tool', tool, 'require', step, index, 'input,vhdl')
 
     design = chip.get('design')
 
@@ -78,7 +78,7 @@ def runtime_options(chip):
     options.append('--no-formal')
 
     # Add sources
-    for value in chip.find_files('source'):
+    for value in chip.find_files('input', 'vhdl'):
         options.append(value)
 
     # Set top module
