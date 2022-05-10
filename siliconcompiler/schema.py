@@ -931,135 +931,136 @@ def schema_model(cfg):
 # Datasheet
 ###############################################################################
 
-def schema_datasheet(cfg, name='default', mode='default'):
+def schema_datasheet(cfg, design='default', name='default', mode='default'):
 
     # Device Features
-    scparam(cfg, ['datasheet', 'feature', name],
+    scparam(cfg, ['datasheet', design, 'feature', name],
             sctype='float',
             shorthelp=f"Datasheet: device feature specification",
-            switch=f"-datasheet_feature 'name <float>'",
+            switch=f"-datasheet_feature 'design name <float>'",
             example=[
-                f"cli: -datasheet_feature 'ram 64e6'",
-                f"api: chip.set('datasheet','feature','ram', 1e9)"],
+                f"cli: -datasheet_feature 'mydevice ram 64e6'",
+                f"api: chip.set('datasheet','mydevice','feature','ram', 1e9)"],
             schelp=f"""Quantity of a specified feature. The 'unit'
             field should be used to specify the units used when unclear.""")
 
     # Absolute max voltage
-    scparam(cfg, ['datasheet', 'max', 'voltage', name],
+    scparam(cfg, ['datasheet', design, 'limits', 'voltage', name],
             sctype='(float,float)',
-            shorthelp=f"Datasheet: absolute maximum voltage",
-            switch=f"-datasheet_max 'pin <(float,float)>'",
+            shorthelp=f"Datasheet: absolute voltage limits",
+            switch=f"-datasheet_limits_voltage 'design pin <(float,float)>'",
             example=[
-                f"cli: -datasheet_max_voltage 'vdd (-0.4,1.1)>'",
-                f"api: chip.set('datasheet','max','voltage','vdd', (-0.4,1.1))"],
+                f"cli: -datasheet_limits_voltage 'mydevice vdd (-0.4,1.1)>'",
+                f"api: chip.set('datasheet','mydevice','limits','voltage','vdd', (-0.4,1.1))"],
             schelp=f"""Device absolute minimum/maximum voltage not to be
             exceeded, specified on a per pin basis.""")
 
     # Absolute max temperatures
-    metrics = {'storagetemp': 'max storage temperature',
-               'junctiontemp' :'max junction temperature'}
+    metrics = {'storagetemp': 'storage temperature limits',
+               'junctiontemp' :'junction temperature limits'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['datasheet', 'max', item],
+        scparam(cfg, ['datasheet', design, 'limits', item],
                 sctype='(float,float)',
                 shorthelp=f"Datasheet: absolute {val}",
-                switch=f"-datasheet_{item} '<(float,float)>'",
+                switch=f"-datasheet_{item} 'design <(float,float)>'",
                 example=[
-                    f"cli: -datasheet_{item} '(-40,125)>'",
-                    f"api: chip.set('datasheet','max','{item}',(-40,125))"],
+                    f"cli: -datasheet_{item} 'mydevice (-40,125)>'",
+                    f"api: chip.set('datasheet','mydevice','limits','{item}',(-40,125))"],
                 schelp=f"""Device absolute {val} not to be exceeded.""")
 
     # Package Pin Map
-    scparam(cfg, ['datasheet', 'pin', name, 'map', mode],
+    package = 'default'
+    scparam(cfg, ['datasheet', design, 'pin', name, 'map', package],
             sctype='str',
             shorthelp=f"Datasheet: package pin map",
-            switch=f"-datasheet_pin_map 'name mode <str>'",
+            switch=f"-datasheet_pin_map 'design name package <str>'",
             example=[
-                f"cli: -datasheet_pin_map 'in0 bga512 B4'",
-                f"api: chip.set('datasheet','pin','in0','map','global','vdd')"],
+                f"cli: -datasheet_pin_map 'mydevice in0 bga512 B4'",
+                f"api: chip.set('datasheet','mydevice','pin','in0','map','bga512','B4')"],
             schelp=f"""Signal to package pin mapping specified on a per package basis.""")
 
     # Pin type
-    scparam(cfg, ['datasheet', 'pin', name, 'type', mode],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'type', mode],
             sctype='str',
             shorthelp=f"Datasheet: pin type",
-            switch=f"-datasheet_pin_type 'name mode <str>'",
+            switch=f"-datasheet_pin_type 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_type 'vdd global supply'",
-                f"api: chip.set('datasheet','pin','vdd','type','global','supply')"],
+                f"cli: -datasheet_pin_type 'mydevice vdd type power'",
+                f"api: chip.set('datasheet','mydevice','pin','vdd','type','global','power')"],
             schelp=f"""Pin type specified on a per mode basis. Acceptable pin types
             include: digital, analog, clk, power, ground""")
 
     # Pin direction
-    scparam(cfg, ['datasheet', 'pin', name, 'dir', mode],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'dir', mode],
             sctype='str',
             shorthelp=f"Datasheet: pin direction",
-            switch=f"-datasheet_pin_dir 'name mode <str>'",
+            switch=f"-datasheet_pin_dir 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_dir 'clk global input'",
-                f"api: chip.set('datasheet','pin','clk','dir','global','input')"],
+                f"cli: -datasheet_pin_dir 'mydevice clk global input'",
+                f"api: chip.set('datasheet','mydevice','pin','clk','dir','global','input')"],
             schelp=f"""Pin direction specified on a per mode basis. Acceptable pin
             directions include: input, output, inout.""")
 
     # Complementary pin (for differential pair)
-    scparam(cfg, ['datasheet', 'pin', name, 'compliment', mode],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'complement', mode],
             sctype='str',
             shorthelp=f"Datasheet: pin complement",
-            switch=f"-datasheet_pin_compliment 'name mode <str>'",
+            switch=f"-datasheet_pin_complement 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_compliment 'ina global inb'",
-                f"api: chip.set('datasheet','pin','ina','compliment','global','inb')"],
+                f"cli: -datasheet_pin_complement 'mydevice ina global inb'",
+                f"api: chip.set('datasheet','mydevice','pin','ina','complement','global','inb')"],
             schelp=f"""Pin complement specified on a per mode basis for differential
             signals.""")
 
     # Related clock
-    scparam(cfg, ['datasheet', 'pin', name, 'clk', mode],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'clk', mode],
                 sctype='str',
                 shorthelp=f"Datasheet: pin related clock",
-                switch=f"-datasheet_pin_clk 'name mode <str>'",
+                switch=f"-datasheet_pin_clk 'design name mode <str>'",
                 example=[
-                    f"cli: -datasheet_pin_clk 'ina global clka'",
-                    f"api: chip.set('datasheet','pin','ina','clk','global','clka')"],
+                    f"cli: -datasheet_pin_clk 'mydevice ina global clka'",
+                    f"api: chip.set('datasheet','mydevice','pin','ina','clk','global','clka')"],
             schelp=f"""Pin related clock specified on a per mode basis.""")
 
     # Related supply
-    scparam(cfg, ['datasheet', 'pin', name, 'supply', mode],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'supply', mode],
                 sctype='str',
                 shorthelp=f"Datasheet: pin related power supply",
-                switch=f"-datasheet_pin_supply 'name mode <str>'",
+                switch=f"-datasheet_pin_supply 'design name mode <str>'",
                 example=[
-                    f"cli: -datasheet_pin_supply 'ina global vdd'",
-                    f"api: chip.set('datasheet','pin','ina','supply','global','vdd')"],
+                    f"cli: -datasheet_pin_supply 'mydevice ina global vdd'",
+                    f"api: chip.set('datasheet','mydevice','pin','ina','supply','global','vdd')"],
             schelp=f"""Pin related power supply specified on a per mode basis.""")
 
     # Related ground
-    scparam(cfg, ['datasheet', 'pin', name, 'ground', mode],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'ground', mode],
                 sctype='str',
                 shorthelp=f"Datasheet: pin related power supply",
-                switch=f"-datasheet_pin_ground 'name mode <str>'",
+                switch=f"-datasheet_pin_ground 'design name mode <str>'",
                 example=[
-                    f"cli: -datasheet_pin_supply 'ina ground vdd'",
-                    f"api: chip.set('datasheet','pin','ina','ground','global','vdd')"],
+                    f"cli: -datasheet_pin_supply 'mydevice ina ground vdd'",
+                    f"api: chip.set('datasheet','mydevice','pin','ina','ground','global','vdd')"],
             schelp=f"""Pin related ground rail specified on a per mode basis.""")
 
     # Standard
-    scparam(cfg, ['datasheet', 'pin', name, 'standard', mode],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'standard', mode],
             sctype='[str]',
             shorthelp=f"Datasheet: pin standard",
-            switch=f"-datasheet_pin_standard 'name mode <str>'",
+            switch=f"-datasheet_pin_standard 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_standard 'ba0 global ddr4'",
-                f"api: chip.set('datasheet','pin','ina','standard','global','ddr4')"],
+                f"cli: -datasheet_pin_standard 'mydevice ba0 global ddr4'",
+                f"api: chip.set('datasheet','mydevice','pin','ina','standard','global','ddr4')"],
             schelp=f"""Pin communication standard specified on a per mode basis.""")
 
     # Reset value
-    scparam(cfg, ['datasheet', 'pin', name, 'resetvalue', mode],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'resetvalue', mode],
             sctype='[str]',
             shorthelp=f"Datasheet: pin reset value",
-            switch=f"-datasheet_pin_resetvalue 'name mode <str>'",
+            switch=f"-datasheet_pin_resetvalue 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_resetvalue 'clk global weak1'",
-                f"api: chip.set('datasheet','pin','ina','standard','global','ddr4')"],
+                f"cli: -datasheet_pin_resetvalue 'mydevice clk global weak1'",
+                f"api: chip.set('datasheet','mydevice','pin','clk','resetvalue','global','weak1')"],
             schelp=f"""Pin reset value specified on a per mode basis. Legal reset
             values include weak1, weak0, strong0, strong1, highz.""")
 
@@ -1082,14 +1083,14 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'capacitance': ['capacitance', (1e-12, 1.2e-12, 1.5e-12), 'F']}
 
     for item, val in metrics.items():
-        scparam(cfg, ['datasheet', 'pin', name, item, mode],
+        scparam(cfg, ['datasheet', design, 'pin', name, item, mode],
                 unit=val[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: {val[0]}",
-                switch=f"-datasheet_pin_{item} 'pin mode <(float,float,float)>'",
+                switch=f"-datasheet_pin_{item} 'design pin mode <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_pin_{item} 'sclk global {val[1]}'",
-                    f"api: chip.set('datasheet','pin','{item}','sclk',{val[1]}"],
+                    f"cli: -datasheet_pin_{item} 'mydevice sclk global {val[1]}'",
+                    f"api: chip.set('datasheet','mydevice','pin','sclk','{item}','global',{val[1]}"],
                 schelp=f"""Pin {val[0]}.""")
 
     # AC Timing
@@ -1103,14 +1104,14 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'dutycycle': ['duty cycle', (45, 50, 55), '%']}
 
     for item, val in metrics.items():
-        scparam(cfg, ['datasheet', 'pin', name, item, mode],
+        scparam(cfg, ['datasheet', design, 'pin', name, item, mode],
                 unit=val[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: {val[0]}",
-                switch=f"-datasheet_pin_{item} 'pin mode <(float,float,float)>'",
+                switch=f"-datasheet_pin_{item} 'design pin mode <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_pin_{item} 'sclk global {val[1]}'",
-                    f"api: chip.set('datasheet','pin','{item}','sclk',{val[1]}"],
+                    f"cli: -datasheet_pin_{item} 'mydevice sclk global {val[1]}'",
+                    f"api: chip.set('datasheet','mydevice','pin','sclk','{item}','global',{val[1]}"],
                 schelp=f"""Pin {val[0]}.""")
 
     return cfg
