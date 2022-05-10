@@ -103,7 +103,7 @@ def runtime_options(chip):
         cmdlist.append('-D' + value)
     for value in chip.find_files('option', 'cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('source', 'verilog'):
+    for value in chip.find_files('input', 'verilog'):
         cmdlist.append(value)
 
     #  make warnings non-fatal in relaxed mode

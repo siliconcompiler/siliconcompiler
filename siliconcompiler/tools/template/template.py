@@ -45,23 +45,23 @@ def setup(chip):
     index = chip.get('arg','index')
 
     # Required for all
-    chip.set('eda', tool, 'exe', tool, clobber=False)
-    chip.set('eda', tool, 'vswitch', '-version', clobber=False)
-    chip.set('eda', tool, 'version', 'v2.0', clobber=False)
-    chip.set('eda', tool, 'format', 'tcl', clobber=False)
-    chip.set('eda', tool, 'option',  step, index, options, clobber=False)
-    chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'exe', tool, clobber=False)
+    chip.set('tool', tool, 'vswitch', '-version', clobber=False)
+    chip.set('tool', tool, 'version', 'v2.0', clobber=False)
+    chip.set('tool', tool, 'format', 'tcl', clobber=False)
+    chip.set('tool', tool, 'option',  step, index, options, clobber=False)
+    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
 
     # Required for script based tools
-    chip.set('eda', tool, 'refdir',  step, index, refdir, clobber=False)
-    chip.set('eda', tool, 'script',  step, index, refdir + script, clobber=False)
+    chip.set('tool', tool, 'refdir',  step, index, refdir, clobber=False)
+    chip.set('tool', tool, 'script',  step, index, refdir + script, clobber=False)
     for key in variables:
-        chip.set('eda', tool, 'var', step, index, key, variables[key], clobber=False)
+        chip.set('tool', tool, 'var', step, index, key, variables[key], clobber=False)
 
     # Required for checker
-    chip.add('eda', tool, 'output', step, index, outputs)
-    chip.add('eda', tool, 'output', step, index, inputs)
-    chip.add('eda', tool, 'require', step, index, requires)
+    chip.add('tool', tool, 'output', step, index, outputs)
+    chip.add('tool', tool, 'output', step, index, inputs)
+    chip.add('tool', tool, 'require', step, index, requires)
 
 def runtime_options(chip):
     '''
