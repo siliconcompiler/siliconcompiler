@@ -26,11 +26,13 @@ from siliconcompiler.floorplan import Floorplan
 TOP_W = 2920
 TOP_H = 3520
 # Example design area is 0.9mm x 0.6mm
-CORE_W = 900
-CORE_H = 600
+CORE_W = 899.76
+CORE_H = 598.4
 # Margins are set to ~10mm, snapped to placement site dimensions (0.46mm x 2.72mm in sky130hd)
 MARGIN_W = 9.66
+#MARGIN_W = 9.52
 MARGIN_H = 8.16
+#MARGIN_H = 6.256
 
 # Path to 'caravel' repository root.
 CARAVEL_ROOT = '/path/to/caravel'
@@ -53,6 +55,8 @@ def build_core():
     design = core_chip.get('design')
     core_chip.set('source', 'heartbeat.v')
     core_chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', ['0.15'])
+    #core_chip.add('eda', 'openroad', 'variable', 'place', '0', 'pad_global_place', ['2'])
+    #core_chip.add('eda', 'openroad', 'variable', 'place', '0', 'pad_detail_place', ['2'])
     core_chip.set('eda', 'openroad', 'variable', 'route', '0', 'grt_allow_congestion', ['true'])
     core_chip.clock(name='clk', pin='clk', period=20)
 
@@ -67,6 +71,12 @@ def build_core():
     libtype = 'hd'
     core_chip.set('pdk','grid', stackup, 'met4', 'adj', 0.0)
     core_chip.set('pdk','grid', stackup, 'met5', 'adj', 0.0)
+    core_chip.set('asic', 'maxlayer', 'met3')
+
+    # Create empty PDN script to effectively skip PDN generation.
+    with open('pdngen.tcl', 'w') as pdnf:
+        pdnf.write('''#NOP''')
+    core_chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'pdngen', 'pdngen.tcl')
 
     # Build the core design.
     core_chip.run()
@@ -77,13 +87,15 @@ def build_core():
             core_chip.get('jobname'))
     shutil.copy(f'{jobdir}/export/0/outputs/{design}.gds', f'{design}.gds')
     shutil.copy(f'{jobdir}/export/0/inputs/{design}.def', f'{design}.def')
-    shutil.copy(f'{jobdir}/floorplan/0/outputs/{design}.lef', f'{design}.lef')
+    shutil.copy(f'{jobdir}/export/0/inputs/{design}.lef', f'{design}.lef')
     shutil.copy(f'{jobdir}/dfm/0/outputs/{design}.vg', f'{design}.vg')
 
 def build_top():
     # The 'hearbeat' RTL goes in a modified 'user_project_wrapper' object, see sources.
     chip = configure_chip('user_project_wrapper')
     chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', ['0.15'])
+    #chip.add('eda', 'openroad', 'variable', 'place', '0', 'pad_global_place', ['2'])
+    #chip.add('eda', 'openroad', 'variable', 'place', '0', 'pad_detail_place', ['2'])
     chip.set('eda', 'openroad', 'variable', 'route', '0', 'grt_allow_congestion', ['true'])
     chip.clock(name='user_clock2', pin='user_clock2', period=20)
 
@@ -111,37 +123,34 @@ def build_top():
     # Use pre-defined floorplan for the wrapper..
     chip.set('read', 'def', 'floorplan', '0', f'{CARAVEL_ROOT}/def/user_project_wrapper.def')
 
-    # No filler cells in the top-level wrapper.
-    chip.set('library', 'sky130hd', 'cells', 'filler', [])
+    # (No?) filler cells in the top-level wrapper.
+    #chip.set('library', 'sky130hd', 'cells', 'filler', [])
+    #chip.add('library', 'sky130hd', 'cells', 'ignore', 'sky130_fd_sc_hd__conb_1')
 
-    # No tapcells in the top-level wrapper.
-    # TODO: Should the Chip object have a 'delete' manifest method to go with 'set'/'get'/'add'?
+    # (No?) tapcells in the top-level wrapper.
     libtype = 'hd'
-    chip.cfg['pdk']['aprtech']['openroad'][stackup][libtype].pop('tapcells')
+    #chip.cfg['pdk']['aprtech']['openroad'][stackup][libtype].pop('tapcells')
+
+    # No I/O buffers in the top-level wrapper, but keep tie-hi/lo cells.
+    #chip.set('library', 'sky130hd', 'cells', 'tie', [])
+    chip.set('library', 'sky130hd', 'cells', 'buf', [])
 
     # Create PDN-generation script.
     with open('pdngen_top.tcl', 'w') as pdnf:
         # TODO: Jinja template?
         pdnf.write('''
 # Add PDN connections for each voltage domain.
-add_global_connection -net VPWR -pin_pattern "^vccd1$" -power
-add_global_connection -net VGND -pin_pattern "^vssd1$" -ground
-add_global_connection -net POWER -pin_pattern "^vccd1$" -power
-add_global_connection -net GROUND -pin_pattern "^vssd1$" -ground
 add_global_connection -net vccd1 -pin_pattern "^VPWR$" -power
 add_global_connection -net vssd1 -pin_pattern "^VGND$" -ground
 add_global_connection -net vccd1 -pin_pattern "^POWER$" -power
 add_global_connection -net vssd1 -pin_pattern "^GROUND$" -ground
-add_global_connection -net vccd1 -pin_pattern "^vccd1$" -power
-add_global_connection -net vssd1 -pin_pattern "^vssd1$" -ground
 global_connect
+
 set_voltage_domain -name Core -power vccd1 -ground vssd1
 
-#define_pdn_grid -name top_grid -existing -obstructions {met4 met5}
-#define_pdn_grid -name core_grid -macro -grid_over_boundary -instances mprj -pin_direction horizontal -voltage_domain Core
-define_pdn_grid -name core_grid -macro -grid_over_boundary -default -pin_direction horizontal -voltage_domain Core
+define_pdn_grid -name core_grid -macro -default -voltage_domain Core
 add_pdn_stripe -grid core_grid -layer met1 -width 0.48 -starts_with POWER -followpins
-add_pdn_connect -grid core_grid -layers {met1 met4} -cut_pitch 0.16
+add_pdn_connect -grid core_grid -layers {met1 met4}
 
 # Done defining commands; generate PDN.
 pdngen''')
@@ -151,7 +160,8 @@ pdngen''')
     with open('macroplace_top.tcl', 'w') as mf:
         mf.write('''
 # 'mprj' user-defined project macro, near the center of the die area.
-place_cell -inst_name mprj -origin {1174.84 1689.12} -orient R0 -status FIRM
+#place_cell -inst_name mprj -origin {1174.84 1689.02} -orient R0 -status FIRM
+place_cell -inst_name mprj -origin {1188.64 1689.12} -orient R0 -status FIRM
 ''')
     chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'macroplace', 'macroplace_top.tcl')
 

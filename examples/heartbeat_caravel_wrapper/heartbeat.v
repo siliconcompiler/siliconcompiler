@@ -3,10 +3,10 @@
 
 module heartbeat #(parameter N = 8)
    (
-`ifdef USE_POWER_PINS
+//`ifdef USE_POWER_PINS
     inout vccd1,	// User area 1 1.8V supply
     inout vssd1,	// User area 1 digital ground
-`endif
+//`endif
 
     //inputs
     input      clk,// clock
