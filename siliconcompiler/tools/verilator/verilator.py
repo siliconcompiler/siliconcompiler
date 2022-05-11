@@ -63,7 +63,7 @@ def setup(chip):
 
     # Differentiate between import step and compilation
     if step in ['import', 'lint']:
-        chip.add('tool', tool, 'option', step, index,  ['--lint-only','--debug'])
+        chip.add('tool', tool, 'option', step, index,  ['--lint-only', '--debug'])
     elif (step == 'compile'):
         chip.add('tool', tool, 'option', step, index,  '--cc')
     else:
@@ -75,7 +75,12 @@ def setup(chip):
         chip.set('tool', tool, 'output', step, index, f'{design}.v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, ",".join(['source', 'verilog']))
+    chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
+
+    # basic warning and error grep check on logfile
+    chip.set('tool', tool, 'regex', step, index, 'warnings', "\%Warning", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', "\%Error", clobber=False)
+
 
 ################################
 #  Custom runtime options
@@ -103,12 +108,12 @@ def runtime_options(chip):
         cmdlist.append('-D' + value)
     for value in chip.find_files('option', 'cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('source', 'verilog'):
+    for value in chip.find_files('input', 'verilog'):
         cmdlist.append(value)
 
     #  make warnings non-fatal in relaxed mode
     if chip.get('option', 'relax'):
-        cmdlist.append('-Wno-fatal')
+        cmdlist.extend(['-Wno-fatal', '-Wno-UNOPTFLAT'])
 
     return cmdlist
 
@@ -130,41 +135,36 @@ def post_process(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    logfile = f"{step}.log"
 
-    # post-process hack only needed for import step
-    if step != 'import':
-        return 0
+    # post-process hack to collect vpp files
+    if step in ['import', 'lint']:
+        # Creating single file "pickle' synthesis handoff
+        subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',
+                       shell=True)
 
-    # Creating single file "pickle' synthesis handoff
-    subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',
-                   shell=True)
+        # Moving pickled file to outputs
+        os.rename("verilator.v", f"outputs/{chip.design}.v")
 
-    # setting top module of design
-    modules = 0
-    if len(chip.cfg['design']['value']) < 1:
-        with open("verilator.v", "r") as open_file:
-            for line in open_file:
-                modmatch = re.match(r'^module\s+(\w+)', line)
-                if modmatch:
-                    modules = modules + 1
-                    topmodule = modmatch.group(1)
-        # Only setting design when possible
-        if (modules > 1) & (chip.cfg['design']['value'] == ""):
-            chip.logger.error('Multiple modules found during import, \
-            but sc_design was not set')
-            raise siliconcompiler.SiliconCompilerError('Multiple modules found during import, \
-            but sc_design was not set')
-        else:
-            chip.logger.info('Setting design (topmodule) to %s', topmodule)
-            chip.cfg['design']['value'].append(topmodule)
-    else:
-        topmodule = chip.cfg['design']['value']
+        # Clean up
+        shutil.rmtree('obj_dir')
 
-    # Moving pickled file to outputs
-    os.rename("verilator.v", "outputs/" + topmodule + ".v")
 
-    # Clean up
-    shutil.rmtree('obj_dir')
+    # check log file for errors and statistics
+    errors = 0
+    warnings = 0
+    with open(logfile) as f:
+        for line in f:
+            warnmatch = re.match(r'^\%Warning', line)
+            errmatch = re.match(r'^\%Error:', line)
+
+            if errmatch:
+                errors = errors + 1
+            elif warnmatch:
+                warnings = warnings +1
+
+    chip.set('metric', step, index, 'errors', errors, clobber=True)
+    chip.set('metric', step, index, 'warnings', warnings, clobber=True)
 
     #Return 0 if successful
     return 0
