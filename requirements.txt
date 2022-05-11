@@ -22,7 +22,7 @@ psutil >= 5.8.0
 
 # Build dependencies
 #:build
-scikit-build >= 0.12
+scikit-build >= 0.14.1
 cython
 cmake
 
