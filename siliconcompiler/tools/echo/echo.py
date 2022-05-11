@@ -1,5 +1,3 @@
-import sys
-
 def setup(chip):
     tool = 'echo'
     step = chip.get('arg','step')

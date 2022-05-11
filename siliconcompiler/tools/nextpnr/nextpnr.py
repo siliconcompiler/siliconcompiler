@@ -38,21 +38,21 @@ def setup(chip):
     index = chip.get('arg','index')
 
     clobber = False
-    chip.set('eda', tool, 'exe', 'nextpnr-ice40', clobber=clobber)
-    chip.set('eda', tool, 'vswitch', '--version', clobber=clobber)
-    chip.set('eda', tool, 'version', '>=0.2', clobber=clobber)
-    chip.set('eda', tool, 'option', step, index, "", clobber=clobber)
+    chip.set('tool', tool, 'exe', 'nextpnr-ice40', clobber=clobber)
+    chip.set('tool', tool, 'vswitch', '--version', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=0.2', clobber=clobber)
+    chip.set('tool', tool, 'option', step, index, "", clobber=clobber)
 
     topmodule = chip.get('design')
-    chip.set('eda', tool, 'input', step, index, f'{topmodule}_netlist.json')
-    chip.set('eda', tool, 'output', step, index, f'{topmodule}.asc')
+    chip.set('tool', tool, 'input', step, index, f'{topmodule}_netlist.json')
+    chip.set('tool', tool, 'output', step, index, f'{topmodule}.asc')
 
 ################################
 #  Custom runtime options
 ################################
 
 def runtime_options(chip):
-    ''' Custom runtime options, returnst list of command line options.
+    ''' Custom runtime options, returns list of command line options.
     '''
 
     step = chip.get('arg','step')

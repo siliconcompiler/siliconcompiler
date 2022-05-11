@@ -17,7 +17,7 @@ def test_surelog(scroot, clean):
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
 
-    chip.add('source', 'verilog', gcd_src)
+    chip.add('input', 'verilog', gcd_src)
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'clean', clean)
     chip.node('surelog', step, 'surelog')
@@ -43,7 +43,7 @@ def test_surelog_preproc_regression(datadir):
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
     chip.node('surelog', step, 'surelog')
-    chip.add('source', 'verilog', src)
+    chip.add('input', 'verilog', src)
     chip.add('option', 'define', 'MEM_ROOT=test')
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'flow', 'surelog')
@@ -68,7 +68,7 @@ def test_replay(scroot):
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
 
-    chip.add('source', 'verilog', src)
+    chip.add('input', 'verilog', src)
     chip.set('option', 'mode', 'sim')
     chip.node('surelog', step, 'surelog')
     chip.set('option', 'flow', 'surelog')

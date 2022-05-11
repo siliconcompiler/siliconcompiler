@@ -111,7 +111,6 @@ set sc_batch [expr ![string match "show*" $sc_step]]
 
 # MACROS
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
-set sc_constraints [dict get $sc_cfg constraint]
 
 ###############################
 # Read Files
@@ -139,8 +138,8 @@ foreach lib "$sc_targetlibs $sc_macrolibs" {
 
 # Read Verilog
 if {$sc_step == "floorplan"} {
-    if {[dict exists $sc_cfg "read" netlist $sc_step $sc_index]} {
-        foreach netlist [dict get $sc_cfg "read" netlist $sc_step $sc_index] {
+    if {[dict exists $sc_cfg "input" netlist]} {
+        foreach netlist [dict get $sc_cfg "input" netlist] {
             read_verilog $netlist
         }
     } else {
@@ -164,6 +163,7 @@ if {[dict exists $sc_cfg "input" def]} {
 }
 
 # Read SDC (in order of priority)
+# TODO: add logic for reading from ['constraint', ...] once we support MCMM
 if {[dict exists $sc_cfg "input" sdc]} {
     foreach sdc [dict get $sc_cfg "input" sdc] {
 	# read step constraint if exists
@@ -172,11 +172,6 @@ if {[dict exists $sc_cfg "input" sdc]} {
 } elseif {[file exists "inputs/$sc_design.sdc"]} {
     # get from previous step
     read_sdc "inputs/$sc_design.sdc"
-} elseif {[llength $sc_constraints] > 0} {
-    # otherwise, if we have user-provided constraints, read those
-    foreach sdc $sc_constraints {
-        read_sdc $sdc
-    }
 } else {
     # fall back on default auto generated constraints file
     read_sdc "${sc_refdir}/sc_constraints.sdc"

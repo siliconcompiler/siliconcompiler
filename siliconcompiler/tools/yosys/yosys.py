@@ -72,10 +72,12 @@ def setup(chip):
         chip.add('tool', tool, 'output', step, index, chip.design + '_netlist.json')
         chip.add('tool', tool, 'output', step, index, chip.design + '.blif')
     elif step == 'lec':
-        if (not chip.valid('input', 'netlist', step, index) or
-            not chip.get('input', 'netlist', step, index)):
+        if (not chip.valid('input', 'netlist') or
+            not chip.get('input', 'netlist')):
             chip.set('tool', tool, 'input', step, index, chip.design + '.vg')
         if not chip.get('input', 'verilog'):
+            # TODO: Not sure this logic makes sense? Seems like reverse of
+            # what's in TCL
             chip.set('tool', tool, 'input', step, index, chip.design + '.v')
 
     # Schema requirements

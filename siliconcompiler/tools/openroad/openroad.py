@@ -198,6 +198,8 @@ def pre_process(chip):
         return
     diearea, corearea = r
 
+    # TODO: this feels like a hack: putting these here puts them in
+    # sc_manifest.tcl, but they don't remain in the manifest in future steps.
     chip.set('asic', 'diearea', diearea)
     chip.set('asic', 'corearea', corearea)
 

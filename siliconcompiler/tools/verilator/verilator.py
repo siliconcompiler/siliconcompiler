@@ -76,11 +76,9 @@ def setup(chip):
 
     # Schema requirements
     chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
-
     # basic warning and error grep check on logfile
     chip.set('tool', tool, 'regex', step, index, 'warnings', "\%Warning", clobber=False)
     chip.set('tool', tool, 'regex', step, index, 'errors', "\%Error", clobber=False)
-
 
 ################################
 #  Custom runtime options
