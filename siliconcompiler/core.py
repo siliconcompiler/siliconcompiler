@@ -325,11 +325,7 @@ class Chip:
             else:
                 scargs.append(item)
 
-
-        # exit on version check
-        if '-version' in scargs:
-            print(_metadata.version)
-            sys.exit(0)
+        parser.add_argument('-version', action='version', version=_metadata.version)
 
         #Grab argument from pre-process sysargs
         #print(scargs)
