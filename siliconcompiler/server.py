@@ -156,13 +156,12 @@ class Server:
                 return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
 
         # Create a dummy Chip object to make schema traversal easier.
-        chip = Chip()
+        chip = Chip(cfg['design']['value'])
         chip.cfg = cfg
 
         # Fetch some common values.
         design = chip.get('design')
-        job_name = chip.get('jobname')
-        job_id = chip.get('jobname')
+        job_name = chip.get('option', 'jobname')
         job_nameid = f'{job_name}'
         chip.status['jobhash'] = job_hash
 
@@ -212,7 +211,7 @@ class Server:
         # Reset 'build' directory in NFS storage.
         build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
         jobs_dir = '%s/%s'%(build_dir, chip.get('design'))
-        job_nameid = f"{chip.get('jobname')}"
+        job_nameid = f"{chip.get('option', 'jobname')}"
 
         # Create the working directory for the given 'job hash' if necessary.
         subprocess.run(['mkdir', '-p', jobs_dir])
@@ -222,11 +221,11 @@ class Server:
         #subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
-        chip.set('remote', False, clobber=True)
-        chip.set('credentials', '', clobber=True)
+        chip.set('option', 'remote', False, clobber=True)
+        chip.set('option', 'credentials', '', clobber=True)
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
-        chip.set('source', '%s/import/%s/outputs/%s.v'%(build_dir, '0', chip.get('design')), clobber=True)
+        chip.set('input', 'verilog', '%s/import/%s/outputs/%s.v'%(build_dir, '0', chip.get('design')), clobber=True)
 
         # Write JSON config to shared compute storage.
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
@@ -402,7 +401,7 @@ class Server:
         # Assemble core job parameters.
         job_hash = chip.status['jobhash']
         top_module = chip.get('design')
-        job_nameid = f"{chip.get('jobname')}"
+        job_nameid = f"{chip.get('option', 'jobname')}"
         nfs_mount = self.cfg['nfsmount']['value'][-1]
 
         # Mark the job run as busy.
@@ -416,15 +415,15 @@ class Server:
         # Rename source files in the config dict; the 'import' step already
         # ran and collected the sources into a single Verilog file.
         #TODO: This only works for import? (was current id)
-        chip.set('source', f"{build_dir}/{top_module}/{job_nameid}/import/0/outputs/{top_module}.v", clobber=True)
+        chip.set('input', 'verilog', f"{build_dir}/{top_module}/{job_nameid}/import/0/outputs/{top_module}.v", clobber=True)
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Run the job with slurm clustering.
             chip.set('option', 'builddir', f'{nfs_mount}/{job_hash}', clobber=True)
-            chip.set('jobscheduler', 'slurm')
-            chip.set('remote', False)
-            chip.set('credentials', '', clobber=True)
+            chip.set('option', 'jobscheduler', 'slurm')
+            chip.set('option', 'remote', False)
+            chip.set('option', 'credentials', '', clobber=True)
             chip.status['decrypt_key'] = base64.urlsafe_b64encode(pk)
             chip.run()
         else:
@@ -444,11 +443,11 @@ class Server:
             keypath = f'{to_dir}/pk'
             with open(os.open(keypath, os.O_CREAT | os.O_WRONLY, 0o400), 'w+') as keyfile:
                 keyfile.write(pk)
-            chip.write_manifest(f"{build_dir}/configs/chip{chip.get('jobname')}.json")
+            chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
             # Create the command to run.
             run_cmd  = f"cp -R {from_dir}/* {to_dir}/ ; "
             run_cmd += f"sc-crypt -mode decrypt -target {job_dir} -key_file {keypath} ; "
-            run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('jobname')}.json -dir {to_dir} -remote_addr '' ; "
+            run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('option', 'jobname')}.json -dir {to_dir} -remote_addr '' ; "
             run_cmd += f"sc-crypt -mode encrypt -target {job_dir} -key_file {keypath} ; "
             run_cmd += f"cp -R {to_dir}/{top_module}/* {from_dir}/{top_module}/ ; "
             run_cmd += f"rm -rf {to_dir}"
@@ -484,10 +483,8 @@ class Server:
 
         # Collect a few bookkeeping values.
         job_hash = chip.status['jobhash']
-        top_module = chip.get('design')
-        sc_sources = chip.get('source')
         build_dir = chip.get('option', 'builddir')
-        jobid = chip.get('jobname')
+        jobid = chip.get('option', 'jobname')
 
         # Mark the job hash as being busy.
         self.sc_jobs["%s_%s"%(job_hash, jobid)] = 'busy'

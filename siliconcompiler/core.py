@@ -70,10 +70,6 @@ class Chip:
 
     ###########################################################################
     def __init__(self, design, loglevel=None):
-
-        # object name anchor (required!)
-        self.design = design
-
         # version numbers
         self.scversion = _metadata.version
         self.schemaversion = SCHEMA_VERSION
@@ -118,6 +114,14 @@ class Chip:
             'libs': [],
             'checklists': []
         }
+
+    ###########################################################################
+    @property
+    def design(self):
+        '''Design name of chip object.
+
+        This is an immutable property.'''
+        return self.get('design')
 
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
@@ -585,8 +589,7 @@ class Chip:
             self.logger.info(f"Loading library '{name}'")
             self._loaded_modules['libs'].append(name)
             lib = func(self)
-            self.cfg['library'][name] = copy.deepcopy(lib.cfg)
-            del self.cfg['library'][name]['pdk']
+            self._import_library(name, lib.cfg)
         else:
             self.logger.error(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
             raise SiliconCompilerError(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
@@ -1977,10 +1980,18 @@ class Chip:
         if 'history' in localcfg and not partial:
             for historic_job in localcfg['history'].keys():
                 self._merge_manifest(localcfg['history'][historic_job],
-                                     job=historic_job,
-                                     clear=clear,
-                                     clobber=clobber,
-                                     partial=False)
+                                        job=historic_job,
+                                        clear=clear,
+                                        clobber=clobber,
+                                        partial=False)
+
+        if 'library' in localcfg and not partial:
+            for libname in localcfg['library'].keys():
+                if libname in self.cfg['library']:
+                    # TODO: should we make this a proper merge?
+                    self.logger.warning(f'Overwriting existing library {libname} '
+                        f'in object with values read from {filename}.')
+                self._import_library(libname, localcfg['library'][libname])
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
@@ -2306,6 +2317,14 @@ class Chip:
                     self._find_deps(cache, local, remote, subdesign, subdeps, auto, depgraph, upstream)
 
         return depgraph
+
+    ###########################################################################
+    def _import_library(self, libname, libcfg):
+        '''Helper to import library with config 'libconfig' as a library
+        'libname' in current Chip object.'''
+        self.cfg['library'][libname] = copy.deepcopy(libcfg)
+        if 'pdk' in self.cfg['library'][libname]:
+            del self.cfg['library'][libname]['pdk']
 
     ###########################################################################
     def write_depgraph(self, filename):

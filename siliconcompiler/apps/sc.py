@@ -30,25 +30,22 @@ def main():
     Sources: https://github.com/siliconcompiler/siliconcompiler
     ------------------------------------------------------------
     """
-
-    # find design name for object init
-    design = 'none'
-    for i , item in enumerate(sys.argv):
-        if item == "-design":
-            design = sys.argv[i+1]
+    # TODO: this is a hack to get around design name requirement: since legal
+    # design names probably can't contain spaces, we can detect if it is unset.
+    UNSET_DESIGN = '  unset  '
 
     # Create a base chip class.
-    chip = siliconcompiler.Chip(design)
+    chip = siliconcompiler.Chip(UNSET_DESIGN)
 
     # Read command-line inputs and generate Chip objects to run the flow on.
     chip.create_cmdline(progname,
                         description=description)
 
     # Set design if none specified
-    if not chip.get('design'):
-        sources = chip.get('source')
+    if chip.get('design') == UNSET_DESIGN:
+        sources = chip.get('input', 'verilog')
         if len(sources) > 0:
-            topfile = chip.get('source')[0]
+            topfile = chip.get('input', 'verilog')[0]
         else:
             chip.logger.error('Invalid arguments: either specify -design or provide sources.')
             sys.exit(1)
