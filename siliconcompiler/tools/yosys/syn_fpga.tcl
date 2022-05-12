@@ -10,8 +10,8 @@ if {[string match {ice*} $sc_partname]} {
     yosys synth_ice40 -top $sc_design -json "${sc_design}_netlist.json"
 } else {
 
-    source fpga_lutsize.tcl
-
+#    source fpga_lutsize.tcl
+    set lutsize 3
     set output_blif "outputs/$topmodule.blif"
 
     # Technology mapping
