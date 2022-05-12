@@ -4,7 +4,6 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason='schema_rearchitect')
 def test_sv(datadir):
     '''Test that we can successfully synthesize a SystemVerilog design using the
     asicflow.
@@ -13,8 +12,8 @@ def test_sv(datadir):
 
     chip = siliconcompiler.Chip(design)
 
-    chip.add('source', 'verilog', os.path.join(datadir, 'sv', 'prim_util_pkg.sv'))
-    chip.add('source', 'verilog', os.path.join(datadir, 'sv', f'{design}.sv'))
+    chip.add('input', 'verilog', os.path.join(datadir, 'sv', 'prim_util_pkg.sv'))
+    chip.add('input', 'verilog', os.path.join(datadir, 'sv', f'{design}.sv'))
     chip.add('option', 'idir', os.path.join(datadir, 'sv', 'inc/'))
     chip.add('option', 'define', 'SYNTHESIS')
 

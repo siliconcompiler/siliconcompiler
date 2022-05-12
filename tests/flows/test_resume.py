@@ -4,7 +4,6 @@ import pytest
 import os
 
 @pytest.mark.eda
-@pytest.mark.skip(reason='schema_rearchitect')
 def test_resume(gcd_chip):
     # Set a value that will cause place to break
     gcd_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', 'asdf')
@@ -22,7 +21,7 @@ def test_resume(gcd_chip):
 
     # Fix place step and re-run
     gcd_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', '0.15')
-    gcd_chip.set('resume', True)
+    gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 
     # Ensure floorplan did not get re-run

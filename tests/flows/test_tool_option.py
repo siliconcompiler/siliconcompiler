@@ -4,7 +4,6 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason='schema_rearchitect')
 def test_tool_option(scroot):
     '''Regression test for checker being too strict and preventing user from
     setting tool options. Doesn't check any outputs, just that this doesn't fail
@@ -15,8 +14,8 @@ def test_tool_option(scroot):
 
     # Inserting value into configuration
     chip.set('design', 'gcd', clobber=True)
-    chip.add('source', 'verilog', os.path.join(gcd_ex_dir, 'gcd.v'))
-    chip.add('source', 'sdc', os.path.join(gcd_ex_dir, 'gcd.sdc'))
+    chip.add('input', 'verilog', os.path.join(gcd_ex_dir, 'gcd.v'))
+    chip.add('input', 'sdc', os.path.join(gcd_ex_dir, 'gcd.sdc'))
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
     chip.set('option', 'quiet', 'true')
@@ -61,7 +60,7 @@ def chip(scroot):
     design = "oh_fifo_sync"
 
     chip = siliconcompiler.Chip(design)
-    chip.set('source', 'def', def_file)
+    chip.set('input', 'def', def_file)
     chip.set('option', 'quiet', True)
     chip.set('option','novercheck', 'true')
     chip.load_target('freepdk45_demo')
@@ -83,7 +82,6 @@ def chip(scroot):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason='schema_rearchitect')
 def test_failed_branch_min(chip):
     '''Test that a minimum will allow failed inputs, as long as at least
     one passes.'''
