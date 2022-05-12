@@ -91,6 +91,8 @@ if {[expr ! [dict exists $sc_cfg "input" def]]} {
     # Add power nets
     ###########################
     set block [ord::get_db_block]
+    # TODO read from datasheet
+    set sc_supplies ""
     foreach supply $sc_supplies {
         set pin [dict get $sc_cfg supply $supply pin]
         puts $pin
@@ -111,7 +113,7 @@ if {[expr ! [dict exists $sc_cfg "input" def]]} {
     ###########################
     # Initialize floorplan
     ###########################
-    set def [dict get $sc_cfg "source" def]
+    set def [dict get $sc_cfg "input" def]
     read_def -floorplan_initialize $def
 }
 

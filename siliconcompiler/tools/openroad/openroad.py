@@ -242,6 +242,9 @@ def post_process(chip):
                 #TODO: not sure the openroad utilization makes sense?
                 cellarea = round(float(area.group(1)), 2)
                 utilization = round(float(area.group(2)), 2)
+                print(line)
+                print(area)
+                print(utilization)
                 totalarea = round(cellarea/(utilization/100), 2)
                 chip.set('metric', step, index, 'cellarea', cellarea, clobber=True)
                 chip.set('metric', step, index, 'totalarea', totalarea, clobber=True)

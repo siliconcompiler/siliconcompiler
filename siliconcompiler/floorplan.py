@@ -243,15 +243,17 @@ class Floorplan:
 
         # extract layers based on stackup
 
+        pdk = self.chip.get('option', 'pdk')
+
         # TODO: consider making this a dictionary of namedtuples to ensure layer
         # info is immutable.
         self.layers = {}
-        for pdk_name in self.chip.getkeys('pdk', 'grid', self.stackup):
-            sc_name = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'name')
-            xpitch = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'xpitch')
-            ypitch = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'ypitch')
-            xoffset = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'xoffset')
-            yoffset = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'yoffset')
+        for pdk_name in self.chip.getkeys('pdk', pdk, 'grid', self.stackup):
+            sc_name = self.chip.get('pdk', pdk, 'grid', self.stackup, pdk_name, 'name')
+            xpitch = self.chip.get('pdk', pdk, 'grid', self.stackup, pdk_name, 'xpitch')
+            ypitch = self.chip.get('pdk', pdk,'grid', self.stackup, pdk_name, 'ypitch')
+            xoffset = self.chip.get('pdk', pdk, 'grid', self.stackup, pdk_name, 'xoffset')
+            yoffset = self.chip.get('pdk', pdk, 'grid', self.stackup, pdk_name, 'yoffset')
 
             if ('layers' not in tech_lef_data) or (pdk_name not in tech_lef_data['layers']):
                 raise ValueError(f'No layer named {pdk_name} in tech LEF!')
@@ -376,9 +378,10 @@ class Floorplan:
 
     def get_layers(self):
         '''Returns list of SC-standardized layer names defined in schema.'''
+        pdk = self.chip.get('option', 'pdk')
         layers = []
-        for pdk_name in self.chip.getkeys('pdk', 'grid', self.stackup):
-            sc_name = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'name')
+        for pdk_name in self.chip.getkeys('pdk', pdk, 'grid', self.stackup):
+            sc_name = self.chip.get('pdk', pdk, 'grid', self.stackup, pdk_name, 'name')
             layers.append(sc_name)
         return layers
 
@@ -1375,7 +1378,8 @@ class Floorplan:
             raise ValueError('Invalid orientation')
 
     def _pdk_to_sc_layer(self, layer):
-        return self.chip.get('pdk', 'grid', self.stackup, layer, 'name')
+        pdk = self.chip.get('option', 'pdk')
+        return self.chip.get('pdk', pdk, 'grid', self.stackup, layer, 'name')
 
 # Helper functions used for diearea inference. These are more-or-less
 # floorplanning related, so including them in this file.
