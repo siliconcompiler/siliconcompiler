@@ -103,8 +103,6 @@ class Chip:
         self.cfg['design']['value'] = design
         if loglevel:
             self.cfg['option']['loglevel']['value'] = loglevel
-        # We set scversion directly because it has its 'lock' flag set by default.
-
 
         self._init_logger()
 
@@ -1966,6 +1964,11 @@ class Chip:
                 self.error = 1
         finally:
             fin.close()
+
+        if self.get('schemaversion') != localcfg['schemaversion']['value']:
+            self.logger.warning('Attempting to read manifest with incompatible '
+            'schema version into current chip object. Skipping...')
+            return
 
         # Merging arguments with the Chip configuration
         self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
@@ -4738,6 +4741,7 @@ class Chip:
         '''
         Records provenance details for a runstep.
         '''
+        self.set('record', step, index, 'scversion', _metadata.version)
 
         start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
         end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
