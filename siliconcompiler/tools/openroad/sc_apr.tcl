@@ -72,8 +72,9 @@ dict for {key value} [dict get $sc_cfg pdk $sc_pdk grid $sc_stackup] {
 }
 
 # Library
-set sc_libtype     [dict keys [dict get $sc_cfg library $sc_mainlib asic footprint]]
-set sc_site        [dict get $sc_cfg library $sc_mainlib asic footprint $sc_libtype alias]
+set sc_libtype     [dict get $sc_cfg library $sc_mainlib asic libarch]
+# TODO: handle multiple sites properly
+set sc_site        [lindex [dict keys [dict get $sc_cfg library $sc_mainlib asic footprint]] 0]
 set sc_filler      [dict get $sc_cfg library $sc_mainlib asic cells filler]
 set sc_dontuse     [dict get $sc_cfg library $sc_mainlib asic cells ignore]
 set sc_clkbuf      [dict get $sc_cfg library $sc_mainlib asic cells clkbuf]

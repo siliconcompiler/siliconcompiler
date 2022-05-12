@@ -30,7 +30,6 @@ if {[expr ! [dict exists $sc_cfg "input" def]]} {
     set sc_diesize   [regsub -all {[\,\)\(]} $sc_diearea " "]
     set sc_coresize  [regsub -all {[\,\)\(]} $sc_corearea " "]
 
-    #TODO: if there is more than one site, pick the first one?
     initialize_floorplan -die_area $sc_diesize \
 	-core_area $sc_coresize \
 	-site $sc_site

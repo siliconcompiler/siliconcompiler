@@ -3382,6 +3382,18 @@ def schema_asic(cfg):
             library. The parameter can be used to guide cell power grid
             hookup by APR tools.""")
 
+    scparam(cfg,['asic', 'libarch'],
+            sctype='str',
+            shorthelp="ASIC: library architecture",
+            switch="-asic_library '<str>'",
+            example=[
+                "cli: -asic_libarch '12track'",
+                "api: chip.set('asic','libarch','12track')"],
+            schelp="""
+            The library architecture (e.g. library height) used to build the
+            design. For example a PDK with support for 9 and 12 track libraries
+            might have 'libarchs' called 9t and 12t.""")
+
     # footprint
     key = 'default'
     scparam(cfg,['asic', 'footprint', key, 'alias'],
@@ -3410,7 +3422,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'footprint', key, 'size'],
             sctype='(float,float)',
-            shorthelp="ASUC: Footprint size",
+            shorthelp="ASIC: Footprint size",
             switch="-asic_footprint_size 'key <str>'",
             example=[
                 "cli: -asic_footprint_size 'core (1.0,1.0)'",

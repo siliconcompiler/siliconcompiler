@@ -28,18 +28,16 @@ def setup(chip):
     lib.set('package', 'version', version)
 
     # list of stackups supported
-    chip.set('asic', 'stackup', stackup)
+    lib.set('asic', 'stackup', stackup)
 
     # list of pdks supported
-    chip.set('asic', 'pdk', process)
+    lib.set('asic', 'pdk', process)
 
     # footprint/type/sites
-    lib.set('asic', 'footprint', 'unithd', 'alias', 'unithd')
+    lib.set('asic', 'libarch', libtype)
     lib.set('asic', 'footprint', 'unithd', 'symmetry', 'Y')
     lib.set('asic', 'footprint', 'unithd', 'size', (0.46,2.72))
 
-    #TODO: the alias is still messed up...
-    lib.set('asic', 'footprint', 'unithddbl', 'alias', 'unithd')
     lib.set('asic', 'footprint', 'unithddbl', 'symmetry', 'Y')
     lib.set('asic', 'footprint', 'unithddbl', 'size', (0.46,5.44))
 

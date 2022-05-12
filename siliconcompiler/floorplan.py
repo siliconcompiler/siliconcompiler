@@ -77,22 +77,27 @@ def _wire_to_rect(wire):
 
 def _get_tech_lef_data(chip, tool):
     stackup = chip.get('asic', 'stackup')
+    pdkname = chip.get('option', 'pdk')
+    # TODO: This?
     libname = chip.get('asic', 'logiclib')[0]
-    libtype = chip.get('library', libname, 'asic', 'footprint')[0]
+    libtype = chip.get('library', libname, 'asic', 'libarch')
+    # Or this?
+    #libtype = chip.get('asic', 'libarch')
 
-    tech_lef = chip.find_files('pdk', 'aprtech', tool, stackup, libtype, 'lef')[0]
+    tech_lef = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'lef')[0]
     return leflib.parse(tech_lef)
 
 def _get_stdcell_info(chip, tech_lef_data):
     libname = chip.get('asic', 'logiclib')[0]
-    site_name = chip.get('library', libname, 'asic', 'footprint', libtype, 'alias')
+    # TODO: handle multiple site names/aliases
+    site_name = chip.getkeys('library', libname, 'asic', 'footprint')[0]
 
     if 'sites' not in tech_lef_data or site_name not in tech_lef_data['sites']:
-        raise ValueError('Site {site_name} not found in tech LEF.')
+        raise ValueError(f'Site {site_name} not found in tech LEF.')
 
     site = tech_lef_data['sites'][site_name]
     if 'size' not in site:
-        raise ValueError('Tech LEF does not specify size for site {site_name}.')
+        raise ValueError(f'Tech LEF does not specify size for site {site_name}.')
 
     width = site['size']['width']
     height = site['size']['height']

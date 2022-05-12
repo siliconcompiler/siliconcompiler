@@ -41,15 +41,15 @@ def setup(chip):
     lib.set('package', 'version', version)
 
     # list of stackups supported
-    chip.set('asic', 'stackup', stackup)
+    lib.set('asic', 'stackup', stackup)
 
     # list of pdks supported
-    chip.set('asic', 'pdk', process)
+    lib.set('asic', 'pdk', process)
 
     # footprint/type/sites
-    lib.set('asic', 'footprint', libtype, 'alias', 'FreePDK45_38x28_10R_NP_162NW_34O')
-    lib.set('asic', 'footprint', libtype, 'symmetry', 'Y')
-    lib.set('asic', 'footprint', libtype, 'size', (0.19,1.4))
+    lib.set('asic', 'libarch', libtype)
+    lib.set('asic', 'footprint', 'FreePDK45_38x28_10R_NP_162NW_34O', 'symmetry', 'Y')
+    lib.set('asic', 'footprint', 'FreePDK45_38x28_10R_NP_162NW_34O', 'size', (0.19,1.4))
 
     # timing
     lib.add('model', 'timing', 'nldm', corner,

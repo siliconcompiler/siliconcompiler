@@ -99,13 +99,12 @@ def setup(chip, mode='batch'):
         mainlib = targetlibs[0]
         macrolibs = chip.get('asic', 'macrolib')
         #Note: only one footprint supported in maainlib
-        libtype = chip.getkeys('library', mainlib, 'asic', 'footprint')[0]
+        libtype = chip.get('library', mainlib, 'asic', 'libarch')
 
         chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
         chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'stackup',]))
-        chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'alias']))
-        chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
-        chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
+        # chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
+        # chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
         chip.add('tool', tool, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
 
         for lib in (targetlibs + macrolibs):
