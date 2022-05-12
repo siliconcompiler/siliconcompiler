@@ -4,6 +4,7 @@ import pytest
 import os
 
 @pytest.mark.eda
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_resume(gcd_chip):
     # Set a value that will cause place to break
     gcd_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', 'asdf')

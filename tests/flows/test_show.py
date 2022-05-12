@@ -57,6 +57,7 @@ def test_show_lyp(datadir, display, headless=True):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_show_nopdk(datadir, display):
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target('freepdk45_demo')

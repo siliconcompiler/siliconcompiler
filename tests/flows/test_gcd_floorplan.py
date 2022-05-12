@@ -26,6 +26,7 @@ def setup_floorplan(fp):
 
 ##################################
 @pytest.mark.eda
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_gcd_floorplan(gcd_chip):
     '''Floorplan API test: build the GCD example using a Python-based floorplan
     '''

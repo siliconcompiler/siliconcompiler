@@ -4,6 +4,7 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_sv(datadir):
     '''Test that we can successfully synthesize a SystemVerilog design using the
     asicflow.

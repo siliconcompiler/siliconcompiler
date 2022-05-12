@@ -4,6 +4,7 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_tool_option(scroot):
     '''Regression test for checker being too strict and preventing user from
     setting tool options. Doesn't check any outputs, just that this doesn't fail
@@ -82,6 +83,7 @@ def chip(scroot):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_failed_branch_min(chip):
     '''Test that a minimum will allow failed inputs, as long as at least
     one passes.'''

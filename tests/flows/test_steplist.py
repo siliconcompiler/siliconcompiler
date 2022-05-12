@@ -3,6 +3,7 @@ import siliconcompiler
 import pytest
 
 @pytest.mark.eda
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_steplist(gcd_chip):
     # Initial run
     gcd_chip.set('steplist', ['import', 'syn'])

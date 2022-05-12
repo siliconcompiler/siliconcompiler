@@ -7,6 +7,7 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_py(setup_example_test):
     setup_example_test('gcd')
 
@@ -36,6 +37,7 @@ def test_cli(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_py_sky130(setup_example_test):
     setup_example_test('gcd')
 
@@ -55,6 +57,7 @@ def test_py_sky130(setup_example_test):
     assert chip.get('metric', 'drc', '0', 'drvs', 'real') == 0
 
 @pytest.mark.eda
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_cli_asap7(setup_example_test):
     ex_dir = setup_example_test('gcd')
 

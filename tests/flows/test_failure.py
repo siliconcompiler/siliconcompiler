@@ -21,6 +21,7 @@ def chip(datadir):
     return chip
 
 @pytest.mark.eda
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_failure_notquiet(chip):
     '''Test that SC exits early on errors without -quiet switch.
 
@@ -45,6 +46,7 @@ def test_failure_notquiet(chip):
     assert not os.path.isdir('build/bad/job0/syn/0/syn.log')
 
 @pytest.mark.eda
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_failure_quiet(chip):
     '''Test that SC exits early on errors with -quiet switch.
     '''

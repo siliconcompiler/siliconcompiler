@@ -5,6 +5,8 @@ import copy
 import json
 from siliconcompiler import _metadata
 
+import pytest
+
 def test_read_manifest_fields():
     '''Ensure that changes to fields other than 'value' are reflected by read_manifest()'''
 
@@ -30,7 +32,7 @@ def test_read_sup():
     chip2.read_manifest('tmp.sup.gz')
     assert chip2.get('input','verilog') == ['foo.v']
 
-
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_read_defaults(datadir):
     '''Make sure read/write operaton doesn't modify manifest'''
 

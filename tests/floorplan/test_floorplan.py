@@ -5,6 +5,10 @@ import re
 from siliconcompiler.core import Chip
 from siliconcompiler.floorplan import Floorplan
 
+# skip entire module
+# reason=schema_rearchitect
+pytest.skip(allow_module_level=True)
+
 def _fp(datadir):
     c = Chip('test')
     c.load_target('freepdk45_demo')
