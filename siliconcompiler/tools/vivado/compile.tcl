@@ -10,7 +10,7 @@ source ./sc_manifest.tcl
 ##############################
 
 set sc_design     [dict get $sc_cfg design]
-set sc_constraint [dict get $sc_cfg constraint]
+set sc_constraint [dict get $sc_cfg input xdc]
 set sc_partname   [dict get $sc_cfg fpga partname]
 set sc_step       [dict get $sc_cfg arg step]
 set sc_index      [dict get $sc_cfg arg index]
