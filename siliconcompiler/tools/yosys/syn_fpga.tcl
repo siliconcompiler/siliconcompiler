@@ -17,7 +17,10 @@ if {[string match {ice*} $sc_partname]} {
     # Technology mapping
     yosys proc
     yosys techmap -D NO_LUT -map +/adff2dff.v
-
+    #convert DFFs to latches
+    yosys dffunmap
+    yosys opt -fast -noff
+    
     # Synthesis
     yosys synth -top $sc_design -flatten
     yosys clean
