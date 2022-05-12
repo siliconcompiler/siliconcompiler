@@ -106,6 +106,8 @@ def setup(chip, mode='batch'):
         # chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
         # chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
         chip.add('tool', tool, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
+        if chip.valid('input', 'floorplan.def'):
+            chip.set('tool', tool, 'require', step, index, ",".join(['input', 'floorplan.def']))
 
         for lib in (targetlibs + macrolibs):
             for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
@@ -189,7 +191,7 @@ def pre_process(chip):
     if (step != 'floorplan' or
         chip.get('asic', 'diearea') or
         chip.get('asic', 'corearea') or
-        chip.valid('input', 'def')):
+        chip.valid('input', 'floorplan.def')):
         return
 
     r = _infer_diearea(chip)
@@ -242,9 +244,6 @@ def post_process(chip):
                 #TODO: not sure the openroad utilization makes sense?
                 cellarea = round(float(area.group(1)), 2)
                 utilization = round(float(area.group(2)), 2)
-                print(line)
-                print(area)
-                print(utilization)
                 totalarea = round(cellarea/(utilization/100), 2)
                 chip.set('metric', step, index, 'cellarea', cellarea, clobber=True)
                 chip.set('metric', step, index, 'totalarea', totalarea, clobber=True)
