@@ -2319,6 +2319,15 @@ class Chip:
         return depgraph
 
     ###########################################################################
+    def import_library(self, lib_chip):
+        '''Import a Chip object into current Chip as a library.
+
+        Args:
+            lib_chip (Chip): An instance of Chip to import.
+        '''
+        self._import_library(lib_chip.design, lib_chip.cfg)
+
+    ###########################################################################
     def _import_library(self, libname, libcfg):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''

@@ -40,7 +40,8 @@ def setup(chip):
     chip.load_checklist('oh_tapeout')
 
     #3. Set default targets
-    chip.set('option', 'flow', 'asicflow')
+    chip.set('option', 'flow', 'asicflow', clobber=False)
+    chip.set('option', 'pdk', 'skywater130', clobber=False)
 
     #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')

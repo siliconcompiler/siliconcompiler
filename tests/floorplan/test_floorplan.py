@@ -5,18 +5,15 @@ import re
 from siliconcompiler.core import Chip
 from siliconcompiler.floorplan import Floorplan
 
-# skip entire module
-# reason=schema_rearchitect
-pytest.skip(allow_module_level=True)
-
 def _fp(datadir):
     c = Chip('test')
     c.load_target('freepdk45_demo')
     stackup = '10M'
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
-    c.set('library', lib, 'type', 'component')
-    c.add('library', lib, 'lef', stackup, os.path.join(datadir, 'ram.lef'))
+    lib = Chip(lib)
+    lib.set('model', 'layout', 'lef', stackup, os.path.join(datadir, 'ram.lef'))
+    c.import_library(lib)
 
     fp = Floorplan(c)
     cell_w = fp.stdcell_width
@@ -88,13 +85,15 @@ def test_padring(datadir):
     macro = 'io'
     stackup = '10M'
     chip.add('asic', 'macrolib', macro)
-    chip.set('library', macro, 'lef', stackup, os.path.join(datadir, 'iocells.lef'))
-    chip.set('library', macro, 'cells', 'IOPAD', 'IOPAD')
+    lib = Chip(macro)
+    lib.set('model', 'layout', 'lef', stackup, os.path.join(datadir, 'iocells.lef'))
+    chip.import_library(lib)
 
     macro = 'sram_32x2048_1rw'
     chip.add('asic', 'macrolib', macro)
-    chip.set('library', macro, 'lef', stackup, os.path.join(datadir, f'{macro}.lef'))
-    chip.set('library', macro, 'cells', 'ram', 'sram_32x2048_1rw')
+    lib = Chip(macro)
+    lib.set('model', 'layout', 'lef', stackup, os.path.join(datadir, f'{macro}.lef'))
+    chip.import_library(lib)
 
     fp = Floorplan(chip)
 
@@ -188,8 +187,9 @@ def test_place_vias(datadir):
     stackup = '10M'
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
-    c.set('library', lib, 'type', 'component')
-    c.add('library', lib, 'lef', stackup, os.path.join(datadir, 'ram.lef'))
+    lib = Chip(lib)
+    lib.add('model', 'layout', 'lef', stackup, os.path.join(datadir, 'ram.lef'))
+    c.import_library(lib)
 
     fp = Floorplan(c)
 

@@ -38,4 +38,4 @@ def setup(chip):
 
     # Set default goal
     for step in chip.getkeys('flowgraph', flow):
-        chip.set('metric', step, '0', 'errors', 'goal', 0)
+        chip.set('flowgraph', flow, step, '0', 'goal', 'errors', 0)

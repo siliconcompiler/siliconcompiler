@@ -9,7 +9,7 @@ def test_picorv32(picorv32_dir):
     chip = siliconcompiler.Chip("picorv32")
     chip.load_target('freepdk45_demo')
 
-    chip.add('source', 'verilog', source)
+    chip.add('input', 'verilog', source)
     chip.set('option', 'steplist', ['import'])
     chip.run()
 
