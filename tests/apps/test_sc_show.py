@@ -22,22 +22,21 @@ def heartbeat_dir(tmpdir_factory):
     chip = siliconcompiler.Chip('heartbeat')
     chip.set('option', 'loglevel', 'ERROR')
     chip.set('option', 'quiet', True)
-    chip.add('source', 'verilog', os.path.join(datadir, 'heartbeat.v'))
+    chip.add('input', 'verilog', os.path.join(datadir, 'heartbeat.v'))
     chip.load_target('freepdk45_demo')
     chip.run()
 
     return cwd
 
 @pytest.mark.parametrize('flags', [
-    ['-source', 'def build/heartbeat/job0/dfm/0/outputs/heartbeat.def'],
-    ['-read_gds', 'gds build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
+    ['-input', 'def build/heartbeat/job0/dfm/0/outputs/heartbeat.def'],
+    ['-input', 'gds build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
     ['-design', 'heartbeat'],
-    ['-source', 'def build/heartbeat/job0/export/0/inputs/heartbeat.def',
+    ['-input', 'def build/heartbeat/job0/export/0/inputs/heartbeat.def',
      '-cfg', 'build/heartbeat/job0/export/0/outputs/heartbeat.pkg.json']
     ])
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason='schema_rearchitect')
 def test_sc_show(flags, monkeypatch, heartbeat_dir):
     '''Test sc-show app on a few sets of flags.'''
 
@@ -53,8 +52,9 @@ def test_sc_show(flags, monkeypatch, heartbeat_dir):
         ext = os.path.splitext(filename)[1][1:]
         assert chip.get('option', 'showtool', ext)
 
-        sc_stackup = chip.get('pdk', 'stackup')[0]
-        tech_file = chip.get('pdk', 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
+        pdkname = chip.get('option', 'pdk')
+        sc_stackup = chip.get('pdk', pdkname, 'stackup')[0]
+        tech_file = chip.get('pdk', pdkname, 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
         assert tech_file is not None
 
         chip.logger.info('Showing ' + filename)

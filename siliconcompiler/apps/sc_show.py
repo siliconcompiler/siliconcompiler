@@ -23,33 +23,33 @@ def main():
     """
 
 
-    # find design name for object init
-    design = 'none'
-    for i , item in enumerate(sys.argv):
-        if item == "-design":
-            design = sys.argv[i+1]
+    # TODO: this is a hack to get around design name requirement: since legal
+    # design names probably can't contain spaces, we can detect if it is unset.
+    UNSET_DESIGN = '  unset  '
 
-    chip = siliconcompiler.Chip(design)
+    # Create a base chip class.
+    chip = siliconcompiler.Chip(UNSET_DESIGN)
+
     chip.create_cmdline(progname,
-                        switchlist=['design', 'read_def', 'read_gds', 'loglevel', 'cfg'],
+                        switchlist=['design', 'input', 'option_loglevel', 'option_cfg'],
                         description=description)
 
     #Error checking
-    design = bool(chip.get('design'))
-    gds_mode = chip.valid('read', 'gds', 'show', '0') and bool(chip.get('read', 'gds', 'show', '0'))
-    def_mode = chip.valid('read', 'def', 'show', '0') and bool(chip.get('read', 'def', 'show', '0'))
+    design = chip.get('design') != UNSET_DESIGN
+    gds_mode = chip.valid('input', 'gds') and bool(chip.get('input', 'gds'))
+    def_mode = chip.valid('input', 'def') and bool(chip.get('input', 'def'))
 
     if def_mode and gds_mode:
-        chip.logger.error('Exclusive options -read_gds and -read_def cannot both be defined.')
+        chip.logger.error('Exclusive options -input_gds and -input_def cannot both be defined.')
         sys.exit(1)
     if not (design or def_mode or gds_mode):
-        chip.logger.error('Nothing to load: please define a target with -cfg, -design, -read_def, and/or -read_gds.')
+        chip.logger.error('Nothing to load: please define a target with -cfg, -design, -input_def, and/or -input_gds.')
         sys.exit(1)
 
     if gds_mode:
-        filename = chip.get('read', 'gds', 'show', '0')[-1]
+        filename = chip.get('input', 'gds')[-1]
     elif def_mode:
-        filename = chip.get('read', 'def', 'show', '0')[-1]
+        filename = chip.get('input', 'def')[-1]
     else:
         design = chip.get('design')
         dirlist =[chip.cwd,
@@ -67,7 +67,7 @@ def main():
             chip.logger.error('No final GDS export found for design')
             sys.exit(1)
 
-    if not chip.get('cfg'):
+    if not chip.get('option', 'cfg'):
         # only autoload manifest if user doesn't supply manually
         design = os.path.splitext(os.path.basename(filename))[0]
         dirname = os.path.dirname(filename)
