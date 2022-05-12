@@ -59,6 +59,7 @@ def setup(chip, flowname='fpgaflow'):
     '''
 
     # Check that fpga arch has been set for vpr flow or partname has been set for others
+    flow = ''
     if chip.get('fpga', 'arch'):
         flow = 'vpr'
     elif chip.get('fpga', 'partname'):
