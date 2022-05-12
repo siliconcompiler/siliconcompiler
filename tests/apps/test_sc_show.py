@@ -10,7 +10,6 @@ from siliconcompiler import Chip
 # remove the dependency on EDA tools. Maybe make that tarfile the single source
 # of truth rather than gcd.pkg.json.
 @pytest.fixture(scope='module')
-@pytest.mark.skip(reason='schema_rearchitect')
 def heartbeat_dir(tmpdir_factory):
     '''Fixture that creates a heartbeat build directory by running a build.
     '''
@@ -38,6 +37,7 @@ def heartbeat_dir(tmpdir_factory):
     ])
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason='schema_rearchitect')
 def test_sc_show(flags, monkeypatch, heartbeat_dir):
     '''Test sc-show app on a few sets of flags.'''
 
