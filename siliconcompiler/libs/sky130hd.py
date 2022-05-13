@@ -5,9 +5,7 @@ def make_docs():
     '''
     Skywater130 standard cell library.
     '''
-
-    chip = siliconcompiler.Chip('sky130hd')
-    lib = setup(chip)
+    lib = setup(None)
     return lib
 
 def setup(chip):

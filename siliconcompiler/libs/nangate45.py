@@ -7,8 +7,7 @@ def make_docs():
     Nangate open standard cell library for FreePDK45.
     '''
 
-    chip = siliconcompiler.Chip('nangate45')
-    lib = setup(chip)
+    lib = setup(None)
     return lib
 
 def setup(chip):

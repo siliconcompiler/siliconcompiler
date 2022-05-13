@@ -15,7 +15,7 @@ class MetricGen(SphinxDirective):
         new_doc = []
         section = nodes.section(ids = [nodes.make_id('metric_summary')])
 
-        chip = siliconcompiler.Chip(loglevel='DEBUG')
+        chip = siliconcompiler.Chip('<design>', loglevel='DEBUG')
 
         table = [[strong('metric'), strong('description')]]
 

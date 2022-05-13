@@ -19,7 +19,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.load_pdk('skywater130')
     chip.set('arg','index','<index>')
 

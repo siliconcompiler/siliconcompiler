@@ -15,7 +15,7 @@ class PackageGen(SphinxDirective):
         new_doc = []
         section = nodes.section(ids = [nodes.make_id('package_summary')])
 
-        chip = siliconcompiler.Chip(loglevel='DEBUG')
+        chip = siliconcompiler.Chip('<design>', loglevel='DEBUG')
 
         table = [[strong('parameter'), strong('description')]]
 

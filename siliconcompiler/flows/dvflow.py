@@ -26,8 +26,8 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
-    chip.set('flow', 'dvflow')
+    chip = siliconcompiler.Chip('<topmodule>')
+    chip.set('option', 'flow', 'dvflow')
     setup(chip)
 
     return chip

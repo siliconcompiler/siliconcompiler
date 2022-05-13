@@ -40,7 +40,7 @@ def make_docs():
     * route_np : Number of parallel routing jobs to launch
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<topmodule>')
     n = '3'
     chip.set('arg', 'flow', 'verify','true')
     chip.set('arg', 'flow', 'syn_np', n)

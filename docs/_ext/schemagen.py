@@ -78,7 +78,12 @@ class SchemaGen(SphinxDirective):
 def keypath_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     # Split and clean up keypath
     keys = [key.strip() for key in text.split(',')]
-    return [keypath(*keys)], []
+    try:
+        return [keypath(*keys)], []
+    except ValueError as e:
+        msg = inliner.reporter.error(f'{rawtext}: {e}', line=lineno)
+        prb = inliner.problematic(rawtext, rawtext, msg)
+        return [prb], [msg]
 
 def setup(app):
     app.add_directive('schemagen', SchemaGen)

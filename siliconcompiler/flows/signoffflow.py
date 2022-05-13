@@ -9,8 +9,8 @@ def make_docs():
         chip.set('read', 'netlist', 'lvs', '0', '<path-to-netlist>.vg')
         chip.set('read', 'gds', 'drc', '0', '<path-to-layout>.gds')
     '''
-    chip = siliconcompiler.Chip()
-    chip.set('flow', 'signoffflow')
+    chip = siliconcompiler.Chip('<topmodule>')
+    chip.set('option', 'flow', 'signoffflow')
     setup(chip)
     return chip
 

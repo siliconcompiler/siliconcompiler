@@ -7,7 +7,7 @@ def make_docs():
     This flow generates a GDS and a netlist for passing to a
     verification/signoff flow.
     '''
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<topmodule>')
     chip.set('option', 'flow', 'asictopflow')
     setup(chip)
     return chip

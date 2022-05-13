@@ -10,7 +10,7 @@ def make_docs():
     open-source asicflow.
     '''
 
-    chip = siliconcompiler.Chip('skywater130_demo')
+    chip = siliconcompiler.Chip('<design>')
     setup(chip)
     return chip
 

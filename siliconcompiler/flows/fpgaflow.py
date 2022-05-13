@@ -39,8 +39,8 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
-    chip.set('flow', 'fpgaflow')
+    chip = siliconcompiler.Chip('<topmodule>')
+    chip.set('option', 'flow', 'fpgaflow')
     chip.set('fpga', 'partname', '<fpga-partname>')
     setup(chip)
 

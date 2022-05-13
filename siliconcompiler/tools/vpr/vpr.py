@@ -27,10 +27,9 @@ def make_docs():
        Work in progress (not ready for use)
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step', 'apr')
     chip.set('arg','index', '<index>')
-    chip.set('design', '<design>')
     setup(chip)
     return chip
 

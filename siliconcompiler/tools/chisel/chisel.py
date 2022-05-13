@@ -23,10 +23,9 @@ def make_docs():
     installed. Instructions: https://www.scala-sbt.org/download.html.
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','import')
     chip.set('arg','index','0')
-    chip.set('design', '<design>')
     setup(chip)
     return chip
 

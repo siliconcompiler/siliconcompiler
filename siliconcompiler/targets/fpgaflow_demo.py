@@ -5,7 +5,7 @@ def make_docs():
     Demonstration target for running the open-source fpgaflow.
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
     setup(chip)
     return chip

@@ -5,7 +5,7 @@ def make_docs():
     '''
     ASAP 7 7.5-track standard cell library.
     '''
-    lib = setup()
+    lib = setup(None)
     return lib
 
 def setup(chip):
