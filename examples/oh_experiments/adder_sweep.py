@@ -21,14 +21,14 @@ def main():
     for n in datawidths:
         chip = siliconcompiler.Chip(design)
         chip.load_target('freepdk45_demo')
-        chip.add('source', 'verilog', source)
+        chip.add('input', 'verilog', source)
         chip.set('option', 'quiet', True)
         chip.set('option','relax', True)
         chip.set('option','steplist', ['import', 'syn'])
         chip.set('option','param','N',str(n))
         chip.run()
 
-        area.append(chip.get('metric', 'syn', '0', 'cellarea', 'real'))
+        area.append(chip.get('metric', 'syn', '0', 'cellarea'))
 
     if has_matplotlib:
         # Plot Data

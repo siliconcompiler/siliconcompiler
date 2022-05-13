@@ -14,7 +14,7 @@ def main():
 
     # Plugging design into SC
     chip = siliconcompiler.Chip(design)
-    chip.add('source', 'verilog', rootdir+'/mathlib/hdl/'+design+'.v')
+    chip.add('input', 'verilog', rootdir+'/mathlib/hdl/'+design+'.v')
     chip.set('option', 'param', 'N', str(N))
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
@@ -31,7 +31,7 @@ def main():
 
         # design experiment, width of adder
         N = N * 2
-        chip.set('param', 'N', str(N), clobber=True)
+        chip.set('option', 'param', 'N', str(N), clobber=True)
 
         # Running syn only
         index = '0'
@@ -51,11 +51,11 @@ def main():
         chip.run()
 
         # Query current run and last run
-        new_area = chip.get('metric', step, index, 'cellarea','real')
-        old_area = chip.get('metric', step, index, 'cellarea','real', job=oldid)
+        new_area = chip.get('metric', step, index, 'cellarea')
+        old_area = chip.get('metric', step, index, 'cellarea', job=oldid)
 
         # compare result
-        print(N, new_area, old_area, newid, chip.get('jobname'))
+        print(N, new_area, old_area, newid, chip.get('option', 'jobname'))
         if (new_area/old_area) > 2.1:
             print("Stopping, area is exploding")
             break

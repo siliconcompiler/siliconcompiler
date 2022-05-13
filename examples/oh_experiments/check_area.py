@@ -22,13 +22,13 @@ def checkarea(filelist, libdir, target):
           design = re.match(r'.*/(\w+)\.v',item).group(1)
           chip = siliconcompiler.Chip(design)
           chip.load_target(target)
-          chip.add('source', 'verilog', item)
+          chip.add('input', 'verilog', item)
           chip.add('option', 'ydir', libdir)
           chip.set('option','quiet', True)
           chip.set('option','steplist', ['import', 'syn'])
           chip.run()
-          cells = chip.get('metric','syn', '0', 'cells', 'real')
-          area = chip.get('metric', 'syn', '0', 'cellarea', 'real')
+          cells = chip.get('metric','syn', '0', 'cells')
+          area = chip.get('metric', 'syn', '0', 'cellarea')
           print(design, cells, area, sep=",")
 
     return 0
