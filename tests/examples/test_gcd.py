@@ -55,7 +55,7 @@ def test_py_sky130(setup_example_test):
     assert chip.get('metric', 'drc', '0', 'drvs') == 0
 
 @pytest.mark.eda
-@pytest.mark.skip(reason='schema_rearchitect')
+@pytest.mark.skip(reason="asap7 not yet supported using new library scheme")
 def test_cli_asap7(setup_example_test):
     ex_dir = setup_example_test('gcd')
 

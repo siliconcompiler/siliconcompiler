@@ -1,12 +1,12 @@
 #!/bin/sh
 
 sc -design gcd \
-   -source "verilog gcd.v" \
-   -source "sdc gcd.sdc" \
+   -input "verilog gcd.v" \
+   -input "sdc gcd.sdc" \
    -package_version "0.0.0" \
    -package_description "GCD test package" \
    -package_license "MIT" \
-   -target "arap7_demo" \
+   -target "asap7_demo" \
    -asic_diearea "(0,0)" \
    -asic_diearea "(100.13,100.8)" \
    -asic_corearea "(10.07,11.2)" \
