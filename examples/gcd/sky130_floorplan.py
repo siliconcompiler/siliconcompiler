@@ -62,7 +62,7 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
    # TODO: infer stripe_w from LEF
    stripe_w = stdcell_pin_width
    mainlib = fp.chip.get('asic', 'logiclib')[0]
-   stripe_layer = fp.chip.get('library', mainlib, 'pgmetal')
+   stripe_layer = fp.chip.get('library', mainlib, 'asic', 'pgmetal')
    spacing = 2 * fp.stdcell_height
 
    bottom = core_bottom - stripe_w/2

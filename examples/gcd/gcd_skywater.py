@@ -11,22 +11,21 @@ def main():
     # Create instance of Chip class
     chip = siliconcompiler.Chip("gcd")
 
-    chip.add('source', 'verilog', 'gcd.v')
-    chip.add('source', 'sdc', 'gcd.sdc')
+    chip.add('input', 'verilog', 'gcd.v')
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 
+    chip.clock('clk', period=5)
+
     chip.load_target("skywater130_demo")
 
-    #chip.set('supply', 'vdd', 'pin', 'vdd')
-    #chip.set('supply', 'vdd', 'level', 1)
-    #chip.set('supply', 'vss', 'pin', 'vss')
-    #chip.set('supply', 'vss', 'level', 0)
+    chip.set('datasheet', chip.design, 'pin', 'vdd', 'type', 'global', 'power')
+    chip.set('datasheet', chip.design, 'pin', 'vss', 'type', 'global', 'ground')
 
     # 1) RTL2GDS
 
     def_path = make_floorplan(chip)
-    chip.set('source', 'def', def_path)
+    chip.set('input', 'floorplan.def', def_path)
 
     chip.set('option', 'jobname', 'rtl2gds')
     chip.run()
@@ -37,11 +36,11 @@ def main():
 
     # 2) Signoff
 
-    chip.set('jobname', 'signoff')
-    chip.set('flow', 'signoffflow')
+    chip.set('option', 'jobname', 'signoff')
+    chip.set('option', 'flow', 'signoffflow')
 
-    chip.set('source', 'gds', gds_path)
-    chip.set('source', 'netlist', vg_path)
+    chip.set('input', 'gds', gds_path)
+    chip.set('input', 'netlist', vg_path)
 
     chip.run()
     chip.summary()

@@ -87,12 +87,11 @@ set sc_endcap      [dict get $sc_cfg library $sc_mainlib asic cells endcap]
 # PDK Design Rules
 set sc_techlef     [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype lef]
 
-#TODO: tie to datasheet
-#if {[dict exists $sc_cfg supply]} {
-#    set sc_supplies    [dict keys [dict get $sc_cfg supply]]
-#} else {
-#    set sc_supplies    [list]
-#}
+if {[dict exists $sc_cfg datasheet $sc_design]} {
+   set sc_pins    [dict keys [dict get $sc_cfg datasheet $sc_design pin]]
+} else {
+   set sc_pins    [list]
+}
 
 set sc_threads     [dict get $sc_cfg tool $sc_tool threads $sc_step $sc_index ]
 

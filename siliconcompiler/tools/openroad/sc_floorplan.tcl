@@ -91,21 +91,13 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
     # Add power nets
     ###########################
     set block [ord::get_db_block]
-    # TODO read from datasheet
-    set sc_supplies ""
-    foreach supply $sc_supplies {
-        set pin [dict get $sc_cfg supply $supply pin]
-        puts $pin
-        set level [dict get $sc_cfg supply $supply level]
-        puts $level
-
+    foreach pin $sc_pins {
         if {[set net [$block findNet $pin]] == "NULL"} {
-            set net [odb::dbNet_create $block $pin]
-            $net setSpecial
-            if {$level > 0} {
-                $net setSigType "POWER"
-            } else {
-                $net setSigType "GROUND"
+            set type [dict get $sc_cfg datasheet $sc_design pin $pin type global]
+            if {$type == "power" || $type == "ground"} {
+                set net [odb::dbNet_create $block $pin]
+                $net setSpecial
+                $net setSigType [string toupper $type]
             }
         }
     }

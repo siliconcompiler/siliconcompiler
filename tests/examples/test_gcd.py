@@ -37,7 +37,6 @@ def test_cli(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason='schema_rearchitect')
 def test_py_sky130(setup_example_test):
     setup_example_test('gcd')
 
@@ -49,12 +48,12 @@ def test_py_sky130(setup_example_test):
     manifest = 'build/gcd/signoff/signoff/0/outputs/gcd.pkg.json'
     assert os.path.isfile(manifest)
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('gcd')
     chip.read_manifest(manifest)
 
     # Verify that the build was LVS and DRC clean.
-    assert chip.get('metric', 'lvs', '0', 'drvs', 'real') == 0
-    assert chip.get('metric', 'drc', '0', 'drvs', 'real') == 0
+    assert chip.get('metric', 'lvs', '0', 'drvs') == 0
+    assert chip.get('metric', 'drc', '0', 'drvs') == 0
 
 @pytest.mark.eda
 @pytest.mark.skip(reason='schema_rearchitect')

@@ -6,9 +6,10 @@ set sc_index   [dict get $sc_cfg arg index]
 set sc_design  [dict get $sc_cfg design]
 set sc_mainlib [dict get $sc_cfg asic logiclib]
 set sc_stackup [dict get $sc_cfg asic stackup]
-set sc_libtype [dict get $sc_cfg library $sc_mainlib arch]
-set sc_techlef [dict get $sc_cfg pdk aprtech magic $sc_stackup $sc_libtype lef]
-set sc_liblef  [dict get $sc_cfg library $sc_mainlib lef $sc_stackup]
+set sc_pdk [dict get $sc_cfg option pdk]
+set sc_libtype [dict get $sc_cfg library $sc_mainlib asic libarch]
+set sc_techlef [dict get $sc_cfg pdk $sc_pdk aprtech magic $sc_stackup $sc_libtype lef]
+set sc_liblef  [dict get $sc_cfg library $sc_mainlib model layout lef $sc_stackup]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 
 if {[dict exists $sc_cfg asic exclude $sc_step $sc_index]} {
@@ -24,12 +25,12 @@ lef read $sc_liblef
 foreach lib $sc_macrolibs {
     puts $lib
     if {[lsearch -exact $sc_exclude $lib] >= 0} {
-        lef read [dict get $sc_cfg library $lib lef $sc_stackup]
+        lef read [dict get $sc_cfg library $lib model layout lef $sc_stackup]
     }
 }
 
-if {[dict exists $sc_cfg "read" gds $sc_step $sc_index]} {
-    set gds_path [dict get $sc_cfg "read" gds $sc_step $sc_index]
+if {[dict exists $sc_cfg input gds]} {
+    set gds_path [dict get $sc_cfg input gds]
 } else {
     set gds_path "inputs/$sc_design.gds"
 }

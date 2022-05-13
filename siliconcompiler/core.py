@@ -2994,7 +2994,7 @@ class Chip:
                      ]
 
         if self.get('option', 'mode') == 'asic':
-            pdk = self.get('asic', 'pdk')
+            pdk = self.get('option', 'pdk')
             info_list.extend(["foundry : " + self.get('pdk', pdk, 'foundry'),
                               "process : " + pdk,
                               "targetlibs : "+" ".join(self.get('asic', 'logiclib'))])
@@ -3169,7 +3169,7 @@ class Chip:
         return allpaths
 
     ###########################################################################
-    def clock(self, *, name, pin, period, jitter=0):
+    def clock(self, pin, period, jitter=0):
         """
         Clock configuration helper function.
 
@@ -3178,24 +3178,27 @@ class Chip:
 
         The method modifies the following schema parameters:
 
-        ['clock', name, 'pin']
-        ['clock', name, 'period']
-        ['clock', name, 'jitter']
+        ['datasheet', name, 'pin']
+        ['datasheet', name, 'period']
+        ['datasheet', name, 'jitter']
 
         Args:
-            name (str): Clock reference name.
             pin (str): Full hiearchical path to clk pin.
             period (float): Clock period specified in ns.
             jitter (float): Clock jitter specified in ns.
 
         Examples:
-            >>> chip.clock(name='clk', pin='clk, period=1.0)
-           Create a clock namedd 'clk' with a 1.0ns period.
+            >>> chip.clock('clk, period=1.0)
+           Create a clock named 'clk' with a 1.0ns period.
         """
+        design = self.get('design')
+        self.set('datasheet', design, 'pin', pin, 'type', 'global', 'clk')
 
-        self.set('clock', name, 'pin', pin)
-        self.set('clock', name, 'period', period)
-        self.set('clock', name, 'jitter', jitter)
+        period_range = (period * 1e-9, period * 1e-9, period * 1e-9)
+        self.set('datasheet', design, 'pin', pin, 'tperiod', 'global', period_range)
+
+        jitter_range = (jitter * 1e-9, jitter * 1e-9, jitter * 1e-9)
+        self.set('datasheet', design, 'pin', pin, 'tjitter', 'global', jitter_range)
 
     ###########################################################################
     def node(self, flow, step, tool, index=0):

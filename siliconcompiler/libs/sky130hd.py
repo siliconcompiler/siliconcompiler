@@ -42,36 +42,36 @@ def setup(chip):
     lib.set('asic', 'footprint', 'unithddbl', 'size', (0.46,5.44))
 
     # model files
-    chip.add('model', 'timing', 'nldm', corner, libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
-    chip.add('model', 'layout', 'lef', stackup, libdir+'/lef/sky130_fd_sc_hd_merged.lef')
-    chip.add('model', 'layout', 'gds', stackup, libdir+'/gds/sky130_fd_sc_hd.gds')
+    lib.add('model', 'timing', 'nldm', corner, libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
+    lib.add('model', 'layout', 'lef', stackup, libdir+'/lef/sky130_fd_sc_hd_merged.lef')
+    lib.add('model', 'layout', 'gds', stackup, libdir+'/gds/sky130_fd_sc_hd.gds')
 
     # Techmap
-    chip.add('asic', 'file', 'yosys', 'techmap',
+    lib.add('asic', 'file', 'yosys', 'techmap',
              libdir + '/techmap/yosys/cells_latch.v')
 
     # Power grid specifier
-    chip.set('asic', 'pgmetal', 'm1')
+    lib.set('asic', 'pgmetal', 'm1')
 
     # clock buffers
-    chip.add('asic', 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
+    lib.add('asic', 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
 
     # hold cells
-    chip.add('asic', 'cells', 'hold', 'sky130_fd_sc_hd__buf_1')
+    lib.add('asic', 'cells', 'hold', 'sky130_fd_sc_hd__buf_1')
 
     # filler
-    chip.add('asic', 'cells', 'filler', ['sky130_fd_sc_hd__fill_1',
+    lib.add('asic', 'cells', 'filler', ['sky130_fd_sc_hd__fill_1',
                                          'sky130_fd_sc_hd__fill_2',
                                          'sky130_fd_sc_hd__fill_4',
                                          'sky130_fd_sc_hd__fill_8'])
 
     # Tapcell
-    chip.add('asic', 'cells','tap', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
+    lib.add('asic', 'cells','tap', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
 
     # Endcap
-    chip.add('asic', 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')
+    lib.add('asic', 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')
 
-    chip.add('asic', 'cells', 'ignore', [
+    lib.add('asic', 'cells', 'ignore', [
         'sky130_fd_sc_hd__probe_p_8',
         'sky130_fd_sc_hd__probec_p_8',
         'sky130_fd_sc_hd__lpflow_bleeder_1',
@@ -114,13 +114,13 @@ def setup(chip):
     # TODO: should probably fill these in, but they're currently unused by
     # OpenROAD flow
     #driver
-    chip.add('asic', 'cells', 'driver', '')
+    lib.add('asic', 'cells', 'driver', '')
 
     # buffer cell
-    chip.add('asic', 'cells', 'buf', ['sky130_fd_sc_hd__buf_4/A/X'])
+    lib.add('asic', 'cells', 'buf', ['sky130_fd_sc_hd__buf_4/A/X'])
 
     # tie cells
-    chip.add('asic', 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
+    lib.add('asic', 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
                                       'sky130_fd_sc_hd__conb_1/LO'])
 
     return lib

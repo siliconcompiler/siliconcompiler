@@ -61,8 +61,8 @@ def setup(chip):
 
     design = chip.get('design')
     chip.add('tool', tool, 'input', step, index, f'{design}.spice')
-    if chip.valid('source', 'netlist'):
-        chip.add('tool', tool, 'require', step, index, ','.join(['source', 'netlist']))
+    if chip.valid('input', 'netlist'):
+        chip.add('tool', tool, 'require', step, index, ','.join(['input', 'netlist']))
     else:
         chip.add('tool', tool, 'input', step, index, f'{design}.vg')
 
