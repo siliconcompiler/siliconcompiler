@@ -7,7 +7,6 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason='schema_rearchitect')
 def test_py(setup_example_test):
     setup_example_test('gcd')
 
@@ -22,7 +21,7 @@ def test_py(setup_example_test):
     manifest = 'build/gcd/job0/export/0/outputs/gcd.pkg.json'
     assert os.path.isfile(manifest)
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('gcd')
     chip.read_manifest(manifest)
 
     assert chip.get('tool', 'yosys', 'report', 'syn', '0', 'cellarea') == ['syn.log']
