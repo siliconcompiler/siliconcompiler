@@ -85,12 +85,17 @@ def setup(chip):
         chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
 
         targetlibs = chip.get('asic', 'logiclib')
-        mainlib = chip.get('asic', 'logiclib')[0]
-        macrolibs = chip.get('asic', 'macrolib')
-
-        for lib in (targetlibs + macrolibs):
+        for lib in targetlibs:
+            # mandatory for logiclibs
             for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
                 chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model','timing', 'nldm', corner]))
+
+        macrolibs = chip.get('asic', 'macrolib')
+        for lib in macrolibs:
+            # optional for macrolibs
+            if chip.valid('library', lib, 'model', 'timing', 'nldm'):
+                for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
+                    chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model','timing', 'nldm', corner]))
     else:
         chip.add('tool', tool, 'require', step, index, ",".join(['fpga','partname']))
 

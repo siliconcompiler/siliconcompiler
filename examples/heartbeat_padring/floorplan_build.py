@@ -31,28 +31,28 @@ SKY130IO_PREFIX = f'{SCROOT}/third_party/pdks/skywater/skywater130/libs/sky130io
 
 def configure_chip(design):
     # Minimal Chip object construction.
-    chip = Chip()
+    chip = Chip(design)
     chip.load_target('skywater130_demo')
-    chip.set('design', design)
 
     # Include I/O macro lib.
     stackup = chip.get('asic', 'stackup')
     libname = 'io'
-    chip.add('library', libname, 'nldm', 'typical', 'lib', f'{SKY130IO_PREFIX}/io/sky130_dummy_io.lib')
-    chip.set('library', libname, 'lef', stackup, f'{SKY130IO_PREFIX}/io/sky130_ef_io.lef')
-    chip.add('library', libname, 'gds', stackup, f'{SKY130IO_PREFIX}/io/sky130_ef_io.gds')
-    chip.add('library', libname, 'gds', stackup, f'{SKY130IO_PREFIX}/io/sky130_fd_io.gds')
-    chip.add('library', libname, 'gds', stackup, f'{SKY130IO_PREFIX}/io/sky130_ef_io__gpiov2_pad_wrapped.gds')
+    lib = Chip(libname)
+    lib.add('model', 'timing', 'nldm', 'typical', f'{SKY130IO_PREFIX}/io/sky130_dummy_io.lib')
+    lib.set('model', 'layout', 'lef', stackup, f'{SKY130IO_PREFIX}/io/sky130_ef_io.lef')
+    lib.add('model', 'layout', 'gds', stackup, f'{SKY130IO_PREFIX}/io/sky130_ef_io.gds')
+    lib.add('model', 'layout', 'gds', stackup, f'{SKY130IO_PREFIX}/io/sky130_fd_io.gds')
+    lib.add('model', 'layout', 'gds', stackup, f'{SKY130IO_PREFIX}/io/sky130_ef_io__gpiov2_pad_wrapped.gds')
+    chip.import_library(lib)
     chip.add('asic', 'macrolib', libname)
-    chip.set('library', libname, 'type', 'component')
 
     # TODO: This param goes under ['asic', 'exclude', step, index, ...] now.
     # But I think it's used by DRC checks, which aren't currently enabled in this test design.
     #chip.set('asic', 'exclude', ['io'])
 
     # Configure 'show' apps, and return the Chip object.
-    chip.set('showtool', 'def', 'klayout')
-    chip.set('showtool', 'gds', 'klayout')
+    chip.set('option', 'showtool', 'def', 'klayout')
+    chip.set('option', 'showtool', 'gds', 'klayout')
     return chip
 
 def define_dimensions(fp):
@@ -522,11 +522,11 @@ def build_core():
     core_fp.write_lef('heartbeat.lef')
 
     # Configure the Chip object for a full build.
-    core_chip.set('read', 'def', 'floorplan', '0', 'heartbeat.def', clobber=True)
-    core_chip.set('source', 'heartbeat.v')
-    core_chip.set('eda', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
-    core_chip.set('eda', 'openroad', 'var', 'route', '0', 'grt_allow_congestion', ['true'])
-    core_chip.clock(name='clk', pin='clk', period=20)
+    core_chip.set('input', 'floorplan.def', 'heartbeat.def', clobber=True)
+    core_chip.set('input', 'verilog', 'heartbeat.v')
+    core_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
+    core_chip.set('tool', 'openroad', 'var', 'route', '0', 'grt_allow_congestion', ['true'])
+    core_chip.clock(pin='clk', period=20)
 
     # Run the ASIC build flow with the resulting floorplan.
     core_chip.run()
@@ -537,7 +537,7 @@ def build_core():
     design = core_chip.get('design')
     jobdir = (core_chip.get('option', 'builddir') +
             "/" + design + "/" +
-            core_chip.get('jobname'))
+            core_chip.get('option', 'jobname'))
     shutil.copy(f'{jobdir}/export/0/outputs/{design}.gds', f'{design}.gds')
     shutil.copy(f'{jobdir}/dfm/0/outputs/{design}.vg', f'{design}.vg')
 
@@ -547,36 +547,37 @@ def build_top():
 
     # Use 'asictopflow' to combine the padring macros with the core 'heartbeat' macro.
     flow = 'asictopflow'
-    chip.set('flow', flow)
+    chip.set('option', 'flow', flow)
 
     # Configure inputs for the top-level design.
     libname = 'heartbeat'
     stackup = chip.get('asic', 'stackup')
+    lib = Chip(libname)
     chip.add('asic', 'macrolib', libname)
-    chip.set('library', libname, 'type', 'component')
-    chip.set('library', libname, 'lef', stackup, 'heartbeat.lef')
-    chip.set('library', libname, 'gds', stackup, 'heartbeat.gds')
-    chip.set('library', libname, 'netlist', 'verilog', 'heartbeat.vg')
+    lib.set('model', 'layout', 'lef', stackup, 'heartbeat.lef')
+    lib.set('model', 'layout', 'gds', stackup, 'heartbeat.gds')
+    lib.set('output', 'netlist', 'heartbeat.vg')
+    chip.import_library(lib)
 
     fp = Floorplan(chip)
     top_floorplan(fp)
     fp.write_def('heartbeat_top.def')
-    chip.set('read', 'def', 'export', '0', 'heartbeat_top.def')
+    chip.set('input', 'def', 'heartbeat_top.def')
 
-    chip.set('source', 'heartbeat_top.v')
-    chip.add('source', 'heartbeat.bb.v')
-    chip.add('source', f'{OH_PREFIX}/padring/hdl/oh_padring.v')
-    chip.add('source', f'{OH_PREFIX}/padring/hdl/oh_pads_domain.v')
-    chip.add('source', f'{OH_PREFIX}/padring/hdl/oh_pads_corner.v')
-    chip.add('source', f'{SKY130IO_PREFIX}/io/asic_iobuf.v')
-    chip.add('source', f'{SKY130IO_PREFIX}/io/asic_iovdd.v')
-    chip.add('source', f'{SKY130IO_PREFIX}/io/asic_iovddio.v')
-    chip.add('source', f'{SKY130IO_PREFIX}/io/asic_iovss.v')
-    chip.add('source', f'{SKY130IO_PREFIX}/io/asic_iovssio.v')
-    chip.add('source', f'{SKY130IO_PREFIX}/io/asic_iocorner.v')
-    chip.add('source', f'{SKY130IO_PREFIX}/io/asic_iopoc.v')
-    chip.add('source', f'{SKY130IO_PREFIX}/io/asic_iocut.v')
-    chip.add('source', f'{SKY130IO_PREFIX}/io/sky130_io.blackbox.v')
+    chip.set('input', 'verilog', 'heartbeat_top.v')
+    chip.add('input', 'verilog', 'heartbeat.bb.v')
+    chip.add('input', 'verilog', f'{OH_PREFIX}/padring/hdl/oh_padring.v')
+    chip.add('input', 'verilog', f'{OH_PREFIX}/padring/hdl/oh_pads_domain.v')
+    chip.add('input', 'verilog', f'{OH_PREFIX}/padring/hdl/oh_pads_corner.v')
+    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iobuf.v')
+    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iovdd.v')
+    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iovddio.v')
+    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iovss.v')
+    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iovssio.v')
+    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iocorner.v')
+    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iopoc.v')
+    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iocut.v')
+    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/sky130_io.blackbox.v')
     chip.write_manifest('top_manifest.json')
 
     # Run the top-level build.
