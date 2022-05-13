@@ -20,7 +20,7 @@ def main():
     chip = siliconcompiler.Chip('heartbeat')
     chip.set('input', 'verilog', 'heartbeat.v')
     # default Migen clock pin is named 'sys_clk'
-    chip.clock(name='sys', pin='sys_clk', period=1)
+    chip.clock(pin='sys_clk', period=1)
     chip.load_target('freepdk45_demo')
     chip.run()
     chip.summary()
