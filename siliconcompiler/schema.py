@@ -140,8 +140,8 @@ def schema_cfg():
             switch="-design <str>",
             example=["cli: -design hello_world",
                     "api: chip.set('design', 'hello_world')"],
-            schelp="""Name of the top level module to compile.
-            Required for all designs with more than one module.""")
+            schelp="""Name of the top level module or library. Required for all
+            chip objects.""")
 
     # input/output
     io = {'input': ['Input','true'],
