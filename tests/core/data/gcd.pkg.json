@@ -8213,6 +8213,1602 @@
                     }
                 }
             }
+        },
+        "lintflow": {
+            "export": {
+                "0": {
+                    "input": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "notes": null,
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: step input",
+                        "signature": [],
+                        "switch": "-flowgraph_input 'flow step index <(str,str)>'",
+                        "type": "[(str,str)]",
+                        "value": [
+                            "('lint', '0')"
+                        ]
+                    },
+                    "tool": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "notes": null,
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: tool selection",
+                        "signature": null,
+                        "switch": "-flowgraph_tool 'flow step <str>'",
+                        "type": "str",
+                        "value": "nop"
+                    },
+                    "valid": {
+                        "defvalue": "false",
+                        "lock": "false",
+                        "notes": null,
+                        "require": "all",
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: task valid bit",
+                        "signature": null,
+                        "switch": "-flowgraph_valid 'flow step index <str>'",
+                        "type": "bool",
+                        "value": "false"
+                    },
+                    "weight": {
+                        "averagepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "brams": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "buffers": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "cellarea": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "cells": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "coverage": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "dozepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "drvs": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "dsps": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "errors": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdpaths": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdslack": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdtns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdwns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "idlepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "irdrop": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "leakagepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "luts": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "macros": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "memory": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "nets": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "overflow": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "peakpower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "pins": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "registers": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "security": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setuppaths": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setupslack": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setuptns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setupwns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "sleeppower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "totalarea": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "totaltime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "transistors": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "unconstrained": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "utilization": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "vias": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "warnings": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "wirelength": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        }
+                    }
+                }
+            },
+            "import": {
+                "0": {
+                    "tool": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "notes": null,
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: tool selection",
+                        "signature": null,
+                        "switch": "-flowgraph_tool 'flow step <str>'",
+                        "type": "str",
+                        "value": "surelog"
+                    },
+                    "valid": {
+                        "defvalue": "false",
+                        "lock": "false",
+                        "notes": null,
+                        "require": "all",
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: task valid bit",
+                        "signature": null,
+                        "switch": "-flowgraph_valid 'flow step index <str>'",
+                        "type": "bool",
+                        "value": "false"
+                    },
+                    "weight": {
+                        "averagepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "brams": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "buffers": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "cellarea": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "cells": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "coverage": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "dozepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "drvs": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "dsps": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "errors": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdpaths": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdslack": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdtns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdwns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "idlepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "irdrop": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "leakagepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "luts": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "macros": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "memory": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "nets": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "overflow": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "peakpower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "pins": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "registers": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "security": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setuppaths": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setupslack": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setuptns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setupwns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "sleeppower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "totalarea": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "totaltime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "transistors": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "unconstrained": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "utilization": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "vias": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "warnings": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "wirelength": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        }
+                    }
+                }
+            },
+            "lint": {
+                "0": {
+                    "input": {
+                        "defvalue": [],
+                        "lock": "false",
+                        "notes": null,
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: step input",
+                        "signature": [],
+                        "switch": "-flowgraph_input 'flow step index <(str,str)>'",
+                        "type": "[(str,str)]",
+                        "value": [
+                            "('import', '0')"
+                        ]
+                    },
+                    "tool": {
+                        "defvalue": null,
+                        "lock": "false",
+                        "notes": null,
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: tool selection",
+                        "signature": null,
+                        "switch": "-flowgraph_tool 'flow step <str>'",
+                        "type": "str",
+                        "value": "verilator"
+                    },
+                    "valid": {
+                        "defvalue": "false",
+                        "lock": "false",
+                        "notes": null,
+                        "require": "all",
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: task valid bit",
+                        "signature": null,
+                        "switch": "-flowgraph_valid 'flow step index <str>'",
+                        "type": "bool",
+                        "value": "false"
+                    },
+                    "weight": {
+                        "averagepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "brams": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "buffers": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "cellarea": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "cells": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "coverage": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "dozepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "drvs": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "dsps": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "errors": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "exetime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdpaths": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdslack": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdtns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "holdwns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "idlepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "irdrop": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "leakagepower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "luts": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "macros": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "memory": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "nets": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "overflow": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "peakpower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "pins": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "registers": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "security": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setuppaths": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setupslack": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setuptns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "setupwns": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "sleeppower": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "tasktime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "totalarea": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "totaltime": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "transistors": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "unconstrained": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "utilization": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "vias": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "warnings": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        },
+                        "wirelength": {
+                            "defvalue": null,
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Flowgraph: metric weights",
+                            "signature": null,
+                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "type": "float",
+                            "value": "0"
+                        }
+                    }
+                }
+            }
         }
     },
     "fpga": {
@@ -8443,28 +10039,14 @@
                     }
                 },
                 "footprint": {
-                    "10t": {
-                        "alias": {
-                            "defvalue": [],
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "job",
-                            "shorthelp": "ASIC: Footprint name aliases",
-                            "signature": [],
-                            "switch": "-asic_footprint_alias 'key <str>'",
-                            "type": "[str]",
-                            "value": [
-                                "FreePDK45_38x28_10R_NP_162NW_34O"
-                            ]
-                        },
+                    "FreePDK45_38x28_10R_NP_162NW_34O": {
                         "size": {
                             "defvalue": null,
                             "lock": "false",
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "ASUC: Footprint size",
+                            "shorthelp": "ASIC: Footprint size",
                             "signature": null,
                             "switch": "-asic_footprint_size 'key <str>'",
                             "type": "(float,float)",
@@ -8484,6 +10066,30 @@
                         }
                     }
                 },
+                "libarch": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "ASIC: library architecture",
+                    "signature": null,
+                    "switch": "-asic_library '<str>'",
+                    "type": "str",
+                    "value": "10t"
+                },
+                "pdk": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "ASIC PDK target",
+                    "signature": null,
+                    "switch": "-asic_pdk <str>",
+                    "type": "str",
+                    "value": "freepdk45"
+                },
                 "pgmetal": {
                     "defvalue": null,
                     "lock": "false",
@@ -8495,6 +10101,18 @@
                     "switch": "-asic_pgmetal '<str>'",
                     "type": "str",
                     "value": "m1"
+                },
+                "stackup": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "ASIC Stackup target",
+                    "signature": null,
+                    "switch": "-asic_stackup <str>",
+                    "type": "str",
+                    "value": "10M"
                 }
             },
             "design": {
@@ -8856,18 +10474,6 @@
                     "switch": "-track <bool>",
                     "type": "bool",
                     "value": "false"
-                },
-                "version": {
-                    "defvalue": "false",
-                    "lock": "false",
-                    "notes": null,
-                    "require": "all",
-                    "scope": "job",
-                    "shorthelp": "Pint software version",
-                    "signature": null,
-                    "switch": "-version <bool>",
-                    "type": "bool",
-                    "value": "false"
                 }
             },
             "package": {
@@ -8883,6 +10489,18 @@
                     "type": "str",
                     "value": "r1p0"
                 }
+            },
+            "schemaversion": {
+                "defvalue": "0.8.0",
+                "lock": "true",
+                "notes": null,
+                "require": "all",
+                "scope": "global",
+                "shorthelp": "Schema version number",
+                "signature": null,
+                "switch": "-schemaversion <str>",
+                "type": "str",
+                "value": "0.8.0"
             },
             "unit": {
                 "capacitance": {
@@ -9146,7 +10764,7 @@
                     "switch": "-metric_exetime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "2.16"
+                    "value": "1.96"
                 },
                 "holdpaths": {
                     "defvalue": null,
@@ -9273,7 +10891,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "105598976.0"
+                    "value": "97275904.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -9424,7 +11042,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "2.36"
+                    "value": "2.15"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -9665,7 +11283,7 @@
                     "switch": "-metric_exetime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.41"
+                    "value": "0.42"
                 },
                 "holdpaths": {
                     "defvalue": null,
@@ -9792,7 +11410,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "94068736.0"
+                    "value": "87482368.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -9943,7 +11561,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.64"
+                    "value": "0.65"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -10184,7 +11802,7 @@
                     "switch": "-metric_exetime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "1.07"
+                    "value": "1.06"
                 },
                 "holdpaths": {
                     "defvalue": null,
@@ -10311,7 +11929,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "371220480"
+                    "value": "222760960"
                 },
                 "nets": {
                     "defvalue": null,
@@ -10462,7 +12080,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "1.36"
+                    "value": "1.35"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -10703,7 +12321,7 @@
                     "switch": "-metric_exetime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.42"
+                    "value": "0.41"
                 },
                 "holdpaths": {
                     "defvalue": null,
@@ -10830,7 +12448,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "87842816.0"
+                    "value": "84680704.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -11222,7 +12840,7 @@
                     "switch": "-metric_exetime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.44"
+                    "value": "0.41"
                 },
                 "holdpaths": {
                     "defvalue": null,
@@ -11349,7 +12967,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "37285888.0"
+                    "value": "37707776.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -11500,7 +13118,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.48"
+                    "value": "0.46"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -11741,7 +13359,7 @@
                     "switch": "-metric_exetime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.41"
+                    "value": "0.31"
                 },
                 "holdpaths": {
                     "defvalue": null,
@@ -11868,7 +13486,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "80355328.0"
+                    "value": "74629120.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -12019,7 +13637,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.61"
+                    "value": "0.49"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -12260,7 +13878,7 @@
                     "switch": "-metric_exetime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.73"
+                    "value": "0.62"
                 },
                 "holdpaths": {
                     "defvalue": null,
@@ -12387,7 +14005,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "126562304.0"
+                    "value": "184471552.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -12538,7 +14156,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.95"
+                    "value": "0.81"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -12779,7 +14397,7 @@
                     "switch": "-metric_exetime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "3.79"
+                    "value": "3.5"
                 },
                 "holdpaths": {
                     "defvalue": null,
@@ -12906,7 +14524,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "749924352.0"
+                    "value": "746811392.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -13057,7 +14675,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "4.04"
+                    "value": "3.73"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -13298,7 +14916,7 @@
                     "switch": "-metric_exetime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.71"
+                    "value": "0.81"
                 },
                 "holdpaths": {
                     "defvalue": null,
@@ -13425,7 +15043,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "30842880.0"
+                    "value": "30945280.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -13576,7 +15194,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.9"
+                    "value": "0.98"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -14021,18 +15639,6 @@
             "switch": "-track <bool>",
             "type": "bool",
             "value": "true"
-        },
-        "version": {
-            "defvalue": "false",
-            "lock": "false",
-            "notes": null,
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Pint software version",
-            "signature": null,
-            "switch": "-version <bool>",
-            "type": "bool",
-            "value": "false"
         }
     },
     "package": {
@@ -15339,7 +16945,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:57"
+                    "value": "2022-05-16 13:33:27"
                 },
                 "kernelversion": {
                     "defvalue": null,
@@ -15401,6 +17007,18 @@
                     "type": "str",
                     "value": "local"
                 },
+                "scversion": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: software version",
+                    "signature": null,
+                    "switch": "-record_scversion 'step index <str>'",
+                    "type": "str",
+                    "value": "0.8.0"
+                },
                 "starttime": {
                     "defvalue": null,
                     "lock": "false",
@@ -15411,7 +17029,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:55"
+                    "value": "2022-05-16 13:33:25"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -15487,7 +17105,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:57:03"
+                    "value": "2022-05-16 13:33:32"
                 },
                 "kernelversion": {
                     "defvalue": null,
@@ -15549,6 +17167,18 @@
                     "type": "str",
                     "value": "local"
                 },
+                "scversion": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: software version",
+                    "signature": null,
+                    "switch": "-record_scversion 'step index <str>'",
+                    "type": "str",
+                    "value": "0.8.0"
+                },
                 "starttime": {
                     "defvalue": null,
                     "lock": "false",
@@ -15559,7 +17189,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:57:02"
+                    "value": "2022-05-16 13:33:31"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -15635,7 +17265,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:57:04"
+                    "value": "2022-05-16 13:33:33"
                 },
                 "kernelversion": {
                     "defvalue": null,
@@ -15697,6 +17327,18 @@
                     "type": "str",
                     "value": "local"
                 },
+                "scversion": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: software version",
+                    "signature": null,
+                    "switch": "-record_scversion 'step index <str>'",
+                    "type": "str",
+                    "value": "0.8.0"
+                },
                 "starttime": {
                     "defvalue": null,
                     "lock": "false",
@@ -15707,7 +17349,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:57:03"
+                    "value": "2022-05-16 13:33:32"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -15783,7 +17425,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:53"
+                    "value": "2022-05-16 13:33:22"
                 },
                 "kernelversion": {
                     "defvalue": null,
@@ -15845,6 +17487,18 @@
                     "type": "str",
                     "value": "local"
                 },
+                "scversion": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: software version",
+                    "signature": null,
+                    "switch": "-record_scversion 'step index <str>'",
+                    "type": "str",
+                    "value": "0.8.0"
+                },
                 "starttime": {
                     "defvalue": null,
                     "lock": "false",
@@ -15855,7 +17509,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:52"
+                    "value": "2022-05-16 13:33:22"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -15931,7 +17585,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:50"
+                    "value": "2022-05-16 13:33:20"
                 },
                 "kernelversion": {
                     "defvalue": null,
@@ -15993,6 +17647,18 @@
                     "type": "str",
                     "value": "local"
                 },
+                "scversion": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: software version",
+                    "signature": null,
+                    "switch": "-record_scversion 'step index <str>'",
+                    "type": "str",
+                    "value": "0.8.0"
+                },
                 "starttime": {
                     "defvalue": null,
                     "lock": "false",
@@ -16003,7 +17669,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:50"
+                    "value": "2022-05-16 13:33:20"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -16079,7 +17745,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:53"
+                    "value": "2022-05-16 13:33:23"
                 },
                 "kernelversion": {
                     "defvalue": null,
@@ -16141,6 +17807,18 @@
                     "type": "str",
                     "value": "local"
                 },
+                "scversion": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: software version",
+                    "signature": null,
+                    "switch": "-record_scversion 'step index <str>'",
+                    "type": "str",
+                    "value": "0.8.0"
+                },
                 "starttime": {
                     "defvalue": null,
                     "lock": "false",
@@ -16151,7 +17829,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:53"
+                    "value": "2022-05-16 13:33:23"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -16227,7 +17905,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:55"
+                    "value": "2022-05-16 13:33:24"
                 },
                 "kernelversion": {
                     "defvalue": null,
@@ -16289,6 +17967,18 @@
                     "type": "str",
                     "value": "local"
                 },
+                "scversion": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: software version",
+                    "signature": null,
+                    "switch": "-record_scversion 'step index <str>'",
+                    "type": "str",
+                    "value": "0.8.0"
+                },
                 "starttime": {
                     "defvalue": null,
                     "lock": "false",
@@ -16299,7 +17989,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:54"
+                    "value": "2022-05-16 13:33:23"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -16375,7 +18065,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:57:02"
+                    "value": "2022-05-16 13:33:31"
                 },
                 "kernelversion": {
                     "defvalue": null,
@@ -16437,6 +18127,18 @@
                     "type": "str",
                     "value": "local"
                 },
+                "scversion": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: software version",
+                    "signature": null,
+                    "switch": "-record_scversion 'step index <str>'",
+                    "type": "str",
+                    "value": "0.8.0"
+                },
                 "starttime": {
                     "defvalue": null,
                     "lock": "false",
@@ -16447,7 +18149,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:58"
+                    "value": "2022-05-16 13:33:27"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -16523,7 +18225,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:52"
+                    "value": "2022-05-16 13:33:22"
                 },
                 "kernelversion": {
                     "defvalue": null,
@@ -16585,6 +18287,18 @@
                     "type": "str",
                     "value": "local"
                 },
+                "scversion": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: software version",
+                    "signature": null,
+                    "switch": "-record_scversion 'step index <str>'",
+                    "type": "str",
+                    "value": "0.8.0"
+                },
                 "starttime": {
                     "defvalue": null,
                     "lock": "false",
@@ -16595,7 +18309,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2022-05-10 14:56:51"
+                    "value": "2022-05-16 13:33:21"
                 },
                 "toolpath": {
                     "defvalue": null,
@@ -16635,6 +18349,18 @@
                 }
             }
         }
+    },
+    "schemaversion": {
+        "defvalue": "0.8.0",
+        "lock": "true",
+        "notes": null,
+        "require": "all",
+        "scope": "global",
+        "shorthelp": "Schema version number",
+        "signature": null,
+        "switch": "-schemaversion <str>",
+        "type": "str",
+        "value": "0.8.0"
     },
     "tool": {
         "klayout": {
@@ -21944,9 +23670,6 @@
                         "value": [
                             "asic,logiclib",
                             "asic,stackup",
-                            "library,nangate45,asic,footprint,10t,alias",
-                            "library,nangate45,asic,footprint,10t,symmetry",
-                            "library,nangate45,asic,footprint,10t,size",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,model,timing,nldm,typical",
                             "library,nangate45,model,layout,lef,10M",
@@ -21972,9 +23695,6 @@
                         "value": [
                             "asic,logiclib",
                             "asic,stackup",
-                            "library,nangate45,asic,footprint,10t,alias",
-                            "library,nangate45,asic,footprint,10t,symmetry",
-                            "library,nangate45,asic,footprint,10t,size",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,model,timing,nldm,typical",
                             "library,nangate45,model,layout,lef,10M",
@@ -22000,9 +23720,6 @@
                         "value": [
                             "asic,logiclib",
                             "asic,stackup",
-                            "library,nangate45,asic,footprint,10t,alias",
-                            "library,nangate45,asic,footprint,10t,symmetry",
-                            "library,nangate45,asic,footprint,10t,size",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,model,timing,nldm,typical",
                             "library,nangate45,model,layout,lef,10M",
@@ -22028,9 +23745,6 @@
                         "value": [
                             "asic,logiclib",
                             "asic,stackup",
-                            "library,nangate45,asic,footprint,10t,alias",
-                            "library,nangate45,asic,footprint,10t,symmetry",
-                            "library,nangate45,asic,footprint,10t,size",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,model,timing,nldm,typical",
                             "library,nangate45,model,layout,lef,10M",
@@ -22056,9 +23770,6 @@
                         "value": [
                             "asic,logiclib",
                             "asic,stackup",
-                            "library,nangate45,asic,footprint,10t,alias",
-                            "library,nangate45,asic,footprint,10t,symmetry",
-                            "library,nangate45,asic,footprint,10t,size",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,model,timing,nldm,typical",
                             "library,nangate45,model,layout,lef,10M",
@@ -22084,9 +23795,6 @@
                         "value": [
                             "asic,logiclib",
                             "asic,stackup",
-                            "library,nangate45,asic,footprint,10t,alias",
-                            "library,nangate45,asic,footprint,10t,symmetry",
-                            "library,nangate45,asic,footprint,10t,size",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
                             "library,nangate45,model,timing,nldm,typical",
                             "library,nangate45,model,layout,lef,10M",
