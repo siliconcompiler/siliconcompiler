@@ -1,22 +1,22 @@
 Execution model
 ===================================
 
-The complete SiliconCompiler compilation is handled by a single call to the run() function. Within that function call, the execution model is based on a directed static data flow graph consisting of nodes and edges. The static flowgraph approach was chosen for a number reasons:
+The complete SiliconCompiler compilation is handled by a single call to the :meth:`.run()` function. Within that function call, the execution model is based on a directed static data flow graph consisting of nodes and edges. The static flowgraph approach was chosen for a number reasons:
 
 * Performance scalability ("cloud-scale")
 * High abstraction level (not locked into one language and/or shared memory model)
 * Deterministic execution
 * Ease of implementation (synchronization is hard)
 
-A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where a node is an executable tool performing some ("task"), and an edge is the connection between those tasks. SiliconCompiler defines a "task" as an atomic combination of a step and an index, where: 1.) STEP is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and 2.) INDEX is defined as variant of a step operating on identical data.  Flowgraph execution is done through the run() function which checks the flowgraph for correctness and then executes all tasks in the flowgraph from start to finish.
+A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where a node is an executable tool performing some ("task"), and an edge is the connection between those tasks. SiliconCompiler defines a "task" as an atomic combination of a step and an index, where: 1.) STEP is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and 2.) INDEX is defined as variant of a step operating on identical data.  Flowgraph execution is done through the :meth:`.run()` function which checks the flowgraph for correctness and then executes all tasks in the flowgraph from start to finish.
 
-The :ref:`quickstart guide` example called the built in "`asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_" compilation flow through the target function. Custom flowgraphs can be easily created through the set()/get() methods or the node()/edge() methods (**recommended**). All flows must contain an import step that 'imports' source files into the SiliconCompiler schema. Otherwise the user is free to define any reasonable combination of steps and indices based on available tools and PDKs. The example below shows the 'heartbeat' example modified to include a simple two step (import + synthesis) compilation pipeline.
+The :ref:`quickstart guide` example called the built in "`asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_" compilation flow through the target function. Custom flowgraphs can be easily created through the :meth:`.set()`/:meth:`.get()` methods or the :meth:`.node()`/:meth:`.edge()` methods (**recommended**). All flows must contain an import step that 'imports' source files into the SiliconCompiler schema. Otherwise the user is free to define any reasonable combination of steps and indices based on available tools and PDKs. The example below shows the 'heartbeat' example modified to include a simple two step (import + synthesis) compilation pipeline.
 
 .. The built in functions are important to minimize data movement in remote processing workflows, where intermediate results may not be accessible.
 
 .. literalinclude:: examples/heartbeat_flowgraph.py
 
-The execution flowgraph can be rendered using the write_flowgraph(), which proves very helpful in debugging graph definitions. ::
+The execution flowgraph can be rendered using :meth:`.write_flowgraph()`, which proves very helpful in debugging graph definitions. ::
 
   chip.write_flowgraph("flowgraph.svg", landscape=True)
 
@@ -63,10 +63,10 @@ Parallel pipelines is another common pattern found in parallel programming. It's
 
 .. image:: ../_images/pipes.png
 
-At the end of each run() call, the current in memory job schema entries are copied into a job history dictionary to more complex flow creation. which can be accessed by the user to to create sophisticated non-linear flows that take into account run history and gradients. The code snippet below shows a minimal sequence leveraging the multi-job feature.::
+At the end of each :meth:`run()` call, the current in memory job schema entries are copied into a job history dictionary to more complex flow creation. which can be accessed by the user to to create sophisticated non-linear flows that take into account run history and gradients. The code snippet below shows a minimal sequence leveraging the multi-job feature.::
 
   chip.run()
-  chip.set('jobname', 'newname')
+  chip.set('option', 'jobname', 'newname')
   chip.set('some parameter..')
   chip.run()
 

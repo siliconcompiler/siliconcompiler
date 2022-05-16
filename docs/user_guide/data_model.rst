@@ -1,24 +1,20 @@
 Data model
 ===================================
 
-The SiliconCompiler Schema is a data structure that stores all configurations  and metrics  gathered during the compilation process. Each schema entry ("parameter") is a self contained leaf cell with a required set of standardized key/value pairs ("fields"). The example below shows the definition of one of the parameters named 'design'.
+The SiliconCompiler Schema is a data structure that stores all configurations and metrics gathered during the compilation process. Each schema entry ("parameter") is a self contained leaf cell with a required set of standardized key/value pairs ("fields"). The example below shows the definition of one of the parameters named 'design'.
 
 .. code-block:: python
 
-   cfg['design'] = {
-        'switch': "-design <str>",
-        'type': 'str',
-        'lock': 'false',
-        'require': None,
-        'defvalue': None,
-        'shorthelp': 'Design top module name',
-        'example': ["cli: -design hello_world",
+    scparam(cfg,['design'],
+            sctype='str',
+            scope='global',
+            require='all',
+            shorthelp="Design top module name",
+            switch="-design <str>",
+            example=["cli: -design hello_world",
                     "api: chip.set('design', 'hello_world')"],
-        'help': """
-        Name of the top level module to compile. Required for all designs with
-        more than one module.
-        """
-    }
+            schelp="""Name of the top level module or library. Required for all
+            chip objects.""")
 
 The table below summarizes mandatory fields used in all parameter definitions.
 
@@ -97,60 +93,56 @@ The file type parameters have the additional required fields show in the table b
      - True / False
 
 
-Accessing schema parameters is done using the set(), get(), and add() Python methods. The following shows how to create a chip object and manipulating a schema parameter in Python.
+Accessing schema parameters is done using the :meth:`.set()`, :meth:`.get()`, and :meth:`.add()` Python methods. The following shows how to create a chip object and manipulate a schema parameter in Python.
 
 .. literalinclude:: examples/setget.py
 
-Reading and writing the schema to and from disk is handled by the read_manifest() and write_manifest() Python API methods. Supported export file formats include TCL, JSON, and YAML. By default, only non-empty values are written to disk.
+Reading and writing the schema to and from disk is handled by the :meth:`.read_manifest()` and :meth:`.write_manifest()` Python API methods. Supported export file formats include TCL, JSON, and YAML. By default, only non-empty values are written to disk.
 
 .. literalinclude:: examples/write_manifest.py
 
-The JSON structure below shows the 'design' parameter exported by the write_manifest()  method.
+The JSON structure below shows the 'design' parameter exported by the :meth:`.write_manifest()`  method.
 
 .. code-block:: json
 
-   "design": {
+    "design": {
         "defvalue": null,
+        "example": [
+            "cli: -design hello_world",
+            "api: chip.set('design', 'hello_world')"
+        ],
+        "help": "Name of the top level module or library. Required for all\nchip objects.",
         "lock": "false",
-        "require": null,
+        "notes": null,
+        "require": "all",
+        "scope": "global",
         "shorthelp": "Design top module name",
+        "signature": null,
         "switch": "-design <str>",
         "type": "str",
         "value": "hello_world"
     },
 
-
-To handle complex scenarios required by advanced PDKs, the Schema supports dynamic nested dictionaries. A 'default' keyword is used to define the dictionary structure during object creation. Populating the object dictionary with actual keys is done by the user during compilation setup. The example below illustrates how 'default' is used as a placeholder for the library name and corner. These dynamic dictionaries makes it easy to set up an arbitrary number of libraries and corners in a PDK using Python loops.
+To handle complex scenarios required by advanced PDKs, the Schema supports dynamic nested dictionaries. A 'default' keyword is used to define the dictionary structure during object creation. Populating the object dictionary with actual keys is done by the user during compilation setup. The example below illustrates how 'default' is used as a placeholder for the timing model filetype and corner. These dynamic dictionaries makes it easy to set up an arbitrary number of libraries and corners in a PDK using Python loops.
 
 .. code-block:: python
 
-   lib = 'default
+   filetype = 'default
    corner = 'default'
-   cfg['library'][lib]['nldm'] = {}
-   cfg['library'][lib]['nldm'][corner] = {}
-   cfg['library'][lib]['nldm'][corner]['default'] = {
-       'switch': "-library_nldm 'lib corner format <file>'",
-       'require': None,
-       'type': '[file]',
-       'lock': 'false',
-       'copy': 'false',
-       'defvalue': [],
-       'filehash': [],
-       'hashalgo': 'sha256',
-       'date': [],
-       'author': [],
-       'signature': [],
-       'shorthelp': 'Library NLDM timing model',
-       'example': [
-       "cli: -library_nldm 'lib ss lib ss.lib.gz'",
-       "api: chip.set('library','lib','nldm','ss','lib','ss.lib.gz')"],
-       'help': """
-       Filepaths to NLDM models. Timing files are specified on a per lib,
-       per corner, and per format basis. Legal file formats are lib (ascii)
-       and ldb (binary). File decompression is handled automatically for
-       gz, zip, and bz2 compression formats.
-       """
-    }
+   # ...
+   scparam(cfg,['model', 'timing', filetype, corner],
+            sctype='[file]',
+            scope='global',
+            shorthelp=f"Model: Timing",
+            switch=f"-model_timing 'filetype corner <file>'",
+            example=[
+                f"cli: -model_timing 'nldm-libgz ss ss.lib.gz'",
+                f"api: chip.set('model','timing','nldm-ldb','ss','ss.ldb')"],
+            schelp=f"""
+            Filepaths to static timing models specified on a per filetype and
+            per corner basis.  Examples of filetypes include: nldm, nldm-ldb,
+            nldm-libgz, ccs, ccs-libgz, ccs-ldb, scm, scm-libgz, scm-ldb,
+            aocv, aocv-libgz, aocv-ldb.""")
 
 The SiliconCompiler Schema is roughly divided into the following major sub-groups:
 
@@ -162,52 +154,60 @@ The SiliconCompiler Schema is roughly divided into the following major sub-group
      - Parameters
      - Description
 
-   * - *root*
-     - 52
-     - Source files and compilation options
+   * - **option**
+     - 47
+     - Compilation options
 
-   * - **eda**
-     - 22
+   * - **tool**
+     - 24
      - Individual tool settings
 
    * - **flowgraph**
-     - 6
+     - 8
      - Execution flow definition
 
    * - **pdk**
-     - 38
+     - 46
      - PDK related settings
 
    * - **asic**
-     - 21
+     - 45
      - ASIC related settings
 
    * - **fpga**
-     - 6
+     - 5
      - FPGA related settings
 
-   * - **mcmm**
-     - 8
+   * - **constraint**
+     - 7
      - Advanced timing analysis settings
 
-   * - **library**
-     - 46
-     - Library/package definitions
+   * - **model**
+     - 7
+     - Models/abstractions of design
 
    * - **metric**
-     - 35
+     - 40
      - Metric tracking
 
    * - **record**
-     - 39
+     - 15
      - Compilation history tracking
 
    * - **package**
-     - 32
+     - 28
      - Packaging manifest
 
+   * - **datasheet**
+     - 36
+     - Design interface specifications
+
+   * - **units**
+     - 9
+     - Global units
+
    * - **total**
-     - 306
+     - 317
      -
 
 Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information. Another good resource is the single file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema.py>`_.
