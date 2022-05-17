@@ -90,13 +90,14 @@ module user_project_wrapper #(
 
 heartbeat mprj (
 //`ifdef USE_POWER_PINS
-	.vccd1(vccd1),	// User area 1 1.8V power
-	.vssd1(vssd1),	// User area 1 digital ground
+	.vpp(vccd1),	// User area 1 1.8V power
+	.gnd(vssd1),	// User area 1 digital ground
 //`endif
 
     .clk(user_clock2),
     .nreset(io_in[1]),
     .out(io_out[0])
+
 );
 
 endmodule	// user_project_wrapper

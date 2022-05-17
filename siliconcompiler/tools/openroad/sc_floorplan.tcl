@@ -60,9 +60,15 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     # Automatic Pin Placement
     ###########################
 
+    # Pin configurations. TODO: Put these in schema
+    #set_pin_length_extension -hor_extension 0.68 -ver_extension 0.46
+    set_pin_thick_multiplier -hor_multiplier 2 -ver_multiplier 2
+    #set_pin_length -hor_length -0.68 -ver_length -0.46
+
     place_pins -hor_layers $sc_hpinmetal \
 	-ver_layers $sc_vpinmetal \
-	-random \
+	-random
+
 } else {
     ###########################
     # Add power nets
@@ -100,9 +106,11 @@ if {[design_has_macros] || \
     # TDMS Placement
     ###########################
 
+    # TODO: Put the overflow option in the schema
     global_placement -density $openroad_place_density \
         -pad_left $openroad_pad_global_place \
-        -pad_right $openroad_pad_global_place
+        -pad_right $openroad_pad_global_place \
+        -overflow 0.7
 
     ###########################
     # Macro placement

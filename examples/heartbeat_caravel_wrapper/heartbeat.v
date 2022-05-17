@@ -4,14 +4,15 @@
 module heartbeat #(parameter N = 8)
    (
 //`ifdef USE_POWER_PINS
-    inout vccd1,	// User area 1 1.8V supply
-    inout vssd1,	// User area 1 digital ground
+    inout vpp,	// User area 1 1.8V supply
+    inout gnd,	// User area 1 digital ground
 //`endif
 
     //inputs
     input      clk,// clock
     input      nreset,//async active low reset
     output reg out //heartbeat
+
     );
 
    reg [N-1:0] counter_reg;

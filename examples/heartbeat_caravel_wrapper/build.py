@@ -168,6 +168,48 @@ place_cell -inst_name mprj -origin {1188.64 1689.12} -orient R0 -status FIRM
     # Run the top-level build.
     chip.run()
 
+    # Add via definitions to the gate-level netlist.
+    design = chip.get('design')
+    jobdir = (chip.get('dir') +
+            "/" + design + "/" +
+            chip.get('jobname'))
+    shutil.copy(f'{jobdir}/dfm/0/outputs/{design}.vg', f'{design}.vg')
+    in_mod = False
+    done_mod = False
+    with open(f'{design}.vg.v', 'w') as wf:
+      with open(f'{design}.vg', 'r') as rf:
+        for line in rf.readlines():
+          if in_mod:
+            if line.strip().startswith('endmodule'):
+              wf.write(''' VIA_L1M1_PR(vssd1);
+ VIA_L1M1_PR(vccd1);
+ VIA_L1M1_PR_MR(vssd1);
+ VIA_L1M1_PR_MR(vccd1);
+ VIA_M1M2_PR(vssd1);
+ VIA_M1M2_PR(vccd1);
+ VIA_M1M2_PR_MR(vssd1);
+ VIA_M1M2_PR_MR(vccd1);
+ VIA_M2M3_PR(vssd1);
+ VIA_M2M3_PR(vccd1);
+ VIA_M2M3_PR_MR(vssd1);
+ VIA_M2M3_PR_MR(vccd1);
+ VIA_M3M4_PR(vssd1);
+ VIA_M3M4_PR(vccd1);
+ VIA_M3M4_PR_MR(vssd1);
+ VIA_M3M4_PR_MR(vccd1);
+ VIA_via2_3_3100_480_1_9_320_320(vssd1);
+ VIA_via2_3_3100_480_1_9_320_320(vccd1);
+ VIA_via3_4_3100_480_1_7_400_400(vssd1);
+ VIA_via3_4_3100_480_1_7_400_400(vccd1);
+ VIA_via4_3100x3100(vssd1);
+ VIA_via4_3100x3100(vccd1);
+ VIA_via4_5_3100_480_1_7_400_400(vssd1);
+ VIA_via4_5_3100_480_1_7_400_400(vccd1);\n''')
+          elif not done_mod:
+            if line.strip().startswith('module user_project_wrapper'):
+              in_mod = True
+          wf.write(line)
+
 def main():
     # Build the core design, which gets placed inside the padring.
     build_core()
