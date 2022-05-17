@@ -61,8 +61,8 @@ submodules to pull down the required third-party design files:
   $ git submodule update --init --recursive
 
 In order to follow along, you should also :ref:`install
-SiliconCompiler<SiliconCompiler Setup>` and the :ref:`KLayout layout
-viewer<Tool Setup>`.
+SiliconCompiler<Installation>` and the :ref:`KLayout layout
+viewer<External Tools>`.
 
 If you install SC from PyPI rather than from source, you'll need to clone the
 SiliconCompiler repository and configure your SC path to point to the repo in
@@ -114,7 +114,7 @@ throughout the tutorial.
 
 Next, ``main()`` calls ``core_floorplan()``, which will ultimately use the
 functions provided by the floorplan API to generate the floorplan itself.
-Finally, ``main()`` calls a method of the floorplan object, ``write_def()``, to
+Finally, ``main()`` calls a method of the floorplan object, :meth:`.write_def()`, to
 generate an output DEF file that we can either preview in KLayout or pass into
 an SC compilaton flow.
 
@@ -124,48 +124,32 @@ The first thing we need to do to is fill out our ``configure_chip()`` function
 with a minimal configuration. Floorplanning relies on the following items being
 configured in the provided chip object:
 
-1) A technology target, for providing technology-specific information.
-2) A design name, used to name the layout in the output file.
+1) A design name, used to name the layout in the output file. This is always required when instantiating a chip object.
+2) A technology target, for providing technology-specific information.
 3) Macro libraries, in order to perform macro placement.
 
 Let's fill out ``configure_chip()`` to accomplish these tasks one-by-one. First,
 we instantiate a new chip and set its target to Skywater 130, an open-source PDK
-that has a demo build target bundled with SC::
+that has a demo build target bundled with SC. We'll provide the design name as a
+parameter so that we can reuse this configuration function for testing both the
+core and top padring::
 
-  chip = Chip()
+  chip = Chip(design)
   chip.load_target('skywater130_demo')
 
-Next, we'll provide the design name as a parameter so that we can reuse this
-configuration function for testing both the core and top padring::
+Next, we want to load two macro libraries, one for ZeroSoC's RAM and the
+other for ZeroSoC's I/O cells.  The setup files for these libraries are already
+included in ZeroSoC (for the RAM) and SiliconComplier (for the IO), so we can
+load them directly using :meth:`load_lib()`::
 
-  chip.set('design', design)
+  chip.load_lib('sky130sram')
+  chip.load_lib('sky130io')
 
-Last, we want to configure two macro libraries, one for ZeroSoC's RAM and the
-other for ZeroSoC's I/O cells.  The first step to including macros in a design
-is to point SC to the relevant files in your build configuration. At a minimum,
-you’ll need LEF, GDS, and liberty files for each of your libraries. In the
-configuration schema, all macro library configurations live under a key path
-starting with ``library``, followed by a designer-defined macro library name.
-The following lines show how the ZeroSoC configuration points to its RAM macro
-library::
-
-  stackup = chip.get('asic', 'stackup')
-  libname = 'ram'
-  chip.add('library', libname, 'nldm', 'typical', 'lib', 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8_TT_1p8V_25C.lib')
-  chip.add('library', libname, 'lef', stackup, 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
-  chip.add('library', libname, 'gds', stackup, 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
-
-In addition, the name of the macro library must be added to the ``'asic', 'macrolib'``
+In addition, the names of the macro library must be added to the :keypath:`asic, macrolib`
 parameter::
 
-  chip.add('asic', 'macrolib', libname)
-
-Finally, it's a good idea to specify the "type" of a macro library in order to
-distinguish it from the technology target-defined standard cell library used for
-automated place and route. The standard type for a macro library is
-"component"::
-
-  chip.set('library', libname, 'type', 'component')
+  chip.add('asic', 'macrolib', 'sky130sram')
+  chip.add('asic', 'macrolib', 'sky130io')
 
 Note that if you’d like to include a Verilog behavioral model of a macro, that
 can be passed to SC just like any other Verilog source. However, keep in mind
@@ -180,34 +164,20 @@ With all these pieces included, along with additional configuration for the I/O
 library, your definition of ``configure_chip()`` should look like this::
 
   def configure_chip(design):
-      chip = Chip()
+      chip = Chip(design)
       chip.load_target('skywater130_demo')
 
-      chip.set('design', design)
+      chip.load_lib('sky130sram')
+      chip.load_lib('sky130io')
+      chip.add('asic', 'macrolib', 'sky130sram')
+      chip.add('asic', 'macrolib', 'sky130io')
 
-      stackup = chip.get('asic', 'stackup')
-      libname = 'ram'
-      chip.add('library', libname, 'nldm', 'typical', 'lib', 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8_TT_1p8V_25C.lib')
-      chip.add('library', libname, 'lef', stackup, 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
-      chip.add('library', libname, 'gds', stackup, 'asic/sky130/ram/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
-      chip.add('asic', 'macrolib', libname)
-      chip.set('library', libname, 'type', 'component')
-
-      libname = 'io'
-      chip.add('library', libname, 'nldm', 'typical', 'lib', 'asic/sky130/io/sky130_dummy_io.lib')
-      chip.set('library', libname, 'lef', stackup, 'asic/sky130/io/sky130_ef_io.lef')
-      # Need both GDS files: "ef" relies on "fd"
-      chip.add('library', libname, 'gds', stackup, 'asic/sky130/io/sky130_ef_io.gds')
-      chip.add('library', libname, 'gds', stackup, 'asic/sky130/io/sky130_fd_io.gds')
-      chip.add('asic', 'macrolib', libname)
-      chip.set('library', libname, 'type', 'component')
-
-      chip.set('showtool', 'def', 'klayout')
-      chip.set('showtool', 'gds', 'klayout')
+      chip.set('option', 'showtool', 'def', 'klayout')
+      chip.set('option', 'showtool', 'gds', 'klayout')
 
       return chip
 
-Note we've also added a few lines to set up the chip's ``showtool`` parameter.
+Note we've also added a few lines to set up the chip's :keypath:`option, showtool` parameter.
 While this isn't part of the minimal configuration required for using the
 floorplan API, it is required to use ``sc-show``, a tool we'll use to preview
 your floorplan later on in the tutorial. This will usually be handled for you by
@@ -344,7 +314,7 @@ file in KLayout by running the following command:
 
 .. code-block:: console
 
-  $ sc-show -read_def "show 0 asic_core.def" -cfg core_manifest.json
+  $ sc-show -input "def asic_core.def" -cfg core_manifest.json
 
 ``sc-show`` uses the information in ``core_manifest.json`` to configure KLayout
 according to our technology and macro library specifications to give you a
