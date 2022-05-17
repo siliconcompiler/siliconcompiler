@@ -5,8 +5,8 @@ SiliconCompiler has a Bluespec frontend that enables you to build Bluespec desig
 
 To build a Bluespec design, the only things you need to do differently from a configuration perspective are:
 
-1) Add the Bluespec top-level package as a 'source', and add all directories containing imported modules as entries in 'ydir'. Keep in mind that the Bluespec integration only supports specifying a single top-level source file, so you must use 'ydir' for all other sources.
-2) Set the 'frontend' parameter to 'bluespec'.
+1) Add the Bluespec top-level package as an 'input', and add all directories containing imported modules as entries in 'ydir'. Keep in mind that the Bluespec integration only supports specifying a single top-level source file, so you must use 'ydir' for all other sources.
+2) Set the :keypath:`option, frontend` parameter to 'bluespec'.
 
 Otherwise, you can configure the build as normal.
 

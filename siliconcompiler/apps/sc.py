@@ -43,10 +43,15 @@ def main():
 
     # Set design if none specified
     if chip.get('design') == UNSET_DESIGN:
-        sources = chip.get('input', 'verilog')
-        if len(sources) > 0:
-            topfile = chip.get('input', 'verilog')[0]
-        else:
+        topfile = None
+        for sourcetype in ('verilog', 'scala', 'c'):
+            if chip.valid('input', sourcetype):
+                sources = chip.get('input', sourcetype)
+                if sources:
+                    topfile = sources[0]
+                    break
+
+        if not topfile:
             chip.logger.error('Invalid arguments: either specify -design or provide sources.')
             sys.exit(1)
 
