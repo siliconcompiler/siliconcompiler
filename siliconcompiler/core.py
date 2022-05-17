@@ -1970,12 +1970,6 @@ class Chip:
         # Merging arguments with the Chip configuration
         self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
 
-        # Add library stubs to not interfere with check_manifest
-        if not partial:
-            if 'library' in localcfg:
-                for lib in localcfg['library'].keys():
-                    self.cfg['library'][lib] = {}
-
         # Read history
         if 'history' in localcfg and not partial:
             for historic_job in localcfg['history'].keys():

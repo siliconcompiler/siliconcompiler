@@ -11,7 +11,7 @@ with open('sc_manifest.json', 'r') as f:
     sc_cfg = json.load(f)
 
 # Extract info from manifest
-sc_pdk = sc_cfg['asic']['pdk']['value']
+sc_pdk = sc_cfg['option']['pdk']['value']
 sc_stackup = sc_cfg['pdk'][sc_pdk]['stackup']['value'][0]
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
 sc_libtype = list(sc_cfg['library'][sc_mainlib]['asic']['footprint'].keys())[0]
