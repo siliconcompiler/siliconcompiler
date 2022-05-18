@@ -5,11 +5,11 @@ def make_docs():
     '''
     Skywater130 standard cell library.
     '''
-    lib = setup(None)
-    return lib
+    chip = siliconcompiler.Chip('<design>')
+    setup(chip)
+    return chip
 
 def setup(chip):
-
     foundry = 'skywater'
     process = 'skywater130'
     stackup = '5M1LI'
@@ -121,7 +121,7 @@ def setup(chip):
     lib.add('asic', 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
                                       'sky130_fd_sc_hd__conb_1/LO'])
 
-    return lib
+    chip.import_library(lib)
 
 #########################
 if __name__ == "__main__":

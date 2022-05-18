@@ -6,14 +6,11 @@ def make_docs():
     '''
     Nangate open standard cell library for FreePDK45.
     '''
-
-    lib = setup(None)
-    return lib
+    chip = siliconcompiler.Chip('<design>')
+    setup(chip)
+    return chip
 
 def setup(chip):
-
-
-
     libname = 'nangate45'
     foundry = 'virtual'
     process = 'freepdk45'
@@ -104,7 +101,7 @@ def setup(chip):
     # Endcap
     lib.add('asic', 'cells','endcap', "FILLCELL_X1")
 
-    return lib
+    chip.import_library(lib)
 
 #########################
 if __name__ == "__main__":
