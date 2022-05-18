@@ -14,13 +14,8 @@ def _deferstep(chip, step, index, status):
     is only decrypted temporarily in the compute node's local storage.
     '''
 
-    # Ensure that error bits are up-to-date in this schema.
-    for in_step, in_index in chip.get('flowgraph', chip.get('flow'), step, index, 'input'):
-        #TODO: Why is this needed?
-        chip.set('flowstatus', in_step, in_index, 'status', status[f'{in_step}{in_index}'])
-
     # Determine which HPC job scheduler being used.
-    scheduler_type = chip.get('jobscheduler')
+    scheduler_type = chip.get('option', 'jobscheduler')
     username = chip.status['slurm_account']
     partition = chip.status['slurm_partition']
     job_hash = chip.status['jobhash']
@@ -33,13 +28,13 @@ def _deferstep(chip, step, index, status):
             slurm_constraint = 'SHARED'
         # Set the log file location.
         output_file = os.path.join(chip.get('design'),
-                                   chip.get('jobname'),
+                                   chip.get('option', 'jobname'),
                                    f'sc_remote-{step}-{index}.log')
         schedule_cmd = ['sbatch', '--exclusive',
                        '--constraint', slurm_constraint,
                        '--account', username,
                        '--partition', partition,
-                       '--chdir', chip.get("dir"),
+                       '--chdir', chip.get('option', 'builddir'),
                        '--job-name', f'{job_hash}_{step}{index}',
                        '--output', output_file]
     elif scheduler_type == 'lsf':
@@ -50,7 +45,7 @@ def _deferstep(chip, step, index, status):
     # Write out the current schema for the compute node to pick up.
     job_dir = "/".join([chip.get('option', 'builddir'),
                         chip.get('design'),
-                        chip.get('jobname')])
+                        chip.get('option', 'jobname')])
     cfg_dir = f'{job_dir}/configs'
     cfg_file = f'{cfg_dir}/{step}{index}.json'
     if not os.path.isdir(cfg_dir):
@@ -61,9 +56,9 @@ def _deferstep(chip, step, index, status):
     script_path = f'{cfg_dir}/{step}{index}.sh'
     with open(script_path, 'w') as sf:
         sf.write('#!/bin/bash\n')
-        sf.write(f'sc -cfg {shlex.quote(cfg_file)} -dir {shlex.quote(chip.get("dir"))} '\
+        sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
-                    f"-jobscheduler ''")
+                    f"-jobscheduler '' -design {shlex.quote(chip.get('design')}")
     schedule_cmd.append(script_path)
 
     # Run the 'srun' command, and track its output.
@@ -126,7 +121,3 @@ def _deferstep(chip, step, index, status):
 
     if retcode > 0:
         chip.logger.error(f'srun command for {step} failed.')
-
-    # Clear active bit after the 'srun' command, and set 'error' accordingly.
-    error[step + str(index)] = retcode
-    active[step + str(index)] = 0
