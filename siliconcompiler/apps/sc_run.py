@@ -4,7 +4,7 @@ import siliconcompiler
 
 def main():
     progname = "sc-run"
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip(progname)
     switchlist = ['cfg',
                   'loglevel',
                   'checkonly',

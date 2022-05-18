@@ -4,7 +4,7 @@ import siliconcompiler
 
 def test_find_function():
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     # pdk
     f = chip.find_function('freepdk45', 'setup', 'pdks')

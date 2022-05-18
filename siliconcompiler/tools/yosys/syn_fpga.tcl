@@ -12,7 +12,7 @@ if {[string match {ice*} $sc_partname]} {
 
     source fpga_lutsize.tcl
 
-    set output_blif "outputs/$topmodule.blif"
+    set output_blif "outputs/$sc_design.blif"
 
     # Technology mapping
     yosys proc

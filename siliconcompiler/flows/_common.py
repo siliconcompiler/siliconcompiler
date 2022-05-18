@@ -2,7 +2,7 @@ def setup_frontend(chip):
     ''' Return list of frontend steps to be prepended to flowgraph as list of
     (step, tool) tuples. '''
 
-    frontend = chip.get('frontend')
+    frontend = chip.get('option', 'frontend')
     frontend_flow = []
 
     if frontend in ('verilog', 'systemverilog'):

@@ -5,72 +5,71 @@ def make_docs():
     '''
     Skywater130 standard cell library.
     '''
-
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     setup(chip)
     return chip
 
 def setup(chip):
-
     foundry = 'skywater'
     process = 'skywater130'
     stackup = '5M1LI'
-    rev = 'v0_0_2'
+    version = 'v0_0_2'
     libname = 'sky130hd' # not sure if this should be something else
-    libtype = 'hd' # TODO: update this
-
-    # TODO: should I be using a different name for the corner
+    libtype = 'unithd' # TODO: update this
     corner = 'typical'
 
-    libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
+    libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, version)
 
-    chip.set('library', libname, 'type', 'logiclib')
+    lib = siliconcompiler.Chip(libname)
 
-    # rev
-    chip.set('library', libname, 'package', 'version', rev)
+    # version
+    lib.set('package', 'version', version)
 
-    chip.set('library', libname, 'pdk', 'skywater130')
+    # list of stackups supported
+    lib.set('asic', 'stackup', stackup)
 
-    # timing
-    chip.add('library', libname, 'nldm', corner, 'lib',
-             libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
+    # list of pdks supported
+    lib.set('asic', 'pdk', process)
 
-    # lef
-    chip.add('library', libname, 'lef', stackup,
-             libdir+'/lef/sky130_fd_sc_hd_merged.lef')
-    # gds
-    chip.add('library', libname, 'gds', stackup,
-             libdir+'/gds/sky130_fd_sc_hd.gds')
+    # footprint/type/sites
+    lib.set('asic', 'libarch', libtype)
+    lib.set('asic', 'footprint', 'unithd', 'symmetry', 'Y')
+    lib.set('asic', 'footprint', 'unithd', 'size', (0.46,2.72))
 
-    # placement sites
-    chip.set('library', libname, 'site', 'unithd', 'symmetry', 'Y')
-    chip.set('library', libname, 'site', 'unithd', 'size', (0.46,2.72))
+    lib.set('asic', 'footprint', 'unithddbl', 'symmetry', 'Y')
+    lib.set('asic', 'footprint', 'unithddbl', 'size', (0.46,5.44))
 
-    chip.set('library', libname, 'site', 'unithddbl', 'symmetry', 'Y')
-    chip.set('library', libname, 'site', 'unithddbl', 'size', (0.46,5.44))
+    # model files
+    lib.add('model', 'timing', 'nldm', corner, libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
+    lib.add('model', 'layout', 'lef', stackup, libdir+'/lef/sky130_fd_sc_hd_merged.lef')
+    lib.add('model', 'layout', 'gds', stackup, libdir+'/gds/sky130_fd_sc_hd.gds')
 
-    # lib arch
-    chip.set('library', libname, 'arch', libtype)
+    # Techmap
+    lib.add('asic', 'file', 'yosys', 'techmap',
+             libdir + '/techmap/yosys/cells_latch.v')
+
+    # Power grid specifier
+    lib.set('asic', 'pgmetal', 'm1')
 
     # clock buffers
-    chip.add('library', libname, 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
+    lib.add('asic', 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
 
     # hold cells
-    chip.add('library', libname, 'cells', 'hold', 'sky130_fd_sc_hd__buf_1')
+    lib.add('asic', 'cells', 'hold', 'sky130_fd_sc_hd__buf_1')
 
     # filler
-    chip.add('library', libname, 'cells', 'filler', ['sky130_fd_sc_hd__fill_1',
-                                                     'sky130_fd_sc_hd__fill_2',
-                                                     'sky130_fd_sc_hd__fill_4',
-                                                     'sky130_fd_sc_hd__fill_8'])
+    lib.add('asic', 'cells', 'filler', ['sky130_fd_sc_hd__fill_1',
+                                         'sky130_fd_sc_hd__fill_2',
+                                         'sky130_fd_sc_hd__fill_4',
+                                         'sky130_fd_sc_hd__fill_8'])
 
     # Tapcell
-    chip.add('library', libname, 'cells','tap', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
+    lib.add('asic', 'cells','tap', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
 
     # Endcap
-    chip.add('library', libname, 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')
+    lib.add('asic', 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')
 
-    chip.add('library', libname, 'cells', 'ignore', [
+    lib.add('asic', 'cells', 'ignore', [
         'sky130_fd_sc_hd__probe_p_8',
         'sky130_fd_sc_hd__probec_p_8',
         'sky130_fd_sc_hd__lpflow_bleeder_1',
@@ -113,17 +112,19 @@ def setup(chip):
     # TODO: should probably fill these in, but they're currently unused by
     # OpenROAD flow
     #driver
-    chip.add('library', libname, 'cells', 'driver', '')
+    lib.add('asic', 'cells', 'driver', '')
 
     # buffer cell
-    chip.add('library', libname, 'cells', 'buf', ['sky130_fd_sc_hd__buf_4/A/X'])
+    lib.add('asic', 'cells', 'buf', ['sky130_fd_sc_hd__buf_4/A/X'])
 
     # tie cells
-    chip.add('library', libname, 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
-                                                  'sky130_fd_sc_hd__conb_1/LO'])
+    lib.add('asic', 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
+                                      'sky130_fd_sc_hd__conb_1/LO'])
 
-    # Techmap
-    chip.add('library', libname, 'techmap', 'yosys',
-             libdir + '/techmap/yosys/cells_latch.v')
+    chip.import_library(lib)
 
-    chip.set('library', libname, 'pgmetal', 'm1')
+#########################
+if __name__ == "__main__":
+
+    lib = make_docs()
+    lib.write_manifest('sky130.tcl')

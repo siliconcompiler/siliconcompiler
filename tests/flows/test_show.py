@@ -24,14 +24,13 @@ def display():
     [('freepdk45_demo', 'heartbeat_freepdk45.def'),
      ('skywater130_demo', 'heartbeat_sky130.def')])
 def test_show(project, testfile, datadir, display, headless=True):
-    chip = siliconcompiler.Chip()
-    chip.set('design', 'heartbeat')
+    chip = siliconcompiler.Chip('heartbeat')
     chip.load_target(project)
-    chip.set("quiet", True)
+    chip.set('option', "quiet", True)
 
     if headless:
         # Adjust command line options to exit KLayout after run
-        chip.set('eda', 'klayout', 'option', 'showdef', '0', ['-z', '-r'])
+        chip.set('tool', 'klayout', 'option', 'showdef', '0', ['-z', '-r'])
 
     path = os.path.join(datadir, testfile)
     assert chip.show(path)
@@ -41,10 +40,9 @@ def test_show(project, testfile, datadir, display, headless=True):
 def test_show_lyp(datadir, display, headless=True):
     ''' Test sc-show with only a KLayout .lyp file for layer properties '''
 
-    chip = siliconcompiler.Chip()
-    chip.set('design', 'heartbeat')
+    chip = siliconcompiler.Chip('heartbeat')
     chip.load_target(f'freepdk45_demo')
-    chip.set("quiet", True)
+    chip.set('option', 'quiet', True)
 
     # Remove the '.lyt' file
     stackup = chip.get('asic', 'stackup')
@@ -52,7 +50,7 @@ def test_show_lyp(datadir, display, headless=True):
 
     if headless:
         # Adjust command line options to exit KLayout after run
-        chip.set('eda', 'klayout', 'option', 'showdef', '0', ['-z', '-r'])
+        chip.set('tool', 'klayout', 'option', 'showdef', '0', ['-z', '-r'])
 
     path = os.path.join(datadir, 'heartbeat_freepdk45.def')
     assert chip.show(path)
@@ -60,12 +58,11 @@ def test_show_lyp(datadir, display, headless=True):
 @pytest.mark.eda
 @pytest.mark.quick
 def test_show_nopdk(datadir, display):
-    chip = siliconcompiler.Chip()
-    chip.set('design', 'heartbeat')
+    chip = siliconcompiler.Chip('heartbeat')
     chip.load_target('freepdk45_demo')
-    chip.set("quiet", True)
+    chip.set('option', 'quiet', True)
     # Adjust command line options to exit KLayout after run
-    chip.set('eda', 'klayout', 'option', 'showgds', '0', ['-z', '-r'])
+    chip.set('tool', 'klayout', 'option', 'showgds', '0', ['-z', '-r'])
 
     # uncompress test file
     testfile = 'heartbeat.gds'
@@ -84,6 +81,6 @@ def test_show_nopdk(datadir, display):
 if __name__ == "__main__":
     from tests.fixtures import datadir
     test_show('freepdk45_demo', 'heartbeat_freepdk45.def', datadir(__file__),
-                   None, headless=False)
-    test_show('skywater130_demo', 'heartbeat_skywater130.def', datadir(__file__),
-                   None, headless=False)
+              None, headless=False)
+    test_show('skywater130_demo', 'heartbeat_sky130.def', datadir(__file__),
+              None, headless=False)

@@ -4,7 +4,7 @@ import siliconcompiler
 
 def main():
     progname = "sc-env"
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip(progname)
     switchlist = ['cfg',
                   'project',
                   'version']

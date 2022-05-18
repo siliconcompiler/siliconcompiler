@@ -21,10 +21,9 @@ def make_docs():
     Installation: https://github.com/B-Lang-org/bsc#download
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','import')
     chip.set('arg','index','0')
-    chip.set('design', '<design>')
     setup(chip)
     return chip
 
@@ -45,20 +44,20 @@ def setup(chip):
 
     # Standard Setup
     refdir = 'tools/'+tool
-    chip.set('eda', tool, 'exe', 'bsc', clobber=False)
+    chip.set('tool', tool, 'exe', 'bsc', clobber=False)
     # This is technically the 'verbose' flag, but used alone it happens to give
     # us the version # and exit cleanly, so we'll use it here.
-    chip.set('eda', tool, 'vswitch', '-v', clobber=False)
-    chip.set('eda', tool, 'version', '>=2021.07', clobber=False)
-    chip.set('eda', tool, 'refdir', step, index,  refdir, clobber=False)
-    chip.set('eda', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
-    chip.set('eda', tool, 'option', step, index,  [], clobber=False)
+    chip.set('tool', tool, 'vswitch', '-v', clobber=False)
+    chip.set('tool', tool, 'version', '>=2021.07', clobber=False)
+    chip.set('tool', tool, 'refdir', step, index,  refdir, clobber=False)
+    chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'option', step, index,  [], clobber=False)
 
     # Input/Output requirements
-    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.v')
+    chip.add('tool', tool, 'output', step, index, chip.get('design') + '.v')
 
     # Schema requirements
-    chip.add('eda', tool, 'require', step, index, 'source')
+    chip.add('tool', tool, 'require', step, index, 'input,bsv')
 
 def parse_version(stdout):
     # Examples:
@@ -82,15 +81,15 @@ def runtime_options(chip):
     cmdlist.append('-u')
     cmdlist.append(f'-g {design}')
 
-    bsc_path = ':'.join(chip.find_files('ydir') + ['%/Libraries'])
+    bsc_path = ':'.join(chip.find_files('option', 'ydir') + ['%/Libraries'])
     cmdlist.append('-p ' + bsc_path)
 
-    for value in chip.find_files('idir'):
+    for value in chip.find_files('option', 'idir'):
         cmdlist.append('-I ' + value)
-    for value in chip.get('define'):
+    for value in chip.get('option', 'define'):
         cmdlist.append('-D ' + value)
 
-    sources = chip.find_files('source')
+    sources = chip.find_files('input', 'bsv')
     if len(sources) != 1:
         raise ValueError('Bluespec frontend only supports one source file!')
     cmdlist.append(sources[0])

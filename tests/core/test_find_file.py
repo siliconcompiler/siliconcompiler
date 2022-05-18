@@ -6,12 +6,12 @@ from unittest import mock
 
 def test_find_sc_file(datadir):
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     assert chip._find_sc_file("flows/asicflow.py") is not None
     assert chip._find_sc_file("pdks/freepdk45.py") is not None
 
-    chip.set('scpath', os.path.join(datadir, 'sclib'))
+    chip.set('option', 'scpath', os.path.join(datadir, 'sclib'))
     assert chip._find_sc_file('test.txt') is not None
 
     assert chip._find_sc_file('my_file_that_doesnt_exist.blah', missing_ok=True) is None
@@ -23,7 +23,7 @@ def test_find_sc_file(datadir):
 def test_find_sc_file_env(datadir):
     '''Ensure we can find files on a custom path by setting the SCPATH env
     variable.'''
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     # assert precondition that we can't find this file by default
     assert chip._find_sc_file('test.txt', missing_ok=True) is None
@@ -40,11 +40,11 @@ def test_find_sc_file_relative(datadir):
     # we can reference it via relative path.
     shutil.copytree(os.path.join(datadir, 'sclib'), 'sclib')
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     assert chip._find_sc_file('test.txt', missing_ok=True) is None
 
-    chip.set('scpath', 'sclib')
+    chip.set('option', 'scpath', 'sclib')
 
     assert chip._find_sc_file('test.txt', missing_ok=True) is not None
 

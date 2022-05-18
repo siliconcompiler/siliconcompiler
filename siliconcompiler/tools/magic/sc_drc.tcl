@@ -22,8 +22,8 @@ set sc_design    [dict get $sc_cfg design]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 set sc_stackup  [dict get $sc_cfg asic stackup]
 
-if {[dict exists $sc_cfg asic exclude $sc_step $sc_index]} {
-    set sc_exclude  [dict get $sc_cfg asic exclude $sc_step $sc_index]
+if {[dict exists $sc_cfg tool magic var $sc_step $sc_index exclude]} {
+    set sc_exclude  [dict get $sc_cfg tool magic var $sc_step $sc_index exclude]
 } else {
     set sc_exclude [list]
 }
@@ -32,14 +32,14 @@ if {[dict exists $sc_cfg asic exclude $sc_step $sc_index]} {
 foreach lib $sc_macrolibs {
     puts $lib
     if {[lsearch -exact $sc_exclude $lib] >= 0} {
-        lef read [dict get $sc_cfg library $lib lef $sc_stackup]
+        lef read [dict get $sc_cfg library $lib model layout lef $sc_stackup]
     }
 }
 
 gds noduplicates true
 
-if {[dict exists $sc_cfg "read" gds $sc_step $sc_index]} {
-    set gds_path [dict get $sc_cfg "read" gds $sc_step $sc_index]
+if {[dict exists $sc_cfg input gds]} {
+    set gds_path [dict get $sc_cfg input gds]
 } else {
     set gds_path "inputs/$sc_design.gds"
 }

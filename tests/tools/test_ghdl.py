@@ -9,14 +9,13 @@ def test_ghdl(datadir):
     design = "adder"
     design_src = os.path.join(datadir, f'{design}.vhdl')
 
-    chip = siliconcompiler.Chip(loglevel="INFO")
+    chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
-    chip.set('source', design_src)
-    chip.set('design', design)
-    chip.set('mode', 'sim')
+    chip.set('input', 'vhdl', design_src)
+    chip.set('option', 'mode', 'sim')
 
     chip.node('ghdl', 'import', 'ghdl')
-    chip.set('flow', 'ghdl')
+    chip.set('option', 'flow', 'ghdl')
 
     chip.run()
 

@@ -10,19 +10,19 @@ def test_sv(datadir):
     '''
     design = 'prim_fifo_sync'
 
-    chip = siliconcompiler.Chip(design=design)
+    chip = siliconcompiler.Chip(design)
 
-    chip.add('source', os.path.join(datadir, 'sv', 'prim_util_pkg.sv'))
-    chip.add('source', os.path.join(datadir, 'sv', f'{design}.sv'))
-    chip.add('idir', os.path.join(datadir, 'sv', 'inc/'))
-    chip.add('define', 'SYNTHESIS')
+    chip.add('input', 'verilog', os.path.join(datadir, 'sv', 'prim_util_pkg.sv'))
+    chip.add('input', 'verilog', os.path.join(datadir, 'sv', f'{design}.sv'))
+    chip.add('option', 'idir', os.path.join(datadir, 'sv', 'inc/'))
+    chip.add('option', 'define', 'SYNTHESIS')
 
-    chip.set('frontend', 'systemverilog')
+    chip.set('option', 'frontend', 'systemverilog')
     chip.load_target('freepdk45_demo')
 
-    chip.add('steplist', 'import')
-    chip.add('steplist', 'convert')
-    chip.add('steplist', 'syn')
+    chip.add('option', 'steplist', 'import')
+    chip.add('option', 'steplist', 'convert')
+    chip.add('option', 'steplist', 'syn')
 
     chip.run()
 

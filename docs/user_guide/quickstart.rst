@@ -34,10 +34,10 @@ copy paste the code into your text editor and save it to disk as "heartbeat.py".
 .. literalinclude:: examples/heartbeat/heartbeat.py
 
 Much of the complexity of setting up a hardware compilation flow is abstracted away
-from the user through the load_target() function which sets up a large number of PDK,
+from the user through the :meth:`.load_target` function which sets up a large number of PDK,
 flow, and tool parameters based on a target setup module. To understand the
 complete target configuration, see the :ref:`Flows Directory`, :ref:`PDK
-Directory`, and :ref:`Target Directory` sections of the reference manual and read the source code for
+Directory`, and :ref:`Targets Directory` sections of the reference manual and read the source code for
 `asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_,
 `freepdk45 <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/pdks/freepdk45.py>`_, and
 `freepdk45_demo <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/freepdk45_demo.py>`_.
@@ -54,10 +54,10 @@ Directory`, and :ref:`Target Directory` sections of the reference manual and rea
    located at ~/.sc/credentials on Linux or macOS, or
    at C:\\Users\\USERNAME\\.sc\\credentials on Windows.
 
-   Remote processing option is enabled by setting the :ref:`remote` parameter to
-   True. ::
+   Remote processing option is enabled by setting the :keypath:`option,remote`
+   parameter to True. ::
 
-     chip.set('remote', True)
+     chip.set('option', 'remote', True)
 
 Compilation
 ------------
@@ -77,9 +77,9 @@ SiliconCompiler 'sc' program directly from the command line.
 
 If the compilation was successful, you should see a flood of tool specific
 information printed to the screen followed by a summary resembling the summary
-shown below. Set the :ref:`quiet` parameter to True of you want to redirect this
-information to a log file. By default, all SiliconCompiler outputs are placed in
-the build/<design> directory.
+shown below. Set the :keypath:`option,quiet` parameter to True of you want to
+redirect this information to a log file. By default, all SiliconCompiler outputs
+are placed in the ``build/<design>`` directory.
 
 .. image:: _images/heartbeat_summary.png
 
@@ -87,8 +87,8 @@ View layout
 ------------
 
 If you have Klayout installed, you can view the output from the 'asicflow' by
-calling chip.show() from your Python program or by calling the 'sc-show' program
-from the command line as shown below:
+calling :meth:`chip.show() <.show>` from your Python program or by calling the
+:ref:`sc-show` program from the command line as shown below:
 
 .. code-block:: bash
 

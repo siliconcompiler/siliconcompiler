@@ -18,10 +18,9 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','<apr>')
     chip.set('arg','index','<index>')
-    chip.set('design','<design>')
     setup(chip)
     return chip
 
@@ -38,21 +37,21 @@ def setup(chip):
     index = chip.get('arg','index')
 
     clobber = False
-    chip.set('eda', tool, 'exe', 'nextpnr-ice40', clobber=clobber)
-    chip.set('eda', tool, 'vswitch', '--version', clobber=clobber)
-    chip.set('eda', tool, 'version', '>=0.2', clobber=clobber)
-    chip.set('eda', tool, 'option', step, index, "", clobber=clobber)
+    chip.set('tool', tool, 'exe', 'nextpnr-ice40', clobber=clobber)
+    chip.set('tool', tool, 'vswitch', '--version', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=0.2', clobber=clobber)
+    chip.set('tool', tool, 'option', step, index, "", clobber=clobber)
 
     topmodule = chip.get('design')
-    chip.set('eda', tool, 'input', step, index, f'{topmodule}_netlist.json')
-    chip.set('eda', tool, 'output', step, index, f'{topmodule}.asc')
+    chip.set('tool', tool, 'input', step, index, f'{topmodule}_netlist.json')
+    chip.set('tool', tool, 'output', step, index, f'{topmodule}.asc')
 
 ################################
 #  Custom runtime options
 ################################
 
 def runtime_options(chip):
-    ''' Custom runtime options, returnst list of command line options.
+    ''' Custom runtime options, returns list of command line options.
     '''
 
     step = chip.get('arg','step')
@@ -69,9 +68,8 @@ def runtime_options(chip):
     if partname == 'ice40up5k-sg48':
         options.append('--up5k --package sg48')
 
-    for constraint_file in chip.find_files('constraint'):
-        if os.path.splitext(constraint_file)[-1] == '.pcf':
-            options.append('--pcf ' + constraint_file)
+    for constraint_file in chip.find_files('input', 'pcf'):
+        options.append('--pcf ' + constraint_file)
 
     return options
 

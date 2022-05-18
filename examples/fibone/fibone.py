@@ -1,12 +1,11 @@
 import siliconcompiler
 
 def main():
-    chip = siliconcompiler.Chip()
-    chip.set('source', 'FibOne.bsv')
-    chip.set('frontend', 'bluespec')
-    chip.set('design', 'mkFibOne')
+    chip = siliconcompiler.Chip('mkFibOne')
+    chip.set('input', 'bsv', 'FibOne.bsv')
+    chip.set('option', 'frontend', 'bluespec')
     # default Bluespec clock pin is 'CLK'
-    chip.clock(name='clock', pin='CLK', period=5)
+    chip.clock(pin='CLK', period=5)
     chip.load_target('freepdk45_demo')
     chip.run()
     chip.summary()

@@ -20,7 +20,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','import')
     chip.set('arg','index','<index>')
     setup(chip)
@@ -42,20 +42,20 @@ def setup(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    chip.set('eda', tool, 'exe', 'ghdl', clobber=clobber)
-    chip.set('eda', tool, 'vswitch', '--version', clobber=clobber)
-    chip.set('eda', tool, 'version', '>=2.0.0-dev', clobber=clobber)
-    chip.set('eda', tool, 'threads', step, index, '4', clobber=clobber)
-    chip.set('eda', tool, 'option', step, index, '', clobber=clobber)
-    chip.set('eda', tool, 'stdout', step, index, 'destination', 'output')
-    chip.set('eda', tool, 'stdout', step, index, 'suffix', 'v')
+    chip.set('tool', tool, 'exe', 'ghdl', clobber=clobber)
+    chip.set('tool', tool, 'vswitch', '--version', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=2.0.0-dev', clobber=clobber)
+    chip.set('tool', tool, 'threads', step, index, '4', clobber=clobber)
+    chip.set('tool', tool, 'option', step, index, '', clobber=clobber)
+    chip.set('tool', tool, 'stdout', step, index, 'destination', 'output')
+    chip.set('tool', tool, 'stdout', step, index, 'suffix', 'v')
 
     # Schema requirements
-    chip.add('eda', tool, 'require', step, index, 'source')
+    chip.add('tool', tool, 'require', step, index, 'input,vhdl')
 
     design = chip.get('design')
 
-    chip.set('eda', tool, 'output', step, index, f'{design}.v')
+    chip.set('tool', tool, 'output', step, index, f'{design}.v')
 
 ################################
 #  Custom runtime options
@@ -78,7 +78,7 @@ def runtime_options(chip):
     options.append('--no-formal')
 
     # Add sources
-    for value in chip.find_files('source'):
+    for value in chip.find_files('input', 'vhdl'):
         options.append(value)
 
     # Set top module
@@ -106,7 +106,7 @@ def parse_version(stdout):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-    
+
     return 0
 
 ##################################################

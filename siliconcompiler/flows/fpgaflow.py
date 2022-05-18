@@ -39,8 +39,8 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
-    chip.set('flow', 'fpgaflow')
+    chip = siliconcompiler.Chip('<topmodule>')
+    chip.set('option', 'flow', 'fpgaflow')
     chip.set('fpga', 'partname', '<fpga-partname>')
     setup(chip)
 
@@ -67,7 +67,7 @@ def setup(chip, flowname='fpgaflow'):
         raise siliconcompiler.SiliconCompilerError("FPGA partname not specified")
 
     # Set FPGA mode if not set
-    chip.set('mode', 'fpga')
+    chip.set('option', 'mode', 'fpga')
 
     # Partname lookup
     (vendor, flow) = flow_lookup(partname)
@@ -95,7 +95,7 @@ def setup(chip, flowname='fpgaflow'):
         for metric in ('errors','warnings','drvs','unconstrained',
                        'holdwns','holdtns', 'holdpaths',
                        'setupwns', 'setuptns', 'setuppaths'):
-            chip.set('metric', step, index, metric, 'goal', 0)
+            chip.set('flowgraph', flowname, step, index, 'goal', metric, 0)
         # Metrics
         for metric in ('luts','dsps','brams','registers',
                        'pins','peakpower','leakagepower'):

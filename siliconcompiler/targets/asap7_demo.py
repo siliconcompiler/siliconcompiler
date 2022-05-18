@@ -6,18 +6,18 @@ def make_docs():
     asicflow.
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('asap7_demo')
     setup(chip)
     return chip
 
 def setup(chip):
     '''
-    Target setup
+    ASAP7 Demo Target
     '''
 
-    #1. Defining the project
+    #0. Defining the project
     target = 'asap7_demo'
-    chip.set('target', target)
+    chip.set('option', 'target', target)
 
     #2. Load PDK, flow, libs combo
     chip.load_pdk('asap7')
@@ -25,7 +25,7 @@ def setup(chip):
     chip.load_lib('asap7sc7p5t')
 
     #3. Select default flow
-    chip.set('flow', 'asicflow')
+    chip.set('option', 'flow', 'asicflow')
 
     #4. Select libraries
     chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt')
@@ -49,10 +49,10 @@ def setup(chip):
 
     #5. Timing corners
     corner = 'typical'
-    chip.set('mcmm','worst','libcorner', corner)
-    chip.set('mcmm','worst','pexcorner', corner)
-    chip.set('mcmm','worst','mode', 'func')
-    chip.set('mcmm','worst','check', ['setup','hold'])
+    chip.set('constraint','worst','libcorner', corner)
+    chip.set('constraint','worst','pexcorner', corner)
+    chip.set('constraint','worst','mode', 'func')
+    chip.set('constraint','worst','check', ['setup','hold'])
 
 #########################
 if __name__ == "__main__":

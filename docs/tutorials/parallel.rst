@@ -17,4 +17,4 @@ The tutorial runs the same design with three different approaches:
 
 Run the program on your machine to see what kind of speedup you get! Here is `example source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/docs/tutorials/examples/parallel.py>`_.
 
-.. literalinclude:: examples/parallel.py
+.. literalinclude:: examples/heartbeat/parallel.py

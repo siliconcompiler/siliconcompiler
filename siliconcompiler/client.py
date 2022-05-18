@@ -47,11 +47,12 @@ def remote_preprocess(chip):
         chip.status['jobhash'] = job_hash
 
     # Setup up tools for all local functions
-    remote_steplist = chip.getkeys('flowgraph',chip.get('flow'))
+    flow = chip.get('option', 'flow')
+    remote_steplist = chip.getkeys('flowgraph', flow)
     local_step = remote_steplist[0]
-    indexlist = chip.getkeys('flowgraph', chip.get('flow'), local_step)
+    indexlist = chip.getkeys('flowgraph', flow, local_step)
     for index in indexlist:
-        tool = chip.get('flowgraph', chip.get('flow'), local_step, index, 'tool')
+        tool = chip.get('flowgraph', flow, local_step, index, 'tool')
         # Setting up tool is optional (step may be a builtin function)
         if tool:
             chip.set('arg', 'step', local_step)
@@ -61,7 +62,7 @@ def remote_preprocess(chip):
 
         # Need to override steplist here to make sure check_manifest() doesn't
         # check steps that haven't been setup.
-        chip.set('steplist', local_step)
+        chip.set('option', 'steplist', local_step)
 
         # Run the actual import step locally.
         # We can pass in an empty 'status' dictionary, since _runtask() will
@@ -71,7 +72,7 @@ def remote_preprocess(chip):
 
     # Set 'steplist' to only the remote steps, for the future server-side run.
     remote_steplist = remote_steplist[1:]
-    chip.set('steplist', remote_steplist, clobber=True)
+    chip.set('option', 'steplist', remote_steplist, clobber=True)
 
 ###################################
 def remote_run(chip):
@@ -93,10 +94,10 @@ def remote_run(chip):
     request_remote_run(chip)
 
     # Remove the local 'import.tar.gz' archive.
-    local_archive = stepdir = os.path.join(chip.get('dir'),
-                                           chip.get('design'),
-                                           chip.get('jobname'),
-                                           'import.tar.gz')
+    local_archive = os.path.join(chip.get('option', 'builddir'),
+                                 chip.get('design'),
+                                 chip.get('option', 'jobname'),
+                                 'import.tar.gz')
     if os.path.isfile(local_archive):
         os.remove(local_archive)
 
@@ -125,16 +126,16 @@ def request_remote_run(chip):
     remote_run_url = urllib.parse.urljoin(get_base_url(chip), '/remote_run/')
 
     # Use authentication if necessary.
-    job_nameid = f"{chip.get('jobname')}"
+    job_nameid = f"{chip.get('option', 'jobname')}"
     post_params = {
         'chip_cfg': chip.cfg,
         'params': {
             'job_hash': chip.status['jobhash'],
         }
     }
-    local_build_dir = stepdir = os.path.join(chip.get('dir'),
-                                             chip.get('design'),
-                                             job_nameid)
+    local_build_dir = os.path.join(chip.get('option', 'builddir'),
+                                   chip.get('design'),
+                                   job_nameid)
     rcfg = chip.status['remote_cfg']
     if ('username' in rcfg) and ('password' in rcfg):
         post_params['params']['username'] = rcfg['username']
@@ -187,7 +188,7 @@ def is_job_busy(chip):
     # Set common parameters.
     post_params = {
         'job_hash': chip.status['jobhash'],
-        'job_id': chip.get('jobname'),
+        'job_id': chip.get('option', 'jobname'),
     }
 
     # Set authentication parameters if necessary.
@@ -289,8 +290,7 @@ def fetch_results(chip):
     # Unzip the results.
     top_design = chip.get('design')
     job_hash = chip.status['jobhash']
-    job_nameid = f"{chip.get('jobname')}"
-    local_dir = chip.get('dir')
+    local_dir = chip.get('option', 'builddir')
 
     # Authenticated jobs get a zip file full of other zip files.
     # So we need to extract and delete those.

@@ -7,24 +7,23 @@ import pytest
 def test_yosys_lec(datadir):
     lec_dir = os.path.join(datadir, 'lec')
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('foo')
     chip.load_target('freepdk45_demo')
 
-    chip.set('design', 'foo')
-    chip.set('mode', 'asic')
+    chip.set('option', 'mode', 'asic')
 
     flow = 'lec'
     chip.node(flow, 'import', 'nop')
     chip.node(flow, 'lec', 'yosys')
     chip.edge(flow, 'import', 'lec')
-    chip.set('flow', flow)
+    chip.set('option', 'flow', flow)
 
-    chip.add('source', os.path.join(lec_dir, 'foo.v'))
-    chip.add('read', 'netlist', 'lec', '0', os.path.join(lec_dir, 'foo.vg'))
+    chip.add('input', 'verilog', os.path.join(lec_dir, 'foo.v'))
+    chip.add('input', 'netlist', os.path.join(lec_dir, 'foo.vg'))
 
     chip.run()
 
-    errors = chip.get('metric', 'lec', '0', 'errors', 'real')
+    errors = chip.get('metric', 'lec', '0', 'errors')
 
     assert errors == 0
 
@@ -33,26 +32,25 @@ def test_yosys_lec(datadir):
 def test_yosys_lec_broken(datadir):
     lec_dir = os.path.join(datadir, 'lec')
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('foo')
     chip.load_target('freepdk45_demo')
 
-    chip.set('design', 'foo')
-    chip.set('mode', 'asic')
+    chip.set('option', 'mode', 'asic')
 
     flow = 'lec'
     chip.node(flow, 'import', 'nop')
     chip.node(flow, 'lec', 'yosys')
     chip.edge(flow, 'import', 'lec')
-    chip.set('flow', flow)
+    chip.set('option','flow', flow)
 
-    chip.set('eda', 'yosys', 'continue', True)
+    chip.set('tool', 'yosys', 'continue', True)
 
-    chip.add('source', os.path.join(lec_dir, 'foo_broken.v'))
-    chip.add('read', 'netlist', 'lec', '0', os.path.join(lec_dir, 'foo_broken.vg'))
+    chip.add('input', 'verilog', os.path.join(lec_dir, 'foo_broken.v'))
+    chip.add('input', 'netlist', os.path.join(lec_dir, 'foo_broken.vg'))
 
     chip.run()
 
-    errors = chip.get('metric', 'lec', '0', 'errors', 'real')
+    errors = chip.get('metric', 'lec', '0', 'errors')
 
     assert errors == 2
 

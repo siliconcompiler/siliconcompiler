@@ -5,31 +5,32 @@ import copy
 import json
 from siliconcompiler import _metadata
 
+import pytest
+
 def test_read_manifest_fields():
     '''Ensure that changes to fields other than 'value' are reflected by read_manifest()'''
 
-    chip = siliconcompiler.Chip()
-    chip.set('source', False, field='copy')
-    chip.add('source', 'foo.v')
+    chip = siliconcompiler.Chip('foo')
+    chip.set('input', 'verilog', False, field='copy')
+    chip.add('input', 'verilog', 'foo.v')
     chip.write_manifest('tmp.json')
 
     # fresh chip, so we don't retain anything from `chip` in-memory
-    chip2 = siliconcompiler.Chip()
+    chip2 = siliconcompiler.Chip('foo')
     chip2.read_manifest('tmp.json')
-    assert chip2.get('source', field='copy') is False
+    assert chip2.get('input', 'verilog', field='copy') is False
 
 
 def test_read_sup():
     '''Test compressed read/write'''
 
-    chip = siliconcompiler.Chip()
-    chip.add('source', 'foo.v')
+    chip = siliconcompiler.Chip('foo')
+    chip.add('input', 'verilog', 'foo.v')
     chip.write_manifest('tmp.sup.gz')
 
-    chip2 = siliconcompiler.Chip()
+    chip2 = siliconcompiler.Chip('foo')
     chip2.read_manifest('tmp.sup.gz')
-    assert chip2.get('source') == ['foo.v']
-
+    assert chip2.get('input','verilog') == ['foo.v']
 
 def test_read_defaults(datadir):
     '''Make sure read/write operaton doesn't modify manifest'''
@@ -37,7 +38,7 @@ def test_read_defaults(datadir):
     DEBUG = False
 
     # gets defaul from schema
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     # check that read/write doesn't modify
     chip.write_manifest("actual.json", prune=False)
@@ -54,8 +55,7 @@ def test_read_defaults(datadir):
         expected = json.load(f)
 
     # special case (initialized in constructor)
-    expected['version']['software']['defvalue'] = _metadata.version
-    expected['version']['software']['value'] = _metadata.version
+    expected['design']['value'] = 'test'
 
     assert actual == expected
 

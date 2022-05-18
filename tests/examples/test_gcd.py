@@ -21,10 +21,10 @@ def test_py(setup_example_test):
     manifest = 'build/gcd/job0/export/0/outputs/gcd.pkg.json'
     assert os.path.isfile(manifest)
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('gcd')
     chip.read_manifest(manifest)
 
-    assert chip.get('eda', 'yosys', 'report', 'syn', '0', 'cellarea') == ['syn.log']
+    assert chip.get('tool', 'yosys', 'report', 'syn', '0', 'cellarea') == ['syn.log']
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -47,14 +47,15 @@ def test_py_sky130(setup_example_test):
     manifest = 'build/gcd/signoff/signoff/0/outputs/gcd.pkg.json'
     assert os.path.isfile(manifest)
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('gcd')
     chip.read_manifest(manifest)
 
     # Verify that the build was LVS and DRC clean.
-    assert chip.get('metric', 'lvs', '0', 'drvs', 'real') == 0
-    assert chip.get('metric', 'drc', '0', 'drvs', 'real') == 0
+    assert chip.get('metric', 'lvs', '0', 'drvs') == 0
+    assert chip.get('metric', 'drc', '0', 'drvs') == 0
 
 @pytest.mark.eda
+@pytest.mark.skip(reason="asap7 not yet supported using new library scheme")
 def test_cli_asap7(setup_example_test):
     ex_dir = setup_example_test('gcd')
 

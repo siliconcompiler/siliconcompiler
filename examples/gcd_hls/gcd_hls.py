@@ -1,12 +1,11 @@
 import siliconcompiler
 
 def main():
-    chip = siliconcompiler.Chip()
-    chip.set('source', 'gcd.c')
-    chip.set('frontend', 'c')
-    chip.set('design', 'gcd')
+    chip = siliconcompiler.Chip('gcd')
+    chip.set('input', 'c', 'gcd.c')
+    chip.set('option', 'frontend', 'c')
     # default Bambu clock pin is 'clock'
-    chip.clock(name='clock', pin='clock', period=5)
+    chip.clock(pin='clock', period=5)
     chip.load_target('freepdk45_demo')
     chip.run()
     chip.summary()

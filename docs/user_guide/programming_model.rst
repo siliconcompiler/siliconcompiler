@@ -11,23 +11,23 @@ Compilation is based on a single chip object that follows the design from start 
 
   import siliconcompiler
 
-  chip = siliconcompiler.Chip()
+  chip = siliconcompiler.Chip('topmodule')
 
 
 Setup
 ----------------
 
-Once the chip object has been created, functions and data are all contained within that object. A compilation is set up by accessing methods and parameters from the chip object. Parameters can generally be configured in any order during setup. The exceptions are flowarg and techarg parameters, which must be set before calling chip.load_flow() or chip.load_pdk(), respectively.
+Once the chip object has been created, functions and data are all contained within that object. A compilation is set up by accessing methods and parameters from the chip object. Parameters can generally be configured in any order during setup. The exceptions are :keypath:`arg,flow` and :keypath:`arg,pdk` parameters, which must be set before calling :meth:`chip.load_flow() <.load_flow>` or :meth:`chip.load_pdk() <.load_pdk>`, respectively.
 
 The snippet of code below shows the basic principles. ::
 
-  chip.set('design', <name>)
+  chip.set('input', 'verilog', '<file>.v')
 
 
 Run
 ------------
 
-Once all the parameters have been setup, compilation is done by a single atomic call to run(). ::
+Once all the parameters have been setup, compilation is done by a single atomic call to :meth:`.run()`. ::
 
   chip.run()
 
@@ -35,10 +35,10 @@ Once all the parameters have been setup, compilation is done by a single atomic 
 Inspection
 ------------
 
-Once the compilation has completed, chip object can be queried and another run() can be called. ::
+Once the compilation has completed, chip object can be queried and another :meth:`.run()` can be called. ::
 
   chip.summary()
-  print(chip.get('metric', 'syn', '0', 'cellarea', 'real')
+  print(chip.get('metric', 'syn', '0', 'cellarea')
   #..do something else
 
-For complete information, see the :ref:`Core API` section of the reference manual. A summary of all available functions is shown below.
+For complete information, see the :ref:`Core API` section of the reference manual.

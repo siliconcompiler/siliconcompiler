@@ -47,7 +47,7 @@ def main():
         sys.exit(1)
 
     # Create the chip object and generate the request
-    chip = Chip()
+    chip = Chip('ping')
     chip.status['remote_cfg'] = remote_cfg
     request_url = get_base_url(chip) + '/check_user/'
     post_params = {

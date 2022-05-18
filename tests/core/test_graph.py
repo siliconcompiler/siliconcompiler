@@ -4,7 +4,7 @@ import json
 
 def test_graph():
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     #RTL
     chip.pipe('rtl', [{'import' : 'surelog'},

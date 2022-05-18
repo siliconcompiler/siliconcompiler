@@ -26,7 +26,7 @@ def make_docs():
        Work in progress (not ready for use)
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','fpgagen')
     chip.set('arg','index','<index>')
     setup(chip)
@@ -48,16 +48,16 @@ def setup(chip):
     index = chip.get('arg','index')
 
 
-    chip.set('eda', tool, 'refdir', step, index,  refdir)
+    chip.set('tool', tool, 'refdir', step, index,  refdir)
 
     if step == 'apr':
-        chip.set('eda', tool, 'exe', step, index, 'openfpga')
-        chip.add('eda', tool, 'option', step, index, '-batch -f ' + OPENFPGA_SCRIPT)
+        chip.set('tool', tool, 'exe', step, index, 'openfpga')
+        chip.add('tool', tool, 'option', step, index, '-batch -f ' + OPENFPGA_SCRIPT)
     elif step == 'bitstream':
         # bitstream step is currently a NOP, since apr and bitstream generation
         # are integrated in shell script
-        chip.set('eda', tool, 'exe', 'cp')
-        chip.add('eda', tool, 'option', step, index, ' -r inputs/ outputs/')
+        chip.set('tool', tool, 'exe', 'cp')
+        chip.add('tool', tool, 'option', step, index, ' -r inputs/ outputs/')
 
 
 def pre_process(chip):

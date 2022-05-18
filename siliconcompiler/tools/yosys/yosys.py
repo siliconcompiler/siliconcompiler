@@ -26,10 +26,9 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step', 'syn')
     chip.set('arg','index', '<index>')
-    chip.set('design', '<design>')
     setup(chip)
     return chip
 
@@ -48,12 +47,12 @@ def setup(chip):
     index = chip.get('arg','index')
 
     # Standard Setup
-    chip.set('eda', tool, 'exe', 'yosys', clobber=False)
-    chip.set('eda', tool, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, 'version', '>=0.13', clobber=False)
-    chip.set('eda', tool, 'format', 'tcl', clobber=False)
-    chip.set('eda', tool, 'option', step, index, '-c', clobber=False)
-    chip.set('eda', tool, 'refdir', step, index, refdir, clobber=False)
+    chip.set('tool', tool, 'exe', 'yosys', clobber=False)
+    chip.set('tool', tool, 'vswitch', '--version', clobber=False)
+    chip.set('tool', tool, 'version', '>=0.13', clobber=False)
+    chip.set('tool', tool, 'format', 'tcl', clobber=False)
+    chip.set('tool', tool, 'option', step, index, '-c', clobber=False)
+    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=False)
 
     if re.search(r'syn', step):
         script = 'sc_syn.tcl'
@@ -62,52 +61,54 @@ def setup(chip):
     else:
         chip.logger.error(f'Yosys does not support step {step}.')
 
-    chip.set('eda', tool, 'script', step, index, script, clobber=False)
+    chip.set('tool', tool, 'script', step, index, script, clobber=False)
 
     # Input/output requirements
     if step == 'syn':
         # TODO: Our yosys script can also accept uhdm or ilang files. How do we
         # represent a set of possible inputs where you must pick one?
-        chip.set('eda', tool, 'input', step, index, chip.get('design') + '.v')
-        chip.set('eda', tool, 'output', step, index, chip.get('design') + '.vg')
-        chip.add('eda', tool, 'output', step, index, chip.get('design') + '_netlist.json')
-        chip.add('eda', tool, 'output', step, index, chip.get('design') + '.blif')
+        chip.set('tool', tool, 'input', step, index, chip.design + '.v')
+        chip.set('tool', tool, 'output', step, index, chip.design + '.vg')
+        chip.add('tool', tool, 'output', step, index, chip.design + '_netlist.json')
+        chip.add('tool', tool, 'output', step, index, chip.design + '.blif')
     elif step == 'lec':
-        if (not chip.valid('read', 'netlist', step, index) or
-            not chip.get('read', 'netlist', step, index)):
-            chip.set('eda', tool, 'input', step, index, chip.get('design') + '.vg')
-        if not chip.get('source'):
-            chip.set('eda', tool, 'input', step, index, chip.get('design') + '.v')
+        if (not chip.valid('input', 'netlist') or
+            not chip.get('input', 'netlist')):
+            chip.set('tool', tool, 'input', step, index, chip.design + '.vg')
+        if not chip.get('input', 'verilog'):
+            # TODO: Not sure this logic makes sense? Seems like reverse of
+            # what's in TCL
+            chip.set('tool', tool, 'input', step, index, chip.design + '.v')
 
     # Schema requirements
-    if chip.get('mode') == 'asic':
-        chip.add('eda', tool, 'require', step, index, ",".join(['pdk', 'process']))
-        chip.add('eda', tool, 'require', step, index, ",".join(['design']))
-        chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
+    if chip.get('option', 'mode') == 'asic':
+        chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
 
         targetlibs = chip.get('asic', 'logiclib')
-        mainlib = chip.get('asic', 'logiclib')[0]
+        for lib in targetlibs:
+            # mandatory for logiclibs
+            for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
+                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model','timing', 'nldm', corner]))
+
         macrolibs = chip.get('asic', 'macrolib')
-
-        for lib in (targetlibs + macrolibs):
-            for corner in chip.getkeys('library', lib, 'nldm'):
-                chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'nldm', corner, 'lib']))
-
-        #keypath = ','.join(['library', mainlib, 'techmap', tool])
-        #chip.add('eda', tool, 'require', step, index, keypath)
+        for lib in macrolibs:
+            # optional for macrolibs
+            if chip.valid('library', lib, 'model', 'timing', 'nldm'):
+                for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
+                    chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model','timing', 'nldm', corner]))
     else:
-        chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
+        chip.add('tool', tool, 'require', step, index, ",".join(['fpga','partname']))
 
     # Setting up regex patterns
-    chip.set('eda', tool, 'regex', step, index, 'warnings', "Warning", clobber=False)
-    chip.set('eda', tool, 'regex', step, index, 'errors', "Error", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', "Warning", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', "Error", clobber=False)
 
     # Reports
     for metric in ('errors', 'warnings', 'drvs', 'coverage', 'security',
                    'luts', 'dsps', 'brams',
                    'cellarea',
                    'cells', 'registers', 'buffers', 'nets', 'pins'):
-        chip.set('eda', tool, 'report', step, index, metric, f"{step}.log")
+        chip.set('tool', tool, 'report', step, index, metric, f"{step}.log")
 
 #############################################
 # Runtime pre processing
@@ -145,29 +146,29 @@ def post_process(chip):
     # Extracting
     if step == 'syn':
         #TODO: looks like Yosys exits on error, so no need to check metric
-        chip.set('metric', step, index, 'errors', 'real', 0, clobber=True)
+        chip.set('metric', step, index, 'errors', 0, clobber=True)
         with open(step + ".log") as f:
             for line in f:
                 area = re.search(r'Chip area for module.*\:\s+(.*)', line)
                 cells = re.search(r'Number of cells\:\s+(.*)', line)
                 warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
                 if area:
-                    chip.set('metric', step, index, 'cellarea', 'real', round(float(area.group(1)),2), clobber=True)
+                    chip.set('metric', step, index, 'cellarea', round(float(area.group(1)),2), clobber=True)
                 elif cells:
-                    chip.set('metric', step, index, 'cells', 'real', int(cells.group(1)), clobber=True)
+                    chip.set('metric', step, index, 'cells', int(cells.group(1)), clobber=True)
                 elif warnings:
-                    chip.set('metric', step, index, 'warnings', 'real', int(warnings.group(1)), clobber=True)
+                    chip.set('metric', step, index, 'warnings', int(warnings.group(1)), clobber=True)
     elif step == 'lec':
         with open(step + ".log") as f:
             for line in f:
                 if line.endswith('Equivalence successfully proven!'):
-                    chip.set('metric', step, index, 'errors', 'real', 0, clobber=True)
+                    chip.set('metric', step, index, 'errors', 0, clobber=True)
                     continue
 
                 errors = re.search(r'Found a total of (\d+) unproven \$equiv cells.', line)
                 if errors is not None:
                     num_errors = int(errors.group(1))
-                    chip.set('metric', step, index, 'errors', 'real', num_errors, clobber=True)
+                    chip.set('metric', step, index, 'errors', num_errors, clobber=True)
 
 
 

@@ -21,11 +21,9 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.load_pdk('skywater130')
     chip.set('arg','index','<index>')
-
-    # check lvs
     chip.set('arg','step', 'lvs')
     setup(chip)
 
@@ -47,33 +45,33 @@ def setup(chip):
     # magic used for drc and lvs
     script = 'sc_lvs.tcl'
 
-    chip.set('eda', tool, 'exe', tool)
-    chip.set('eda', tool, 'vswitch', '-batch')
-    chip.set('eda', tool, 'version', '>=1.5.192')
-    chip.set('eda', tool, 'format', 'tcl')
-    chip.set('eda', tool, 'threads', step, index, 4)
-    chip.set('eda', tool, 'refdir', step, index, refdir)
-    chip.set('eda', tool, 'script', step, index, script)
+    chip.set('tool', tool, 'exe', tool)
+    chip.set('tool', tool, 'vswitch', '-batch')
+    chip.set('tool', tool, 'version', '>=1.5.192')
+    chip.set('tool', tool, 'format', 'tcl')
+    chip.set('tool', tool, 'threads', step, index, 4)
+    chip.set('tool', tool, 'refdir', step, index, refdir)
+    chip.set('tool', tool, 'script', step, index, script)
 
     # set options
     options = []
     options.append('-batch')
     options.append('source')
-    chip.set('eda', tool, 'option', step, index, options, clobber=False)
+    chip.set('tool', tool, 'option', step, index, options, clobber=False)
 
     design = chip.get('design')
-    chip.add('eda', tool, 'input', step, index, f'{design}.spice')
-    if chip.valid('read', 'netlist', step, index):
-        chip.add('eda', tool, 'require', step, index, ','.join(['read', 'netlist', step, index]))
+    chip.add('tool', tool, 'input', step, index, f'{design}.spice')
+    if chip.valid('input', 'netlist'):
+        chip.add('tool', tool, 'require', step, index, ','.join(['input', 'netlist']))
     else:
-        chip.add('eda', tool, 'input', step, index, f'{design}.vg')
+        chip.add('tool', tool, 'input', step, index, f'{design}.vg')
 
     # TODO: actually parse tool errors in post_process()
     logfile = f'{step}.log'
     report_path = f'reports/{design}.lvs.out'
-    chip.set('eda', tool, 'report', step, index, 'errors', logfile)
-    chip.set('eda', tool, 'report', step, index, 'drvs', report_path)
-    chip.set('eda', tool, 'report', step, index, 'warnings', report_path)
+    chip.set('tool', tool, 'report', step, index, 'errors', logfile)
+    chip.set('tool', tool, 'report', step, index, 'drvs', report_path)
+    chip.set('tool', tool, 'report', step, index, 'warnings', report_path)
 
 ################################
 # Version Check
@@ -106,8 +104,8 @@ def post_process(chip):
         # details.
         pin_failures = lvs_failures[3]
         errors = lvs_failures[0] - pin_failures
-        chip.set('metric', step, index, 'drvs', 'real', errors)
-        chip.set('metric', step, index, 'warnings', 'real', pin_failures)
+        chip.set('metric', step, index, 'drvs', errors)
+        chip.set('metric', step, index, 'warnings', pin_failures)
 
     #TODO: return error code
     return 0
