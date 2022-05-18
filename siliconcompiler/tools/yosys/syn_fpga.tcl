@@ -10,27 +10,22 @@ if {[string match {ice*} $sc_partname]} {
     yosys synth_ice40 -top $sc_design -json "${sc_design}_netlist.json"
 } else {
 
-#    source fpga_lutsize.tcl
     set lutsize 3
     set output_blif "outputs/$topmodule.blif"
-
-    # Technology mapping
+ 
     yosys proc
-    yosys techmap -D NO_LUT -map +/adff2dff.v
-    #convert DFFs to latches
-    yosys dffunmap
-    yosys opt -fast -noff
-    
-    # Synthesis
-    yosys synth -top $sc_design -flatten
-    yosys clean
+
+    yosys techmap
 
     # LUT mapping
     yosys abc -lut $lutsize
 
+    #Flatten the design
+    yosys flatten
+
     # Check
     yosys synth -run check
 
-    # Clean and output blif
+    # Clean and output blifver      
     yosys opt_clean -purge
 }
