@@ -23,20 +23,8 @@ def configure_chip(design):
     chip.load_target('skywater130_demo')
 
     # Include I/O macro lib.
-    stackup = chip.get('asic', 'stackup')
-    libname = 'io'
-    lib = Chip(libname)
-    lib.add('model', 'timing', 'nldm', 'typical', f'{SKY130IO_PREFIX}/io/sky130_dummy_io.lib')
-    lib.set('model', 'layout', 'lef', stackup, f'{SKY130IO_PREFIX}/io/sky130_ef_io.lef')
-    lib.add('model', 'layout', 'gds', stackup, f'{SKY130IO_PREFIX}/io/sky130_ef_io.gds')
-    lib.add('model', 'layout', 'gds', stackup, f'{SKY130IO_PREFIX}/io/sky130_fd_io.gds')
-    lib.add('model', 'layout', 'gds', stackup, f'{SKY130IO_PREFIX}/io/sky130_ef_io__gpiov2_pad_wrapped.gds')
-    chip.import_library(lib)
-    chip.add('asic', 'macrolib', libname)
-
-    # TODO: This param goes under ['asic', 'exclude', step, index, ...] now.
-    # But I think it's used by DRC checks, which aren't currently enabled in this test design.
-    #chip.set('asic', 'exclude', ['io'])
+    chip.load_lib('sky130io')
+    chip.add('asic', 'macrolib', 'sky130io')
 
     # Configure 'show' apps, and return the Chip object.
     chip.set('option', 'showtool', 'def', 'klayout')
