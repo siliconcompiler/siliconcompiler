@@ -316,7 +316,8 @@ class LibGen(DynamicGen):
 
     def extra_content(self, chip, modname):
         # assume same pdk for all libraries configured by this module
-        pdk = chip.get('asic', 'pdk')
+        mainlib = chip.getkeys('library')[0]
+        pdk = chip.get('library', mainlib, 'asic', 'pdk')
 
         p = docutils.nodes.inline('')
         self.parse_rst(f'Associated PDK: :ref:`{pdk}<{pdk}-ref>`', p)
@@ -327,14 +328,15 @@ class LibGen(DynamicGen):
 
         sections = []
 
-        # for libname in chip.getkeys('library'):
-        libname = chip.get('design')
-        section_key = '-'.join(['libs', modname, libname, 'configuration'])
-        settings = build_section(libname, section_key)
-        cfg = chip.cfg
-        # settings += build_config_recursive(cfg, keypath_prefix=['library', libname], sec_key_prefix=['libs', modname])
-        settings += build_config_recursive(cfg)
-        sections.append(settings)
+        for libname in chip.getkeys('library'):
+            section_key = '-'.join(['libs', modname, libname, 'configuration'])
+            settings = build_section(libname, section_key)
+
+            for key in ('asic', 'model'):
+                cfg = chip.getdict('library', libname, key)
+                settings += build_config_recursive(cfg, keypath_prefix=[key], sec_key_prefix=['libs', modname, libname, key])
+
+            sections.append(settings)
 
         return sections
 
