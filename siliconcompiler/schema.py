@@ -8,7 +8,7 @@ import sys
 import copy as pycopy
 import json
 
-SCHEMA_VERSION = '0.8.0'
+SCHEMA_VERSION = '0.9.0'
 
 #############################################################################
 # PARAM DEFINITION
