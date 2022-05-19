@@ -30,6 +30,7 @@ SiliconCompiler 0.9.0 (2022-05-19)
 * Added flexible tool version checking based on PEP-440 standard, now enabled by default.
 * Added 'clean' feature for cleaning up intermediate tool outputs.
 * Added 'resume' feature for restarting failed flows (for debugging).
+* Added automatic capture of peak memory usage (adds dependency on `psutil <https://psutil.readthedocs.io/en/latest/>`_).
 * Changed ['design'] to be a required parameter for instantiating a Chip.
 * Changed error behavior to consistently raise exceptions rather than exit.
 * Removed tool script copy feature, so now all EDA scripts are run from the reference directory.
@@ -43,7 +44,6 @@ SiliconCompiler 0.9.0 (2022-05-19)
 * Added environment variables to replay scripts.
 * Added LVS/DRC signoff flow and top-level GDS stream out flow.
 * Added native support for Sky130 I/O library, along with Heartbeat + padring example.
-* Added automatic capture of peak memory usage.
 * Changed internals to minimize SC performance overhead with large flowgraphs.
 * Changed task runtime tracking to distinguish between time spent in tool and total time.
 * Fixed breakpoints to work more consistently across tools.
