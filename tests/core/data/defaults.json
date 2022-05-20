@@ -100,9 +100,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: antenna cell list",
@@ -119,9 +117,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: buf cell list",
@@ -138,9 +134,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkbuf cell list",
@@ -157,9 +151,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkdelay cell list",
@@ -176,9 +168,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkgate cell list",
@@ -195,9 +185,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkicg cell list",
@@ -214,9 +202,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkinv cell list",
@@ -233,9 +219,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clklogic cell list",
@@ -252,9 +236,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: decap cell list",
@@ -271,9 +253,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: delay cell list",
@@ -290,9 +270,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: driver cell list",
@@ -309,9 +287,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: endcap cell list",
@@ -328,9 +304,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: filler cell list",
@@ -347,9 +321,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: hold cell list",
@@ -366,9 +338,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: ignore cell list",
@@ -385,9 +355,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: load cell list",
@@ -404,9 +372,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: tap cell list",
@@ -423,9 +389,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: tie cell list",
@@ -443,9 +407,7 @@
             ],
             "help": "List of (x,y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: core area outline",
@@ -515,9 +477,7 @@
             ],
             "help": "List of (x,y) points that define the outline of the die area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: die area outline",
@@ -671,9 +631,7 @@
             ],
             "help": "List of all selected logic libraries libraries\nto use for optimization for a given library architecture\n(9T, 11T, etc).",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: logic libraries",
@@ -690,9 +648,7 @@
             ],
             "help": "List of macro libraries to be linked in during synthesis and place\nand route. Macro libraries are used for resolving instances but are\nnot used as targets for logic synthesis.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: macro libraries",
@@ -1430,15 +1386,15 @@
                         "default": {
                             "defvalue": null,
                             "example": [
-                                "cli: -datasheet_pin_supply 'mydevice ina ground vdd'",
-                                "api: chip.set('datasheet','mydevice','pin','ina','ground','global','vdd')"
+                                "cli: -datasheet_pin_ground 'mydevice ina ground vss'",
+                                "api: chip.set('datasheet','mydevice','pin','ina','ground','global','vss')"
                             ],
                             "help": "Pin related ground rail specified on a per mode basis.",
                             "lock": "false",
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin related power supply",
+                            "shorthelp": "Datasheet: pin related ground",
                             "signature": null,
                             "switch": "-datasheet_pin_ground 'design name mode <str>'",
                             "type": "str",
@@ -1999,7 +1955,7 @@
         "signature": null,
         "switch": "-design <str>",
         "type": "str",
-        "value": "test"
+        "value": null
     },
     "flowgraph": {
         "default": {
@@ -2181,9 +2137,7 @@
             "hashalgo": "sha256",
             "help": "Architecture definition file for FPGA place and route\ntool. For the VPR tool, the file is a required XML based description,\nallowing targeting a large number of virtual and commercial\narchitectures. For most commercial tools, the fpga part name provides\nenough information to enable compilation and the 'arch' parameter is\noptional.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "FPGA: architecture file",
@@ -2291,7 +2245,7 @@
             ],
             "filehash": [],
             "hashalgo": "sha256",
-            "help": "List of {item} files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
+            "help": "List of input files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -3256,9 +3210,7 @@
             ],
             "help": "List of step stop (break) points. If the step is a TCL\nbased tool, then the breakpoints stops the flow inside the\nEDA tool. If the step is a command line tool, then the flow\ndrops into a Python interpreter.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Breakpoint list",
@@ -3297,9 +3249,7 @@
             "hashalgo": "sha256",
             "help": "List of filepaths to JSON formatted schema configuration\nmanifests. The files are read in automatically when using the\n'sc' command line application. In Python programs, JSON manifests\ncan be merged into the current working manifest using the\nread_manifest() method.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Configuration manifest",
@@ -3338,9 +3288,7 @@
             "hashalgo": "sha256",
             "help": "Read the specified file, and act as if all text inside it was specified\nas command line parameters. Supported by most verilog simulators\nincluding Icarus and Verilator. The format of the file is not strongly\nstandardized. Support for comments and environment variables within\nthe file varies and depends on the tool used. SC simply passes on\nthe filepath toe the tool executable.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design compilation command file",
@@ -3379,9 +3327,7 @@
             "hashalgo": "sha256",
             "help": "Filepath to credentials used for remote processing. If the\ncredentials parameter is empty, the remote processing client program\ntries to access the \".sc/credentials\" file in the user's home\ndirectory. The file supports the following fields:\n\nuserid=<user id>\nsecret_key=<secret key used for authentication>\nserver=<ipaddr or url>",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "User credentials file",
@@ -3398,9 +3344,7 @@
             ],
             "help": "Symbol definition for source preprocessor.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design pre-processor symbol",
@@ -3504,9 +3448,7 @@
             ],
             "help": "Search paths to look for files included in the design using\nthe ```include`` statement.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design search paths",
@@ -3526,9 +3468,7 @@
             ],
             "help": "List of indices to execute. The default is to execute all\nindices for each step of a run.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation index list",
@@ -3617,9 +3557,7 @@
             ],
             "help": "List of file extensions that should be used for finding modules.\nFor example, if -y is specified as ./lib\", and '.v' is specified as\nlibext then the files ./lib/\\*.v \", will be searched for\nmodule matches.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design file extensions",
@@ -3653,9 +3591,7 @@
             ],
             "help": "List of metrics to supress when printing out the run\nsummary.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Metric summary filter",
@@ -3689,9 +3625,7 @@
             ],
             "help": "A list of phone numbers or email addresses to message\non a event event within the msg_event param. Actual\nsupport for email and phone messages is platform\ndependent.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Message contact",
@@ -3708,9 +3642,7 @@
             ],
             "help": "A list of steps after which to notify a recipient. For\nexample if values of syn, place, cts are entered separate\nmessages would be sent after the completion of the syn,\nplace, and cts steps.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Message event trigger",
@@ -3831,9 +3763,7 @@
             ],
             "help": "List of Silicon Unified Packager (SUP) registry directories.\nDirectories can be local file system folders or\npublicly available registries served up over http. The naming\nconvention for registry packages is:\n<name>/<name>-<version>.json(.<gz>)?",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Option: package registry",
@@ -3901,9 +3831,7 @@
             ],
             "help": "Specifies python modules paths for target import.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Search path",
@@ -3990,9 +3918,7 @@
             ],
             "help": "List of steps to skip during execution.The default is to\nexecute all steps  defined in the flow graph.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Skip step list",
@@ -4009,9 +3935,7 @@
             ],
             "help": "List of steps to execute. The default is to execute all steps\ndefined in the flow graph.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation step list",
@@ -4084,9 +4008,7 @@
             "hashalgo": "sha256",
             "help": "List of library files to be read in. Modules found in the\nlibraries are not interpreted as root modules.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design libraries",
@@ -4103,9 +4025,7 @@
             ],
             "help": "Search paths to look for verilog modules found in the the\nsource list. The import engine will look for modules inside\nfiles with the specified +libext+ param suffix.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design module search paths",
@@ -4127,7 +4047,7 @@
             ],
             "filehash": [],
             "hashalgo": "sha256",
-            "help": "List of {item} files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
+            "help": "List of output files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -4315,9 +4235,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of datasheet documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: datasheet document",
@@ -4356,9 +4274,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of quickstart documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: quickstart document",
@@ -4380,9 +4296,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of reference documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: reference document",
@@ -4404,9 +4318,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of releasenotes documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: releasenotes document",
@@ -4428,9 +4340,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of signoff documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: signoff document",
@@ -4452,9 +4362,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of testplan documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: testplan document",
@@ -4476,9 +4384,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of tutorial documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: tutorial document",
@@ -4500,9 +4406,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of userguide documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: userguide document",
@@ -4554,9 +4458,7 @@
             ],
             "help": "Package list of SPDX license identifiers.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: license identifiers",
@@ -4578,9 +4480,7 @@
             "hashalgo": "sha256",
             "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).list of SPDX license identifiers.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: license files",
@@ -4597,9 +4497,7 @@
             ],
             "help": "Package country of origin specified as standardized\ninternational country codes. The field can be left blank\nif the location is unknown or global.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: location",
@@ -4633,9 +4531,7 @@
             ],
             "help": "Package sponsoring organization. The field can be left\nblank if not applicable.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: sponsoring organization",
@@ -4669,9 +4565,7 @@
             ],
             "help": "Package IP address to source code repository.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: code repository",
@@ -4688,9 +4582,7 @@
             ],
             "help": "Package list of qualified compilation targets.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: qualified targets",
