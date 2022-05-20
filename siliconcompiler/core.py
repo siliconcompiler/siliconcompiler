@@ -1558,7 +1558,7 @@ class Chip:
                 # update other fields that a user might modify
                 for field in self.getdict(*keylist, cfg=cfg).keys():
                     if field in ('value', 'switch', 'type', 'require', 'defvalue',
-                                 'shorthelp', 'notes', 'example', 'help'):
+                                 'shorthelp', 'example', 'help'):
                         # skip these fields (value handled above, others are static)
                         continue
                     v = self.get(*keylist, cfg=cfg, field=field)
