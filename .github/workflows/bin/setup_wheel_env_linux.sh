@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # Install dependencies
-yum --disablerepo=epel update ca-certificates
-yum update
+yum --disablerepo=epel -y update ca-certificates
 yum install -y libuuid-devel zlib-devel java-1.8.0-openjdk-devel graphviz xorg-x11-server-Xvfb wget
 
 # Install Klayout (for chip.show() test)
