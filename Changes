@@ -14,6 +14,7 @@ SiliconCompiler 0.9.0 (2022-05-19)
 **Major:**
 
 * Schema: Reorganized entire schema! Changes summarized below:
+
   * Cleaned and consolidated top-level organization, most parameters are now nested.
   * Moved build configuration options underneath ['option', ...].
   * Added ['output', ...] to store pointers to flow outputs.
