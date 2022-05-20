@@ -1024,7 +1024,7 @@ class Chip:
                                 self.logger.error(f'{field} must be set to boolean.')
                                 self.error = 1
                         elif field in ('hashalgo', 'scope', 'require', 'type', 'unit',
-                                       'shorthelp', 'switch', 'help'):
+                                       'shorthelp', 'notes', 'switch', 'help'):
                             # awlays string scalars
                             cfg[param][field] = val
                         elif field in ('example'):
@@ -1558,7 +1558,7 @@ class Chip:
                 # update other fields that a user might modify
                 for field in self.getdict(*keylist, cfg=cfg).keys():
                     if field in ('value', 'switch', 'type', 'require', 'defvalue',
-                                 'shorthelp', 'example', 'help'):
+                                 'shorthelp', 'notes', 'example', 'help'):
                         # skip these fields (value handled above, others are static)
                         continue
                     v = self.get(*keylist, cfg=cfg, field=field)
