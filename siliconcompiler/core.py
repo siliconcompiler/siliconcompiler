@@ -1024,7 +1024,7 @@ class Chip:
                                 self.logger.error(f'{field} must be set to boolean.')
                                 self.error = 1
                         elif field in ('hashalgo', 'scope', 'require', 'type', 'unit',
-                                       'shorthelp', 'switch', 'help'):
+                                       'shorthelp', 'notes', 'switch', 'help'):
                             # awlays string scalars
                             cfg[param][field] = val
                         elif field in ('example'):

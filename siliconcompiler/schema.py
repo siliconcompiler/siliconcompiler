@@ -158,7 +158,7 @@ def schema_cfg():
                 example=[
                     f"cli: -{item} 'verilog hello_world.v'",
                     f"api: chip.set({item},'verilog','hello_world.v')"],
-                schelp="""
+                schelp=f"""
                 List of {item} files specifed by type. The filetype name must
                 align with the parameter names within the flow and tool setup
                 scripts. Examples of acceptable file types include python, c,
@@ -1047,11 +1047,11 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
     # Related ground
     scparam(cfg, ['datasheet', design, 'pin', name, 'ground', mode],
                 sctype='str',
-                shorthelp=f"Datasheet: pin related power supply",
+                shorthelp=f"Datasheet: pin related ground",
                 switch=f"-datasheet_pin_ground 'design name mode <str>'",
                 example=[
-                    f"cli: -datasheet_pin_supply 'mydevice ina ground vdd'",
-                    f"api: chip.set('datasheet','mydevice','pin','ina','ground','global','vdd')"],
+                    f"cli: -datasheet_pin_ground 'mydevice ina ground vss'",
+                    f"api: chip.set('datasheet','mydevice','pin','ina','ground','global','vss')"],
             schelp=f"""Pin related ground rail specified on a per mode basis.""")
 
     # Standard
