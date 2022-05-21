@@ -24,20 +24,27 @@ A modular build system for hardware ("make for silicon"). The project philosophy
 * Built in support for asap7, freepdk45, skywater130
 * Extensive [documentation](https://docs.siliconcompiler.com/en/latest/)
 
+# Supported Technologies
+
+| Type | Supported|
+|------|----------|
+|**Languages**| C, SV, VHDL, Chisel, Migen/Amaranth, Bluespec
+|**Simulation**| Verilator, Icarus, GHDL
+| **Synthesis**| Yosys, Vivado, Synopsys, Cadence
+| **ASIC APR**| OpenRoad, Synopsys, Cadence
+| **FPGA APR**| VPR, nextpnr, Vivado
+| **Layout Viewer**| Klayout, Cadence, Synopsys
+| **DRC/LVS**| Magic, Mentor, Cadence, Synopsys
 
 # Getting Started
 
-If you already have yosys, openroad, klayout, a Python (3.6+) installed,
-getting started is trivial. Just install siliconcompiler from pypi and start
-coding in Python. If you are missing any of these dependencies, see the installation
-instructions.
-
+If you already have all of the pre-requisites available, then installation is trivial. Just enter the following from your Python virtual environment:
 
 ```sh
 pip install --upgrade siliconcompiler
 ```
 
-The example below shows how to compile a design through the Python interface.
+It takes less than 10 lines of simple Python code translate RTL into DRC clean GDS.
 
 ```python
 import siliconcompiler                      # import python package
@@ -50,23 +57,23 @@ chip.summary()                              # print summary
 chip.show()                                 # show layout
 ```
 
-If you prefer working from the command line, you can use the 'sc' app. To get a
+If you prefer working from the command line, you can use the 'sc' app.To get a
 complete set of command line switches, enter 'sc -h'.
 
 ```sh
-sc -input "verilog heartbeat.v" -design heartbeat
+sc -input "verilog heartbeat.v" -design heartbeat -target "freepdk45_demo"
 ```
-## Documentation
+# Documentation
 
 The full reference manual and tutorials can be found [HERE](https://docs.siliconcompiler.com/en/latest/).
 
-## Installation
+# Installation
 
 SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
 Linux platforms.  If you already have a working Python 3.6-3.10 environment, just use pip.
 
 ```sh
-python -m pip install siliconcompiler
+python -m pip upgrade siliconcompiler
 ```
 
 Full complete installation instructions see the
@@ -82,18 +89,18 @@ pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-## External Dependencies
+# External Dependencies
 
 Installation instructions for all external tools can be found in the
 [Tools](https://docs.siliconcompiler.com/en/latest/reference_manual/tools.html) section
 of the reference manual.
 
-## Tool Installation
+# Tool Installation
 
 We have included shell setup scripts (Ubuntu) for most of the supported tools. See the
 [./setup](./setup) directory for a complete set of scripts.
 
-## Contributing
+# Contributing
 
 SiliconCompiler is an open-source project and welcomes contributions. To find out
 how to contribute to the project, see our
