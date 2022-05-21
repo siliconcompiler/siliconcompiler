@@ -14,7 +14,8 @@ if {[string match {ice*} $sc_partname]} {
     set output_blif "outputs/$topmodule.blif"
  
     yosys proc
-
+    
+    yosys techmap -map +/adff2dff.v
     yosys techmap
 
     # LUT mapping
