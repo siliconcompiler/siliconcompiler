@@ -89,16 +89,11 @@ pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-# External Dependencies
+# External Tool Dependencies
 
 Installation instructions for all external tools can be found in the
 [Tools](https://docs.siliconcompiler.com/en/latest/reference_manual/tools.html) section
-of the reference manual.
-
-# Tool Installation
-
-We have included shell setup scripts (Ubuntu) for most of the supported tools. See the
-[./setup](./setup) directory for a complete set of scripts.
+of the reference manual. We have included shell setup scripts (Ubuntu) for most of the supported tools. See the [./setup](./setup) directory for a complete set of scripts.
 
 # Contributing
 
