@@ -1,5 +1,4 @@
-
-<img src="https://raw.githubusercontent.com/siliconcompiler/siliconcompiler/main/docs/_images/sc_logo_with_text.png" alt="drawing" style="height:100px;"/>
+![SiliconCompiler](https://raw.githubusercontent.com/siliconcompiler/siliconcompiler/main/docs/_images/sc_logo_with_text.png)
 
 [![Quick CI Tests](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/on_push_tests.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/on_push_tests.yml)
 [![Daily CI Tests](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/daily_tests.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/daily_tests.yml)
@@ -13,16 +12,14 @@ A modular build system for hardware ("make for silicon"). The project philosophy
 
 # Why SiliconCompiler?
 
-* Easy to use Python API
-* Powerful command line interface
-* Standardized JSON schema that supports ASICs, FPGAs, and simulation
-* Remote execution (zero install) client/server model
-* Cloud scale compilation through flowgraph execution model
-* Standardized driver interfaces that simplify adoption of new tools
-* Designed to support open and closed proprietary tools
-* Built in support for Yosys, OpenRoad, Verilator, Klayout, ([...](https://docs.siliconcompiler.com/en/latest/reference_manual/tools.html))
-* Built in support for asap7, freepdk45, skywater130
-* Extensive [documentation](https://docs.siliconcompiler.com/en/latest/)
+* Easy to use [Python API](https://docs.siliconcompiler.com/en/latest/user_guide/programming_model.html)
+* Standard JSON [schema](https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html) with support for ASICs, FPGAs, and simulation
+* Flowgraph [compilation model](https://docs.siliconcompiler.com/en/latest/user_guide/execution_model.html) that leverages cloud scale compute farms     
+* Client/server [remote execution](https://docs.siliconcompiler.com/en/latest/user_guide/remote_processing.html) support ("zero install")
+* Tool [driver interface](architecture) that enables support open and proprietary tool
+* Automated creation of [design manifest](https://docs.siliconcompiler.com/en/latest/user_guide/data_model.html) for reuse/provenance
+* Extensively [documentated](https://docs.siliconcompiler.com/en/latest/)
+* Used by the Zero ASIC design teams for commercial tapouts
 
 # Supported Technologies
 
@@ -30,21 +27,24 @@ A modular build system for hardware ("make for silicon"). The project philosophy
 |------|----------|
 |**Languages**| C, SV, VHDL, Chisel, Migen/Amaranth, Bluespec
 |**Simulation**| Verilator, Icarus, GHDL
-| **Synthesis**| Yosys, Vivado, Synopsys, Cadence
-| **ASIC APR**| OpenRoad, Synopsys, Cadence
-| **FPGA APR**| VPR, nextpnr, Vivado
-| **Layout Viewer**| Klayout, Cadence, Synopsys
-| **DRC/LVS**| Magic, Mentor, Cadence, Synopsys
+|**Synthesis**| Yosys, Vivado, Synopsys, Cadence
+|**ASIC APR**| OpenRoad, Synopsys, Cadence
+|**FPGA APR**| VPR, nextpnr, Vivado
+|**Layout Viewer**| Klayout, Cadence, Synopsys
+|**DRC/LVS**| Magic, Mentor, Cadence, Synopsys
+|**PDKs**| sky130, asap7, freepdk45
 
 # Getting Started
 
-If you already have all of the pre-requisites available, then installation is trivial. Just enter the following from your Python virtual environment:
+SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
+Linux platforms. For working Python 3.6-3.10 environment, just use pip.
 
 ```sh
-pip install --upgrade siliconcompiler
+python -m pip upgrade siliconcompiler
 ```
 
-It takes less than 10 lines of simple Python code translate RTL into DRC clean GDS.
+
+Converting RTL into DRC clean GDS takes less than 10 lines of simple Python code.
 
 ```python
 import siliconcompiler                      # import python package
@@ -52,34 +52,34 @@ chip = siliconcompiler.Chip('heartbeat')    # create chip object
 chip.load_target('freepdk45_demo')          # load a pre-defined target
 chip.set('input', 'verilog', 'heartbeat.v') # set input sources
 chip.set('input', 'sdc', 'heartbeat.sdc')   # set constraints
+#chip.set('option','remote', True)          # enable remote execution
 chip.run()                                  # run compilation
 chip.summary()                              # print summary
 chip.show()                                 # show layout
 ```
 
-If you prefer working from the command line, you can use the 'sc' app.To get a
-complete set of command line switches, enter 'sc -h'.
+To reduce the pain of tool installation, the project supports remote compilation on [siliconcompiler.com](): 
+1. Sign up for a [Free Beta Account](https://www.siliconcompiler.com/beta),
+2. Create a [credentials file](https://docs.siliconcompiler.com/en/latest/user_guide/installation.html#cloud-access)
+3. Set the remote option to True (see example above)
+4. Run   
+
+Simple designs can be compiled using the built in command line 'sc' app:
 
 ```sh
-sc -input "verilog heartbeat.v" -design heartbeat -target "freepdk45_demo"
+sc -remote -input "verilog heartbeat.v" -design heartbeat -target "freepdk45_demo"
 ```
+
 # Documentation
 
 The full reference manual and tutorials can be found [HERE](https://docs.siliconcompiler.com/en/latest/).
 
 # Installation
 
-SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
-Linux platforms.  If you already have a working Python 3.6-3.10 environment, just use pip.
 
-```sh
-python -m pip upgrade siliconcompiler
-```
+Complete installation instructions are available in the [Installation Guide](https://docs.siliconcompiler.com/en/latest/user_guide/installation.html).
 
-Full complete installation instructions see the
-[Installation Guide](https://docs.siliconcompiler.com/en/latest/user_guide/installation.html).
-
-To install the project from source (supported on Linux and macOS platforms):
+To install the project from source (recommended for developers only).
 
 ```bash
 git clone https://github.com/siliconcompiler/siliconcompiler
@@ -89,7 +89,7 @@ pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-# External Tool Dependencies
+# Tool Installation
 
 Installation instructions for all external tools can be found in the
 [Tools](https://docs.siliconcompiler.com/en/latest/reference_manual/tools.html) section
@@ -101,20 +101,22 @@ SiliconCompiler is an open-source project and welcomes contributions. To find ou
 how to contribute to the project, see our
 [Contributing Guidelines.](./CONTRIBUTING.md)
 
-## Issues / Bug Reports
+# Issues / Bug Reports
 
 We use [GitHub Issues](https://github.com/siliconcompiler/siliconcompiler/issues)
 for tracking requests and bugs.
 
-## More information
-
-- **Website:**  https://www.siliconcompiler.com
-- **Documentation:**  https://docs.siliconcompiler.com
-- **Sources:**  https://github.com/siliconcompiler/siliconcompiler
-- **Issues:**  https://github.com/siliconcompiler/siliconcompiler/issues
-- **RFCs:**  https://github.com/siliconcompiler/rfcs
-- **Discussion:** https://github.com/siliconcompiler/siliconcompiler/discussions
-
-## License
+# License
 
 [Apache License 2.0](LICENSE)
+
+# More information
+
+| Resources | Link|
+|-----------|-----|
+| **Website**|  https://www.siliconcompiler.com
+| **Documentation**|  https://docs.siliconcompiler.com
+| **Sources**|  https://github.com/siliconcompiler/siliconcompiler
+| **Issues**|  https://github.com/siliconcompiler/siliconcompiler/issues
+| **RFCs**|  https://github.com/siliconcompiler/rfcs
+| **Discussion**| https://github.com/siliconcompiler/siliconcompiler/discussions
