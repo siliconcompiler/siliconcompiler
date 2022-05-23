@@ -12,14 +12,14 @@ A modular build system for hardware ("make for silicon"). The project philosophy
 
 # Why SiliconCompiler?
 
-* Easy to use [Python API](https://docs.siliconcompiler.com/en/latest/user_guide/programming_model.html)
-* Standard JSON [schema](https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html) with support for ASICs, FPGAs, and simulation
-* Flowgraph [compilation model](https://docs.siliconcompiler.com/en/latest/user_guide/execution_model.html) that leverages cloud scale compute farms     
-* Client/server [remote execution](https://docs.siliconcompiler.com/en/latest/user_guide/remote_processing.html) support ("zero install")
-* Tool [driver interface](architecture) that enables support open and proprietary tool
-* Automated creation of [design manifest](https://docs.siliconcompiler.com/en/latest/user_guide/data_model.html) for reuse/provenance
-* Extensively [documentated](https://docs.siliconcompiler.com/en/latest/)
-* Used by the Zero ASIC design teams for commercial tapouts
+* **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/latest/user_guide/programming_model.html)
+* **Portability:** Powerful dynamic JSON [schema](https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html) supports ASIC and FPGA design and simulation
+* **Speed:** Flowgraph [compilation model](https://docs.siliconcompiler.com/en/latest/user_guide/execution_model.html) enables cloud scale execution.     
+* **Barrier Free:** [Remote execution model](https://docs.siliconcompiler.com/en/latest/user_guide/remote_processing.html) enables "zero install" compilation
+* **Modularity:** [A clean tool driver interface](architecture) makes it easy to add new open (and closed) source tools.
+* **Provenance:** [Provenane/reuse manifests](https://docs.siliconcompiler.com/en/latest/user_guide/data_model.html) created as byproduct of compilation.
+* **Documentated:** An extensive set of auto-generated high quality [reference documents and tutorials](https://docs.siliconcompiler.com/en/latest/),
+* **In-use:** Already in use by the Zero ASIC for commercial tapeouts at advanced process node.
 
 # Supported Technologies
 
@@ -31,7 +31,7 @@ A modular build system for hardware ("make for silicon"). The project philosophy
 |**ASIC APR**| OpenRoad, Synopsys, Cadence
 |**FPGA APR**| VPR, nextpnr, Vivado
 |**Layout Viewer**| Klayout, Cadence, Synopsys
-|**DRC/LVS**| Magic, Mentor, Cadence, Synopsys
+|**DRC/LVS**| Magic, Mentor, Synopsys
 |**PDKs**| sky130, asap7, freepdk45
 
 # Getting Started
@@ -58,8 +58,9 @@ chip.summary()                              # print summary
 chip.show()                                 # show layout
 ```
 
-To reduce the pain of tool installation, the project supports remote compilation on [siliconcompiler.com](): 
-1. Sign up for a [Free Beta Account](https://www.siliconcompiler.com/beta),
+To reduce the pain of tool installation, the project supports free remote compilation at [siliconcompiler.com](siliconcompiler.com).
+
+1. Sign up for a [free beta account](https://www.siliconcompiler.com/beta),
 2. Create a [credentials file](https://docs.siliconcompiler.com/en/latest/user_guide/installation.html#cloud-access)
 3. Set the remote option to True (see example above)
 4. Run   
