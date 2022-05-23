@@ -2170,17 +2170,17 @@ def schema_option(cfg):
             shorthelp="Optimization mode",
             switch="-O<str>",
             example=["cli: -O3",
-                    "api: chip.set('option','optmode','3')"],
+                    "api: chip.set('option','optmode','O3')"],
             schelp="""
             The compiler has modes to prioritize run time and ppa. Modes
             include.
 
-            (0) = Exploration mode for debugging setup
-            (1) = Higher effort and better PPA than O0
-            (2) = Higher effort and better PPA than O1
-            (3) = Signoff quality. Better PPA and higher run times than O2
-            (4-98) = Reserved (compiler/target dependent)
-            (99) = Experimental highest possible effort, may be unstable
+            (O0) = Exploration mode for debugging setup
+            (O1) = Higher effort and better PPA than O0
+            (O2) = Higher effort and better PPA than O1
+            (O3) = Signoff quality. Better PPA and higher run times than O2
+            (O4-O98) = Reserved (compiler/target dependent)
+            (O99) = Experimental highest possible effort, may be unstable
             """)
 
     #TODO: with modular flows does this go away?

@@ -378,6 +378,11 @@ class Chip:
             if not isinstance(vals, list):
                 vals = [vals]
 
+            # Hack to handle the fact that we want optmode stored with an 'O'
+            # prefix.
+            if switch == 'option_optmode':
+                vals = ['O'+vals[0]]
+
             # Cycle throug all items in list types
             for item in vals:
                 args = [None] * (len(switchmap[switch])+1)
