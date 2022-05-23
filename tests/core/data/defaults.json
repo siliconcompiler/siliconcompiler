@@ -3689,9 +3689,9 @@
             "defvalue": "O0",
             "example": [
                 "cli: -O3",
-                "api: chip.set('option','optmode','3')"
+                "api: chip.set('option','optmode','O3')"
             ],
-            "help": "The compiler has modes to prioritize run time and ppa. Modes\ninclude.\n\n(0) = Exploration mode for debugging setup\n(1) = Higher effort and better PPA than O0\n(2) = Higher effort and better PPA than O1\n(3) = Signoff quality. Better PPA and higher run times than O2\n(4-98) = Reserved (compiler/target dependent)\n(99) = Experimental highest possible effort, may be unstable",
+            "help": "The compiler has modes to prioritize run time and ppa. Modes\ninclude.\n\n(O0) = Exploration mode for debugging setup\n(O1) = Higher effort and better PPA than O0\n(O2) = Higher effort and better PPA than O1\n(O3) = Signoff quality. Better PPA and higher run times than O2\n(O4-O98) = Reserved (compiler/target dependent)\n(O99) = Experimental highest possible effort, may be unstable",
             "lock": "false",
             "notes": null,
             "require": "all",
