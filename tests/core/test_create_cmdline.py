@@ -1,9 +1,9 @@
 import siliconcompiler
 
-def do_cli_test(args, monkeypatch):
+def do_cli_test(args, monkeypatch, switchlist=None):
     chip = siliconcompiler.Chip('test')
     monkeypatch.setattr('sys.argv', args)
-    chip.create_cmdline('sc')
+    chip.create_cmdline('sc', switchlist=switchlist)
     return chip
 
 def test_cli_multi_source(monkeypatch):
@@ -43,3 +43,20 @@ def test_optmode(monkeypatch):
     chip = do_cli_test(args, monkeypatch)
 
     assert chip.get('option', 'optmode') == 'O3'
+
+def test_spaces_in_value(monkeypatch):
+    desc = 'My package description'
+    args = ['sc', '-package_description', desc]
+
+    chip = do_cli_test(args, monkeypatch)
+
+    assert chip.get('package', 'description') == desc
+
+def test_limited_switchlist(monkeypatch):
+    chip = siliconcompiler.Chip('test')
+
+    args = ['sc', '-loglevel', 'DEBUG', '-arg_flow', 'foo bar']
+    chip = do_cli_test(args, monkeypatch, switchlist=['-loglevel', '-arg_flow'])
+
+    assert chip.get('option', 'loglevel') == 'DEBUG'
+    assert chip.get('arg', 'flow', 'foo') == ['bar']
