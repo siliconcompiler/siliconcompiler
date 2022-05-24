@@ -214,7 +214,7 @@ class Chip:
         return switchstrs, metavar
 
     ###########################################################################
-    def create_cmdline(self, progname, description=None, switchlist=None):
+    def create_cmdline(self, progname, description=None, switchlist=None, input_map=None):
         """Creates an SC command line interface.
 
         Exposes parameters in the SC schema as command line switches,
@@ -243,16 +243,23 @@ class Chip:
             progname (str): Name of program to be executed.
             description (str): Short program description.
             switchlist (list of str): List of SC parameter switches to expose
-                 at the command line. By default all SC schema switches are
-                 available. Parameter switches should be entered based on the
-                 parameter 'switch' field in the schema. For parameters with
-                 multiple switches, both will be accepted if any one is included
-                 in this list.
+                at the command line. By default all SC schema switches are
+                available. Parameter switches should be entered based on the
+                parameter 'switch' field in the schema. For parameters with
+                multiple switches, both will be accepted if any one is included
+                in this list.
+            input_map (dict of str): Dictionary mapping file extensions to input
+                filetypes. This is used to automatically assign positional
+                source arguments to ['input'] parameters keypath based on their
+                file extension. If None, the CLI will not accept positional
+                arguments.
 
         Examples:
             >>> chip.create_cmdline(progname='sc-show',switchlist=['-input','-cfg'])
             Creates a command line interface for 'sc-show' app.
 
+            >>> chip.create_cmdline(progname='sc', input_map={'v': 'verilog'})
+            All sources ending in .v will be stored in ['input', 'verilog']
         """
 
         # Argparse
@@ -302,6 +309,10 @@ class Chip:
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
 
+        if input_map is not None:
+            parser.add_argument('source',
+                                nargs='*',
+                                help='Input files with filetype inferred by extension')
 
         #Preprocess sys.argv to enable linux commandline switch formats
         #(gcc, verilator, etc)
@@ -360,6 +371,25 @@ class Chip:
         if 'option_cfg' in cmdargs.keys():
             for item in cmdargs['option_cfg']:
                 self.read_manifest(item, clobber=True, clear=True)
+
+        # Map sources to ['input'] keypath.
+        if 'source' in cmdargs:
+            for source in cmdargs['source']:
+                _, ext = os.path.splitext(source)
+                ext = ext.lstrip('.')
+                if ext in input_map:
+                    filetype = input_map[ext]
+                    if self.valid('input', filetype, quiet=True):
+                        self.add('input', filetype, source)
+                    else:
+                        self.set('input', filetype, source)
+                    self.logger.info(f'Source {source} inferred as {filetype}')
+                else:
+                    self.logger.warning('Unable to infer input type for '
+                        f'{source} based on file extension, ignoring. Use the '
+                        '-input flag to provide it explicitly.')
+            # we don't want to handle this in the next loop
+            del cmdargs['source']
 
         # 5. Cycle through all command args and write to manifest
         for dest, vals in cmdargs.items():

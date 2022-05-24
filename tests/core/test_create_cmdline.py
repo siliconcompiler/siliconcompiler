@@ -2,10 +2,10 @@ import re
 
 import siliconcompiler
 
-def do_cli_test(args, monkeypatch, switchlist=None):
+def do_cli_test(args, monkeypatch, switchlist=None, input_map=None):
     chip = siliconcompiler.Chip('test')
     monkeypatch.setattr('sys.argv', args)
-    chip.create_cmdline('sc', switchlist=switchlist)
+    chip.create_cmdline('sc', switchlist=switchlist, input_map=input_map)
     return chip
 
 def test_cli_multi_source(monkeypatch):
@@ -55,8 +55,6 @@ def test_spaces_in_value(monkeypatch):
     assert chip.get('package', 'description') == desc
 
 def test_limited_switchlist(monkeypatch):
-    chip = siliconcompiler.Chip('test')
-
     args = ['sc', '-loglevel', 'DEBUG', '-arg_flow', 'foo bar']
     chip = do_cli_test(args, monkeypatch, switchlist=['-loglevel', '-arg_flow'])
 
@@ -136,3 +134,15 @@ def test_cli_examples(monkeypatch):
             else:
                 assert typestr == 'bool', 'Implicit value only alowed for boolean'
                 assert c.get(*replaced_keypath) == True
+
+def test_input_map(monkeypatch):
+    input_map = {
+        'v': 'verilog',
+        'vhdl': 'vhdl',
+        'def': 'def'
+    }
+    args = ['sc', 'source.v', 'floorplan.def', 'source2.vhdl']
+    chip = do_cli_test(args, monkeypatch, input_map=input_map)
+    assert chip.get('input', 'verilog') == ['source.v']
+    assert chip.get('input', 'vhdl') == ['source2.vhdl']
+    assert chip.get('input', 'def') == ['floorplan.def']
