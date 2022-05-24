@@ -245,9 +245,9 @@ class Chip:
             switchlist (list of str): List of SC parameter switches to expose
                  at the command line. By default all SC schema switches are
                  available. Parameter switches should be entered based on the
-                 parameter 'switch' field in the 'schema'. For parameters with
-                 multiple switches, both will be valid if any one is included in
-                 this list.
+                 parameter 'switch' field in the schema. For parameters with
+                 multiple switches, both will be accepted if any one is included
+                 in this list.
 
         Examples:
             >>> chip.create_cmdline(progname='sc-show',switchlist=['-input','-cfg'])
@@ -266,8 +266,7 @@ class Chip:
         # Get all keys from global dictionary or override at command line
         allkeys = self.getkeys()
 
-        # Iterate over all keys to add parser argument and set up a reverse
-        # switch to keypath hash table
+        # Iterate over all keys to add parser arguments
         for keypath in allkeys:
             #Fetch fields from leaf cell
             helpstr = self.get(*keypath, field='shorthelp')
@@ -278,7 +277,7 @@ class Chip:
 
             switchstrs, metavar = self._get_switches(*keypath)
 
-            #Four switch types (source, scalar, list, bool)
+            # Three switch types (bool, list, scalar)
             if not switchlist or any(switch in switchlist for switch in switchstrs):
                 if typestr == 'bool':
                     parser.add_argument(*switchstrs,
