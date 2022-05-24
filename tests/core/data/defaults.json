@@ -4,7 +4,7 @@
             "default": {
                 "defvalue": [],
                 "example": [
-                    "cli: -arg_flow 'n 100",
+                    "cli: -arg_flow 'n 100'",
                     "api: chip.set('arg','flow','n', 100)"
                 ],
                 "help": "Parameter passed in as key/value pair to the flow target\nreferenced in the load_flow() API call. See the target flow\nfor specific guidelines regarding configuration parameters.",
@@ -14,7 +14,7 @@
                 "scope": "scratch",
                 "shorthelp": "ARG: Flow argument",
                 "signature": [],
-                "switch": "-arg_flow 'key <str>",
+                "switch": "-arg_flow 'key <str>'",
                 "type": "[str]",
                 "value": []
             }

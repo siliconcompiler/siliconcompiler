@@ -1616,9 +1616,9 @@ def schema_arg(cfg):
             sctype='[str]',
             scope='scratch',
             shorthelp="ARG: Flow argument",
-            switch="-arg_flow 'key <str>",
+            switch="-arg_flow 'key <str>'",
             example=[
-                "cli: -arg_flow 'n 100",
+                "cli: -arg_flow 'n 100'",
                 "api: chip.set('arg','flow','n', 100)"],
             schelp="""
             Parameter passed in as key/value pair to the flow target
