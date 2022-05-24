@@ -37,14 +37,31 @@ def main():
     # Create a base chip class.
     chip = siliconcompiler.Chip(UNSET_DESIGN)
 
+    input_map = {
+        # HDL
+        'v': 'verilog',
+        'vhdl': 'vhdl',
+        'c': 'c',
+        'bsv': 'bsv',
+        'scala': 'scala',
+
+        # ASIC "side files"
+        'sdc': 'sdc',
+        'def': 'floorplan.def',
+
+        # FPGA "side files"
+        'pcf': 'pcf'
+    }
+
     # Read command-line inputs and generate Chip objects to run the flow on.
     chip.create_cmdline(progname,
-                        description=description)
+                        description=description,
+                        input_map=input_map)
 
     # Set design if none specified
     if chip.get('design') == UNSET_DESIGN:
         topfile = None
-        for sourcetype in ('verilog', 'scala', 'c'):
+        for sourcetype in ('verilog', 'vhdl', 'c', 'bsv', 'scala'):
             if chip.valid('input', sourcetype):
                 sources = chip.get('input', sourcetype)
                 if sources:
