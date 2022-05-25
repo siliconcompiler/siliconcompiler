@@ -40,6 +40,7 @@ def main():
     input_map = {
         # HDL
         'v': 'verilog',
+        'sv': 'verilog',
         'vhdl': 'vhdl',
         'c': 'c',
         'bsv': 'bsv',
