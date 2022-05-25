@@ -14,23 +14,7 @@ class SchemaGen(SphinxDirective):
 
         schema = schema_cfg()
 
-        # Split up schema into root and nested keys so that we can add a custom
-        # header to the root entries.
-        basic_schema = {}
-        nested_schema = {}
-        for key, val in schema.items():
-            if is_leaf(val):
-                basic_schema[key] = val
-            else:
-                nested_schema[key] = val
-
-        basic_section = build_section('root', 'root')
-        for n in self.process_schema(basic_schema):
-            basic_section += n
-
-        nested_sections = self.process_schema(nested_schema)
-
-        return [basic_section] + nested_sections
+        return self.process_schema(schema)
 
     def process_schema(self, schema, parents=[]):
         if 'help' in schema:
