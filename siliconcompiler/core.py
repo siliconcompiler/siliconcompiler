@@ -261,8 +261,6 @@ class Chip:
                                          formatter_class=argparse.RawDescriptionHelpFormatter,
                                          description=description)
 
-
-
         # Get all keys from global dictionary or override at command line
         allkeys = self.getkeys()
 
@@ -281,10 +279,10 @@ class Chip:
             if not switchlist or any(switch in switchlist for switch in switchstrs):
                 if typestr == 'bool':
                     parser.add_argument(*switchstrs,
+                                        nargs='?',
                                         metavar=metavar,
                                         dest=dest,
-                                        action='store_const',
-                                        const="true",
+                                        const='true',
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
                 #list type arguments
