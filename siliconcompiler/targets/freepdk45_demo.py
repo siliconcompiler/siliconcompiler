@@ -38,7 +38,7 @@ def setup(chip):
     chip.load_lib('nangate45')
 
     #3. Set flow and pdk
-    chip.set('option', 'flow', 'asicflow')
+    chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'freepdk45')
 
     #4. Select libraries

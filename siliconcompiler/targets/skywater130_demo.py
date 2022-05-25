@@ -41,7 +41,7 @@ def setup(chip):
 
     #3. Set default targets
     chip.set('option', 'flow', 'asicflow', clobber=False)
-    chip.set('option', 'pdk', 'skywater130', clobber=False)
+    chip.set('option', 'pdk', 'skywater130')
 
     #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
