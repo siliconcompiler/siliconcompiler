@@ -44,15 +44,25 @@ Directory`, and :ref:`Targets Directory` sections of the reference manual and re
 
 .. note::
 
-   The example assumes that surelog, yosys, openroad, and klayout are all correctly
+   The example assumes that Surelog, Yosys, OpenROAD, and KLayout are all correctly
    installed. Links to individual tool installation instructions and platform
    limitations can be found in the :ref:`Tools directory`.
 
-   To simplify tool installation and job scheduling, SiliconCompiler supports a
+   It also requires downloading and pointing SC to FreePDK45, which is bundled
+   with the SiliconCompiler repo. To install, clone the repo and set up an
+   environment variable ``SCPATH`` pointing at the ``siliconcompiler/``
+   directory inside of it:
+
+   .. code-block:: bash
+
+     git clone https://github.com/siliconcompiler/siliconcompiler
+     export SCPATH=$PWD/siliconcompiler/siliconcompiler
+
+   To simplify tool/PDK installation and job scheduling, SiliconCompiler supports a
    "-remote" option, which directs the compiler to send all steps to a remote
    server for processing. The "-remote" option relies on a credentials file
-   located at ~/.sc/credentials on Linux or macOS, or
-   at C:\\Users\\USERNAME\\.sc\\credentials on Windows.
+   located at ``~/.sc/credentials`` on Linux or macOS, or
+   at ``C:\\Users\\USERNAME\\.sc\\credentials`` on Windows.
 
    Remote processing option is enabled by setting the :keypath:`option,remote`
    parameter to True. ::
