@@ -250,8 +250,8 @@ class Chip:
                 in this list.
             input_map (dict of str): Dictionary mapping file extensions to input
                 filetypes. This is used to automatically assign positional
-                source arguments to ['input'] parameters keypath based on their
-                file extension. If None, the CLI will not accept positional
+                source arguments to ['input', ...] keypaths based on their file
+                extension. If None, the CLI will not accept positional source
                 arguments.
 
         Examples:
