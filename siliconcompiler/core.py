@@ -180,7 +180,41 @@ class Chip:
         self.logger = None
 
     ###########################################################################
-    def create_cmdline(self, progname, description=None, switchlist=[]):
+    def _get_switches(self, *keypath):
+        '''Helper function for parsing switches and metavars for a keypath.'''
+        #Switch field fully describes switch format
+        switch = self.get(*keypath, field='switch')
+
+        if switch is None:
+            switches = []
+        elif isinstance(switch, list):
+            switches = switch
+        else:
+            switches = [switch]
+        switchstrs = []
+
+        # parse out switch from metavar
+        # TODO: should we validate that metavar matches for each switch?
+        for switch in switches:
+            switchmatch = re.match(r'(-[\w_]+)\s+(.*)', switch)
+            gccmatch = re.match(r'(-[\w_]+)(.*)', switch)
+            plusmatch = re.match(r'(\+[\w_\+]+)(.*)', switch)
+
+            if switchmatch:
+                switchstr = switchmatch.group(1)
+                metavar = switchmatch.group(2)
+            elif gccmatch:
+                switchstr = gccmatch.group(1)
+                metavar = gccmatch.group(2)
+            elif plusmatch:
+                switchstr = plusmatch.group(1)
+                metavar = plusmatch.group(2)
+            switchstrs.append(switchstr)
+
+        return switchstrs, metavar
+
+    ###########################################################################
+    def create_cmdline(self, progname, description=None, switchlist=None):
         """Creates an SC command line interface.
 
         Exposes parameters in the SC schema as command line switches,
@@ -188,14 +222,11 @@ class Chip:
         parameters exposed at the command line. The order of command
         line switch settings parsed from the command line is as follows:
 
-         1. design
-         2. loglevel
-         3. mode
-         4. arg_step
-         5. fpga_partname
-         6. load_target('target')
-         7. read_manifest([cfg])
-         8. all other switches
+         1. loglevel
+         2. fpga_partname
+         3. load_target('target')
+         4. read_manifest([cfg])
+         5. all other switches
 
         The cmdline interface is implemented using the Python argparse package
         and the following use restrictions apply.
@@ -213,11 +244,13 @@ class Chip:
             description (str): Short program description.
             switchlist (list of str): List of SC parameter switches to expose
                  at the command line. By default all SC schema switches are
-                 available.  Parameter switches should be entered without
-                 '-', based on the parameter 'switch' field in the 'schema'.
+                 available. Parameter switches should be entered based on the
+                 parameter 'switch' field in the schema. For parameters with
+                 multiple switches, both will be accepted if any one is included
+                 in this list.
 
         Examples:
-            >>> chip.create_cmdline(progname='sc-show',switchlist=['source','cfg'])
+            >>> chip.create_cmdline(progname='sc-show',switchlist=['-input','-cfg'])
             Creates a command line interface for 'sc-show' app.
 
         """
@@ -228,65 +261,35 @@ class Chip:
                                          formatter_class=argparse.RawDescriptionHelpFormatter,
                                          description=description)
 
-
-
         # Get all keys from global dictionary or override at command line
         allkeys = self.getkeys()
-        switchmap = {}
-        # Iterate over all keys to add parser argument
-        # and setup up a reverse switch to key hash table
+
+        # Iterate over all keys to add parser arguments
         for keypath in allkeys:
             #Fetch fields from leaf cell
             helpstr = self.get(*keypath, field='shorthelp')
             typestr = self.get(*keypath, field='type')
-            #Switch field fully describes switch format
-            switch = self.get(*keypath, field='switch')
-            if switch is None:
-                switches = []
-            elif isinstance(switch, list):
-                switches = switch
-            else:
-                switches = [switch]
-            switchstrs = []
-            dest = None
-            for switch in switches:
-                switchmatch = re.match(r'(-[\w_]+)\s+(.*)', switch)
-                gccmatch = re.match(r'(-[\w_]+)(.*)', switch)
-                plusmatch = re.match(r'(\+[\w_\+]+)(.*)', switch)
-                # Handling the fact that all options can be entered
-                # without the option prefix
-                if keypath[0]=='option':
-                    dest = f"option_{keypath[1]}"
-                else:
-                    dest = keypath[0]
-                if switchmatch:
-                    switchstr = switchmatch.group(1)
-                    if re.search('_', switchstr):
-                        dest = re.sub('-','',switchstr)
-                elif gccmatch:
-                    switchstr = gccmatch.group(1)
-                elif plusmatch:
-                    switchstr = plusmatch.group(1)
-                switchstrs.append(switchstr)
 
-            # Creating map between switch field posiation and keypath
-            switchmap[dest] = keypath
+            # argparse 'dest' must be a string, so join keypath with commas
+            dest = '_'.join(keypath)
 
-            #Four switch types (source, scalar, list, bool)
-            if ((switchlist == []) | (dest in switchlist)):
+            switchstrs, metavar = self._get_switches(*keypath)
+
+            # Three switch types (bool, list, scalar)
+            if not switchlist or any(switch in switchlist for switch in switchstrs):
                 if typestr == 'bool':
                     parser.add_argument(*switchstrs,
-                                        metavar='',
+                                        nargs='?',
+                                        metavar=metavar,
                                         dest=dest,
-                                        action='store_const',
-                                        const="true",
+                                        const='true',
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
                 #list type arguments
                 elif re.match(r'\[', typestr):
                     #all the rest
                     parser.add_argument(*switchstrs,
-                                        metavar='',
+                                        metavar=metavar,
                                         dest=dest,
                                         action='append',
                                         help=helpstr,
@@ -294,7 +297,7 @@ class Chip:
                 else:
                     #all the rest
                     parser.add_argument(*switchstrs,
-                                        metavar='',
+                                        metavar=metavar,
                                         dest=dest,
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
@@ -328,10 +331,7 @@ class Chip:
         parser.add_argument('-version', action='version', version=_metadata.version)
 
         #Grab argument from pre-process sysargs
-        #print(scargs)
         cmdargs = vars(parser.parse_args(scargs))
-        #print(cmdargs)
-        #sys.exit()
 
         # Print banner
         print(_metadata.banner)
@@ -341,26 +341,16 @@ class Chip:
 
         os.environ["COLUMNS"] = '80'
 
-        # 1. set design name (override default)
-        if 'design' in cmdargs.keys():
-            self.name = cmdargs['design']
-
-        # 2. set loglevel if set at command line
+        # 1. set loglevel if set at command line
         if 'option_loglevel' in cmdargs.keys():
             self.logger.setLevel(cmdargs['option_loglevel'])
 
-        # 3. read in target if set
+        # 2. read in target if set
         if 'option_target' in cmdargs.keys():
-            if 'option_mode' in cmdargs.keys():
-                self.set('option', 'mode', cmdargs['option_mode'], clobber=True)
             if 'arg_pdk' in cmdargs.keys():
-                print("NOT IMPLEMENTED: 'techarg' parameter")
-                raise NotImplementedError("NOT IMPLEMENTED: 'techarg' parameter")
+                raise NotImplementedError("NOT IMPLEMENTED: ['arg', 'pdk'] parameter with target")
             if 'arg_flow' in cmdargs.keys():
-                print("NOT IMPLEMENTED: 'flowarg' parameter")
-                raise NotImplementedError("NOT IMPLEMENTED: 'flowarg' parameter")
-            if 'arg_step' in cmdargs.keys():
-                self.set('arg', 'step', cmdargs['arg_step'], clobber=True)
+                raise NotImplementedError("NOT IMPLEMENTED: ['arg', 'flow'] parameter with target")
             if 'fpga_partname' in cmdargs.keys():
                 self.set('fpga', 'partname', cmdargs['fpga_partname'], clobber=True)
             # running target command
@@ -372,42 +362,46 @@ class Chip:
                 self.read_manifest(item, clobber=True, clear=True)
 
         # 5. Cycle through all command args and write to manifest
-        for switch, vals in cmdargs.items():
+        for dest, vals in cmdargs.items():
+            keypath = dest.split('_')
 
             # Turn everything into a list for uniformity
             if not isinstance(vals, list):
                 vals = [vals]
 
-            # Hack to handle the fact that we want optmode stored with an 'O'
-            # prefix.
-            if switch == 'option_optmode':
-                vals = ['O'+vals[0]]
-
-            # Cycle throug all items in list types
+            # Cycle through all items
             for item in vals:
-                args = [None] * (len(switchmap[switch])+1)
-                # First place the sub switches in order
-                for subswitch in switch.split('_'):
-                    for index,value in enumerate(switchmap[switch]):
-                        if subswitch == value:
-                            args[index] = subswitch
-                # Now place space items left to right based on empty slots
-                for j in range(len(args)):
-                    if args[j] is None:
-                        for i in item.split(' '):
-                            args[j] = i
-                            break
-                # Ensureing last item is the data we want
-                args[-1] = item.split(' ')[-1]
+                # Hack to handle the fact that we want optmode stored with an 'O'
+                # prefix.
+                if keypath == ['option', 'optmode']:
+                    item = 'O' + item
+
+                num_free_keys = keypath.count('default')
+
+                if len(item.split(' ')) < num_free_keys + 1:
+                    # Error out if value provided doesn't have enough words to
+                    # fill in 'default' keys.
+                    switches, metavar = self._get_switches(*keypath)
+                    switchstr = '/'.join(switches)
+                    self.logger.error(f'Invalid value {item} for switch {switchstr}. Expected format {metavar}.')
+                    raise SiliconCompilerError('Invalid CLI arguments')
+
+                # We replace 'default' in keypath with first N words in provided
+                # value. Remainder is the actual value we want to store in the
+                # parameter.
+                *free_keys, val = item.split(' ', num_free_keys)
+                args = [free_keys.pop(0) if key == 'default' else key for key in keypath]
+
                 # Storing in manifest
-                self.logger.info(f"Command line argument entered: {args}")
-                if self.valid(*args[:-1], quiet=True):
-                    if re.match(r'\[', self.get(*args[:-1], field='type')):
-                        self.add(*args)
+                self.logger.info(f"Command line argument entered: {args} Value: {val}")
+                typestr = self.get(*keypath, field='type')
+                if typestr.startswith('['):
+                    if self.valid(*args, quiet=True):
+                        self.add(*args, val)
                     else:
-                        self.set(*args, clobber=True)
+                        self.set(*args, val, clobber=True)
                 else:
-                    self.set(*args, clobber=True)
+                    self.set(*args, val, clobber=True)
 
     #########################################################################
     def find_function(self, modulename, funcname, moduletype=None):

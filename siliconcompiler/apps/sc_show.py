@@ -31,7 +31,7 @@ def main():
     chip = siliconcompiler.Chip(UNSET_DESIGN)
 
     chip.create_cmdline(progname,
-                        switchlist=['design', 'input', 'option_loglevel', 'option_cfg'],
+                        switchlist=['-design', '-input', '-loglevel', '-cfg'],
                         description=description)
 
     #Error checking
