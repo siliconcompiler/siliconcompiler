@@ -1292,7 +1292,7 @@
                                 "cli: -datasheet_pin_capacitance 'mydevice sclk global (1e-12, 1.2e-12, 1.5e-12)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','capacitance','global',(1e-12, 1.2e-12, 1.5e-12)"
                             ],
-                            "help": "Pin capacitance.",
+                            "help": "Pin capacitance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1369,7 +1369,7 @@
                                 "cli: -datasheet_pin_dutycycle 'mydevice sclk global (45, 50, 55)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','dutycycle','global',(45, 50, 55)"
                             ],
-                            "help": "Pin duty cycle.",
+                            "help": "Pin duty cycle. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1408,7 +1408,7 @@
                                 "cli: -datasheet_pin_idrive 'mydevice sclk global (0.01, 0.012, 0.015)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','idrive','global',(0.01, 0.012, 0.015)"
                             ],
-                            "help": "Pin drive current.",
+                            "help": "Pin drive current. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1428,7 +1428,7 @@
                                 "cli: -datasheet_pin_iinject 'mydevice sclk global (0.001, 0.0012, 0.0015)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','iinject','global',(0.001, 0.0012, 0.0015)"
                             ],
-                            "help": "Pin injection current.",
+                            "help": "Pin injection current. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1448,7 +1448,7 @@
                                 "cli: -datasheet_pin_ileakage 'mydevice sclk global (1e-06, 1.2e-06, 1.5e-06)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','ileakage','global',(1e-06, 1.2e-06, 1.5e-06)"
                             ],
-                            "help": "Pin leakage current.",
+                            "help": "Pin leakage current. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1487,7 +1487,7 @@
                                 "cli: -datasheet_pin_rdiff 'mydevice sclk global (45, 50, 55)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','rdiff','global',(45, 50, 55)"
                             ],
-                            "help": "Pin differential pair resistance.",
+                            "help": "Pin differential pair resistance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1526,7 +1526,7 @@
                                 "cli: -datasheet_pin_rpulldown 'mydevice sclk global (1000, 1200, 3000)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','rpulldown','global',(1000, 1200, 3000)"
                             ],
-                            "help": "Pin pulldown resistance.",
+                            "help": "Pin pulldown resistance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1546,7 +1546,7 @@
                                 "cli: -datasheet_pin_rpullup 'mydevice sclk global (1000, 1200, 3000)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','rpullup','global',(1000, 1200, 3000)"
                             ],
-                            "help": "Pin pullup resistance.",
+                            "help": "Pin pullup resistance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1604,7 +1604,7 @@
                                 "cli: -datasheet_pin_tfall 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','tfall','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin fall transition.",
+                            "help": "Pin fall transition. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1624,7 +1624,7 @@
                                 "cli: -datasheet_pin_thold 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','thold','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin hold time.",
+                            "help": "Pin hold time. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1644,7 +1644,7 @@
                                 "cli: -datasheet_pin_tjitter 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','tjitter','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin rms jitter.",
+                            "help": "Pin rms jitter. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1664,7 +1664,7 @@
                                 "cli: -datasheet_pin_tperiod 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','tperiod','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin minimum period.",
+                            "help": "Pin minimum period. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1684,7 +1684,7 @@
                                 "cli: -datasheet_pin_tpulse 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','tpulse','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin pulse width.",
+                            "help": "Pin pulse width. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1704,7 +1704,7 @@
                                 "cli: -datasheet_pin_trise 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','trise','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin rise transition.",
+                            "help": "Pin rise transition. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1724,7 +1724,7 @@
                                 "cli: -datasheet_pin_tsetup 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','tsetup','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin setup time.",
+                            "help": "Pin setup time. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1763,7 +1763,7 @@
                                 "cli: -datasheet_pin_vcdm 'mydevice sclk global (100, 300, 500)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vcdm','global',(100, 300, 500)"
                             ],
-                            "help": "Pin human body model ESD tolerance.",
+                            "help": "Pin human body model ESD tolerance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1783,7 +1783,7 @@
                                 "cli: -datasheet_pin_vcm 'mydevice sclk global (0.3, 1.2, 1.6)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vcm','global',(0.3, 1.2, 1.6)"
                             ],
-                            "help": "Pin common mode voltage.",
+                            "help": "Pin common mode voltage. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1803,7 +1803,7 @@
                                 "cli: -datasheet_pin_vdiff 'mydevice sclk global (0.2, 0.3, 0.9)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vdiff','global',(0.2, 0.3, 0.9)"
                             ],
-                            "help": "Pin differential voltage.",
+                            "help": "Pin differential voltage. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1823,7 +1823,7 @@
                                 "cli: -datasheet_pin_vhbm 'mydevice sclk global (100, 300, 500)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vhbm','global',(100, 300, 500)"
                             ],
-                            "help": "Pin machine model ESD tolerance.",
+                            "help": "Pin machine model ESD tolerance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1843,7 +1843,7 @@
                                 "cli: -datasheet_pin_vih 'mydevice sclk global (1.4, 1.8, 2.2)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vih','global',(1.4, 1.8, 2.2)"
                             ],
-                            "help": "Pin high input voltage level.",
+                            "help": "Pin high input voltage level. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1863,7 +1863,7 @@
                                 "cli: -datasheet_pin_vil 'mydevice sclk global (-0.2, 0, 1.0)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vil','global',(-0.2, 0, 1.0)"
                             ],
-                            "help": "Pin low input voltage level.",
+                            "help": "Pin low input voltage level. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1883,7 +1883,7 @@
                                 "cli: -datasheet_pin_vnoise 'mydevice sclk global (0, 0.01, 0.1)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vnoise','global',(0, 0.01, 0.1)"
                             ],
-                            "help": "Pin random voltage noise.",
+                            "help": "Pin random voltage noise. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1903,7 +1903,7 @@
                                 "cli: -datasheet_pin_voh 'mydevice sclk global (4.6, 4.8, 5.2)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','voh','global',(4.6, 4.8, 5.2)"
                             ],
-                            "help": "Pin high output voltage level.",
+                            "help": "Pin high output voltage level. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1923,7 +1923,7 @@
                                 "cli: -datasheet_pin_vol 'mydevice sclk global (-0.2, 0, 0.2)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vol','global',(-0.2, 0, 0.2)"
                             ],
-                            "help": "Pin low output voltage level.",
+                            "help": "Pin low output voltage level. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,

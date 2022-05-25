@@ -1102,7 +1102,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 example=[
                     f"cli: -datasheet_pin_{item} 'mydevice sclk global {val[1]}'",
                     f"api: chip.set('datasheet','mydevice','pin','sclk','{item}','global',{val[1]}"],
-                schelp=f"""Pin {val[0]}.""")
+                schelp=f"""Pin {val[0]}. Values are tuples of (min, typical, max).""")
 
     # AC Timing
     metrics = {'tsetup': ['setup time', (1e-9, 2e-9, 4e-9), 's'],
@@ -1123,7 +1123,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 example=[
                     f"cli: -datasheet_pin_{item} 'mydevice sclk global {val[1]}'",
                     f"api: chip.set('datasheet','mydevice','pin','sclk','{item}','global',{val[1]}"],
-                schelp=f"""Pin {val[0]}.""")
+                schelp=f"""Pin {val[0]}. Values are tuples of (min, typical, max).""")
 
     return cfg
 
