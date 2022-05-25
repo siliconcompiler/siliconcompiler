@@ -40,7 +40,7 @@
             "default": {
                 "defvalue": [],
                 "example": [
-                    "cli: -arg_pdk 'mimcap true",
+                    "cli: -arg_pdk 'mimcap true'",
                     "api: chip.set('arg','pdk','mimcap','true')"
                 ],
                 "help": "Parameter passed in as key/value pair to the technology target\nreferenced in the load_pdk() API call. See the target technology\nfor specific guidelines regarding configuration parameters.",
@@ -539,7 +539,7 @@
                 "alias": {
                     "defvalue": [],
                     "example": [
-                        "cli: -footprint_alias '12track FreeCell'",
+                        "cli: -asic_footprint_alias '12track FreeCell'",
                         "api: chip.set('asic','footprint','12track','alias','FreeCell')"
                     ],
                     "help": "Alias for the footprint key that is sometimes needed when the footprint can\nbe referenced by multiple names. The key is the 'official' footprint.",
@@ -619,7 +619,7 @@
             "scope": "job",
             "shorthelp": "ASIC: library architecture",
             "signature": null,
-            "switch": "-asic_library '<str>'",
+            "switch": "-asic_libarch '<str>'",
             "type": "str",
             "value": null
         },
@@ -766,7 +766,7 @@
             "default": {
                 "defvalue": null,
                 "example": [
-                    "cli: -asic_ndr_width 'clk (0.2,0.2)",
+                    "cli: -asic_ndr 'clk (0.2,0.2)'",
                     "api: chip.set('asic','ndr','clk', (0.2,0.2))"
                 ],
                 "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width,space) tuples\nspecified in microns.",
@@ -819,7 +819,7 @@
             "default": {
                 "defvalue": null,
                 "example": [
-                    "cli: -asic_rclayer 'clk m3",
+                    "cli: -asic_rclayer 'clk m3'",
                     "api: chip.set('asic', 'rclayer', 'clk', 'm3')"
                 ],
                 "help": "Technology agnostic metal layer to be used for parasitic\nextraction estimation during APR for the wire type specified\nCurrent the supported wire types are: clk, data. The metal\nlayers can be specified as technology agnostic SC layers\nstarting with m1 or as hard PDK specific layer names.",
@@ -913,7 +913,7 @@
                 "dataformat": {
                     "defvalue": null,
                     "example": [
-                        "cli: -checklist_dataformat 'README'",
+                        "cli: -checklist_dataformat 'ISO D000 dataformat README'",
                         "api: chip.set('checklist','ISO','D000','dataformat','README')"
                     ],
                     "help": "Free text description of the type of data files acceptable as\nchecklist signoff validation.",
@@ -1098,7 +1098,7 @@
                 "scope": "job",
                 "shorthelp": "Constraint files",
                 "signature": [],
-                "switch": "-constraint_constraint 'scenario <file>'",
+                "switch": "-constraint_file 'scenario <file>'",
                 "type": "[file]",
                 "value": []
             },
@@ -1232,7 +1232,7 @@
                 "junctiontemp": {
                     "defvalue": null,
                     "example": [
-                        "cli: -datasheet_junctiontemp 'mydevice (-40,125)>'",
+                        "cli: -datasheet_junctiontemp 'mydevice (-40,125)'",
                         "api: chip.set('datasheet','mydevice','limits','junctiontemp',(-40,125))"
                     ],
                     "help": "Device absolute junction temperature limits not to be exceeded.",
@@ -1249,7 +1249,7 @@
                 "storagetemp": {
                     "defvalue": null,
                     "example": [
-                        "cli: -datasheet_storagetemp 'mydevice (-40,125)>'",
+                        "cli: -datasheet_storagetemp 'mydevice (-40,125)'",
                         "api: chip.set('datasheet','mydevice','limits','storagetemp',(-40,125))"
                     ],
                     "help": "Device absolute storage temperature limits not to be exceeded.",
@@ -1267,7 +1267,7 @@
                     "default": {
                         "defvalue": null,
                         "example": [
-                            "cli: -datasheet_limits_voltage 'mydevice vdd (-0.4,1.1)>'",
+                            "cli: -datasheet_limits_voltage 'mydevice vdd (-0.4,1.1)'",
                             "api: chip.set('datasheet','mydevice','limits','voltage','vdd', (-0.4,1.1))"
                         ],
                         "help": "Device absolute minimum/maximum voltage not to be\nexceeded, specified on a per pin basis.",
@@ -2069,7 +2069,7 @@
                     "tool": {
                         "defvalue": null,
                         "example": [
-                            "cli: -flowgraph_tool 'asicflow place openroad'",
+                            "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                             "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"
                         ],
                         "help": "Name of the tool name used for task execution. Builtin tool names\nassociated bound to core API functions include: minimum, maximum, join,\nverify, mux.",
@@ -2473,7 +2473,7 @@
                 "holdslack": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_holdslack 'place 0 goal 0.01'",
+                        "cli: -metric_holdslack 'place 0 0.01'",
                         "api: chip.set('metric','place','0','holdslack', 0.01)"
                     ],
                     "help": "Metric tracking the worst hold slack (positive or negative) on a per step and index basis.",
@@ -2491,7 +2491,7 @@
                 "holdtns": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_holdtns 'place 0 goal 0.01'",
+                        "cli: -metric_holdtns 'place 0 0.01'",
                         "api: chip.set('metric','place','0','holdtns', 0.01)"
                     ],
                     "help": "Metric tracking the total negative hold slack (TNS) on a per step and index basis.",
@@ -2509,7 +2509,7 @@
                 "holdwns": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_holdwns 'place 0 goal 0.01'",
+                        "cli: -metric_holdwns 'place 0 0.01'",
                         "api: chip.set('metric','place','0','holdwns', 0.01)"
                     ],
                     "help": "Metric tracking the worst negative hold slack (positive values truncated to zero) on a per step and index basis.",
@@ -2754,7 +2754,7 @@
                 "setupslack": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_setupslack 'place 0 goal 0.01'",
+                        "cli: -metric_setupslack 'place 0 0.01'",
                         "api: chip.set('metric','place','0','setupslack', 0.01)"
                     ],
                     "help": "Metric tracking the worst setup slack (positive or negative) on a per step and index basis.",
@@ -2772,7 +2772,7 @@
                 "setuptns": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_setuptns 'place 0 goal 0.01'",
+                        "cli: -metric_setuptns 'place 0 0.01'",
                         "api: chip.set('metric','place','0','setuptns', 0.01)"
                     ],
                     "help": "Metric tracking the total negative setup slack (TNS) on a per step and index basis.",
@@ -2790,7 +2790,7 @@
                 "setupwns": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_setupwns 'place 0 goal 0.01'",
+                        "cli: -metric_setupwns 'place 0 0.01'",
                         "api: chip.set('metric','place','0','setupwns', 0.01)"
                     ],
                     "help": "Metric tracking the worst negative setup slack (positive values truncated to zero) on a per step and index basis.",
@@ -3443,7 +3443,7 @@
         "idir": {
             "defvalue": [],
             "example": [
-                "cli: '+incdir+./mylib'",
+                "cli: +incdir+./mylib",
                 "api: chip.set('option','idir','./mylib')"
             ],
             "help": "Search paths to look for files included in the design using\nthe ```include`` statement.",
@@ -4536,7 +4536,7 @@
             "scope": "global",
             "shorthelp": "Package: sponsoring organization",
             "signature": [],
-            "switch": "-package_organzation <str>",
+            "switch": "-package_organization <str>",
             "type": "[str]",
             "value": []
         },
@@ -6185,7 +6185,7 @@
                         "default": {
                             "defvalue": [],
                             "example": [
-                                "cli: -tool_regex 'openroad place 0 error -v ERROR",
+                                "cli: -tool_regex 'openroad place 0 error -v ERROR'",
                                 "api: chip.set('tool','openroad','regex','place','0','error','-v ERROR')"
                             ],
                             "help": " A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude, -t, -i, -E, -x, -e. Patterns starting with \"-\" should be\ndirectly preceeded by the \"-e\" option. The following example\nillustrates the concept.\n\nUNIX grep:\n>> grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nsiliconcompiler:\nchip.set('tool','openroad','regex','place',0','warnings',[\"WARNING\",\"-v bbox\"])\n\nDefines a set of tool specific environment variables used by the executables\nthat depend on license key servers to control access. For multiple servers,\nseparate each server by a 'colon'. The named license variable are read at\nruntime (run()) and the environment variables are set.",

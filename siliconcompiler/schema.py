@@ -961,7 +961,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp=f"Datasheet: absolute voltage limits",
             switch=f"-datasheet_limits_voltage 'design pin <(float,float)>'",
             example=[
-                f"cli: -datasheet_limits_voltage 'mydevice vdd (-0.4,1.1)>'",
+                f"cli: -datasheet_limits_voltage 'mydevice vdd (-0.4,1.1)'",
                 f"api: chip.set('datasheet','mydevice','limits','voltage','vdd', (-0.4,1.1))"],
             schelp=f"""Device absolute minimum/maximum voltage not to be
             exceeded, specified on a per pin basis.""")
@@ -976,7 +976,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 shorthelp=f"Datasheet: absolute {val}",
                 switch=f"-datasheet_{item} 'design <(float,float)>'",
                 example=[
-                    f"cli: -datasheet_{item} 'mydevice (-40,125)>'",
+                    f"cli: -datasheet_{item} 'mydevice (-40,125)'",
                     f"api: chip.set('datasheet','mydevice','limits','{item}',(-40,125))"],
                 schelp=f"""Device absolute {val} not to be exceeded.""")
 
@@ -1176,7 +1176,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             shorthelp="Flowgraph: tool selection",
             switch="-flowgraph_tool 'flow step <str>'",
             example=[
-                "cli: -flowgraph_tool 'asicflow place openroad'",
+                "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                 "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"],
             schelp="""Name of the tool name used for task execution. Builtin tool names
             associated bound to core API functions include: minimum, maximum, join,
@@ -1380,7 +1380,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             shorthelp="Tool: regex filter",
             switch="-tool_regex 'tool step index suffix <str>'",
             example=[
-                "cli: -tool_regex 'openroad place 0 error -v ERROR",
+                "cli: -tool_regex 'openroad place 0 error -v ERROR'",
                 "api: chip.set('tool','openroad','regex','place','0','error','-v ERROR')"],
             schelp="""
              A list of piped together grep commands. Each entry represents a set
@@ -1605,7 +1605,7 @@ def schema_arg(cfg):
             shorthelp="ARG: PDK argument",
             switch="-arg_pdk 'key <str>",
             example=[
-                "cli: -arg_pdk 'mimcap true",
+                "cli: -arg_pdk 'mimcap true'",
                 "api: chip.set('arg','pdk','mimcap','true')"],
             schelp="""
             Parameter passed in as key/value pair to the technology target
@@ -1821,7 +1821,7 @@ def schema_metric(cfg, step='default', index='default'):
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index <float>'",
                 example=[
-                    f"cli: -metric_{item} 'place 0 goal 0.01'",
+                    f"cli: -metric_{item} 'place 0 0.01'",
                     f"api: chip.set('metric','place','0','{item}', 0.01)"],
                 schelp=f"""
                 Metric tracking the {val} on a per step and index basis.""")
@@ -2612,7 +2612,7 @@ def schema_option(cfg):
             shorthelp="Design search paths",
             switch=['+incdir+<dir>', '-I <dir>'],
             example=[
-                "cli: '+incdir+./mylib'",
+                "cli: +incdir+./mylib",
                 "api: chip.set('option','idir','./mylib')"],
             schelp="""
             Search paths to look for files included in the design using
@@ -2870,7 +2870,7 @@ def schema_package(cfg):
             sctype='[str]',
             scope='global',
             shorthelp=f"Package: sponsoring organization",
-            switch=f"-package_organzation <str>",
+            switch=f"-package_organization <str>",
             example=[
                 f"cli: -package_organization 'humanity'",
                 f"api: chip.set('package','organization','humanity')"],
@@ -2947,7 +2947,7 @@ def schema_checklist(cfg):
             shorthelp="Checklist: item data format",
             switch="-checklist_dataformat 'standard item <float>'",
             example=[
-                "cli: -checklist_dataformat 'README'",
+                "cli: -checklist_dataformat 'ISO D000 dataformat README'",
                 "api: chip.set('checklist','ISO','D000','dataformat','README')"],
             schelp="""
             Free text description of the type of data files acceptable as
@@ -3103,7 +3103,7 @@ def schema_asic(cfg):
             scope='job',
             shorthelp="ASIC: non-default routing rule",
             switch="-asic_ndr 'netname <(float,float)>",
-            example= ["cli: -asic_ndr_width 'clk (0.2,0.2)",
+            example= ["cli: -asic_ndr 'clk (0.2,0.2)'",
                     "api: chip.set('asic','ndr','clk', (0.2,0.2))"],
             schelp="""
             Definitions of non-default routing rule specified on a per
@@ -3191,7 +3191,7 @@ def schema_asic(cfg):
             scope='job',
             shorthelp="ASIC: parasitics layer",
             switch="-asic_rclayer 'sigtype <str>'",
-            example= ["cli: -asic_rclayer 'clk m3",
+            example= ["cli: -asic_rclayer 'clk m3'",
                     "api: chip.set('asic', 'rclayer', 'clk', 'm3')"],
             schelp="""
             Technology agnostic metal layer to be used for parasitic
@@ -3383,7 +3383,7 @@ def schema_asic(cfg):
     scparam(cfg,['asic', 'libarch'],
             sctype='str',
             shorthelp="ASIC: library architecture",
-            switch="-asic_library '<str>'",
+            switch="-asic_libarch '<str>'",
             example=[
                 "cli: -asic_libarch '12track'",
                 "api: chip.set('asic','libarch','12track')"],
@@ -3399,7 +3399,7 @@ def schema_asic(cfg):
             shorthelp="ASIC: Footprint name aliases",
             switch="-asic_footprint_alias 'key <str>'",
             example=[
-                "cli: -footprint_alias '12track FreeCell'",
+                "cli: -asic_footprint_alias '12track FreeCell'",
                 "api: chip.set('asic','footprint','12track','alias','FreeCell')"],
             schelp="""
             Alias for the footprint key that is sometimes needed when the footprint can
@@ -3506,7 +3506,7 @@ def schema_constraint(cfg, scenario='default'):
             scope='job',
             copy='true',
             shorthelp="Constraint files",
-            switch="-constraint_constraint 'scenario <file>'",
+            switch="-constraint_file 'scenario <file>'",
             example=["cli: -constraint_file 'worst hello.sdc'",
                      "api: chip.set('constraint','worst','file', 'hello.sdc')"],
             schelp="""List of timing constraint files to use for the scenario. The
