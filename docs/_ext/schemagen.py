@@ -36,7 +36,7 @@ class SchemaGen(SphinxDirective):
                 if key == 'default':
                     for n in self.process_schema(schema['default'], parents=parents):
                         sections.append(n)
-                else:
+                elif key not in ('history', 'library'):
                     section_key = '-'.join(parents) + '-' + key
                     section = build_section(key, section_key)
                     for n in self.process_schema(schema[key], parents=parents+[key]):
