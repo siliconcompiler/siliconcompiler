@@ -24,8 +24,9 @@ def setup(chip):
     chip.load_flow('asicflow')
     chip.load_lib('asap7sc7p5t')
 
-    #3. Select default flow
+    #3. Select default flow/PDK
     chip.set('option', 'flow', 'asicflow')
+    chip.set('option', 'pdk', 'asap7')
 
     #4. Select libraries
     chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt')
