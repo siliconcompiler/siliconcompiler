@@ -1473,6 +1473,38 @@ class Chip:
                 fout.write(f"{keypath},{value}")
 
     ###########################################################################
+    def _escape_val_tcl(self, val, typestr):
+        '''Recursive helper function for converting Python values to safe TCL
+        values, based on the SC type string.'''
+        if val is None:
+            return ''
+        elif typestr.startswith('('):
+            subtypes = typestr.strip('()').split(',')
+            valstr = ' '.join(self._escape_val_tcl(v, subtype.strip())
+                              for v, subtype in zip(val, subtypes))
+            return f'[list {valstr}]'
+        elif typestr.startswith('['):
+            subtype = typestr.strip('[]')
+            valstr = ' '.join(self._escape_val_tcl(v, subtype) for v in val)
+            return f'[list {valstr}]'
+        elif typestr == 'bool':
+            return 'true' if val else 'false'
+        elif typestr == 'str':
+            # Surrounding a string with '{}' ensures that special characters
+            # inside the string are treated as-is.
+            # Source: https://datacadamia.com/lang/tcl/special_character#about
+            escaped_val = val.replace('{', '\\{').replace('}', '\\}')
+            return '{' + escaped_val + '}'
+        elif typestr in ('file', 'dir'):
+            # Replace $VAR with $env(VAR) for tcl
+            # Surround with quotes to escape whitespace. We don't want to use {}
+            # here, since that will break envvar expansion.
+            return '"' + re.sub(r'\$(\w+)', r'$env(\1)', val) + '"'
+        else:
+            # floats/ints just become strings
+            return str(val)
+
+    ###########################################################################
     def _print_tcl(self, cfg, fout=None, prefix=""):
         '''
         Prints out schema as TCL dictionary
@@ -1487,29 +1519,17 @@ class Chip:
         for key in allkeys:
             typestr = self.get(*key, cfg=cfg, field='type')
             value = self.get(*key, cfg=cfg)
-            # everything becomes a list
-            # convert None to empty list
-            if value is None:
-                alist = []
-            elif bool(re.match(r'\[', typestr)):
-                alist = value
-            elif typestr == "bool" and value:
-                alist = ["true"]
-            elif typestr == "bool" and not value:
-                alist = ["false"]
-            else:
-                alist = [value]
-
-            #replace $VAR with env(VAR) for tcl
-            for i, val in enumerate(alist):
-                m = re.match(r'\$(\w+)(.*)', str(val))
-                if m:
-                    alist[i] = ('$env(' + m.group(1) + ')' + m.group(2))
 
             #create a TCL dict
             keystr = ' '.join(key)
-            valstr = ' '.join(map(str, alist)).replace(';', '\\;')
-            outstr = f"{prefix} {keystr} [list {valstr}]\n"
+
+            valstr = self._escape_val_tcl(value, typestr)
+
+            if not (typestr.startswith('[') or typestr.startswith('(')):
+                # treat scalars as lists as well
+                valstr = f'[list {valstr}]'
+
+            outstr = f"{prefix} {keystr} {valstr}\n"
 
             #print out all non default values
             if 'default' not in key:
