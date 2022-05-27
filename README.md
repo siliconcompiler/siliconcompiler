@@ -8,18 +8,24 @@
 
 # What is SiliconCompiler?
 
+<img align="right" width="40%" src="docs/_images/sc_overview.png">
+
 A modular build system for hardware ("make for silicon"). The project philosophy is to "make the complex possible while keeping the simple simple".
+
+The project foundation is a standardized dynamic JSON schema for configuring and tracking of compile time parameter related to design setup, libraries, tools, Process Design Kits (PDKs), flows, constraints, compiler time options, and run time metrics, Advanced projects (like ASICs) are far too complex be handled manually through markup languages like JSON/YAML, so the project also includes a simple (but powerful) object oriented Python API for compilation setup, run time scheduling, and results analysis. For more information about the project motivation and design philosophy, you can refer to the following paper.
+
+A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silicon Compilation](docs/papers/sc_dac2022.pdf)", 59th Design Automation Conference (DAC), 10-14 July 2022, San Francisco, CA, USA. Published, 7/2022.
 
 # Why SiliconCompiler?
 
 * **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/latest/user_guide/programming_model.html)
 * **Portability:** Powerful dynamic JSON [schema](https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html) supports ASIC and FPGA design and simulation
-* **Speed:** Flowgraph [compilation model](https://docs.siliconcompiler.com/en/latest/user_guide/execution_model.html) enables cloud scale execution.     
-* **Barrier Free:** [Remote execution model](https://docs.siliconcompiler.com/en/latest/user_guide/remote_processing.html) enables "zero install" compilation
-* **Modularity:** [A clean tool driver interface](architecture) makes it easy to add new open (and closed) source tools.
-* **Provenance:** [Provenane/reuse manifests](https://docs.siliconcompiler.com/en/latest/user_guide/data_model.html) created as byproduct of compilation.
-* **Documentated:** An extensive set of auto-generated high quality [reference documents and tutorials](https://docs.siliconcompiler.com/en/latest/),
-* **In-use:** Already in use by the Zero ASIC for commercial tapeouts at advanced process node.
+* **Speed:** Flowgraph [compilation model](https://docs.siliconcompiler.com/en/latest/user_guide/execution_model.html) enables cloud scale execution.
+* **Friction-less:** [Remote execution model](https://docs.siliconcompiler.com/en/latest/user_guide/remote_processing.html) enables "zero install" compilationm
+* **Modularity:** [Tool abstraction layer](architecture) makes it easy to add/port new tools to the project.
+* **Provenance:** [Comilation manifests](https://docs.siliconcompiler.com/en/latest/user_guide/data_model.html) created automatically during execution.
+* **Documentated:** An extensive set of auto-generated high quality [reference documents](https://docs.siliconcompiler.com/en/latest/).
+* **In-use:** Actively used by Zero ASIC for commercial tapeouts at advanced process node.
 
 # Supported Technologies
 
@@ -63,7 +69,7 @@ To reduce the pain of tool installation, the project supports free remote compil
 1. Sign up for a [free beta account](https://www.siliconcompiler.com/beta),
 2. Create a [credentials file](https://docs.siliconcompiler.com/en/latest/user_guide/installation.html#cloud-access)
 3. Set the remote option to True (see example above)
-4. Run   
+4. Run
 
 Simple designs can be compiled using the built in command line 'sc' app:
 
@@ -102,7 +108,7 @@ SiliconCompiler is an open-source project and welcomes contributions. To find ou
 how to contribute to the project, see our
 [Contributing Guidelines.](./CONTRIBUTING.md)
 
-# Issues / Bug Reports
+# Issues / Bugs
 
 We use [GitHub Issues](https://github.com/siliconcompiler/siliconcompiler/issues)
 for tracking requests and bugs.
