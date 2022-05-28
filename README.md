@@ -8,9 +8,10 @@
 
 # What is SiliconCompiler?
 
-<img align="right" width="40%" src="docs/_images/sc_overview.png">
 
 A modular build system for hardware ("make for silicon"). The project philosophy is to "make the complex possible while keeping the simple simple".
+
+![SC Overview](docs/_images/sc_overview.png)
 
 The project foundation is a standardized dynamic JSON schema for configuring and tracking of compile time parameter related to design setup, libraries, tools, Process Design Kits (PDKs), flows, constraints, compiler time options, and run time metrics, Advanced projects (like ASICs) are far too complex be handled manually through markup languages like JSON/YAML, so the project also includes a simple (but powerful) object oriented Python API for compilation setup, run time scheduling, and results analysis. For more information about the project motivation and design philosophy, you can refer to the following paper.
 
