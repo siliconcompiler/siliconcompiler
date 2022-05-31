@@ -6,14 +6,14 @@ from siliconcompiler.core import Chip
 from siliconcompiler.floorplan import Floorplan
 
 def _fp(datadir):
-    c = Chip(loglevel='INFO')
-    c.set('design', 'test', clobber=True)
+    c = Chip('test')
     c.load_target('freepdk45_demo')
     stackup = '10M'
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
-    c.set('library', lib, 'type', 'component')
-    c.add('library', lib, 'lef', stackup, os.path.join(datadir, 'ram.lef'))
+    lib = Chip(lib)
+    lib.set('model', 'layout', 'lef', stackup, os.path.join(datadir, 'ram.lef'))
+    c.import_library(lib)
 
     fp = Floorplan(c)
     cell_w = fp.stdcell_width
@@ -79,20 +79,21 @@ def test_padring(datadir):
 
     test_dir = os.path.dirname(os.path.abspath(__file__))
 
-    chip = Chip(loglevel='INFO')
-    chip.set('design', 'mypadring', clobber=True)
+    chip = Chip('mypadring')
     chip.load_target('freepdk45_demo')
 
     macro = 'io'
     stackup = '10M'
     chip.add('asic', 'macrolib', macro)
-    chip.set('library', macro, 'lef', stackup, os.path.join(datadir, 'iocells.lef'))
-    chip.set('library', macro, 'cells', 'IOPAD', 'IOPAD')
+    lib = Chip(macro)
+    lib.set('model', 'layout', 'lef', stackup, os.path.join(datadir, 'iocells.lef'))
+    chip.import_library(lib)
 
     macro = 'sram_32x2048_1rw'
     chip.add('asic', 'macrolib', macro)
-    chip.set('library', macro, 'lef', stackup, os.path.join(datadir, f'{macro}.lef'))
-    chip.set('library', macro, 'cells', 'ram', 'sram_32x2048_1rw')
+    lib = Chip(macro)
+    lib.set('model', 'layout', 'lef', stackup, os.path.join(datadir, f'{macro}.lef'))
+    chip.import_library(lib)
 
     fp = Floorplan(chip)
 
@@ -163,8 +164,7 @@ def test_padring(datadir):
     fp.write_def('padring.def')
 
 def test_vias_at_intersection():
-    c = Chip(loglevel='INFO')
-    c.set('design', 'test')
+    c = Chip('test')
     c.load_target('skywater130_demo')
 
     fp = Floorplan(c)
@@ -182,14 +182,14 @@ def test_vias_at_intersection():
     fp.write_def('test.def')
 
 def test_place_vias(datadir):
-    c = Chip()
-    c.set('design', 'test', clobber=True)
+    c = Chip('test')
     c.load_target('freepdk45_demo')
     stackup = '10M'
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
-    c.set('library', lib, 'type', 'component')
-    c.add('library', lib, 'lef', stackup, os.path.join(datadir, 'ram.lef'))
+    lib = Chip(lib)
+    lib.add('model', 'layout', 'lef', stackup, os.path.join(datadir, 'ram.lef'))
+    c.import_library(lib)
 
     fp = Floorplan(c)
 

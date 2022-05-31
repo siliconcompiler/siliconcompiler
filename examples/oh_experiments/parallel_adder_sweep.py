@@ -10,14 +10,14 @@ import multiprocessing
 # unit routine
 def run_design(rootdir, design, N, job):
 
-    chip = siliconcompiler.Chip(loglevel='INFO')
+    chip = siliconcompiler.Chip(design)
     chip.set('design', design)
-    chip.add('source', rootdir+'/stdlib/hdl/'+design+'.v')
-    chip.set('param', 'N', str(N))
-    chip.set('jobname', job)
-    chip.set('relax', True)
-    chip.set('quiet', True)
-    chip.set('steplist', ['import', 'syn'])
+    chip.add('source', 'verilog', rootdir+'/stdlib/hdl/'+design+'.v')
+    chip.set('option', 'param', 'N', str(N))
+    chip.set('option', 'jobname', job)
+    chip.set('option', 'relax', True)
+    chip.set('option', 'quiet', True)
+    chip.set('option', 'steplist', ['import', 'syn'])
     chip.load_target('freepdk45_demo')
     chip.run()
     #chip.summary()

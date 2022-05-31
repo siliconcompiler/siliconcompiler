@@ -24,7 +24,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step', 'spice')
     chip.set('arg','index', '<index>')
     setup(chip)
@@ -41,10 +41,9 @@ def setup(chip):
      index = chip.get('arg','index')
      clobber = False
 
-     chip.set('eda', tool, 'exe', tool, clobber=clobber)
-     chip.set('eda', tool, 'copy', 'false', clobber=clobber)
-     chip.set('eda', tool, 'version', '0.0', clobber=clobber)
-     chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
+     chip.set('tool', tool, 'exe', tool, clobber=clobber)
+     chip.set('tool', tool, 'version', '0.0', clobber=clobber)
+     chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
 
 ################################
 # Post_process (post executable)

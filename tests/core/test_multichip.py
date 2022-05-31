@@ -3,13 +3,9 @@ import siliconcompiler
 
 def test_multichip():
 
-    a = siliconcompiler.Chip(loglevel="INFO")
-    b = siliconcompiler.Chip(loglevel="INFO")
-    c = siliconcompiler.Chip(loglevel="INFO")
-
-    a.set('design', "top")
-    b.set('design', "adder")
-    c.set('design', "mult")
+    a = siliconcompiler.Chip("top")
+    b = siliconcompiler.Chip("adder")
+    c = siliconcompiler.Chip("mult")
 
     assert a.get('design') == 'top'
     assert a.get('design',cfg=b.cfg) == 'adder'

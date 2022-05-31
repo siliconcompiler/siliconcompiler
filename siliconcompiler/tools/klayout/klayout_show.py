@@ -11,16 +11,17 @@ with open('sc_manifest.json', 'r') as f:
     sc_cfg = json.load(f)
 
 # Extract info from manifest
-sc_stackup = sc_cfg['pdk']['stackup']['value'][0]
+sc_pdk = sc_cfg['option']['pdk']['value']
+sc_stackup = sc_cfg['pdk'][sc_pdk]['stackup']['value'][0]
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
-sc_libtype = sc_cfg['library'][sc_mainlib]['arch']['value']
+sc_libtype = list(sc_cfg['library'][sc_mainlib]['asic']['footprint'].keys())[0]
 
 try:
-    tech_file = sc_cfg['pdk']['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
+    tech_file = sc_cfg['pdk'][sc_pdk]['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
 except KeyError:
     tech_file = None
 try:
-    lyp_path = sc_cfg['pdk']['display']['klayout'][sc_stackup]['value'][0]
+    lyp_path = sc_cfg['pdk'][sc_pdk]['display']['klayout'][sc_stackup]['value'][0]
 except KeyError:
     lyp_path = None
 
@@ -28,15 +29,15 @@ macro_lefs = []
 if 'macrolib' in sc_cfg['asic']:
     sc_macrolibs = sc_cfg['asic']['macrolib']['value']
     for lib in sc_macrolibs:
-        macro_lefs.append(sc_cfg['library'][lib]['lef'][sc_stackup]['value'][0])
+        macro_lefs.append(sc_cfg['library'][lib]['model']['layout']['lef'][sc_stackup]['value'][0])
 
 # Tech / library LEF files are optional.
 try:
-    tech_lef = sc_cfg['pdk']['aprtech']['klayout'][sc_stackup][sc_libtype]['lef']['value'][0]
+    tech_lef = sc_cfg['pdk'][sc_pdk]['aprtech']['klayout'][sc_stackup][sc_libtype]['lef']['value'][0]
 except KeyError:
     tech_lef = None
 try:
-    lib_lef = sc_cfg['library'][sc_mainlib]['lef'][sc_stackup]['value'][0]
+    lib_lef = sc_cfg['library'][sc_mainlib]['model']['layout']['lef'][sc_stackup]['value'][0]
 except KeyError:
     lib_lef = None
 
@@ -90,7 +91,7 @@ try:
         # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
         gds_img = layout_view.get_image(int(scr_w), int(scr_h))
         design = sc_cfg["design"]["value"]
-        jobname = sc_cfg["jobname"]["value"]
+        jobname = sc_cfg["option"]["jobname"]["value"]
         gds_img.save(f'../{design}/{jobname}/{design}.png', 'PNG')
         # Done, exit.
         app.exit(0)

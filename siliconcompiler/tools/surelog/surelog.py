@@ -24,10 +24,9 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','import')
     chip.set('arg','index','0')
-    chip.set('design', '<design>')
     setup(chip)
     return chip
 
@@ -50,10 +49,10 @@ def setup(chip):
         exe = f'{tool}.exe'
 
     # Standard Setup
-    chip.set('eda', tool, 'exe', exe, clobber=False)
-    chip.set('eda', tool, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, 'version', '>=1.13', clobber=False)
-    chip.set('eda', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'exe', exe, clobber=False)
+    chip.set('tool', tool, 'vswitch', '--version', clobber=False)
+    chip.set('tool', tool, 'version', '>=1.13', clobber=False)
+    chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
     # -parse is slow but ensures the SV code is valid
     # we might want an option to control when to enable this
@@ -62,28 +61,28 @@ def setup(chip):
     options.append('-parse')
 
     # Wite back options tp cfg
-    chip.add('eda', tool, 'option', step, index, options)
+    chip.add('tool', tool, 'option', step, index, options)
 
     # Input/Output requirements
-    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.v')
+    chip.add('tool', tool, 'output', step, index, chip.design + '.v')
 
     # Schema requirements
-    chip.add('eda', tool, 'require', step, index, 'source')
+    chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
 
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
     # system path, set the path to the bundled copy in the schema.
     if shutil.which('surelog') is None:
         surelog_path = os.path.join(os.path.dirname(__file__), 'bin')
-        chip.set('eda', tool, 'path', surelog_path, clobber=False)
+        chip.set('tool', tool, 'path', surelog_path, clobber=False)
 
     # Log file parsing
-    chip.set('eda', tool, 'regex', step, index, 'warnings', "WARNING")
-    chip.set('eda', tool, 'regex', step, index, 'errors', "ERROR")
+    chip.set('tool', tool, 'regex', step, index, 'warnings', "WARNING")
+    chip.set('tool', tool, 'regex', step, index, 'errors', "ERROR")
 
     # Output reprts for deep dive
     for metric in ('errors', 'warnings'):
-        chip.set('eda', tool, 'report', step, index, metric, f"{step}.log")
+        chip.set('tool', tool, 'report', step, index, metric, f"{step}.log")
 
 
 def parse_version(stdout):
@@ -109,26 +108,27 @@ def runtime_options(chip):
     cmdlist = []
 
     # source files
-    for value in chip.find_files('ydir'):
+    for value in chip.find_files('option', 'ydir'):
         cmdlist.append('-y ' + value)
-    for value in chip.find_files('vlib'):
+    for value in chip.find_files('option', 'vlib'):
         cmdlist.append('-v ' + value)
-    for value in chip.find_files('idir'):
+    for value in chip.find_files('option', 'idir'):
         cmdlist.append('-I' + value)
-    for value in chip.get('define'):
+    for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('cmdfile'):
+    for value in chip.find_files('option', 'cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('source'):
+    for value in chip.find_files('input', 'verilog'):
         cmdlist.append(value)
 
-    cmdlist.append('-top ' + chip.get('design'))
+    cmdlist.append('-top ' + chip.design)
     # make sure we can find .sv files in ydirs
+    # TODO: need to add libext
     cmdlist.append('+libext+.sv+.v')
 
     # Set up user-provided parameters to ensure we elaborate the correct modules
-    for param in chip.getkeys('param'):
-        value = chip.get('param', param)
+    for param in chip.getkeys('option', 'param'):
+        value = chip.get('option', 'param', param)
         cmdlist.append(f'-P{param}={value}')
 
     return cmdlist
@@ -140,7 +140,6 @@ def runtime_options(chip):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-    design = chip.get('design')
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool = 'surelog'
@@ -151,7 +150,7 @@ def post_process(chip):
     # Look in slpp_all/file_elab.lst for list of Verilog files included in
     # design, read these and concatenate them into one pickled output file.
     with open('slpp_all/file_elab.lst', 'r') as filelist, \
-            open(f'outputs/{design}.v', 'w') as outfile:
+            open(f'outputs/{chip.design}.v', 'w') as outfile:
         for path in filelist.read().split('\n'):
             path = path.strip('"')
             if not path:
@@ -162,8 +161,8 @@ def post_process(chip):
             # in case end of file is missing a newline
             outfile.write('\n')
 
-    # Clean up
-    shutil.rmtree('slpp_all')
+
+    #TODO: find errors/warnings during import
 
     return 0
 

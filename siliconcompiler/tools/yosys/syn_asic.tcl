@@ -6,10 +6,9 @@ set sc_targetlibs  [dict get $sc_cfg asic logiclib]
 set sc_macrolibs   [dict get $sc_cfg asic macrolib]
 set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
 set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
-set sc_process     [dict get $sc_cfg pdk process]
-set sc_tie         [dict get $sc_cfg library $sc_mainlib cells tie]
-set sc_buf         [dict get $sc_cfg library $sc_mainlib cells buf]
-set sc_scenarios   [dict keys [dict get $sc_cfg mcmm]]
+set sc_tie         [dict get $sc_cfg library $sc_mainlib asic cells tie]
+set sc_buf         [dict get $sc_cfg library $sc_mainlib asic cells buf]
+set sc_scenarios   [dict keys [dict get $sc_cfg constraint]]
 
 ########################################################
 # Read Libraries
@@ -17,20 +16,21 @@ set sc_scenarios   [dict keys [dict get $sc_cfg mcmm]]
 
 set stat_libs ""
 foreach item $sc_scenarios {
-    set libcorner [dict get $sc_cfg mcmm $item libcorner]
+    set libcorner [dict get $sc_cfg constraint $item libcorner]
     foreach lib $sc_targetlibs {
-        set lib_file [dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib]
+	puts "$item $libcorner $sc_delaymodel $lib"
+        set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
         yosys read_liberty -lib $lib_file
     }
     foreach lib $sc_macrolibs {
-        if [dict exists dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib] {
-            set lib_file [dict get $sc_cfg library $lib $sc_delaymodel $libcorner lib]
+        if [dict exists dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner] {
+            set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
             yosys read_liberty -lib $lib_file
             append stat_libs "-liberty $lib_file "
         }
     }
 }
-
+puts "HELLO $sc_mode"
 ########################################################
 # Synthesis
 ########################################################
@@ -52,16 +52,16 @@ yosys opt -purge
 ########################################################
 # Technology Mapping
 ########################################################
-if [dict exists dict get $sc_cfg library $sc_mainlib techmap $sc_tool] {
-    set sc_techmap     [dict get $sc_cfg library $sc_mainlib techmap $sc_tool]
+if [dict exists dict get $sc_cfg library $sc_mainlib asic "file" $sc_tool techmap] {
+    set sc_techmap     [dict get $sc_cfg library $sc_mainlib asic "file" $sc_tool techmap]
     foreach mapfile $sc_techmap {
 	yosys techmap -map $mapfile
     }
 }
 
 #TODO: Fix better
-set libcorner    [dict get $sc_cfg mcmm [lindex $sc_scenarios 0] libcorner]
-set mainlib      [dict get $sc_cfg library $sc_mainlib $sc_delaymodel $libcorner lib]
+set libcorner    [dict get $sc_cfg constraint [lindex $sc_scenarios 0] libcorner]
+set mainlib      [dict get $sc_cfg library $sc_mainlib model timing $sc_delaymodel $libcorner]
 
 yosys dfflibmap -liberty $mainlib
 

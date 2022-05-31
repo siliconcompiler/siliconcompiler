@@ -1,12 +1,11 @@
 import siliconcompiler
 
 def main():
-    chip = siliconcompiler.Chip()
-    chip.set('source', 'GCD.scala')
-    chip.set('frontend', 'chisel')
-    chip.set('design', 'GCD')
+    chip = siliconcompiler.Chip('GCD')
+    chip.set('input', 'scala', 'GCD.scala')
+    chip.set('option', 'frontend', 'chisel')
     # default Chisel clock pin is 'clock'
-    chip.clock(name='clock', pin='clock', period=5)
+    chip.clock(pin='clock', period=5)
     chip.load_target('freepdk45_demo')
     chip.run()
     chip.summary()

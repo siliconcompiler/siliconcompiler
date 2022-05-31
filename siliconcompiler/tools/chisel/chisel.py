@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import siliconcompiler
 
@@ -22,10 +23,9 @@ def make_docs():
     installed. Instructions: https://www.scala-sbt.org/download.html.
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','import')
     chip.set('arg','index','0')
-    chip.set('design', '<design>')
     setup(chip)
     return chip
 
@@ -43,19 +43,20 @@ def setup(chip):
 
     # Standard Setup
     refdir = 'tools/'+tool
-    chip.set('eda', tool, 'exe', 'sbt', clobber=False)
-    chip.set('eda', tool, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, 'version', '>=1.5.5', clobber=False)
-    chip.set('eda', tool, 'copy', True, clobber=False)
-    chip.set('eda', tool, 'refdir', step, index,  refdir, clobber=False)
-    chip.set('eda', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'exe', 'sbt', clobber=False)
+    chip.set('tool', tool, 'vswitch', '--version', clobber=False)
+    chip.set('tool', tool, 'version', '>=1.5.5', clobber=False)
+    chip.set('tool', tool, 'refdir', step, index,  refdir, clobber=False)
+    chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
     design = chip.get('design')
     option = f'"runMain SCDriver --module {design} -o ../outputs/{design}.v"'
-    chip.set('eda', tool, 'option', step, index,  option)
+    chip.set('tool', tool, 'option', step, index,  option)
 
     # Input/Output requirements
-    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.v')
+    chip.add('tool', tool, 'output', step, index, chip.get('design') + '.v')
+
+    chip.set('tool', tool, 'keep', step, index, ['build.sbt', 'SCDriver.scala'])
 
 def parse_version(stdout):
     # sbt version in this project: 1.5.5
@@ -91,6 +92,17 @@ def runtime_options(chip):
     #     cmdlist.append(f'-P{param}={value}')
 
     return cmdlist
+
+def pre_process(chip):
+    tool = 'chisel'
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    refdir = chip.find_files('tool', tool, 'refdir', step, index)[0]
+
+    for filename in ('build.sbt', 'SCDriver.scala'):
+        src = os.path.join(refdir, filename)
+        dst = filename
+        shutil.copyfile(src, dst)
 
 ################################
 # Post_process (post executable)

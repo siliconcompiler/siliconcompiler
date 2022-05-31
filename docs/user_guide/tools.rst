@@ -1,7 +1,7 @@
 Tools
 ===================================
 
-SiliconCompiler execution depends on implementing adapter code "drivers" for each tool called in a flowgraph. Tools are referenced as named modules by the flowgraph and searched using the find_files() method. A complete set of supported tools can be found in the :ref:`Tools Directory`. The table below shows the function interfaces supported in setting up tools.
+SiliconCompiler execution depends on implementing adapter code "drivers" for each tool called in a flowgraph. Tools are referenced as named modules by the flowgraph and searched using the :meth:`.find_files()` method. A complete set of supported tools can be found in the :ref:`Tools Directory`. The table below shows the function interfaces supported in setting up tools.
 
 .. list-table::
    :widths: 10 10 10 10 10 10
@@ -63,47 +63,47 @@ SiliconCompiler execution depends on implementing adapter code "drivers" for eac
      - sphinx
      - no
 
-For a complete example of a tool setup module, see `OpenROAD <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/openroad.py>`_. For more in depth information about the various 'eda' parameters, see the :ref:`Schema <SiliconCompiler Schema>` section of the reference manual.
+For a complete example of a tool setup module, see `OpenROAD <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/openroad.py>`_. For more in depth information about the various :keypath:`tool` parameters, see the :ref:`Schema <SiliconCompiler Schema>` section of the reference manual.
 
 
 setup(chip)
 -----------------
 
-Tool setup is done for each step and index within the run() function prior to launching each individual task. Tools can be configured independently for different steps (ie. the place step is different from the route step), so we need a method for passing information about the current step and index to the setup function. This is accomplished with the reserved 'scratch' parameters shown below. ::
+Tool setup is done for each step and index within the :meth:`.run()` function prior to launching each individual task. Tools can be configured independently for different steps (ie. the place step is different from the route step), so we need a method for passing information about the current step and index to the setup function. This is accomplished with the reserved 'scratch' parameters shown below. ::
 
   step = chip.get('arg','step')
   index = chip.get('arg','index')
 
 All tools are required to bind the tool name to an executable name and to define any required command line options. ::
 
-  chip.set('eda', <toolname>, step, index, 'exe', <exename>)
-  chip.set('eda', <toolname>, step, index, 'option', <option>)
+  chip.set('tool', <toolname>, 'exe', <exename>)
+  chip.set('tool', <toolname>, 'option', step, index, <option>)
 
 For tools such as TCL based EDA tools, we also need to define the entry script and any associated script directories. ::
 
-  chip.set('eda', <toolname>, step, index, 'script', <entry_script>)
-  chip.set('eda', <toolname>, step, index, 'refdir', <scriptdir>)
-  chip.set('eda', <toolname>, step, index, 'format', <scripformat>)
+  chip.set('tool', <toolname>, 'script', step, index, <entry_script>)
+  chip.set('tool', <toolname>, 'refdir', step, index, <scriptdir>)
+  chip.set('tool', <toolname>, 'format', step, index, <scripformat>)
 
-To leverage the run() function's internal setup checking logic, it is highly recommend to define the parameter requirements, required inputs, expected output, version switch, and supported version numbers using the commands below::
+To leverage the :meth:`.run()` function's internal setup checking logic, it is highly recommend to define the parameter requirements, required inputs, expected output, version switch, and supported version numbers using the commands below::
 
-  chip.set('eda', <toolname>, step, index, 'input', <list>)
-  chip.set('eda', <toolname>, step, index, 'output', <list>)
-  chip.set('eda', <toolname>, step, index, 'require', <list>)
-  chip.set('eda', <toolname>, step, index, 'version', <list>)
-  chip.set('eda', <toolname>, step, index, 'vswitch', "<string>")
-  chip.set('eda', <toolname>, step, index, 'report', "<list>")
+  chip.set('tool', <toolname>, 'input', step, index, <list>)
+  chip.set('tool', <toolname>, 'output', step, index, <list>)
+  chip.set('tool', <toolname>, 'require' step, index, <list>)
+  chip.set('tool', <toolname>, 'version' step, index, <list>)
+  chip.set('tool', <toolname>, 'vswitch', step, index, "<string>")
+  chip.set('tool', <toolname>, 'report', step, index, "<list>")
 
 parse_version(stdout)
 -----------------------
-The run() function includes built in executable version checking, which can be disabled with the 'novercheck' parameter. The executable option to use for printing out the version number is specified with the 'vswitch' parameter within the setup() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
+The :meth:`.run()` function includes built in executable version checking, which can be disabled with the :keypath:`option,novercheck` parameter. The executable option to use for printing out the version number is specified with the :keypath:`tool, <tool>, vswitch` parameter within the setup() function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
 
 
   def parse_version(stdout):
       # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
       return stdout.split()[1]
 
-The run() function compares the returned parsed version against the 'version' parameter specified in the setup() function to ensure that a qualified executable version is being used.
+The :meth:`.run()` function compares the returned parsed version against the :keypath:`tool, <tool>, version` parameter specified in the setup() function to ensure that a qualified executable version is being used.
 
 normalize_version(version)
 --------------------------
@@ -153,20 +153,17 @@ The post_process function can also be used to post process the output data in th
     utils.copytree("inputs", "outputs", dirs_exist_ok=True, link=True,
                    ignore=[f'{design}.v', f'{design}.pkg.json'])
 
-    # Clean up
-    shutil.rmtree('slpp_all')
-
     return 0
 
 Note that the return value of the post_process() function is interpreted as an integer error code where zero indicates success. This can be used to signal errors that should halt execution but do not trigger a non-zero exit status from the executable itself.
 
 runtime_options(chip)
 -----------------------
-The distributed execution model of SiliconCompiler mandates that absolute paths be resolved at task run time. The setup() function is run at run() launch to check flow validity, so we need a second function interface (runtime_options) to create the final commandline options. The runtime_options() function inspects the Schema and returns a cmdlist to be used by the 'exe' during task execution. The sequence of items used to generate the final command line invocation is as follows:
+The distributed execution model of SiliconCompiler mandates that absolute paths be resolved at task run time. The setup() function is run at :meth:`.run()` launch to check flow validity, so we need a second function interface (runtime_options) to create the final commandline options. The runtime_options() function inspects the Schema and returns a cmdlist to be used by the 'exe' during task execution. The sequence of items used to generate the final command line invocation is as follows:
 
 ::
 
-  <'eda',...,'exe'> <'eda',...,'option'> <'eda',...,'script'> <runtime_options()>
+  <'tool',...,'exe'> <'tool',...,'option'> <'tool',...,'script'> <runtime_options()>
 
 The Surelog example below illustrates the process of defining a runtime_options function. ::
 
@@ -181,17 +178,17 @@ The Surelog example below illustrates the process of defining a runtime_options 
     cmdlist = []
 
     # source files
-    for value in chip.find_files('ydir'):
+    for value in chip.find_files('option', 'ydir'):
         cmdlist.append('-y ' + value)
-    for value in chip.find_files('vlib'):
+    for value in chip.find_files('option', 'vlib'):
         cmdlist.append('-v ' + value)
-    for value in chip.find_files('idir'):
+    for value in chip.find_files('option', 'idir'):
         cmdlist.append('-I' + value)
-    for value in chip.get('define'):
+    for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('cmdfile'):
+    for value in chip.find_files('option', 'cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('source'):
+    for value in chip.find_files('option', 'source'):
         cmdlist.append(value)
 
     cmdlist.append('-top ' + chip.get('design'))
@@ -199,8 +196,8 @@ The Surelog example below illustrates the process of defining a runtime_options 
     cmdlist.append('+libext+.sv')
 
     # Set up user-provided parameters to ensure we elaborate the correct modules
-    for param in chip.getkeys('param'):
-        value = chip.get('param', param)
+    for param in chip.getkeys('option', 'param'):
+        value = chip.get('option', 'param', param)
         cmdlist.append(f'-P{param}={value}')
 
     return cmdlist
@@ -223,10 +220,9 @@ The SiliconCompiler includes automated document generators that search all tool 
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','import')
     chip.set('arg','index','0')
-    chip.set('design', '<design>')
     setup(chip)
     return chip
 
@@ -238,7 +234,7 @@ TCL interface
 
    SiliconCompiler configuration settings are communicated to all script based tools as TCL nested dictionaries.
 
-Schema configuration handoff from SiliconCompiler to script based tools is accomplished within the run() function by using the write_manifest() function to write out the complete schema as a nested TCL dictionary. A snippet of the resulting TCL dictionary is shown below.
+Schema configuration handoff from SiliconCompiler to script based tools is accomplished within the :meth:`.run()` function by using the :meth:`.write_manifest()` function to write out the complete schema as a nested TCL dictionary. A snippet of the resulting TCL dictionary is shown below.
 
 .. code-block:: tcl
 
@@ -264,5 +260,6 @@ It is the responsibility of the tool reference flow developer to bind the standa
    set sc_density     [dict get $sc_cfg asic density]
    set sc_hpinlayer   [dict get $sc_cfg asic hpinlayer]
    set sc_vpinlayer   [dict get $sc_cfg asic vpinlayer]
-   set sc_hpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_hpinlayer name]
-   set sc_vpinmetal   [dict get $sc_cfg pdk grid $sc_stackup $sc_vpinlayer name]
+   set sc_pdk         [dict get $sc_cfg option pdk]
+   set sc_hpinmetal   [dict get $sc_cfg pdk $sc_pdk grid $sc_stackup $sc_hpinlayer name]
+   set sc_vpinmetal   [dict get $sc_cfg pdk $sc_pdk grid $sc_stackup $sc_vpinlayer name]

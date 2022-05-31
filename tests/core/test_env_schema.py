@@ -8,16 +8,15 @@ import multiprocessing
     reason="Mocking _runtask() does not work with the multiprocessing 'spawn' start method"
 )
 def test_env(monkeypatch):
-    chip = siliconcompiler.Chip()
-    chip.set('design', 'test')
+    chip = siliconcompiler.Chip('test')
     # File doesn't need to resolve, just need to put something in the schema so
     # we don't fail the initial static check_manifest().
-    chip.add('source', 'fake.v')
+    chip.add('input', 'verilog', 'fake.v')
     chip.load_target('freepdk45_demo')
-    chip.set('steplist', 'import')
+    chip.set('option', 'steplist', 'import')
 
     # Set env
-    chip.set('env', 'TEST', 'hello')
+    chip.set('option', 'env', 'TEST', 'hello')
 
     # Mock _runtask() so we can test without tools
     def fake_runtask(chip, step, index, status):
@@ -28,7 +27,7 @@ def test_env(monkeypatch):
 
         # Logic to make sure chip.run() registers task as success
 
-        chip.set('flowstatus', step, index, 'status', siliconcompiler.TaskStatus.SUCCESS)
+        chip.set('flowgraph', 'asicflow', step, index, 'status', siliconcompiler.TaskStatus.SUCCESS)
         outdir = chip._getworkdir(step=step, index=index)
         chip.write_manifest(os.path.join(outdir, 'outputs', f"{chip.get('design')}.pkg.json"))
 

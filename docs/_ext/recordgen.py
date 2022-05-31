@@ -15,7 +15,7 @@ class RecordGen(SphinxDirective):
         new_doc = []
         section = nodes.section(ids = [nodes.make_id('record_summary')])
 
-        chip = siliconcompiler.Chip(loglevel='DEBUG')
+        chip = siliconcompiler.Chip('<design>', loglevel='DEBUG')
 
         table = [[strong('parameter'), strong('description')]]
 

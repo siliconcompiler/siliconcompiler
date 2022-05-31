@@ -22,11 +22,10 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.load_target('freepdk45_demo')
     chip.set('arg','step','export')
     chip.set('arg','index','<index>')
-    chip.set('design', '<design>')
     setup(chip)
 
     return chip
@@ -54,9 +53,9 @@ def setup(chip, mode="batch"):
                                       'Program Files (x86)',
                                       'KLayout')
             if os.path.isdir(loc_dir):
-                chip.set('eda', tool, 'path', loc_dir)
+                chip.set('tool', tool, 'path', loc_dir)
             elif os.path.isdir(global_dir):
-                chip.set('eda', tool, 'path', global_dir)
+                chip.set('tool', tool, 'path', global_dir)
     elif platform.system() == 'Darwin':
         klayout_exe = 'klayout'
         if not shutil.which(klayout_exe):
@@ -73,54 +72,54 @@ def setup(chip, mode="batch"):
                                             'Contents',
                                             'MacOS')
             if os.path.isdir(klayout_dir):
-                chip.set('eda', tool, 'path', klayout_dir)
+                chip.set('tool', tool, 'path', klayout_dir)
             elif os.path.isdir(klayout_brew_dir):
-                chip.set('eda', tool, 'path', klayout_brew_dir)
+                chip.set('tool', tool, 'path', klayout_brew_dir)
     else:
         klayout_exe = 'klayout'
 
     if mode == 'show':
         clobber = False
-        script = '/klayout_show.py'
+        script = 'klayout_show.py'
         option = ['-nc', '-rm']
     else:
         clobber = False
-        script = '/klayout_export.py'
+        script = 'klayout_export.py'
         option = ['-zz', '-r']
 
-    chip.set('eda', tool, 'exe', klayout_exe, clobber=True)
-    chip.set('eda', tool, 'vswitch', ['-zz', '-v'], clobber=clobber)
+    chip.set('tool', tool, 'exe', klayout_exe, clobber=True)
+    chip.set('tool', tool, 'vswitch', ['-zz', '-v'], clobber=clobber)
     # Versions < 0.27.6 may be bundled with an incompatible version of Python.
-    chip.set('eda', tool, 'version', '>=0.27.6', clobber=clobber)
-    chip.set('eda', tool, 'format', 'json', clobber=clobber)
-    chip.set('eda', tool, 'copy', 'true', clobber=clobber)
-    chip.set('eda', tool, 'refdir', step, index, refdir, clobber=clobber)
-    chip.set('eda', tool, 'script', step, index, refdir + script, clobber=clobber)
-    chip.set('eda', tool, 'option', step, index, option, clobber=clobber)
+    chip.set('tool', tool, 'version', '>=0.27.6', clobber=clobber)
+    chip.set('tool', tool, 'format', 'json', clobber=clobber)
+    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=clobber)
+    chip.set('tool', tool, 'script', step, index, script, clobber=clobber)
+    chip.set('tool', tool, 'option', step, index, option, clobber=clobber)
 
     # Export GDS with timestamps by default.
-    chip.set('eda', tool, 'variable', step, index, 'timestamps', 'true', clobber=False)
+    chip.set('tool', tool, 'var', step, index, 'timestamps', 'true', clobber=False)
 
     # Input/Output requirements
-    if (not chip.valid('read', 'def', step, index) or
-        not chip.get('read', 'def', step, index)):
-        chip.add('eda', tool, 'input', step, index, chip.get('design') + '.def')
-    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.gds')
+    if (not chip.valid('input', 'def') or
+        not chip.get('input', 'def')):
+        chip.add('tool', tool, 'input', step, index, chip.design + '.def')
+    chip.add('tool', tool, 'output', step, index, chip.design + '.gds')
 
     # Adding requirements
     if mode != 'show':
         targetlibs = chip.get('asic', 'logiclib')
         stackup = chip.get('asic', 'stackup')
+        pdk = chip.get('option', 'pdk')
         if bool(stackup) & bool(targetlibs):
             macrolibs = chip.get('asic', 'macrolib')
 
-            chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
-            chip.add('eda', tool, 'require', step, index, ",".join(['asic', 'stackup']))
-            chip.add('eda', tool, 'require', step, index,  ",".join(['pdk', 'layermap', 'klayout', 'def','gds', stackup]))
+            chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
+            chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'stackup']))
+            chip.add('tool', tool, 'require', step, index,  ",".join(['pdk', pdk, 'layermap', 'klayout', 'def','gds', stackup]))
 
             for lib in (targetlibs + macrolibs):
-                chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'gds', stackup]))
-                chip.add('eda', tool, 'require', step, index, ",".join(['library', lib, 'lef', stackup]))
+                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'gds', stackup]))
+                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
         else:
             chip.error = 1
             chip.logger.error(f'Stackup and targetlib paremeters required for Klayout.')
@@ -128,12 +127,12 @@ def setup(chip, mode="batch"):
     logfile = f"{step}.log"
 
     # Log file parsing
-    chip.set('eda', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
-    chip.set('eda', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
 
     # Reports
     for metric in ('errors', 'warnings'):
-        chip.set('eda', tool, 'report', step, index, metric, logfile)
+        chip.set('tool', tool, 'report', step, index, metric, logfile)
 
 ################################
 #  Environment setup

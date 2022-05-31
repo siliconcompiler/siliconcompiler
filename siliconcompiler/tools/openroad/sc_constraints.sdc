@@ -2,15 +2,19 @@
 
 source sc_manifest.tcl
 
-if {[dict exists $sc_cfg clock]} {
-    set sc_clocks [dict keys [dict get $sc_cfg clock]]
-} else {
-    set sc_clocks ""
-}
+set sc_design [dict get $sc_cfg design]
 
-foreach clock $sc_clocks {
-    set pin [dict get $sc_cfg clock $clock pin]
-    set period [dict get $sc_cfg clock $clock period]
+if {[dict exists $sc_cfg datasheet] && [dict exists $sc_cfg datasheet $sc_design]} {
+    foreach pin [dict keys [dict get $sc_cfg datasheet $sc_design pin]] {
+        if {[dict get $sc_cfg datasheet $sc_design pin $pin type global] == "clk"} {
+            # If clock...
 
-    create_clock [get_ports $pin] -name $clock  -period $period
+            set period_str [dict get $sc_cfg datasheet $sc_design pin $pin tperiod global]
+            set periodtuple [regsub -all {[\,\)\(]} $period_str " "]
+            set period [lindex $periodtuple 1]
+            set period_ns [expr $period * pow(10, 9)]
+
+            create_clock [get_ports $pin] -name $pin  -period $period_ns
+        }
+    }
 }

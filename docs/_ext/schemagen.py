@@ -14,23 +14,7 @@ class SchemaGen(SphinxDirective):
 
         schema = schema_cfg()
 
-        # Split up schema into root and nested keys so that we can add a custom
-        # header to the root entries.
-        basic_schema = {}
-        nested_schema = {}
-        for key, val in schema.items():
-            if is_leaf(val):
-                basic_schema[key] = val
-            else:
-                nested_schema[key] = val
-
-        basic_section = build_section('root', 'root')
-        for n in self.process_schema(basic_schema):
-            basic_section += n
-
-        nested_sections = self.process_schema(nested_schema)
-
-        return [basic_section] + nested_sections
+        return self.process_schema(schema)
 
     def process_schema(self, schema, parents=[]):
         if 'help' in schema:
@@ -52,7 +36,7 @@ class SchemaGen(SphinxDirective):
                 if key == 'default':
                     for n in self.process_schema(schema['default'], parents=parents):
                         sections.append(n)
-                else:
+                elif key not in ('history', 'library'):
                     section_key = '-'.join(parents) + '-' + key
                     section = build_section(key, section_key)
                     for n in self.process_schema(schema[key], parents=parents+[key]):
@@ -75,9 +59,19 @@ class SchemaGen(SphinxDirective):
 
         return body
 
+def keypath_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+    # Split and clean up keypath
+    keys = [key.strip() for key in text.split(',')]
+    try:
+        return [keypath(*keys)], []
+    except ValueError as e:
+        msg = inliner.reporter.error(f'{rawtext}: {e}', line=lineno)
+        prb = inliner.problematic(rawtext, rawtext, msg)
+        return [prb], [msg]
 
 def setup(app):
     app.add_directive('schemagen', SchemaGen)
+    app.add_role('keypath', keypath_role)
 
     return {
         'version': '0.1',

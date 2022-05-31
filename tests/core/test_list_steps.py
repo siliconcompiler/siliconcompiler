@@ -1,7 +1,7 @@
 import siliconcompiler
 
 def test_list_steps():
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
     flow = 'test'
     chip.node(flow, 'A', 'join')
 
@@ -15,7 +15,7 @@ def test_list_steps():
     chip.edge(flow, 'A', 'D')
     chip.edge(flow, 'C', 'D')
 
-    chip.set('flow', flow)
+    chip.set('option', 'flow', flow)
 
     chip.write_flowgraph('test_list_steps.png')
 

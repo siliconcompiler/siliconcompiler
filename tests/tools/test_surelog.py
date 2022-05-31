@@ -8,23 +8,30 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_surelog(scroot):
+@pytest.mark.parametrize('clean', [False, True])
+def test_surelog(scroot, clean):
     gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
     step = "import"
 
-    chip = siliconcompiler.Chip(loglevel="INFO")
+    chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
 
-    chip.add('source', gcd_src)
-    chip.set('design', design)
-    chip.set('mode', 'sim')
-    chip.set('arg', 'step', step)
-    chip.set('flow', 'surelog')
+    chip.add('input', 'verilog', gcd_src)
+    chip.set('option', 'mode', 'sim')
+    chip.set('option', 'clean', clean)
+    chip.node('surelog', step, 'surelog')
+    chip.set('option', 'flow', 'surelog')
 
     chip.run()
 
-    assert chip.find_result('v', step=step) is not None
+    output = chip.find_result('v', step=step)
+    assert output is not None
+
+    # slpp_all/ should only exist when clean is False
+    workdir = '/'.join(output.split('/')[:-2])
+    intermediate_dir = os.path.join(workdir, 'slpp_all')
+    assert os.path.isdir(intermediate_dir) != clean
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -33,15 +40,13 @@ def test_surelog_preproc_regression(datadir):
     design = 'test_preproc'
     step = "import"
 
-    chip = siliconcompiler.Chip(loglevel="INFO")
+    chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
-
-    chip.add('source', src)
-    chip.add('define', 'MEM_ROOT=test')
-    chip.set('design', design)
-    chip.set('mode', 'asicflow')
-    chip.set('arg', 'step', step)
-    chip.set('flow', 'surelog')
+    chip.node('surelog', step, 'surelog')
+    chip.add('input', 'verilog', src)
+    chip.add('option', 'define', 'MEM_ROOT=test')
+    chip.set('option', 'mode', 'sim')
+    chip.set('option', 'flow', 'surelog')
 
     chip.run()
 
@@ -54,31 +59,28 @@ def test_surelog_preproc_regression(datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skipif(sys.platform=='win32', reason='Replay script not supported on Windows')
 def test_replay(scroot):
     src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
     step = "import"
 
-    chip = siliconcompiler.Chip(loglevel="INFO")
+    chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
 
-    chip.add('source', src)
-    chip.set('design', design)
-    chip.set('mode', 'sim')
-    chip.set('arg', 'step', step)
-    chip.set('flow', 'surelog')
-    chip.set('quiet', True)
-    chip.set('eda', 'surelog', 'env', step, '0', 'SLOG_ENV', 'SUCCESS')
+    chip.add('input', 'verilog', src)
+    chip.set('option', 'mode', 'sim')
+    chip.node('surelog', step, 'surelog')
+    chip.set('option', 'flow', 'surelog')
+    chip.set('option', 'quiet', True)
+    chip.set('option', 'clean', True) # replay should work even with clean=True
+    chip.set('tool', 'surelog', 'env', step, '0', 'SLOG_ENV', 'SUCCESS')
 
     chip.run()
 
     workdir = chip._getworkdir(step=step)
-    if sys.platform == 'win32':
-        script = 'replay.cmd'
-        echo = 'if %errorlevel% neq 0 exit /b %errorlevel%\necho %SLOG_ENV%'
-    else:
-        script = './replay.sh'
-        echo = 'echo $SLOG_ENV'
+    script = './replay.sh'
+    echo = 'echo $SLOG_ENV'
 
     with open(os.path.join(workdir, script), 'a') as f:
         f.write(echo + '\n')

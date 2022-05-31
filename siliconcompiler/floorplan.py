@@ -77,21 +77,27 @@ def _wire_to_rect(wire):
 
 def _get_tech_lef_data(chip, tool):
     stackup = chip.get('asic', 'stackup')
+    pdkname = chip.get('option', 'pdk')
+    # TODO: This?
     libname = chip.get('asic', 'logiclib')[0]
-    libtype = chip.get('library', libname, 'arch')
+    libtype = chip.get('library', libname, 'asic', 'libarch')
+    # Or this?
+    #libtype = chip.get('asic', 'libarch')
 
-    tech_lef = chip.find_files('pdk', 'aprtech', tool, stackup, libtype, 'lef')[0]
+    tech_lef = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'lef')[0]
     return leflib.parse(tech_lef)
 
 def _get_stdcell_info(chip, tech_lef_data):
     libname = chip.get('asic', 'logiclib')[0]
-    site_name = chip.getkeys('library', libname, 'site')[0]
+    # TODO: handle multiple site names/aliases
+    site_name = chip.getkeys('library', libname, 'asic', 'footprint')[0]
+
     if 'sites' not in tech_lef_data or site_name not in tech_lef_data['sites']:
-        raise ValueError('Site {site_name} not found in tech LEF.')
+        raise ValueError(f'Site {site_name} not found in tech LEF.')
 
     site = tech_lef_data['sites'][site_name]
     if 'size' not in site:
-        raise ValueError('Tech LEF does not specify size for site {site_name}.')
+        raise ValueError(f'Tech LEF does not specify size for site {site_name}.')
 
     width = site['size']['width']
     height = site['size']['height']
@@ -200,7 +206,7 @@ class Floorplan:
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = chip.find_files('library', macrolib, 'lef', self.stackup)[0]
+            lef_path = chip.find_files('library', macrolib, 'model', 'layout', 'lef', self.stackup)[0]
             lef_data = leflib.parse(lef_path)
 
             if 'macros' not in lef_data:
@@ -237,15 +243,17 @@ class Floorplan:
 
         # extract layers based on stackup
 
+        pdk = self.chip.get('option', 'pdk')
+
         # TODO: consider making this a dictionary of namedtuples to ensure layer
         # info is immutable.
         self.layers = {}
-        for pdk_name in self.chip.getkeys('pdk', 'grid', self.stackup):
-            sc_name = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'name')
-            xpitch = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'xpitch')
-            ypitch = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'ypitch')
-            xoffset = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'xoffset')
-            yoffset = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'yoffset')
+        for pdk_name in self.chip.getkeys('pdk', pdk, 'grid', self.stackup):
+            sc_name = self.chip.get('pdk', pdk, 'grid', self.stackup, pdk_name, 'name')
+            xpitch = self.chip.get('pdk', pdk, 'grid', self.stackup, pdk_name, 'xpitch')
+            ypitch = self.chip.get('pdk', pdk,'grid', self.stackup, pdk_name, 'ypitch')
+            xoffset = self.chip.get('pdk', pdk, 'grid', self.stackup, pdk_name, 'xoffset')
+            yoffset = self.chip.get('pdk', pdk, 'grid', self.stackup, pdk_name, 'yoffset')
 
             if ('layers' not in tech_lef_data) or (pdk_name not in tech_lef_data['layers']):
                 raise ValueError(f'No layer named {pdk_name} in tech LEF!')
@@ -370,9 +378,10 @@ class Floorplan:
 
     def get_layers(self):
         '''Returns list of SC-standardized layer names defined in schema.'''
+        pdk = self.chip.get('option', 'pdk')
         layers = []
-        for pdk_name in self.chip.getkeys('pdk', 'grid', self.stackup):
-            sc_name = self.chip.get('pdk', 'grid', self.stackup, pdk_name, 'name')
+        for pdk_name in self.chip.getkeys('pdk', pdk, 'grid', self.stackup):
+            sc_name = self.chip.get('pdk', pdk, 'grid', self.stackup, pdk_name, 'name')
             layers.append(sc_name)
         return layers
 
@@ -1369,7 +1378,8 @@ class Floorplan:
             raise ValueError('Invalid orientation')
 
     def _pdk_to_sc_layer(self, layer):
-        return self.chip.get('pdk', 'grid', self.stackup, layer, 'name')
+        pdk = self.chip.get('option', 'pdk')
+        return self.chip.get('pdk', pdk, 'grid', self.stackup, layer, 'name')
 
 # Helper functions used for diearea inference. These are more-or-less
 # floorplanning related, so including them in this file.
@@ -1377,9 +1387,10 @@ class Floorplan:
 def _find_cell_area(chip, startstep, startindex):
     '''Helper to work back through the preceeding flowgraph steps to find a step
     that's set the cellarea.'''
-    select = chip.get('flowstatus', startstep, startindex, 'select')
+    flow = chip.get('option','flow')
+    select = chip.get('flowgraph', flow, startstep, startindex, 'select')
     for step, index in select:
-        cell_area = chip.get('metric', step, index, 'cellarea', 'real')
+        cell_area = chip.get('metric', step, index, 'cellarea')
         if cell_area:
             return cell_area
 

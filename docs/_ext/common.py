@@ -1,17 +1,41 @@
 from docutils import nodes
+import sphinx.addnodes
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 
+from siliconcompiler.schema import schema_cfg
+
 # Docutils helpers
-def build_table(items):
+def build_table(items, colwidths=None, colspec=None):
+    '''Create table node.
+
+    Args:
+        - items (list of list of nodes): nested list of table contents
+        - colwidths (list of nums): relative column widths (seems to affect HTML
+            builder only)
+        - colspec (str): LaTeX column spec for overriding Sphinx defaults
+
+    Returns list of nodes, since there may be an associated TabularColumn node
+    that hints at sizing in PDF output.
+    '''
+    if colwidths is None:
+        colwidths = [1]* len(items[0]) # default to equal spacing
+    else:
+        assert len(colwidths) == len(items[0])
+
+    return_nodes = []
+    if colspec is not None:
+        colspec_node = sphinx.addnodes.tabular_col_spec()
+        colspec_node['spec'] = colspec
+        return_nodes.append(colspec_node)
+
     table = nodes.table()
     table['classes'] = ['longtable']
 
     group = nodes.tgroup(cols=len(items[0]))
     table += group
-    for _ in items[0]:
-        # not sure how colwidth affects things - columns seem to adjust to contents
-        group += nodes.colspec(colwidth=100)
+    for colwidth in colwidths:
+        group += nodes.colspec(colwidth=colwidth)
 
     body = nodes.tbody()
     group += body
@@ -24,7 +48,9 @@ def build_table(items):
             row_node += entry
             entry += col
 
-    return table
+    return_nodes.append(table)
+
+    return return_nodes
 
 def build_section(text, key):
     sec = nodes.section(ids=[nodes.make_id(key)])
@@ -103,3 +129,43 @@ def flatten(cfg, prefix=()):
             flat_cfg.update(flatten(val, prefix + (key,)))
 
     return flat_cfg
+
+def keypath(*args):
+    '''Helper function for displaying Schema keypaths.'''
+    text_parts = []
+    key_parts = []
+    cfg = schema_cfg()
+    for key in args:
+        if list(cfg.keys()) != ['default']:
+            text_parts.append(f"'{key}'")
+            key_parts.append(key)
+            try:
+                cfg = cfg[key]
+            except KeyError:
+                raise ValueError(f'Invalid keypath {args}')
+        else:
+            cfg = cfg['default']
+            if key.startswith('<') and key.endswith('>'):
+                # Placeholder
+                text_parts.append(key)
+            else:
+                # Fully-qualified
+                text_parts.append(f"'{key}'")
+
+    if 'help' not in cfg:
+        # Not leaf
+        text_parts.append('...')
+
+    text = f"[{', '.join(text_parts)}]"
+    refid = '-'.join(key_parts)
+    # TODO: figure out URL automatically/figure out internal ref for PDF
+    url = f'https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html#{refid}'
+
+    # Note: The literal node returned by code() must be a child of the reference
+    # node (not the other way round), otherwise the Latex builder mangles the
+    # URL.
+    ref_node = nodes.reference(internal=False, refuri=url)
+    text_node = code(text)
+    ref_node += text_node
+
+    return ref_node

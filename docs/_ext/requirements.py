@@ -84,7 +84,7 @@ class RequirementsLicenses(SphinxDirective):
                 entries.append([p, para(license)])
 
         body = build_table(entries)
-        return [body]
+        return body
 
 def setup(app):
     app.add_directive('requirements', Requirements)

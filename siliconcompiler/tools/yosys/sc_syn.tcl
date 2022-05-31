@@ -1,41 +1,33 @@
 ###############################
 # Reading SC Schema
 ###############################
+
 source ./sc_manifest.tcl
-set tool yosys
+
 yosys echo on
 
 ###############################
 # Schema Adapter
 ###############################
 
-#Handling remote/local script execution
 set sc_tool   yosys
 set sc_step   [dict get $sc_cfg arg step]
 set sc_index  [dict get $sc_cfg arg index]
-
-
-if {[dict get $sc_cfg eda $tool copy ] eq True} {
-    set sc_refdir "."
-} else {
-    set sc_refdir [dict get $sc_cfg eda $tool refdir $sc_step $sc_index ]
-}
+set sc_refdir [dict get $sc_cfg tool $sc_tool refdir $sc_step $sc_index]
 
 ####################
 # DESIGNER's CHOICE
 ####################
 
-set sc_mode        [dict get $sc_cfg mode]
-set sc_flow        [dict get $sc_cfg flow]
 set sc_design      [dict get $sc_cfg design]
-set sc_optmode     [dict get $sc_cfg optmode]
-set sc_oformat     [dict get $sc_cfg oformat]
+set sc_mode        [dict get $sc_cfg option mode]
+set sc_flow        [dict get $sc_cfg option flow]
+set sc_optmode     [dict get $sc_cfg option optmode]
+set sc_pdk         [dict get $sc_cfg option pdk]
 
 ########################################################
 # Design Inputs
 ########################################################
-
-set topmodule $sc_design
 
 # TODO: the original OpenFPGA synth script used read_verilog with -nolatches. Is
 # that a flag we might want here?
@@ -57,19 +49,18 @@ if { [file exists "inputs/$sc_design.v"] } {
     yosys read_verilog -sv $input_verilog
 }
 
-
 ########################################################
 # Override top level parameters
 ########################################################
 
 yosys chparam -list
-if {[dict exists $sc_cfg param]} {
-    dict for {key value} [dict get $sc_cfg param] {
+if {[dict exists $sc_cfg option param]} {
+    dict for {key value} [dict get $sc_cfg option param] {
 	if !{[string is integer $value]} {
 	    set value [concat \"$value\"]
 	}
 	yosys chparam -set $key $value $sc_design
-    }
+   }
 }
 
 ########################################################

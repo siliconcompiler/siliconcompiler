@@ -16,8 +16,8 @@ check_placement
 # GLOBAL ROUTE
 ######################
 
-dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
-    set adjustment [lindex [dict get $sc_cfg pdk grid $sc_stackup $key adj] end]
+dict for {key value} [dict get $sc_cfg pdk $sc_pdk grid $sc_stackup] {
+    set adjustment [lindex [dict get $sc_cfg pdk $sc_pdk grid $sc_stackup $key adj] end]
     set_global_routing_layer_adjustment $key $adjustment
 }
 
@@ -25,8 +25,8 @@ set_routing_layers -signal $sc_minmetal-$sc_maxmetal
 
 set_macro_extension 2
 
-if {[dict exists $sc_cfg eda $sc_tool variable $sc_step $sc_index grt_allow_congestion] &&
-    [dict get $sc_cfg eda $sc_tool variable $sc_step $sc_index grt_allow_congestion] == "true"} {
+if {[dict exists $sc_cfg tool $sc_tool {var} $sc_step $sc_index grt_allow_congestion] &&
+    [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index grt_allow_congestion] == "true"} {
     set additional_grt_args "-allow_congestion"
 } else {
     set additional_grt_args ""

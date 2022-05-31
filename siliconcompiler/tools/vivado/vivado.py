@@ -19,7 +19,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step', 'compile')
     chip.set('arg','index', '<index>')
     setup(chip)
@@ -50,14 +50,14 @@ def setup(chip, mode='batch'):
         option = "-mode batch -source"
 
     # General settings
-    chip.set('eda', tool, 'exe', tool, clobber=clobber)
-    chip.set('eda', tool, 'vendor', vendor, clobber=clobber)
-    chip.set('eda', tool, 'vswitch', '-version', clobber=clobber)
-    chip.set('eda', tool, 'version', '0', clobber=clobber)
-    chip.set('eda', tool, 'refdir', step, index, refdir, clobber=clobber)
-    chip.set('eda', tool, 'script', step, index, refdir + script, clobber=clobber)
-    chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
-    chip.set('eda', tool, 'option', step, index, option, clobber=clobber)
+    chip.set('tool', tool, 'exe', tool, clobber=clobber)
+    chip.set('tool', tool, 'vendor', vendor, clobber=clobber)
+    chip.set('tool', tool, 'vswitch', '-version', clobber=clobber)
+    chip.set('tool', tool, 'version', '0', clobber=clobber)
+    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=clobber)
+    chip.set('tool', tool, 'script', step, index, script, clobber=clobber)
+    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
+    chip.set('tool', tool, 'option', step, index, option, clobber=clobber)
 
 ################################
 # Post_process (post executable)

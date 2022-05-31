@@ -8,6 +8,51 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.9.0 (2022-05-19)
+=========================================
+
+**Major:**
+
+* Schema: Reorganized entire schema! Changes summarized below:
+
+  * Cleaned and consolidated top-level organization, most parameters are now nested.
+  * Moved build configuration options underneath ['option', ...].
+  * Added ['output', ...] to store pointers to flow outputs.
+  * Added ['model', ...] to store pointers to design abstractions (timing libraries, layouts, etc).
+  * Added ['datasheet', ...] to store information about design's interface.
+  * Added ['unit', ...]  to store user driven SI units specificaiton (temp,voltage, etc)
+  * Renamed ['eda', ...] to ['tool', ...]
+  * Renamed ['mcmm', ...] to ['constraint', ...]
+  * Replaced ['source'], ['constraint'], and ['read', ...] with more flexible ['input', \<filetype\>] to supply input files.
+  * Added support for storing multiple PDKs in schema and selecting which one to use for run (analagous to flows).
+  * Change ['flowgraph'] to support modular flow composition
+  * Added support for package management ['depgrah'].
+  * Added checklist support.
+  * Removed special ['library', ...] keypaths. All libraries are now created as Chip objects, and have their full config imported into a parent chip's schema.
+* Added 'sup' packaging utility
+* Added ability to configure stdout and stderr redirection on a per-tool basis (thanks to @suppamax for implementing).
+* Added flexible tool version checking based on PEP-440 standard, now enabled by default.
+* Added 'clean' feature for cleaning up intermediate tool outputs.
+* Added 'resume' feature for restarting failed flows (for debugging).
+* Added automatic capture of peak memory usage (adds dependency on `psutil <https://psutil.readthedocs.io/en/latest/>`_).
+* Changed ['design'] to be a required parameter for instantiating a Chip.
+* Changed error behavior to consistently raise exceptions rather than exit.
+* Removed tool script copy feature, so now all EDA scripts are run from the reference directory.
+
+**Minor:**
+
+* Schema: Added ability to store per-parameter designer notes.
+* Added offline wheels distribution.
+* Added ``read_lef()`` function to help with PDK bring-up.
+* Added environment variables to replay scripts.
+* Added LVS/DRC signoff flow and top-level GDS stream out flow.
+* Added native support for Sky130 I/O library, along with Heartbeat + padring example.
+* Changed internals to minimize SC performance overhead with large flowgraphs.
+* Changed task runtime tracking to distinguish between time spent in tool and total time.
+* Fixed breakpoints to work more consistently across tools.
+
+Note: Since there was no public release of version 0.8.0, this list summarizes all changes since 0.7.0.
+
 SiliconCompiler 0.7.0 (2022-03-02)
 =========================================
 

@@ -53,18 +53,18 @@
         {% for mk in metric_keys %}
           {% for step in tasks %}
             {% for index in tasks[step] %}
-              {% set report = manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'] %}
+              {% set report = manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] %}
               {% if (step in report) and (index in report[step]) and (mk in report[step][index]) %}
                 var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ mk }}_metlink");
                 sim_log_btn.addEventListener('click', () => {
                   // TODO: clean up... >_>
-                  log_link = "{{ step }}/{{ index }}/{{ manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
+                  log_link = "{{ step }}/{{ index }}/{{ manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
                   window.open(log_link, "_blank");
                 });
                 var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ mk }}_ddmetlink");
                 sim_log_btn.addEventListener('click', () => {
                   // TODO: clean up... >_>
-                  log_link = "{{ step }}/{{ index }}/{{ manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
+                  log_link = "{{ step }}/{{ index }}/{{ manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
                   window.open(log_link, "_blank");
                 });
               {% endif %}
@@ -116,12 +116,12 @@
                 <th>{{ mk }}</th>
                 {% for step in tasks %}
                   {% for index in tasks[step] %}
-                    {% if manifest['flowstatus'][step][index]['status']['value'] == 'error' %}
+                    {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
                       <td>(failed)</td>
-                    {% elif step in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ manifest["metric"][step][index][mk]["real"]["value"] }}</a></td>
+                    {% elif step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
+                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ manifest["metric"][step][index][mk]["value"] }}</a></td>
                     {% else %}
-                      <td>{{ manifest["metric"][step][index][mk]["real"]["value"] }}</td>
+                      <td>{{ manifest["metric"][step][index][mk]["value"] }}</td>
                     {% endif %}
                   {% endfor %}
                 {% endfor %}
@@ -152,12 +152,12 @@
                 </tr>
                 <tr>
                   {% for mk in metric_keys %}
-                    {% if manifest['flowstatus'][step][index]['status']['value'] == 'error' %}
+                    {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
                       <td>(failed)</td>
-                    {% elif step in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ manifest["metric"][step][index][mk]["real"]["value"] }}</a></td>
+                    {% elif step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
+                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ manifest["metric"][step][index][mk]["value"] }}</a></td>
                     {% else %}
-                      <td>{{ manifest["metric"][step][index][mk]["real"]["value"] }}</td>
+                      <td>{{ manifest["metric"][step][index][mk]["value"] }}</td>
                     {% endif %}
                   {% endfor %}
                 </tr>

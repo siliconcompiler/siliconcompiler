@@ -1,13 +1,13 @@
 Targets
 ===================================
 
-To facilitate encapsulation and reuse of schema parameters related to design targets, SiliconCompiler implements a ``load_target()`` function that dynamically loads Python modules located in special places on the filesystem.
+To facilitate encapsulation and reuse of schema parameters related to design targets, SiliconCompiler implements a :meth:`.load_target()` function that dynamically loads Python modules located in special places on the filesystem.
 
-``load_target()`` takes in a string ``targetname``, and it will search for the path ``targets/<targetname>.py`` in the following locations, in this order:
+:meth:`.load_target()` takes in a string ``targetname``, and it will search for the path ``targets/<targetname>.py`` in the following locations, in this order:
 
   #. The root of the SiliconCompiler Python package, wherever it is installed.
-  #. The working directory from where the CLI app was called or the Chip() object instantiated.
-  #. Paths specified in the 'scpath' schema parameter, separated by the OS-specific path separator (``:`` on Linux/macOS, ``;`` on Windows).
+  #. The working directory from where the CLI app was called or the :class:`.Chip()` object instantiated.
+  #. Paths specified in the :keypath:`option, scpath` schema parameter, separated by the OS-specific path separator (``:`` on Linux/macOS, ``;`` on Windows).
   #. Paths specified in the $SCPATH environment variable, separated by the OS-specific path separator.
 
 The ability to configure the search paths via a schema parameter or environment variable enables users to create custom targets and place them anywhere on their filesystem. Note that this file resolution scheme is also used by SC for resolving all other relative paths, not just target modules.
@@ -23,7 +23,7 @@ SC supports additional levels of encapsulation through PDK, library, and flow mo
    * - Function
      - Module location
 
-   * - ``load_pdk(name)``
+   * - :meth:`load_pdk(name) <.load_pdk>`
      - ``pdks/<name>.py``
 
    * - ``load_lib(name)``
@@ -34,9 +34,9 @@ SC supports additional levels of encapsulation through PDK, library, and flow mo
 
 See the :ref:`PDK<PDKs>`, :ref:`Library<Libraries>`, and :ref:`Flow<Flows>` User Guide pages to learn more about what is expected to be configured in each of these modules.
 
-Generally, these functions will be called by targets, and then a user will only have to call ``load_target()`` in their build script.  However, the ``run()`` function requires all mandatory flowgraph, pdk, and tool settings to be defined prior to execution, so if a partial target is loaded, additional setup may be required.
+Generally, these functions will be called by targets, and then a user will only have to call :meth:`.load_target()` in their build script.  However, the :meth:`run()` function requires all mandatory flowgraph, pdk, and tool settings to be defined prior to execution, so if a partial target is loaded, additional setup may be required.
 
-The following example calls the ``load_target()`` function to load the built-in :ref:`freepdk45_demo` target. ::
+The following example calls the :meth:`.load_target()` function to load the built-in :ref:`freepdk45_demo` target. ::
 
   chip.load_target('freepdk45_demo')
 
@@ -44,6 +44,6 @@ The following example demonstrates the functional equivalent at the command line
 
 .. code-block:: bash
 
-   sc hello.v -target "freepdk45_demo"
+   sc -input "verilog hello.v" -target "freepdk45_demo"
 
 A full list of built-in demo targets can be found on the :ref:`Targets directory` page.

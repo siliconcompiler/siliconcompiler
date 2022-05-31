@@ -4,12 +4,12 @@ import os
 
 def test_edge():
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     syn_np = 10
 
     flow = 'test'
-    chip.set('flow', flow)
+    chip.set('option', 'flow', flow)
     #nodes
     chip.node(flow, 'import', 'surelog')
     for i in range(syn_np):

@@ -9,20 +9,21 @@ yosys echo on
 set sc_step   [dict get $sc_cfg arg step]
 set sc_index  [dict get $sc_cfg arg index]
 
-if {[dict get $sc_cfg eda $sc_tool copy] eq True} {
-    set sc_refdir "."
-} else {
-    set sc_refdir [dict get $sc_cfg eda $sc_tool refdir $sc_step $sc_index ]
-}
+set sc_refdir [dict get $sc_cfg tool $sc_tool refdir $sc_step $sc_index ]
 
-set sc_mode        [dict get $sc_cfg mode]
+set sc_mode        [dict get $sc_cfg option mode]
 set sc_design      [dict get $sc_cfg design]
 set sc_targetlibs  [dict get $sc_cfg asic logiclib]
-set lib [lindex $sc_targetlibs 0]
-set sc_liberty [dict get $sc_cfg library $lib nldm typical lib]
 
-if {[dict exists $sc_cfg eda $sc_tool "variable" $sc_step $sc_index induction_steps]} {
-    set sc_induction_steps [lindex [dict get $sc_cfg eda $sc_tool "variable" $sc_step $sc_index induction_steps] 0]
+# TODO: properly handle complexity here
+set lib [lindex $sc_targetlibs 0]
+set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
+set sc_scenarios   [dict keys [dict get $sc_cfg constraint]]
+set sc_libcorner [dict get $sc_cfg constraint [lindex $sc_scenarios 0] libcorner]
+set sc_liberty [dict get $sc_cfg library $lib model timing $sc_delaymodel $sc_libcorner]
+
+if {[dict exists $sc_cfg tool $sc_tool "variable" $sc_step $sc_index induction_steps]} {
+    set sc_induction_steps [lindex [dict get $sc_cfg tool $sc_tool "variable" $sc_step $sc_index induction_steps] 0]
 } else {
     # Yosys default
     set sc_induction_steps 4
@@ -33,7 +34,7 @@ yosys read_liberty -ignore_miss_func $sc_liberty
 if {[file exists "inputs/$sc_design.v"]} {
     set source "inputs/$sc_design.v"
 } else {
-    set source [lindex [dict get $sc_cfg source] 0]
+    set source [lindex [dict get $sc_cfg input verilog] 0]
 }
 yosys read_verilog $source
 
@@ -50,8 +51,8 @@ yosys design -stash gold
 
 # Gate netlist
 yosys read_liberty -ignore_miss_func $sc_liberty
-if {[dict exists $sc_cfg read netlist $sc_step $sc_index]} {
-    set netlist [lindex [dict get $sc_cfg read netlist $sc_step $sc_index] 0]
+if {[dict exists $sc_cfg input netlist]} {
+    set netlist [lindex [dict get $sc_cfg input netlist] 0]
 } else {
     set netlist "inputs/$sc_design.vg"
 }

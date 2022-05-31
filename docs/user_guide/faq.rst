@@ -23,7 +23,7 @@ How do I...
    .. code-block:: python
 
       import siliconcompiler
-      chip = siliconcompiler.Chip()
+      chip = siliconcompiler.Chip('<design>')
 
 ... run a compilation?
    .. code-block:: python
@@ -43,7 +43,7 @@ How do I...
 ... change the logger level?
     .. code-block:: python
 
-        chip = siliconcompiler.Chip(loglevel=<INFO|ERROR|DEBUG>)
+        chip = siliconcompiler.Chip('<design>', loglevel=<INFO|ERROR|DEBUG>)
 
 ... check my setup before running?
     .. code-block:: python
@@ -53,12 +53,12 @@ How do I...
 ... relax the parse contraints on import?
     .. code-block:: python
 
-       chip.set('relax', True)
+       chip.set('option', 'relax', True)
 
 ... change the build directory?
     .. code-block:: python
 
-       chip.set('dir', <dirpath>)
+       chip.set('option', 'builddir', <dirpath>)
 
 ... use the setup json file from a previous run?
     .. code-block:: python
@@ -68,13 +68,13 @@ How do I...
 ... drive custom TCL code into the a target EDA flow?
     .. code-block:: python
 
-       chip.set('eda', <tool>, <step>, <index>, 'prescript', <file>)
-       chip.set('eda', <tool>, <step>, <index>, 'postscript', <file>)
+       chip.set('tool', <tool>, 'prescript', <step>, <index>, <file>)
+       chip.set('tool', <tool>, 'postscript',<step>, <index>,  <file>)
 
 ... control the thread parallelism for a tool?
     .. code-block:: python
 
-       chip.set('eda', <tool>, <step>, <index>, 'threads', <n>)
+       chip.set('tool', <tool>, 'threads', <step>, <index>, <n>)
 
 ... print the description of a parameter?
     .. code-block:: python

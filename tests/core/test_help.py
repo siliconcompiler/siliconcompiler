@@ -5,7 +5,7 @@ def test_help():
     '''API test for help method
     '''
 
-    chip = siliconcompiler.Chip(loglevel="INFO")
+    chip = siliconcompiler.Chip('test')
     allkeys = chip.getkeys()
     for key in allkeys:
         print(chip.help(*key))

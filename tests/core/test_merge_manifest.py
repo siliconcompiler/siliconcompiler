@@ -8,7 +8,7 @@ from siliconcompiler.schema import schema_flowgraph
 
 def test_merge_manifest():
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     # dict to merge in
     flow = 'test'

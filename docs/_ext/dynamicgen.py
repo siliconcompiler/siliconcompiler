@@ -40,8 +40,6 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
             'value' in val and val['value'] == '0'):
             continue
 
-        keypath = ', '.join(full_keypath)
-
         if 'value' in val and val['value']:
             # Don't display false booleans
             if val['type'] == 'bool' and val['value'] == 'false':
@@ -56,15 +54,23 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
             else:
                 val_node = code(val['value'])
 
-            table.append([code(keypath), val_node])
+            # HTML builder fails if we don't make a text node the parent of the
+            # reference node returned by keypath()
+            p = nodes.paragraph()
+            p += keypath(*full_keypath)
+            table.append([p, val_node])
 
     if len(table) > 1:
-        return build_table(table)
+        # This colspec creates two columns of equal width that fill the entire
+        # page, and adds line breaks if table cell contents are longer than one
+        # line. "\X" is defined by Sphinx, otherwise this is standard LaTeX.
+        colspec = r'{|\X{1}{2}|\X{1}{2}|}'
+        return build_table(table, colspec=colspec)
     else:
         return None
 
 def build_config_recursive(schema, keypath_prefix=[], sec_key_prefix=[]):
-    '''Helper function for displaying schema at each level as tables unde nested
+    '''Helper function for displaying schema at each level as tables under nested
     sections.
 
     For each item:
@@ -118,6 +124,8 @@ class DynamicGen(SphinxDirective):
 
     def document_module(self, module, modname, path):
         '''Build section documenting given module and name.'''
+        print(f'Generating docs for module {modname}...')
+
         s = build_section_with_target(modname, f'{modname}-ref', self.state.document)
 
         if not hasattr(module, 'make_docs'):
@@ -265,7 +273,7 @@ class FlowGen(DynamicGen):
             section_key = '-'.join(['flows', modname, step])
             section = build_section(step, section_key)
             step_cfg = {}
-            for prefix in ['flowgraph', 'metric']:
+            for prefix in ['flowgraph']:
                 cfg = chip.getdict(prefix, step)
                 if cfg is None:
                     continue
@@ -278,11 +286,11 @@ class FlowGen(DynamicGen):
             settings += section
 
         # Build table for non-step items (just showtool for now)
-        section_key = '-'.join(['flows', modname, 'showtool'])
+        section_key = '-'.join(['flows', modname, 'option', 'showtool'])
         section = build_section('showtool', section_key)
-        cfg = chip.getdict('showtool')
+        cfg = chip.getdict('option', 'showtool')
         pruned = chip._prune(cfg)
-        table = build_schema_value_table(pruned)
+        table = build_schema_value_table(pruned, keypath_prefix=['option', 'showtool'])
         if table is not None:
             section += table
             settings += section
@@ -308,16 +316,12 @@ class LibGen(DynamicGen):
 
     def extra_content(self, chip, modname):
         # assume same pdk for all libraries configured by this module
-        libname = chip.getkeys('library')[0]
-        pdks = chip.get('library', libname, 'pdk')
+        mainlib = chip.getkeys('library')[0]
+        pdk = chip.get('library', mainlib, 'asic', 'pdk')
 
-        if len(pdks) > 0:
-            pdk = pdks[0]
-            p = docutils.nodes.inline('')
-            self.parse_rst(f'Associated PDK: :ref:`{pdk}<{pdk}-ref>`', p)
-            return [p]
-
-        return None
+        p = docutils.nodes.inline('')
+        self.parse_rst(f'Associated PDK: :ref:`{pdk}<{pdk}-ref>`', p)
+        return [p]
 
     def display_config(self, chip, modname):
         '''Display parameters under in nested form.'''
@@ -327,8 +331,11 @@ class LibGen(DynamicGen):
         for libname in chip.getkeys('library'):
             section_key = '-'.join(['libs', modname, libname, 'configuration'])
             settings = build_section(libname, section_key)
-            cfg = chip.getdict('library', libname)
-            settings += build_config_recursive(cfg, keypath_prefix=['library', libname], sec_key_prefix=['libs', modname])
+
+            for key in ('asic', 'model'):
+                cfg = chip.getdict('library', libname, key)
+                settings += build_config_recursive(cfg, keypath_prefix=[key], sec_key_prefix=['libs', modname, libname, key])
+
             sections.append(settings)
 
         return sections
@@ -338,9 +345,9 @@ class ToolGen(DynamicGen):
 
     def display_config(self, chip, modname):
         '''Display config under `eda, <modname>` in a single table.'''
-        cfg = chip.getdict('eda', modname)
+        cfg = chip.getdict('tool', modname)
         pruned = chip._prune(cfg)
-        table = build_schema_value_table(pruned, keypath_prefix=['eda', modname])
+        table = build_schema_value_table(pruned, keypath_prefix=['tool', modname])
         if table is not None:
             return table
         else:
@@ -405,7 +412,7 @@ class TargetGen(DynamicGen):
             sections.append(libs_section)
 
         filtered_cfg = {}
-        for key in ('asic', 'mcmm'):
+        for key in ('asic', 'constraint', 'option'):
             filtered_cfg[key] = chip.getdict(key)
         pruned_cfg = chip._prune(filtered_cfg)
 
@@ -427,7 +434,7 @@ class AppGen(DynamicGen):
         cmd_name = modname.replace('_', '-')
         cmd = [cmd_name, '--help']
 
-        output = subprocess.check_output(cmd).decode('ascii')
+        output = subprocess.check_output(cmd).decode('utf-8')
 
         section = build_section(cmd_name, cmd_name)
         section += literalblock(output)

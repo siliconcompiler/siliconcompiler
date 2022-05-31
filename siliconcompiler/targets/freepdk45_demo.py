@@ -10,7 +10,7 @@ def make_docs():
     asicflow.
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     setup(chip)
     return chip
 
@@ -24,24 +24,29 @@ def setup(chip):
     Target setup
     '''
 
-    #1. Defining the project
-    chip.set('target','freepdk45_demo')
+    #0. Defining the project
+    chip.set('option', 'target', 'freepdk45_demo')
+
+    #1. Setting to ASIC mode
+    chip.set('option', 'mode','asic')
 
     #2. Load PDK, flow, libs combo
     chip.load_pdk('freepdk45')
+    chip.load_flow('lintflow')
     chip.load_flow('asicflow')
     chip.load_flow('asictopflow')
     chip.load_lib('nangate45')
 
-    #3. Set default flow
-    chip.set('flow', 'asicflow')
+    #3. Set flow and pdk
+    chip.set('option', 'flow', 'asicflow', clobber=False)
+    chip.set('option', 'pdk', 'freepdk45')
 
     #4. Select libraries
     chip.set('asic', 'logiclib', 'nangate45')
 
     #5. Set project specific design choices
-    chip.set('asic', 'delaymodel', 'nldm')
     chip.set('asic', 'stackup', '10M')
+    chip.set('asic', 'delaymodel', 'nldm')
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m10")
     chip.set('asic', 'maxfanout', 64)
@@ -58,10 +63,10 @@ def setup(chip):
 
     #6. Timing corners
     corner = 'typical'
-    chip.set('mcmm','worst','libcorner', corner)
-    chip.set('mcmm','worst','pexcorner', corner)
-    chip.set('mcmm','worst','mode', 'func')
-    chip.set('mcmm','worst','check', ['setup','hold'])
+    chip.set('constraint','worst','libcorner', corner)
+    chip.set('constraint','worst','pexcorner', corner)
+    chip.set('constraint','worst','mode', 'func')
+    chip.set('constraint','worst','check', ['setup','hold'])
 
 #########################
 if __name__ == "__main__":

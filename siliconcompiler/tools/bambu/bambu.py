@@ -10,10 +10,9 @@ def make_docs():
     '''
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','import')
     chip.set('arg','index','0')
-    chip.set('design', '<design>')
     setup(chip)
     return chip
 
@@ -31,18 +30,18 @@ def setup(chip):
 
     # Standard Setup
     refdir = 'tools/'+tool
-    chip.set('eda', tool, 'exe', 'bambu', clobber=False)
-    chip.set('eda', tool, 'vswitch', '--version', clobber=False)
-    chip.set('eda', tool, 'version', '>=0.9.6', clobber=False)
-    chip.set('eda', tool, 'refdir', step, index, refdir, clobber=False)
-    chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=False)
-    chip.set('eda', tool, 'option', step, index, [])
+    chip.set('tool', tool, 'exe', 'bambu', clobber=False)
+    chip.set('tool', tool, 'vswitch', '--version', clobber=False)
+    chip.set('tool', tool, 'version', '>=0.9.6', clobber=False)
+    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=False)
+    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'option', step, index, [])
 
     # Input/Output requirements
-    chip.add('eda', tool, 'output', step, index, chip.get('design') + '.v')
+    chip.add('tool', tool, 'output', step, index, chip.get('design') + '.v')
 
     # Schema requirements
-    chip.add('eda', tool, 'require', step, index, 'source')
+    chip.add('tool', tool, 'require', step, index, 'input,c')
 
 def parse_version(stdout):
     # Long multiline output, but second-to-last line looks like:
@@ -58,11 +57,11 @@ def runtime_options(chip):
 
     cmdlist = []
 
-    for value in chip.find_files('idir'):
+    for value in chip.find_files('option', 'idir'):
         cmdlist.append('-I' + value)
-    for value in chip.get('define'):
+    for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('source'):
+    for value in chip.find_files('input', 'c'):
         cmdlist.append(value)
 
     cmdlist.append('--top-fname=' + chip.get('design'))

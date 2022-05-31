@@ -11,14 +11,18 @@ def test_icarus(oh_dir):
     design = "oh_fifo_sync"
     topfile = os.path.join(ydir, f'{design}.v')
 
-    chip = siliconcompiler.Chip(loglevel="INFO")
+    chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
-    chip.set('ydir', ydir)
-    chip.set('design', design)
-    chip.set('source', topfile)
-    chip.set('mode', 'sim')
-    chip.set('arg','step','compile')
-    chip.set('flow', 'icarus')
+    chip.set('option', 'ydir', ydir)
+    chip.set('input', 'verilog', topfile)
+    chip.set('option', 'mode', 'sim')
+
+    flow = 'sim'
+    chip.node(flow, 'import', 'nop')
+    chip.node(flow, 'compile', 'icarus')
+    chip.edge(flow, 'import', 'compile')
+    chip.set('option', 'flow', flow)
+
     chip.run()
 
     # check that compilation succeeded
