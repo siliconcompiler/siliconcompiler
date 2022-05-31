@@ -1,0 +1,29 @@
+
+    set lutsize 3
+    set output_blif "outputs/blah.blif"
+ 
+    proc
+    
+    techmap -map +/adff2dff.v
+
+    # LUT mapping
+    abc -lut $lutsize
+
+    read_verilog -lib ./adder.v
+    read_verilog -lib ./multiply.v
+    read_verilog -lib single_port_ram.v     #(SSS) will be replaced by single_port_ram.v by python script
+    read_verilog -lib dual_port_ram.v     #(DDD) will be replaced by dual_port_ram.v by python script
+
+    read_verilog spram_rename.v         #(SSR) will be replaced by spram_rename.v by python script
+    read_verilog dpram_rename.v         #(DDR) will be replaced by dpram_rename.v by python script
+
+    techmap
+
+    #Flatten the design
+    flatten
+
+    # Check
+    synth -run check
+
+    # Clean and output blifver      
+    opt_clean -purge

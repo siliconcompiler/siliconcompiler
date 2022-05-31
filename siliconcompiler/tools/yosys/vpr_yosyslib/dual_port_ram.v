@@ -7,7 +7,7 @@
 
 `timescale 1ps/1ps
 
-`define MEM_MAXADDR PPP
+`define MEM_MAXADDR {{ memory_addr_width }}
 `define MEM_MAXDATA 36
 
 // depth and data may need to be splited
@@ -74,8 +74,8 @@ module dual_port_ram(clk, we1, we2, addr1, addr2, data1, data2, out1, out2);
                     .clk(clk), 
                     .we1(we1), 
                     .we2(we2), 
-                    .addr1({ {{`MEM_MAXADDR-ADDR_WIDTH}{1'bx}}, addr1[ADDR_WIDTH-1:0] }), 
-                    .addr2({ {{`MEM_MAXADDR-ADDR_WIDTH}{1'bx}}, addr2[ADDR_WIDTH-1:0] }), 
+                    .addr1({% raw %}{ {{`MEM_MAXADDR-ADDR_WIDTH}{1'bx}}, addr1[ADDR_WIDTH-1:0] }{% endraw %}), 
+                    .addr2({% raw %}{ {{`MEM_MAXADDR-ADDR_WIDTH}{1'bx}}, addr2[ADDR_WIDTH-1:0] }{% endraw %}), 
                     .data1(data1[i]), 
                     .data2(data2[i]), 
                     .out1(out1[i]),

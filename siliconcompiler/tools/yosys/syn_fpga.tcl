@@ -9,5 +9,5 @@ yosys hierarchy -top $sc_design
 if {[string match {ice*} $sc_partname]} {
     yosys synth_ice40 -top $sc_design -json "${sc_design}_netlist.json"
 } else {
-    yosys script "/home/kimia/siliconcompiler/siliconcompiler/tools/yosys/synthesis.ys"
+    yosys script "/home/kimia/vpr_example/build/or1200/syn/input/vpr_yosyslib/synthesis.ys"
 }
