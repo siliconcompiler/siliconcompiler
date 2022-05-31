@@ -19,8 +19,9 @@ def test_write_manifest():
 
 def test_advanced_tcl(monkeypatch):
     # Tkinter module is part of Python standard library, but may not be
-    # available depending on if the system has the python3-tk installed. This
-    # line will import tkinter if it's available, and skip the test otherwise.
+    # available depending on if the system has the python3-tk package installed.
+    # This line will import tkinter if it's available, and skip the test
+    # otherwise.
     tkinter = pytest.importorskip('tkinter')
 
     chip = siliconcompiler.Chip('top')
@@ -54,12 +55,8 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
         return {expr}'''
         return tcl.eval(script)
 
-    # When we call puts on a multiline string, it does get mangled a bit. It
-    # stays surrounded by {}, and {} within the string are still escaped.
-    # TODO: is this problematic? I think it is okay for now since we don't
-    # really read these strings within TCL, they just need to not break sourcing
-    # the manifest.
-    expected_desc = '{' + desc.replace('{', '\\{').replace('}', '\\}') + '}'
+    # When the TCL shell displays a multiline string, it gets surrounded in {}.
+    expected_desc = '{' + desc + '}'
     assert tcl_eval('[dict get $sc_cfg package description]') == expected_desc
 
     assert tcl_eval('[lindex [lindex [dict get $sc_cfg asic diearea] 1] 0]') == '30.0'
