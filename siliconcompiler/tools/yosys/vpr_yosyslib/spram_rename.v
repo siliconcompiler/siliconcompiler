@@ -9,7 +9,7 @@
 
 `timescale 1ps/1ps
 
-`define MEM_MAXADDR PPP
+`define MEM_MAXADDR {{ memory_addr_width }}
 `define MEM_MAXDATA 36
 
 // depth and data may need to be splited

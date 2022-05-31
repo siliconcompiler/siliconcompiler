@@ -1,8 +1,9 @@
 import os
 import re
 import sys
+import shutil
 import defusedxml.ElementTree as ET
-
+from jinja2 import Template
 import siliconcompiler
 
 ######################################################################
@@ -97,7 +98,10 @@ def setup(chip):
                 for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
                     chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model','timing', 'nldm', corner]))
     else:
-        chip.add('tool', tool, 'require', step, index, ",".join(['fpga','partname']))
+        chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
+        if chip.get('fpga', 'arch'):
+            create_vpr_lib(chip)
+            
 
     # Setting up regex patterns
     chip.set('tool', tool, 'regex', step, index, 'warnings', "Warning", clobber=False)
@@ -174,6 +178,33 @@ def post_process(chip):
 
     #Return 0 if successful
     return 0
+
+################################
+# copy and render the VPR library
+################################
+def create_vpr_lib(chip):
+    #print(chip.get('option', 'jobname'))
+    src = os.path.dirname(os.path.abspath(__file__)) + "/vpr_yosyslib"
+    dst = f"{os.getcwd()}/build/{chip.get('design')}/job0/syn/input/vpr_yosyslib"
+    if os.path.exists(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst)
+
+
+    data = {
+        "memory_addr_width": "3",
+        "lib_dir": dst,
+        "min_hard_adder_size": "1",
+        "min_hard_mult_size": "3"
+    }    
+    for _, _, lib_files in os.walk(dst):
+        for file_name in lib_files:
+            file = f"{dst}/{file_name}"
+            print(file)
+            with open(file) as template_f:
+                template = Template(template_f.read()) 
+            with open(file, "w") as rendered_f:
+                rendered_f.write(template.render(data))
 
 ##################################################
 if __name__ == "__main__":

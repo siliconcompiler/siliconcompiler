@@ -46,7 +46,7 @@ if { [file exists "inputs/$sc_design.ilang"] } {
 
 if { [file exists "inputs/$sc_design.v"] } {
     set input_verilog "inputs/$sc_design.v"
-    yosys read_verilog -sv $input_verilog
+    yosys read_verilog -sv -nolatches $input_verilog 
 }
 
 ########################################################

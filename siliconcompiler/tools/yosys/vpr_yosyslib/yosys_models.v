@@ -14,14 +14,14 @@
 
 
 `define MEM_MINWIDTH 1
-`define MEM_MAXADDR PPP
+`define MEM_MAXADDR {{ memory_addr_width }}
 `define MEM_MAXDATA 36
 
 `define DSP_A_MAXWIDTH 36
 `define DSP_B_MAXWIDTH 36
 
-`define ADDER_MINWIDTH AAA
-`define MULTIPLY_MINWIDTH MMM
+`define ADDER_MINWIDTH {{ min_hard_adder_size }}
+`define MULTIPLY_MINWIDTH {{ min_hard_mult_size }}
 
 `define MAX(a,b) (a > b ? a : b)
 `define MIN(a,b) (a < b ? a : b)
@@ -199,7 +199,7 @@ module \$__mem_gen (RD_CLK, RD_EN, RD_ADDR, RD_DATA, WR_CLK, WR_EN, WR_ADDR, WR_
 				);
 			end 
 			else begin
-				assign rd_data_hi = {{WIDTH}{1'bx}};
+				assign rd_data_hi = {% raw %}{{WIDTH}{1'bx}}{% endraw %};
 			end
 
 			\$__mem_gen #(
@@ -229,7 +229,7 @@ module \$__mem_gen (RD_CLK, RD_EN, RD_ADDR, RD_DATA, WR_CLK, WR_EN, WR_ADDR, WR_
 				if (RD_PORTS <= 1 && WR_PORTS <= 1) 
 					single_port_ram mem (
 						.clk(RD_CLK[0]),
-						.addr({ {{`MEM_MAXADDR-ABITS}{1'bx}}, RD_ADDR[ABITS-1:0] }),
+						.addr({% raw %}{ {{`MEM_MAXADDR-ABITS}{1'bx}}, RD_ADDR[ABITS-1:0] }{% endraw %}),
 						.data(WR_DATA[i]),
 						.out(RD_DATA[i]),
 						.we(WR_EN[0])
@@ -237,11 +237,11 @@ module \$__mem_gen (RD_CLK, RD_EN, RD_ADDR, RD_DATA, WR_CLK, WR_EN, WR_ADDR, WR_
 				else if (RD_PORTS <= 2 && WR_PORTS <= 2) 
 					dual_port_ram mem (
 						.clk(RD_CLK[0]),
-						.addr1({ {{`MEM_MAXADDR-ABITS}{1'bx}}, RD_ADDR[ABITS-1:0] }),
+						.addr1({% raw %}{ {{`MEM_MAXADDR-ABITS}{1'bx}}, RD_ADDR[ABITS-1:0] }{% endraw %}),
 						.data1(WR_DATA[i]),
 						.out1(RD_DATA[i]),
 						.we1(WR_EN[0]),
-						.addr2({ {{`MEM_MAXADDR-ABITS}{1'bx}}, RD_ADDR[2*ABITS-1:ABITS] }),
+						.addr2({% raw %}{ {{`MEM_MAXADDR-ABITS}{1'bx}}, RD_ADDR[2*ABITS-1:ABITS] }{% endraw %}),
 						.data2(WR_DATA[WIDTH+i]),
 						.out2(RD_DATA[WIDTH+i]),
 						.we2(WR_EN[WIDTH])
@@ -459,15 +459,15 @@ module \$__mul_gen (A, B, Y);
 			assign Asign = (A_SIGNED ? A[A_WIDTH-1] : 1'b0);
 			assign Bsign = (B_SIGNED ? B[B_WIDTH-1] : 1'b0);
 			multiply _TECHMAP_REPLACE_ (
-				.a({ {{`DSP_A_MAXWIDTH-A_WIDTH}{Asign}}, A }),
-				.b({ {{`DSP_B_MAXWIDTH-B_WIDTH}{Bsign}}, B }),
+				.a({% raw %}{ {{`DSP_A_MAXWIDTH-A_WIDTH}{Asign}}, A }{% endraw %}),
+				.b({% raw %}{ {{`DSP_B_MAXWIDTH-B_WIDTH}{Bsign}}, B }{% endraw %}),
 				.out({dummy, out})
 			);
 			if (Y_WIDTH < A_WIDTH + B_WIDTH)
 				assign Y = out[Y_WIDTH-1:0];
 			else begin
 				wire Ysign = (A_SIGNED || B_SIGNED ? out[A_WIDTH+BWIDTH-1] : 1'b0);
-				assign Y = { {{Y_WIDTH-(A_WIDTH+B_WIDTH)}{Ysign}}, out[A_WIDTH+B_WIDTH-1:0] };
+				assign Y = {% raw %}{ {{Y_WIDTH-(A_WIDTH+B_WIDTH)}{Ysign}}, out[A_WIDTH+B_WIDTH-1:0] }{% endraw %};
 			end
 		end
 	endgenerate
@@ -513,8 +513,8 @@ module \$add (A, B, Y);
 
 		assign Asign = (A_SIGNED ? A[A_WIDTH-1] : 1'b0);
 		assign Bsign = (B_SIGNED ? B[B_WIDTH-1] : 1'b0);
-		assign _a = { {{maxab}{Asign}}, A };
-		assign _b = { {{maxab}{Bsign}}, B };
+		assign _a = {% raw %}{ {{maxab}{Asign}}, A }{% endraw %};
+		assign _b = {% raw %}{ {{maxab}{Bsign}}, B }{% endraw %};
 	
 		adder add_first (.a(_a[0]), .b(_b[0]), .cin(1'bx), .cout(_c[1]), .sumout(_y[0]));
 		genvar i;
@@ -529,7 +529,7 @@ module \$add (A, B, Y);
 			assign Y = _y[Y_WIDTH-1:0];
 		else begin
 			wire Ysign = (A_SIGNED || B_SIGNED ? _y[Y_WIDTH-1] : 1'b0);
-			assign Y = { {{Y_WIDTH-(maxab+1)}{_y[maxab+1-1]}}, _y[maxab+1-1:0] };
+			assign Y = {% raw %}{ {{Y_WIDTH-(maxab+1)}{_y[maxab+1-1]}}, _y[maxab+1-1:0] }{% endraw %};
 		end
 	endgenerate
 endmodule
@@ -573,8 +573,8 @@ module \$sub (A, B, Y);
 
 		assign Asign = (A_SIGNED ? A[A_WIDTH-1] : 1'b0);
 		assign Bsign = (B_SIGNED ? B[B_WIDTH-1] : 1'b0);
-		assign _a = { {{maxab}{Asign}}, A };
-		assign _b = { {{maxab}{Bsign}}, B };
+		assign _a = {% raw %}{ {{maxab}{Asign}}, A }{% endraw %};
+		assign _b = {% raw %}{ {{maxab}{Bsign}}, B }{% endraw %};
 	
 		// VPR requires that the first element of a carry chain have cin = 1'bx
 		// Therefore use sub_init to generate cout = 1'b1 for the
@@ -593,6 +593,6 @@ module \$sub (A, B, Y);
 			assign Y = _y[Y_WIDTH-1:0];
 		else begin
 			wire Ysign = (A_SIGNED || B_SIGNED ? _y[Y_WIDTH-1] : 1'b0);
-			assign Y = { {{Y_WIDTH-(maxab+1)}{_y[maxab+1-1]}}, _y[maxab+1-1:0] };
+			assign Y = {% raw %}{ {{Y_WIDTH-(maxab+1)}{_y[maxab+1-1]}}, _y[maxab+1-1:0] }{% endraw %};
 		end	endgenerate
 endmodule

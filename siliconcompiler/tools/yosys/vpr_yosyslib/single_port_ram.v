@@ -7,7 +7,7 @@
 
 `timescale 1ps/1ps
 
-`define MEM_MAXADDR PPP
+`define MEM_MAXADDR {{ memory_addr_width }}
 `define MEM_MAXDATA 36
 
 // depth and data may need to be splited
@@ -62,7 +62,7 @@ module single_port_ram(clk, we, addr, data, out);
                 singlePortRam uut (
                     .clk(clk), 
                     .we(we), 
-                    .addr({ {{`MEM_MAXADDR-ADDR_WIDTH}{1'bx}}, addr[ADDR_WIDTH-1:0] }), 
+                    .addr({% raw %}{ {{`MEM_MAXADDR-ADDR_WIDTH}{1'bx}}, addr[ADDR_WIDTH-1:0] }{% endraw %}), 
                     .data(data[i]), 
                     .out(out[i])
                 );
