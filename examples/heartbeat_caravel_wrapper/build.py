@@ -35,17 +35,13 @@ MARGIN_H = 8.16
 #MARGIN_H = 6.256
 
 # Path to 'caravel' repository root.
-CARAVEL_ROOT = '/path/to/caravel'
+#CARAVEL_ROOT = '/path/to/caravel'
+CARAVEL_ROOT = '/home/vimes/caravel/c2/caravel_user_project/caravel'
 
 def configure_chip(design):
     # Minimal Chip object construction.
-    chip = Chip()
+    chip = Chip(design)
     chip.load_target('skywater130_demo')
-    chip.set('design', design)
-
-    # Configure 'show' apps, and return the Chip object.
-    chip.set('showtool', 'def', 'klayout')
-    chip.set('showtool', 'gds', 'klayout')
     return chip
 
 def build_core():
@@ -53,12 +49,12 @@ def build_core():
     # We can skip a detailed floorplan and let the router connect top-level I/O signals.
     core_chip = configure_chip('heartbeat')
     design = core_chip.get('design')
-    core_chip.set('source', 'heartbeat.v')
-    core_chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', ['0.15'])
-    #core_chip.add('eda', 'openroad', 'variable', 'place', '0', 'pad_global_place', ['2'])
-    #core_chip.add('eda', 'openroad', 'variable', 'place', '0', 'pad_detail_place', ['2'])
-    core_chip.set('eda', 'openroad', 'variable', 'route', '0', 'grt_allow_congestion', ['true'])
-    core_chip.clock(name='clk', pin='clk', period=20)
+    core_chip.set('input', 'verilog', 'heartbeat.v')
+    core_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
+    #core_chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_global_place', ['2'])
+    #core_chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_detail_place', ['2'])
+    core_chip.set('tool', 'openroad', 'var', 'route', '0', 'grt_allow_congestion', ['true'])
+    core_chip.clock('clk', period=20)
 
     # Set user design die/core area.
     core_chip.set('asic', 'diearea', (0, 0))
@@ -68,23 +64,22 @@ def build_core():
 
     # No routing on met4-met5.
     stackup = core_chip.get('asic', 'stackup')
-    libtype = 'hd'
-    core_chip.set('pdk','grid', stackup, 'met4', 'adj', 0.0)
-    core_chip.set('pdk','grid', stackup, 'met5', 'adj', 0.0)
+    libtype = 'unithd'
     core_chip.set('asic', 'maxlayer', 'met3')
 
     # Create empty PDN script to effectively skip PDN generation.
+    pdk = core_chip.get('option', 'pdk')
     with open('pdngen.tcl', 'w') as pdnf:
         pdnf.write('''#NOP''')
-    core_chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'pdngen', 'pdngen.tcl')
+    core_chip.set('pdk', pdk, 'aprtech', 'openroad', stackup, libtype, 'pdngen', 'pdngen.tcl')
 
     # Build the core design.
     core_chip.run()
 
     # Copy GDS/DEF/LEF files for use in the top-level build.
-    jobdir = (core_chip.get('dir') +
+    jobdir = (core_chip.get('option', 'builddir') +
             "/" + design + "/" +
-            core_chip.get('jobname'))
+            core_chip.get('option', 'jobname'))
     shutil.copy(f'{jobdir}/export/0/outputs/{design}.gds', f'{design}.gds')
     shutil.copy(f'{jobdir}/export/0/inputs/{design}.def', f'{design}.def')
     shutil.copy(f'{jobdir}/export/0/inputs/{design}.lef', f'{design}.lef')
@@ -93,16 +88,16 @@ def build_core():
 def build_top():
     # The 'hearbeat' RTL goes in a modified 'user_project_wrapper' object, see sources.
     chip = configure_chip('user_project_wrapper')
-    chip.set('eda', 'openroad', 'variable', 'place', '0', 'place_density', ['0.15'])
-    #chip.add('eda', 'openroad', 'variable', 'place', '0', 'pad_global_place', ['2'])
-    #chip.add('eda', 'openroad', 'variable', 'place', '0', 'pad_detail_place', ['2'])
-    chip.set('eda', 'openroad', 'variable', 'route', '0', 'grt_allow_congestion', ['true'])
-    chip.clock(name='user_clock2', pin='user_clock2', period=20)
+    chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
+    #chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_global_place', ['2'])
+    #chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_detail_place', ['2'])
+    chip.set('tool', 'openroad', 'var', 'route', '0', 'grt_allow_congestion', ['true'])
+    chip.clock('user_clock2', period=20)
 
     # Set top-level source files.
-    chip.set('source', f'{CARAVEL_ROOT}/verilog/rtl/defines.v')
-    chip.add('source', 'heartbeat.bb.v')
-    chip.add('source', 'user_project_wrapper.v')
+    chip.set('input', 'verilog', f'{CARAVEL_ROOT}/verilog/rtl/defines.v')
+    chip.add('input', 'verilog', 'heartbeat.bb.v')
+    chip.add('input', 'verilog', 'user_project_wrapper.v')
 
     # Set top-level die/core area.
     chip.set('asic', 'diearea', (0, 0))
@@ -110,32 +105,37 @@ def build_top():
     chip.set('asic', 'corearea', (MARGIN_W, MARGIN_H))
     chip.add('asic', 'corearea', (TOP_W - MARGIN_W, TOP_H - MARGIN_H))
 
-    # Add core design macro.
+    # Add core design macro as a library.
     libname = 'heartbeat'
     stackup = chip.get('asic', 'stackup')
     chip.add('asic', 'macrolib', libname)
-    chip.set('library', libname, 'type', 'component')
-    chip.set('library', libname, 'lef', stackup, 'heartbeat.lef')
-    chip.set('library', libname, 'def', stackup, 'heartbeat.def')
-    chip.set('library', libname, 'gds', stackup, 'heartbeat.gds')
-    chip.set('library', libname, 'netlist', 'verilog', 'heartbeat.vg')
+    heartbeat_lib = Chip('heartbeat')
+    heartbeat_lib.add('model', 'layout', 'lef', stackup, 'heartbeat.lef')
+    heartbeat_lib.add('model', 'layout', 'def', stackup, 'heartbeat.def')
+    heartbeat_lib.add('model', 'layout', 'gds', stackup, 'heartbeat.gds')
+    heartbeat_lib.add('model', 'layout', 'vg', stackup, 'heartbeat.vg')
+    heartbeat_lib.set('asic', 'pdk', 'skywater130')
+    heartbeat_lib.set('option', 'pdk', 'skywater130')
+    heartbeat_lib.set('asic', 'stackup', stackup)
+    chip.import_library(heartbeat_lib)
 
     # Use pre-defined floorplan for the wrapper..
-    chip.set('read', 'def', 'floorplan', '0', f'{CARAVEL_ROOT}/def/user_project_wrapper.def')
+    chip.set('input', 'floorplan.def', f'{CARAVEL_ROOT}/def/user_project_wrapper.def')
 
     # (No?) filler cells in the top-level wrapper.
     #chip.set('library', 'sky130hd', 'cells', 'filler', [])
     #chip.add('library', 'sky130hd', 'cells', 'ignore', 'sky130_fd_sc_hd__conb_1')
 
     # (No?) tapcells in the top-level wrapper.
-    libtype = 'hd'
+    libtype = 'unithd'
     #chip.cfg['pdk']['aprtech']['openroad'][stackup][libtype].pop('tapcells')
 
     # No I/O buffers in the top-level wrapper, but keep tie-hi/lo cells.
     #chip.set('library', 'sky130hd', 'cells', 'tie', [])
-    chip.set('library', 'sky130hd', 'cells', 'buf', [])
+    chip.set('asic', 'cells', 'buf', [])
 
     # Create PDN-generation script.
+    pdk = chip.get('option', 'pdk')
     with open('pdngen_top.tcl', 'w') as pdnf:
         # TODO: Jinja template?
         pdnf.write('''
@@ -148,13 +148,13 @@ global_connect
 
 set_voltage_domain -name Core -power vccd1 -ground vssd1
 
-define_pdn_grid -name core_grid -macro -default -voltage_domain Core
+define_pdn_grid -name core_grid -macro -grid_over_boundary -default -voltage_domain Core
 add_pdn_stripe -grid core_grid -layer met1 -width 0.48 -starts_with POWER -followpins
 add_pdn_connect -grid core_grid -layers {met1 met4}
 
 # Done defining commands; generate PDN.
 pdngen''')
-    chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'pdngen', 'pdngen_top.tcl')
+    chip.set('pdk', pdk, 'aprtech', 'openroad', stackup, libtype, 'pdngen', 'pdngen_top.tcl')
 
     # Generate macro-placement script.
     with open('macroplace_top.tcl', 'w') as mf:
@@ -163,16 +163,16 @@ pdngen''')
 #place_cell -inst_name mprj -origin {1174.84 1689.02} -orient R0 -status FIRM
 place_cell -inst_name mprj -origin {1188.64 1689.12} -orient R0 -status FIRM
 ''')
-    chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'macroplace', 'macroplace_top.tcl')
+    chip.set('pdk', pdk, 'aprtech', 'openroad', stackup, libtype, 'macroplace', 'macroplace_top.tcl')
 
     # Run the top-level build.
     chip.run()
 
     # Add via definitions to the gate-level netlist.
     design = chip.get('design')
-    jobdir = (chip.get('dir') +
+    jobdir = (chip.get('option', 'builddir') +
             "/" + design + "/" +
-            chip.get('jobname'))
+            chip.get('option', 'jobname'))
     shutil.copy(f'{jobdir}/dfm/0/outputs/{design}.vg', f'{design}.vg')
     in_mod = False
     done_mod = False

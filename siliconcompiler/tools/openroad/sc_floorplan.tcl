@@ -90,7 +90,7 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
 # Need to check if we have any macros before performing macro placement,
 # since we get an error otherwise.
 if {[design_has_macros] || \
-    [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace]} {
+    [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace]} {
     ###########################
     # TDMS Placement
     ###########################
@@ -105,9 +105,9 @@ if {[design_has_macros] || \
     # Macro placement
     ###########################
 
-    if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {
+    if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {
         # Manual macro placement
-        source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
+        source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
     } else {
         # Automatic macro placement
         macro_placement \
@@ -122,8 +122,8 @@ if {[design_has_macros] || \
 ###########################
 # Power Network (if defined)
 ###########################
-if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype pdngen] {
-    source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype pdngen] 0]
+if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype pdngen] {
+    source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype pdngen] 0]
 }
 
 ###########################
