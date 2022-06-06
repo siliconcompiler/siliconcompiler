@@ -1,4 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
+import csv
+
 import pytest
 
 import siliconcompiler
@@ -62,6 +64,29 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
     assert tcl_eval('[lindex [lindex [dict get $sc_cfg asic diearea] 1] 0]') == '30.0'
     assert tcl_eval('[dict get $sc_cfg option quiet]') == 'true'
     assert tcl_eval('[dict get $sc_cfg input verilog]') == 'rtl/design.v'
+
+def test_csv():
+    chip = siliconcompiler.Chip('test')
+    chip.set('input', 'verilog', 'source.v')
+
+    chip.write_manifest('test.csv')
+
+    design_found = False
+    input_found = False
+    with open('test.csv', 'r', newline='') as f:
+        csvreader = csv.reader(f)
+        for row in csvreader:
+            assert len(row) == 2
+
+            keypath, val = row
+            if keypath == 'design':
+                assert val == 'test'
+                design_found = True
+            elif keypath == 'input,verilog':
+                assert val == 'source.v'
+                input_found = True
+    assert design_found
+    assert input_found
 
 #########################
 if __name__ == "__main__":

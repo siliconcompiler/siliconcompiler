@@ -31,6 +31,7 @@ import uuid
 import shlex
 import platform
 import getpass
+import csv
 import distro
 import netifaces
 import webbrowser
@@ -1461,16 +1462,19 @@ class Chip:
                     self.set(*keypath, abspaths, cfg=cfg)
 
     ###########################################################################
-    def _print_csv(self, cfg, fout=None):
+    def _print_csv(self, cfg, fout):
+        csvwriter = csv.writer(fout)
+        csvwriter.writerow(['Keypath', 'Value'])
+
         allkeys = self.getkeys(cfg=cfg)
         for key in allkeys:
-            keypath = f'"{",".join(key)}"'
+            keypath = ','.join(key)
             value = self.get(*key, cfg=cfg)
             if isinstance(value,list):
                 for item in value:
-                    fout.write(f"{keypath},{item}")
+                    csvwriter.writerow([keypath, item])
             else:
-                fout.write(f"{keypath},{value}")
+                csvwriter.writerow([keypath, value])
 
     ###########################################################################
     def _escape_val_tcl(self, val, typestr):
@@ -2087,9 +2091,15 @@ class Chip:
         if abspath:
             self._abspath(cfgcopy)
 
+        is_csv = re.search(r'(\.csv)(\.gz)*$', filepath)
+
         # format specific dumping
         if filepath.endswith('.gz'):
             fout = gzip.open(filepath, 'wt', encoding='UTF-8')
+        elif is_csv:
+            # Files written using csv library should be opened with newline=''
+            # https://docs.python.org/3/library/csv.html#id3
+            fout = open(filepath, 'w', newline='')
         else:
             fout = open(filepath, 'w')
 
@@ -2101,7 +2111,7 @@ class Chip:
                 fout.write(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False))
             elif re.search(r'(\.tcl)(\.gz)*$', filepath):
                 self._print_tcl(cfgcopy, prefix="dict set sc_cfg", fout=fout)
-            elif re.search(r'(\.csv)(\.gz)*$', filepath):
+            elif is_csv:
                 self._print_csv(cfgcopy, fout=fout)
             else:
                 self.logger.error('File format not recognized %s', filepath)
