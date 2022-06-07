@@ -17,6 +17,48 @@
 
     <link href="bootstrap.min.css" rel="stylesheet">
 
+    <style>
+      /* Styles related to manifest tree view.
+      Source: https://stackoverflow.com/a/36297446
+      */
+
+      ul.tree li {
+          list-style-type: none;
+          position: relative;
+      }
+
+      ul.tree li ul {
+          display: none;
+      }
+
+      ul.tree li.open > ul {
+          display: block;
+      }
+
+      ul.tree li a {
+          color: black;
+          text-decoration: none;
+      }
+
+      ul.tree li a:before {
+          height: 1em;
+          padding:0 .1em;
+          font-size: .8em;
+          display: block;
+          position: absolute;
+          left: -1.3em;
+          top: .2em;
+      }
+
+      ul.tree li > a:not(:last-child):before {
+          content: '+';
+      }
+
+      ul.tree li.open > a:not(:last-child):before {
+          content: '-';
+      }
+    </style>
+
     <script type="text/javascript">
       // Helper method to download the current manifest as a .json file.
       // Creates a virtual 'a' tag and sends it a click event to download the data as a file.
@@ -40,6 +82,25 @@
 
       // Initialization function to setup buttons/links/etc after all DOM elements are lodaed.
       document.addEventListener("DOMContentLoaded", function() {
+        // Foldable manifest tree logic.
+        // Source: https://stackoverflow.com/a/36297446.
+        var tree = document.querySelectorAll('ul.tree a:not(:last-child)');
+        for(var i = 0; i < tree.length; i++){
+            tree[i].addEventListener('click', function(e) {
+                var parent = e.target.parentElement;
+                var classList = parent.classList;
+                if(classList.contains("open")) {
+                    classList.remove('open');
+                    var opensubs = parent.querySelectorAll(':scope .open');
+                    for(var i = 0; i < opensubs.length; i++){
+                        opensubs[i].classList.remove('open');
+                    }
+                } else {
+                    classList.add('open');
+                }
+            });
+        }
+
         // Initialize the JSON manifest. TODO: There should probably be a 'file upload' option too
         var cur_manifest = {{ manifest|tojson|safe }};
 
@@ -166,6 +227,37 @@
           {% endfor %}
         {% endfor %}
       </div>
+
+      <div style="text-align: center;"><a class="btn btn-primary" data-bs-toggle="collapse" href="#manifest_dropdown_div", role="button", aria-controls="manifest_dropdown_div" style="width:30%;">
+        Toggle Manifest Dropdown
+      </a></div>
+
+      {% macro manifest_tree(cfg) %}
+        {% for key in cfg.keys() | sort %}
+          {% if 'value' not in cfg[key] and 'help' not in cfg[key] %}
+            <li><a href="#">{{ key }}</a>
+              <ul>
+                {{ manifest_tree(cfg[key]) }}
+              </ul>
+            </li>
+          {% elif 'value' in cfg[key] %}
+            <li class="open"><a href="#">{{ key }}</a>
+              <ul>
+                <li>{{ cfg[key]['shorthelp'] }}</li>
+                <li><b>Value:</b> {{ cfg[key]['value'] }}</li>
+              </ul>
+            </li>
+          {% endif %}
+        {% endfor %}
+      {% endmacro %}
+
+      <div id="manifest_dropdown_div" class="collapse" style="text-align: left;">
+        <h2>Manifest</h2>
+        <ul class="tree">
+          {{ manifest_tree(pruned_cfg) }}
+        </ul>
+      </div>
+
     </span>
   </body>
 
