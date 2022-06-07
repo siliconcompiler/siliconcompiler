@@ -1383,24 +1383,24 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
                 "cli: -tool_regex 'openroad place 0 error -v ERROR'",
                 "api: chip.set('tool','openroad','regex','place','0','error','-v ERROR')"],
             schelp="""
-             A list of piped together grep commands. Each entry represents a set
+            A list of piped together grep commands. Each entry represents a set
             of command line arguments for grep including the regex pattern to
             match. Starting with the first list entry, each grep output is piped
             into the following grep command in the list. Supported grep options
-            include, -t, -i, -E, -x, -e. Patterns starting with "-" should be
-            directly preceeded by the "-e" option. The following example
+            include ``-v`` and ``-e``. Patterns starting with "-" should be
+            directly preceeded by the ``-e`` option. The following example
             illustrates the concept.
 
             UNIX grep:
-            >> grep WARNING place.log | grep -v "bbox" > place.warnings
 
-            siliconcompiler:
-            chip.set('tool','openroad','regex','place',0','warnings',["WARNING","-v bbox"])
+            .. code-block:: bash
 
-            Defines a set of tool specific environment variables used by the executables
-            that depend on license key servers to control access. For multiple servers,
-            separate each server by a 'colon'. The named license variable are read at
-            runtime (run()) and the environment variables are set.""")
+                $ grep WARNING place.log | grep -v "bbox" > place.warnings
+
+            SiliconCompiler::
+
+                chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', ["WARNING", "-v bbox"])
+            """)
 
 
     scparam(cfg, ['tool', tool, 'option', step, index],
