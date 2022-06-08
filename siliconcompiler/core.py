@@ -3148,8 +3148,10 @@ class Chip:
             results_page = os.path.join(web_dir, 'report.html')
             results_gds = self.find_result('gds', step='export')
             pruned_cfg = self._prune(self.cfg)
-            del pruned_cfg['history']
-            del pruned_cfg['library']
+            if 'history' in pruned_cfg:
+                del pruned_cfg['history']
+            if 'library' in pruned_cfg:
+                del pruned_cfg['library']
             with open(results_page, 'w') as wf:
                 wf.write(env.get_template('sc_report.j2').render(
                     manifest = self.cfg,
