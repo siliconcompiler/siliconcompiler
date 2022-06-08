@@ -3982,8 +3982,7 @@ class Chip:
 
             if retcode != 0:
                 self.logger.warning('Command failed with code %d. See log file %s', retcode, os.path.abspath(logfile))
-                if not self.get('tool', tool, 'continue'):
-                    self._haltstep(step, index)
+                self._haltstep(step, index)
 
         ##################
         # 16. Capture cpu runtime and memory footprint.
@@ -4001,8 +4000,8 @@ class Chip:
                 post_error = func(self)
                 if post_error:
                     self.logger.error('Post-processing check failed')
-                    if not self.get('tool', tool, 'continue'):
-                        self._haltstep(step, index)
+                    # TODO: add option to control halt behavior
+                    self._haltstep(step, index)
 
         ##################
         # 18. Check log file (must be after post-process)
@@ -4044,8 +4043,8 @@ class Chip:
         ##################
         # 23. Stop if there are errors
         if self.get('metric',step, index, 'errors') > 0:
-            if not self.get('tool', tool, 'continue'):
-                self._haltstep(step, index)
+            # TODO: add option to control halt behavior
+            self._haltstep(step, index)
 
         ##################
         # 24. Clean up non-essential files
