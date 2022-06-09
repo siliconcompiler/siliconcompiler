@@ -1,4 +1,8 @@
 set sc_partname  [dict get $sc_cfg fpga partname]
+set build_dir [dict get $sc_cfg option builddir]
+set job_name [dict get $sc_cfg option jobname]
+set step [dict get $sc_cfg arg step]
+set index [dict get $sc_cfg arg index]
 
 #TODO: add logic that remaps yosys built in name based on part number
 
@@ -9,5 +13,5 @@ yosys hierarchy -top $sc_design
 if {[string match {ice*} $sc_partname]} {
     yosys synth_ice40 -top $sc_design -json "${sc_design}_netlist.json"
 } else {
-    yosys script "/home/kimia/vpr_example/build/or1200/syn/input/vpr_yosyslib/synthesis.ys"
+    yosys script "${build_dir}/${sc_design}/${job_name}/${step}/${index}/inputs/vpr_yosyslib/synthesis.ys"
 }
