@@ -70,6 +70,7 @@ def setup(chip):
         # represent a set of possible inputs where you must pick one?
         chip.set('tool', tool, 'input', step, index, chip.design + '.v')
         chip.set('tool', tool, 'output', step, index, chip.design + '.vg')
+        chip.add('tool', tool, 'output', step, index, "/home/kimia/vpr_example/adder.v")
         chip.add('tool', tool, 'output', step, index, chip.design + '_netlist.json')
         chip.add('tool', tool, 'output', step, index, chip.design + '.blif')
     elif step == 'lec':
@@ -98,9 +99,7 @@ def setup(chip):
                 for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
                     chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model','timing', 'nldm', corner]))
     else:
-        chip.add('eda', tool, 'require', step, index, ",".join(['fpga','partname']))
-        if chip.get('fpga', 'arch'):
-            create_vpr_lib(chip)
+        chip.add('tool', tool, 'require', step, index, ",".join(['fpga','partname']))
             
 
     # Setting up regex patterns
@@ -123,6 +122,10 @@ def pre_process(chip):
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    
+    # copy the VPR library to the yosys input directory and render the placeholders 
+    if chip.get('fpga', 'arch'):
+        create_vpr_lib(chip)
 
 ################################
 # Version Check
@@ -183,20 +186,26 @@ def post_process(chip):
 # copy and render the VPR library
 ################################
 def create_vpr_lib(chip):
-    #print(chip.get('option', 'jobname'))
-    src = os.path.dirname(os.path.abspath(__file__)) + "/vpr_yosyslib"
-    dst = f"{os.getcwd()}/build/{chip.get('design')}/job0/syn/input/vpr_yosyslib"
+
+    #copy the VPR techmap library to the input directory
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    
+    src = f"{chip.scroot}/tools/yosys/vpr_yosyslib"
+    dst = f"{chip._getworkdir()}/{step}/{index}/inputs/vpr_yosyslib"
+    
     if os.path.exists(dst):
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
 
-
+    #render the template placeholders
     data = {
         "memory_addr_width": "3",
         "lib_dir": dst,
         "min_hard_adder_size": "1",
         "min_hard_mult_size": "3"
-    }    
+    }
+        
     for _, _, lib_files in os.walk(dst):
         for file_name in lib_files:
             file = f"{dst}/{file_name}"
@@ -205,7 +214,7 @@ def create_vpr_lib(chip):
                 template = Template(template_f.read()) 
             with open(file, "w") as rendered_f:
                 rendered_f.write(template.render(data))
-
+                
 ##################################################
 if __name__ == "__main__":
 
