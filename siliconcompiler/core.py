@@ -4511,20 +4511,15 @@ class Chip:
         Opens a graphical viewer for the filename provided.
 
         The show function opens the filename specified using a viewer tool
-        selected based on the file suffix and the 'showtool' schema setup.
-        The 'showtool' parameter binds tools with file suffixes, enabling the
-        automated dynamic loading of tool setup functions from
-        siliconcompiler.tools.<tool>/<tool>.py. Display settings and
-        technology settings for viewing the file are read from the
-        in-memory chip object schema settings. All temporary render and
-        display files are saved in the <build_dir>/_show directory.
+        selected based on the file suffix and the 'showtool' schema setup.  The
+        'showtool' parameter binds tools with file suffixes, enabling the
+        automated dynamic loading of tool setup functions. Display settings and
+        technology settings for viewing the file are read from the in-memory
+        chip object schema settings. All temporary render and display files are
+        saved in the <build_dir>/_show directory.
 
-        The show() command can also be used to display content from an SC
-        schema .json filename provided. In this case, the SC schema is
-        converted to html and displayed as a 'dashboard' in the browser.
-
-        Filenames with .gz and .zip extensions are automatically unpacked
-        before being displayed.
+        Filenames with .gz extensions are automatically unpacked before being
+        displayed.
 
         Args:
             filename: Name of file to display
@@ -4532,8 +4527,6 @@ class Chip:
         Examples:
             >>> show('build/oh_add/job0/export/0/outputs/oh_add.gds')
             Displays gds file with a viewer assigned by 'showtool'
-            >>> show('build/oh_add/job0/export/0/outputs/oh_add.pkg.json')
-            Displays manifest in the browser
         '''
 
         if extra_options is None:
