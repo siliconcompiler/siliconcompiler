@@ -4026,7 +4026,7 @@ class Chip:
         ##################
         # 21. Make a record if tracking is enabled
         if self.get('option', 'track'):
-            self._make_record(step, index, wall_start, wall_end, version, toolpath)
+            self._make_record(step, index, wall_start, wall_end, version, toolpath, cmdlist[1:])
 
         ##################
         # 22. Save a successful manifest
@@ -4802,7 +4802,7 @@ class Chip:
         return 'local'
 
     #######################################
-    def _make_record(self, step, index, start, end, toolversion, toolpath):
+    def _make_record(self, step, index, start, end, toolversion, toolpath, cli_args):
         '''
         Records provenance details for a runstep.
         '''
@@ -4868,6 +4868,9 @@ class Chip:
         self.set('record', step, index, 'arch', arch)
 
         self.set('record', step, index, 'toolpath', toolpath)
+
+        toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
+        self.set('record', step, index, 'toolargs', toolargs)
 
     #######################################
     def _safecompare(self, value, op, goal):

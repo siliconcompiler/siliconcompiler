@@ -1993,6 +1993,9 @@ def schema_record(cfg, step='default', index='default'):
                              '/usr/bin/openroad',
                              """Full path to tool executable used to run this
                              task."""],
+               'toolargs': ['tool CLI arguments',
+                            '-I include/ foo.v',
+                            'Arguments passed to tool via CLI.'],
                'osversion': ['O/S version',
                              '20.04.1-Ubuntu',
                              """Since there is not standard version system for operating
