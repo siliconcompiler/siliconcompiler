@@ -2620,6 +2620,8 @@ class Chip:
                         if os.path.isfile(logfile):
                             tar.add(os.path.abspath(logfile), arcname=logfile)
 
+        return archive_name
+
     ###########################################################################
     def hash_files(self, *keypath, algo='sha256', update=True):
         '''Generates hash values for a list of parameter files.
