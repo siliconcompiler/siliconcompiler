@@ -5882,6 +5882,23 @@
                     "type": "str",
                     "value": null
                 },
+                "toolargs": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -record_toolargs 'dfm 0 <-I include/ foo.v>'",
+                        "api: chip.set('record','dfm','0','toolargs', <-I include/ foo.v>)"
+                    ],
+                    "help": "Record tracking the tool CLI arguments per step and index basis. Arguments passed to tool via CLI.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: tool CLI arguments",
+                    "signature": null,
+                    "switch": "-record_toolargs 'step index <str>'",
+                    "type": "str",
+                    "value": null
+                },
                 "toolpath": {
                     "defvalue": null,
                     "example": [
