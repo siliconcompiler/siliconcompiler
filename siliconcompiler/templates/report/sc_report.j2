@@ -15,7 +15,9 @@
 
     <title>SiliconCompiler Manifest Viewer</title>
 
-    <link href="bootstrap.min.css" rel="stylesheet">
+    <style>
+      {% include 'bootstrap.min.css' %}
+    </style>
 
     <style>
       /* Styles related to manifest tree view.
@@ -137,13 +139,15 @@
   </head>
 
   <body>
-    <script src="bootstrap.min.js"></script>
+    <script>
+      {% include 'bootstrap.min.js' %}
+    </script>
 
-    <span style="width: 33%; float: left;">
-      {% if results_fn %}
+    <span style="width: 33%; float: left;>
+      {% if img_data %}
         <div style="text-align: center; width: 100%;">
           <h2>GDS Preview</h2>
-          <img src="{{ manifest['design']['value'] }}.png" class="rounded mx-auto d-block" style="width: 100%;"></img>
+          <img src="data:image/jpeg;base64,{{img_data}}" class="rounded mx-auto d-block" style="width: 100%;"></img>
         </div>
       {% endif %}
 

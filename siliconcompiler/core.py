@@ -2588,6 +2588,7 @@ class Chip:
         design = self.get('design')
         jobname = self.get('option', 'jobname')
         buildpath = self.get('option', 'builddir')
+        flow = self.get('option', 'flow')
 
         if step:
             steplist = [step]
@@ -3131,22 +3132,28 @@ class Chip:
         if os.path.isdir(web_dir):
             # Gather essential variables.
             templ_dir = os.path.join(self.scroot, 'templates', 'report')
+            design = self.get('design')
             flow = self.get('option', 'flow')
             flow_steps = steplist
             flow_tasks = {}
             for step in flow_steps:
                 flow_tasks[step] = self.getkeys('flowgraph', flow, step)
 
-            # Copy Bootstrap JS/CSS
-            shutil.copyfile(os.path.join(templ_dir, 'bootstrap.min.js'),
-                            os.path.join(web_dir, 'bootstrap.min.js'))
-            shutil.copyfile(os.path.join(templ_dir, 'bootstrap.min.css'),
-                            os.path.join(web_dir, 'bootstrap.min.css'))
+            # Call 'show()' to generate a low-res PNG of the design.
+            results_gds = self.find_result('gds', step='export')
+            img_data = None
+            if results_gds and not self.get('option', 'nodisplay'):
+                self.show(results_gds,
+                            ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
+                result_file = os.path.join(web_dir, f'{design}.png')
+                # Result might not exist if there is no display
+                if os.path.isfile(result_file):
+                    with open(result_file, 'rb') as img_file:
+                        img_data = base64.b64encode(img_file.read()).decode('utf-8')
 
             # Generate results page by passing the Chip manifest into the Jinja2 template.
             env = Environment(loader=FileSystemLoader(templ_dir))
             results_page = os.path.join(web_dir, 'report.html')
-            results_gds = self.find_result('gds', step='export')
             pruned_cfg = self._prune(self.cfg)
             if 'history' in pruned_cfg:
                 del pruned_cfg['history']
@@ -3159,15 +3166,11 @@ class Chip:
                     metric_keys = metric_list,
                     metrics = self.cfg['metric'],
                     tasks = flow_tasks,
-                    results_fn = results_gds
+                    img_data = img_data,
                 ))
 
             # Try to open the results and layout only if '-nodisplay' is not set.
             if not self.get('option', 'nodisplay'):
-                # Call 'show()' to generate a low-res PNG of the design.
-                if results_gds:
-                    self.show(results_gds,
-                              ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
                 try:
                     webbrowser.get(results_page)
                 except webbrowser.Error:
