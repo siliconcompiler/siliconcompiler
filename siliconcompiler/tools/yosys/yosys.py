@@ -197,9 +197,12 @@ def create_vpr_lib(chip):
     if os.path.exists(dst):
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
+    arch = Arch(chip.get('fpga', 'arch')[0])
+    lut_sizes = arch.find_lut_sizes()
 
     #render the template placeholders
     data = {
+        "lut_sizes": lut_sizes,
         "memory_addr_width": "3",
         "lib_dir": dst,
         "min_hard_adder_size": "1",
@@ -220,3 +223,65 @@ if __name__ == "__main__":
 
     chip = make_docs()
     chip.write_manifest("yosys.json")
+
+import xml.etree.ElementTree as ET
+
+class PbPrimitive:
+     
+    def __init__ (self, name, blif_model):
+        self.name = name
+        self.blif_model = blif_model
+        self.ports = []    
+        
+    def add_port(self, port):
+        
+        port_type = port.tag
+        port_name = port.attrib['name']
+        num_pins = port.attrib['num_pins']
+        port_class = port.attrib.get('port_class')
+        
+        new_port = { 'port_type': port_type,
+                     'port_name': port_name,
+                     'num_pins': num_pins,
+                     'port_class': port_class }
+        
+        self.ports.append(new_port)
+        
+    def find_port(self, port_name):
+        
+        for port in self.ports:
+            if port['port_name'] == port_name:
+                return port
+        return None
+    
+class Arch:
+    
+    def __init__(self, arch_file_name):
+        self.arch_file = ET.parse(arch_file_name)
+        self.complexblocklist = self.arch_file.find("complexblocklist")
+        self.pb_primitives = []
+        self.find_pb_primitives(self.complexblocklist)
+    
+    def find_pb_primitives(self, root):  
+        for pb_type in root.iter('pb_type'):
+            if "blif_model" in pb_type.attrib:
+                self.add_pb_primitive(pb_type)
+                
+    def add_pb_primitive(self, pb_type):
+        new_pb = PbPrimitive(pb_type.tag, pb_type.attrib["blif_model"])
+        for port in pb_type.iter():
+            if port.tag in ['input', 'output', 'clock']:
+                new_pb.add_port(port)
+        self.pb_primitives.append(new_pb)
+        
+    def find_lut_sizes(self):
+        lut_sizes = []
+        for pb_type in self.pb_primitives:
+            if pb_type.blif_model == ".names":
+                in_port = pb_type.find_port("in")
+                lut_size = in_port["num_pins"]
+                lut_sizes.append(lut_size)
+                
+        return ",".join(lut_sizes)
+        
+        
