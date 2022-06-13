@@ -286,7 +286,7 @@ def post_process(chip):
                 out_def = fn
                 break
     if (errors == 0) and out_def:
-        with open(out_def) as f:
+        with open(os.path.join('outputs', out_def)) as f:
             for line in f:
                 cells = re.search(r'^COMPONENTS (\d+)', line)
                 nets = re.search(r'^NETS (\d+)', line)
