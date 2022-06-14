@@ -78,8 +78,8 @@ def setup(chip, mode='batch'):
 
     chip.set('tool', tool, 'threads', step, index, threads, clobber=clobber)
 
-    # Input/Output requirements for default asicflow
-    if chip.get('option', 'flow') == 'asicflow':
+    # Input/Output requirements for default asicflow steps
+    if step in ['floorplan', 'physyn', 'place', 'cts', 'route', 'dfm']:
         if step == 'floorplan':
             if (not chip.valid('input', 'netlist') or
                 not chip.get('input', 'netlist')):
@@ -297,10 +297,6 @@ def post_process(chip):
                     chip.set('metric', step, index, 'nets', int(nets.group(1)), clobber=True)
                 elif pins:
                     chip.set('metric', step, index, 'pins', int(pins.group(1)), clobber=True)
-
-    if (flow == 'asicflow') and (step == 'sta'):
-        # Copy along GDS for verification steps that rely on it
-        shutil.copy(f'inputs/{chip.design}.gds', f'outputs/{chip.design}.gds')
 
     #Return 0 if successful
     return 0

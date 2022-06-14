@@ -99,7 +99,7 @@ def setup(chip, flowname='asicflow'):
         'export' : 'klayout',
     }
 
-    # Clear olf flowgraph if it exists
+    # Clear old flowgraph if it exists
     if flowname in chip.getkeys('flowgraph'):
         del chip.cfg['flowgraph'][flowname]
 
