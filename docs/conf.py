@@ -42,13 +42,10 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.imgconverter',
+    'sphinx.ext.autosummary',
+    'siliconcompiler.sphinx_ext.dynamicgen',
     'schemagen',
     'clientservergen',
-    'dynamicgen',
-    'metricgen',
-    'recordgen',
-    'packagegen',
-    'sphinx.ext.autosummary',
     'requirements',
     'installgen'
 ]
