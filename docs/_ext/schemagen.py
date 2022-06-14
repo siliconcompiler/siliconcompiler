@@ -77,7 +77,6 @@ class CategorySummary(SphinxDirective):
         table = [[strong('parameter'), strong('description')]]
 
         # Descend through defaults until we find the real items
-        print(category)
         prefix = [category]
         while 'default' in chip.getdict(*prefix).keys():
             prefix.append('default')
