@@ -20,4 +20,5 @@ In addition to step wise minimization, metrics are used by the :meth:`.summary()
 
 The following table shows a summary of all the available metrics. For a complete descriptions, refer to the :ref:`Schema<SiliconCompiler Schema>` section of the reference manual.
 
-.. metricgen::
+.. schema_category_summary::
+   :category: metric
