@@ -1379,14 +1379,13 @@ class Chip:
             tool = keypath[1]
             step = keypath[3]
             index = keypath[4]
-            if step in self.getkeys('tool', tool, 'refdir'):
-                refdirs = self.find_files('tool', tool, 'refdir', step, index)
-                for path in paths:
-                    for refdir in refdirs:
-                        abspath = os.path.join(refdir, path)
-                        if os.path.isfile(abspath):
-                            result.append(abspath)
-                            break
+            refdirs = self.find_files('tool', tool, 'refdir', step, index)
+            for path in paths:
+                for refdir in refdirs:
+                    abspath = os.path.join(refdir, path)
+                    if os.path.isfile(abspath):
+                        result.append(abspath)
+                        break
 
             return result
 
