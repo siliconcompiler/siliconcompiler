@@ -82,10 +82,24 @@ def setup(chip):
     design = chip.get('design')
 
     # Standard Setup
-    chip.set('tool', tool, 'exe', 'verilator', clobber=False)
-    chip.set('tool', tool, 'vswitch', '--version', clobber=False)
+    chip.set('tool', tool, 'exe', 'verilator')
+    chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=4.028', clobber=False)
     chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
+
+    # Basic warning and error grep check on logfile
+    chip.set('tool', tool, 'regex', step, index, 'warnings', "\%Warning", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', "\%Error", clobber=False)
+
+    # Errors/warnings are parsed out of logfile
+    chip.set('tool', tool, 'report', step, index, 'errors', f'{step}.log')
+    chip.set('tool', tool, 'report', step, index, 'warnings', f'{step}.log')
+
+    if step not in ('import', 'lint', 'compile'):
+        # If not using one of the pre-packaged steps, return early
+        # TODO: should we do this or error out? This allows the user to drive
+        # Verilator by filling in the tool options outside this driver.
+        return
 
     # Generic CLI options (for all steps)
     chip.set('tool', tool, 'option', step, index,  '-sv')
@@ -116,9 +130,6 @@ def setup(chip):
                     raise siliconcompiler.SiliconCompilerError(f'Illegal option {opt}')
                 chip.add('tool', tool, 'option', step, index, opt)
         # File-based arguments added in runtime_options()
-    else:
-        chip.logger.error(f'Step {step} not supported for verilator')
-        raise siliconcompiler.SiliconCompilerError(f'Step {step} not supported for verilator')
 
    # I/O requirements
     if step == 'import':
@@ -130,14 +141,6 @@ def setup(chip):
         chip.add('tool', tool, 'require', step, index, ",".join(['input', 'c']))
         chip.set('tool', tool, 'input', step, index, f'{design}.v')
         chip.set('tool', tool, 'output', step, index, f'{design}.vexe')
-
-    # Basic warning and error grep check on logfile
-    chip.set('tool', tool, 'regex', step, index, 'warnings', "\%Warning", clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', "\%Error", clobber=False)
-
-    # Errors/warnings are parsed out of logfile
-    chip.set('tool', tool, 'report', step, index, 'errors', f'{step}.log')
-    chip.set('tool', tool, 'report', step, index, 'warnings', f'{step}.log')
 
 ################################
 #  Custom runtime options
