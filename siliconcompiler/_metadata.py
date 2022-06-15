@@ -1,5 +1,5 @@
 # Version number following semver standard.
-version = '0.9.0'
+version = '0.9.1'
 
 # This is the list of significant contributors to SiliconCompiler in
 # chronological order.
