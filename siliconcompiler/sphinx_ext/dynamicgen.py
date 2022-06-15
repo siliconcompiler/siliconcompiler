@@ -1,6 +1,5 @@
 '''Sphinx extension that provides directives for automatically generating
-documentation for the three types of dynamically loaded modules used by SC:
-flows, foundries, and tools.
+documentation for dynamically loaded modules used by SC.
 '''
 
 from docutils import nodes
@@ -8,18 +7,15 @@ from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 from sphinx.util.docutils import SphinxDirective
 import docutils
-from docutils.parsers.rst import directives
 
-import copy
 import importlib
 import pkgutil
 import os
-import sys
 import subprocess
 
-from common import *
-
+import siliconcompiler
 from siliconcompiler import utils
+from siliconcompiler.sphinx_ext.utils import *
 
 #############
 # Helpers
@@ -473,7 +469,7 @@ class ExampleGen(DynamicGen):
         # raw docstrings have funky indentation (basically, each line is already
         # indented as much as the function), so we call trim() helper function
         # to clean it up
-        docstr = trim(main.__doc__)
+        docstr = utils.trim(main.__doc__)
 
         if docstr:
             self.parse_rst(docstr, section)
@@ -490,7 +486,7 @@ def setup(app):
     app.add_directive('targetgen', TargetGen)
 
     return {
-        'version': '0.1',
+        'version': siliconcompiler.__version__,
         'parallel_read_safe': True,
         'parallel_write_safe': True,
     }

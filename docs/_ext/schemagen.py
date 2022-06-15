@@ -2,9 +2,10 @@ from docutils import nodes
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 from sphinx.util.docutils import SphinxDirective
-from siliconcompiler.schema import schema_cfg
 
-from common import *
+import siliconcompiler
+from siliconcompiler.schema import schema_cfg
+from siliconcompiler.sphinx_ext.utils import *
 
 # Main Sphinx plugin
 class SchemaGen(SphinxDirective):
@@ -59,6 +60,38 @@ class SchemaGen(SphinxDirective):
 
         return body
 
+class CategorySummary(SphinxDirective):
+
+    option_spec = {'category': str}
+
+    def run(self):
+
+        category = self.options['category']
+
+        # List of documentation objects to return.
+        new_doc = []
+        section = nodes.section(ids = [nodes.make_id(f'{category}_summary')])
+
+        chip = siliconcompiler.Chip('<design>', loglevel='DEBUG')
+
+        table = [[strong('parameter'), strong('description')]]
+
+        # Descend through defaults until we find the real items
+        prefix = [category]
+        while 'default' in chip.getdict(*prefix).keys():
+            prefix.append('default')
+
+        for item in chip.getkeys(*prefix):
+            shorthelp = chip.get(*prefix, item, field='shorthelp')
+            if shorthelp is not None:
+                table.append([para(item),para(shorthelp)])
+            else:
+                table.append([para(item),para("See Schema")])
+        section += build_table(table)
+        new_doc += section
+
+        return new_doc
+
 def keypath_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     # Split and clean up keypath
     keys = [key.strip() for key in text.split(',')]
@@ -71,6 +104,7 @@ def keypath_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
 
 def setup(app):
     app.add_directive('schemagen', SchemaGen)
+    app.add_directive('schema_category_summary', CategorySummary)
     app.add_role('keypath', keypath_role)
 
     return {

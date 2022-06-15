@@ -6,7 +6,7 @@ import pkg_resources
 import json
 import subprocess
 
-from common import *
+from siliconcompiler.sphinx_ext.utils import *
 
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
