@@ -2,7 +2,8 @@ import os
 import re
 import sys
 import shutil
-import defusedxml.ElementTree as ET
+import xml.etree.ElementTree as ET
+
 from jinja2 import Template
 import siliconcompiler
 
@@ -198,12 +199,13 @@ def create_vpr_lib(chip):
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
     arch = Arch(chip.get('fpga', 'arch')[0])
-    lut_sizes = arch.find_lut_sizes()
+    max_lut_size = arch.find_max_lut_size()
+    max_mem_addr_width = arch.find_memory_addr_width()
 
     #render the template placeholders
     data = {
-        "lut_sizes": lut_sizes,
-        "memory_addr_width": "3",
+        "max_lut_size": max_lut_size,
+        "memory_addr_width": max_mem_addr_width,
         "lib_dir": dst,
         "min_hard_adder_size": "1",
         "min_hard_mult_size": "3"
@@ -224,7 +226,6 @@ if __name__ == "__main__":
     chip = make_docs()
     chip.write_manifest("yosys.json")
 
-import xml.etree.ElementTree as ET
 
 class PbPrimitive:
      
@@ -248,9 +249,11 @@ class PbPrimitive:
         self.ports.append(new_port)
         
     def find_port(self, port_name):
-        
+        print(port_name)
         for port in self.ports:
-            if port['port_name'] == port_name:
+            print(port['port_name'] + "---------------------------------------------------" + port_name)
+            print(re.match(port_name, port['port_name']))
+            if re.match(port_name, port['port_name']):
                 return port
         return None
     
@@ -274,14 +277,26 @@ class Arch:
                 new_pb.add_port(port)
         self.pb_primitives.append(new_pb)
         
-    def find_lut_sizes(self):
-        lut_sizes = []
+    def find_max_lut_size(self):
+        max_lut_size = 0
         for pb_type in self.pb_primitives:
             if pb_type.blif_model == ".names":
                 in_port = pb_type.find_port("in")
                 lut_size = in_port["num_pins"]
-                lut_sizes.append(lut_size)
+                max_lut_size = max(max_lut_size, int(lut_size))
                 
-        return ",".join(lut_sizes)
+        return (max_lut_size)
+    
+    def find_memory_addr_width(self):
+        max_add_size = 0
+        for pb_type in self.pb_primitives:
+            print(pb_type.blif_model + " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+            if "port_ram" in pb_type.blif_model:
+                print("###############################################")
+                add_port = pb_type.find_port("^addr")
+                add_size = add_port["num_pins"]
+                max_add_size = max(max_add_size, int(add_size))
+                
+        return (max_add_size)
         
         

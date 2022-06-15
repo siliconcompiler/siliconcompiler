@@ -14,7 +14,6 @@ share
 opt
 memory -nomap
 opt -full
-
     
 techmap -map +/adff2dff.v
 techmap -map {{ lib_dir }}/adffe2dff.v
@@ -28,15 +27,17 @@ read_verilog -lib {{ lib_dir }}/dual_port_ram.v
 read_verilog {{ lib_dir }}/spram_rename.v         
 read_verilog {{ lib_dir }}/dpram_rename.v   
 
+abc -lut {{ max_lut_size }}
+
 #Flatten the design
 flatten
 dffunmap
 opt -fast -noff
     # Check
 stat
-hierarchy -check -purge_lib
-synth -run check
+#hierarchy -check -purge_lib
+#synth -run check
 
-    # Clean and output blifver 
-    write_blif -true + vcc -false + gnd -undef + unconn -blackbox ZZZ     
+# Clean and output blifver 
+write_blif -true + vcc -false + gnd -undef + unconn -blackbox ZZZ     
 opt_clean -purge
