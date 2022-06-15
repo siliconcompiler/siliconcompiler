@@ -96,13 +96,17 @@ def setup(chip):
         chip.add('tool', tool, 'option', step, index, ['-Wno-fatal', '-Wno-UNOPTFLAT'])
 
     # Step-based CLI options
-    if step in ('import', 'lint'):
+    if step == 'import':
         chip.add('tool', tool, 'option', step, index,  ['--lint-only', '--debug'])
-        if step == 'import':
-            for value in chip.get('option', 'define'):
-                chip.add('tool', tool, 'option', step, index, '-D' + value)
+        for value in chip.get('option', 'define'):
+            chip.add('tool', tool, 'option', step, index, '-D' + value)
+        # File-based arguments added in runtime_options()
+    elif step == 'lint':
+        chip.add('tool', tool, 'option', step, index,  ['--lint-only', '--debug'])
+        chip.add('tool', tool, 'option', step, index, f'inputs/{design}.v')
     elif step == 'compile':
         chip.add('tool', tool, 'option', step, index,  ['--cc', '--exe'])
+        chip.add('tool', tool, 'option', step, index, f'inputs/{design}.v')
         chip.add('tool', tool, 'option', step, index, f'-o ../outputs/{design}.vexe')
 
         if chip.valid('tool', tool, 'var', step, index, 'extraopts'):
@@ -111,6 +115,7 @@ def setup(chip):
                 if opt not in ('--trace'):
                     raise siliconcompiler.SiliconCompilerError(f'Illegal option {opt}')
                 chip.add('tool', tool, 'option', step, index, opt)
+        # File-based arguments added in runtime_options()
     else:
         chip.logger.error(f'Step {step} not supported for verilator')
         raise siliconcompiler.SiliconCompilerError(f'Step {step} not supported for verilator')
