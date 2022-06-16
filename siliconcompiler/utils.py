@@ -58,6 +58,7 @@ def trim(docstring):
     return '\n'.join(trimmed)
 
 
+# This class holds all the information about a single primitive defined in the FPGA arch file
 class PbPrimitive:
      
     def __init__ (self, name, blif_model):
@@ -67,7 +68,7 @@ class PbPrimitive:
         
     def add_port(self, port):
         
-        port_type = port.tag
+        port_type = port.tag # can be input | output | clock
         port_name = port.attrib['name']
         num_pins = port.attrib['num_pins']
         port_class = port.attrib.get('port_class')
@@ -80,32 +81,36 @@ class PbPrimitive:
         self.ports.append(new_port)
         
     def find_port(self, port_name):
-        print(port_name)
+
         for port in self.ports:
             if re.match(port_name, port['port_name']):
                 return port
         return None
-    
+ 
+ # This class parses the FPGA architecture file and stores all the information provided for every primitive   
 class Arch:
     
     def __init__(self, arch_file_name):
         self.arch_file = ET.parse(arch_file_name)
-        self.complexblocklist = self.arch_file.find("complexblocklist")
+        self.complexblocklist = self.arch_file.find("complexblocklist") # finding the tag that contains all the pb_types
         self.pb_primitives = []
-        self.find_pb_primitives(self.complexblocklist)
+        self.find_pb_primitives(self.complexblocklist) # only the primitives (pb_types that have the blif_model attribute) will be stored
     
+    # Find the pb_types that possess the 'blif_model' attribute and add them to the pb_primitives list
     def find_pb_primitives(self, root):  
         for pb_type in root.iter('pb_type'):
             if "blif_model" in pb_type.attrib:
                 self.add_pb_primitive(pb_type)
-                
-    def add_pb_primitive(self, pb_type):
+    
+    # Parses the given primitive tag and stores the extracted info            
+    def add_pb_primitive(self, pb_type): 
         new_pb = PbPrimitive(pb_type.tag, pb_type.attrib["blif_model"])
         for port in pb_type.iter():
             if port.tag in ['input', 'output', 'clock']:
                 new_pb.add_port(port)
         self.pb_primitives.append(new_pb)
         
+    # Finds all the lut primitives to return the size of the largest lut
     def find_max_lut_size(self):
         max_lut_size = 0
         for pb_type in self.pb_primitives:
@@ -116,6 +121,7 @@ class Arch:
                 
         return max_lut_size
     
+    # Finds all the memory primitives to return the maximum address length
     def find_memory_addr_width(self):
         max_add_size = 0
         for pb_type in self.pb_primitives:

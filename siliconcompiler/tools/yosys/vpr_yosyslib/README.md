@@ -1,3 +1,8 @@
+## This techmap library has been forked from vtr-verilog-to-routing/vtr_flow/misc/yosyslib
+####
+# The following is the original readme file that came with the techmap library
+####
+
 # Yosys+VTR library files
 This directory includes required Verilog models to run the VTR flow using Yosys as its front-end.
 The approach of utilizing Yosys as the VTR synthesizer is mainly driven by what Eddie Hung proposed
