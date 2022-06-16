@@ -79,6 +79,7 @@ def setup(chip, mode='batch'):
     chip.set('tool', tool, 'threads', step, index, threads, clobber=clobber)
 
     # Input/Output requirements for default asicflow steps
+    # TODO: long-term, we want to remove hard-coded step names from tool files.
     if step in ['floorplan', 'physyn', 'place', 'cts', 'route', 'dfm']:
         if step == 'floorplan':
             if (not chip.valid('input', 'netlist') or
