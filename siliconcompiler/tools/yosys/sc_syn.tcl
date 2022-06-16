@@ -46,7 +46,12 @@ if { [file exists "inputs/$sc_design.ilang"] } {
 
 if { [file exists "inputs/$sc_design.v"] } {
     set input_verilog "inputs/$sc_design.v"
-    yosys read_verilog -sv -nolatches $input_verilog 
+    if {$sc_step eq "syn_vpr"} {
+        #TODO: the nolatches option can be a flag set by the user depending on the input arch file
+        yosys read_verilog -sv -nolatches $input_verilog  
+    } else {
+        yosys read_verilog -sv $input_verilog 
+    }
 }
 
 ########################################################

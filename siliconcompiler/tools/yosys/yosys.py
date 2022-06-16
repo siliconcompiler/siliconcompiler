@@ -65,7 +65,7 @@ def setup(chip):
     chip.set('tool', tool, 'script', step, index, script, clobber=False)
 
     # Input/output requirements
-    if step == 'syn':
+    if step.startswith('syn'):
         # TODO: Our yosys script can also accept uhdm or ilang files. How do we
         # represent a set of possible inputs where you must pick one?
         chip.set('tool', tool, 'input', step, index, chip.design + '.v')
@@ -150,7 +150,7 @@ def post_process(chip):
     index = chip.get('arg','index')
 
     # Extracting
-    if step == 'syn':
+    if step.startswith('syn'):
         #TODO: looks like Yosys exits on error, so no need to check metric
         chip.set('metric', step, index, 'errors', 0, clobber=True)
         with open(step + ".log") as f:
