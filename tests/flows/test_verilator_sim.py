@@ -1,8 +1,11 @@
 import os
 import subprocess
 
+import pytest
+
 import siliconcompiler
 
+@pytest.mark.eda
 def test_basic(scroot, datadir):
     chip = siliconcompiler.Chip('heartbeat')
 

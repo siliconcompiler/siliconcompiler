@@ -88,8 +88,8 @@ def setup(chip):
     chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
     # Basic warning and error grep check on logfile
-    chip.set('tool', tool, 'regex', step, index, 'warnings', "\%Warning", clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', "\%Error", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', r"\%Warning", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', r"\%Error", clobber=False)
 
     # Errors/warnings are parsed out of logfile
     chip.set('tool', tool, 'report', step, index, 'errors', f'{step}.log')
