@@ -8,13 +8,14 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
-SiliconCompiler 0.9.1 (2022-06-14)
+SiliconCompiler 0.9.1 (2022-06-21)
 =========================================
 
 **Major:**
 
 * Added input filetype inference based on file extension (restores functionality lost in 0.9.0).
 * Added manifest tree viewer to HTML report.
+* Added simulator exe compilation support to Verilator.
 * Improved TCL manifest generation:
 
   * Fixed escaping of special characters and whitespace.
@@ -25,6 +26,7 @@ SiliconCompiler 0.9.1 (2022-06-14)
 
 * Schema: Added tool CLI arguments to ['record', ...] schema.
 * Changed create_cmdline() switchlist parameter to accept switch names as specified on command line.
+* Changed setup module docs generator to be packaged with SC.
 * Changed HTML report to be self-contained.
 * Fixed CSV manifest generation.
 
