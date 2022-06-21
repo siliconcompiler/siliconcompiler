@@ -4037,8 +4037,7 @@ class Chip:
 
         ##################
         # 23. Stop if there are errors
-        if self.get('metric',step, index, 'errors') > 0:
-            # TODO: add option to control halt behavior
+        if self.get('metric', step, index, 'errors') > 0 and not self.get('option', 'flowcontinue'):
             self._haltstep(step, index)
 
         ##################

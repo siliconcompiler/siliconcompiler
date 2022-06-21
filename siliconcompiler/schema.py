@@ -2694,6 +2694,18 @@ def schema_option(cfg):
             the file varies and depends on the tool used. SC simply passes on
             the filepath toe the tool executable.""")
 
+    scparam(cfg,['option', 'flowcontinue'],
+            sctype='bool',
+            shorthelp="Continue flow on error",
+            switch='-flowcontinue',
+            example=["cli: -flowcontinue",
+                     "api: chip.set('option', 'flowcontinue', True)"],
+            schelp="""
+            Continue executing flow after a tool logs errors. The default
+            behavior is to quit executing the flow if a task ends and the errors
+            metric is greater than 0. Note that the flow will always cease
+            executing if the tool returns a nonzero status code. """)
+
     return cfg
 
 ############################################

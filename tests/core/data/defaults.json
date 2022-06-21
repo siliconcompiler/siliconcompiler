@@ -3406,6 +3406,23 @@
             "type": "str",
             "value": null
         },
+        "flowcontinue": {
+            "defvalue": "false",
+            "example": [
+                "cli: -flowcontinue",
+                "api: chip.set('option', 'flowcontinue', True)"
+            ],
+            "help": "Continue executing flow after a tool logs errors. The default\nbehavior is to quit executing the flow if a task ends and the errors\nmetric is greater than 0. Note that the flow will always cease\nexecuting if the tool returns a nonzero status code.",
+            "lock": "false",
+            "notes": null,
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Continue flow on error",
+            "signature": null,
+            "switch": "-flowcontinue",
+            "type": "bool",
+            "value": "false"
+        },
         "frontend": {
             "defvalue": "verilog",
             "example": [
