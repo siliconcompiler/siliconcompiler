@@ -3992,16 +3992,11 @@ class Chip:
         self.set('metric', step, index, 'memory', max_mem_bytes)
 
         ##################
-        # 17. Post process (could fail)
-        post_error = 0
+        # 17. Post process
         if (tool not in self.builtin) and (not self.get('option', 'skipall')) :
             func = self.find_function(tool, 'post_process', 'tools')
             if func:
-                post_error = func(self)
-                if post_error:
-                    self.logger.error('Post-processing check failed')
-                    # TODO: add option to control halt behavior
-                    self._haltstep(step, index)
+                func(self)
 
         ##################
         # 18. Check log file (must be after post-process)
