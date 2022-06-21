@@ -4037,7 +4037,9 @@ class Chip:
 
         ##################
         # 23. Stop if there are errors
-        if self.get('metric', step, index, 'errors') > 0 and not self.get('option', 'flowcontinue'):
+        errors = self.get('metric', step, index, 'errors')
+        if errors > 0 and not self.get('option', 'flowcontinue'):
+            self.logger.error(f'{tool} reported {errors} errors during {step}{index}')
             self._haltstep(step, index)
 
         ##################
