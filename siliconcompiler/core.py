@@ -2909,8 +2909,8 @@ class Chip:
         '''
         Checks logfile for patterns found in the 'regex' parameter.
 
-        Reads the content of the tasks's log file and compares the content found
-        in the task's 'regex' parameter. The matches are stored in the file
+        Reads the content of the task's log file and compares the content found
+        with the task's 'regex' parameter. The matches are stored in the file
         '<design>.<suffix>' in the current directory. The matches are printed to
         STDOUT if display is set to True.
 
