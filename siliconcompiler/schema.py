@@ -1402,9 +1402,10 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
                 chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', ["WARNING", "-v bbox"])
 
             The "errors" and "warnings" suffixes are special cases. When set,
-            the number of matches found for these regexes will be used to set
-            the errors and warnings metrics for the task, respectively.
-            """)
+            the number of matches found for these regexes will be added to the
+            errors and warnings metrics for the task, respectively. This will
+            also cause the logfile to be added to the :keypath:`tool, <tool>,
+            report` parameter for those metrics, if not already present.""")
 
 
     scparam(cfg, ['tool', tool, 'option', step, index],

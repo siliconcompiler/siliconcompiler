@@ -4018,9 +4018,13 @@ class Chip:
         if (tool not in self.builtin) and (not self.get('option', 'skipall')) :
             matches = self.check_logfile(step=step, index=index, display=not quiet)
             if 'errors' in matches:
-                self.set('metric', step, index, 'errors', matches['errors'])
+                errors = self.get('metric', step, index, 'errors')
+                errors += matches['errors']
+                self.set('metric', step, index, 'errors', errors)
             if 'warnings' in matches:
-                self.set('metric', step, index, 'warnings', matches['warnings'])
+                warnings = self.get('metric', step, index, 'warnings')
+                warnings += matches['warnings']
+                self.set('metric', step, index, 'warnings', warnings)
 
         ##################
         # 19. Hash files
@@ -4103,6 +4107,36 @@ class Chip:
                 shutil.rmtree(path)
             else:
                 os.remove(path)
+
+    ###########################################################################
+    def _setup_tool(self, tool, step, index):
+        self.set('arg','step', step)
+        self.set('arg','index', index)
+
+        func = self.find_function(tool, 'setup', 'tools')
+        if func is None:
+            self.logger.error(f'setup() not found for tool {tool}')
+            sys.exit(1)
+        func(self)
+
+        re_keys = self.getkeys('tool', tool, 'regex', step, index)
+        logfile = f'{step}.log'
+        if (
+            'errors' in re_keys and
+            logfile not in self.get('tool', tool, 'report', step, index, 'errors')
+        ):
+            self.add('tool', tool, 'report', step, index, 'errors', logfile)
+
+        if (
+            'warnings' in re_keys and
+            logfile not in self.get('tool', tool, 'report', step, index, 'warnings')
+        ):
+            self.add('tool', tool, 'report', step, index, 'warnings', logfile)
+
+        # Need to clear index, otherwise we will skip setting up other indices.
+        # Clear step for good measure.
+        self.set('arg','step', None)
+        self.set('arg','index', None)
 
     ###########################################################################
     def run(self):
@@ -4287,18 +4321,7 @@ class Chip:
                     # Setting up tool is optional
                     tool = self.get('flowgraph', flow, step, index, 'tool')
                     if tool not in self.builtin:
-                        self.set('arg','step', step)
-                        self.set('arg','index', index)
-                        func = self.find_function(tool, 'setup', 'tools')
-                        if func is None:
-                            self.logger.error(f'setup() not found for tool {tool}')
-                            sys.exit(1)
-                        func(self)
-                        # Need to clear index, otherwise we will skip
-                        # setting up other indices. Clear step for good
-                        # measure.
-                        self.set('arg','step', None)
-                        self.set('arg','index', None)
+                        self._setup_tool(tool, step, index)
 
             # Implement auto-update of jobincrement
             try:
