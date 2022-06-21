@@ -78,19 +78,21 @@ def setup(chip, mode='batch'):
 
     chip.set('tool', tool, 'threads', step, index, threads, clobber=clobber)
 
-    # Input/Output requirements
-    if step == 'floorplan':
-        if (not chip.valid('input', 'netlist') or
-            not chip.get('input', 'netlist')):
-            chip.add('tool', tool, 'input', step, index, chip.design +'.vg')
-    else:
-        if (not chip.valid('input', 'def') or
-            not chip.get('input', 'def')):
-            chip.add('tool', tool, 'input', step, index, chip.design +'.def')
+    # Input/Output requirements for default asicflow steps
+    # TODO: long-term, we want to remove hard-coded step names from tool files.
+    if step in ['floorplan', 'physyn', 'place', 'cts', 'route', 'dfm']:
+        if step == 'floorplan':
+            if (not chip.valid('input', 'netlist') or
+                not chip.get('input', 'netlist')):
+                chip.add('tool', tool, 'input', step, index, chip.design +'.vg')
+        else:
+            if (not chip.valid('input', 'def') or
+                not chip.get('input', 'def')):
+                chip.add('tool', tool, 'input', step, index, chip.design +'.def')
 
-    chip.add('tool', tool, 'output', step, index, chip.design + '.sdc')
-    chip.add('tool', tool, 'output', step, index, chip.design + '.vg')
-    chip.add('tool', tool, 'output', step, index, chip.design + '.def')
+        chip.add('tool', tool, 'output', step, index, chip.design + '.sdc')
+        chip.add('tool', tool, 'output', step, index, chip.design + '.vg')
+        chip.add('tool', tool, 'output', step, index, chip.design + '.def')
 
     # openroad makes use of these parameters
     targetlibs = chip.get('asic', 'logiclib')
@@ -215,6 +217,8 @@ def post_process(chip):
     #Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    flow = chip.get('option', 'flow')
+    tool = 'openroad'
     logfile = f"{step}.log"
 
     # parsing log file
@@ -244,7 +248,10 @@ def post_process(chip):
                 #TODO: not sure the openroad utilization makes sense?
                 cellarea = round(float(area.group(1)), 2)
                 utilization = round(float(area.group(2)), 2)
-                totalarea = round(cellarea/(utilization/100), 2)
+                if utilization == 0:
+                    totalarea = 0.0
+                else:
+                    totalarea = round(cellarea/(utilization/100), 2)
                 chip.set('metric', step, index, 'cellarea', cellarea, clobber=True)
                 chip.set('metric', step, index, 'totalarea', totalarea, clobber=True)
                 chip.set('metric', step, index, 'utilization', utilization, clobber=True)
@@ -253,7 +260,7 @@ def post_process(chip):
             elif wns:
                 chip.set('metric', step, index, 'setupwns', round(float(wns.group(1)), 2), clobber=True)
             elif slack:
-                chip.set('metric', step, index, metric, round(float(slack.group(1)), 2), clobber=True)
+                chip.set('metric', step, index, 'setupslack', round(float(slack.group(1)), 2), clobber=True)
             elif wirelength:
                 chip.set('metric', step, index, 'wirelength', round(float(wirelength.group(1)), 2), clobber=True)
             elif vias:
@@ -271,9 +278,16 @@ def post_process(chip):
     chip.set('metric', step, index, 'warnings', warnings, clobber=True)
 
     #Temporary superhack!rm
-    #Getting cell count and net number from DEF
-    if errors == 0:
-        with open("outputs/" + chip.design + ".def") as f:
+    #Getting cell count and net number from the first available DEF file output (if any)
+    out_def = ''
+    out_files = chip.get('tool', tool, 'output', step, index)
+    if out_files:
+        for fn in out_files:
+            if fn.endswith('.def'):
+                out_def = fn
+                break
+    if (errors == 0) and out_def:
+        with open(os.path.join('outputs', out_def)) as f:
             for line in f:
                 cells = re.search(r'^COMPONENTS (\d+)', line)
                 nets = re.search(r'^NETS (\d+)', line)
@@ -284,10 +298,6 @@ def post_process(chip):
                     chip.set('metric', step, index, 'nets', int(nets.group(1)), clobber=True)
                 elif pins:
                     chip.set('metric', step, index, 'pins', int(pins.group(1)), clobber=True)
-
-    if step == 'sta':
-        # Copy along GDS for verification steps that rely on it
-        shutil.copy(f'inputs/{chip.design}.gds', f'outputs/{chip.design}.gds')
 
     #Return 0 if successful
     return 0
