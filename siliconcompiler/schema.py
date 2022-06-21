@@ -1380,8 +1380,8 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             shorthelp="Tool: regex filter",
             switch="-tool_regex 'tool step index suffix <str>'",
             example=[
-                "cli: -tool_regex 'openroad place 0 error -v ERROR'",
-                "api: chip.set('tool','openroad','regex','place','0','error','-v ERROR')"],
+                "cli: -tool_regex 'openroad place 0 errors -v ERROR'",
+                "api: chip.set('tool','openroad','regex','place','0','errors','-v ERROR')"],
             schelp="""
             A list of piped together grep commands. Each entry represents a set
             of command line arguments for grep including the regex pattern to
@@ -1400,6 +1400,10 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             SiliconCompiler::
 
                 chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', ["WARNING", "-v bbox"])
+
+            The "errors" and "warnings" suffixes are special cases. When set,
+            the number of matches found for these regexes will be used to set
+            the errors and warnings metrics for the task, respectively.
             """)
 
 

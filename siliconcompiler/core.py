@@ -2909,16 +2909,21 @@ class Chip:
         '''
         Checks logfile for patterns found in the 'regex' parameter.
 
-        Reads the content of the step's log file and compares the
-        content found in step 'regex' parameter. The matches are
-        stored in the file 'reports/<design>.<suffix>' in the run directory.
-        The matches are printed to STDOUT if display is set to True.
+        Reads the content of the tasks's log file and compares the content found
+        in the task's 'regex' parameter. The matches are stored in the file
+        '<design>.<suffix>' in the current directory. The matches are printed to
+        STDOUT if display is set to True.
 
         Args:
-            step (str): Task step name ('syn', 'place', etc)
             jobname (str): Jobid directory name
+            step (str): Task step name ('syn', 'place', etc)
             index (str): Task index
+            logfile (str): Path to logfile. If None, {step}.log is used.
             display (bool): If True, printes matches to STDOUT.
+
+        Returns:
+            Dictionary mapping suffixes to number of matches for that suffix's
+            regex.
 
         Examples:
             >>> chip.check_logfile('place')
@@ -2943,6 +2948,7 @@ class Chip:
         # Creating local dictionary (for speed)
         # self.get is slow
         checks = {}
+        matches = {}
         regex_list = []
         if self.valid('tool', tool, 'regex', step, index, 'default'):
             regex_list = self.getkeys('tool', tool, 'regex', step, index)
@@ -2950,6 +2956,7 @@ class Chip:
             checks[suffix] = {}
             checks[suffix]['report'] = open(f"{step}.{suffix}", "w")
             checks[suffix]['args'] = self.get('tool', tool, 'regex', step, index, suffix)
+            matches[suffix] = 0
 
         # Looping through patterns for each line
         with open(logfile) as f:
@@ -2962,11 +2969,14 @@ class Chip:
                       else:
                           string = self.grep(item, string)
                   if string is not None:
+                      matches[suffix] += 1
                       #always print to file
                       print(string.strip(), file=checks[suffix]['report'])
                       #selectively print to display
                       if display:
                           self.logger.info(string.strip())
+
+        return matches
 
     ###########################################################################
     def _find_leaves(self, steplist):
@@ -4001,7 +4011,11 @@ class Chip:
         ##################
         # 18. Check log file (must be after post-process)
         if (tool not in self.builtin) and (not self.get('option', 'skipall')) :
-            self.check_logfile(step=step, index=index, display=not quiet)
+            matches = self.check_logfile(step=step, index=index, display=not quiet)
+            if 'errors' in matches:
+                self.set('metric', step, index, 'errors', matches['errors'])
+            if 'warnings' in matches:
+                self.set('metric', step, index, 'warnings', matches['warnings'])
 
         ##################
         # 19. Hash files
