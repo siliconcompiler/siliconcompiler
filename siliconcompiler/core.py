@@ -2974,7 +2974,12 @@ class Chip:
                       print(string.strip(), file=checks[suffix]['report'])
                       #selectively print to display
                       if display:
-                          self.logger.info(string.strip())
+                            if suffix == 'errors':
+                                self.logger.error(string.strip())
+                            elif suffix == 'warnings':
+                                self.logger.warning(string.strip())
+                            else:
+                                self.logger.info(f'{suffix}: {string.strip()}')
 
         return matches
 
