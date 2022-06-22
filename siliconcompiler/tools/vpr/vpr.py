@@ -1,5 +1,6 @@
 import os
 import siliconcompiler
+import re
 
 ######################################################################
 # Make Docs
@@ -58,6 +59,27 @@ def setup(chip):
 
      chip.add('tool', tool, 'option', step, index,  options)
 
+
+
+#############################################
+# Runtime pre processing
+#############################################
+def pre_process(chip):
+    
+    #have to rename the net connected to unhooked pins from $undef to unconn
+    # as VPR uses unconn keywords to identify unconnected pins
+    
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    blif_file = f"{chip._getworkdir()}/{step}/{index}/inputs/{chip.design}.blif"
+    print(blif_file)
+    with open(blif_file,'r+') as f:
+        netlist = f.read()
+        f.seek(0)
+        netlist = re.sub('\$undef', 'unconn', netlist)
+        f.write(netlist)
+        f.truncate()
+    
 ################################
 # Post_process (post executable)
 ################################

@@ -18,7 +18,6 @@ def test_spree(scroot):
     chip.load_flow('fpgaflow')
 
     chip.set('option', 'flow', 'fpgaflow')
-    chip.add('tool', 'vpr', 'option', 'pack-place-route', '0',  '--route_chan_width 50')
     
     chip.run()
 
