@@ -159,7 +159,10 @@ def flow_lookup(partname):
     elif ice40:
         vendor = 'lattice'
         flow = 'yosys-nextpnr'
-    # TODO: should we have a default?
+    else:
+        raise siliconcompiler.SiliconCompilerError(
+            f'fpgaflow: unsupported partname {partname}'
+        )
 
     return (vendor, flow)
 
