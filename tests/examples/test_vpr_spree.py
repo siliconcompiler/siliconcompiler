@@ -1,11 +1,12 @@
 import siliconcompiler
 import os
-import json
 import pytest
 
+    
 @pytest.mark.eda
 @pytest.mark.quick
-def test_spree(spree_dir):
+def test_spree(scroot):
+    spree_dir = os.path.join(scroot, 'examples', 'spree')
     source = os.path.join(spree_dir, 'spree.v')
     arch = os.path.join(spree_dir, 'arch.xml')
     
@@ -27,5 +28,4 @@ def test_spree(spree_dir):
 
 if __name__ == "__main__":
     from tests.fixtures import scroot
-    spree_dir = os.path.join(scroot(), 'examples', 'spree')
-    test_spree(spree_dir)
+    test_spree(scroot())
