@@ -4093,8 +4093,9 @@ class Chip:
         if manifest_format:
             keep.append(f'sc_manifest.{manifest_format}')
 
-        for suffix in self.getkeys('tool', tool, 'regex', step, index):
-            keep.append(f'{step}.{suffix}')
+        if self.valid('tool', tool, 'regex', step, index, 'default'):
+            for suffix in self.getkeys('tool', tool, 'regex', step, index):
+                keep.append(f'{step}.{suffix}')
 
         # Tool-specific keep files
         if self.valid('tool', tool, 'keep', step, index):
@@ -4119,19 +4120,20 @@ class Chip:
             sys.exit(1)
         func(self)
 
-        re_keys = self.getkeys('tool', tool, 'regex', step, index)
-        logfile = f'{step}.log'
-        if (
-            'errors' in re_keys and
-            logfile not in self.get('tool', tool, 'report', step, index, 'errors')
-        ):
-            self.add('tool', tool, 'report', step, index, 'errors', logfile)
+        if self.valid('tool', tool, 'regex', step, index, 'default'):
+            re_keys = self.getkeys('tool', tool, 'regex', step, index)
+            logfile = f'{step}.log'
+            if (
+                'errors' in re_keys and
+                logfile not in self.get('tool', tool, 'report', step, index, 'errors')
+            ):
+                self.add('tool', tool, 'report', step, index, 'errors', logfile)
 
-        if (
-            'warnings' in re_keys and
-            logfile not in self.get('tool', tool, 'report', step, index, 'warnings')
-        ):
-            self.add('tool', tool, 'report', step, index, 'warnings', logfile)
+            if (
+                'warnings' in re_keys and
+                logfile not in self.get('tool', tool, 'report', step, index, 'warnings')
+            ):
+                self.add('tool', tool, 'report', step, index, 'warnings', logfile)
 
         # Need to clear index, otherwise we will skip setting up other indices.
         # Clear step for good measure.
