@@ -40,7 +40,7 @@ def make_docs():
 
     chip = siliconcompiler.Chip('<topmodule>')
     chip.set('option', 'flow', 'fpgaflow')
-    chip.set('fpga', 'partname', '<fpga-partname>')
+    chip.set('fpga', 'partname', 'ice40')
     setup(chip)
 
     return chip
