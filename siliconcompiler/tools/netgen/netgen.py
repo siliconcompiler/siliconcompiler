@@ -1,6 +1,3 @@
-import os
-import re
-import shutil
 import siliconcompiler
 from siliconcompiler.tools.netgen import count_lvs
 
@@ -47,11 +44,11 @@ def setup(chip):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-batch')
-    chip.set('tool', tool, 'version', '>=1.5.192')
+    chip.set('tool', tool, 'version', '>=1.5.192', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
-    chip.set('tool', tool, 'threads', step, index, 4)
-    chip.set('tool', tool, 'refdir', step, index, refdir)
-    chip.set('tool', tool, 'script', step, index, script)
+    chip.set('tool', tool, 'threads', step, index, 4, clobber=False)
+    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=False)
+    chip.set('tool', tool, 'script', step, index, script, clobber=False)
 
     # set options
     options = []
@@ -66,10 +63,10 @@ def setup(chip):
     else:
         chip.add('tool', tool, 'input', step, index, f'{design}.vg')
 
-    # TODO: actually parse tool errors in post_process()
-    logfile = f'{step}.log'
+    # TODO: add regex for errors
+    chip.set('tool', tool, 'regex', step, index, 'warnings', '^Warning:', clobber=False)
+
     report_path = f'reports/{design}.lvs.out'
-    chip.set('tool', tool, 'report', step, index, 'errors', logfile)
     chip.set('tool', tool, 'report', step, index, 'drvs', report_path)
     chip.set('tool', tool, 'report', step, index, 'warnings', report_path)
 
@@ -106,9 +103,6 @@ def post_process(chip):
         errors = lvs_failures[0] - pin_failures
         chip.set('metric', step, index, 'drvs', errors)
         chip.set('metric', step, index, 'warnings', pin_failures)
-
-    #TODO: return error code
-    return 0
 
 ##################################################
 if __name__ == "__main__":

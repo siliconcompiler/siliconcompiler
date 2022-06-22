@@ -1,4 +1,5 @@
 import os
+
 import siliconcompiler
 
 ######################################################################
@@ -43,7 +44,7 @@ def setup(chip):
      step = chip.get('arg','step')
      index = chip.get('arg','index')
 
-     chip.set('tool', tool, 'exe', tool, clobber=False)
+     chip.set('tool', tool, 'exe', tool)
      chip.set('tool', tool, 'version', '0.0', clobber=False)
      chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
 
@@ -57,19 +58,6 @@ def setup(chip):
      options.append(blif)
 
      chip.add('tool', tool, 'option', step, index,  options)
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    #TODO: return error code
-    return 0
 
 ##################################################
 if __name__ == "__main__":

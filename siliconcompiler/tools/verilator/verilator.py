@@ -88,12 +88,8 @@ def setup(chip):
     chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
     # Basic warning and error grep check on logfile
-    chip.set('tool', tool, 'regex', step, index, 'warnings', r"\%Warning", clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', r"\%Error", clobber=False)
-
-    # Errors/warnings are parsed out of logfile
-    chip.set('tool', tool, 'report', step, index, 'errors', f'{step}.log')
-    chip.set('tool', tool, 'report', step, index, 'warnings', f'{step}.log')
+    chip.set('tool', tool, 'regex', step, index, 'warnings', r"^\%Warning", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', r"^\%Error", clobber=False)
 
     if step not in ('import', 'lint', 'compile'):
         # If not using one of the pre-packaged steps, return early
@@ -189,8 +185,6 @@ def post_process(chip):
 
     design = chip.get('design')
     step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    logfile = f"{step}.log"
 
     if step == 'import':
         # Post-process hack to collect vpp files
@@ -205,25 +199,6 @@ def post_process(chip):
         # If we upgrade our minimum supported Verilog, we can remove this and
         # use the --build flag instead.
         subprocess.run(['make', '-C', 'obj_dir', '-f', f'V{design}.mk'])
-
-    # Check log file for errors and statistics
-    errors = 0
-    warnings = 0
-    with open(logfile) as f:
-        for line in f:
-            warnmatch = re.match(r'^\%Warning', line)
-            errmatch = re.match(r'^\%Error:', line)
-
-            if errmatch:
-                errors = errors + 1
-            elif warnmatch:
-                warnings = warnings + 1
-
-    chip.set('metric', step, index, 'errors', errors, clobber=True)
-    chip.set('metric', step, index, 'warnings', warnings, clobber=True)
-
-    #Return 0 if successful
-    return 0
 
 ##################################################
 if __name__ == "__main__":

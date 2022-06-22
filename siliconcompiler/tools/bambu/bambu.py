@@ -30,8 +30,8 @@ def setup(chip):
 
     # Standard Setup
     refdir = 'tools/'+tool
-    chip.set('tool', tool, 'exe', 'bambu', clobber=False)
-    chip.set('tool', tool, 'vswitch', '--version', clobber=False)
+    chip.set('tool', tool, 'exe', 'bambu')
+    chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=0.9.6', clobber=False)
     chip.set('tool', tool, 'refdir', step, index, refdir, clobber=False)
     chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
@@ -77,5 +77,3 @@ def post_process(chip):
     '''
     design = chip.get('design')
     shutil.copy(f'{design}.v', os.path.join('outputs', f'{design}.v'))
-
-    return 0

@@ -3,7 +3,7 @@ def setup(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    chip.set('tool', tool, 'exe', tool, clobber=False)
+    chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'option',  step, index, step + index, clobber=False)
 
 def parse_version(stdout):
@@ -12,6 +12,3 @@ def parse_version(stdout):
     Depends on tool reported string
     '''
     return '0'
-
-def post_process(chip):
-    return 0

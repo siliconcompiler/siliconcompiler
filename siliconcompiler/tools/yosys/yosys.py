@@ -1,6 +1,4 @@
-import os
 import re
-import sys
 import defusedxml.ElementTree as ET
 
 import siliconcompiler
@@ -47,8 +45,8 @@ def setup(chip):
     index = chip.get('arg','index')
 
     # Standard Setup
-    chip.set('tool', tool, 'exe', 'yosys', clobber=False)
-    chip.set('tool', tool, 'vswitch', '--version', clobber=False)
+    chip.set('tool', tool, 'exe', 'yosys')
+    chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=0.13', clobber=False)
     chip.set('tool', tool, 'format', 'tcl', clobber=False)
     chip.set('tool', tool, 'option', step, index, '-c', clobber=False)
@@ -110,16 +108,6 @@ def setup(chip):
                    'cells', 'registers', 'buffers', 'nets', 'pins'):
         chip.set('tool', tool, 'report', step, index, metric, f"{step}.log")
 
-#############################################
-# Runtime pre processing
-#############################################
-
-def pre_process(chip):
-
-    tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
 ################################
 # Version Check
 ################################
@@ -165,10 +153,6 @@ def post_process(chip):
                     num_errors = int(errors.group(1))
                     chip.set('metric', step, index, 'drvs', num_errors, clobber=True)
 
-
-
-    #Return 0 if successful
-    return 0
 
 ##################################################
 if __name__ == "__main__":

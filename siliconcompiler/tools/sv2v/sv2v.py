@@ -1,7 +1,3 @@
-import os
-import subprocess
-import re
-import sys
 import siliconcompiler
 
 ####################################################################
@@ -49,8 +45,8 @@ def setup(chip):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '--numeric-version')
-    chip.set('tool', tool, 'version', '>=0.0.9')
-    chip.set('tool', tool, 'threads', step, index,  4)
+    chip.set('tool', tool, 'version', '>=0.0.9', clobber=True)
+    chip.set('tool', tool, 'threads', step, index,  4, clobber=True)
 
     # Since we run sv2v after the import/preprocess step, there should be no
     # need for specifying include dirs/defines. However we don't want to pass
@@ -72,15 +68,6 @@ def setup(chip):
 def parse_version(stdout):
     # 0.0.7-130-g1aa30ea
     return '-'.join(stdout.split('-')[:-1])
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    return 0
 
 ##################################################
 if __name__ == "__main__":
