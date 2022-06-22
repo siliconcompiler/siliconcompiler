@@ -1,6 +1,5 @@
 import siliconcompiler
 import re
-import sys
 
 from siliconcompiler.flows._common import setup_frontend
 
@@ -151,12 +150,6 @@ def flow_lookup(partname):
 
     ice40 = re.match('^ice40', partname)
 
-    ###########
-    # openfpga
-    ###########
-
-    openfpga = re.match('^openfpga', partname)
-
     if xilinx:
         vendor = 'xilinx'
         flow = 'vivado'
@@ -166,12 +159,7 @@ def flow_lookup(partname):
     elif ice40:
         vendor = 'lattice'
         flow = 'yosys-nextpnr'
-    elif openfpga:
-        vendor = 'openfpga'
-        flow = 'openfpga'
-    else:
-        vendor = 'openfpga'
-        flow = 'openfpga'
+    # TODO: should we have a default?
 
     return (vendor, flow)
 
@@ -197,12 +185,6 @@ def tool_lookup(flow, step):
             tool = "icepack"
         elif step == "program":
             tool = "iceprog"
-    # experimental flow
-    elif flow == "openfpga":
-        if step == "syn":
-            tool = "yosys"
-        else:
-            tool = 'openfpga'
     # intel/quartus
     elif flow == "quartus":
         tool = 'quartus'
