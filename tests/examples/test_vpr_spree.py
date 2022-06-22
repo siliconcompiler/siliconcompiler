@@ -21,13 +21,9 @@ def test_spree(spree_dir):
     
     chip.run()
 
-    manifest_file = os.path.join(chip._getworkdir(), 'spree.pkg.json')
-    assert os.path.exists(manifest_file)
-    
-    manifest = json.load(open(manifest_file))
-    flow_graph = manifest["flowgraph"]["fpgaflow"] 
-    for step in flow_graph:
-        assert flow_graph[step]["0"]["status"]["value"] == "success"
+    post_route_net = os.path.join(chip._getworkdir(), 'pack-place-route', '0', 'spree.net.post_routing')
+    assert os.path.exists(post_route_net)
+
 
 if __name__ == "__main__":
     from tests.fixtures import scroot
