@@ -45,8 +45,8 @@ def setup(chip):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '--numeric-version')
-    chip.set('tool', tool, 'version', '>=0.0.9', clobber=True)
-    chip.set('tool', tool, 'threads', step, index,  4, clobber=True)
+    chip.set('tool', tool, 'version', '>=0.0.9', clobber=False)
+    chip.set('tool', tool, 'threads', step, index,  4, clobber=False)
 
     # Since we run sv2v after the import/preprocess step, there should be no
     # need for specifying include dirs/defines. However we don't want to pass
