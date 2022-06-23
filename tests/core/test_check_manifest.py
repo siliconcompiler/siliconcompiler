@@ -89,6 +89,49 @@ def test_check_missing_file_param():
 
     assert chip.check_manifest() == 1
 
+@pytest.fixture
+def merge_flow_chip():
+    chip = siliconcompiler.Chip('test')
+
+    flow = 'test'
+    chip.node(flow, 'import', 'nop')
+    chip.node(flow, 'parallel1', 'foo')
+    chip.node(flow, 'parallel2', 'bar')
+    chip.edge(flow, 'import', 'parallel1')
+    chip.edge(flow, 'import', 'parallel2')
+
+    chip.node(flow, 'export', 'baz')
+    chip.edge(flow, 'parallel1', 'export')
+    chip.edge(flow, 'parallel2', 'export')
+    chip.set('option', 'flow', flow)
+
+    chip.set('tool', 'foo', 'exe', 'foo')
+    chip.set('tool', 'bar', 'exe', 'foo')
+    chip.set('tool', 'baz', 'exe', 'baz')
+
+    chip.set('tool', 'baz', 'input', 'export', '0', ['foo.out', 'bar.out'])
+
+    return chip
+
+def test_merged_graph_good(merge_flow_chip):
+    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'bar.out')
+    merge_flow_chip.set('tool', 'bar', 'output', 'parallel2', '0', 'foo.out')
+
+    assert merge_flow_chip.check_manifest() == 0
+
+def test_merged_graph_bad_same(merge_flow_chip):
+    # Two merged steps can't output the same thing
+    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'bar', 'output', 'parallel2', '0', 'foo.out')
+
+    assert merge_flow_chip.check_manifest() == 1
+
+def test_merged_graph_bad_missing(merge_flow_chip):
+    # bar doesn't provide necessary output
+    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'foo.out')
+
+    assert merge_flow_chip.check_manifest() == 1
+
 #########################
 if __name__ == "__main__":
     test_check_manifest()

@@ -280,7 +280,10 @@ def post_process(chip):
     #Temporary superhack!rm
     #Getting cell count and net number from the first available DEF file output (if any)
     out_def = ''
-    out_files = chip.get('tool', tool, 'output', step, index)
+    out_files = []
+    if chip.valid('tool', tool, 'output', step, index):
+        out_files = chip.get('tool', tool, 'output', step, index)
+
     if out_files:
         for fn in out_files:
             if fn.endswith('.def'):

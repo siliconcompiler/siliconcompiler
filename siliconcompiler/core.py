@@ -1937,10 +1937,8 @@ class Chip:
 
                 # Get files we receive from input tasks.
                 in_tasks = self.get('flowgraph', flow, step, index, 'input')
-                if len(in_tasks) > 1:
-                    self.logger.error(f'Tool task {step}{index} has more than one input task.')
-                elif len(in_tasks) > 0:
-                    in_step, in_index = in_tasks[0]
+                all_inputs = set()
+                for in_step, in_index in in_tasks:
                     if in_step not in steplist:
                         # If we're not running the input step, the required
                         # inputs need to already be copied into the build
@@ -1952,18 +1950,23 @@ class Chip:
                             in_job = jobname
                         workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
                         in_step_out_dir = os.path.join(workdir, 'outputs')
-                        inputs = set(os.listdir(in_step_out_dir))
+                        inputs = os.listdir(in_step_out_dir)
                     else:
                         inputs = self._gather_outputs(in_step, in_index)
-                else:
-                    inputs = set()
+
+                    for inp in inputs:
+                        if inp in all_inputs:
+                            self.logger.error(f'Invalid flow: {step}{index} '
+                                f'receives {inp} from multiple input tasks')
+                            return False
+                        all_inputs.add(inp)
 
                 if self.valid('tool', tool, 'input', step, index):
                     requirements = self.get('tool', tool, 'input', step, index)
                 else:
                     requirements = []
                 for requirement in requirements:
-                    if requirement not in inputs:
+                    if requirement not in all_inputs:
                         self.logger.error(f'Invalid flow: {step}{index} will '
                             f'not receive required input {requirement}.')
                         return False
