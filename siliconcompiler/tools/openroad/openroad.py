@@ -149,8 +149,8 @@ def setup(chip, mode='batch'):
     #    chip.add('tool', tool, 'require', step, index, ','.join(['supply', supply, 'pin']))
 
     # basic warning and error grep check on logfile
-    chip.set('tool', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', r'^\[WARNING', clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', r'ERROR', clobber=False)
 
     # reports
     logfile = f"{step}.log"
@@ -229,8 +229,6 @@ def post_process(chip):
     with open(logfile) as f:
         for line in f:
             metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)
-            errmatch = re.match(r'^Error:', line)
-            warnmatch = re.match(r'^\[WARNING', line)
             area = re.search(r'^Design area (\d+)\s+u\^2\s+(.*)\%\s+utilization', line)
             tns = re.search(r'^tns (.*)', line)
             wns = re.search(r'^wns (.*)', line)
@@ -240,10 +238,6 @@ def post_process(chip):
             power = re.search(r'^Total(.*)', line)
             if metricmatch:
                 metric = metricmatch.group(1)
-            elif errmatch:
-                errors = errors + 1
-            elif warnmatch:
-                warnings = warnings +1
             elif area:
                 #TODO: not sure the openroad utilization makes sense?
                 cellarea = round(float(area.group(1)), 2)
@@ -272,10 +266,6 @@ def post_process(chip):
                     total = powerlist[3]
                     chip.set('metric', step, index, 'peakpower', float(total), clobber=True)
                     chip.set('metric', step, index, 'leakagepower', float(leakage), clobber=True)
-
-    #Setting Warnings and Errors
-    chip.set('metric', step, index, 'errors', errors, clobber=True)
-    chip.set('metric', step, index, 'warnings', warnings, clobber=True)
 
     #Temporary superhack!rm
     #Getting cell count and net number from the first available DEF file output (if any)

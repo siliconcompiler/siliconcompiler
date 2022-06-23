@@ -77,8 +77,8 @@ def setup(chip):
         chip.set('tool', tool, 'path', surelog_path, clobber=False)
 
     # Log file parsing
-    chip.set('tool', tool, 'regex', step, index, 'warnings', "WARNING")
-    chip.set('tool', tool, 'regex', step, index, 'errors', "ERROR")
+    chip.set('tool', tool, 'regex', step, index, 'warnings', r'^\[WRN:', clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', r'^\[(ERR|FTL|SNT):', clobber=False)
 
     # Output reprts for deep dive
     for metric in ('errors', 'warnings'):
@@ -161,8 +161,6 @@ def post_process(chip):
             # in case end of file is missing a newline
             outfile.write('\n')
 
-
-    #TODO: find errors/warnings during import
 
     return 0
 
