@@ -1,4 +1,3 @@
-import os
 import siliconcompiler
 
 #####################################################################
@@ -42,8 +41,8 @@ def setup(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    chip.set('tool', tool, 'exe', 'ghdl', clobber=clobber)
-    chip.set('tool', tool, 'vswitch', '--version', clobber=clobber)
+    chip.set('tool', tool, 'exe', 'ghdl')
+    chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=2.0.0-dev', clobber=clobber)
     chip.set('tool', tool, 'threads', step, index, '4', clobber=clobber)
     chip.set('tool', tool, 'option', step, index, '', clobber=clobber)
@@ -65,9 +64,6 @@ def runtime_options(chip):
 
     ''' Custom runtime options, returnst list of command line options.
     '''
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
 
     options = []
 
@@ -98,16 +94,6 @@ def parse_version(stdout):
     # '*-dev' is interpreted by packaging.version as a "developmental release",
     # which has the correct semantics. e.g. Version('2.0.0') > Version('2.0.0-dev')
     return stdout.split()[1]
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-
-    return 0
 
 ##################################################
 if __name__ == "__main__":

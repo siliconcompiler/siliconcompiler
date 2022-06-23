@@ -1,6 +1,5 @@
-import os
 import re
-import shutil
+
 import siliconcompiler
 
 ####################################################################
@@ -53,11 +52,11 @@ def setup(chip):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=8.3.196')
+    chip.set('tool', tool, 'version', '>=8.3.196', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
-    chip.set('tool', tool, 'threads', step, index,  4)
-    chip.set('tool', tool, 'refdir', step, index,  refdir)
-    chip.set('tool', tool, 'script', step, index,  script)
+    chip.set('tool', tool, 'threads', step, index,  4, clobber=False)
+    chip.set('tool', tool, 'refdir', step, index,  refdir, clobber=False)
+    chip.set('tool', tool, 'script', step, index,  script, clobber=False)
 
     # set options
     options = []
@@ -73,10 +72,8 @@ def setup(chip):
     if step == 'extspice':
         chip.add('tool', tool, 'output', step, index, f'{design}.spice')
 
-    # TODO: actually parse errors/warnings in post_process()
-    logfile = f"{step}.log"
-    chip.set('tool', tool, 'report', step, index, 'errors', logfile)
-    chip.set('tool', tool, 'report', step, index, 'warnings', logfile)
+    chip.set('tool', tool, 'regex', step, index, 'errors', r'^Error', clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', r'warning', clobber=False)
 
     if step == 'drc':
         report_path = f'reports/{design}.drc'

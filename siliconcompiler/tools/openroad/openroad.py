@@ -1,7 +1,7 @@
+import math
 import os
 import re
-import shutil
-import math
+
 import siliconcompiler
 from siliconcompiler.floorplan import _infer_diearea
 
@@ -62,8 +62,8 @@ def setup(chip, mode='batch'):
     if (mode=='batch') and (step not in chip.get('option', 'bkpt')):
         option += " -exit"
 
-    chip.set('tool', tool, 'exe', tool, clobber=clobber)
-    chip.set('tool', tool, 'vswitch', '-version', clobber=clobber)
+    chip.set('tool', tool, 'exe', tool)
+    chip.set('tool', tool, 'vswitch', '-version')
     chip.set('tool', tool, 'version', '>=v2.0-3394', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
     chip.set('tool', tool, 'option',  step, index, option, clobber=clobber)
@@ -154,10 +154,11 @@ def setup(chip, mode='batch'):
 
     # reports
     logfile = f"{step}.log"
-    for metric in chip.getkeys('metric', 'default', 'default'):
-        if metric not in ('runtime', 'memory',
-                          'luts', 'dsps', 'brams'):
-            chip.set('tool', tool, 'report', step, index, metric, logfile)
+    for metric in (
+        'cellarea', 'totalarea', 'utilization', 'setuptns', 'setupwns',
+        'setupslack', 'wirelength', 'vias', 'peakpower', 'leakagepower'
+    ):
+        chip.set('tool', tool, 'report', step, index, metric, logfile)
 
 ################################
 # Version Check
@@ -217,13 +218,10 @@ def post_process(chip):
     #Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    flow = chip.get('option', 'flow')
     tool = 'openroad'
     logfile = f"{step}.log"
 
     # parsing log file
-    errors = 0
-    warnings = 0
     metric = None
 
     with open(logfile) as f:
@@ -276,7 +274,8 @@ def post_process(chip):
             if fn.endswith('.def'):
                 out_def = fn
                 break
-    if (errors == 0) and out_def:
+    out_def_path = os.path.join('outputs', out_def)
+    if out_def and os.path.isfile(out_def_path):
         with open(os.path.join('outputs', out_def)) as f:
             for line in f:
                 cells = re.search(r'^COMPONENTS (\d+)', line)
@@ -288,11 +287,6 @@ def post_process(chip):
                     chip.set('metric', step, index, 'nets', int(nets.group(1)), clobber=True)
                 elif pins:
                     chip.set('metric', step, index, 'pins', int(pins.group(1)), clobber=True)
-
-    #Return 0 if successful
-    return 0
-
-
 
 ##################################################
 if __name__ == "__main__":

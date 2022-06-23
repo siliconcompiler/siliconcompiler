@@ -43,8 +43,8 @@ def setup(chip):
 
     # Standard Setup
     refdir = 'tools/'+tool
-    chip.set('tool', tool, 'exe', 'sbt', clobber=False)
-    chip.set('tool', tool, 'vswitch', '--version', clobber=False)
+    chip.set('tool', tool, 'exe', 'sbt')
+    chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=1.5.5', clobber=False)
     chip.set('tool', tool, 'refdir', step, index,  refdir, clobber=False)
     chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
@@ -103,12 +103,3 @@ def pre_process(chip):
         src = os.path.join(refdir, filename)
         dst = filename
         shutil.copyfile(src, dst)
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    return 0

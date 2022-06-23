@@ -4120,18 +4120,22 @@ class Chip:
             sys.exit(1)
         func(self)
 
+        # Add logfile as a report for errors/warnings if they have associated
+        # regexes.
         if self.valid('tool', tool, 'regex', step, index, 'default'):
             re_keys = self.getkeys('tool', tool, 'regex', step, index)
             logfile = f'{step}.log'
             if (
                 'errors' in re_keys and
-                logfile not in self.get('tool', tool, 'report', step, index, 'errors')
+                (not self.valid('tool', tool, 'report', step, index, 'errors') or
+                 logfile not in self.get('tool', tool, 'report', step, index, 'errors'))
             ):
                 self.add('tool', tool, 'report', step, index, 'errors', logfile)
 
             if (
                 'warnings' in re_keys and
-                logfile not in self.get('tool', tool, 'report', step, index, 'warnings')
+                (not self.valid('tool', tool, 'report', step, index, 'warnings') or
+                 logfile not in self.get('tool', tool, 'report', step, index, 'warnings'))
             ):
                 self.add('tool', tool, 'report', step, index, 'warnings', logfile)
 

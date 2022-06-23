@@ -1,11 +1,8 @@
 import os
-import subprocess
-import re
 import sys
 import shutil
 
 import siliconcompiler
-from siliconcompiler import utils
 
 ####################################################################
 # Make Docs
@@ -49,8 +46,8 @@ def setup(chip):
         exe = f'{tool}.exe'
 
     # Standard Setup
-    chip.set('tool', tool, 'exe', exe, clobber=False)
-    chip.set('tool', tool, 'vswitch', '--version', clobber=False)
+    chip.set('tool', tool, 'exe', exe)
+    chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=1.13', clobber=False)
     chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
@@ -80,11 +77,6 @@ def setup(chip):
     chip.set('tool', tool, 'regex', step, index, 'warnings', r'^\[WRN:', clobber=False)
     chip.set('tool', tool, 'regex', step, index, 'errors', r'^\[(ERR|FTL|SNT):', clobber=False)
 
-    # Output reprts for deep dive
-    for metric in ('errors', 'warnings'):
-        chip.set('tool', tool, 'report', step, index, metric, f"{step}.log")
-
-
 def parse_version(stdout):
     # Surelog --version output looks like:
     # VERSION: 1.13
@@ -101,9 +93,6 @@ def runtime_options(chip):
 
     ''' Custom runtime options, returnst list of command line options.
     '''
-
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
 
     cmdlist = []
 
@@ -141,8 +130,6 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
     step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool = 'surelog'
 
     if step != 'import':
         return 0
@@ -160,9 +147,6 @@ def post_process(chip):
                 outfile.write(infile.read())
             # in case end of file is missing a newline
             outfile.write('\n')
-
-
-    return 0
 
 ##################################################
 if __name__ == "__main__":
