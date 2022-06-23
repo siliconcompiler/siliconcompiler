@@ -1,7 +1,7 @@
+import math
 import os
 import re
-import shutil
-import math
+
 import siliconcompiler
 from siliconcompiler.floorplan import _infer_diearea
 
@@ -62,8 +62,8 @@ def setup(chip, mode='batch'):
     if (mode=='batch') and (step not in chip.get('option', 'bkpt')):
         option += " -exit"
 
-    chip.set('tool', tool, 'exe', tool, clobber=clobber)
-    chip.set('tool', tool, 'vswitch', '-version', clobber=clobber)
+    chip.set('tool', tool, 'exe', tool)
+    chip.set('tool', tool, 'vswitch', '-version')
     chip.set('tool', tool, 'version', '>=v2.0-3394', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
     chip.set('tool', tool, 'option',  step, index, option, clobber=clobber)
@@ -149,15 +149,16 @@ def setup(chip, mode='batch'):
     #    chip.add('tool', tool, 'require', step, index, ','.join(['supply', supply, 'pin']))
 
     # basic warning and error grep check on logfile
-    chip.set('tool', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', r'^\[WARNING', clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', r'ERROR', clobber=False)
 
     # reports
     logfile = f"{step}.log"
-    for metric in chip.getkeys('metric', 'default', 'default'):
-        if metric not in ('runtime', 'memory',
-                          'luts', 'dsps', 'brams'):
-            chip.set('tool', tool, 'report', step, index, metric, logfile)
+    for metric in (
+        'cellarea', 'totalarea', 'utilization', 'setuptns', 'setupwns',
+        'setupslack', 'wirelength', 'vias', 'peakpower', 'leakagepower'
+    ):
+        chip.set('tool', tool, 'report', step, index, metric, logfile)
 
 ################################
 # Version Check
@@ -217,20 +218,15 @@ def post_process(chip):
     #Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    flow = chip.get('option', 'flow')
     tool = 'openroad'
     logfile = f"{step}.log"
 
     # parsing log file
-    errors = 0
-    warnings = 0
     metric = None
 
     with open(logfile) as f:
         for line in f:
             metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)
-            errmatch = re.match(r'^Error:', line)
-            warnmatch = re.match(r'^\[WARNING', line)
             area = re.search(r'^Design area (\d+)\s+u\^2\s+(.*)\%\s+utilization', line)
             tns = re.search(r'^tns (.*)', line)
             wns = re.search(r'^wns (.*)', line)
@@ -240,10 +236,6 @@ def post_process(chip):
             power = re.search(r'^Total(.*)', line)
             if metricmatch:
                 metric = metricmatch.group(1)
-            elif errmatch:
-                errors = errors + 1
-            elif warnmatch:
-                warnings = warnings +1
             elif area:
                 #TODO: not sure the openroad utilization makes sense?
                 cellarea = round(float(area.group(1)), 2)
@@ -273,10 +265,6 @@ def post_process(chip):
                     chip.set('metric', step, index, 'peakpower', float(total), clobber=True)
                     chip.set('metric', step, index, 'leakagepower', float(leakage), clobber=True)
 
-    #Setting Warnings and Errors
-    chip.set('metric', step, index, 'errors', errors, clobber=True)
-    chip.set('metric', step, index, 'warnings', warnings, clobber=True)
-
     #Temporary superhack!rm
     #Getting cell count and net number from the first available DEF file output (if any)
     out_def = ''
@@ -289,7 +277,8 @@ def post_process(chip):
             if fn.endswith('.def'):
                 out_def = fn
                 break
-    if (errors == 0) and out_def:
+    out_def_path = os.path.join('outputs', out_def)
+    if out_def and os.path.isfile(out_def_path):
         with open(os.path.join('outputs', out_def)) as f:
             for line in f:
                 cells = re.search(r'^COMPONENTS (\d+)', line)
@@ -301,11 +290,6 @@ def post_process(chip):
                     chip.set('metric', step, index, 'nets', int(nets.group(1)), clobber=True)
                 elif pins:
                     chip.set('metric', step, index, 'pins', int(pins.group(1)), clobber=True)
-
-    #Return 0 if successful
-    return 0
-
-
 
 ##################################################
 if __name__ == "__main__":

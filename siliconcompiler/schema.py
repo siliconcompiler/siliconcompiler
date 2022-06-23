@@ -1380,8 +1380,8 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             shorthelp="Tool: regex filter",
             switch="-tool_regex 'tool step index suffix <str>'",
             example=[
-                "cli: -tool_regex 'openroad place 0 error -v ERROR'",
-                "api: chip.set('tool','openroad','regex','place','0','error','-v ERROR')"],
+                "cli: -tool_regex 'openroad place 0 errors -v ERROR'",
+                "api: chip.set('tool','openroad','regex','place','0','errors','-v ERROR')"],
             schelp="""
             A list of piped together grep commands. Each entry represents a set
             of command line arguments for grep including the regex pattern to
@@ -1400,7 +1400,12 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             SiliconCompiler::
 
                 chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', ["WARNING", "-v bbox"])
-            """)
+
+            The "errors" and "warnings" suffixes are special cases. When set,
+            the number of matches found for these regexes will be added to the
+            errors and warnings metrics for the task, respectively. This will
+            also cause the logfile to be added to the :keypath:`tool, <tool>,
+            report` parameter for those metrics, if not already present.""")
 
 
     scparam(cfg, ['tool', tool, 'option', step, index],
@@ -2693,6 +2698,18 @@ def schema_option(cfg):
             standardized. Support for comments and environment variables within
             the file varies and depends on the tool used. SC simply passes on
             the filepath toe the tool executable.""")
+
+    scparam(cfg,['option', 'flowcontinue'],
+            sctype='bool',
+            shorthelp="Continue flow on error",
+            switch='-flowcontinue',
+            example=["cli: -flowcontinue",
+                     "api: chip.set('option', 'flowcontinue', True)"],
+            schelp="""
+            Continue executing flow after a tool logs errors. The default
+            behavior is to quit executing the flow if a task ends and the errors
+            metric is greater than 0. Note that the flow will always cease
+            executing if the tool returns a nonzero status code. """)
 
     return cfg
 

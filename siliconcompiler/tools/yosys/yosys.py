@@ -1,6 +1,4 @@
-import os
 import re
-import sys
 import defusedxml.ElementTree as ET
 
 import siliconcompiler
@@ -47,8 +45,8 @@ def setup(chip):
     index = chip.get('arg','index')
 
     # Standard Setup
-    chip.set('tool', tool, 'exe', 'yosys', clobber=False)
-    chip.set('tool', tool, 'vswitch', '--version', clobber=False)
+    chip.set('tool', tool, 'exe', 'yosys')
+    chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=0.13', clobber=False)
     chip.set('tool', tool, 'format', 'tcl', clobber=False)
     chip.set('tool', tool, 'option', step, index, '-c', clobber=False)
@@ -100,7 +98,7 @@ def setup(chip):
         chip.add('tool', tool, 'require', step, index, ",".join(['fpga','partname']))
 
     # Setting up regex patterns
-    chip.set('tool', tool, 'regex', step, index, 'warnings', "Warning", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', "Warning:", clobber=False)
     chip.set('tool', tool, 'regex', step, index, 'errors', "Error", clobber=False)
 
     # Reports
@@ -109,16 +107,6 @@ def setup(chip):
                    'cellarea',
                    'cells', 'registers', 'buffers', 'nets', 'pins'):
         chip.set('tool', tool, 'report', step, index, metric, f"{step}.log")
-
-#############################################
-# Runtime pre processing
-#############################################
-
-def pre_process(chip):
-
-    tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
 
 ################################
 # Version Check
@@ -145,35 +133,26 @@ def post_process(chip):
 
     # Extracting
     if step == 'syn':
-        #TODO: looks like Yosys exits on error, so no need to check metric
-        chip.set('metric', step, index, 'errors', 0, clobber=True)
         with open(step + ".log") as f:
             for line in f:
                 area = re.search(r'Chip area for module.*\:\s+(.*)', line)
                 cells = re.search(r'Number of cells\:\s+(.*)', line)
-                warnings = re.search(r'Warnings.*\s(\d+)\s+total', line)
                 if area:
                     chip.set('metric', step, index, 'cellarea', round(float(area.group(1)),2), clobber=True)
                 elif cells:
                     chip.set('metric', step, index, 'cells', int(cells.group(1)), clobber=True)
-                elif warnings:
-                    chip.set('metric', step, index, 'warnings', int(warnings.group(1)), clobber=True)
     elif step == 'lec':
         with open(step + ".log") as f:
             for line in f:
                 if line.endswith('Equivalence successfully proven!'):
-                    chip.set('metric', step, index, 'errors', 0, clobber=True)
+                    chip.set('metric', step, index, 'drvs', 0, clobber=True)
                     continue
 
                 errors = re.search(r'Found a total of (\d+) unproven \$equiv cells.', line)
                 if errors is not None:
                     num_errors = int(errors.group(1))
-                    chip.set('metric', step, index, 'errors', num_errors, clobber=True)
+                    chip.set('metric', step, index, 'drvs', num_errors, clobber=True)
 
-
-
-    #Return 0 if successful
-    return 0
 
 ##################################################
 if __name__ == "__main__":

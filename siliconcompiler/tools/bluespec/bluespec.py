@@ -44,10 +44,10 @@ def setup(chip):
 
     # Standard Setup
     refdir = 'tools/'+tool
-    chip.set('tool', tool, 'exe', 'bsc', clobber=False)
+    chip.set('tool', tool, 'exe', 'bsc')
     # This is technically the 'verbose' flag, but used alone it happens to give
-    # us the version # and exit cleanly, so we'll use it here.
-    chip.set('tool', tool, 'vswitch', '-v', clobber=False)
+    # us the version and exit cleanly, so we'll use it here.
+    chip.set('tool', tool, 'vswitch', '-v')
     chip.set('tool', tool, 'version', '>=2021.07', clobber=False)
     chip.set('tool', tool, 'refdir', step, index,  refdir, clobber=False)
     chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
@@ -121,5 +121,3 @@ def post_process(chip):
         for src in os.listdir(VLOG_DIR):
             with open(os.path.join(VLOG_DIR, src), 'r') as vlog_mod:
                 pickled_vlog.write(vlog_mod.read())
-
-    return 0

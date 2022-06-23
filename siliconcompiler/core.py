@@ -2912,16 +2912,21 @@ class Chip:
         '''
         Checks logfile for patterns found in the 'regex' parameter.
 
-        Reads the content of the step's log file and compares the
-        content found in step 'regex' parameter. The matches are
-        stored in the file 'reports/<design>.<suffix>' in the run directory.
-        The matches are printed to STDOUT if display is set to True.
+        Reads the content of the task's log file and compares the content found
+        with the task's 'regex' parameter. The matches are stored in the file
+        '<design>.<suffix>' in the current directory. The matches are printed to
+        STDOUT if display is set to True.
 
         Args:
-            step (str): Task step name ('syn', 'place', etc)
             jobname (str): Jobid directory name
+            step (str): Task step name ('syn', 'place', etc)
             index (str): Task index
+            logfile (str): Path to logfile. If None, {step}.log is used.
             display (bool): If True, printes matches to STDOUT.
+
+        Returns:
+            Dictionary mapping suffixes to number of matches for that suffix's
+            regex.
 
         Examples:
             >>> chip.check_logfile('place')
@@ -2946,6 +2951,7 @@ class Chip:
         # Creating local dictionary (for speed)
         # self.get is slow
         checks = {}
+        matches = {}
         regex_list = []
         if self.valid('tool', tool, 'regex', step, index, 'default'):
             regex_list = self.getkeys('tool', tool, 'regex', step, index)
@@ -2953,6 +2959,7 @@ class Chip:
             checks[suffix] = {}
             checks[suffix]['report'] = open(f"{step}.{suffix}", "w")
             checks[suffix]['args'] = self.get('tool', tool, 'regex', step, index, suffix)
+            matches[suffix] = 0
 
         # Looping through patterns for each line
         with open(logfile) as f:
@@ -2965,11 +2972,19 @@ class Chip:
                       else:
                           string = self.grep(item, string)
                   if string is not None:
+                      matches[suffix] += 1
                       #always print to file
                       print(string.strip(), file=checks[suffix]['report'])
                       #selectively print to display
                       if display:
-                          self.logger.info(string.strip())
+                            if suffix == 'errors':
+                                self.logger.error(string.strip())
+                            elif suffix == 'warnings':
+                                self.logger.warning(string.strip())
+                            else:
+                                self.logger.info(f'{suffix}: {string.strip()}')
+
+        return matches
 
     ###########################################################################
     def _find_leaves(self, steplist):
@@ -3985,8 +4000,7 @@ class Chip:
 
             if retcode != 0:
                 self.logger.warning('Command failed with code %d. See log file %s', retcode, os.path.abspath(logfile))
-                if not self.get('tool', tool, 'continue'):
-                    self._haltstep(step, index)
+                self._haltstep(step, index)
 
         ##################
         # 16. Capture cpu runtime and memory footprint.
@@ -3996,21 +4010,24 @@ class Chip:
         self.set('metric', step, index, 'memory', max_mem_bytes)
 
         ##################
-        # 17. Post process (could fail)
-        post_error = 0
+        # 17. Post process
         if (tool not in self.builtin) and (not self.get('option', 'skipall')) :
             func = self.find_function(tool, 'post_process', 'tools')
             if func:
-                post_error = func(self)
-                if post_error:
-                    self.logger.error('Post-processing check failed')
-                    if not self.get('tool', tool, 'continue'):
-                        self._haltstep(step, index)
+                func(self)
 
         ##################
         # 18. Check log file (must be after post-process)
         if (tool not in self.builtin) and (not self.get('option', 'skipall')) :
-            self.check_logfile(step=step, index=index, display=not quiet)
+            matches = self.check_logfile(step=step, index=index, display=not quiet)
+            if 'errors' in matches:
+                errors = self.get('metric', step, index, 'errors')
+                errors += matches['errors']
+                self.set('metric', step, index, 'errors', errors)
+            if 'warnings' in matches:
+                warnings = self.get('metric', step, index, 'warnings')
+                warnings += matches['warnings']
+                self.set('metric', step, index, 'warnings', warnings)
 
         ##################
         # 19. Hash files
@@ -4046,9 +4063,10 @@ class Chip:
 
         ##################
         # 23. Stop if there are errors
-        if self.get('metric',step, index, 'errors') > 0:
-            if not self.get('tool', tool, 'continue'):
-                self._haltstep(step, index)
+        errors = self.get('metric', step, index, 'errors')
+        if errors > 0 and not self.get('option', 'flowcontinue'):
+            self.logger.error(f'{tool} reported {errors} errors during {step}{index}')
+            self._haltstep(step, index)
 
         ##################
         # 24. Clean up non-essential files
@@ -4078,8 +4096,9 @@ class Chip:
         if manifest_format:
             keep.append(f'sc_manifest.{manifest_format}')
 
-        for suffix in self.getkeys('tool', tool, 'regex', step, index):
-            keep.append(f'{step}.{suffix}')
+        if self.valid('tool', tool, 'regex', step, index, 'default'):
+            for suffix in self.getkeys('tool', tool, 'regex', step, index):
+                keep.append(f'{step}.{suffix}')
 
         # Tool-specific keep files
         if self.valid('tool', tool, 'keep', step, index):
@@ -4092,6 +4111,41 @@ class Chip:
                 shutil.rmtree(path)
             else:
                 os.remove(path)
+
+    ###########################################################################
+    def _setup_tool(self, tool, step, index):
+        self.set('arg','step', step)
+        self.set('arg','index', index)
+
+        func = self.find_function(tool, 'setup', 'tools')
+        if func is None:
+            self.logger.error(f'setup() not found for tool {tool}')
+            sys.exit(1)
+        func(self)
+
+        # Add logfile as a report for errors/warnings if they have associated
+        # regexes.
+        if self.valid('tool', tool, 'regex', step, index, 'default'):
+            re_keys = self.getkeys('tool', tool, 'regex', step, index)
+            logfile = f'{step}.log'
+            if (
+                'errors' in re_keys and
+                (not self.valid('tool', tool, 'report', step, index, 'errors') or
+                 logfile not in self.get('tool', tool, 'report', step, index, 'errors'))
+            ):
+                self.add('tool', tool, 'report', step, index, 'errors', logfile)
+
+            if (
+                'warnings' in re_keys and
+                (not self.valid('tool', tool, 'report', step, index, 'warnings') or
+                 logfile not in self.get('tool', tool, 'report', step, index, 'warnings'))
+            ):
+                self.add('tool', tool, 'report', step, index, 'warnings', logfile)
+
+        # Need to clear index, otherwise we will skip setting up other indices.
+        # Clear step for good measure.
+        self.set('arg','step', None)
+        self.set('arg','index', None)
 
     ###########################################################################
     def run(self):
@@ -4276,18 +4330,7 @@ class Chip:
                     # Setting up tool is optional
                     tool = self.get('flowgraph', flow, step, index, 'tool')
                     if tool not in self.builtin:
-                        self.set('arg','step', step)
-                        self.set('arg','index', index)
-                        func = self.find_function(tool, 'setup', 'tools')
-                        if func is None:
-                            self.logger.error(f'setup() not found for tool {tool}')
-                            sys.exit(1)
-                        func(self)
-                        # Need to clear index, otherwise we will skip
-                        # setting up other indices. Clear step for good
-                        # measure.
-                        self.set('arg','step', None)
-                        self.set('arg','index', None)
+                        self._setup_tool(tool, step, index)
 
             # Implement auto-update of jobincrement
             try:

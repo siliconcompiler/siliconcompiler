@@ -1,8 +1,3 @@
-import os
-import subprocess
-import re
-import sys
-import shutil
 import siliconcompiler
 
 ####################################################################
@@ -47,7 +42,7 @@ def setup(chip):
     index = chip.get('arg','index')
 
     # tool setup
-    chip.set('tool', tool, 'exe', tool, clobber=False)
+    chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '--Version', clobber=False)
     chip.set('tool', tool, 'version', '0.5.0', clobber=False)
 

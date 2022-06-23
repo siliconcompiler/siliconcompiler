@@ -1,9 +1,6 @@
 import os
-import subprocess
-import re
-import sys
+
 import siliconcompiler
-import shutil
 
 ####################################################################
 # Make Docs
@@ -45,8 +42,8 @@ def setup(chip):
     design = chip.get('design')
 
     # Standard Setup
-    chip.set('tool', tool, 'exe', 'iverilog', clobber=False)
-    chip.set('tool', tool, 'vswitch', '-V', clobber=False)
+    chip.set('tool', tool, 'exe', 'iverilog')
+    chip.set('tool', tool, 'vswitch', '-V')
     chip.set('tool', tool, 'version', '>=10.3', clobber=False)
     chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
 
@@ -68,9 +65,6 @@ def runtime_options(chip):
 
     ''' Custom runtime options, returnst list of command line options.
     '''
-
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
 
     cmdlist = []
 
@@ -97,17 +91,6 @@ def runtime_options(chip):
 def parse_version(stdout):
     # First line: Icarus Verilog version 10.1 (stable) ()
     return stdout.split()[3]
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-
-    return 0
-
 
 ##################################################
 if __name__ == "__main__":
