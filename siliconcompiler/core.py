@@ -3160,14 +3160,15 @@ class Chip:
                 flow_tasks[step] = self.getkeys('flowgraph', flow, step)
 
             # Call 'show()' to generate a low-res PNG of the design.
-            results_gds = self.find_result('gds', step='export')
             img_data = None
-            if results_gds and not self.get('option', 'nodisplay'):
-                self.show(results_gds,
-                            ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
+            # Need to be able to search for something showable by KLayout,
+            # otherwise the extra_options don't make sense.
+            filename = self._find_showable_output('klayout')
+            if filename and not self.get('option', 'nodisplay'):
+                success = self.show(filename, ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
                 result_file = os.path.join(web_dir, f'{design}.png')
                 # Result might not exist if there is no display
-                if os.path.isfile(result_file):
+                if success and os.path.isfile(result_file):
                     with open(result_file, 'rb') as img_file:
                         img_data = base64.b64encode(img_file.read()).decode('utf-8')
 
@@ -4529,6 +4530,28 @@ class Chip:
                 if key not in ('example', 'switch', 'help'):
                     cfgdst[key] = copy.deepcopy(cfgsrc[key])
 
+    ###########################################################################
+    def _find_showable_output(self, tool=None):
+        '''
+        Helper function for finding showable layout based on schema.
+
+        This code is used by show() and HTML report generation in summary().
+
+        We could potentially refine this but for now it returns the first file
+        in 'output' that has a showtool. If the optional 'tool' arg is defined,
+        this showtool must match 'tool'. Returns None if no match found.
+
+        Considered using ['model', 'layout', ...], but that includes abstract
+        views (and we probably want to prioritize final layouts like
+        DEF/GDS/OAS).
+        '''
+        for key in self.getkeys('output'):
+            for output in self.find_files('output', key):
+                file_ext = utils.get_file_ext(output)
+                if file_ext in self.getkeys('option', 'showtool'):
+                    if not tool or self.get('option', 'showtool', file_ext) == tool:
+                        return output
+        return None
 
     ###########################################################################
     def show(self, filename=None, extra_options=None):
@@ -4536,20 +4559,15 @@ class Chip:
         Opens a graphical viewer for the filename provided.
 
         The show function opens the filename specified using a viewer tool
-        selected based on the file suffix and the 'showtool' schema setup.
-        The 'showtool' parameter binds tools with file suffixes, enabling the
-        automated dynamic loading of tool setup functions from
-        siliconcompiler.tools.<tool>/<tool>.py. Display settings and
-        technology settings for viewing the file are read from the
-        in-memory chip object schema settings. All temporary render and
-        display files are saved in the <build_dir>/_show directory.
+        selected based on the file suffix and the 'showtool' schema setup.  The
+        'showtool' parameter binds tools with file suffixes, enabling the
+        automated dynamic loading of tool setup functions. Display settings and
+        technology settings for viewing the file are read from the in-memory
+        chip object schema settings. All temporary render and display files are
+        saved in the <build_dir>/_show directory.
 
-        The show() command can also be used to display content from an SC
-        schema .json filename provided. In this case, the SC schema is
-        converted to html and displayed as a 'dashboard' in the browser.
-
-        Filenames with .gz and .zip extensions are automatically unpacked
-        before being displayed.
+        Filenames with .gz extensions are automatically unpacked before being
+        displayed.
 
         Args:
             filename: Name of file to display
@@ -4557,8 +4575,6 @@ class Chip:
         Examples:
             >>> show('build/oh_add/job0/export/0/outputs/oh_add.gds')
             Displays gds file with a viewer assigned by 'showtool'
-            >>> show('build/oh_add/job0/export/0/outputs/oh_add.pkg.json')
-            Displays manifest in the browser
         '''
 
         if extra_options is None:
@@ -4568,11 +4584,9 @@ class Chip:
         if filename is None:
             self.logger.info('Searching build directory for layout to show.')
             design = self.get('design')
-            # TODO: consider a more flexible approach here. I tried doing a
-            # reverse search through all steps, but when verification steps are
-            # enabled this finds a DEF passed into LVS rather than the GDS
-            # Perhaps we could have a way for flows to register their "final"
-            # output.
+            # TODO: keeping the below logic for backwards compatibility. Once
+            # all flows/examples register their outputs in ['output', ...], we
+            # can fully switch over to the generic logic.
             laststep = 'export'
             lastindex = '0'
             lastdir = self._getworkdir(step=laststep, index=lastindex)
@@ -4582,24 +4596,28 @@ class Chip:
                 filename = gds_file
             elif os.path.isfile(def_file):
                 filename = def_file
+            else:
+                # Generic logic
+                filename = self._find_showable_output()
 
         if filename is None:
             self.logger.error('Unable to automatically find layout in build directory.')
             self.logger.error('Try passing in a full path to show() instead.')
-            return 1
+            return False
 
         self.logger.info('Showing file %s', filename)
 
         # Parsing filepath
         filepath = os.path.abspath(filename)
-        basename = os.path.basename(filepath)
-        localfile = basename.replace(".gz","")
-        filetype = os.path.splitext(localfile)[1].lower().replace(".","")
+        filetype = utils.get_file_ext(filepath)
+        localfile = os.path.basename(filepath)
+        if localfile.endswith('.gz'):
+            localfile = os.path.splitext(localfile)[0]
 
         #Check that file exists
         if not os.path.isfile(filepath):
             self.logger.error(f"Invalid filepath {filepath}.")
-            return 1
+            return False
 
         # Opening file from temp directory
         cwd = os.getcwd()
