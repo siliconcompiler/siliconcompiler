@@ -21,10 +21,10 @@ def test_target_flipped_error():
     assert pytest_wrapped_e.value.code == 1
 
 def test_target_fpga_valid():
-    '''Ensure that the FPGA flow allows an arbitrary partname and sets mode
+    '''Ensure that the FPGA flow allows legal part names and sets mode
     correctly.'''
     chip = siliconcompiler.Chip('test')
-    chip.set('fpga', 'partname', 'myfpga')
+    chip.set('fpga', 'partname', 'ice40')
     chip.load_flow('fpgaflow')
     chip.set('option', 'flow', 'fpgaflow')
 
