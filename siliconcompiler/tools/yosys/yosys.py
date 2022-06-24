@@ -57,7 +57,11 @@ def setup(chip):
     elif re.search(r'lec', step):
         script = 'sc_lec.tcl'
     else:
-        chip.logger.error(f'Yosys does not support step {step}.')
+        # Emit a warning for unsupported yosys step, but allow execution to proceed.
+        # Users can configure their own flows involving yosys, but they will be responsible for
+        # setting appropriate schema values, including 'script'.
+        script = ''
+        chip.logger.warning(f'Unsupported yosys step: {step}.')
 
     chip.set('tool', tool, 'script', step, index, script, clobber=False)
 
