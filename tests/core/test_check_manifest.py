@@ -117,20 +117,20 @@ def test_merged_graph_good(merge_flow_chip):
     merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'bar.out')
     merge_flow_chip.set('tool', 'bar', 'output', 'parallel2', '0', 'foo.out')
 
-    assert merge_flow_chip.check_manifest() == 0
+    assert merge_flow_chip.check_manifest()
 
 def test_merged_graph_bad_same(merge_flow_chip):
     # Two merged steps can't output the same thing
     merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'foo.out')
     merge_flow_chip.set('tool', 'bar', 'output', 'parallel2', '0', 'foo.out')
 
-    assert merge_flow_chip.check_manifest() == 1
+    assert not merge_flow_chip.check_manifest()
 
 def test_merged_graph_bad_missing(merge_flow_chip):
     # bar doesn't provide necessary output
     merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'foo.out')
 
-    assert merge_flow_chip.check_manifest() == 1
+    assert not merge_flow_chip.check_manifest()
 
 #########################
 if __name__ == "__main__":

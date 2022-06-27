@@ -3297,6 +3297,23 @@
             "type": "[file]",
             "value": []
         },
+        "continue": {
+            "defvalue": "false",
+            "example": [
+                "cli: -continue",
+                "api: chip.set('option', 'continue', True)"
+            ],
+            "help": "Attempt to continue even when errors are encountered in the SC\nimplementation. If errors are encountered, execution will halt\nbefore a run.",
+            "lock": "false",
+            "notes": null,
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Implementation continue-on-error",
+            "signature": null,
+            "switch": "-continue",
+            "type": "bool",
+            "value": "false"
+        },
         "copyall": {
             "defvalue": "false",
             "example": [
@@ -3417,7 +3434,7 @@
             "notes": null,
             "require": "all",
             "scope": "job",
-            "shorthelp": "Continue flow on error",
+            "shorthelp": "Flow continue-on-error",
             "signature": null,
             "switch": "-flowcontinue",
             "type": "bool",
@@ -3434,7 +3451,7 @@
             "notes": null,
             "require": null,
             "scope": "job",
-            "shorthelp": "Flow continue-on-error",
+            "shorthelp": "Compilation frontend",
             "signature": null,
             "switch": "-frontend <frontend>",
             "type": "str",
