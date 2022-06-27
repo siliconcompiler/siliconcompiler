@@ -103,7 +103,7 @@ def setup(chip):
 
     # Setting up regex patterns
     chip.set('tool', tool, 'regex', step, index, 'warnings', "Warning:", clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', "Error", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', "^ERROR", clobber=False)
 
     # Reports
     for metric in ('errors', 'warnings', 'drvs', 'coverage', 'security',
