@@ -82,8 +82,8 @@ class CategorySummary(SphinxDirective):
             prefix.append('default')
 
         for item in chip.getkeys(*prefix):
-            shorthelp = chip.get(*prefix, item, field='shorthelp')
-            if shorthelp is not None:
+            if 'shorthelp' in chip.getkeys(*prefix, item):
+                shorthelp = chip.get(*prefix, item, field='shorthelp')
                 table.append([para(item),para(shorthelp)])
             else:
                 table.append([para(item),para("See Schema")])
