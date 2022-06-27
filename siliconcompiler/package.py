@@ -44,18 +44,18 @@ class Sup:
         '''
 
         self.chip.read_manifest(filename, clobber=True)
-        self.chip.check_manifest()
+        check_ok = self.chip.check_manifest()
 
         #TODO: Add packaging specific checks
         for keylist in self.chip.getkeys():
             if (keylist[0] in ('package') and
                 keylist[1] in ('version', 'description', 'license')):
                 if self.chip.get(*keylist) in ("null", None, []):
-                    self.chip.error = 1
                     self.chip.logger.error(f"Package missing {keylist} information.")
+                    check_ok = False
 
         # Exit on errors
-        if self.chip.error > 0:
+        if not check_ok:
             self.chip.logger.error(f"Exiting due to previous errors.")
             sys.exit()
 

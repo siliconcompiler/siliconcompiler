@@ -2701,7 +2701,7 @@ def schema_option(cfg):
 
     scparam(cfg,['option', 'flowcontinue'],
             sctype='bool',
-            shorthelp="Continue flow on error",
+            shorthelp="Flow continue-on-error",
             switch='-flowcontinue',
             example=["cli: -flowcontinue",
                      "api: chip.set('option', 'flowcontinue', True)"],
@@ -2710,6 +2710,18 @@ def schema_option(cfg):
             behavior is to quit executing the flow if a task ends and the errors
             metric is greater than 0. Note that the flow will always cease
             executing if the tool returns a nonzero status code. """)
+
+    scparam(cfg,['option', 'continue'],
+            sctype='bool',
+            shorthelp='Implementation continue-on-error',
+            switch='-continue',
+            example=["cli: -continue",
+                     "api: chip.set('option', 'continue', True)"],
+            schelp="""
+            Attempt to continue even when errors are encountered in the SC
+            implementation. If errors are encountered, execution will halt
+            before a run.
+            """)
 
     return cfg
 

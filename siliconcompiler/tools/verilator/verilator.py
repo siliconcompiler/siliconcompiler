@@ -123,7 +123,7 @@ def setup(chip):
             extra_opts = chip.get('tool', tool, 'var', step, index, 'extraopts')
             for opt in extra_opts:
                 if opt not in ('--trace'):
-                    raise siliconcompiler.SiliconCompilerError(f'Illegal option {opt}')
+                    chip.error(f'Illegal option {opt}')
                 chip.add('tool', tool, 'option', step, index, opt)
         # File-based arguments added in runtime_options()
 

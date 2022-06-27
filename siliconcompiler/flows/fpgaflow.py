@@ -62,8 +62,7 @@ def setup(chip, flowname='fpgaflow'):
     if chip.get('fpga', 'partname'):
         partname = chip.get('fpga', 'partname')
     else:
-        chip.logger.error("FPGA partname not specified")
-        raise siliconcompiler.SiliconCompilerError("FPGA partname not specified")
+        chip.error('FPGA partname not specified', fatal=True)
 
     # Set FPGA mode if not set
     chip.set('option', 'mode', 'fpga')
