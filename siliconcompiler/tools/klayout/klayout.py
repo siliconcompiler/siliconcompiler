@@ -122,8 +122,7 @@ def setup(chip, mode="batch"):
                 chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'gds', stackup]))
                 chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
         else:
-            chip.error = 1
-            chip.logger.error(f'Stackup and targetlib paremeters required for Klayout.')
+            chip.error(f'Stackup and targetlib paremeters required for Klayout.')
 
     logfile = f"{step}.log"
 

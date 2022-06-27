@@ -116,8 +116,7 @@ def setup(chip, mode='batch'):
                 chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', 'nldm', corner]))
             chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
     else:
-        chip.error = 1
-        chip.logger.error(f'Stackup and logiclib parameters required for OpenROAD.')
+        chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
 
     variables = (
         'place_density',

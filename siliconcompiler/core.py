@@ -78,7 +78,7 @@ class Chip:
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
         self.cwd = os.getcwd()
-        self.error = 0
+        self._error = False
         self.cfg = schema_cfg()
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
@@ -414,8 +414,7 @@ class Chip:
                     # fill in 'default' keys.
                     switches, metavar = self._get_switches(*keypath)
                     switchstr = '/'.join(switches)
-                    self.logger.error(f'Invalid value {item} for switch {switchstr}. Expected format {metavar}.')
-                    raise SiliconCompilerError('Invalid CLI arguments')
+                    self.error(f'Invalid value {item} for switch {switchstr}. Expected format {metavar}.', fatal=True)
 
                 # We replace 'default' in keypath with first N words in provided
                 # value. Remainder is the actual value we want to store in the
@@ -481,36 +480,34 @@ class Chip:
                 fullpath = self.find_function(modulename, funcname, module_type=item)
                 if fullpath:
                     break
-                self.logger.error(f"Could not find module {modulename}")
-                self.error = 1
-                return None
         elif moduletype in ('targets','flows', 'pdks', 'libs'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}.py", missing_ok=True)
         elif moduletype in ('tools', 'checklists'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}/{modulename}.py", missing_ok=True)
         else:
-            self.logger.error(f"Illegal module type '{moduletype}'.")
-            self.error = 1
-            return
+            self.error(f"Illegal module type '{moduletype}'.")
+            return None
+
+        if not fullpath:
+            self.error(f'Could not find module {modulename}')
+            return None
 
         # try loading module if found
-        if fullpath:
-            self.logger.debug(f"Loading function '{funcname}' from module '{modulename}'")
+        self.logger.debug(f"Loading function '{funcname}' from module '{modulename}'")
 
-            try:
-                spec = importlib.util.spec_from_file_location(modulename, fullpath)
-                imported = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(imported)
+        try:
+            spec = importlib.util.spec_from_file_location(modulename, fullpath)
+            imported = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(imported)
 
-                if hasattr(imported, funcname):
-                    function = getattr(imported, funcname)
-                else:
-                    function = None
-                return function
-            except:
-                traceback.print_exc()
-                self.logger.error(f"Module setup failed for '{modulename}'")
-                self.error = 1
+            if hasattr(imported, funcname):
+                function = getattr(imported, funcname)
+            else:
+                function = None
+            return function
+        except:
+            traceback.print_exc()
+            self.error(f"Module setup failed for '{modulename}'")
 
     ##########################################################################
     def load_target(self, name):
@@ -536,8 +533,7 @@ class Chip:
         if func is not None:
             func(self)
         else:
-            self.logger.error(f'Target module {name} not found in $SCPATH or siliconcompiler/targets/.')
-            raise SiliconCompilerError(f'Target module {name} not found $SCPATH or siliconcompiler/targets/.')
+            self.error(f'Target module {name} not found in $SCPATH or siliconcompiler/targets/.')
 
     ##########################################################################
     def load_pdk(self, name):
@@ -562,8 +558,7 @@ class Chip:
             self._loaded_modules['pdks'].append(name)
             func(self)
         else:
-            self.logger.error(f'PDK module {name} not found in $SCPATH or siliconcompiler/pdks/.')
-            raise SiliconCompilerError(f'PDK module {name} not found in $SCPATH or siliconcompiler/pdks/.')
+            self.error(f'PDK module {name} not found in $SCPATH or siliconcompiler/pdks/.')
 
     ##########################################################################
     def load_flow(self, name):
@@ -588,8 +583,7 @@ class Chip:
             self._loaded_modules['flows'].append(name)
             func(self)
         else:
-            self.logger.error(f'Flow module {name} not found in $SCPATH or siliconcompiler/flows/.')
-            raise SiliconCompilerError(f'Flow module {name} not found in $SCPATH or siliconcompiler/flows/.')
+            self.error(f'Flow module {name} not found in $SCPATH or siliconcompiler/flows/.')
 
     ##########################################################################
     def load_lib(self, name):
@@ -614,8 +608,7 @@ class Chip:
             self._loaded_modules['libs'].append(name)
             func(self)
         else:
-            self.logger.error(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
-            raise SiliconCompilerError(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
+            self.error(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
 
     ##########################################################################
     def load_checklist(self, name):
@@ -640,9 +633,7 @@ class Chip:
             self._loaded_modules['checklists'].append(name)
             func(self)
         else:
-            self.logger.error(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
-            raise SiliconCompilerError(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
-
+            self.error(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
 
     ###########################################################################
     def list_metrics(self):
@@ -1013,8 +1004,7 @@ class Chip:
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found
             if (not param in cfg) & (not 'default' in cfg):
-                self.logger.error(f"Set/Add keypath [{keypath}] does not exist.")
-                self.error = 1
+                self.error(f"Set/Add keypath [{keypath}] does not exist.")
             else:
                 # making an 'instance' of default if not found
                 if (not param in cfg) & ('default' in cfg):
@@ -1022,14 +1012,12 @@ class Chip:
                 list_type =bool(re.match(r'\[', cfg[param]['type']))
                 # checking for illegal fields
                 if not field in cfg[param] and (field != 'value'):
-                    self.logger.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
-                    self.error = 1
+                    self.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
                 # check legality of value
                 if field == 'value':
                     (type_ok,type_error) = self._typecheck(cfg[param], param, val)
                     if not type_ok:
-                        self.logger.error("%s", type_error)
-                        self.error = 1
+                        self.error("%s", type_error)
                 # converting python True/False to lower case string
                 if (field == 'value') and (cfg[param]['type'] == 'bool'):
                     if val == True:
@@ -1051,8 +1039,7 @@ class Chip:
                             elif val is False:
                                 cfg[param][field] = "false"
                             else:
-                                self.logger.error(f'{field} must be set to boolean.')
-                                self.error = 1
+                                self.error(f'{field} must be set to boolean.')
                         elif field in ('hashalgo', 'scope', 'require', 'type', 'unit',
                                        'shorthelp', 'notes', 'switch', 'help'):
                             # awlays string scalars
@@ -1082,37 +1069,32 @@ class Chip:
                             else:
                                 cfg[param][field] = val
                         else:
-                            self.logger.error(f"Assigning list to scalar for [{keypath}]")
-                            self.error = 1
+                            self.error(f"Assigning list to scalar for [{keypath}]")
                     else:
                         self.logger.debug(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
                 elif (mode == 'add'):
                     if field in ('filehash', 'date', 'author', 'signature'):
                         cfg[param][field].append(str(val))
                     elif field in ('copy', 'lock'):
-                        self.logger.error(f"Illegal use of add() for scalar field {field}.")
-                        self.error = 1
+                        self.error(f"Illegal use of add() for scalar field {field}.")
                     elif list_type & (not isinstance(val, list)):
                         cfg[param][field].append(str(val))
                     elif list_type & isinstance(val, list):
                         cfg[param][field].extend(val)
                     else:
-                        self.logger.error(f"Illegal use of add() for scalar parameter [{keypath}].")
-                        self.error = 1
+                        self.error(f"Illegal use of add() for scalar parameter [{keypath}].")
                 return cfg[param][field]
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
             if not param in cfg:
-                self.error = 1
-                self.logger.error(f"Get keypath [{keypath}] does not exist.")
+                self.error(f"Get keypath [{keypath}] does not exist.")
             elif mode == 'getcfg':
                 return cfg[param]
             elif mode == 'getkeys':
                 return cfg[param].keys()
             else:
                 if not (field in cfg[param]) and (field!='value'):
-                    self.error = 1
-                    self.logger.error(f"Field '{field}' not found for keypath [{keypath}]")
+                    self.error(f"Field '{field}' not found for keypath [{keypath}]")
                 elif field == 'value':
                     #Select default if no value has been set
                     if field not in cfg[param]:
@@ -1176,8 +1158,7 @@ class Chip:
             if not param in cfg and 'default' in cfg:
                 cfg[param] = copy.deepcopy(cfg['default'])
             elif not param in cfg:
-                self.error = 1
-                self.logger.error(f"Get keypath [{keypath}] does not exist.")
+                self.error(f"Get keypath [{keypath}] does not exist.")
                 return None
             all_args.pop(0)
             return self._search(cfg[param], keypath, *all_args, field=field, mode=mode, clobber=clobber)
@@ -1293,8 +1274,7 @@ class Chip:
                 break
 
         if result is None and not missing_ok:
-            self.error = 1
-            self.logger.error(f"File {filename} was not found")
+            self.error(f"File {filename} was not found")
 
         return result
 
@@ -1345,8 +1325,7 @@ class Chip:
             copy = False
 
         if 'file' not in paramtype and 'dir' not in paramtype:
-            self.logger.error('Can only call find_files on file or dir types')
-            self.error = 1
+            self.error('Can only call find_files on file or dir types')
             return None
 
         is_list = bool(re.match(r'\[', paramtype))
@@ -1683,6 +1662,9 @@ class Chip:
     def check_filepaths(self):
         '''
         Verifies that paths to all files in manifest are valid.
+
+        Returns:
+            True if all file paths are valid, otherwise False.
         '''
 
         allkeys = self.getkeys()
@@ -1702,7 +1684,9 @@ class Chip:
                     dir_error = 'dir' in paramtype and not os.path.isdir(path)
                     if file_error or dir_error:
                         self.logger.error(f"Paramater {keypath} path {path} is invalid")
-                        self.error = 1
+                        return False
+
+        return True
 
     ###########################################################################
     def _check_manifest_dynamic(self, step, index):
@@ -1711,6 +1695,8 @@ class Chip:
         - Make sure expected inputs exist.
         - Make sure all required filepaths resolve correctly.
         '''
+        error = False
+
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
         if self.valid('tool', tool, 'input', step, index):
@@ -1722,7 +1708,7 @@ class Chip:
             path = os.path.join(input_dir, filename)
             if not os.path.isfile(path):
                 self.logger.error(f'Required input {filename} not received for {step}{index}.')
-                self.error = 1
+                error = True
 
         if (not tool in self.builtin) and self.valid('tool', tool, 'require', step, index):
             all_required = self.get('tool', tool, 'require', step, index)
@@ -1730,18 +1716,18 @@ class Chip:
                 keypath = item.split(',')
                 paramtype = self.get(*keypath, field='type')
                 if ('file' in paramtype) or ('dir' in paramtype):
-                    abspath = self.find_files(*keypath)
+                    abspath = self.find_files(*keypath, missing_ok=True)
                     if abspath is None or (isinstance(abspath, list) and None in abspath):
                         self.logger.error(f"Required file keypath {keypath} can't be resolved.")
-                        self.error = 1
+                        error = True
 
         # Need to run this check here since file resolution can change in
         # _runtask().
         if 'SC_VALID_PATHS' in os.environ:
             if not self._check_files():
-                self.error = 1
+                error = True
 
-        return self.error
+        return not error
 
     ###########################################################################
     def check_manifest(self):
@@ -1767,6 +1753,8 @@ class Chip:
             Returns True of the Chip object dictionary checks out.
 
         '''
+        error = False
+
         # Dynamic checks
         # We only perform these if arg, step and arg, index are set.
         # We don't check inputs for skip all
@@ -1786,12 +1774,12 @@ class Chip:
 
         #1. Checking that flowgraph and steplist are legal
         if flow not in self.getkeys('flowgraph'):
-            self.error = 1
+            error = True
             self.logger.error(f"flowgraph {flow} not defined.")
         legal_steps = self.getkeys('flowgraph',flow)
 
         if 'import' not in legal_steps:
-            self.error = 1
+            error = True
             self.logger.error("Flowgraph doesn't contain import step.")
 
         indexlist = {}
@@ -1816,7 +1804,7 @@ class Chip:
                         if not os.path.isfile(cfg):
                             self.logger.error(f'{step}{index} relies on {in_step}{in_index} from job {in_job}, '
                                 'but this task has not been run.')
-                            self.error = 1
+                            error = True
                         continue
                     if in_step in steplist and in_index in indexlist[in_step]:
                         # we're gonna run this step, OK
@@ -1826,12 +1814,12 @@ class Chip:
                         continue
                     self.logger.error(f'{step}{index} relies on {in_step}{in_index}, '
                         'but this task has not been run and is not in the current steplist.')
-                    self.error = 1
+                    error = True
 
         #2. Check libary names
         for item in self.get('asic', 'logiclib'):
             if item not in self.getkeys('library'):
-                self.error = 1
+                error = True
                 self.logger.error(f"Target library {item} not found.")
 
         #3. Check requirements list
@@ -1842,10 +1830,10 @@ class Chip:
                 key_empty = self._keypath_empty(key)
                 requirement = self.get(*key, field='require')
                 if key_empty and (str(requirement) == 'all'):
-                    self.error = 1
+                    error = True
                     self.logger.error(f"Global requirement missing for [{keypath}].")
                 elif key_empty and (str(requirement) == self.get('option', 'mode')):
-                    self.error = 1
+                    error = True
                     self.logger.error(f"Mode requirement missing for [{keypath}].")
 
         #4. Check per tool parameter requirements (when tool exists)
@@ -1859,20 +1847,20 @@ class Chip:
                         for item in all_required:
                             keypath = item.split(',')
                             if self._keypath_empty(keypath):
-                                self.error = 1
+                                error = True
                                 self.logger.error(f"Value empty for [{keypath}] for {tool}.")
                     if self._keypath_empty(['tool', tool, 'exe']):
-                        self.error = 1
+                        error = True
                         self.logger.error(f'Executable not specified for tool {tool}')
 
         if 'SC_VALID_PATHS' in os.environ:
             if not self._check_files():
-                self.error = 1
+                error = True
 
         if not self._check_flowgraph_io():
-            self.error = 1
+            error = True
 
-        return self.error
+        return not error
 
     ###########################################################################
     def _gather_outputs(self, step, index):
@@ -2005,9 +1993,7 @@ class Chip:
         filepath = os.path.abspath(filename)
         self.logger.debug(f"Reading manifest {filepath}")
         if not os.path.isfile(filepath):
-            error_message =  f"Manifest file not found {filepath}"
-            self.logger.error(error_message)
-            raise SiliconCompilerError(error_message)
+            self.error(f"Manifest file not found {filepath}", fatal=True)
 
         #Read arguments from file based on file type
 
@@ -2022,8 +2008,7 @@ class Chip:
             elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
                 localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
             else:
-                self.logger.error('File format not recognized %s', filepath)
-                self.error = 1
+                self.error('File format not recognized %s', filepath)
         finally:
             fin.close()
 
@@ -2117,8 +2102,7 @@ class Chip:
             elif is_csv:
                 self._print_csv(cfgcopy, fout=fout)
             else:
-                self.logger.error('File format not recognized %s', filepath)
-                self.error = 1
+                self.error('File format not recognized %s', filepath)
         finally:
             fout.close()
 
@@ -2154,6 +2138,7 @@ class Chip:
             >>> status = chip.check_checklist('iso9000', 'd000')
             Returns status.
         '''
+        error = False
 
         self.logger.info(f'Checking checklist {standard}')
 
@@ -2167,12 +2152,10 @@ class Chip:
             for criteria in all_criteria:
                 m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
                 if not m:
-                    self.logger.error(f"Illegal checklist criteria: {criteria}")
-                    self.error = 1
+                    self.error(f"Illegal checklist criteria: {criteria}")
                     return False
                 elif m.group(1) not in self.getkeys('metric', 'default', 'default'):
-                    self.logger.error(f"Critera must use legal metrics only: {criteria}")
-                    self.error = 1
+                    self.error(f"Critera must use legal metrics only: {criteria}")
                     return False
 
                 metric = m.group(1)
@@ -2197,8 +2180,7 @@ class Chip:
                         self.logger.warning(f'{item} criteria {criteria_str} unmet by task {step}{index}, but found waivers.')
                     elif not criteria_ok:
                         self.logger.error(f'{item} criteria {criteria_str} unmet by task {step}{index}.')
-                        self.error = 1
-                        return False
+                        error = True
 
                     if (step in self.getkeys('tool', tool, 'report', job=job) and
                         index in self.getkeys('tool', tool, 'report', step, job=job) and
@@ -2209,8 +2191,7 @@ class Chip:
 
                     if not eda_reports:
                         self.logger.error(f'No EDA reports generated for metric {metric} in task {step}{index}')
-                        self.error = 1
-                        return False
+                        error = True
 
                     for report in eda_reports:
                         if report not in self.get('checklist', standard, item, 'report'):
@@ -2219,17 +2200,15 @@ class Chip:
             if len(self.get('checklist', standard, item, 'report')) == 0:
                 # TODO: validate that report exists?
                 self.logger.error(f'No report documenting item {item}')
-                self.error = 1
-                return False
+                error = True
 
             if check_ok and not self.get('checklist', standard, item, 'ok'):
                 self.logger.error(f"Item {item} 'ok' field not checked")
-                self.error = 1
-                return False
+                error = True
 
         self.logger.info('Check succeeded!')
 
-        return True
+        return not error
 
     ###########################################################################
     def read_file(self, filename, step='import', index='0'):
@@ -2323,8 +2302,7 @@ class Chip:
         # Check that package exists in remote registry
         if dep in remote.keys():
             if ver not in list(remote[dep].keys()):
-                self.logger.error(f"Package {dep}-{ver} not found in registry.")
-                sys.exit()
+                self.error(f"Package {dep}-{ver} not found in registry.")
 
         ifile = os.path.join(remote[dep][ver],dep,ver,package)
         odir = os.path.join(cache,dep,ver)
@@ -2361,8 +2339,7 @@ class Chip:
             # look through dependency package files
             package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
             if not os.path.isfile(package):
-                self.logger.error("Package missing. Try 'autoinstall' or install manually.")
-                sys.exit()
+                self.error("Package missing. Try 'autoinstall' or install manually.")
             with gzip.open(package, 'r') as f:
                 localcfg = json.load(f)
 
@@ -2375,7 +2352,7 @@ class Chip:
                     subver = localcfg['package']['dependency'][item]['value']
                     if (item in upstream) and (upstream[item] == subver):
                         # Circular imports are not supported.
-                        raise SiliconCompilerError(f'Cannot process circular import: {dep}-{ver} <---> {item}-{subver}.')
+                        self.error(f'Cannot process circular import: {dep}-{ver} <---> {item}-{subver}.', fatal=True)
                     subdeps[item] = subver
                     upstream[item] = subver
                     depgraph[subdesign].append((item, subver))
@@ -2567,8 +2544,7 @@ class Chip:
             ignore = outputs + [f'{design}.pkg.json']
             utils.copytree(indir, outdir, dirs_exist_ok=True, link=True, ignore=ignore)
         elif tool not in ('join', 'nop'):
-            self.error = 1
-            self.logger.error(f'Invalid import step builtin {tool}. Must be tool or join.')
+            self.error(f'Invalid import step builtin {tool}. Must be tool or join.')
 
     ###########################################################################
     def archive(self, step=None, index=None, all_files=False):
@@ -2658,8 +2634,7 @@ class Chip:
         keypathstr = ','.join(keypath)
         #TODO: Insert into find_files?
         if 'file' not in self.get(*keypath, field='type'):
-            self.logger.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
-            self.error = 1
+            self.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
         else:
             filelist = self.find_files(*keypath)
             #cycle through all paths
@@ -2676,14 +2651,12 @@ class Chip:
                     hash_value = hashobj.hexdigest()
                     hashlist.append(hash_value)
                 else:
-                    self.error = 1
-                    self.logger.info(f"Internal hashing error, file not found")
+                    self.error(f"Internal hashing error, file not found")
             # compare previous hash to new hash
             oldhash = self.get(*keypath,field='filehash')
             for i,item in enumerate(oldhash):
                 if item != hashlist[i]:
-                    self.logger.error(f"Hash mismatch for [{keypath}]")
-                    self.error = 1
+                    self.error(f"Hash mismatch for [{keypath}]")
             self.set(*keypath, hashlist, field='filehash', clobber=True)
 
 
@@ -3821,7 +3794,7 @@ class Chip:
         self.set('arg', 'index', index, clobber=True)
 
         if not self.get('option', 'skipcheck'):
-            if self.check_manifest():
+            if not self.check_manifest():
                 self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
                 self._haltstep(step, index)
 
@@ -3831,7 +3804,7 @@ class Chip:
             func = self.find_function(tool, "pre_process", 'tools')
             if func:
                 func(self)
-                if self.error:
+                if self._error:
                     self.logger.error(f"Pre-processing failed for '{tool}'")
                     self._haltstep(step, index)
 
@@ -4264,13 +4237,15 @@ class Chip:
                 cfg_dir = os.path.join(Path.home(), '.sc')
                 cfg_file = os.path.join(cfg_dir, 'credentials')
             if (not os.path.isdir(cfg_dir)) or (not os.path.isfile(cfg_file)):
-                self.logger.error('Could not find remote server configuration - please run "sc-configure" and enter your server address and credentials.')
-                raise SiliconCompilerError('Valid remote credentials could not be found.')
+                self.error('Could not find remote server configuration - '
+                    'please run "sc-configure" and enter your server address and '
+                    'credentials.', fatal=True)
             with open(cfg_file, 'r') as cfgf:
                 self.status['remote_cfg'] = json.loads(cfgf.read())
             if (not 'address' in self.status['remote_cfg']):
-                self.logger.error('Improperly formatted remote server configuration - please run "sc-configure" and enter your server address and credentials.')
-                raise SiliconCompilerError('Valid remote credentials could not be found.')
+                self.error('Improperly formatted remote server configuration - '
+                    'please run "sc-configure" and enter your server address and '
+                    'credentials.', fatal=True)
 
             # Pre-process: Run an 'import' stage locally, and upload the
             # in-progress build directory to the remote server.
@@ -4309,8 +4284,8 @@ class Chip:
                         break
 
                 stepdir = self._getworkdir(step=failed_step)[:-1]
-                raise SiliconCompilerError(f'Run() failed on step {failed_step}! '
-                    f'See logs in {stepdir} for error details.')
+                self.error(f'Run() failed on step {failed_step}! '
+                    f'See logs in {stepdir} for error details.', fatal=True)
         else:
             status = {}
 
@@ -4348,13 +4323,15 @@ class Chip:
 
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
+            check_ok = True
             if not self.get('option','skipcheck'):
-                self.check_manifest()
+                check_ok = self.check_manifest()
 
             # Check if there were errors before proceeding with run
-            if self.error:
-                self.logger.error(f"Check failed. See previous errors.")
-                raise SiliconCompilerError(f"Manifest checks failed.")
+            if not check_ok:
+                self.error('Manifest check failed. See previous errors.', fatal=True)
+            if self._error:
+                self.error('Implementation errors encountered. See previous errors.', fatal=True)
 
             # For each task to run, prepare a process and store its dependencies
             jobname = self.get('option','jobname')
@@ -4410,8 +4387,8 @@ class Chip:
                 # stuck in an infinite loop if it does, so we want to break out
                 # with an explicit error.
                 if len(tasks_to_run) > 0 and len(running_tasks) == 0:
-                    raise SiliconCompilerError('Tasks left to run, but no '
-                        'running tasks. Steplist may be invalid.')
+                    self.error('Tasks left to run, but no '
+                        'running tasks. Steplist may be invalid.', fatal=True)
 
                 # Check for completed tasks.
                 # TODO: consider staying in this section of loop until a task
@@ -4439,7 +4416,7 @@ class Chip:
                         break
 
                 if not index_succeeded:
-                    raise SiliconCompilerError('Run() failed, see previous errors.')
+                    self.error('Run() failed, see previous errors.', fatal=True)
 
             # On success, write out status dict to flowgraph status'. We do this
             # since certain scenarios won't be caught by reading in manifests (a
@@ -4958,8 +4935,7 @@ class Chip:
         elif op == "!=":
             return(bool(value!=goal))
         else:
-            self.error = 1
-            self.logger.error(f"Illegal comparison operation {op}")
+            self.error(f"Illegal comparison operation {op}")
 
 
     #######################################
@@ -5082,6 +5058,23 @@ class Chip:
         self.logger.error(f"Found version {reported_version}, did not satisfy any version specifier set {allowedstr}.")
         return False
 
+    def error(self, msg, fatal=False):
+        '''Raises error.
+
+        If fatal is False and :keypath:`option, continue` is set to True, this
+        will log an error and set an internal error flag that will cause run()
+        to quit. Otherwise, this will raise a SiliconCompilerError.
+
+        Args:
+            msg (str): Message associated with error
+            fatal (bool): Whether error is always fatal
+        '''
+        if not fatal and self.get('option', 'continue'):
+            self.logger.error(msg)
+            self._error = True
+            return
+
+        raise SiliconCompilerError(msg)
 
 ###############################################################################
 # Package Customization classes

@@ -25,7 +25,7 @@ def test_check_manifest():
 
     chip.set('arg', 'step', None)
     chip.set('arg', 'index', None)
-    assert chip.check_manifest() == 0
+    assert chip.check_manifest()
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -45,7 +45,7 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     }
     monkeypatch.setattr(os, 'environ', env)
 
-    assert chip.check_manifest() == 0
+    assert chip.check_manifest()
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -67,7 +67,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     }
     monkeypatch.setattr(os, 'environ', env)
 
-    assert chip.check_manifest() == 1
+    assert not chip.check_manifest()
 
 def test_check_missing_file_param():
     chip = siliconcompiler.Chip('gcd')
@@ -87,7 +87,7 @@ def test_check_missing_file_param():
     chip.add('library', libname, 'model', 'timing',
              'nldm', corner, '/fake/timing/file.lib')
 
-    assert chip.check_manifest() == 1
+    assert not chip.check_manifest()
 
 @pytest.fixture
 def merge_flow_chip():

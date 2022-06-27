@@ -3434,7 +3434,7 @@
             "notes": null,
             "require": null,
             "scope": "job",
-            "shorthelp": "Compilation frontend",
+            "shorthelp": "Flow continue-on-error",
             "signature": null,
             "switch": "-frontend <frontend>",
             "type": "str",
