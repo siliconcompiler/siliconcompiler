@@ -18,11 +18,16 @@ def test_spree(scroot):
     chip.load_flow('fpgaflow')
 
     chip.set('option', 'flow', 'fpgaflow')
+    print(chip.list_steps())
+    
+
+    chip.set('option', 'steplist', ['import', 'syn_vpr', 'pack-place-route'])
+    print(chip.list_steps())
     
     chip.run()
 
-    post_route_net = os.path.join(chip._getworkdir(), 'pack-place-route', '0', 'spree.net.post_routing')
-    assert os.path.exists(post_route_net)
+    route_file = os.path.join(chip._getworkdir(), 'pack-place-route', '0', 'spree.route')
+    assert os.path.exists(route_file)
 
 
 if __name__ == "__main__":
