@@ -81,7 +81,7 @@ def setup(chip, flowname='fpgaflow'):
     if  flow in ('vivado', 'quartus'):
         flowpipe = ['syn', 'place', 'route', 'bitstream']
     elif flow =='vpr':
-        flowpipe = ['syn_vpr', 'pack-place-route']
+        flowpipe = ['syn_vpr', 'pack-place-route', 'bitstream']
     else:
         flowpipe = ['syn', 'apr', 'bitstream']
 
@@ -218,8 +218,10 @@ def tool_lookup(flow, step):
     elif flow == 'vpr':
         if step == "syn_vpr":
             tool = "yosys"
-        else:
+        elif step == "pack-place-route":
             tool = "vpr"
+        else:
+            tool = "genfasm"
 
     return tool
 
