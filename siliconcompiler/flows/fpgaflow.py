@@ -81,7 +81,8 @@ def setup(chip, flowname='fpgaflow'):
     if  flow in ('vivado', 'quartus'):
         flowpipe = ['syn', 'place', 'route', 'bitstream']
     elif flow =='vpr':
-        flowpipe = ['syn_vpr', 'pack-place-route', 'bitstream']
+        # flowpipe = ['syn_vpr', 'pack-place-route', 'bitstream']
+        flowpipe = ['syn_vpr', 'pack-place-route']
     else:
         flowpipe = ['syn', 'apr', 'bitstream']
 
