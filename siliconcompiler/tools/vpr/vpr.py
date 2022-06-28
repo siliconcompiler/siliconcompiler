@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 import re
+import shutil
 
 ######################################################################
 # Make Docs
@@ -24,8 +25,6 @@ def make_docs():
 
     Installation: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 
-    .. warning::
-       Work in progress (not ready for use)
     '''
 
     chip = siliconcompiler.Chip('<design>')
@@ -39,25 +38,31 @@ def make_docs():
 ################################
 def setup(chip):
 
-     tool = 'vpr'
-     refdir = 'tools/'+tool
-     step = chip.get('arg','step')
-     index = chip.get('arg','index')
+    tool = 'vpr'
+    refdir = 'tools/'+tool
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
 
-     chip.set('tool', tool, 'exe', tool, clobber=False)
-     chip.set('tool', tool, 'version', '0.0', clobber=False)
-     chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'exe', tool, clobber=False)
+    chip.set('tool', tool, 'version', '0.0', clobber=False)
+    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
 
-     topmodule = chip.get('design')
-     blif = "inputs/" + topmodule + ".blif"
+    #TO-DO: PRIOROTIZE the post-routing packing results?
+    chip.set('tool', tool, 'output', step, index, chip.design + '.net')
+    chip.add('tool', tool, 'output', step, index, chip.design + '.place')
+    chip.add('tool', tool, 'output', step, index, chip.design + '.route')
+    chip.add('tool', tool, 'output', step, index, 'vpr_stdout.log')
+    
+    topmodule = chip.get('design')
+    blif = "inputs/" + topmodule + ".blif"
 
-     options = []
-     for arch in chip.get('fpga','arch'):
-          options.append(arch)
+    options = []
+    for arch in chip.get('fpga','arch'):
+        options.append(arch)
 
-     options.append(blif)
+    options.append(blif)
 
-     chip.add('tool', tool, 'option', step, index,  options)
+    chip.add('tool', tool, 'option', step, index,  options)
 
 
 
@@ -87,9 +92,12 @@ def pre_process(chip):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
+    
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-
+    for file in chip.get('tool', 'vpr', 'output', step, index):
+        shutil.copy(file, 'outputs')
+    shutil.copy(f'inputs/{chip.design}.blif', 'outputs')
     #TODO: return error code
     return 0
 
