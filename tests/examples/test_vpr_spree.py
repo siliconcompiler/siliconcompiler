@@ -22,8 +22,6 @@ def test_spree(scroot):
     
 
     chip.set('option', 'steplist', ['import', 'syn_vpr', 'pack-place-route'])
-    print(chip.list_steps())
-    
     chip.run()
 
     route_file = os.path.join(chip._getworkdir(), 'pack-place-route', '0', 'spree.route')
