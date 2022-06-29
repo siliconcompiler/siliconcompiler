@@ -1,8 +1,11 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
 import shutil
-import siliconcompiler
 from unittest import mock
+
+import pytest
+
+import siliconcompiler
 
 def test_find_sc_file(datadir):
 
@@ -15,10 +18,9 @@ def test_find_sc_file(datadir):
     assert chip._find_sc_file('test.txt') is not None
 
     assert chip._find_sc_file('my_file_that_doesnt_exist.blah', missing_ok=True) is None
-    assert chip.error == 0
 
-    assert chip._find_sc_file('my_file_that_doesnt_exist.blah') is None
-    assert chip.error == 1
+    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+        assert chip._find_sc_file('my_file_that_doesnt_exist.blah') is None
 
 def test_find_sc_file_env(datadir):
     '''Ensure we can find files on a custom path by setting the SCPATH env

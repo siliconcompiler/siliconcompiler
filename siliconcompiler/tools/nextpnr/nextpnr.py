@@ -1,4 +1,3 @@
-import os
 import siliconcompiler
 
 #####################################################################
@@ -37,8 +36,8 @@ def setup(chip):
     index = chip.get('arg','index')
 
     clobber = False
-    chip.set('tool', tool, 'exe', 'nextpnr-ice40', clobber=clobber)
-    chip.set('tool', tool, 'vswitch', '--version', clobber=clobber)
+    chip.set('tool', tool, 'exe', 'nextpnr-ice40')
+    chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=0.2', clobber=clobber)
     chip.set('tool', tool, 'option', step, index, "", clobber=clobber)
 
@@ -53,9 +52,6 @@ def setup(chip):
 def runtime_options(chip):
     ''' Custom runtime options, returns list of command line options.
     '''
-
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
 
     partname = chip.get('fpga', 'partname')
     topmodule = chip.get('design')
@@ -86,16 +82,3 @@ def parse_version(stdout):
         return version.split('-')[1]
     else:
         return version
-
-################################
-# Setup Tool (pre executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    #TODO: return error code
-    return 0

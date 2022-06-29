@@ -17,7 +17,7 @@ def main():
     sc-show -design adder
     (displays build/job0/adder/export/0/outputs/adder.gds)
 
-    sc-show -read_def "show 0 build/job0/adder/route/1/outputs/adder.def"
+    sc-show build/job0/adder/route/1/outputs/adder.def
     (displays build/job0/adder/route/1/outputs/adder.def)
 
     """
@@ -30,9 +30,14 @@ def main():
     # Create a base chip class.
     chip = siliconcompiler.Chip(UNSET_DESIGN)
 
+    input_map = {
+        'def': 'def',
+        'gds': 'gds',
+    }
     chip.create_cmdline(progname,
-                        switchlist=['design', 'input', 'option_loglevel', 'option_cfg'],
-                        description=description)
+                        switchlist=['-design', '-input', '-loglevel', '-cfg'],
+                        description=description,
+                        input_map=input_map)
 
     #Error checking
     design = chip.get('design') != UNSET_DESIGN
@@ -55,7 +60,7 @@ def main():
         dirlist =[chip.cwd,
                   'build',
                   chip.get('design'),
-                  'job0',
+                  chip.get('option', 'jobname'),
                   'import',
                   '0',
                   'outputs',

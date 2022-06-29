@@ -5,9 +5,8 @@
 # https://stackoverflow.com/a/246128
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-sc -design gcd \
-   -input "verilog gcd.v" \
-   -input "sdc gcd.sdc" \
+sc gcd.v gcd.sdc \
+   -design gcd \
    -package_version "0.0.0" \
    -package_description "GCD test package" \
    -package_license "MIT" \

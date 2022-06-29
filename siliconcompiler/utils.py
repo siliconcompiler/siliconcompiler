@@ -132,3 +132,9 @@ class Arch:
                 
         return max_add_size
  
+def get_file_ext(filename):
+    '''Get base file extension for a given path, disregarding .gz.'''
+    if filename.endswith('.gz'):
+        filename = os.path.splitext(filename)[0]
+    filetype = os.path.splitext(filename)[1].lower().lstrip('.')
+    return filetype

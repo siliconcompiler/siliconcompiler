@@ -4,7 +4,7 @@
             "default": {
                 "defvalue": [],
                 "example": [
-                    "cli: -arg_flow 'n 100",
+                    "cli: -arg_flow 'n 100'",
                     "api: chip.set('arg','flow','n', 100)"
                 ],
                 "help": "Parameter passed in as key/value pair to the flow target\nreferenced in the load_flow() API call. See the target flow\nfor specific guidelines regarding configuration parameters.",
@@ -14,7 +14,7 @@
                 "scope": "scratch",
                 "shorthelp": "ARG: Flow argument",
                 "signature": [],
-                "switch": "-arg_flow 'key <str>",
+                "switch": "-arg_flow 'key <str>'",
                 "type": "[str]",
                 "value": []
             }
@@ -40,7 +40,7 @@
             "default": {
                 "defvalue": [],
                 "example": [
-                    "cli: -arg_pdk 'mimcap true",
+                    "cli: -arg_pdk 'mimcap true'",
                     "api: chip.set('arg','pdk','mimcap','true')"
                 ],
                 "help": "Parameter passed in as key/value pair to the technology target\nreferenced in the load_pdk() API call. See the target technology\nfor specific guidelines regarding configuration parameters.",
@@ -100,9 +100,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: antenna cell list",
@@ -119,9 +117,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: buf cell list",
@@ -138,9 +134,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkbuf cell list",
@@ -157,9 +151,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkdelay cell list",
@@ -176,9 +168,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkgate cell list",
@@ -195,9 +185,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkicg cell list",
@@ -214,9 +202,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkinv cell list",
@@ -233,9 +219,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clklogic cell list",
@@ -252,9 +236,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: decap cell list",
@@ -271,9 +253,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: delay cell list",
@@ -290,9 +270,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: driver cell list",
@@ -309,9 +287,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: endcap cell list",
@@ -328,9 +304,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: filler cell list",
@@ -347,9 +321,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: hold cell list",
@@ -366,9 +338,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: ignore cell list",
@@ -385,9 +355,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: load cell list",
@@ -404,9 +372,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: tap cell list",
@@ -423,9 +389,7 @@
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: tie cell list",
@@ -443,9 +407,7 @@
             ],
             "help": "List of (x,y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: core area outline",
@@ -515,9 +477,7 @@
             ],
             "help": "List of (x,y) points that define the outline of the die area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: die area outline",
@@ -579,7 +539,7 @@
                 "alias": {
                     "defvalue": [],
                     "example": [
-                        "cli: -footprint_alias '12track FreeCell'",
+                        "cli: -asic_footprint_alias '12track FreeCell'",
                         "api: chip.set('asic','footprint','12track','alias','FreeCell')"
                     ],
                     "help": "Alias for the footprint key that is sometimes needed when the footprint can\nbe referenced by multiple names. The key is the 'official' footprint.",
@@ -659,7 +619,7 @@
             "scope": "job",
             "shorthelp": "ASIC: library architecture",
             "signature": null,
-            "switch": "-asic_library '<str>'",
+            "switch": "-asic_libarch '<str>'",
             "type": "str",
             "value": null
         },
@@ -671,9 +631,7 @@
             ],
             "help": "List of all selected logic libraries libraries\nto use for optimization for a given library architecture\n(9T, 11T, etc).",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: logic libraries",
@@ -690,9 +648,7 @@
             ],
             "help": "List of macro libraries to be linked in during synthesis and place\nand route. Macro libraries are used for resolving instances but are\nnot used as targets for logic synthesis.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: macro libraries",
@@ -810,7 +766,7 @@
             "default": {
                 "defvalue": null,
                 "example": [
-                    "cli: -asic_ndr_width 'clk (0.2,0.2)",
+                    "cli: -asic_ndr 'clk (0.2,0.2)'",
                     "api: chip.set('asic','ndr','clk', (0.2,0.2))"
                 ],
                 "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width,space) tuples\nspecified in microns.",
@@ -863,7 +819,7 @@
             "default": {
                 "defvalue": null,
                 "example": [
-                    "cli: -asic_rclayer 'clk m3",
+                    "cli: -asic_rclayer 'clk m3'",
                     "api: chip.set('asic', 'rclayer', 'clk', 'm3')"
                 ],
                 "help": "Technology agnostic metal layer to be used for parasitic\nextraction estimation during APR for the wire type specified\nCurrent the supported wire types are: clk, data. The metal\nlayers can be specified as technology agnostic SC layers\nstarting with m1 or as hard PDK specific layer names.",
@@ -957,7 +913,7 @@
                 "dataformat": {
                     "defvalue": null,
                     "example": [
-                        "cli: -checklist_dataformat 'README'",
+                        "cli: -checklist_dataformat 'ISO D000 dataformat README'",
                         "api: chip.set('checklist','ISO','D000','dataformat','README')"
                     ],
                     "help": "Free text description of the type of data files acceptable as\nchecklist signoff validation.",
@@ -1142,7 +1098,7 @@
                 "scope": "job",
                 "shorthelp": "Constraint files",
                 "signature": [],
-                "switch": "-constraint_constraint 'scenario <file>'",
+                "switch": "-constraint_file 'scenario <file>'",
                 "type": "[file]",
                 "value": []
             },
@@ -1276,7 +1232,7 @@
                 "junctiontemp": {
                     "defvalue": null,
                     "example": [
-                        "cli: -datasheet_junctiontemp 'mydevice (-40,125)>'",
+                        "cli: -datasheet_junctiontemp 'mydevice (-40,125)'",
                         "api: chip.set('datasheet','mydevice','limits','junctiontemp',(-40,125))"
                     ],
                     "help": "Device absolute junction temperature limits not to be exceeded.",
@@ -1293,7 +1249,7 @@
                 "storagetemp": {
                     "defvalue": null,
                     "example": [
-                        "cli: -datasheet_storagetemp 'mydevice (-40,125)>'",
+                        "cli: -datasheet_storagetemp 'mydevice (-40,125)'",
                         "api: chip.set('datasheet','mydevice','limits','storagetemp',(-40,125))"
                     ],
                     "help": "Device absolute storage temperature limits not to be exceeded.",
@@ -1311,7 +1267,7 @@
                     "default": {
                         "defvalue": null,
                         "example": [
-                            "cli: -datasheet_limits_voltage 'mydevice vdd (-0.4,1.1)>'",
+                            "cli: -datasheet_limits_voltage 'mydevice vdd (-0.4,1.1)'",
                             "api: chip.set('datasheet','mydevice','limits','voltage','vdd', (-0.4,1.1))"
                         ],
                         "help": "Device absolute minimum/maximum voltage not to be\nexceeded, specified on a per pin basis.",
@@ -1336,7 +1292,7 @@
                                 "cli: -datasheet_pin_capacitance 'mydevice sclk global (1e-12, 1.2e-12, 1.5e-12)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','capacitance','global',(1e-12, 1.2e-12, 1.5e-12)"
                             ],
-                            "help": "Pin capacitance.",
+                            "help": "Pin capacitance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1413,7 +1369,7 @@
                                 "cli: -datasheet_pin_dutycycle 'mydevice sclk global (45, 50, 55)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','dutycycle','global',(45, 50, 55)"
                             ],
-                            "help": "Pin duty cycle.",
+                            "help": "Pin duty cycle. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1430,15 +1386,15 @@
                         "default": {
                             "defvalue": null,
                             "example": [
-                                "cli: -datasheet_pin_supply 'mydevice ina ground vdd'",
-                                "api: chip.set('datasheet','mydevice','pin','ina','ground','global','vdd')"
+                                "cli: -datasheet_pin_ground 'mydevice ina ground vss'",
+                                "api: chip.set('datasheet','mydevice','pin','ina','ground','global','vss')"
                             ],
                             "help": "Pin related ground rail specified on a per mode basis.",
                             "lock": "false",
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin related power supply",
+                            "shorthelp": "Datasheet: pin related ground",
                             "signature": null,
                             "switch": "-datasheet_pin_ground 'design name mode <str>'",
                             "type": "str",
@@ -1452,7 +1408,7 @@
                                 "cli: -datasheet_pin_idrive 'mydevice sclk global (0.01, 0.012, 0.015)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','idrive','global',(0.01, 0.012, 0.015)"
                             ],
-                            "help": "Pin drive current.",
+                            "help": "Pin drive current. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1472,7 +1428,7 @@
                                 "cli: -datasheet_pin_iinject 'mydevice sclk global (0.001, 0.0012, 0.0015)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','iinject','global',(0.001, 0.0012, 0.0015)"
                             ],
-                            "help": "Pin injection current.",
+                            "help": "Pin injection current. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1492,7 +1448,7 @@
                                 "cli: -datasheet_pin_ileakage 'mydevice sclk global (1e-06, 1.2e-06, 1.5e-06)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','ileakage','global',(1e-06, 1.2e-06, 1.5e-06)"
                             ],
-                            "help": "Pin leakage current.",
+                            "help": "Pin leakage current. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1531,7 +1487,7 @@
                                 "cli: -datasheet_pin_rdiff 'mydevice sclk global (45, 50, 55)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','rdiff','global',(45, 50, 55)"
                             ],
-                            "help": "Pin differential pair resistance.",
+                            "help": "Pin differential pair resistance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1570,7 +1526,7 @@
                                 "cli: -datasheet_pin_rpulldown 'mydevice sclk global (1000, 1200, 3000)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','rpulldown','global',(1000, 1200, 3000)"
                             ],
-                            "help": "Pin pulldown resistance.",
+                            "help": "Pin pulldown resistance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1590,7 +1546,7 @@
                                 "cli: -datasheet_pin_rpullup 'mydevice sclk global (1000, 1200, 3000)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','rpullup','global',(1000, 1200, 3000)"
                             ],
-                            "help": "Pin pullup resistance.",
+                            "help": "Pin pullup resistance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1648,7 +1604,7 @@
                                 "cli: -datasheet_pin_tfall 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','tfall','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin fall transition.",
+                            "help": "Pin fall transition. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1668,7 +1624,7 @@
                                 "cli: -datasheet_pin_thold 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','thold','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin hold time.",
+                            "help": "Pin hold time. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1688,7 +1644,7 @@
                                 "cli: -datasheet_pin_tjitter 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','tjitter','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin rms jitter.",
+                            "help": "Pin rms jitter. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1708,7 +1664,7 @@
                                 "cli: -datasheet_pin_tperiod 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','tperiod','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin minimum period.",
+                            "help": "Pin minimum period. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1728,7 +1684,7 @@
                                 "cli: -datasheet_pin_tpulse 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','tpulse','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin pulse width.",
+                            "help": "Pin pulse width. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1748,7 +1704,7 @@
                                 "cli: -datasheet_pin_trise 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','trise','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin rise transition.",
+                            "help": "Pin rise transition. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1768,7 +1724,7 @@
                                 "cli: -datasheet_pin_tsetup 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','tsetup','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin setup time.",
+                            "help": "Pin setup time. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1807,7 +1763,7 @@
                                 "cli: -datasheet_pin_vcdm 'mydevice sclk global (100, 300, 500)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vcdm','global',(100, 300, 500)"
                             ],
-                            "help": "Pin human body model ESD tolerance.",
+                            "help": "Pin human body model ESD tolerance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1827,7 +1783,7 @@
                                 "cli: -datasheet_pin_vcm 'mydevice sclk global (0.3, 1.2, 1.6)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vcm','global',(0.3, 1.2, 1.6)"
                             ],
-                            "help": "Pin common mode voltage.",
+                            "help": "Pin common mode voltage. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1847,7 +1803,7 @@
                                 "cli: -datasheet_pin_vdiff 'mydevice sclk global (0.2, 0.3, 0.9)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vdiff','global',(0.2, 0.3, 0.9)"
                             ],
-                            "help": "Pin differential voltage.",
+                            "help": "Pin differential voltage. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1867,7 +1823,7 @@
                                 "cli: -datasheet_pin_vhbm 'mydevice sclk global (100, 300, 500)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vhbm','global',(100, 300, 500)"
                             ],
-                            "help": "Pin machine model ESD tolerance.",
+                            "help": "Pin machine model ESD tolerance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1887,7 +1843,7 @@
                                 "cli: -datasheet_pin_vih 'mydevice sclk global (1.4, 1.8, 2.2)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vih','global',(1.4, 1.8, 2.2)"
                             ],
-                            "help": "Pin high input voltage level.",
+                            "help": "Pin high input voltage level. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1907,7 +1863,7 @@
                                 "cli: -datasheet_pin_vil 'mydevice sclk global (-0.2, 0, 1.0)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vil','global',(-0.2, 0, 1.0)"
                             ],
-                            "help": "Pin low input voltage level.",
+                            "help": "Pin low input voltage level. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1927,7 +1883,7 @@
                                 "cli: -datasheet_pin_vnoise 'mydevice sclk global (0, 0.01, 0.1)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vnoise','global',(0, 0.01, 0.1)"
                             ],
-                            "help": "Pin random voltage noise.",
+                            "help": "Pin random voltage noise. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1947,7 +1903,7 @@
                                 "cli: -datasheet_pin_voh 'mydevice sclk global (4.6, 4.8, 5.2)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','voh','global',(4.6, 4.8, 5.2)"
                             ],
-                            "help": "Pin high output voltage level.",
+                            "help": "Pin high output voltage level. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1967,7 +1923,7 @@
                                 "cli: -datasheet_pin_vol 'mydevice sclk global (-0.2, 0, 0.2)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vol','global',(-0.2, 0, 0.2)"
                             ],
-                            "help": "Pin low output voltage level.",
+                            "help": "Pin low output voltage level. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -1999,7 +1955,7 @@
         "signature": null,
         "switch": "-design <str>",
         "type": "str",
-        "value": "test"
+        "value": null
     },
     "flowgraph": {
         "default": {
@@ -2113,7 +2069,7 @@
                     "tool": {
                         "defvalue": null,
                         "example": [
-                            "cli: -flowgraph_tool 'asicflow place openroad'",
+                            "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                             "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"
                         ],
                         "help": "Name of the tool name used for task execution. Builtin tool names\nassociated bound to core API functions include: minimum, maximum, join,\nverify, mux.",
@@ -2181,9 +2137,7 @@
             "hashalgo": "sha256",
             "help": "Architecture definition file for FPGA place and route\ntool. For the VPR tool, the file is a required XML based description,\nallowing targeting a large number of virtual and commercial\narchitectures. For most commercial tools, the fpga part name provides\nenough information to enable compilation and the 'arch' parameter is\noptional.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "FPGA: architecture file",
@@ -2291,7 +2245,7 @@
             ],
             "filehash": [],
             "hashalgo": "sha256",
-            "help": "List of {item} files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
+            "help": "List of input files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -2519,7 +2473,7 @@
                 "holdslack": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_holdslack 'place 0 goal 0.01'",
+                        "cli: -metric_holdslack 'place 0 0.01'",
                         "api: chip.set('metric','place','0','holdslack', 0.01)"
                     ],
                     "help": "Metric tracking the worst hold slack (positive or negative) on a per step and index basis.",
@@ -2537,7 +2491,7 @@
                 "holdtns": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_holdtns 'place 0 goal 0.01'",
+                        "cli: -metric_holdtns 'place 0 0.01'",
                         "api: chip.set('metric','place','0','holdtns', 0.01)"
                     ],
                     "help": "Metric tracking the total negative hold slack (TNS) on a per step and index basis.",
@@ -2555,7 +2509,7 @@
                 "holdwns": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_holdwns 'place 0 goal 0.01'",
+                        "cli: -metric_holdwns 'place 0 0.01'",
                         "api: chip.set('metric','place','0','holdwns', 0.01)"
                     ],
                     "help": "Metric tracking the worst negative hold slack (positive values truncated to zero) on a per step and index basis.",
@@ -2800,7 +2754,7 @@
                 "setupslack": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_setupslack 'place 0 goal 0.01'",
+                        "cli: -metric_setupslack 'place 0 0.01'",
                         "api: chip.set('metric','place','0','setupslack', 0.01)"
                     ],
                     "help": "Metric tracking the worst setup slack (positive or negative) on a per step and index basis.",
@@ -2818,7 +2772,7 @@
                 "setuptns": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_setuptns 'place 0 goal 0.01'",
+                        "cli: -metric_setuptns 'place 0 0.01'",
                         "api: chip.set('metric','place','0','setuptns', 0.01)"
                     ],
                     "help": "Metric tracking the total negative setup slack (TNS) on a per step and index basis.",
@@ -2836,7 +2790,7 @@
                 "setupwns": {
                     "defvalue": null,
                     "example": [
-                        "cli: -metric_setupwns 'place 0 goal 0.01'",
+                        "cli: -metric_setupwns 'place 0 0.01'",
                         "api: chip.set('metric','place','0','setupwns', 0.01)"
                     ],
                     "help": "Metric tracking the worst negative setup slack (positive values truncated to zero) on a per step and index basis.",
@@ -3256,9 +3210,7 @@
             ],
             "help": "List of step stop (break) points. If the step is a TCL\nbased tool, then the breakpoints stops the flow inside the\nEDA tool. If the step is a command line tool, then the flow\ndrops into a Python interpreter.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Breakpoint list",
@@ -3297,9 +3249,7 @@
             "hashalgo": "sha256",
             "help": "List of filepaths to JSON formatted schema configuration\nmanifests. The files are read in automatically when using the\n'sc' command line application. In Python programs, JSON manifests\ncan be merged into the current working manifest using the\nread_manifest() method.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Configuration manifest",
@@ -3338,9 +3288,7 @@
             "hashalgo": "sha256",
             "help": "Read the specified file, and act as if all text inside it was specified\nas command line parameters. Supported by most verilog simulators\nincluding Icarus and Verilator. The format of the file is not strongly\nstandardized. Support for comments and environment variables within\nthe file varies and depends on the tool used. SC simply passes on\nthe filepath toe the tool executable.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design compilation command file",
@@ -3348,6 +3296,23 @@
             "switch": "-f <file>",
             "type": "[file]",
             "value": []
+        },
+        "continue": {
+            "defvalue": "false",
+            "example": [
+                "cli: -continue",
+                "api: chip.set('option', 'continue', True)"
+            ],
+            "help": "Attempt to continue even when errors are encountered in the SC\nimplementation. If errors are encountered, execution will halt\nbefore a run.",
+            "lock": "false",
+            "notes": null,
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Implementation continue-on-error",
+            "signature": null,
+            "switch": "-continue",
+            "type": "bool",
+            "value": "false"
         },
         "copyall": {
             "defvalue": "false",
@@ -3379,9 +3344,7 @@
             "hashalgo": "sha256",
             "help": "Filepath to credentials used for remote processing. If the\ncredentials parameter is empty, the remote processing client program\ntries to access the \".sc/credentials\" file in the user's home\ndirectory. The file supports the following fields:\n\nuserid=<user id>\nsecret_key=<secret key used for authentication>\nserver=<ipaddr or url>",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "User credentials file",
@@ -3398,9 +3361,7 @@
             ],
             "help": "Symbol definition for source preprocessor.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design pre-processor symbol",
@@ -3462,6 +3423,23 @@
             "type": "str",
             "value": null
         },
+        "flowcontinue": {
+            "defvalue": "false",
+            "example": [
+                "cli: -flowcontinue",
+                "api: chip.set('option', 'flowcontinue', True)"
+            ],
+            "help": "Continue executing flow after a tool logs errors. The default\nbehavior is to quit executing the flow if a task ends and the errors\nmetric is greater than 0. Note that the flow will always cease\nexecuting if the tool returns a nonzero status code.",
+            "lock": "false",
+            "notes": null,
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Flow continue-on-error",
+            "signature": null,
+            "switch": "-flowcontinue",
+            "type": "bool",
+            "value": "false"
+        },
         "frontend": {
             "defvalue": "verilog",
             "example": [
@@ -3499,14 +3477,12 @@
         "idir": {
             "defvalue": [],
             "example": [
-                "cli: '+incdir+./mylib'",
+                "cli: +incdir+./mylib",
                 "api: chip.set('option','idir','./mylib')"
             ],
             "help": "Search paths to look for files included in the design using\nthe ```include`` statement.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design search paths",
@@ -3526,9 +3502,7 @@
             ],
             "help": "List of indices to execute. The default is to execute all\nindices for each step of a run.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation index list",
@@ -3617,9 +3591,7 @@
             ],
             "help": "List of file extensions that should be used for finding modules.\nFor example, if -y is specified as ./lib\", and '.v' is specified as\nlibext then the files ./lib/\\*.v \", will be searched for\nmodule matches.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design file extensions",
@@ -3653,9 +3625,7 @@
             ],
             "help": "List of metrics to supress when printing out the run\nsummary.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Metric summary filter",
@@ -3689,9 +3659,7 @@
             ],
             "help": "A list of phone numbers or email addresses to message\non a event event within the msg_event param. Actual\nsupport for email and phone messages is platform\ndependent.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Message contact",
@@ -3708,9 +3676,7 @@
             ],
             "help": "A list of steps after which to notify a recipient. For\nexample if values of syn, place, cts are entered separate\nmessages would be sent after the completion of the syn,\nplace, and cts steps.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Message event trigger",
@@ -3757,9 +3723,9 @@
             "defvalue": "O0",
             "example": [
                 "cli: -O3",
-                "api: chip.set('option','optmode','3')"
+                "api: chip.set('option','optmode','O3')"
             ],
-            "help": "The compiler has modes to prioritize run time and ppa. Modes\ninclude.\n\n(0) = Exploration mode for debugging setup\n(1) = Higher effort and better PPA than O0\n(2) = Higher effort and better PPA than O1\n(3) = Signoff quality. Better PPA and higher run times than O2\n(4-98) = Reserved (compiler/target dependent)\n(99) = Experimental highest possible effort, may be unstable",
+            "help": "The compiler has modes to prioritize run time and ppa. Modes\ninclude.\n\n(O0) = Exploration mode for debugging setup\n(O1) = Higher effort and better PPA than O0\n(O2) = Higher effort and better PPA than O1\n(O3) = Signoff quality. Better PPA and higher run times than O2\n(O4-O98) = Reserved (compiler/target dependent)\n(O99) = Experimental highest possible effort, may be unstable",
             "lock": "false",
             "notes": null,
             "require": "all",
@@ -3831,9 +3797,7 @@
             ],
             "help": "List of Silicon Unified Packager (SUP) registry directories.\nDirectories can be local file system folders or\npublicly available registries served up over http. The naming\nconvention for registry packages is:\n<name>/<name>-<version>.json(.<gz>)?",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Option: package registry",
@@ -3901,9 +3865,7 @@
             ],
             "help": "Specifies python modules paths for target import.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Search path",
@@ -3990,9 +3952,7 @@
             ],
             "help": "List of steps to skip during execution.The default is to\nexecute all steps  defined in the flow graph.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Skip step list",
@@ -4009,9 +3969,7 @@
             ],
             "help": "List of steps to execute. The default is to execute all steps\ndefined in the flow graph.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation step list",
@@ -4084,9 +4042,7 @@
             "hashalgo": "sha256",
             "help": "List of library files to be read in. Modules found in the\nlibraries are not interpreted as root modules.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design libraries",
@@ -4103,9 +4059,7 @@
             ],
             "help": "Search paths to look for verilog modules found in the the\nsource list. The import engine will look for modules inside\nfiles with the specified +libext+ param suffix.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "Design module search paths",
@@ -4127,7 +4081,7 @@
             ],
             "filehash": [],
             "hashalgo": "sha256",
-            "help": "List of {item} files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
+            "help": "List of output files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -4315,9 +4269,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of datasheet documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: datasheet document",
@@ -4356,9 +4308,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of quickstart documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: quickstart document",
@@ -4380,9 +4330,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of reference documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: reference document",
@@ -4404,9 +4352,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of releasenotes documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: releasenotes document",
@@ -4428,9 +4374,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of signoff documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: signoff document",
@@ -4452,9 +4396,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of testplan documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: testplan document",
@@ -4476,9 +4418,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of tutorial documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: tutorial document",
@@ -4500,9 +4440,7 @@
                 "hashalgo": "sha256",
                 "help": "Package list of userguide documents.",
                 "lock": "false",
-                "notes": [
-                    "None"
-                ],
+                "notes": null,
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: userguide document",
@@ -4554,9 +4492,7 @@
             ],
             "help": "Package list of SPDX license identifiers.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: license identifiers",
@@ -4578,9 +4514,7 @@
             "hashalgo": "sha256",
             "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).list of SPDX license identifiers.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: license files",
@@ -4597,9 +4531,7 @@
             ],
             "help": "Package country of origin specified as standardized\ninternational country codes. The field can be left blank\nif the location is unknown or global.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: location",
@@ -4633,14 +4565,12 @@
             ],
             "help": "Package sponsoring organization. The field can be left\nblank if not applicable.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: sponsoring organization",
             "signature": [],
-            "switch": "-package_organzation <str>",
+            "switch": "-package_organization <str>",
             "type": "[str]",
             "value": []
         },
@@ -4669,9 +4599,7 @@
             ],
             "help": "Package IP address to source code repository.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: code repository",
@@ -4688,9 +4616,7 @@
             ],
             "help": "Package list of qualified compilation targets.",
             "lock": "false",
-            "notes": [
-                "None"
-            ],
+            "notes": null,
             "require": null,
             "scope": "global",
             "shorthelp": "Package: qualified targets",
@@ -5990,6 +5916,23 @@
                     "type": "str",
                     "value": null
                 },
+                "toolargs": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -record_toolargs 'dfm 0 <-I include/ foo.v>'",
+                        "api: chip.set('record','dfm','0','toolargs', <-I include/ foo.v>)"
+                    ],
+                    "help": "Record tracking the tool CLI arguments per step and index basis. Arguments passed to tool via CLI.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Record: tool CLI arguments",
+                    "signature": null,
+                    "switch": "-record_toolargs 'step index <str>'",
+                    "type": "str",
+                    "value": null
+                },
                 "toolpath": {
                     "defvalue": null,
                     "example": [
@@ -6293,10 +6236,10 @@
                         "default": {
                             "defvalue": [],
                             "example": [
-                                "cli: -tool_regex 'openroad place 0 error -v ERROR",
-                                "api: chip.set('tool','openroad','regex','place','0','error','-v ERROR')"
+                                "cli: -tool_regex 'openroad place 0 errors -v ERROR'",
+                                "api: chip.set('tool','openroad','regex','place','0','errors','-v ERROR')"
                             ],
-                            "help": " A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude, -t, -i, -E, -x, -e. Patterns starting with \"-\" should be\ndirectly preceeded by the \"-e\" option. The following example\nillustrates the concept.\n\nUNIX grep:\n>> grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nsiliconcompiler:\nchip.set('tool','openroad','regex','place',0','warnings',[\"WARNING\",\"-v bbox\"])\n\nDefines a set of tool specific environment variables used by the executables\nthat depend on license key servers to control access. For multiple servers,\nseparate each server by a 'colon'. The named license variable are read at\nruntime (run()) and the environment variables are set.",
+                            "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceeded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`tool, <tool>,\nreport` parameter for those metrics, if not already present.",
                             "lock": "false",
                             "notes": null,
                             "require": null,

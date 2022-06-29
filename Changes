@@ -8,6 +8,28 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.9.1 (2022-06-21)
+=========================================
+
+**Major:**
+
+* Added input filetype inference based on file extension (restores functionality lost in 0.9.0).
+* Added manifest tree viewer to HTML report.
+* Added simulator exe compilation support to Verilator.
+* Improved TCL manifest generation:
+
+  * Fixed escaping of special characters and whitespace.
+  * Fixed insertion of "$env" in filepaths.
+  * Changed tuple printing to be TCL list instead of tuple-like string.
+
+**Minor:**
+
+* Schema: Added tool CLI arguments to ['record', ...] schema.
+* Changed create_cmdline() switchlist parameter to accept switch names as specified on command line.
+* Changed setup module docs generator to be packaged with SC.
+* Changed HTML report to be self-contained.
+* Fixed CSV manifest generation.
+
 SiliconCompiler 0.9.0 (2022-05-19)
 =========================================
 
@@ -20,12 +42,16 @@ SiliconCompiler 0.9.0 (2022-05-19)
   * Added ['output', ...] to store pointers to flow outputs.
   * Added ['model', ...] to store pointers to design abstractions (timing libraries, layouts, etc).
   * Added ['datasheet', ...] to store information about design's interface.
+  * Added ['unit', ...]  to store user driven SI units specificaiton (temp,voltage, etc)
   * Renamed ['eda', ...] to ['tool', ...]
   * Renamed ['mcmm', ...] to ['constraint', ...]
   * Replaced ['source'], ['constraint'], and ['read', ...] with more flexible ['input', \<filetype\>] to supply input files.
   * Added support for storing multiple PDKs in schema and selecting which one to use for run (analagous to flows).
-
-* Schema: Removed special ['library', ...] keypaths. All libraries are now created as Chip objects, and have their full config imported into a parent chip's schema.
+  * Change ['flowgraph'] to support modular flow composition
+  * Added support for package management ['depgrah'].
+  * Added checklist support.
+  * Removed special ['library', ...] keypaths. All libraries are now created as Chip objects, and have their full config imported into a parent chip's schema.
+* Added 'sup' packaging utility
 * Added ability to configure stdout and stderr redirection on a per-tool basis (thanks to @suppamax for implementing).
 * Added flexible tool version checking based on PEP-440 standard, now enabled by default.
 * Added 'clean' feature for cleaning up intermediate tool outputs.
@@ -39,7 +65,6 @@ SiliconCompiler 0.9.0 (2022-05-19)
 
 * Schema: Added ability to store per-parameter designer notes.
 * Added offline wheels distribution.
-* Added checklist support.
 * Added ``read_lef()`` function to help with PDK bring-up.
 * Added environment variables to replay scripts.
 * Added LVS/DRC signoff flow and top-level GDS stream out flow.
@@ -49,7 +74,6 @@ SiliconCompiler 0.9.0 (2022-05-19)
 * Fixed breakpoints to work more consistently across tools.
 
 Note: Since there was no public release of version 0.8.0, this list summarizes all changes since 0.7.0.
-
 
 SiliconCompiler 0.7.0 (2022-03-02)
 =========================================

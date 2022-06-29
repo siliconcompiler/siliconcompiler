@@ -1,4 +1,5 @@
 import os
+
 import siliconcompiler
 import re
 import shutil

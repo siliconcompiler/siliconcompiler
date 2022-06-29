@@ -5,12 +5,12 @@ import siliconcompiler
 def main():
     progname = "sc-run"
     chip = siliconcompiler.Chip(progname)
-    switchlist = ['cfg',
-                  'loglevel',
-                  'checkonly',
-                  'relax',
-                  'quiet',
-                  'version']
+    switchlist = ['-cfg',
+                  '-loglevel',
+                  '-checkonly',
+                  '-relax',
+                  '-quiet',
+                  '-version']
     description = """
     -----------------------------------------------------------
     Restricted SC app that accepts one or more json based cfg files
