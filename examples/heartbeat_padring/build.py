@@ -93,6 +93,9 @@ def build_top():
 
     chip.write_manifest('top_manifest.json')
 
+    # There are errors in KLayout export
+    chip.set('option', 'flowcontinue', True)
+
     # Run the top-level build.
     chip.run()
     # (Un-comment to display a summary report)
