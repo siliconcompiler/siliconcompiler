@@ -1,6 +1,8 @@
+import os
 import re
-import defusedxml.ElementTree as ET
-
+import shutil
+import importlib
+from jinja2 import Template
 import siliconcompiler
 
 ######################################################################
@@ -66,7 +68,7 @@ def setup(chip):
     chip.set('tool', tool, 'script', step, index, script, clobber=False)
 
     # Input/output requirements
-    if step == 'syn':
+    if step.startswith('syn'):
         # TODO: Our yosys script can also accept uhdm or ilang files. How do we
         # represent a set of possible inputs where you must pick one?
         chip.set('tool', tool, 'input', step, index, chip.design + '.v')
@@ -100,6 +102,7 @@ def setup(chip):
                     chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model','timing', 'nldm', corner]))
     else:
         chip.add('tool', tool, 'require', step, index, ",".join(['fpga','partname']))
+            
 
     # Setting up regex patterns
     chip.set('tool', tool, 'regex', step, index, 'warnings', "Warning:", clobber=False)
@@ -111,6 +114,20 @@ def setup(chip):
                    'cellarea',
                    'cells', 'registers', 'buffers', 'nets', 'pins'):
         chip.set('tool', tool, 'report', step, index, metric, f"{step}.log")
+
+#############################################
+# Runtime pre processing
+#############################################
+
+def pre_process(chip):
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    
+    # copy the VPR library to the yosys input directory and render the placeholders 
+    if chip.get('fpga', 'arch'):
+        create_vpr_lib(chip)
 
 ################################
 # Version Check
@@ -136,7 +153,9 @@ def post_process(chip):
     index = chip.get('arg','index')
 
     # Extracting
-    if step == 'syn':
+    if step.startswith('syn'):
+        #TODO: looks like Yosys exits on error, so no need to check metric
+        chip.set('metric', step, index, 'errors', 0, clobber=True)
         with open(step + ".log") as f:
             for line in f:
                 area = re.search(r'Chip area for module.*\:\s+(.*)', line)
@@ -158,8 +177,52 @@ def post_process(chip):
                     chip.set('metric', step, index, 'drvs', num_errors, clobber=True)
 
 
+################################
+# copy and render the VPR library
+################################
+def create_vpr_lib(chip):
+
+    #copy the VPR techmap library to the input directory
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    
+    src = f"{chip.scroot}/tools/yosys/vpr_yosyslib"
+    dst = f"{chip._getworkdir()}/{step}/{index}/inputs/vpr_yosyslib"
+    
+    if os.path.exists(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst)
+    spec = importlib.util.spec_from_file_location("utils", f"{chip.scroot}/utils.py")
+    imported = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(imported)
+
+    Arch = getattr(imported, 'Arch')
+    arch = Arch(chip.get('fpga', 'arch')[0])
+    max_lut_size = arch.find_max_lut_size()
+    max_mem_addr_width = arch.find_memory_addr_width()
+
+    #render the template placeholders
+    data = {
+        "max_lut_size": max_lut_size,
+        "memory_addr_width": max_mem_addr_width,
+        "lib_dir": dst,
+        "min_hard_adder_size": "1",
+        "min_hard_mult_size": "3"
+    }
+        
+    for _, _, lib_files in os.walk(dst):
+        for file_name in lib_files:
+            file = f"{dst}/{file_name}"
+            print(file)
+            with open(file) as template_f:
+                template = Template(template_f.read()) 
+            with open(file, "w") as rendered_f:
+                rendered_f.write(template.render(data))
+                
 ##################################################
 if __name__ == "__main__":
 
     chip = make_docs()
     chip.write_manifest("yosys.json")
+
+       

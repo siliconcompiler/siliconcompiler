@@ -1,0 +1,55 @@
+
+# This script has been written based on the yosys's default synthesis script and the synthesis script in vtr-verilog-to-routing/vtr_flow/misc/yosyslib/synthesis.ys
+
+begin:
+    hierarchy -check -auto-top -purge_lib -libdir {{ lib_dir }}
+coarse:
+    proc
+    flatten
+    opt_expr
+    opt_clean
+    check
+    opt -nodffe -nosdff
+    fsm
+    opt
+    wreduce
+    peepopt
+    opt_clean
+    techmap -map +/adff2dff.v
+    techmap -map {{ lib_dir }}/adffe2dff.v
+    techmap -map {{ lib_dir }}/yosys_models.v */t:$mul */t:$mem */t:$sub */t:$add
+    read_verilog -lib {{ lib_dir }}/adder.v
+    read_verilog -lib {{ lib_dir }}/multiply.v
+    read_verilog -lib {{ lib_dir }}/single_port_ram.v     
+    read_verilog -lib {{ lib_dir }}/dual_port_ram.v    
+    read_verilog {{ lib_dir }}/spram_rename.v         
+    read_verilog {{ lib_dir }}/dpram_rename.v
+    alumacc
+    share 
+    opt
+    memory -nomap
+    opt_clean
+fine:
+    opt -fast -full
+    memory_map
+    opt -full
+    techmap
+    clean; opt_lut
+    flowmap -maxlut {{ max_lut_size }} 
+    opt -fast
+    abc -fast 
+    abc -fast -lut {{ max_lut_size }} 
+    opt -fast
+    flatten
+    dffunmap
+check:
+    hierarchy -check -purge_lib
+    stat
+    check
+clean and output blif:
+    write_blif -true + vcc -false + gnd -undef + unconn -blackbox ZZZ     
+    opt_clean -purge
+
+
+
+

@@ -57,24 +57,30 @@ def setup(chip, flowname='fpgaflow'):
 
     '''
 
-    # Check that partname has been set
-
-    if chip.get('fpga', 'partname'):
+    # Check that fpga arch has been set for vpr flow or partname has been set for others
+    flow = ''
+    if chip.get('fpga', 'arch'):
+        flow = 'vpr'
+    elif chip.get('fpga', 'partname'):
         partname = chip.get('fpga', 'partname')
     else:
         chip.error('FPGA partname not specified', fatal=True)
 
     # Set FPGA mode if not set
     chip.set('option', 'mode', 'fpga')
-
-    # Partname lookup
-    (vendor, flow) = flow_lookup(partname)
-    chip.set('fpga', 'vendor', vendor)
+    
+    # Partname lookup for flows other than vpr   
+    if flow != 'vpr':
+        (vendor, flow) = flow_lookup(partname)
+        chip.set('fpga', 'vendor', vendor)
 
     #Setting up pipeline
     #TODO: Going forward we want to standardize steps
     if  flow in ('vivado', 'quartus'):
         flowpipe = ['syn', 'place', 'route', 'bitstream']
+    elif flow =='vpr':
+        # flowpipe = ['syn_vpr', 'pack-place-route', 'bitstream']
+        flowpipe = ['syn_vpr', 'pack-place-route']
     else:
         flowpipe = ['syn', 'apr', 'bitstream']
 
@@ -193,6 +199,14 @@ def tool_lookup(flow, step):
     # xilinx/vivado
     elif flow == "vivado":
         tool = 'vivado'
+    # open source vpr flow
+    elif flow == 'vpr':
+        if step == "syn_vpr":
+            tool = "yosys"
+        elif step == "pack-place-route":
+            tool = "vpr"
+        else:
+            tool = "genfasm"
 
     return tool
 
