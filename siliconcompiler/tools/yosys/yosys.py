@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 import importlib
@@ -225,4 +226,3 @@ if __name__ == "__main__":
     chip.write_manifest("yosys.json")
 
        
-        
