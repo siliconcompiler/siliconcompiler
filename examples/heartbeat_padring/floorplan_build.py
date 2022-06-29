@@ -568,6 +568,9 @@ def build_top():
     chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/sky130_io.blackbox.v')
     chip.write_manifest('top_manifest.json')
 
+    # There are errors in KLayout export
+    chip.set('option', 'flowcontinue', True)
+
     # Run the top-level build.
     chip.run()
     # (Un-comment to display a summary report)
