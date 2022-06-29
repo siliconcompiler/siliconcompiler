@@ -61,7 +61,11 @@ def setup(chip):
         options.append(arch)
 
     options.append(blif)
-
+    
+    # sdc = chip.get('input', 'sdc')
+    # if sdc:
+    #     options.append(f"--sdc_file {sdc}")
+        
     chip.add('tool', tool, 'option', step, index,  options)
 
 
