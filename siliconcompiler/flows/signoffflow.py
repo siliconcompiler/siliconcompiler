@@ -5,9 +5,8 @@ def make_docs():
 
     Inputs must be passed to this flow as follows::
 
-        chip.set('read', 'gds', 'extspice', '0', '<path-to-layout>.gds')
-        chip.set('read', 'netlist', 'lvs', '0', '<path-to-netlist>.vg')
-        chip.set('read', 'gds', 'drc', '0', '<path-to-layout>.gds')
+        chip.set('input', 'gds', '<path-to-layout>.gds')
+        chip.set('input', 'netlist', '<path-to-netlist>.vg')
     '''
     chip = siliconcompiler.Chip('<topmodule>')
     chip.set('option', 'flow', 'signoffflow')
