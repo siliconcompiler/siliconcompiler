@@ -15,7 +15,51 @@
 
     <title>SiliconCompiler Manifest Viewer</title>
 
-    <link href="bootstrap.min.css" rel="stylesheet">
+    <style>
+      {% include 'bootstrap.min.css' %}
+    </style>
+
+    <style>
+      /* Styles related to manifest tree view.
+      Source: https://stackoverflow.com/a/36297446
+      */
+
+      ul.tree li {
+          list-style-type: none;
+          position: relative;
+      }
+
+      ul.tree li ul {
+          display: none;
+      }
+
+      ul.tree li.open > ul {
+          display: block;
+      }
+
+      ul.tree li a {
+          color: black;
+          text-decoration: none;
+      }
+
+      ul.tree li a:before {
+          height: 1em;
+          padding:0 .1em;
+          font-size: .8em;
+          display: block;
+          position: absolute;
+          left: -1.3em;
+          top: .2em;
+      }
+
+      ul.tree li > a:not(:last-child):before {
+          content: '+';
+      }
+
+      ul.tree li.open > a:not(:last-child):before {
+          content: '-';
+      }
+    </style>
 
     <script type="text/javascript">
       // Helper method to download the current manifest as a .json file.
@@ -40,6 +84,25 @@
 
       // Initialization function to setup buttons/links/etc after all DOM elements are lodaed.
       document.addEventListener("DOMContentLoaded", function() {
+        // Foldable manifest tree logic.
+        // Source: https://stackoverflow.com/a/36297446.
+        var tree = document.querySelectorAll('ul.tree a:not(:last-child)');
+        for(var i = 0; i < tree.length; i++){
+            tree[i].addEventListener('click', function(e) {
+                var parent = e.target.parentElement;
+                var classList = parent.classList;
+                if(classList.contains("open")) {
+                    classList.remove('open');
+                    var opensubs = parent.querySelectorAll(':scope .open');
+                    for(var i = 0; i < opensubs.length; i++){
+                        opensubs[i].classList.remove('open');
+                    }
+                } else {
+                    classList.add('open');
+                }
+            });
+        }
+
         // Initialize the JSON manifest. TODO: There should probably be a 'file upload' option too
         var cur_manifest = {{ manifest|tojson|safe }};
 
@@ -53,18 +116,18 @@
         {% for mk in metric_keys %}
           {% for step in tasks %}
             {% for index in tasks[step] %}
-              {% set report = manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'] %}
+              {% set report = manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] %}
               {% if (step in report) and (index in report[step]) and (mk in report[step][index]) %}
                 var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ mk }}_metlink");
                 sim_log_btn.addEventListener('click', () => {
                   // TODO: clean up... >_>
-                  log_link = "{{ step }}/{{ index }}/{{ manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
+                  log_link = "{{ step }}/{{ index }}/{{ manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
                   window.open(log_link, "_blank");
                 });
                 var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ mk }}_ddmetlink");
                 sim_log_btn.addEventListener('click', () => {
                   // TODO: clean up... >_>
-                  log_link = "{{ step }}/{{ index }}/{{ manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
+                  log_link = "{{ step }}/{{ index }}/{{ manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
                   window.open(log_link, "_blank");
                 });
               {% endif %}
@@ -76,13 +139,15 @@
   </head>
 
   <body>
-    <script src="bootstrap.min.js"></script>
+    <script>
+      {% include 'bootstrap.min.js' %}
+    </script>
 
-    <span style="width: 33%; float: left;">
-      {% if results_fn %}
+    <span style="width: 33%; float: left;>
+      {% if img_data %}
         <div style="text-align: center; width: 100%;">
           <h2>GDS Preview</h2>
-          <img src="{{ manifest['design']['value'] }}.png" class="rounded mx-auto d-block" style="width: 100%;"></img>
+          <img src="data:image/jpeg;base64,{{img_data}}" class="rounded mx-auto d-block" style="width: 100%;"></img>
         </div>
       {% endif %}
 
@@ -116,12 +181,12 @@
                 <th>{{ mk }}</th>
                 {% for step in tasks %}
                   {% for index in tasks[step] %}
-                    {% if manifest['flowstatus'][step][index]['status']['value'] == 'error' %}
+                    {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
                       <td>(failed)</td>
-                    {% elif step in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ manifest["metric"][step][index][mk]["real"]["value"] }}</a></td>
+                    {% elif step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
+                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ manifest["metric"][step][index][mk]["value"] }}</a></td>
                     {% else %}
-                      <td>{{ manifest["metric"][step][index][mk]["real"]["value"] }}</td>
+                      <td>{{ manifest["metric"][step][index][mk]["value"] }}</td>
                     {% endif %}
                   {% endfor %}
                 {% endfor %}
@@ -152,12 +217,12 @@
                 </tr>
                 <tr>
                   {% for mk in metric_keys %}
-                    {% if manifest['flowstatus'][step][index]['status']['value'] == 'error' %}
+                    {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
                       <td>(failed)</td>
-                    {% elif step in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['eda'][manifest['flowgraph'][manifest['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ manifest["metric"][step][index][mk]["real"]["value"] }}</a></td>
+                    {% elif step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
+                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ manifest["metric"][step][index][mk]["value"] }}</a></td>
                     {% else %}
-                      <td>{{ manifest["metric"][step][index][mk]["real"]["value"] }}</td>
+                      <td>{{ manifest["metric"][step][index][mk]["value"] }}</td>
                     {% endif %}
                   {% endfor %}
                 </tr>
@@ -166,6 +231,37 @@
           {% endfor %}
         {% endfor %}
       </div>
+
+      <div style="text-align: center;"><a class="btn btn-primary" data-bs-toggle="collapse" href="#manifest_dropdown_div", role="button", aria-controls="manifest_dropdown_div" style="width:30%;">
+        Toggle Manifest Dropdown
+      </a></div>
+
+      {% macro manifest_tree(cfg) %}
+        {% for key in cfg.keys() | sort %}
+          {% if 'value' not in cfg[key] and 'help' not in cfg[key] %}
+            <li><a href="#">{{ key }}</a>
+              <ul>
+                {{ manifest_tree(cfg[key]) }}
+              </ul>
+            </li>
+          {% elif 'value' in cfg[key] %}
+            <li class="open"><a href="#">{{ key }}</a>
+              <ul>
+                <li>{{ cfg[key]['shorthelp'] }}</li>
+                <li><b>Value:</b> {{ cfg[key]['value'] }}</li>
+              </ul>
+            </li>
+          {% endif %}
+        {% endfor %}
+      {% endmacro %}
+
+      <div id="manifest_dropdown_div" class="collapse" style="text-align: left;">
+        <h2>Manifest</h2>
+        <ul class="tree">
+          {{ manifest_tree(pruned_cfg) }}
+        </ul>
+      </div>
+
     </span>
   </body>
 

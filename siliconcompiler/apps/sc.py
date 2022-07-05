@@ -1,14 +1,8 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 #Standard Modules
-import sys
-import logging
 import os
-import re
-import json
 import sys
-import uuid
-from multiprocessing import Process
 
 #Shorten siliconcompiler as sc
 import siliconcompiler
@@ -36,20 +30,46 @@ def main():
     Sources: https://github.com/siliconcompiler/siliconcompiler
     ------------------------------------------------------------
     """
+    # TODO: this is a hack to get around design name requirement: since legal
+    # design names probably can't contain spaces, we can detect if it is unset.
+    UNSET_DESIGN = '  unset  '
 
     # Create a base chip class.
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip(UNSET_DESIGN)
+
+    input_map = {
+        # HDL
+        'v': 'verilog',
+        'sv': 'verilog',
+        'vhdl': 'vhdl',
+        'c': 'c',
+        'bsv': 'bsv',
+        'scala': 'scala',
+
+        # ASIC "side files"
+        'sdc': 'sdc',
+        'def': 'floorplan.def',
+
+        # FPGA "side files"
+        'pcf': 'pcf'
+    }
 
     # Read command-line inputs and generate Chip objects to run the flow on.
     chip.create_cmdline(progname,
-                        description=description)
+                        description=description,
+                        input_map=input_map)
 
     # Set design if none specified
-    if not chip.get('design'):
-        sources = chip.get('source')
-        if len(sources) > 0:
-            topfile = chip.get('source')[0]
-        else:
+    if chip.get('design') == UNSET_DESIGN:
+        topfile = None
+        for sourcetype in ('verilog', 'vhdl', 'c', 'bsv', 'scala'):
+            if chip.valid('input', sourcetype):
+                sources = chip.get('input', sourcetype)
+                if sources:
+                    topfile = sources[0]
+                    break
+
+        if not topfile:
             chip.logger.error('Invalid arguments: either specify -design or provide sources.')
             sys.exit(1)
 
@@ -57,14 +77,14 @@ def main():
         chip.set('design', topmodule)
 
     # Set demo target if none specified
-    if not chip.get('target'):
+    if not chip.get('option', 'target'):
         chip.load_target("freepdk45_demo")
 
     # Storing user entered steplist/args before running
     if chip.get('arg','step'):
         steplist = [chip.get('arg','step')]
     else:
-        steplist = chip.get('steplist')
+        steplist = chip.get('option', 'steplist')
 
     # Run flow
     chip.run()

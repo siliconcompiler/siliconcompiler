@@ -6,17 +6,17 @@ import pytest
 @pytest.fixture
 def chip(datadir):
     # Create instance of Chip class
-    chip = siliconcompiler.Chip(loglevel='NOTSET')
+    chip = siliconcompiler.Chip('bad', loglevel='NOTSET')
 
     # Inserting value into configuration
-    chip.add('source', os.path.join(datadir, 'bad.v'))
+    chip.add('input', 'verilog', os.path.join(datadir, 'bad.v'))
     chip.set('design', 'bad')
     chip.set('asic', 'diearea', [(0, 0), (10, 10)])
-    chip.set('asic',  'corearea', [(1, 1), (9, 9)])
+    chip.set('asic', 'corearea', [(1, 1), (9, 9)])
     chip.load_target("freepdk45_demo")
 
-    chip.add('steplist', 'import')
-    chip.add('steplist', 'syn')
+    chip.add('option', 'steplist', 'import')
+    chip.add('option', 'steplist', 'syn')
 
     return chip
 
@@ -49,7 +49,7 @@ def test_failure_quiet(chip):
     '''Test that SC exits early on errors with -quiet switch.
     '''
 
-    chip.set('quiet', 'true')
+    chip.set('option', 'quiet', True)
 
     # Expect that command exits early
     with pytest.raises(siliconcompiler.SiliconCompilerError):

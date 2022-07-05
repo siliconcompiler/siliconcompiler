@@ -1,6 +1,5 @@
 import os
-import re
-import shutil
+
 import siliconcompiler
 from siliconcompiler.tools.netgen import count_lvs
 
@@ -21,11 +20,9 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.load_pdk('skywater130')
     chip.set('arg','index','<index>')
-
-    # check lvs
     chip.set('arg','step', 'lvs')
     setup(chip)
 
@@ -47,33 +44,38 @@ def setup(chip):
     # magic used for drc and lvs
     script = 'sc_lvs.tcl'
 
-    chip.set('eda', tool, 'exe', tool)
-    chip.set('eda', tool, 'vswitch', '-batch')
-    chip.set('eda', tool, 'version', '>=1.5.192')
-    chip.set('eda', tool, 'format', 'tcl')
-    chip.set('eda', tool, 'threads', step, index, 4)
-    chip.set('eda', tool, 'refdir', step, index, refdir)
-    chip.set('eda', tool, 'script', step, index, script)
+    chip.set('tool', tool, 'exe', tool)
+    chip.set('tool', tool, 'vswitch', '-batch')
+    chip.set('tool', tool, 'version', '>=1.5.192', clobber=False)
+    chip.set('tool', tool, 'format', 'tcl')
+    chip.set('tool', tool, 'threads', step, index, 4, clobber=False)
+    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=False)
+    chip.set('tool', tool, 'script', step, index, script, clobber=False)
 
     # set options
     options = []
     options.append('-batch')
     options.append('source')
-    chip.set('eda', tool, 'option', step, index, options, clobber=False)
+    chip.set('tool', tool, 'option', step, index, options, clobber=False)
 
     design = chip.get('design')
-    chip.add('eda', tool, 'input', step, index, f'{design}.spice')
-    if chip.valid('read', 'netlist', step, index):
-        chip.add('eda', tool, 'require', step, index, ','.join(['read', 'netlist', step, index]))
+    chip.add('tool', tool, 'input', step, index, f'{design}.spice')
+    if chip.valid('input', 'netlist'):
+        chip.add('tool', tool, 'require', step, index, ','.join(['input', 'netlist']))
     else:
-        chip.add('eda', tool, 'input', step, index, f'{design}.vg')
+        chip.add('tool', tool, 'input', step, index, f'{design}.vg')
 
-    # TODO: actually parse tool errors in post_process()
-    logfile = f'{step}.log'
+    # Netgen doesn't have a standard error prefix that we can grep for, but it
+    # does print all errors to stderr, so we can redirect them to <step>.errors
+    # and use that file to count errors.
+    chip.set('tool', tool, 'stderr', step, index, 'suffix', 'errors')
+    chip.set('tool', tool, 'report', step, index, 'errors', f'{step}.errors')
+
+    chip.set('tool', tool, 'regex', step, index, 'warnings', '^Warning:', clobber=False)
+
     report_path = f'reports/{design}.lvs.out'
-    chip.set('eda', tool, 'report', step, index, 'errors', logfile)
-    chip.set('eda', tool, 'report', step, index, 'drvs', report_path)
-    chip.set('eda', tool, 'report', step, index, 'warnings', report_path)
+    chip.set('tool', tool, 'report', step, index, 'drvs', report_path)
+    chip.set('tool', tool, 'report', step, index, 'warnings', report_path)
 
 ################################
 # Version Check
@@ -96,9 +98,18 @@ def post_process(chip):
     index = chip.get('arg', 'index')
     design = chip.get('design')
 
+    with open(f'{step}.errors', 'r') as f:
+        errors = len(f.readlines())
+    chip.set('metric', step, index, 'errors', errors)
+
     if step == 'lvs':
         # Export metrics
-        lvs_failures = count_lvs.count_LVS_failures(f'reports/{design}.lvs.json')
+        lvs_report = f'reports/{design}.lvs.json'
+        if not os.path.isfile(lvs_report):
+            chip.logger.warning('No LVS report generated. Netgen may have encountered errors.')
+            return
+
+        lvs_failures = count_lvs.count_LVS_failures(lvs_report)
 
         # We don't count top-level pin mismatches as errors b/c we seem to get
         # false positives for disconnected pins. Report them as warnings
@@ -106,11 +117,8 @@ def post_process(chip):
         # details.
         pin_failures = lvs_failures[3]
         errors = lvs_failures[0] - pin_failures
-        chip.set('metric', step, index, 'drvs', 'real', errors)
-        chip.set('metric', step, index, 'warnings', 'real', pin_failures)
-
-    #TODO: return error code
-    return 0
+        chip.set('metric', step, index, 'drvs', errors)
+        chip.set('metric', step, index, 'warnings', pin_failures)
 
 ##################################################
 if __name__ == "__main__":

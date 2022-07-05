@@ -6,7 +6,7 @@ SiliconCompiler has a Chisel frontend that enables you to build Chisel designs f
 To build a Chisel design, the only things you need to do differently from a configuration perspective are:
 
 1) Add all required Scala files as sources. Keep in mind that other frontend-specific features such as include or library directories are not yet supported for the Chisel frontend.
-2) Set the 'frontend' parameter to 'chisel'.
+2) Set the :keypath:`option, frontend` parameter to 'chisel'.
 
 Otherwise, you can configure the build as normal.
 

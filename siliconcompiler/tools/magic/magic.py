@@ -1,6 +1,5 @@
-import os
 import re
-import shutil
+
 import siliconcompiler
 
 ####################################################################
@@ -19,7 +18,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.load_pdk('skywater130')
     chip.set('arg','index','<index>')
 
@@ -51,36 +50,34 @@ def setup(chip):
     #    raise ValueError(f"Magic tool doesn't support step {step}.")
     script = 'sc_magic.tcl'
 
-    chip.set('eda', tool, 'exe', tool)
-    chip.set('eda', tool, 'vswitch', '--version')
-    chip.set('eda', tool, 'version', '>=8.3.196')
-    chip.set('eda', tool, 'format', 'tcl')
-    chip.set('eda', tool, 'threads', step, index,  4)
-    chip.set('eda', tool, 'refdir', step, index,  refdir)
-    chip.set('eda', tool, 'script', step, index,  script)
+    chip.set('tool', tool, 'exe', tool)
+    chip.set('tool', tool, 'vswitch', '--version')
+    chip.set('tool', tool, 'version', '>=8.3.196', clobber=False)
+    chip.set('tool', tool, 'format', 'tcl')
+    chip.set('tool', tool, 'threads', step, index,  4, clobber=False)
+    chip.set('tool', tool, 'refdir', step, index,  refdir, clobber=False)
+    chip.set('tool', tool, 'script', step, index,  script, clobber=False)
 
     # set options
     options = []
     options.append('-noc')
     options.append('-dnull')
-    chip.set('eda', tool, 'option', step, index,  options, clobber=False)
+    chip.set('tool', tool, 'option', step, index,  options, clobber=False)
 
     design = chip.get('design')
-    if chip.valid('read', 'gds', step, index):
-        chip.add('eda', tool, 'require', step, index, ','.join(['read', 'gds', step, index]))
+    if chip.valid('input', 'gds'):
+        chip.add('tool', tool, 'require', step, index, ','.join(['input', 'gds']))
     else:
-        chip.add('eda', tool, 'input', step, index, f'{design}.gds')
+        chip.add('tool', tool, 'input', step, index, f'{design}.gds')
     if step == 'extspice':
-        chip.add('eda', tool, 'output', step, index, f'{design}.spice')
+        chip.add('tool', tool, 'output', step, index, f'{design}.spice')
 
-    # TODO: actually parse errors/warnings in post_process()
-    logfile = f"{step}.log"
-    chip.set('eda', tool, 'report', step, index, 'errors', logfile)
-    chip.set('eda', tool, 'report', step, index, 'warnings', logfile)
+    chip.set('tool', tool, 'regex', step, index, 'errors', r'^Error', clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', r'warning', clobber=False)
 
     if step == 'drc':
         report_path = f'reports/{design}.drc'
-        chip.set('eda', tool, 'report', step, index, 'drvs', report_path)
+        chip.set('tool', tool, 'report', step, index, 'drvs', report_path)
 
 ################################
 # Version Check
@@ -109,7 +106,7 @@ def post_process(chip):
                 errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
 
                 if errors:
-                    chip.set('metric', step, index, 'drvs', 'real', errors.group(1))
+                    chip.set('metric', step, index, 'drvs', errors.group(1))
 
     #TODO: return error code
     return 0

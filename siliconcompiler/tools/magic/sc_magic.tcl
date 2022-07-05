@@ -1,8 +1,8 @@
 source ./sc_manifest.tcl
 
 set sc_stackup [dict get $sc_cfg asic stackup]
-set sc_runset [dict get $sc_cfg pdk drc runset magic $sc_stackup basic]
-set sc_process [dict get $sc_cfg pdk process]
+set sc_pdk [dict get $sc_cfg option pdk]
+set sc_runset [dict get $sc_cfg pdk $sc_pdk drc runset magic $sc_stackup basic]
 
 # Put grid on 0.005 pitch.  This is important, as some commands don't
 # rescale the grid automatically (such as lef read?).
@@ -23,7 +23,9 @@ tech load $sc_runset
 # set units to lambda grid
 snap lambda
 
-if {$sc_process == "skywater130"} {
+if {$sc_pdk == "skywater130"} {
+    # TODO: should not have process specific stuff here!
+
     # set sky130 standard power, ground, and substrate names
     set VDD VPWR
     set GND VGND

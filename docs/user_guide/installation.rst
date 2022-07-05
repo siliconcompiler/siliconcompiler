@@ -79,7 +79,7 @@ SiliconCompiler is installed directly from `pypi.org <https://pypi.org>`_ using 
  (venv) pip list                                 # show installed packages in venv
  (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
  (venv) python -m pip show siliconcompiler       # will display  SiliconCompiler package information
- (venv) python -c "import siliconcompiler;chip=siliconcompiler.Chip();print(chip.get('version','sc'))"
+ (venv) python -c "import siliconcompiler;print(siliconcompiler.__version__)"
 
 The expected version should be printed to the display:
 

@@ -1,9 +1,6 @@
 import os
-import subprocess
-import re
-import sys
+
 import siliconcompiler
-import shutil
 
 ####################################################################
 # Make Docs
@@ -23,7 +20,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step', 'run')
     chip.set('arg','index', '<index>')
     setup(chip)
@@ -45,20 +42,20 @@ def setup(chip):
     design = chip.get('design')
 
     # Standard Setup
-    chip.set('eda', tool, 'exe', 'iverilog', clobber=False)
-    chip.set('eda', tool, 'vswitch', '-V', clobber=False)
-    chip.set('eda', tool, 'version', '>=10.3', clobber=False)
-    chip.set('eda', tool, 'threads', step, index, os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'exe', 'iverilog')
+    chip.set('tool', tool, 'vswitch', '-V')
+    chip.set('tool', tool, 'version', '>=10.3', clobber=False)
+    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
 
     if step == 'compile':
-        chip.set('eda', tool, 'option', step, index,'-o outputs/'+design+'.vvp')
+        chip.set('tool', tool, 'option', step, index,'-o outputs/'+design+'.vvp')
     elif step == 'run':
-        chip.set('eda', tool, 'option', step, index, '')
+        chip.set('tool', tool, 'option', step, index, '')
     else:
         chip.logger.error(f"Step '{step}' not supported in Icarus tool")
 
     # Schema requirements
-    chip.add('eda', tool, 'require', step, index, 'source')
+    chip.add('tool', tool, 'require', step, index, 'input,verilog')
 
 ################################
 #  Custom runtime options
@@ -69,23 +66,20 @@ def runtime_options(chip):
     ''' Custom runtime options, returnst list of command line options.
     '''
 
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
     cmdlist = []
 
     # source files
-    for value in chip.find_files('ydir'):
+    for value in chip.find_files('option','ydir'):
         cmdlist.append('-y ' + value)
-    for value in chip.find_files('vlib'):
+    for value in chip.find_files('option','vlib'):
         cmdlist.append('-v ' + value)
-    for value in chip.find_files('idir'):
+    for value in chip.find_files('option','idir'):
         cmdlist.append('-I' + value)
-    for value in chip.get('define'):
+    for value in chip.get('option','define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('cmdfile'):
+    for value in chip.find_files('option','cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('source'):
+    for value in chip.find_files('input', 'verilog'):
         cmdlist.append(value)
 
     return cmdlist
@@ -97,17 +91,6 @@ def runtime_options(chip):
 def parse_version(stdout):
     # First line: Icarus Verilog version 10.1 (stable) ()
     return stdout.split()[3]
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-
-    return 0
-
 
 ##################################################
 if __name__ == "__main__":

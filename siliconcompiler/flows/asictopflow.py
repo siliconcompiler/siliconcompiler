@@ -7,8 +7,8 @@ def make_docs():
     This flow generates a GDS and a netlist for passing to a
     verification/signoff flow.
     '''
-    chip = siliconcompiler.Chip()
-    chip.set('flow', 'asictopflow')
+    chip = siliconcompiler.Chip('<topmodule>')
+    chip.set('option', 'flow', 'asictopflow')
     setup(chip)
     return chip
 
@@ -25,11 +25,11 @@ def setup(chip):
     chip.edge(flow, 'export', 'merge')
     chip.edge(flow, 'syn', 'merge')
 
-    chip.set('mode', 'asic')
+    chip.set('option', 'mode', 'asic')
 
-    chip.set('showtool', 'def', 'klayout')
-    chip.set('showtool', 'gds', 'klayout')
+    chip.set('option', 'showtool', 'def', 'klayout')
+    chip.set('option', 'showtool', 'gds', 'klayout')
 
     # Set default goal
     for step in chip.getkeys('flowgraph', flow):
-        chip.set('metric', step, '0', 'errors', 'goal', 0)
+        chip.set('flowgraph', flow, step, '0', 'goal', 'errors', 0)

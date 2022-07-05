@@ -1,23 +1,22 @@
 import os
+import copy
 import siliconcompiler
 
 def make_docs():
     '''
     Nangate open standard cell library for FreePDK45.
     '''
-
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     setup(chip)
     return chip
 
 def setup(chip):
-
     libname = 'nangate45'
     foundry = 'virtual'
     process = 'freepdk45'
     stackup = '10M'
     libtype = '10t'
-    rev = 'r1p0'
+    version = 'r1p0'
     corner = 'typical'
     objectives = ['setup']
 
@@ -28,82 +27,84 @@ def setup(chip):
                           process,
                           'libs',
                           libname,
-                          rev)
+                          version)
 
-    # standard cell typ
-    chip.set('library',libname, 'type', 'logiclib')
 
-    # rev
-    chip.set('library',libname, 'package', 'version',rev)
+    # create local chip object
+    lib = siliconcompiler.Chip(libname)
 
-    chip.set('library', libname, 'pdk', 'freepdk45')
+    # version
+    lib.set('package', 'version', version)
+
+    # list of stackups supported
+    lib.set('asic', 'stackup', stackup)
+
+    # list of pdks supported
+    lib.set('asic', 'pdk', process)
+
+    # footprint/type/sites
+    lib.set('asic', 'libarch', libtype)
+    lib.set('asic', 'footprint', 'FreePDK45_38x28_10R_NP_162NW_34O', 'symmetry', 'Y')
+    lib.set('asic', 'footprint', 'FreePDK45_38x28_10R_NP_162NW_34O', 'size', (0.19,1.4))
 
     # timing
-    chip.add('library',libname, 'nldm', corner, 'lib',
+    lib.add('model', 'timing', 'nldm', corner,
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
-    chip.add('library',libname,'lef', stackup,
+    lib.add('model', 'layout', 'lef', stackup,
              libdir+'/lef/NangateOpenCellLibrary.macro.mod.lef')
 
     # gds
-    chip.add('library',libname,'gds', stackup,
+    lib.add('model', 'layout', 'gds', stackup,
              libdir+'/gds/NangateOpenCellLibrary.gds')
 
-    # site name
-    chip.set('library',libname,
-             'site','FreePDK45_38x28_10R_NP_162NW_34O',
-             'symmetry', 'Y')
-
-    chip.set('library',libname,
-             'site','FreePDK45_38x28_10R_NP_162NW_34O',
-             'size', (0.19,1.4))
-
-    # lib arch
-    chip.set('library',libname,'arch',libtype)
-
-    # driver
-    chip.add('library',libname, 'cells','driver', "BUF_X4")
-
-    # clock buffers
-    chip.add('library',libname,'cells','clkbuf', "BUF_X4")
-
-    # tie cells
-    chip.add('library',libname,'cells','tie', ["LOGIC1_X1/Z",
-                                               "LOGIC0_X1/Z"])
-
-    # buffer cell
-    chip.add('library', libname,'cells', 'buf', ['BUF_X1/A/Z'])
-
-    # hold cells
-    chip.add('library',libname,'cells','hold', "BUF_X1")
-
-    # filler
-    chip.add('library',libname,'cells','filler', ["FILLCELL_X1",
-                                                  "FILLCELL_X2",
-                                                  "FILLCELL_X4",
-                                                  "FILLCELL_X8",
-                                                  "FILLCELL_X16",
-                                                  "FILLCELL_X32"])
-
-    # Stupid small cells
-    chip.add('library',libname,'cells','ignore', ["AOI211_X1",
-                                                  "OAI211_X1"])
-
-    # Tapcell
-    chip.add('library',libname,'cells','tap', "FILLCELL_X1")
-
-    # Endcap
-    chip.add('library',libname,'cells','endcap', "FILLCELL_X1")
 
     # Techmap
-    chip.add('library', libname, 'techmap', 'yosys',
-             libdir + '/techmap/yosys/cells_latch.v')
+    lib.add('asic', 'file', 'yosys', 'techmap',
+            libdir + '/techmap/yosys/cells_latch.v')
 
-    chip.set('library', libname, 'pgmetal', 'm1')
+    lib.set('asic', 'pgmetal', 'm1')
+
+
+    # driver
+    lib.add('asic', 'cells','driver', "BUF_X4")
+
+    # clock buffers
+    lib.add('asic', 'cells','clkbuf', "BUF_X4")
+
+    # tie cells
+    lib.add('asic', 'cells','tie', ["LOGIC1_X1/Z",
+                                    "LOGIC0_X1/Z"])
+
+    # buffer cell
+    lib.add('asic', 'cells', 'buf', ['BUF_X1/A/Z'])
+
+    # hold cells
+    lib.add('asic', 'cells', 'hold', "BUF_X1")
+
+    # filler
+    lib.add('asic', 'cells', 'filler', ["FILLCELL_X1",
+                                        "FILLCELL_X2",
+                                        "FILLCELL_X4",
+                                        "FILLCELL_X8",
+                                        "FILLCELL_X16",
+                                        "FILLCELL_X32"])
+
+    # Stupid small cells
+    lib.add('asic', 'cells', 'ignore', ["AOI211_X1",
+                                        "OAI211_X1"])
+
+    # Tapcell
+    lib.add('asic', 'cells','tap', "FILLCELL_X1")
+
+    # Endcap
+    lib.add('asic', 'cells','endcap', "FILLCELL_X1")
+
+    chip.import_library(lib)
 
 #########################
 if __name__ == "__main__":
 
-    chip = make_docs()
-    chip.write_manifest('nangate45.json')
+    lib = make_docs()
+    lib.write_manifest('nangate45.tcl')

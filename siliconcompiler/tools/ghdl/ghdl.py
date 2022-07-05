@@ -1,4 +1,3 @@
-import os
 import siliconcompiler
 
 #####################################################################
@@ -20,7 +19,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','import')
     chip.set('arg','index','<index>')
     setup(chip)
@@ -42,21 +41,20 @@ def setup(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    chip.set('eda', tool, 'exe', 'ghdl', clobber=clobber)
-    chip.set('eda', tool, 'vswitch', '--version', clobber=clobber)
-    chip.set('eda', tool, 'version', '>=2.0.0-dev', clobber=clobber)
-    chip.set('eda', tool, 'threads', step, index, '4', clobber=clobber)
-    options = ['--synth', '--std=08', '--out=verilog', '--no-formal']
-    chip.set('eda', tool, 'option', step, index, options, clobber=clobber)
-    chip.set('eda', tool, 'stdout', step, index, 'destination', 'output')
-    chip.set('eda', tool, 'stdout', step, index, 'suffix', 'v')
+    chip.set('tool', tool, 'exe', 'ghdl')
+    chip.set('tool', tool, 'vswitch', '--version')
+    chip.set('tool', tool, 'version', '>=2.0.0-dev', clobber=clobber)
+    chip.set('tool', tool, 'threads', step, index, '4', clobber=clobber)
+    chip.set('tool', tool, 'option', step, index, '', clobber=clobber)
+    chip.set('tool', tool, 'stdout', step, index, 'destination', 'output')
+    chip.set('tool', tool, 'stdout', step, index, 'suffix', 'v')
 
     # Schema requirements
-    chip.add('eda', tool, 'require', step, index, 'source')
+    chip.add('tool', tool, 'require', step, index, 'input,vhdl')
 
     design = chip.get('design')
 
-    chip.set('eda', tool, 'output', step, index, f'{design}.v')
+    chip.set('tool', tool, 'output', step, index, f'{design}.v')
 
 ################################
 #  Custom runtime options
@@ -67,10 +65,28 @@ def runtime_options(chip):
     ''' Custom runtime options, returnst list of command line options.
     '''
 
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     options = []
 
+    # Synthesize inputs and output Verilog netlist
+    options.append('--synth')
+    options.append('--std=08')
+    options.append('--out=verilog')
+    options.append('--no-formal')
+
+    if chip.valid('tool', 'ghdl', 'var', step, index, 'extraopts'): 
+        extra_opts = chip.get('tool', 'ghdl', 'var', step, index, 'extraopts')
+        # currently only -fsynopsys supported
+        for opt in extra_opts:
+            if opt == '-fsynopsys':
+                options.append(opt)
+            else:
+                chip.error('Unsupported option ' + opt)
+
     # Add sources
-    for value in chip.find_files('source'):
+    for value in chip.find_files('input', 'vhdl'):
         options.append(value)
 
     # Set top module
@@ -90,16 +106,6 @@ def parse_version(stdout):
     # '*-dev' is interpreted by packaging.version as a "developmental release",
     # which has the correct semantics. e.g. Version('2.0.0') > Version('2.0.0-dev')
     return stdout.split()[1]
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    
-    return 0
 
 ##################################################
 if __name__ == "__main__":

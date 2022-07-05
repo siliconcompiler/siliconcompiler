@@ -9,16 +9,15 @@ import time
 # Shared setup routine
 def run_design(design, M, job):
 
-    chip = siliconcompiler.Chip(loglevel='INFO')
-    chip.set('design', design)
-    chip.add('source', design+'.v')
-    chip.set('jobname', job)
-    chip.set('relax', True)
-    chip.set('quiet', True)
-    chip.set('flowarg','syn_np', str(M))
-    chip.set('flowarg','syn_place', str(M))
-    chip.set('flowarg','syn_cts', str(M))
-    chip.set('flowarg','syn_route', str(M))
+    chip = siliconcompiler.Chip(design, loglevel='INFO')
+    chip.add('input', 'verilog', design+'.v')
+    chip.set('option', 'jobname', job)
+    chip.set('option', 'relax', True)
+    chip.set('option', 'quiet', True)
+    chip.set('arg', 'flow','syn_np', str(M))
+    chip.set('arg', 'flow','syn_place', str(M))
+    chip.set('arg', 'flow','syn_cts', str(M))
+    chip.set('arg', 'flow','syn_route', str(M))
     chip.load_target("freepdk45_demo")
     chip.run()
 

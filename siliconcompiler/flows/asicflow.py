@@ -29,7 +29,7 @@ def make_docs():
     * **drc**: Design rule check (signoff)
 
     The syn, physyn, place, cts, route steps supports per process
-    options that can be set up by setting the 'flowarg','<step>_np'
+    options that can be set up by setting the 'arg, flow,'<step>_np'
     arg to a value > 1, as detailed below:
 
     * syn_np : Number of parallel synthesis jobs to launch
@@ -40,16 +40,16 @@ def make_docs():
     * route_np : Number of parallel routing jobs to launch
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<topmodule>')
     n = '3'
-    chip.set('flowarg','verify','true')
-    chip.set('flowarg', 'syn_np', n)
-    chip.set('flowarg', 'floorplan_np', n)
-    chip.set('flowarg', 'physyn_np', n)
-    chip.set('flowarg', 'place_np', n)
-    chip.set('flowarg', 'cts_np', n)
-    chip.set('flowarg', 'route_np', n)
-    chip.set('flow', 'asicflow')
+    chip.set('arg', 'flow', 'verify','true')
+    chip.set('arg', 'flow', 'syn_np', n)
+    chip.set('arg', 'flow', 'floorplan_np', n)
+    chip.set('arg', 'flow', 'physyn_np', n)
+    chip.set('arg', 'flow', 'place_np', n)
+    chip.set('arg', 'flow', 'cts_np', n)
+    chip.set('arg', 'flow', 'route_np', n)
+    chip.set('option', 'flow', 'asicflow')
     setup(chip)
 
     return chip
@@ -99,7 +99,7 @@ def setup(chip, flowname='asicflow'):
         'export' : 'klayout',
     }
 
-    # Clear olf flowgraph if it exists
+    # Clear old flowgraph if it exists
     if flowname in chip.getkeys('flowgraph'):
         del chip.cfg['flowgraph'][flowname]
 
@@ -107,18 +107,18 @@ def setup(chip, flowname='asicflow'):
     flowpipe = []
     for step in longpipe:
         if re.search(r'join|maximum|minimum|verify', tools[step]):
-            if bool(prevstep + "_np" in chip.getkeys('flowarg')):
+            if bool(prevstep + "_np" in chip.getkeys('arg','flow')):
                 flowpipe.append(step)
         else:
             flowpipe.append(step)
         prevstep = step
 
     # Set mandatory mode
-    chip.set('mode', 'asic')
+    chip.set('option', 'mode', 'asic')
 
     # Showtool definitions
-    chip.set('showtool', 'def', 'klayout')
-    chip.set('showtool', 'gds', 'klayout')
+    chip.set('option', 'showtool', 'def', 'klayout')
+    chip.set('option', 'showtool', 'gds', 'klayout')
 
     flowtools = setup_frontend(chip)
     for step in flowpipe:
@@ -128,8 +128,8 @@ def setup(chip, flowname='asicflow'):
     for step, tool in flowtools:
         param = step + "_np"
         fanout = 1
-        if param in chip.getkeys('flowarg'):
-            fanout = int(chip.get('flowarg', param)[0])
+        if param in chip.getkeys('arg', 'flow'):
+            fanout = int(chip.get('arg', 'flow', param)[0])
         # create nodes
         for index in range(fanout):
             # nodes
@@ -137,14 +137,14 @@ def setup(chip, flowname='asicflow'):
             # edges
             if re.search(r'join|maximum|minimum|verify', tool):
                 prevparam = prevstep + "_np"
-                fanin  = int(chip.get('flowarg', prevparam)[0])
+                fanin  = int(chip.get('arg', 'flow', prevparam)[0])
                 for i in range(fanin):
                     chip.edge(flowname, prevstep, step, tail_index=i)
             elif step != 'import':
                 chip.edge(flowname, prevstep, step, head_index=index)
             # metrics
             for metric in  ('errors','drvs','holdwns','setupwns','holdtns','setuptns'):
-                chip.set('metric', step, str(index), metric, 'goal', 0)
+                chip.set('flowgraph', flowname, step, str(index), 'goal', metric, 0)
             for metric in ('cellarea', 'peakpower', 'leakagepower'):
                 chip.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
         prevstep = step

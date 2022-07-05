@@ -19,22 +19,21 @@ def heartbeat_dir(tmpdir_factory):
     cwd = str(tmpdir_factory.mktemp("heartbeat"))
 
     os.chdir(cwd)
-    chip = siliconcompiler.Chip()
-    chip.set('design', 'heartbeat')
-    chip.set('loglevel', 'ERROR')
-    chip.set('quiet', True)
-    chip.add('source', os.path.join(datadir, 'heartbeat.v'))
+    chip = siliconcompiler.Chip('heartbeat')
+    chip.set('option', 'loglevel', 'ERROR')
+    chip.set('option', 'quiet', True)
+    chip.add('input', 'verilog', os.path.join(datadir, 'heartbeat.v'))
     chip.load_target('freepdk45_demo')
     chip.run()
 
     return cwd
 
 @pytest.mark.parametrize('flags', [
-    ['-read_def', 'show 0 build/heartbeat/job0/dfm/0/outputs/heartbeat.def'],
-    ['-read_gds', 'show 0 build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
+    ['-input', 'def build/heartbeat/job0/dfm/0/outputs/heartbeat.def'],
+    ['-input', 'gds build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
     ['-design', 'heartbeat'],
-    ['-read_def', 'show 0 build/heartbeat/job0/export/0/inputs/heartbeat.def',
-        '-cfg', 'build/heartbeat/job0/export/0/outputs/heartbeat.pkg.json']
+    ['-input', 'def build/heartbeat/job0/export/0/inputs/heartbeat.def',
+     '-cfg', 'build/heartbeat/job0/export/0/outputs/heartbeat.pkg.json']
     ])
 @pytest.mark.eda
 @pytest.mark.quick
@@ -51,10 +50,11 @@ def test_sc_show(flags, monkeypatch, heartbeat_dir):
         assert os.path.exists(filename)
 
         ext = os.path.splitext(filename)[1][1:]
-        assert chip.get('showtool', ext)
+        assert chip.get('option', 'showtool', ext)
 
-        sc_stackup = chip.get('pdk', 'stackup')[0]
-        tech_file = chip.get('pdk', 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
+        pdkname = chip.get('option', 'pdk')
+        sc_stackup = chip.get('pdk', pdkname, 'stackup')[0]
+        tech_file = chip.get('pdk', pdkname, 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
         assert tech_file is not None
 
         chip.logger.info('Showing ' + filename)

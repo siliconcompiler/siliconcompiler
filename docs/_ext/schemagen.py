@@ -2,9 +2,10 @@ from docutils import nodes
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 from sphinx.util.docutils import SphinxDirective
-from siliconcompiler.schema import schema_cfg
 
-from common import *
+import siliconcompiler
+from siliconcompiler.schema import schema_cfg
+from siliconcompiler.sphinx_ext.utils import *
 
 # Main Sphinx plugin
 class SchemaGen(SphinxDirective):
@@ -14,23 +15,7 @@ class SchemaGen(SphinxDirective):
 
         schema = schema_cfg()
 
-        # Split up schema into root and nested keys so that we can add a custom
-        # header to the root entries.
-        basic_schema = {}
-        nested_schema = {}
-        for key, val in schema.items():
-            if is_leaf(val):
-                basic_schema[key] = val
-            else:
-                nested_schema[key] = val
-
-        basic_section = build_section('root', 'root')
-        for n in self.process_schema(basic_schema):
-            basic_section += n
-
-        nested_sections = self.process_schema(nested_schema)
-
-        return [basic_section] + nested_sections
+        return self.process_schema(schema)
 
     def process_schema(self, schema, parents=[]):
         if 'help' in schema:
@@ -52,7 +37,7 @@ class SchemaGen(SphinxDirective):
                 if key == 'default':
                     for n in self.process_schema(schema['default'], parents=parents):
                         sections.append(n)
-                else:
+                elif key not in ('history', 'library'):
                     section_key = '-'.join(parents) + '-' + key
                     section = build_section(key, section_key)
                     for n in self.process_schema(schema[key], parents=parents+[key]):
@@ -75,13 +60,51 @@ class SchemaGen(SphinxDirective):
 
         return body
 
+class CategorySummary(SphinxDirective):
+
+    option_spec = {'category': str}
+
+    def run(self):
+
+        category = self.options['category']
+
+        # List of documentation objects to return.
+        new_doc = []
+        section = nodes.section(ids = [nodes.make_id(f'{category}_summary')])
+
+        chip = siliconcompiler.Chip('<design>', loglevel='DEBUG')
+
+        table = [[strong('parameter'), strong('description')]]
+
+        # Descend through defaults until we find the real items
+        prefix = [category]
+        while 'default' in chip.getdict(*prefix).keys():
+            prefix.append('default')
+
+        for item in chip.getkeys(*prefix):
+            if 'shorthelp' in chip.getkeys(*prefix, item):
+                shorthelp = chip.get(*prefix, item, field='shorthelp')
+                table.append([para(item),para(shorthelp)])
+            else:
+                table.append([para(item),para("See Schema")])
+        section += build_table(table)
+        new_doc += section
+
+        return new_doc
+
 def keypath_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     # Split and clean up keypath
     keys = [key.strip() for key in text.split(',')]
-    return [keypath(*keys)], []
+    try:
+        return [keypath(*keys)], []
+    except ValueError as e:
+        msg = inliner.reporter.error(f'{rawtext}: {e}', line=lineno)
+        prb = inliner.problematic(rawtext, rawtext, msg)
+        return [prb], [msg]
 
 def setup(app):
     app.add_directive('schemagen', SchemaGen)
+    app.add_directive('schema_category_summary', CategorySummary)
     app.add_role('keypath', keypath_role)
 
     return {

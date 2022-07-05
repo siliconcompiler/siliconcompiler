@@ -1,7 +1,3 @@
-import os
-import subprocess
-import re
-import sys
 import siliconcompiler
 
 ####################################################################
@@ -25,10 +21,9 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step', '<step>')
     chip.set('arg','index', '<index>')
-    chip.set('design', '<design>')
     setup(chip)
     return chip
 
@@ -48,10 +43,10 @@ def setup(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    chip.set('eda', tool, 'exe', tool)
-    chip.set('eda', tool, 'vswitch', '--numeric-version')
-    chip.set('eda', tool, 'version', '>=0.0.9')
-    chip.set('eda', tool, 'threads', step, index,  4)
+    chip.set('tool', tool, 'exe', tool)
+    chip.set('tool', tool, 'vswitch', '--numeric-version')
+    chip.set('tool', tool, 'version', '>=0.0.9', clobber=False)
+    chip.set('tool', tool, 'threads', step, index,  4, clobber=False)
 
     # Since we run sv2v after the import/preprocess step, there should be no
     # need for specifying include dirs/defines. However we don't want to pass
@@ -63,25 +58,16 @@ def setup(chip):
     # set and we can read the pickled Verilog without accessing the original
     # sources
     topmodule = chip.get('design')
-    chip.set('eda', tool, 'option', step, index,  [])
-    chip.add('eda', tool, 'option', step, index,  "inputs/" + topmodule + ".v")
-    chip.add('eda', tool, 'option', step, index,  "--write=outputs/" + topmodule + ".v")
+    chip.set('tool', tool, 'option', step, index,  [])
+    chip.add('tool', tool, 'option', step, index,  "inputs/" + topmodule + ".v")
+    chip.add('tool', tool, 'option', step, index,  "--write=outputs/" + topmodule + ".v")
 
-    chip.set('eda', tool, 'input', step, index, f'{topmodule}.v')
-    chip.set('eda', tool, 'output', step, index, f'{topmodule}.v')
+    chip.set('tool', tool, 'input', step, index, f'{topmodule}.v')
+    chip.set('tool', tool, 'output', step, index, f'{topmodule}.v')
 
 def parse_version(stdout):
     # 0.0.7-130-g1aa30ea
     return '-'.join(stdout.split('-')[:-1])
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    return 0
 
 ##################################################
 if __name__ == "__main__":

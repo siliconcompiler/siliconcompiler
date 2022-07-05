@@ -41,7 +41,7 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('asap7')
     setup(chip)
 
     return chip
@@ -60,87 +60,83 @@ def setup(chip):
     libtype = '7p5t'
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
-    # If you got here,  you are in asic mode
-    chip.set('mode', 'asic', clobber=True)
-
     # process name
-    chip.set('pdk','foundry', foundry)
-    chip.set('pdk','process', process)
-    chip.set('pdk','node', node)
-    chip.set('pdk','wafersize', wafersize)
-    chip.set('pdk','version', rev)
-    chip.set('pdk','stackup', stackup)
+    chip.set('pdk', process, 'foundry', foundry)
+    chip.set('pdk', process, 'node', node)
+    chip.set('pdk', process, 'wafersize', wafersize)
+    chip.set('pdk', process, 'version', rev)
+    chip.set('pdk', process, 'stackup', stackup)
 
     # APR tech file
     for tool in ('openroad', 'klayout', 'magic'):
-        chip.set('pdk','aprtech', tool, stackup, libtype, 'lef',
+        chip.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
                  pdkdir+'/apr/asap7_tech.lef')
 
     # Openroad APR setup files
-    chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'tracks',
+    chip.set('pdk', process, 'aprtech', 'openroad', stackup, libtype, 'tracks',
              pdkdir + '/apr/openroad_tracks.tcl')
-    chip.set('pdk', 'aprtech', 'openroad', stackup, libtype, 'tapcells',
+    chip.set('pdk', process, 'aprtech', 'openroad', stackup, libtype, 'tapcells',
              pdkdir + '/apr/openroad_tapcells.tcl')
 
     # Klayout setup file
-    chip.set('pdk','layermap','klayout','def','gds',stackup,
+    chip.set('pdk', process, 'layermap','klayout','def','gds',stackup,
              pdkdir+'/setup/klayout/asap7.lyt')
 
     # Routing Grid Definitions
     for layer, sc_name in [('M1', 'm1')]:
-        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.036)
-        chip.set('pdk','grid', stackup, layer, 'adj',     1.0)
+        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
+        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.036)
+        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     1.0)
 
     for layer, sc_name in [('M2', 'm2')]:
-        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.027)
-        chip.set('pdk','grid', stackup, layer, 'adj',     0.8)
+        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
+        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.027)
+        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.8)
 
     for layer, sc_name in [('M3', 'm3')]:
-        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.036)
-        chip.set('pdk','grid', stackup, layer, 'adj',     0.7)
+        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
+        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.036)
+        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.7)
 
     for layer, sc_name in [('M4', 'm4')]:
-        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.048)
-        chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
+        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
+        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.048)
+        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
 
     for layer, sc_name in [('M5', 'm5')]:
-        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.048)
-        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.048)
-        chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
+        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.048)
+        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.048)
+        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
 
     for layer, sc_name in [('M6', 'm6')]:
-        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.048)
-        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.064)
-        chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
+        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.048)
+        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.064)
+        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
 
     for layer, sc_name in [('M7', 'm7')]:
-        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.064)
-        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.064)
-        chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
+        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.064)
+        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.064)
+        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
 
     for layer, sc_name in [('M8', 'm8'), ('M9', 'm9')]:
-        chip.set('pdk','grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk','grid', stackup, layer, 'xpitch',  0.08)
-        chip.set('pdk','grid', stackup, layer, 'ypitch',  0.08)
-        chip.set('pdk','grid', stackup, layer, 'adj',     0.4)
+        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
+        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.08)
+        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.08)
+        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
 
     # Defaults for OpenROAD tool variables
-    chip.set('pdk', 'variable', 'openroad', stackup, 'place_density', ['0.77'])
-    chip.set('pdk', 'variable', 'openroad', stackup, 'pad_global_place', ['2'])
-    chip.set('pdk', 'variable', 'openroad', stackup, 'pad_detail_place', ['1'])
-    chip.set('pdk', 'variable', 'openroad', stackup, 'macro_place_halo', ['22.4', '15.12'])
-    chip.set('pdk', 'variable', 'openroad', stackup, 'macro_place_channel', ['18.8', '19.95'])
+    chip.set('pdk', process, 'var', 'openroad', stackup, 'place_density', ['0.77'])
+    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_global_place', ['2'])
+    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_detail_place', ['1'])
+    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_halo', ['22.4', '15.12'])
+    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_channel', ['18.8', '19.95'])
 
 #########################
 if __name__ == "__main__":

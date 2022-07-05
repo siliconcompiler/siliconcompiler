@@ -19,7 +19,7 @@ proc design_has_macros {} {
 }
 
 # Auto-generate floorplan if not defined yet
-if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
+if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
 
     #########################
     #Init Floorplan
@@ -27,14 +27,9 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     #NOTE: assuming a two tuple value as lower left, upper right
     set sc_diearea   [dict get $sc_cfg asic diearea]
     set sc_corearea  [dict get $sc_cfg asic corearea]
-    set sc_diesize   [regsub -all {[\,\)\(]} $sc_diearea " "]
-    set sc_coresize  [regsub -all {[\,\)\(]} $sc_corearea " "]
-    puts $sc_diearea
-    puts $sc_corearea
-    puts $sc_diesize
-    puts $sc_coresize
+    set sc_diesize "[lindex $sc_diearea 0] [lindex $sc_diearea 1]"
+    set sc_coresize "[lindex $sc_corearea 0] [lindex $sc_corearea 1]"
 
-    #TODO: if there is more than one site, pick the first one?
     initialize_floorplan -die_area $sc_diesize \
 	-core_area $sc_coresize \
 	-site $sc_site
@@ -44,13 +39,13 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     ###########################
 
     set metal_list ""
-    dict for {key value} [dict get $sc_cfg pdk grid $sc_stackup] {
+    dict for {key value} [dict get $sc_cfg pdk $sc_pdk grid $sc_stackup] {
 	lappend metal_list $key
     }
 
     # source tracks from file if found, else else use schema entries
-    if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tracks] {
-	source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tracks]]
+    if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks] {
+	source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks]]
     } else {
 	make_tracks
     }
@@ -96,19 +91,13 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     # Add power nets
     ###########################
     set block [ord::get_db_block]
-    foreach supply $sc_supplies {
-        set pin [dict get $sc_cfg supply $supply pin]
-        puts $pin
-        set level [dict get $sc_cfg supply $supply level]
-        puts $level
-
+    foreach pin $sc_pins {
         if {[set net [$block findNet $pin]] == "NULL"} {
-            set net [odb::dbNet_create $block $pin]
-            $net setSpecial
-            if {$level > 0} {
-                $net setSigType "POWER"
-            } else {
-                $net setSigType "GROUND"
+            set type [dict get $sc_cfg datasheet $sc_design pin $pin type global]
+            if {$type == "power" || $type == "ground"} {
+                set net [odb::dbNet_create $block $pin]
+                $net setSpecial
+                $net setSigType [string toupper $type]
             }
         }
     }
@@ -116,7 +105,7 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
     ###########################
     # Initialize floorplan
     ###########################
-    set def [dict get $sc_cfg "read" def $sc_step $sc_index]
+    set def [dict get $sc_cfg "input" "floorplan.def"]
     read_def -floorplan_initialize $def
 }
 
@@ -124,8 +113,8 @@ if {[expr ! [dict exists $sc_cfg "read" def $sc_step $sc_index]]} {
 # Tap Cells
 ###########################
 
-if [dict exists $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tapcells] {
-    source [lindex [dict get $sc_cfg pdk aprtech openroad $sc_stackup $sc_libtype tapcells] 0]
+if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tapcells] {
+    source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tapcells] 0]
 }
 
 remove_buffers

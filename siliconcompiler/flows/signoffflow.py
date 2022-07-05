@@ -5,12 +5,11 @@ def make_docs():
 
     Inputs must be passed to this flow as follows::
 
-        chip.set('read', 'gds', 'extspice', '0', '<path-to-layout>.gds')
-        chip.set('read', 'netlist', 'lvs', '0', '<path-to-netlist>.vg')
-        chip.set('read', 'gds', 'drc', '0', '<path-to-layout>.gds')
+        chip.set('input', 'gds', '<path-to-layout>.gds')
+        chip.set('input', 'netlist', '<path-to-netlist>.vg')
     '''
-    chip = siliconcompiler.Chip()
-    chip.set('flow', 'signoffflow')
+    chip = siliconcompiler.Chip('<topmodule>')
+    chip.set('option', 'flow', 'signoffflow')
     setup(chip)
     return chip
 
@@ -31,12 +30,11 @@ def setup(chip):
     chip.edge(flow, 'lvs', 'signoff')
     chip.edge(flow, 'drc', 'signoff')
 
-    chip.set('mode', 'asic')
+    chip.set('option', 'mode', 'asic')
 
-    chip.set('showtool', 'def', 'klayout')
-    chip.set('showtool', 'gds', 'klayout')
+    chip.set('option', 'showtool', 'def', 'klayout')
+    chip.set('option', 'showtool', 'gds', 'klayout')
 
     # Set default goal
     for step in chip.getkeys('flowgraph', flow):
-        chip.set('metric', step, '0', 'errors', 'goal', 0)
-
+        chip.set('flowgraph', flow, step, '0', 'goal', 'errors', 0)

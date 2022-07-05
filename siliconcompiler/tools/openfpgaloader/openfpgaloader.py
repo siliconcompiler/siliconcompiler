@@ -1,8 +1,3 @@
-import os
-import subprocess
-import re
-import sys
-import shutil
 import siliconcompiler
 
 ####################################################################
@@ -27,10 +22,9 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','program')
     chip.set('arg','index','0')
-    chip.set('design', '<design>')
     setup(chip)
     return chip
 
@@ -48,10 +42,10 @@ def setup(chip):
     index = chip.get('arg','index')
 
     # tool setup
-    chip.set('eda', tool, 'exe', tool, clobber=False)
-    chip.set('eda', tool, 'vswitch', '--Version', clobber=False)
-    chip.set('eda', tool, 'version', '0.5.0', clobber=False)
+    chip.set('tool', tool, 'exe', tool)
+    chip.set('tool', tool, 'vswitch', '--Version', clobber=False)
+    chip.set('tool', tool, 'version', '0.5.0', clobber=False)
 
     options = []
     options.append("inputs" + chip.get('design') + ".bit")
-    chip.add('eda', tool, 'option', step, index,  options)
+    chip.add('tool', tool, 'option', step, index,  options)

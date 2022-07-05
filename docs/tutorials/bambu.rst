@@ -5,8 +5,8 @@ SiliconCompiler supports high-level synthesis of C code to any supported SC targ
 
 To build a C design, the only things you need to do differently from a configuration perspective are:
 
-1) Add all required C files as sources.
-2) Set the 'frontend' parameter to 'c'.
+1) Add all required C files as inputs.
+2) Set the :keypath:`option, frontend` parameter to 'c'.
 
 Otherwise, you can configure the build as normal.
 

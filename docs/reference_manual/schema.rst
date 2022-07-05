@@ -54,9 +54,27 @@ Parameter Fields
    type
        The parameter type. Supported types include Python compatible types ('int', 'float', and 'bool') and two custom file types ('file' and 'dir'). The 'file' and 'dir' type specify that the parameter is a 'regular' file or directory as described by Posix. All types except for the 'bool' types can be specified as a Python compatible list type by enclosing the type value in brackets. (ie. [str] specifies that the parameter is a list of strings). Additionally strings, integers, and floats can be tagged as tuples, using the Python parentheses like syntax (eg. [(float,float)] specifies a list of 2-float tuples). Input arguments and return values of the set/get/add core methods are encoded as native Python types. The JSON format does not natively support all of these data types, so to ensure platform interoperability, all SC schema parameters are converted to strings before being exported to a json file. Additionally, note that the parameter value 'None' gets translated to the "null", True gets translated to "true", and False gets translated to "false" before JSON export.
 
-
-
 Parameters
 ----------
 
 .. schemagen::
+
+Nested keypaths
+----------------
+
+The SC schema has two special top-level categories that store nested subsets of the schema rather than unique parameters.
+
+history
+++++++++
+
+The "history" prefix stores configuration from past runs, indexed by jobname. Values are stored automatically at the end of :meth:`run()`, and only parameters tagged with the 'job' scope are stored. This can be used to go back and inspect the results of old runs. As a shortcut for accessing these stored values, most of the schema access functions support an optional ``job`` keyword arg. For example, the following line returns the number of errors from a synthesis step run as part of a job called "job0"::
+
+    chip.get('metric', 'syn', '0', 'error', job='job0')
+
+library
+++++++++
+
+The "library" prefix stores the schema parameters of library chip objects that have been imported into the current chip object, keyed by library name. These values are accessed directly using the schema access functions. For example, the following line returns the path to a LEF file associated with a library called "mylib"::
+
+    chip.find_files('library', 'mylib', 'model', 'layout', 'lef', stackup)
+

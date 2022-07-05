@@ -20,16 +20,15 @@ def checkarea(filelist, libdir, target):
     print("module", "cells", "area", sep=",")
     for item in filelist:
           design = re.match(r'.*/(\w+)\.v',item).group(1)
-          chip = siliconcompiler.Chip(loglevel="ERROR")
+          chip = siliconcompiler.Chip(design)
           chip.load_target(target)
-          chip.add('source', item)
-          chip.add('ydir', libdir)
-          chip.set('design', design)
-          chip.set('quiet', True)
-          chip.set('steplist', ['import', 'syn'])
+          chip.add('input', 'verilog', item)
+          chip.add('option', 'ydir', libdir)
+          chip.set('option','quiet', True)
+          chip.set('option','steplist', ['import', 'syn'])
           chip.run()
-          cells = chip.get('metric','syn', '0', 'cells', 'real')
-          area = chip.get('metric', 'syn', '0', 'cellarea', 'real')
+          cells = chip.get('metric','syn', '0', 'cells')
+          area = chip.get('metric', 'syn', '0', 'cellarea')
           print(design, cells, area, sep=",")
 
     return 0

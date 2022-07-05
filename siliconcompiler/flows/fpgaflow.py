@@ -1,6 +1,5 @@
 import siliconcompiler
 import re
-import sys
 
 from siliconcompiler.flows._common import setup_frontend
 
@@ -39,9 +38,9 @@ def make_docs():
 
     '''
 
-    chip = siliconcompiler.Chip()
-    chip.set('flow', 'fpgaflow')
-    chip.set('fpga', 'partname', '<fpga-partname>')
+    chip = siliconcompiler.Chip('<topmodule>')
+    chip.set('option', 'flow', 'fpgaflow')
+    chip.set('fpga', 'partname', 'ice40')
     setup(chip)
 
     return chip
@@ -58,25 +57,30 @@ def setup(chip, flowname='fpgaflow'):
 
     '''
 
-    # Check that partname has been set
-
-    if chip.get('fpga', 'partname'):
+    # Check that fpga arch has been set for vpr flow or partname has been set for others
+    flow = ''
+    if chip.get('fpga', 'arch'):
+        flow = 'vpr'
+    elif chip.get('fpga', 'partname'):
         partname = chip.get('fpga', 'partname')
     else:
-        chip.logger.error("FPGA partname not specified")
-        raise siliconcompiler.SiliconCompilerError("FPGA partname not specified")
+        chip.error('FPGA partname not specified', fatal=True)
 
     # Set FPGA mode if not set
-    chip.set('mode', 'fpga')
-
-    # Partname lookup
-    (vendor, flow) = flow_lookup(partname)
-    chip.set('fpga', 'vendor', vendor)
+    chip.set('option', 'mode', 'fpga')
+    
+    # Partname lookup for flows other than vpr   
+    if flow != 'vpr':
+        (vendor, flow) = flow_lookup(partname)
+        chip.set('fpga', 'vendor', vendor)
 
     #Setting up pipeline
     #TODO: Going forward we want to standardize steps
     if  flow in ('vivado', 'quartus'):
         flowpipe = ['syn', 'place', 'route', 'bitstream']
+    elif flow =='vpr':
+        # flowpipe = ['syn_vpr', 'pack-place-route', 'bitstream']
+        flowpipe = ['syn_vpr', 'pack-place-route']
     else:
         flowpipe = ['syn', 'apr', 'bitstream']
 
@@ -95,7 +99,7 @@ def setup(chip, flowname='fpgaflow'):
         for metric in ('errors','warnings','drvs','unconstrained',
                        'holdwns','holdtns', 'holdpaths',
                        'setupwns', 'setuptns', 'setuppaths'):
-            chip.set('metric', step, index, metric, 'goal', 0)
+            chip.set('flowgraph', flowname, step, index, 'goal', metric, 0)
         # Metrics
         for metric in ('luts','dsps','brams','registers',
                        'pins','peakpower','leakagepower'):
@@ -151,12 +155,6 @@ def flow_lookup(partname):
 
     ice40 = re.match('^ice40', partname)
 
-    ###########
-    # openfpga
-    ###########
-
-    openfpga = re.match('^openfpga', partname)
-
     if xilinx:
         vendor = 'xilinx'
         flow = 'vivado'
@@ -166,12 +164,10 @@ def flow_lookup(partname):
     elif ice40:
         vendor = 'lattice'
         flow = 'yosys-nextpnr'
-    elif openfpga:
-        vendor = 'openfpga'
-        flow = 'openfpga'
     else:
-        vendor = 'openfpga'
-        flow = 'openfpga'
+        raise siliconcompiler.SiliconCompilerError(
+            f'fpgaflow: unsupported partname {partname}'
+        )
 
     return (vendor, flow)
 
@@ -197,18 +193,20 @@ def tool_lookup(flow, step):
             tool = "icepack"
         elif step == "program":
             tool = "iceprog"
-    # experimental flow
-    elif flow == "openfpga":
-        if step == "syn":
-            tool = "yosys"
-        else:
-            tool = 'openfpga'
     # intel/quartus
     elif flow == "quartus":
         tool = 'quartus'
     # xilinx/vivado
     elif flow == "vivado":
         tool = 'vivado'
+    # open source vpr flow
+    elif flow == 'vpr':
+        if step == "syn_vpr":
+            tool = "yosys"
+        elif step == "pack-place-route":
+            tool = "vpr"
+        else:
+            tool = "genfasm"
 
     return tool
 

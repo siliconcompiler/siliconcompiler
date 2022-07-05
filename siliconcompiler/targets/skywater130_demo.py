@@ -10,7 +10,7 @@ def make_docs():
     open-source asicflow.
     '''
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     setup(chip)
     return chip
 
@@ -21,23 +21,27 @@ def make_docs():
 
 def setup(chip):
     '''
-    Template project file.
+    Skywater130 Demo Target
     '''
 
-    #1. Defining the project
+    #0. Defining the project
     project = 'skywater130_demo'
-    chip.set('target', project)
+    chip.set('option', 'target', project)
+
+    #1. Setting to ASIC mode
+    chip.set('option', 'mode','asic')
 
     #2. Load PDK, flow, libs
     chip.load_pdk('skywater130')
     chip.load_flow('asicflow')
     chip.load_flow('asictopflow')
     chip.load_flow('signoffflow')
-    chip.load_lib('sky130')
+    chip.load_lib('sky130hd')
     chip.load_checklist('oh_tapeout')
 
     #3. Set default targets
-    chip.set('flow', 'asicflow')
+    chip.set('option', 'flow', 'asicflow', clobber=False)
+    chip.set('option', 'pdk', 'skywater130')
 
     #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
@@ -63,10 +67,10 @@ def setup(chip):
 
     #5. Timing corners
     corner = 'typical'
-    chip.set('mcmm','worst','libcorner', corner)
-    chip.set('mcmm','worst','pexcorner', corner)
-    chip.set('mcmm','worst','mode', 'func')
-    chip.add('mcmm','worst','check', ['setup','hold'])
+    chip.set('constraint', 'worst', 'libcorner', corner)
+    chip.set('constraint', 'worst', 'pexcorner', corner)
+    chip.set('constraint', 'worst', 'mode', 'func')
+    chip.add('constraint', 'worst', 'check', ['setup','hold'])
 
 #########################
 if __name__ == "__main__":

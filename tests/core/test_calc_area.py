@@ -4,7 +4,7 @@ import os
 
 def test_calc_area():
 
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('test')
 
     # Test rectangle
     chip.set('asic','diearea', [(0,0), (10,10)])
