@@ -13,6 +13,8 @@ def setup_frontend(chip):
         frontend_flow.append(('import', 'bambu'))
     elif frontend == 'bluespec':
         frontend_flow.append(('import', 'bluespec'))
+    elif frontend == 'vhdl':
+        frontend_flow.append(('import', 'ghdl'))
     else:
         raise ValueError(f'Unsupported frontend: {frontend}')
 

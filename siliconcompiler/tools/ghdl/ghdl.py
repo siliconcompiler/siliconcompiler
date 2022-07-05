@@ -65,6 +65,9 @@ def runtime_options(chip):
     ''' Custom runtime options, returnst list of command line options.
     '''
 
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
     options = []
 
     # Synthesize inputs and output Verilog netlist
@@ -72,6 +75,15 @@ def runtime_options(chip):
     options.append('--std=08')
     options.append('--out=verilog')
     options.append('--no-formal')
+
+    if chip.valid('tool', 'ghdl', 'var', step, index, 'extraopts'): 
+        extra_opts = chip.get('tool', 'ghdl', 'var', step, index, 'extraopts')
+        # currently only -fsynopsys supported
+        for opt in extra_opts:
+            if opt == '-fsynopsys':
+                options.append(opt)
+            else:
+                chip.error('Unsupported option ' + opt)
 
     # Add sources
     for value in chip.find_files('input', 'vhdl'):
