@@ -56,17 +56,19 @@ def setup(chip):
     
     topmodule = chip.get('design')
     blif = "inputs/" + topmodule + ".blif"
-
+    
     options = []
     for arch in chip.get('fpga','arch'):
         options.append(arch)
 
     options.append(blif)
-    
-    # sdc = chip.get('input', 'sdc')
-    # if sdc:
-    #     options.append(f"--sdc_file {sdc}")
+
+    if 'sdc' in chip.getkeys('input'):
+        options.append(f"--sdc_file {chip.get('input', 'sdc')}")
         
+    threads = chip.get('tool', tool, 'threads', step, index)
+    options.append(f"--num_workers {threads}")
+    
     chip.add('tool', tool, 'option', step, index,  options)
 
 
