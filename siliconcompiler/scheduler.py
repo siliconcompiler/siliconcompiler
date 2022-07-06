@@ -43,9 +43,7 @@ def _deferstep(chip, step, index, status):
 
     # Job data is not encrypted, so it can be run in shared storage.
     # Write out the current schema for the compute node to pick up.
-    job_dir = "/".join([chip.get('option', 'builddir'),
-                        chip.get('design'),
-                        chip.get('option', 'jobname')])
+    job_dir = chip._getworkdir()
     cfg_dir = f'{job_dir}/configs'
     cfg_file = f'{cfg_dir}/{step}{index}.json'
     if not os.path.isdir(cfg_dir):
@@ -58,7 +56,7 @@ def _deferstep(chip, step, index, status):
         sf.write('#!/bin/bash\n')
         sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
-                    f"-jobscheduler '' -design {shlex.quote(chip.get('design'))}")
+                    f"-jobscheduler '' -design {shlex.quote(chip.get_entrypoint())}")
     schedule_cmd.append(script_path)
 
     # Run the 'srun' command, and track its output.

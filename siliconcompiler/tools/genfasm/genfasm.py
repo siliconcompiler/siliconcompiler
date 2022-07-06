@@ -31,18 +31,18 @@ def setup(chip):
     chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
 
 
-    topmodule = chip.get('design')
+    topmodule = chip.get_entrypoint()
     blif = f"inputs/{topmodule}.blif"
-    
+
     options = []
-    
+
     for arch in chip.get('fpga','arch'):
         options.append(arch)
 
     options.append(blif)
-    
-    options.extend( [ f"--net_file inputs/{topmodule}.net", 
-                f"--place_file inputs/{topmodule}.place", 
+
+    options.extend( [ f"--net_file inputs/{topmodule}.net",
+                f"--place_file inputs/{topmodule}.place",
                 f"--route_file inputs/{topmodule}.route"])
 
     chip.add('tool', tool, 'option', step, index,  options)
@@ -53,15 +53,15 @@ def setup(chip):
 # Runtime pre processing
 #############################################
 def pre_process(chip):
-    
+
     step = chip.get('arg','step')
     index = chip.get('arg','index')
     tool = "genfasm"
-    
+
     chip.add('tool', tool, 'option', step, index,  [f"--route_chan_width {find_chann_width()}" ])
 
-  
-    
+
+
 ################################
 # Post_process (post executable)
 ################################
@@ -84,7 +84,7 @@ def find_chann_width():
             match = re.search("Circuit successfully routed with a channel width factor of (\d+)", line)
             if match:
                 return match.group(1)
-    
+
     return -1
 ##################################################
 if __name__ == "__main__":

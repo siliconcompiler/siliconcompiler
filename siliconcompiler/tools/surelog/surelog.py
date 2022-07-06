@@ -61,7 +61,7 @@ def setup(chip):
     chip.add('tool', tool, 'option', step, index, options)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'output', step, index, chip.design + '.v')
+    chip.add('tool', tool, 'output', step, index, chip.get_entrypoint() + '.v')
 
     # Schema requirements
     chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
@@ -110,7 +110,7 @@ def runtime_options(chip):
     for value in chip.find_files('input', 'verilog'):
         cmdlist.append(value)
 
-    cmdlist.append('-top ' + chip.design)
+    cmdlist.append('-top ' + chip.get_entrypoint())
     # make sure we can find .sv files in ydirs
     # TODO: need to add libext
     cmdlist.append('+libext+.sv+.v')
@@ -137,7 +137,7 @@ def post_process(chip):
     # Look in slpp_all/file_elab.lst for list of Verilog files included in
     # design, read these and concatenate them into one pickled output file.
     with open('slpp_all/file_elab.lst', 'r') as filelist, \
-            open(f'outputs/{chip.design}.v', 'w') as outfile:
+            open(f'outputs/{chip.get_entrypoint()}.v', 'w') as outfile:
         for path in filelist.read().split('\n'):
             path = path.strip('"')
             if not path:

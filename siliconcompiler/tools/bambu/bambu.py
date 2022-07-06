@@ -38,7 +38,7 @@ def setup(chip):
     chip.set('tool', tool, 'option', step, index, [])
 
     # Input/Output requirements
-    chip.add('tool', tool, 'output', step, index, chip.get('design') + '.v')
+    chip.add('tool', tool, 'output', step, index, chip.get_entrypoint() + '.v')
 
     # Schema requirements
     chip.add('tool', tool, 'require', step, index, 'input,c')
@@ -64,7 +64,7 @@ def runtime_options(chip):
     for value in chip.find_files('input', 'c'):
         cmdlist.append(value)
 
-    cmdlist.append('--top-fname=' + chip.get('design'))
+    cmdlist.append('--top-fname=' + chip.get_entrypoint())
 
     return cmdlist
 
@@ -75,5 +75,5 @@ def runtime_options(chip):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-    design = chip.get('design')
+    design = chip.get_entrypoint()
     shutil.copy(f'{design}.v', os.path.join('outputs', f'{design}.v'))

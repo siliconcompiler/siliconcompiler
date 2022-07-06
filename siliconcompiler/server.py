@@ -397,7 +397,8 @@ class Server:
 
         # Assemble core job parameters.
         job_hash = chip.status['jobhash']
-        top_module = chip.get('design')
+        design = chip.get('design')
+        top_module = chip.get_entrypoint()
         job_nameid = f"{chip.get('option', 'jobname')}"
         nfs_mount = self.cfg['nfsmount']['value'][-1]
 
@@ -406,7 +407,6 @@ class Server:
 
         # Reset 'build' directory in NFS storage.
         build_dir = '/tmp/%s_%s'%(job_hash, job_nameid)
-        jobs_dir = '%s/%s'%(build_dir, top_module)
         os.mkdir(build_dir)
 
         run_cmd = ''

@@ -49,12 +49,12 @@ def setup(chip):
     chip.set('tool', tool, 'refdir', step, index,  refdir, clobber=False)
     chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
-    design = chip.get('design')
+    design = chip.get_entrypoint()
     option = f'"runMain SCDriver --module {design} -o ../outputs/{design}.v"'
     chip.set('tool', tool, 'option', step, index,  option)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'output', step, index, chip.get('design') + '.v')
+    chip.add('tool', tool, 'output', step, index, chip.get_entrypoint() + '.v')
 
     chip.set('tool', tool, 'keep', step, index, ['build.sbt', 'SCDriver.scala'])
 

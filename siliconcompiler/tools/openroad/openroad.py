@@ -81,18 +81,19 @@ def setup(chip, mode='batch'):
     # Input/Output requirements for default asicflow steps
     # TODO: long-term, we want to remove hard-coded step names from tool files.
     if step in ['floorplan', 'physyn', 'place', 'cts', 'route', 'dfm']:
+        design = chip.get_entrypoint()
         if step == 'floorplan':
             if (not chip.valid('input', 'netlist') or
                 not chip.get('input', 'netlist')):
-                chip.add('tool', tool, 'input', step, index, chip.design +'.vg')
+                chip.add('tool', tool, 'input', step, index, design +'.vg')
         else:
             if (not chip.valid('input', 'def') or
                 not chip.get('input', 'def')):
-                chip.add('tool', tool, 'input', step, index, chip.design +'.def')
+                chip.add('tool', tool, 'input', step, index, design +'.def')
 
-        chip.add('tool', tool, 'output', step, index, chip.design + '.sdc')
-        chip.add('tool', tool, 'output', step, index, chip.design + '.vg')
-        chip.add('tool', tool, 'output', step, index, chip.design + '.def')
+        chip.add('tool', tool, 'output', step, index, design + '.sdc')
+        chip.add('tool', tool, 'output', step, index, design + '.vg')
+        chip.add('tool', tool, 'output', step, index, design + '.def')
 
     # openroad makes use of these parameters
     targetlibs = chip.get('asic', 'logiclib')

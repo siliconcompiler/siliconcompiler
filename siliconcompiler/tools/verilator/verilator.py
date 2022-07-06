@@ -79,7 +79,7 @@ def setup(chip):
     tool = 'verilator'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    design = chip.get('design')
+    design = chip.get_entrypoint()
 
     # Standard Setup
     chip.set('tool', tool, 'exe', 'verilator')
@@ -183,7 +183,7 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    design = chip.get('design')
+    design = chip.get_entrypoint()
     step = chip.get('arg','step')
 
     if step == 'import':
@@ -193,7 +193,7 @@ def post_process(chip):
                        shell=True)
 
         # Moving pickled file to outputs
-        os.rename("verilator.v", f"outputs/{chip.design}.v")
+        os.rename("verilator.v", f"outputs/{design}.v")
     elif step == 'compile':
         # Run make to compile Verilated design into executable.
         # If we upgrade our minimum supported Verilog, we can remove this and

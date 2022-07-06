@@ -160,7 +160,9 @@ class Floorplan:
     def __init__(self, chip, tool='openroad'):
         self.chip = chip
 
-        self.design = chip.get('design')
+        # Used by Jinja LEF/DEF templates
+        self.design = chip.get_entrypoint()
+
         self.stackup = chip.get('asic', 'stackup')
         self.diearea = None
         self.corearea = None

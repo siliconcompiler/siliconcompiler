@@ -19,7 +19,7 @@ set sc_refdir [dict get $sc_cfg tool $sc_tool refdir $sc_step $sc_index]
 # DESIGNER's CHOICE
 ####################
 
-set sc_design      [dict get $sc_cfg design]
+set sc_design      [sc_get_entrypoint]
 set sc_mode        [dict get $sc_cfg option mode]
 set sc_flow        [dict get $sc_cfg option flow]
 set sc_optmode     [dict get $sc_cfg option optmode]
@@ -48,9 +48,9 @@ if { [file exists "inputs/$sc_design.v"] } {
     set input_verilog "inputs/$sc_design.v"
     if {$sc_step eq "syn_vpr"} {
         #TODO: the nolatches option can be a flag set by the user depending on the input arch file
-        yosys read_verilog -sv -nolatches $input_verilog  
+        yosys read_verilog -sv -nolatches $input_verilog
     } else {
-        yosys read_verilog -sv $input_verilog 
+        yosys read_verilog -sv $input_verilog
     }
 }
 

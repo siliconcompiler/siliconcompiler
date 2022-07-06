@@ -129,7 +129,7 @@ The post_process function can also be used to post process the output data in th
   def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-    design = chip.get('design')
+    design = chip.get_entrypoint()
     step = chip.get('arg', 'step')
 
     if step != 'import':
@@ -191,7 +191,7 @@ The Surelog example below illustrates the process of defining a runtime_options 
     for value in chip.find_files('option', 'source'):
         cmdlist.append(value)
 
-    cmdlist.append('-top ' + chip.get('design'))
+    cmdlist.append('-top ' + chip.get_entrypoint())
     # make sure we can find .sv files in ydirs
     cmdlist.append('+libext+.sv')
 
@@ -250,7 +250,7 @@ It is the responsibility of the tool reference flow developer to bind the standa
 .. code-block:: tcl
 
    #Design
-   set sc_design     [dict get $sc_cfg design]
+   set sc_design     [sc_get_entrypoint]
    set sc_optmode    [dict get $sc_cfg optmode]
 
    # APR Parameters

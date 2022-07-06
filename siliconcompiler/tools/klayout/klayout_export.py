@@ -220,7 +220,11 @@ sc_libtype = sc_cfg['library'][sc_mainlib]['asic']['footprint']
 
 tech_file = sc_cfg['pdk'][sc_pdk]['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
 
-design = sc_cfg['design']['value']
+try:
+  design = sc_cfg['option']['entrypoint']['value']
+except KeyError:
+  design = sc_cfg['design']['value']
+
 try:
   in_def = sc_cfg['input']['def']['value'][0]
 except (KeyError, IndexError):

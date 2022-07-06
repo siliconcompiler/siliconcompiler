@@ -38,7 +38,7 @@ def setup(chip):
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'option', step, index, "", clobber=clobber)
 
-    design = chip.get('design')
+    design = chip.get_entrypoint()
     chip.set('tool', tool, 'input', step, index, f'{design}.asc')
     chip.set('tool', tool, 'output', step, index, f'{design}.bit')
 
@@ -50,7 +50,7 @@ def runtime_options(chip):
     ''' Custom runtime options, returnst list of command line options.
     '''
 
-    topmodule = chip.get('design')
+    topmodule = chip.get_entrypoint()
 
     cmdlist = []
     cmdlist.append("inputs/" + topmodule + ".asc")

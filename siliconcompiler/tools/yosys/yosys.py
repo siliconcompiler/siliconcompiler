@@ -68,22 +68,24 @@ def setup(chip):
 
     chip.set('tool', tool, 'script', step, index, script, clobber=False)
 
+    design = chip.get_entrypoint()
+
     # Input/output requirements
     if step.startswith('syn'):
         # TODO: Our yosys script can also accept uhdm or ilang files. How do we
         # represent a set of possible inputs where you must pick one?
-        chip.set('tool', tool, 'input', step, index, chip.design + '.v')
-        chip.set('tool', tool, 'output', step, index, chip.design + '.vg')
-        chip.add('tool', tool, 'output', step, index, chip.design + '_netlist.json')
-        chip.add('tool', tool, 'output', step, index, chip.design + '.blif')
+        chip.set('tool', tool, 'input', step, index, design + '.v')
+        chip.set('tool', tool, 'output', step, index, design + '.vg')
+        chip.add('tool', tool, 'output', step, index, design + '_netlist.json')
+        chip.add('tool', tool, 'output', step, index, design + '.blif')
     elif step == 'lec':
         if (not chip.valid('input', 'netlist') or
             not chip.get('input', 'netlist')):
-            chip.set('tool', tool, 'input', step, index, chip.design + '.vg')
+            chip.set('tool', tool, 'input', step, index, design + '.vg')
         if not chip.get('input', 'verilog'):
             # TODO: Not sure this logic makes sense? Seems like reverse of
             # what's in TCL
-            chip.set('tool', tool, 'input', step, index, chip.design + '.v')
+            chip.set('tool', tool, 'input', step, index, design + '.v')
 
     # Schema requirements
     if chip.get('option', 'mode') == 'asic':
@@ -103,7 +105,7 @@ def setup(chip):
                     chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model','timing', 'nldm', corner]))
     else:
         chip.add('tool', tool, 'require', step, index, ",".join(['fpga','partname']))
-            
+
 
     # Setting up regex patterns
     chip.set('tool', tool, 'regex', step, index, 'warnings', "Warning:", clobber=False)
@@ -125,8 +127,8 @@ def pre_process(chip):
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    
-    # copy the VPR library to the yosys input directory and render the placeholders 
+
+    # copy the VPR library to the yosys input directory and render the placeholders
     if chip.get('fpga', 'arch'):
         create_vpr_lib(chip)
 
@@ -186,10 +188,10 @@ def create_vpr_lib(chip):
     #copy the VPR techmap library to the input directory
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    
+
     src = f"{chip.scroot}/tools/yosys/vpr_yosyslib"
     dst = f"{chip._getworkdir()}/{step}/{index}/inputs/vpr_yosyslib"
-    
+
     if os.path.exists(dst):
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
@@ -210,20 +212,20 @@ def create_vpr_lib(chip):
         "min_hard_adder_size": "1",
         "min_hard_mult_size": "3"
     }
-        
+
     for _, _, lib_files in os.walk(dst):
         for file_name in lib_files:
             file = f"{dst}/{file_name}"
             print(file)
             with open(file) as template_f:
-                template = Template(template_f.read()) 
+                template = Template(template_f.read())
             with open(file, "w") as rendered_f:
                 rendered_f.write(template.render(data))
-                
+
 ##################################################
 if __name__ == "__main__":
 
     chip = make_docs()
     chip.write_manifest("yosys.json")
 
-       
+

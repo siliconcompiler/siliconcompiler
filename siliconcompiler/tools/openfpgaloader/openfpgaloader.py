@@ -47,5 +47,5 @@ def setup(chip):
     chip.set('tool', tool, 'version', '0.5.0', clobber=False)
 
     options = []
-    options.append("inputs" + chip.get('design') + ".bit")
+    options.append("inputs" + chip.get_entrypoint() + ".bit")
     chip.add('tool', tool, 'option', step, index,  options)
