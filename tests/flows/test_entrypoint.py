@@ -1,7 +1,10 @@
 import os
 
+import pytest
+
 import siliconcompiler
 
+@pytest.mark.eda
 def test_entrypoint(scroot):
     datadir = os.path.join(scroot, 'tests', 'data')
     chip = siliconcompiler.Chip('heartbeat')
