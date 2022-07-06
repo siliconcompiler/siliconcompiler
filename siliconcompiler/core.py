@@ -142,6 +142,15 @@ class Chip:
 
     ###########################################################################
     def get_entrypoint(self):
+        '''Gets the name of the design's entrypoint for compilation and
+        simulation.
+
+        This method should be used to name input and output files in tool
+        drivers, rather than relying on chip.get('design') directly.
+
+        Returns :keypath:`option, entrypoint` if it has been set, otherwise
+        :keypath:`design`.
+        '''
         entrypoint = self.get('option', 'entrypoint')
         if not entrypoint:
             return self.design
