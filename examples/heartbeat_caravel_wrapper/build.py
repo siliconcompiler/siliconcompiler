@@ -164,10 +164,13 @@ def build_core():
     design = core_chip.get('design')
     core_chip.set('input', 'verilog', 'heartbeat.v')
     core_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
-    #core_chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_global_place', ['2'])
-    #core_chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_detail_place', ['2'])
     core_chip.set('tool', 'openroad', 'var', 'route', '0', 'grt_allow_congestion', ['true'])
     core_chip.clock('clk', period=20)
+
+    # Optional: These configurations can add padding around cells during the placement steps,
+    # which can help to reduce routing congestion at the expense of placement density.
+    #core_chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_global_place', ['2'])
+    #core_chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_detail_place', ['2'])
 
     # Set user design die/core area.
     core_chip.set('asic', 'diearea', (0, 0))
@@ -180,27 +183,20 @@ def build_core():
     libtype = 'unithd'
     core_chip.set('asic', 'maxlayer', 'met3')
 
-    # Create empty PDN script to effectively skip PDN generation.
-    pdk = core_chip.get('option', 'pdk')
-    with open('pdngen.tcl', 'w') as pdnf:
-        pdnf.write('''#NOP''')
-    core_chip.set('pdk', pdk, 'aprtech', 'openroad', stackup, libtype, 'pdngen', 'pdngen.tcl')
-
     # Build the core design.
+    # Using a helper method instead of chip.run, because we inject some logic between route/export.
     run_chip_flow(core_chip)
 
     # Copy GDS/DEF/LEF files for use in the top-level build.
-    jobdir = (core_chip.get('option', 'builddir') +
-            "/" + design + "/" +
-            core_chip.get('option', 'jobname'))
-    shutil.copy(f'{jobdir}/export/0/outputs/{design}.gds', f'{design}.gds')
-    shutil.copy(f'{jobdir}/export/0/inputs/{design}.def', f'{design}.def')
-    shutil.copy(f'{jobdir}/export/0/inputs/{design}.lef', f'{design}.lef')
-    shutil.copy(f'{jobdir}/dfm/0/outputs/{design}.vg', f'{design}.vg')
+    shutil.copy(core_chip.find_result('gds', step='export'), f'{design}.gds')
+    shutil.copy(core_chip.find_result('vg', step='dfm'), f'{design}.vg')
+    shutil.copy(core_chip.find_result('def', step='dfm'), f'{design}.def')
+    shutil.copy(core_chip.find_result('lef', step='dfm'), f'{design}.lef')
 
 def build_top():
     # The 'hearbeat' RTL goes in a modified 'user_project_wrapper' object, see sources.
-    chip = configure_chip('user_project_wrapper')
+    design = 'user_project_wrapper'
+    chip = configure_chip(design)
     chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
     #chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_global_place', ['2'])
     #chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_detail_place', ['2'])
@@ -279,14 +275,11 @@ place_cell -inst_name mprj -origin {1188.64 1689.12} -orient R0 -status FIRM
     chip.set('pdk', pdk, 'aprtech', 'openroad', stackup, libtype, 'macroplace', 'macroplace_top.tcl')
 
     # Run the top-level build.
+    # Using a helper method instead of chip.run, because we inject some logic between route/export.
     run_chip_flow(chip)
 
     # Add via definitions to the gate-level netlist.
-    design = chip.get('design')
-    jobdir = (chip.get('option', 'builddir') +
-              "/" + design + "/" +
-              chip.get('option', 'jobname'))
-    shutil.copy(f'{jobdir}/dfm/0/outputs/{design}.vg', f'{design}.vg')
+    shutil.copy(chip.find_result('vg', step='dfm'), f'{design}.vg')
     in_mod = False
     done_mod = False
     with open(f'{design}.vg.v', 'w') as wf:

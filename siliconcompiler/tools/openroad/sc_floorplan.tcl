@@ -56,7 +56,41 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
 
     place_pins -hor_layers $sc_hpinmetal \
 	-ver_layers $sc_vpinmetal \
-	-random
+        -random \
+
+    # Need to check if we have any macros before performing macro placement,
+    # since we get an error otherwise.
+    if {[design_has_macros] || \
+        [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace]} {
+        ###########################
+        # TDMS Placement
+        ###########################
+
+        global_placement -density $openroad_place_density \
+            -pad_left $openroad_pad_global_place \
+            -pad_right $openroad_pad_global_place
+
+        ###########################
+        # Macro placement
+        ###########################
+
+        if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {
+            # Manual macro placement
+            source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
+        } else {
+            macro_placement \
+                -halo $openroad_macro_place_halo \
+                -channel $openroad_macro_place_channel
+        }
+
+        # Note: some platforms set a "macro blockage halo" at this point, but the
+        # technologies we support do not, so we don't include that step for now.
+    }
+
+    ###########################
+    # Power Network (not good)
+    ###########################
+    #pdngen $::env(PDN_CFG) -verbose
 
 } else {
     ###########################
@@ -79,38 +113,20 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
     ###########################
     set def [dict get $sc_cfg "input" "floorplan.def"]
     read_def -floorplan_initialize $def
-}
-
-# Need to check if we have any macros before performing macro placement,
-# since we get an error otherwise.
-if {[design_has_macros] || \
-    [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace]} {
-    ###########################
-    # TDMS Placement
-    ###########################
-
-    # TODO: Put the overflow option in the schema
-    global_placement -density $openroad_place_density \
-        -pad_left $openroad_pad_global_place \
-        -pad_right $openroad_pad_global_place \
-        -overflow 0.7
-
-    ###########################
-    # Macro placement
-    ###########################
 
     if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {
-        # Manual macro placement
-        source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
-    } else {
-        # Automatic macro placement
-        macro_placement \
-            -halo $openroad_macro_place_halo \
-            -channel $openroad_macro_place_channel
-    }
+        ###########################
+        # TDMS Placement
+        ###########################
+        global_placement -density $openroad_place_density \
+            -pad_left $openroad_pad_global_place \
+            -pad_right $openroad_pad_global_place
 
-    # Note: some platforms set a "macro blockage halo" at this point, but the
-    # technologies we support do not, so we don't include that step for now.
+        ###########################
+        # Manual macro placement
+        ###########################
+        source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
+    }
 }
 
 ###########################
