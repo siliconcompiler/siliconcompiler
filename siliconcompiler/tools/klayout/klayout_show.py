@@ -70,7 +70,7 @@ layoutOptions.lefdef_config.produce_obstructions = True
 
 app = pya.Application.instance()
 
-# Opionated default KLayout configuration
+# Opinionated default KLayout configuration
 # see ~/.klayout/klayoutrc for a list of configuration keys
 
 # show all cells

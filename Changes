@@ -14,11 +14,13 @@ SiliconCompiler 0.9.2 (2022-07-08)
 **Major:**
 
 * Schema: Added ['option', 'flowcontinue'] to control whether flow continues when a tool reports errors.
+
   * This used to be controlled by ['tool', \<tool\>, 'continue'], but this parameter is meant to feed directly into tools (rather than controlling the SC runtime).
 * Schema: Added ['option', 'continue'] parameter to control whether errors in the Python API are fatal.
+
   * The default value makes errors fatal, setting this parameter to True reverts to the old behavior.
 * Added VPR-based FPGA bitstream generation flow.
-* Added logic to set errors and warnings metrics based on [tool', \<tool\>, 'regex', ...] matches. This reduces tool driver boilerplate and makes the metrics consistent with the generated regex match files.
+* Added logic to set errors and warnings metrics based on ['tool', \<tool\>, 'regex', ...] matches. This reduces tool driver boilerplate and makes the metrics consistent with the generated regex match files.
 
 **Minor:**
 
