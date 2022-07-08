@@ -4,9 +4,7 @@
 import os
 import sys
 
-#Shorten siliconcompiler as sc
 import siliconcompiler
-import siliconcompiler.client
 
 ###########################
 def main():
@@ -78,7 +76,7 @@ def main():
 
     # Set demo target if none specified
     if not chip.get('option', 'target'):
-        chip.load_target("freepdk45_demo")
+        chip.load_target('skywater130_demo')
 
     # Storing user entered steplist/args before running
     if chip.get('arg','step'):

@@ -62,8 +62,7 @@ def setup(chip):
     chip.set('asic', 'vpinlayer', "m2")
     chip.set('asic', 'density', 10)
     chip.set('asic', 'aspectratio', 1)
-    # Least common multiple of std. cell width (0.46) and height (2.72)
-    chip.set('asic', 'coremargin', 62.56)
+    chip.set('asic', 'coremargin', 4.6)
 
     #5. Timing corners
     corner = 'typical'
