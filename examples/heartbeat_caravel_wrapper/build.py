@@ -36,8 +36,7 @@ MARGIN_H = 8.16
 #MARGIN_H = 6.256
 
 # Path to 'caravel' repository root.
-#CARAVEL_ROOT = '/path/to/caravel'
-CARAVEL_ROOT = '/home/vimes/caravel/c2/caravel_user_project/caravel'
+CARAVEL_ROOT = '/path/to/caravel'
 
 def configure_chip(design):
     # Minimal Chip object construction.
