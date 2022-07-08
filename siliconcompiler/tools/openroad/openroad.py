@@ -271,9 +271,9 @@ def post_process(chip):
     chip.set('metric', step, index, 'errors', errors, clobber=True)
     chip.set('metric', step, index, 'warnings', warnings, clobber=True)
 
+    #Temporary superhack!rm
+    #Getting cell count and net number from DEF
     if errors == 0:
-        #Temporary superhack!rm
-        #Getting cell count and net number from DEF
         with open("outputs/" + chip.design + ".def") as f:
             for line in f:
                 cells = re.search(r'^COMPONENTS (\d+)', line)
@@ -285,85 +285,6 @@ def post_process(chip):
                     chip.set('metric', step, index, 'nets', int(nets.group(1)), clobber=True)
                 elif pins:
                     chip.set('metric', step, index, 'pins', int(pins.group(1)), clobber=True)
-
-        # TODO: Uncommented DEF post-processing, probably should only be run for sky130.
-        # Basically, we need to cover metal 'pin' data types with 'drawing' data types.
-        # Apparently the 'pin' intention is not always manufactured on the final mask.
-        # So if we don't add tracks over the pins, we may get open-circuit failures on the die.
-        # Easiest way to add a track is in the 'SPECIALNETS' section, with name/net/dimensions
-        # taken from the 'PINS' section.
-        if step == 'route':
-            design = chip.get('design')
-            os.rename(f'outputs/{design}.def', f'outputs/{design}-raw.def')
-            with open(f'outputs/{design}-raw.def') as f:
-              with open(f'outputs/{design}.def', 'w') as wf:
-                in_pins = 0
-                in_pin = ''
-                in_net = ''
-                in_layer = ''
-                pin_w = 0
-                pin_h = 0
-                pin_locs = {}
-
-                for line in f:
-                    l = line
-                    if not in_pins:
-                      wf.write(l)
-                      if l.strip().startswith('PINS'):
-                          in_pins = 1
-                    elif in_pins == 1:
-                      wf.write(l)
-                      if l.strip().startswith('END PINS'):
-                        in_pins = 2
-                      elif l.strip().startswith('-'):
-                        la = l.strip().split()
-                        in_pin = la[1]
-                        in_net = la[4]
-                      # TODO: We should not use hardcoded prefixes for power nets to ignore.
-                      elif ('LAYER' in l) and (not 'vcc' in in_pin) and (not 'vss' in in_pin):
-                        la = l.strip().split()
-                        in_layer = la[2]
-                        pin_w = abs(int(la[8]) - int(la[4]))
-                        pin_h = abs(int(la[9]) - int(la[5]))
-                      elif ('PLACED' in l) and (not 'vcc' in in_pin) and (not 'vss' in in_pin):
-                        la = l.strip().split()
-                        pin_locs[in_pin] = {'layer': in_layer, 'net': in_net, 'x': int(la[3]), 'y': int(la[4]), 'w': pin_w, 'h': pin_h}
-                    elif in_pins == 2:
-                      if l.strip().startswith('SPECIALNETS'):
-                        la = l.strip().split()
-                        numnets = int(la[1]) + len(pin_locs)
-                        wf.write('SPECIALNETS %i ;\n'%numnets)
-                      # (There may not be a SPECIALNETS section in the DEF output)
-                      elif l.strip().startswith('END NETS'):
-                        wf.write(l)
-                        numnets = len(pin_locs)
-                        wf.write('SPECIALNETS %i ;\n'%numnets)
-                      elif (l.strip() == 'END SPECIALNETS') or (l.strip() == 'END DESIGN'):
-                        for k, v in pin_locs.items():
-                          ml = 0
-                          if v['layer'] == 'met2':
-                            ml = v['w']
-                            xl = v['x']
-                            xr = v['x']
-                            yb = int(v['y'] - v['h'] / 2)
-                            yu = int(v['y'] + v['h'] / 2)
-                          elif v['layer'] == 'met3':
-                            ml = v['h']
-                            xl = int(v['x'] - v['w'] / 2)
-                            xr = int(v['x'] + v['w'] / 2)
-                            yb = v['y']
-                            yu = v['y']
-                          wf.write('    - %s ( PIN %s ) + USE SIGNAL\n'%(v['net'], k))
-                          wf.write('      + ROUTED %s %i + SHAPE STRIPE ( %i %i ) ( %i %i )\n'%(v['layer'], int(ml), xl, yb, xr, yu))
-                          wf.write('      NEW %s %i + SHAPE STRIPE ( %i %i ) ( %i %i ) ;\n'%(v['layer'], int(ml), xl, yb, xr, yu))
-                        if l.strip() == 'END DESIGN':
-                          wf.write('END SPECIALNETS\n')
-                        wf.write(l)
-                        in_pins = 3
-                      else:
-                        wf.write(l)
-                    elif in_pins == 3:
-                      wf.write(l)
 
     if step == 'sta':
         # Copy along GDS for verification steps that rely on it

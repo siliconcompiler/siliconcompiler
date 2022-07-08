@@ -15,7 +15,6 @@ proc design_has_macros {} {
         return true
     }
   }
-
   return false
 }
 
@@ -54,11 +53,6 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
     ###########################
     # Automatic Pin Placement
     ###########################
-
-    # Pin configurations. TODO: Put these in schema
-    #set_pin_length_extension -hor_extension 0.68 -ver_extension 0.46
-    set_pin_thick_multiplier -hor_multiplier 2 -ver_multiplier 2
-    #set_pin_length -hor_length -0.68 -ver_length -0.46
 
     place_pins -hor_layers $sc_hpinmetal \
 	-ver_layers $sc_vpinmetal \
