@@ -69,12 +69,18 @@ layoutOptions.lefdef_config.produce_cell_outlines = True
 layoutOptions.lefdef_config.produce_obstructions = True
 
 app = pya.Application.instance()
+
+# Opionated default KLayout configuration
+# see ~/.klayout/klayoutrc for a list of configuration keys
+
 # show all cells
 app.set_config('full-hierarchy-new-cell', 'true')
 # no tip pop-ups
 app.set_config('tip-window-hidden', 'only-top-level-shown-by-default=3,editor-mode=4,editor-mode=0')
 # hide text
 app.set_config('text-visible', 'false')
+# dark background
+app.set_config('background-color', '#212121')
 
 # Display the file!
 cell_view = pya.MainWindow.instance().load_layout(filename, layoutOptions, 0)
