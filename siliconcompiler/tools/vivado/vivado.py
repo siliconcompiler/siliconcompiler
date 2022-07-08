@@ -58,16 +58,3 @@ def setup(chip, mode='batch'):
     chip.set('tool', tool, 'script', step, index, script, clobber=clobber)
     chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
     chip.set('tool', tool, 'option', step, index, option, clobber=clobber)
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-     ''' Tool specific function to run after step execution
-     '''
-     step = chip.get('arg','step')
-     index = chip.get('arg','index')
-
-     #Return 0 if successful
-     return 0

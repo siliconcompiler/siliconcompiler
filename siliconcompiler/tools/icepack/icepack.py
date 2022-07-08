@@ -1,7 +1,3 @@
-import os
-import importlib
-import re
-import sys
 import siliconcompiler
 
 #####################################################################
@@ -39,7 +35,7 @@ def setup(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
     clobber = False
-    chip.set('tool', tool, 'exe', tool, clobber=clobber)
+    chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'option', step, index, "", clobber=clobber)
 
     design = chip.get('design')
@@ -54,8 +50,6 @@ def runtime_options(chip):
     ''' Custom runtime options, returnst list of command line options.
     '''
 
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
     topmodule = chip.get('design')
 
     cmdlist = []
@@ -63,14 +57,6 @@ def runtime_options(chip):
     cmdlist.append("outputs/" + topmodule + ".bit")
 
     return cmdlist
-
-################################
-# Post_process (post executable)
-################################
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    return 0
 
 ##################################################
 if __name__ == "__main__":

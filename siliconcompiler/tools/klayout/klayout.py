@@ -1,9 +1,9 @@
 import os
-import platform
-import re
-import shutil
-import siliconcompiler
 from pathlib import Path
+import platform
+import shutil
+
+import siliconcompiler
 
 ####################################################################
 # Make Docs
@@ -87,8 +87,8 @@ def setup(chip, mode="batch"):
         script = 'klayout_export.py'
         option = ['-zz', '-r']
 
-    chip.set('tool', tool, 'exe', klayout_exe, clobber=True)
-    chip.set('tool', tool, 'vswitch', ['-zz', '-v'], clobber=clobber)
+    chip.set('tool', tool, 'exe', klayout_exe)
+    chip.set('tool', tool, 'vswitch', ['-zz', '-v'])
     # Versions < 0.27.6 may be bundled with an incompatible version of Python.
     chip.set('tool', tool, 'version', '>=0.27.6', clobber=clobber)
     chip.set('tool', tool, 'format', 'json', clobber=clobber)
@@ -99,11 +99,12 @@ def setup(chip, mode="batch"):
     # Export GDS with timestamps by default.
     chip.set('tool', tool, 'var', step, index, 'timestamps', 'true', clobber=False)
 
-    # Input/Output requirements
-    if (not chip.valid('input', 'def') or
-        not chip.get('input', 'def')):
-        chip.add('tool', tool, 'input', step, index, chip.design + '.def')
-    chip.add('tool', tool, 'output', step, index, chip.design + '.gds')
+    # Input/Output requirements for default flow
+    if step in ['export']:
+        if (not chip.valid('input', 'def') or
+            not chip.get('input', 'def')):
+            chip.add('tool', tool, 'input', step, index, chip.design + '.def')
+        chip.add('tool', tool, 'output', step, index, chip.design + '.gds')
 
     # Adding requirements
     if mode != 'show':
@@ -121,18 +122,13 @@ def setup(chip, mode="batch"):
                 chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'gds', stackup]))
                 chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
         else:
-            chip.error = 1
-            chip.logger.error(f'Stackup and targetlib paremeters required for Klayout.')
+            chip.error(f'Stackup and targetlib paremeters required for Klayout.')
 
     logfile = f"{step}.log"
 
     # Log file parsing
     chip.set('tool', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
     chip.set('tool', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
-
-    # Reports
-    for metric in ('errors', 'warnings'):
-        chip.set('tool', tool, 'report', step, index, metric, logfile)
 
 ################################
 #  Environment setup
@@ -166,15 +162,6 @@ def parse_version(stdout):
     # KLayout 0.26.11
     return stdout.split()[1]
 
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    return 0
 
 ##################################################
 if __name__ == "__main__":

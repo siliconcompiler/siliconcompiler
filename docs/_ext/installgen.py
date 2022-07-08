@@ -3,7 +3,7 @@ import docutils.nodes
 from docutils.parsers.rst import directives
 import os
 
-from common import *
+from siliconcompiler.sphinx_ext.utils import *
 
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 

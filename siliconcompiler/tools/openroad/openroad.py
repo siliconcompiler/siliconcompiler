@@ -1,7 +1,7 @@
+import math
 import os
 import re
-import shutil
-import math
+
 import siliconcompiler
 from siliconcompiler.floorplan import _infer_diearea
 
@@ -62,8 +62,8 @@ def setup(chip, mode='batch'):
     if (mode=='batch') and (step not in chip.get('option', 'bkpt')):
         option += " -exit"
 
-    chip.set('tool', tool, 'exe', tool, clobber=clobber)
-    chip.set('tool', tool, 'vswitch', '-version', clobber=clobber)
+    chip.set('tool', tool, 'exe', tool)
+    chip.set('tool', tool, 'vswitch', '-version')
     chip.set('tool', tool, 'version', '>=v2.0-3394', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
     chip.set('tool', tool, 'option',  step, index, option, clobber=clobber)
@@ -78,19 +78,21 @@ def setup(chip, mode='batch'):
 
     chip.set('tool', tool, 'threads', step, index, threads, clobber=clobber)
 
-    # Input/Output requirements
-    if step == 'floorplan':
-        if (not chip.valid('input', 'netlist') or
-            not chip.get('input', 'netlist')):
-            chip.add('tool', tool, 'input', step, index, chip.design +'.vg')
-    else:
-        if (not chip.valid('input', 'def') or
-            not chip.get('input', 'def')):
-            chip.add('tool', tool, 'input', step, index, chip.design +'.def')
+    # Input/Output requirements for default asicflow steps
+    # TODO: long-term, we want to remove hard-coded step names from tool files.
+    if step in ['floorplan', 'physyn', 'place', 'cts', 'route', 'dfm']:
+        if step == 'floorplan':
+            if (not chip.valid('input', 'netlist') or
+                not chip.get('input', 'netlist')):
+                chip.add('tool', tool, 'input', step, index, chip.design +'.vg')
+        else:
+            if (not chip.valid('input', 'def') or
+                not chip.get('input', 'def')):
+                chip.add('tool', tool, 'input', step, index, chip.design +'.def')
 
-    chip.add('tool', tool, 'output', step, index, chip.design + '.sdc')
-    chip.add('tool', tool, 'output', step, index, chip.design + '.vg')
-    chip.add('tool', tool, 'output', step, index, chip.design + '.def')
+        chip.add('tool', tool, 'output', step, index, chip.design + '.sdc')
+        chip.add('tool', tool, 'output', step, index, chip.design + '.vg')
+        chip.add('tool', tool, 'output', step, index, chip.design + '.def')
 
     # openroad makes use of these parameters
     targetlibs = chip.get('asic', 'logiclib')
@@ -115,8 +117,7 @@ def setup(chip, mode='batch'):
                     chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', 'nldm', corner]))
             chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
     else:
-        chip.error = 1
-        chip.logger.error(f'Stackup and logiclib parameters required for OpenROAD.')
+        chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
 
     variables = (
         'place_density',
@@ -148,15 +149,16 @@ def setup(chip, mode='batch'):
     #    chip.add('tool', tool, 'require', step, index, ','.join(['supply', supply, 'pin']))
 
     # basic warning and error grep check on logfile
-    chip.set('tool', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', r'^\[WARNING', clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', r'ERROR', clobber=False)
 
     # reports
     logfile = f"{step}.log"
-    for metric in chip.getkeys('metric', 'default', 'default'):
-        if metric not in ('runtime', 'memory',
-                          'luts', 'dsps', 'brams'):
-            chip.set('tool', tool, 'report', step, index, metric, logfile)
+    for metric in (
+        'cellarea', 'totalarea', 'utilization', 'setuptns', 'setupwns',
+        'setupslack', 'wirelength', 'vias', 'peakpower', 'leakagepower'
+    ):
+        chip.set('tool', tool, 'report', step, index, metric, logfile)
 
 ################################
 # Version Check
@@ -216,18 +218,15 @@ def post_process(chip):
     #Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    tool = 'openroad'
     logfile = f"{step}.log"
 
     # parsing log file
-    errors = 0
-    warnings = 0
     metric = None
 
     with open(logfile) as f:
         for line in f:
             metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)
-            errmatch = re.match(r'^Error:', line)
-            warnmatch = re.match(r'^\[WARNING', line)
             area = re.search(r'^Design area (\d+)\s+u\^2\s+(.*)\%\s+utilization', line)
             tns = re.search(r'^tns (.*)', line)
             wns = re.search(r'^wns (.*)', line)
@@ -237,15 +236,14 @@ def post_process(chip):
             power = re.search(r'^Total(.*)', line)
             if metricmatch:
                 metric = metricmatch.group(1)
-            elif errmatch:
-                errors = errors + 1
-            elif warnmatch:
-                warnings = warnings +1
             elif area:
                 #TODO: not sure the openroad utilization makes sense?
                 cellarea = round(float(area.group(1)), 2)
                 utilization = round(float(area.group(2)), 2)
-                totalarea = round(cellarea/(utilization/100), 2)
+                if utilization == 0:
+                    totalarea = 0.0
+                else:
+                    totalarea = round(cellarea/(utilization/100), 2)
                 chip.set('metric', step, index, 'cellarea', cellarea, clobber=True)
                 chip.set('metric', step, index, 'totalarea', totalarea, clobber=True)
                 chip.set('metric', step, index, 'utilization', utilization, clobber=True)
@@ -254,7 +252,7 @@ def post_process(chip):
             elif wns:
                 chip.set('metric', step, index, 'setupwns', round(float(wns.group(1)), 2), clobber=True)
             elif slack:
-                chip.set('metric', step, index, metric, round(float(slack.group(1)), 2), clobber=True)
+                chip.set('metric', step, index, 'setupslack', round(float(slack.group(1)), 2), clobber=True)
             elif wirelength:
                 chip.set('metric', step, index, 'wirelength', round(float(wirelength.group(1)), 2), clobber=True)
             elif vias:
@@ -267,14 +265,21 @@ def post_process(chip):
                     chip.set('metric', step, index, 'peakpower', float(total), clobber=True)
                     chip.set('metric', step, index, 'leakagepower', float(leakage), clobber=True)
 
-    #Setting Warnings and Errors
-    chip.set('metric', step, index, 'errors', errors, clobber=True)
-    chip.set('metric', step, index, 'warnings', warnings, clobber=True)
-
     #Temporary superhack!rm
-    #Getting cell count and net number from DEF
-    if errors == 0:
-        with open("outputs/" + chip.design + ".def") as f:
+    #Getting cell count and net number from the first available DEF file output (if any)
+    out_def = ''
+    out_files = []
+    if chip.valid('tool', tool, 'output', step, index):
+        out_files = chip.get('tool', tool, 'output', step, index)
+
+    if out_files:
+        for fn in out_files:
+            if fn.endswith('.def'):
+                out_def = fn
+                break
+    out_def_path = os.path.join('outputs', out_def)
+    if out_def and os.path.isfile(out_def_path):
+        with open(os.path.join('outputs', out_def)) as f:
             for line in f:
                 cells = re.search(r'^COMPONENTS (\d+)', line)
                 nets = re.search(r'^NETS (\d+)', line)
@@ -285,15 +290,6 @@ def post_process(chip):
                     chip.set('metric', step, index, 'nets', int(nets.group(1)), clobber=True)
                 elif pins:
                     chip.set('metric', step, index, 'pins', int(pins.group(1)), clobber=True)
-
-    if step == 'sta':
-        # Copy along GDS for verification steps that rely on it
-        shutil.copy(f'inputs/{chip.design}.gds', f'outputs/{chip.design}.gds')
-
-    #Return 0 if successful
-    return 0
-
-
 
 ##################################################
 if __name__ == "__main__":

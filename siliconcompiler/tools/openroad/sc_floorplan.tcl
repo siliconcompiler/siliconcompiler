@@ -27,8 +27,8 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
     #NOTE: assuming a two tuple value as lower left, upper right
     set sc_diearea   [dict get $sc_cfg asic diearea]
     set sc_corearea  [dict get $sc_cfg asic corearea]
-    set sc_diesize   [regsub -all {[\,\)\(]} $sc_diearea " "]
-    set sc_coresize  [regsub -all {[\,\)\(]} $sc_corearea " "]
+    set sc_diesize "[lindex $sc_diearea 0] [lindex $sc_diearea 1]"
+    set sc_coresize "[lindex $sc_corearea 0] [lindex $sc_corearea 1]"
 
     initialize_floorplan -die_area $sc_diesize \
 	-core_area $sc_coresize \

@@ -60,7 +60,7 @@ def main():
         dirlist =[chip.cwd,
                   'build',
                   chip.get('design'),
-                  'job0',
+                  chip.get('option', 'jobname'),
                   'import',
                   '0',
                   'outputs',

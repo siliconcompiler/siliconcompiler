@@ -25,7 +25,7 @@ def test_check_manifest():
 
     chip.set('arg', 'step', None)
     chip.set('arg', 'index', None)
-    assert chip.check_manifest() == 0
+    assert chip.check_manifest()
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -45,7 +45,7 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     }
     monkeypatch.setattr(os, 'environ', env)
 
-    assert chip.check_manifest() == 0
+    assert chip.check_manifest()
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -67,7 +67,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     }
     monkeypatch.setattr(os, 'environ', env)
 
-    assert chip.check_manifest() == 1
+    assert not chip.check_manifest()
 
 def test_check_missing_file_param():
     chip = siliconcompiler.Chip('gcd')
@@ -87,7 +87,50 @@ def test_check_missing_file_param():
     chip.add('library', libname, 'model', 'timing',
              'nldm', corner, '/fake/timing/file.lib')
 
-    assert chip.check_manifest() == 1
+    assert not chip.check_manifest()
+
+@pytest.fixture
+def merge_flow_chip():
+    chip = siliconcompiler.Chip('test')
+
+    flow = 'test'
+    chip.node(flow, 'import', 'nop')
+    chip.node(flow, 'parallel1', 'foo')
+    chip.node(flow, 'parallel2', 'bar')
+    chip.edge(flow, 'import', 'parallel1')
+    chip.edge(flow, 'import', 'parallel2')
+
+    chip.node(flow, 'export', 'baz')
+    chip.edge(flow, 'parallel1', 'export')
+    chip.edge(flow, 'parallel2', 'export')
+    chip.set('option', 'flow', flow)
+
+    chip.set('tool', 'foo', 'exe', 'foo')
+    chip.set('tool', 'bar', 'exe', 'foo')
+    chip.set('tool', 'baz', 'exe', 'baz')
+
+    chip.set('tool', 'baz', 'input', 'export', '0', ['foo.out', 'bar.out'])
+
+    return chip
+
+def test_merged_graph_good(merge_flow_chip):
+    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'bar.out')
+    merge_flow_chip.set('tool', 'bar', 'output', 'parallel2', '0', 'foo.out')
+
+    assert merge_flow_chip.check_manifest()
+
+def test_merged_graph_bad_same(merge_flow_chip):
+    # Two merged steps can't output the same thing
+    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'bar', 'output', 'parallel2', '0', 'foo.out')
+
+    assert not merge_flow_chip.check_manifest()
+
+def test_merged_graph_bad_missing(merge_flow_chip):
+    # bar doesn't provide necessary output
+    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'foo.out')
+
+    assert not merge_flow_chip.check_manifest()
 
 #########################
 if __name__ == "__main__":

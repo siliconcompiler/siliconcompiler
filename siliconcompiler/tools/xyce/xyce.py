@@ -1,4 +1,5 @@
 import os
+
 import siliconcompiler
 
 
@@ -36,24 +37,13 @@ def make_docs():
 def setup(chip):
 
      tool = 'xyce'
-     refdir = 'tools/'+tool
      step = chip.get('arg','step')
      index = chip.get('arg','index')
      clobber = False
 
-     chip.set('tool', tool, 'exe', tool, clobber=clobber)
+     chip.set('tool', tool, 'exe', tool)
      chip.set('tool', tool, 'version', '0.0', clobber=clobber)
      chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
-
-################################
-# Post_process (post executable)
-################################
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-
-    #TODO: return error code
-    return 0
 
 ##################################################
 if __name__ == "__main__":

@@ -5,4 +5,5 @@ The SiliconCompiler Schema includes built in support for project packaging and d
 
 The table below includes a summary of all package parameters.
 
-.. packagegen::
+.. schema_category_summary::
+   :category: package

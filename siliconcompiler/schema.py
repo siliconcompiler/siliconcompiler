@@ -1380,27 +1380,32 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             shorthelp="Tool: regex filter",
             switch="-tool_regex 'tool step index suffix <str>'",
             example=[
-                "cli: -tool_regex 'openroad place 0 error -v ERROR'",
-                "api: chip.set('tool','openroad','regex','place','0','error','-v ERROR')"],
+                "cli: -tool_regex 'openroad place 0 errors -v ERROR'",
+                "api: chip.set('tool','openroad','regex','place','0','errors','-v ERROR')"],
             schelp="""
-             A list of piped together grep commands. Each entry represents a set
+            A list of piped together grep commands. Each entry represents a set
             of command line arguments for grep including the regex pattern to
             match. Starting with the first list entry, each grep output is piped
             into the following grep command in the list. Supported grep options
-            include, -t, -i, -E, -x, -e. Patterns starting with "-" should be
-            directly preceeded by the "-e" option. The following example
+            include ``-v`` and ``-e``. Patterns starting with "-" should be
+            directly preceeded by the ``-e`` option. The following example
             illustrates the concept.
 
             UNIX grep:
-            >> grep WARNING place.log | grep -v "bbox" > place.warnings
 
-            siliconcompiler:
-            chip.set('tool','openroad','regex','place',0','warnings',["WARNING","-v bbox"])
+            .. code-block:: bash
 
-            Defines a set of tool specific environment variables used by the executables
-            that depend on license key servers to control access. For multiple servers,
-            separate each server by a 'colon'. The named license variable are read at
-            runtime (run()) and the environment variables are set.""")
+                $ grep WARNING place.log | grep -v "bbox" > place.warnings
+
+            SiliconCompiler::
+
+                chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', ["WARNING", "-v bbox"])
+
+            The "errors" and "warnings" suffixes are special cases. When set,
+            the number of matches found for these regexes will be added to the
+            errors and warnings metrics for the task, respectively. This will
+            also cause the logfile to be added to the :keypath:`tool, <tool>,
+            report` parameter for those metrics, if not already present.""")
 
 
     scparam(cfg, ['tool', tool, 'option', step, index],
@@ -1993,6 +1998,9 @@ def schema_record(cfg, step='default', index='default'):
                              '/usr/bin/openroad',
                              """Full path to tool executable used to run this
                              task."""],
+               'toolargs': ['tool CLI arguments',
+                            '-I include/ foo.v',
+                            'Arguments passed to tool via CLI.'],
                'osversion': ['O/S version',
                              '20.04.1-Ubuntu',
                              """Since there is not standard version system for operating
@@ -2690,6 +2698,30 @@ def schema_option(cfg):
             standardized. Support for comments and environment variables within
             the file varies and depends on the tool used. SC simply passes on
             the filepath toe the tool executable.""")
+
+    scparam(cfg,['option', 'flowcontinue'],
+            sctype='bool',
+            shorthelp="Flow continue-on-error",
+            switch='-flowcontinue',
+            example=["cli: -flowcontinue",
+                     "api: chip.set('option', 'flowcontinue', True)"],
+            schelp="""
+            Continue executing flow after a tool logs errors. The default
+            behavior is to quit executing the flow if a task ends and the errors
+            metric is greater than 0. Note that the flow will always cease
+            executing if the tool returns a nonzero status code. """)
+
+    scparam(cfg,['option', 'continue'],
+            sctype='bool',
+            shorthelp='Implementation continue-on-error',
+            switch='-continue',
+            example=["cli: -continue",
+                     "api: chip.set('option', 'continue', True)"],
+            schelp="""
+            Attempt to continue even when errors are encountered in the SC
+            implementation. If errors are encountered, execution will halt
+            before a run.
+            """)
 
     return cfg
 

@@ -1,4 +1,5 @@
 import os
+
 import siliconcompiler
 
 def make_docs():
@@ -45,8 +46,8 @@ def setup(chip):
     index = chip.get('arg','index')
 
     # Required for all
-    chip.set('tool', tool, 'exe', tool, clobber=False)
-    chip.set('tool', tool, 'vswitch', '-version', clobber=False)
+    chip.set('tool', tool, 'exe', exe)
+    chip.set('tool', tool, 'vswitch', '-version')
     chip.set('tool', tool, 'version', 'v2.0', clobber=False)
     chip.set('tool', tool, 'format', 'tcl', clobber=False)
     chip.set('tool', tool, 'option',  step, index, options, clobber=False)
@@ -87,16 +88,13 @@ def pre_process(chip):
     '''
     Logic to run prior to executable
     '''
-    return 0
+    pass
 
 def post_process(chip):
     '''
-    Logic to run  executable
+    Logic to run after executable
     '''
-
-    # return 0 if successful
-
-    return 0
+    pass
 
 ##################################################
 if __name__ == "__main__":

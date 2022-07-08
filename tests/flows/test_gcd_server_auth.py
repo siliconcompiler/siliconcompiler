@@ -61,6 +61,7 @@ def test_gcd_server_authenticated(gcd_chip, scroot):
 
 ###########################
 @pytest.mark.eda
+@pytest.mark.skip(reason='No longer using encryption')
 def test_gcd_server_not_authenticated(gcd_chip, scroot):
     '''Basic sc-server test: Run a local instance of a server, and attempt to
        authenticate a user with an invalid key. The remote run should fail.

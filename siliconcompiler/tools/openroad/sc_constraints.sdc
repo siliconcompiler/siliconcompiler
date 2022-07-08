@@ -9,8 +9,7 @@ if {[dict exists $sc_cfg datasheet] && [dict exists $sc_cfg datasheet $sc_design
         if {[dict get $sc_cfg datasheet $sc_design pin $pin type global] == "clk"} {
             # If clock...
 
-            set period_str [dict get $sc_cfg datasheet $sc_design pin $pin tperiod global]
-            set periodtuple [regsub -all {[\,\)\(]} $period_str " "]
+            set periodtuple [dict get $sc_cfg datasheet $sc_design pin $pin tperiod global]
             set period [lindex $periodtuple 1]
             set period_ns [expr $period * pow(10, 9)]
 

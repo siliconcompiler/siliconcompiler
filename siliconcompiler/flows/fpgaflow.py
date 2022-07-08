@@ -1,6 +1,5 @@
 import siliconcompiler
 import re
-import sys
 
 from siliconcompiler.flows._common import setup_frontend
 
@@ -41,7 +40,7 @@ def make_docs():
 
     chip = siliconcompiler.Chip('<topmodule>')
     chip.set('option', 'flow', 'fpgaflow')
-    chip.set('fpga', 'partname', '<fpga-partname>')
+    chip.set('fpga', 'partname', 'ice40')
     setup(chip)
 
     return chip
@@ -63,8 +62,7 @@ def setup(chip, flowname='fpgaflow'):
     if chip.get('fpga', 'partname'):
         partname = chip.get('fpga', 'partname')
     else:
-        chip.logger.error("FPGA partname not specified")
-        raise siliconcompiler.SiliconCompilerError("FPGA partname not specified")
+        chip.error('FPGA partname not specified', fatal=True)
 
     # Set FPGA mode if not set
     chip.set('option', 'mode', 'fpga')
@@ -151,12 +149,6 @@ def flow_lookup(partname):
 
     ice40 = re.match('^ice40', partname)
 
-    ###########
-    # openfpga
-    ###########
-
-    openfpga = re.match('^openfpga', partname)
-
     if xilinx:
         vendor = 'xilinx'
         flow = 'vivado'
@@ -166,12 +158,10 @@ def flow_lookup(partname):
     elif ice40:
         vendor = 'lattice'
         flow = 'yosys-nextpnr'
-    elif openfpga:
-        vendor = 'openfpga'
-        flow = 'openfpga'
     else:
-        vendor = 'openfpga'
-        flow = 'openfpga'
+        raise siliconcompiler.SiliconCompilerError(
+            f'fpgaflow: unsupported partname {partname}'
+        )
 
     return (vendor, flow)
 
@@ -197,12 +187,6 @@ def tool_lookup(flow, step):
             tool = "icepack"
         elif step == "program":
             tool = "iceprog"
-    # experimental flow
-    elif flow == "openfpga":
-        if step == "syn":
-            tool = "yosys"
-        else:
-            tool = 'openfpga'
     # intel/quartus
     elif flow == "quartus":
         tool = 'quartus'

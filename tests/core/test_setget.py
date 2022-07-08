@@ -80,10 +80,11 @@ def test_set_field_bool():
 
 def test_set_field_error():
     chip = siliconcompiler.Chip('test')
+    chip.set('option', 'continue', True)
     chip.set('input', 'txt', 'asdf', field='copy')
     # expect copy flag unchanged and error triggered
     assert chip.get('input', 'txt', field='copy') is True
-    assert chip.error == 1
+    assert chip._error == True
 
 def test_set_add_field_list():
     chip = siliconcompiler.Chip('test')
