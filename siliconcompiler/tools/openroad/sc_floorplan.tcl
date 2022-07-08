@@ -56,7 +56,7 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
 
     place_pins -hor_layers $sc_hpinmetal \
 	-ver_layers $sc_vpinmetal \
-        -random \
+	-random \
 
     # Need to check if we have any macros before performing macro placement,
     # since we get an error otherwise.
