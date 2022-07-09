@@ -8,6 +8,30 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.9.2 (2022-07-08)
+=========================================
+
+**Major:**
+
+* Schema: Added ['option', 'flowcontinue'] to control whether flow continues when a tool reports errors.
+
+  * This used to be controlled by ['tool', \<tool\>, 'continue'], but this parameter is meant to feed directly into tools (rather than controlling the SC runtime).
+* Schema: Added ['option', 'continue'] parameter to control whether errors in the Python API are fatal.
+
+  * The default value makes errors fatal, setting this parameter to True reverts to the old behavior.
+* Added VPR-based FPGA bitstream generation flow.
+* Added logic to set errors and warnings metrics based on ['tool', \<tool\>, 'regex', ...] matches. This reduces tool driver boilerplate and makes the metrics consistent with the generated regex match files.
+
+**Minor:**
+
+* Changed default technology target for ``sc`` app.
+* Changed KLayout show script to always use a dark background.
+* Changed ``check_manifest()`` to allow tool tasks to have multiple inputs (behaving as if they were merged with a "join" builtin).
+* Changed ``check_manifest()`` to return True on success rather than 0 (the previous behavior didn't match the documentation).
+* Changed Yosys and OpenROAD tool drivers to make them easier to use in flows with alternate step names.
+* Changed GHDL tool driver to allow additional CLI options via ['tool', \<tool\>, 'var', ..., 'extraopts'].
+* Removed return codes from ``post_process()``.
+
 SiliconCompiler 0.9.1 (2022-06-21)
 =========================================
 
