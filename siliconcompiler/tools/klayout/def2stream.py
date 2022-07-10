@@ -134,6 +134,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
   tech = pya.Technology()
   tech.load(tech_file)
   layoutOptions = tech.load_layout_options
+  layoutOptions.lefdef_config.macro_resolution_mode = 1
   pathed_files = []
   for fn in layoutOptions.lefdef_config.lef_files:
     if fn[0:2] == './':

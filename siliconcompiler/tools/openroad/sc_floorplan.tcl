@@ -60,7 +60,8 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
 
     # Need to check if we have any macros before performing macro placement,
     # since we get an error otherwise.
-    if {[design_has_macros]} {
+    if {[design_has_macros] || \
+        [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace]} {
         ###########################
         # TDMS Placement
         ###########################
@@ -73,9 +74,14 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
         # Macro placement
         ###########################
 
-        macro_placement \
-            -halo $openroad_macro_place_halo \
-            -channel $openroad_macro_place_channel
+        if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {
+            # Manual macro placement
+            source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
+        } else {
+            macro_placement \
+                -halo $openroad_macro_place_halo \
+                -channel $openroad_macro_place_channel
+        }
 
         # Note: some platforms set a "macro blockage halo" at this point, but the
         # technologies we support do not, so we don't include that step for now.
@@ -107,6 +113,27 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
     ###########################
     set def [dict get $sc_cfg "input" "floorplan.def"]
     read_def -floorplan_initialize $def
+
+    if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {
+        ###########################
+        # TDMS Placement
+        ###########################
+        global_placement -density $openroad_place_density \
+            -pad_left $openroad_pad_global_place \
+            -pad_right $openroad_pad_global_place
+
+        ###########################
+        # Manual macro placement
+        ###########################
+        source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
+    }
+}
+
+###########################
+# Power Network (if defined)
+###########################
+if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype pdngen] {
+    source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype pdngen] 0]
 }
 
 ###########################

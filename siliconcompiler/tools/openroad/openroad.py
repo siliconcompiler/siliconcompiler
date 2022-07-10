@@ -112,8 +112,9 @@ def setup(chip, mode='batch'):
             chip.set('tool', tool, 'require', step, index, ",".join(['input', 'floorplan.def']))
 
         for lib in (targetlibs + macrolibs):
-            for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', 'nldm', corner]))
+            if 'nldm' in chip.getkeys('library', lib, 'model', 'timing'):
+                for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
+                    chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', 'nldm', corner]))
             chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
     else:
         chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
