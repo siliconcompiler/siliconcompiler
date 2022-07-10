@@ -3153,7 +3153,12 @@ class Chip:
                 del pruned_cfg['history']
             if 'library' in pruned_cfg:
                 del pruned_cfg['library']
-            with open(results_page, 'w') as wf:
+
+            # Hardcode the encoding, since there's a Unicode character in a
+            # Bootstrap CSS file inlined in this template. Without this setting,
+            # this write may raise an encoding error on machines where the
+            # default encoding is not UTF-8.
+            with open(results_page, 'w', encoding='utf-8') as wf:
                 wf.write(env.get_template('sc_report.j2').render(
                     manifest = self.cfg,
                     pruned_cfg = pruned_cfg,
