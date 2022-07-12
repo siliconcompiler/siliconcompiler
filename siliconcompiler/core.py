@@ -787,6 +787,15 @@ class Chip:
 
         """
 
+        # Ensure that all keypath values are strings.
+        # Scripts may accidentally pass in [None] if a prior schema entry was unexpectedly empty.
+        for kp in keypath:
+            if not type(kp) == str:
+                self.error(\
+f'''An invalid keypath was passed to "chip.get":
+{keypath}
+Your Chip configuration may be missing a parameter which is expected by your build script.''')
+
         if cfg is None:
             if job is not None:
                 cfg = self.cfg['history'][job]
@@ -823,6 +832,15 @@ class Chip:
             >>> keylist = chip.getkeys()
             Returns all list of all keypaths in the schema.
         """
+
+        # Ensure that all keypath values are strings.
+        # Scripts may accidentally pass in [None] if a prior schema entry was unexpectedly empty.
+        for kp in keypath:
+            if not type(kp) == str:
+                self.error(\
+f'''An invalid keypath was passed to "chip.getkeys":
+{keypath}
+Your Chip configuration may be missing a parameter which is expected by your build script.''')
 
         if cfg is None:
             if job is None:
