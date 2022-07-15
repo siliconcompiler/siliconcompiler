@@ -51,7 +51,7 @@ def run_chip_flow(chip):
     # and the main DRCs can miss open circuits by counting those data types as valid connections.
 
     # Run the build up to the 'route' step.
-    chip.set('option', 'steplist', ['syn', 'floorplan', 'physyn', 'place', 'cts', 'route'])
+    chip.set('option', 'steplist', ['import', 'syn', 'floorplan', 'physyn', 'place', 'cts', 'route'])
     chip.run()
 
     # Perform post-processing on the DEF file, to add overlaps for 'drawing' and 'pin' data types.
