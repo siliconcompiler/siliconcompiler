@@ -49,7 +49,7 @@ jobs:
         # https://github.com/ponty/PyVirtualDisplay/blob/master/.github/workflows/main.yml#L45
         brew install --cask xquartz
         echo "/opt/X11/bin" >> $GITHUB_PATH
-        mkdir /tmp/.X11-unix
+        mkdir -p /tmp/.X11-unix
         sudo chmod 1777 /tmp/.X11-unix
         sudo chown root /tmp/.X11-unix
 
