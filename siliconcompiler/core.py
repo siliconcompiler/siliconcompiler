@@ -2905,22 +2905,22 @@ class Chip:
 
         Reads the content of the task's log file and compares the content found
         with the task's 'regex' parameter. The matches are stored in the file
-        '<design>.<suffix>' in the current directory. The matches are printed to
-        STDOUT if display is set to True.
+        '<design>.<suffix>' in the current directory. The matches are logged
+        if display is set to True.
 
         Args:
-            jobname (str): Jobid directory name
-            step (str): Task step name ('syn', 'place', etc)
-            index (str): Task index
-            logfile (str): Path to logfile. If None, {step}.log is used.
-            display (bool): If True, printes matches to STDOUT.
+            jobname (str): Job directory name. If None, :keypath:`option, jobname` is used.
+            step (str): Task step name ('syn', 'place', etc). If None, :keypath:`arg, step` is used.
+            index (str): Task index. Default value is 0. If None, :keypath:`arg, index` is used.
+            logfile (str): Path to logfile. If None, the default task logfile is used.
+            display (bool): If True, logs matches.
 
         Returns:
             Dictionary mapping suffixes to number of matches for that suffix's
             regex.
 
         Examples:
-            >>> chip.check_logfile('place')
+            >>> chip.check_logfile(step='place')
             Searches for regex matches in the place logfile.
         '''
 
@@ -2930,12 +2930,17 @@ class Chip:
 
         if jobname is None:
             jobname = self.get('option', 'jobname')
-        if logfile is None:
-            logfile = f"{step}.log"
         if step is None:
             step = self.get('arg', 'step')
+            if step is None:
+                raise ValueError("Must provide 'step' or set ['arg', 'step']")
         if index is None:
-            index = self.getkeys('flowgraph', flow, step)[0]
+            index = self.get('arg', 'index')
+            if index is None:
+                raise ValueError("Must provide 'index' or set ['arg', 'index']")
+        if logfile is None:
+            logfile = os.path.join(self._getworkdir(jobname=jobname, step=step, index=index),
+                                   f'{step}.log')
 
         tool = self.get('flowgraph', flow, step, index, 'tool')
 
@@ -2954,26 +2959,29 @@ class Chip:
 
         # Looping through patterns for each line
         with open(logfile, errors='ignore_with_warning') as f:
-          for line in f:
-              for suffix in checks:
-                  string = line
-                  for item in checks[suffix]['args']:
-                      if string is None:
-                          break
-                      else:
-                          string = self.grep(item, string)
-                  if string is not None:
-                      matches[suffix] += 1
-                      #always print to file
-                      print(string.strip(), file=checks[suffix]['report'])
-                      #selectively print to display
-                      if display:
-                            if suffix == 'errors':
-                                self.logger.error(string.strip())
-                            elif suffix == 'warnings':
-                                self.logger.warning(string.strip())
-                            else:
-                                self.logger.info(f'{suffix}: {string.strip()}')
+            for line in f:
+                for suffix in checks:
+                    string = line
+                    for item in checks[suffix]['args']:
+                        if string is None:
+                            break
+                        else:
+                            string = self.grep(item, string)
+                    if string is not None:
+                        matches[suffix] += 1
+                        #always print to file
+                        print(string.strip(), file=checks[suffix]['report'])
+                        #selectively print to display
+                        if display:
+                                if suffix == 'errors':
+                                    self.logger.error(string.strip())
+                                elif suffix == 'warnings':
+                                    self.logger.warning(string.strip())
+                                else:
+                                    self.logger.info(f'{suffix}: {string.strip()}')
+
+        for suffix in checks:
+            checks[suffix]['report'].close()
 
         return matches
 
