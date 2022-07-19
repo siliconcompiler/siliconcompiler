@@ -52,7 +52,7 @@ SiliconCompiler execution depends on implementing adapter code "drivers" for eac
    * - **post_process**
      - Post-executable logic
      - chip
-     - exit code
+     - n/a
      - run()
      - yes
 
@@ -61,6 +61,13 @@ SiliconCompiler execution depends on implementing adapter code "drivers" for eac
      - None
      - chip
      - sphinx
+     - no
+
+   * - **run**
+     - Pure Python tool
+     - chip
+     - exit code
+     - run()
      - no
 
 For a complete example of a tool setup module, see `OpenROAD <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/openroad.py>`_. For more in depth information about the various :keypath:`tool` parameters, see the :ref:`Schema <SiliconCompiler Schema>` section of the reference manual.
@@ -148,15 +155,6 @@ The post_process function can also be used to post process the output data in th
             # in case end of file is missing a newline
             outfile.write('\n')
 
-    # Copy files from inputs to outputs. Need to skip pickled Verilog and
-    # manifest since new versions of those are written.
-    utils.copytree("inputs", "outputs", dirs_exist_ok=True, link=True,
-                   ignore=[f'{design}.v', f'{design}.pkg.json'])
-
-    return 0
-
-Note that the return value of the post_process() function is interpreted as an integer error code where zero indicates success. This can be used to signal errors that should halt execution but do not trigger a non-zero exit status from the executable itself.
-
 runtime_options(chip)
 -----------------------
 The distributed execution model of SiliconCompiler mandates that absolute paths be resolved at task run time. The setup() function is run at :meth:`.run()` launch to check flow validity, so we need a second function interface (runtime_options) to create the final commandline options. The runtime_options() function inspects the Schema and returns a cmdlist to be used by the 'exe' during task execution. The sequence of items used to generate the final command line invocation is as follows:
@@ -226,6 +224,19 @@ The SiliconCompiler includes automated document generators that search all tool 
     setup(chip)
     return chip
 
+run(chip)
+------------
+
+SiliconCompiler supports pure-Python tools that execute a Python function rather than an executable. To define a pure-Python tool, add a function called ``run()`` in your tool driver, which takes in a Chip object and implements your tool's desired functionality. This function should return an integer exit code, with zero indicating success.
+
+Note that pure-Python tool drivers still require a ``setup()`` function, but most :keypath:`tool` fields will not be meaningful. At the moment, pure-Python tools do not support the following features:
+
+* Version checking
+* Replay scripts
+* Task timeout
+* Memory usage tracking
+* Breakpoints
+* Output redirection/regex-based logfile parsing
 
 TCL interface
 --------------
