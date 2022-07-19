@@ -1,5 +1,15 @@
 import siliconcompiler
 
+def make_docs():
+    '''An RTL2GDS flow for the eFabless MPW shuttle. This flow is based off the
+    basic serial asicflow, with the addition of fixdef and addvias steps for
+    doing MPW-specific fixes to the post-routing DEF and gate-level netlist,
+    respectively.'''
+    chip = siliconcompiler.Chip('<design>')
+    setup(chip)
+    chip.set('option', 'flow', 'mpwflow')
+    return chip
+
 def setup(chip):
     flow = 'mpwflow'
 
@@ -28,7 +38,5 @@ def setup(chip):
     chip.edge(flow, 'dfm', 'addvias')
 
 if __name__ == '__main__':
-    chip = siliconcompiler.Chip('mpwflow')
-    setup(chip)
-    chip.set('option', 'flow', 'mpwflow')
+    chip = make_docs()
     chip.write_flowgraph('mpwflow.png')
