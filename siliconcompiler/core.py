@@ -1849,8 +1849,9 @@ class Chip:
                             if self._keypath_empty(keypath):
                                 error = True
                                 self.logger.error(f"Value empty for [{keypath}] for {tool}.")
-                    run_func = self.find_function(tool, 'run', 'tools')
-                    if self._keypath_empty(['tool', tool, 'exe']) and run_func is None:
+
+                    if (self._keypath_empty(['tool', tool, 'exe']) and
+                        self.find_function(tool, 'run', 'tools') is None):
                         error = True
                         self.logger.error(f'No executable or run() function specified for tool {tool}')
 
@@ -3829,7 +3830,9 @@ class Chip:
             for item in self.getkeys('tool', tool, 'env', step, index):
                 os.environ[item] = self.get('tool', tool, 'env', step, index, item)
 
-        run_func = self.find_function(tool, 'run', 'tools')
+        run_func = None
+        if tool not in self.builtin:
+            run_func = self.find_function(tool, 'run', 'tools')
 
         ##################
         # 12. Check exe version
