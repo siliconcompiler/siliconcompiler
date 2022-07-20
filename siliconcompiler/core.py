@@ -4178,6 +4178,9 @@ class Chip:
         '''
 
         flow = self.get('option', 'flow')
+        if flow is None:
+            self.error("['option', 'flow'] must be set before calling run()",
+                       fatal=True)
 
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
