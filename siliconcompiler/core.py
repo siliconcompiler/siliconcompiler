@@ -35,6 +35,7 @@ import csv
 import distro
 import netifaces
 import webbrowser
+import codecs
 import packaging.version
 import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
@@ -113,6 +114,23 @@ class Chip:
             'libs': [],
             'checklists': []
         }
+
+        # Custom error handlers used to provide warnings when invalid characters
+        # are encountered in a file for a given encoding. The names
+        # 'replace_with_warning' and 'ignore_with_warning' are supplied to
+        # open() via the 'errors' kwarg.
+
+        # Warning message/behavior for invalid characters while running tool
+        def display_error_handler(e):
+            self.logger.warning('Invalid character in tool output, displaying as �')
+            return codecs.replace_errors(e)
+        codecs.register_error('replace_with_warning', display_error_handler)
+
+        # Warning message/behavior for invalid characters while processing log
+        def log_error_handler(e):
+            self.logger.warning('Ignoring invalid character found while reading log')
+            return codecs.ignore_errors(e)
+        codecs.register_error('ignore_with_warning', log_error_handler)
 
     ###########################################################################
     @property
@@ -2935,7 +2953,7 @@ class Chip:
             matches[suffix] = 0
 
         # Looping through patterns for each line
-        with open(logfile) as f:
+        with open(logfile, errors='ignore_with_warning') as f:
           for line in f:
               for suffix in checks:
                   string = line
@@ -3929,7 +3947,10 @@ class Chip:
                     self.logger.error(f'stderr/destination has no support for {destination}. Use [log|output|none].')
                     self._haltstep(step, index)
 
-                with open(stdout_file, 'w') as stdout_writer, open(stdout_file, 'r') as stdout_reader, open(stderr_file, 'w') as stderr_writer, open(stderr_file, 'r') as stderr_reader:
+                with open(stdout_file, 'w') as stdout_writer, \
+                    open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader,  \
+                    open(stderr_file, 'w') as stderr_writer,  \
+                    open(stderr_file, 'r', errors='replace_with_warning') as stderr_reader:
                     # Use separate reader/writer file objects as hack to display
                     # live output in non-blocking way, so we can monitor the
                     # timeout. Based on https://stackoverflow.com/a/18422264.
