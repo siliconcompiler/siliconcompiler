@@ -1928,9 +1928,6 @@ class Chip:
         if not steplist:
             steplist = self.list_steps()
 
-        if len(steplist) < 2:
-            return True
-
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 # For each task, check input requirements.
@@ -1956,7 +1953,10 @@ class Chip:
                             in_job = jobname
                         workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
                         in_step_out_dir = os.path.join(workdir, 'outputs')
-                        inputs = os.listdir(in_step_out_dir)
+
+                        design = self.get('design')
+                        manifest = f'{design}.pkg.json'
+                        inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
                     else:
                         inputs = self._gather_outputs(in_step, in_index)
 
