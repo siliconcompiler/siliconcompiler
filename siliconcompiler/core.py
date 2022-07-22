@@ -1390,7 +1390,7 @@ class Chip:
         for path in paths:
             if (copyall or copy) and ('file' in paramtype):
                 name = self._get_imported_filename(path)
-                abspath = os.path.join(self._getworkdir(jobname=job, step='import'), 'outputs', name)
+                abspath = os.path.join(self._getworkdir(jobname=job, step='import'), 'inputs', name)
                 if os.path.isfile(abspath):
                     # if copy is True and file is found in import outputs,
                     # continue. Otherwise, fall through to _find_sc_file (the
@@ -2546,23 +2546,6 @@ class Chip:
         outdir = 'outputs'
         if not os.path.exists(outdir):
             os.makedirs(outdir)
-
-        # Logic to make links from outputs/ to inputs/, skipping anything that
-        # will be output by the tool as well as the manifest. We put this here
-        # so that tools used for the import stage don't have to duplicate this
-        # logic. We skip this logic for 'join'-based single-step imports, since
-        # 'join' does the copy for us.
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        if tool not in self.builtin:
-            if self.valid('tool', tool, 'output', step, index):
-                outputs = self.get('tool', tool, 'output', step, index)
-            else:
-                outputs = []
-            design = self.get('design')
-            ignore = outputs + [f'{design}.pkg.json']
-            utils.copytree(indir, outdir, dirs_exist_ok=True, link=True, ignore=ignore)
-        elif tool not in ('join', 'nop'):
-            self.error(f'Invalid import step builtin {tool}. Must be tool or join.')
 
     ###########################################################################
     def archive(self, step=None, index=None, all_files=False):
@@ -3800,7 +3783,10 @@ class Chip:
         ##################
         # 8. Copy (link) output data from previous steps
 
-        if step == 'import':
+        if step == 'import' and self.get('option', 'remote'):
+            # Collect inputs into import directory only for remote runs, since
+            # we need to send inputs up to the server. Otherwise, it's simpler
+            # for debugging to leave inputs in place.
             self._collect(step, index)
 
         if not self.get('flowgraph', flow, step, index,'input'):
