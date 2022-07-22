@@ -2529,7 +2529,6 @@ class Chip:
         '''
 
         indir = 'inputs'
-        flow = self.get('option', 'flow')
 
         if not os.path.exists(indir):
             os.makedirs(indir)
@@ -2544,10 +2543,6 @@ class Chip:
                 shutil.copy(abspath, os.path.join(indir, filename))
             else:
                 self._haltstep(step, index)
-
-        outdir = 'outputs'
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
 
     ###########################################################################
     def archive(self, step=None, index=None, all_files=False):
