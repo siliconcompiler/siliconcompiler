@@ -2500,6 +2500,8 @@ class Chip:
         copyall = self.get('option', 'copyall')
         allkeys = self.getkeys()
         for key in allkeys:
+            if key[0] == 'history':
+                continue
             leaftype = self.get(*key, field='type')
             if re.search('file', leaftype):
                 copy = self.get(*key, field='copy')
