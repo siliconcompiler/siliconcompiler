@@ -1954,6 +1954,13 @@ class Chip:
                         workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
                         in_step_out_dir = os.path.join(workdir, 'outputs')
 
+                        if not os.path.isdir(in_step_out_dir):
+                            # This means this step hasn't been run, but that
+                            # will be flagged by a different check. No error
+                            # message here since it would be redundant.
+                            inputs = []
+                            continue
+
                         design = self.get('design')
                         manifest = f'{design}.pkg.json'
                         inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
