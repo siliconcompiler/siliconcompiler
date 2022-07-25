@@ -99,7 +99,7 @@ def setup(chip, mode="batch"):
     # Export GDS with timestamps by default.
     chip.set('tool', tool, 'var', step, index, 'timestamps', 'true', clobber=False)
 
-    design = chip.get_entrypoint()
+    design = chip.top()
 
     # Input/Output requirements for default flow
     if step in ['export']:

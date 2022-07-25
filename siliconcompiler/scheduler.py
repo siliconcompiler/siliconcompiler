@@ -56,7 +56,7 @@ def _deferstep(chip, step, index, status):
         sf.write('#!/bin/bash\n')
         sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
-                    f"-jobscheduler '' -design {shlex.quote(chip.get_entrypoint())}")
+                    f"-jobscheduler '' -design {shlex.quote(chip.top())}")
     schedule_cmd.append(script_path)
 
     # Run the 'srun' command, and track its output.

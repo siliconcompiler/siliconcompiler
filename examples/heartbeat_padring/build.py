@@ -49,7 +49,7 @@ def build_core():
     #core_chip.summary()
 
     # Copy stream files for padring integration.
-    design = core_chip.get_entrypoint()
+    design = core_chip.top()
     gds_result = core_chip.find_result('gds', step='export')
     vg_result = core_chip.find_result('vg', step='dfm')
     shutil.copy(gds_result, f'{design}.gds')

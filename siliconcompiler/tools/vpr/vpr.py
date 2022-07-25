@@ -49,13 +49,13 @@ def setup(chip):
     chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
 
     #TO-DO: PRIOROTIZE the post-routing packing results?
-    design = chip.get_entrypoint()
+    design = chip.top()
     chip.set('tool', tool, 'output', step, index, design + '.net')
     chip.add('tool', tool, 'output', step, index, design + '.place')
     chip.add('tool', tool, 'output', step, index, design + '.route')
     chip.add('tool', tool, 'output', step, index, 'vpr_stdout.log')
 
-    topmodule = chip.get_entrypoint()
+    topmodule = chip.top()
     blif = "inputs/" + topmodule + ".blif"
 
     options = []
@@ -84,7 +84,7 @@ def pre_process(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    design = chip.get_entrypoint()
+    design = chip.top()
     blif_file = f"{chip._getworkdir()}/{step}/{index}/inputs/{design}.blif"
     print(blif_file)
     with open(blif_file,'r+') as f:
@@ -106,7 +106,7 @@ def post_process(chip):
     index = chip.get('arg','index')
     for file in chip.get('tool', 'vpr', 'output', step, index):
         shutil.copy(file, 'outputs')
-    design = chip.get_entrypoint()
+    design = chip.top()
     shutil.copy(f'inputs/{design}.blif', 'outputs')
     #TODO: return error code
     return 0

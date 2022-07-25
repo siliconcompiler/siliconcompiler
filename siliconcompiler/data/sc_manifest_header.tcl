@@ -2,7 +2,7 @@
 #!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!
 #############################################
 
-proc sc_get_entrypoint {} {
+proc sc_top {} {
     # Refer to global sc_cfg dictionary
     global sc_cfg
 

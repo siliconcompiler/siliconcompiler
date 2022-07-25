@@ -79,7 +79,7 @@ def setup(chip):
     tool = 'verilator'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    design = chip.get_entrypoint()
+    design = chip.top()
 
     # Standard Setup
     chip.set('tool', tool, 'exe', 'verilator')
@@ -183,7 +183,7 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    design = chip.get_entrypoint()
+    design = chip.top()
     step = chip.get('arg','step')
 
     if step == 'import':

@@ -31,7 +31,7 @@ def setup(chip):
     chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
 
 
-    topmodule = chip.get_entrypoint()
+    topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"
 
     options = []

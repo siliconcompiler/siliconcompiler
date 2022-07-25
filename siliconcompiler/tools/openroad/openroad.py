@@ -81,7 +81,7 @@ def setup(chip, mode='batch'):
     # Input/Output requirements for default asicflow steps
     # TODO: long-term, we want to remove hard-coded step names from tool files.
     if step in ['floorplan', 'physyn', 'place', 'cts', 'route', 'dfm']:
-        design = chip.get_entrypoint()
+        design = chip.top()
         if step == 'floorplan':
             if (not chip.valid('input', 'netlist') or
                 not chip.get('input', 'netlist')):

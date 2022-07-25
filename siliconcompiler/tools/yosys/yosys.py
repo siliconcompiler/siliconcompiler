@@ -68,7 +68,7 @@ def setup(chip):
 
     chip.set('tool', tool, 'script', step, index, script, clobber=False)
 
-    design = chip.get_entrypoint()
+    design = chip.top()
 
     # Input/output requirements
     if step.startswith('syn'):

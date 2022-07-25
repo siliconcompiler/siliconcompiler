@@ -52,7 +52,7 @@ def setup(chip):
     # Schema requirements
     chip.add('tool', tool, 'require', step, index, 'input,vhdl')
 
-    design = chip.get_entrypoint()
+    design = chip.top()
 
     chip.set('tool', tool, 'output', step, index, f'{design}.v')
 
@@ -90,7 +90,7 @@ def runtime_options(chip):
         options.append(value)
 
     # Set top module
-    design = chip.get_entrypoint()
+    design = chip.top()
     options.append('-e')
     options.append(design)
 

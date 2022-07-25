@@ -19,7 +19,7 @@ set sc_refdir [dict get $sc_cfg tool $sc_tool refdir $sc_step $sc_index]
 # DESIGNER's CHOICE
 ####################
 
-set sc_design      [sc_get_entrypoint]
+set sc_design      [sc_top]
 set sc_mode        [dict get $sc_cfg option mode]
 set sc_flow        [dict get $sc_cfg option flow]
 set sc_optmode     [dict get $sc_cfg option optmode]

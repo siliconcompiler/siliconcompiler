@@ -398,7 +398,7 @@ class Server:
         # Assemble core job parameters.
         job_hash = chip.status['jobhash']
         design = chip.get('design')
-        top_module = chip.get_entrypoint()
+        top_module = chip.top()
         job_nameid = f"{chip.get('option', 'jobname')}"
         nfs_mount = self.cfg['nfsmount']['value'][-1]
 

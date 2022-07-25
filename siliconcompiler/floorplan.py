@@ -161,7 +161,7 @@ class Floorplan:
         self.chip = chip
 
         # Used by Jinja LEF/DEF templates
-        self.design = chip.get_entrypoint()
+        self.design = chip.top()
 
         self.stackup = chip.get('asic', 'stackup')
         self.diearea = None

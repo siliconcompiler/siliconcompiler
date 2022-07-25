@@ -141,7 +141,7 @@ class Chip:
         return self.get('design')
 
     ###########################################################################
-    def get_entrypoint(self):
+    def top(self):
         '''Gets the name of the design's entrypoint for compilation and
         simulation.
 
@@ -1448,7 +1448,7 @@ class Chip:
             jobname = self.get('option', 'jobname')
 
         workdir = self._getworkdir(jobname, step, index)
-        design = self.get_entrypoint()
+        design = self.top()
         filename = f"{workdir}/outputs/{design}.{filetype}"
 
         self.logger.debug("Finding result %s", filename)
@@ -3093,7 +3093,7 @@ class Chip:
             paramstr = "None"
 
         info_list = ["SUMMARY:\n",
-                     "design : " + self.get_entrypoint(),
+                     "design : " + self.top(),
                      "params : " + paramstr,
                      "jobdir : "+ jobdir,
                      ]
@@ -3172,7 +3172,7 @@ class Chip:
         if os.path.isdir(web_dir):
             # Gather essential variables.
             templ_dir = os.path.join(self.scroot, 'templates', 'report')
-            design = self.get_entrypoint()
+            design = self.top()
             flow = self.get('option', 'flow')
             flow_steps = steplist
             flow_tasks = {}
@@ -3308,7 +3308,7 @@ class Chip:
             >>> chip.clock('clk, period=1.0)
            Create a clock named 'clk' with a 1.0ns period.
         """
-        design = self.get_entrypoint()
+        design = self.top()
         self.set('datasheet', design, 'pin', pin, 'type', 'global', 'clk')
 
         period_range = (period * 1e-9, period * 1e-9, period * 1e-9)
@@ -3718,7 +3718,7 @@ class Chip:
         ##################
         # Shared parameters (long function!)
         design = self.get('design')
-        top = self.get_entrypoint()
+        top = self.top()
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
         quiet = self.get('option', 'quiet') and (step not in self.get('option', 'bkpt'))
@@ -4619,7 +4619,7 @@ class Chip:
         # Finding last layout if no argument specified
         if filename is None:
             self.logger.info('Searching build directory for layout to show.')
-            design = self.get_entrypoint()
+            design = self.top()
             # TODO: keeping the below logic for backwards compatibility. Once
             # all flows/examples register their outputs in ['output', ...], we
             # can fully switch over to the generic logic.
