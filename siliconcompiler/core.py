@@ -795,7 +795,7 @@ class Chip:
 
         keypathstr = f'{keypath}'
 
-        self.logger.debug(f"Reading from [{keypathstr}]. Field = '{field}'")
+        self.logger.debug(f"Reading from {keypathstr}. Field = '{field}'")
         return self._search(cfg, keypathstr, *keypath, field=field, mode='get')
 
     ###########################################################################
@@ -904,11 +904,6 @@ class Chip:
         if cfg is None:
             cfg = self.cfg
 
-        # Verify that all keys are strings
-        for key in args[:-1]:
-            if not isinstance(key,str):
-                self.logger.error(f"Key [{key}] is not a string [{args}]")
-
         keypathstr = f'{args[:-1]}'
         all_args = list(args)
 
@@ -916,7 +911,7 @@ class Chip:
         if len(args) == 3 and args[1] == 'loglevel' and field == 'value':
             self.logger.setLevel(args[2])
 
-        self.logger.debug(f"Setting [{keypathstr}] to {args[-1]}")
+        self.logger.debug(f"Setting {keypathstr} to {args[-1]}")
         return self._search(cfg, keypathstr, *all_args, field=field, mode='set', clobber=clobber)
 
     ###########################################################################
@@ -948,15 +943,10 @@ class Chip:
         if cfg is None:
             cfg = self.cfg
 
-        # Verify that all keys are strings
-        for key in args[:-1]:
-            if not isinstance(key,str):
-                self.logger.error(f"Key [{key}] is not a string [{args}]")
-
         keypathstr = f'{args[:-1]}'
         all_args = list(args)
 
-        self.logger.debug(f'Appending value {args[-1]} to [{keypathstr}]')
+        self.logger.debug(f'Appending value {args[-1]} to {keypathstr}')
         return self._search(cfg, keypathstr, *all_args, field=field, mode='add')
 
 
@@ -1017,7 +1007,7 @@ class Chip:
         if (mode in ('set', 'add')) & (len(all_args) == 2):
             # clean error if key not found
             if (not param in cfg) & (not 'default' in cfg):
-                self.error(f"Set/Add keypath [{keypath}] does not exist.")
+                self.error(f"Set/Add keypath {keypath} does not exist.")
             else:
                 # making an 'instance' of default if not found
                 if (not param in cfg) & ('default' in cfg):
@@ -1025,7 +1015,7 @@ class Chip:
                 list_type =bool(re.match(r'\[', cfg[param]['type']))
                 # checking for illegal fields
                 if not field in cfg[param] and (field != 'value'):
-                    self.error(f"Field '{field}' for keypath [{keypath}]' is not a valid field.")
+                    self.error(f"Field '{field}' for keypath {keypath}' is not a valid field.")
                 # check legality of value
                 if field == 'value':
                     (type_ok,type_error) = self._typecheck(cfg[param], param, val)
@@ -1042,7 +1032,7 @@ class Chip:
                 selval = cfg[param]['value']
                 # updating values
                 if cfg[param]['lock'] == "true":
-                    self.logger.debug("Ignoring {mode}{} to [{keypath}]. Lock bit is set.")
+                    self.logger.debug("Ignoring {mode}{} to {keypath}. Lock bit is set.")
                 elif (mode == 'set'):
                     if (field != 'value') or (selval in empty) or clobber:
                         if field in ('copy', 'lock'):
@@ -1082,9 +1072,9 @@ class Chip:
                             else:
                                 cfg[param][field] = val
                         else:
-                            self.error(f"Assigning list to scalar for [{keypath}]")
+                            self.error(f"Assigning list to scalar for {keypath}")
                     else:
-                        self.logger.debug(f"Ignoring set() to [{keypath}], value already set. Use clobber=true to override.")
+                        self.logger.debug(f"Ignoring set() to {keypath}, value already set. Use clobber=true to override.")
                 elif (mode == 'add'):
                     if field in ('filehash', 'date', 'author', 'signature'):
                         cfg[param][field].append(str(val))
@@ -1095,19 +1085,19 @@ class Chip:
                     elif list_type & isinstance(val, list):
                         cfg[param][field].extend(val)
                     else:
-                        self.error(f"Illegal use of add() for scalar parameter [{keypath}].")
+                        self.error(f"Illegal use of add() for scalar parameter {keypath}.")
                 return cfg[param][field]
         #get leaf cell (all_args=param)
         elif len(all_args) == 1:
             if not param in cfg:
-                self.error(f"Get keypath [{keypath}] does not exist.")
+                self.error(f"Get keypath {keypath} does not exist.")
             elif mode == 'getcfg':
                 return cfg[param]
             elif mode == 'getkeys':
                 return cfg[param].keys()
             else:
                 if not (field in cfg[param]) and (field!='value'):
-                    self.error(f"Field '{field}' not found for keypath [{keypath}]")
+                    self.error(f"Field '{field}' not found for keypath {keypath}")
                 elif field == 'value':
                     #Select default if no value has been set
                     if field not in cfg[param]:
@@ -1171,7 +1161,7 @@ class Chip:
             if not param in cfg and 'default' in cfg:
                 cfg[param] = copy.deepcopy(cfg['default'])
             elif not param in cfg:
-                self.error(f"Get keypath [{keypath}] does not exist.")
+                self.error(f"Get keypath {keypath} does not exist.")
                 return None
             all_args.pop(0)
             return self._search(cfg[param], keypath, *all_args, field=field, mode=mode, clobber=clobber)
