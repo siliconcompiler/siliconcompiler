@@ -1392,7 +1392,7 @@ class Chip:
                 name = self._get_imported_filename(path)
                 abspath = os.path.join(self._getworkdir(jobname=job, step='import'), 'inputs', name)
                 if os.path.isfile(abspath):
-                    # if copy is True and file is found in import outputs,
+                    # if copy is True and file is found in import inputs,
                     # continue. Otherwise, fall through to _find_sc_file (the
                     # file may not have been gathered in imports yet)
                     result.append(abspath)
