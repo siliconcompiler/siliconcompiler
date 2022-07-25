@@ -787,22 +787,13 @@ class Chip:
 
         """
 
-        # Ensure that all keypath values are strings.
-        # Scripts may accidentally pass in [None] if a prior schema entry was unexpectedly empty.
-        for kp in keypath:
-            if not type(kp) == str:
-                self.error(\
-f'''An invalid keypath was passed to "chip.get":
-{keypath}
-Your Chip configuration may be missing a parameter which is expected by your build script.''')
-
         if cfg is None:
             if job is not None:
                 cfg = self.cfg['history'][job]
             else:
                 cfg = self.cfg
 
-        keypathstr = ','.join(keypath)
+        keypathstr = f'{keypath}'
 
         self.logger.debug(f"Reading from [{keypathstr}]. Field = '{field}'")
         return self._search(cfg, keypathstr, *keypath, field=field, mode='get')
@@ -833,15 +824,6 @@ Your Chip configuration may be missing a parameter which is expected by your bui
             Returns all list of all keypaths in the schema.
         """
 
-        # Ensure that all keypath values are strings.
-        # Scripts may accidentally pass in [None] if a prior schema entry was unexpectedly empty.
-        for kp in keypath:
-            if not type(kp) == str:
-                self.error(\
-f'''An invalid keypath was passed to "chip.getkeys":
-{keypath}
-Your Chip configuration may be missing a parameter which is expected by your build script.''')
-
         if cfg is None:
             if job is None:
                 cfg = self.cfg
@@ -849,7 +831,7 @@ Your Chip configuration may be missing a parameter which is expected by your bui
                 cfg = self.cfg['history'][job]
 
         if len(list(keypath)) > 0:
-            keypathstr = ','.join(keypath)
+            keypathstr = f'{keypath}'
             self.logger.debug('Getting schema parameter keys for: %s', keypathstr)
             keys = list(self._search(cfg, keypathstr, *keypath, mode='getkeys'))
             if 'default' in keys:
@@ -1017,6 +999,18 @@ Your Chip configuration may be missing a parameter which is expected by your bui
         param = all_args[0]
         val = all_args[-1]
         empty = [None, 'null', [], 'false']
+
+        # Ensure that all keypath values are strings.
+        # Scripts may accidentally pass in [None] if a prior schema entry was unexpectedly empty.
+        keys_to_check = args
+        if mode in ['set', 'add']:
+            # Ignore the value parameter for 'set' and 'add' operations.
+            keys_to_check = args[:-1]
+        for key in keys_to_check:
+            if not isinstance(key, str):
+                self.error(
+                    f'Invalid keypath: {keypath}\n'
+                    'Your Chip configuration may be missing a parameter which is expected by your build script.')
 
         #set/add leaf cell (all_args=(param,val))
         if (mode in ('set', 'add')) & (len(all_args) == 2):
