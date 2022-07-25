@@ -909,7 +909,7 @@ class Chip:
             if not isinstance(key,str):
                 self.logger.error(f"Key [{key}] is not a string [{args}]")
 
-        keypathstr = ','.join(args[:-1])
+        keypathstr = f'{args[:-1]}'
         all_args = list(args)
 
         # Special case to ensure loglevel is updated ASAP
@@ -953,7 +953,7 @@ class Chip:
             if not isinstance(key,str):
                 self.logger.error(f"Key [{key}] is not a string [{args}]")
 
-        keypathstr = ','.join(args[:-1])
+        keypathstr = f'{args[:-1]}'
         all_args = list(args)
 
         self.logger.debug(f'Appending value {args[-1]} to [{keypathstr}]')
@@ -1011,6 +1011,7 @@ class Chip:
                 self.error(
                     f'Invalid keypath: {keypath}\n'
                     'Your Chip configuration may be missing a parameter which is expected by your build script.')
+                return None
 
         #set/add leaf cell (all_args=(param,val))
         if (mode in ('set', 'add')) & (len(all_args) == 2):
