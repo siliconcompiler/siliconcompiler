@@ -3118,35 +3118,43 @@ class Chip:
             for index in indices_to_show[step]:
                 header.append(f'{step}{index}'.center(colwidth))
 
-        # figure out which metrics have non-zero weights
-        metric_list = []
-        for step in steplist:
-            for metric in self.getkeys('metric','default','default'):
-                if metric in self.getkeys('flowgraph', flow, step, '0', 'weight'):
-                    if self.get('flowgraph', flow, step, '0', 'weight', metric) is not None:
-                        if metric not in metric_list:
-                            metric_list.append(metric)
+        # Gather data and determine which metrics to show
+        # We show a metric if:
+        # - it is not in ['option', 'metricoff'] -AND-
+        # - at least one step in the steplist has a non-zero weight for the metric -OR -
+        #   at least one step in the steplist set a value for it
+        metrics_to_show = []
+        for metric in self.getkeys('metric', 'default', 'default'):
+            if metric in self.get('option', 'metricoff'):
+                continue
 
-        # print out all metrics
-        metrics = []
-        for metric in metric_list:
-            metrics.append(" " + metric)
             row = []
+            show_metric = False
             for step in steplist:
                 for index in indices_to_show[step]:
-                    value = self.get('metric', step, index, metric)
+                    if (
+                        metric in self.getkeys('flowgraph', flow, step, index, 'weight') and
+                        self.get('flowgraph', flow, step, index, 'weight', metric)
+                    ):
+                        show_metric = True
 
+                    value = self.get('metric', step, index, metric)
                     if value is None:
                         value = '---'
                     else:
                         value = str(value)
+                        show_metric = True
 
                     row.append(" " + value.center(colwidth))
-            data.append(row)
+
+            if show_metric:
+                metrics_to_show.append(metric)
+                data.append(row)
 
         pandas.set_option('display.max_rows', 500)
         pandas.set_option('display.max_columns', 500)
         pandas.set_option('display.width', 100)
+        metrics = [" " + metric for metric in metrics_to_show]
         df = pandas.DataFrame(data, metrics, header)
         print(df.to_string())
         print("-"*135)
@@ -3194,7 +3202,7 @@ class Chip:
                 wf.write(env.get_template('sc_report.j2').render(
                     manifest = self.cfg,
                     pruned_cfg = pruned_cfg,
-                    metric_keys = metric_list,
+                    metric_keys = metrics_to_show,
                     metrics = self.cfg['metric'],
                     tasks = flow_tasks,
                     img_data = img_data,
