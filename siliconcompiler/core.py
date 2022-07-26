@@ -3137,7 +3137,7 @@ class Chip:
                     value = self.get('metric', step, index, metric)
 
                     if value is None:
-                        value = 'ERR'
+                        value = '---'
                     else:
                         value = str(value)
 
@@ -3557,6 +3557,9 @@ class Chip:
                     if self.valid('flowgraph', flow, step, index, 'goal', metric):
                         goal = self.get('flowgraph', flow, step, index, 'goal', metric)
                         real = self.get('metric', step, index, metric)
+                        if real is None:
+                            self.error(f'Metric {metric} has goal for {step}{index} '
+                                'but it has not been set.', fatal=True)
                         if abs(real) > goal:
                             self.logger.warning(f"Step {step}{index} failed "
                                 f"because it didn't meet goals for '{metric}' "
@@ -3590,6 +3593,9 @@ class Chip:
                     continue
 
                 real = self.get('metric', step, index, metric)
+                if real is None:
+                    self.error(f'Metric {metric} has weight for {step}{index} '
+                        'but it has not been set.', fatal=True)
 
                 if not (max_val[metric] - min_val[metric]) == 0:
                     scaled = (real - min_val[metric]) / (max_val[metric] - min_val[metric])
@@ -3763,14 +3769,6 @@ class Chip:
         self.set('arg', 'index', None, clobber=True)
         os.makedirs('inputs', exist_ok=True)
         #self.write_manifest(f'inputs/{design}.pkg.json')
-
-        ##################
-        # 6. Make metrics zero
-        # TODO: There should be no need for this, but need to fix
-        # without it we need to be more careful with flows to make sure
-        # things like the builtin functions don't look at None values
-        for metric in self.getkeys('metric', 'default', 'default'):
-            self.set('metric', step, index, metric, 0)
 
         ##################
         # 7. Select inputs
@@ -4047,10 +4045,14 @@ class Chip:
             matches = self.check_logfile(step=step, index=index, display=not quiet)
             if 'errors' in matches:
                 errors = self.get('metric', step, index, 'errors')
+                if errors is None:
+                    errors = 0
                 errors += matches['errors']
                 self.set('metric', step, index, 'errors', errors)
             if 'warnings' in matches:
                 warnings = self.get('metric', step, index, 'warnings')
+                if warnings is None:
+                    warnings = 0
                 warnings += matches['warnings']
                 self.set('metric', step, index, 'warnings', warnings)
 
