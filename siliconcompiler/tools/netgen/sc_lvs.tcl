@@ -3,7 +3,7 @@ source ./sc_manifest.tcl
 set sc_step    [dict get $sc_cfg arg step]
 set sc_index   [dict get $sc_cfg arg index]
 
-set sc_design  [dict get $sc_cfg design]
+set sc_design  [sc_top]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 set sc_stackup [dict get $sc_cfg asic stackup]
 set sc_pdk [dict get $sc_cfg option pdk]

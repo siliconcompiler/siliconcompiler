@@ -52,7 +52,7 @@ def setup(chip):
     # Schema requirements
     chip.add('tool', tool, 'require', step, index, 'input,vhdl')
 
-    design = chip.get('design')
+    design = chip.top()
 
     chip.set('tool', tool, 'output', step, index, f'{design}.v')
 
@@ -76,7 +76,7 @@ def runtime_options(chip):
     options.append('--out=verilog')
     options.append('--no-formal')
 
-    if chip.valid('tool', 'ghdl', 'var', step, index, 'extraopts'): 
+    if chip.valid('tool', 'ghdl', 'var', step, index, 'extraopts'):
         extra_opts = chip.get('tool', 'ghdl', 'var', step, index, 'extraopts')
         # currently only -fsynopsys supported
         for opt in extra_opts:
@@ -90,7 +90,7 @@ def runtime_options(chip):
         options.append(value)
 
     # Set top module
-    design = chip.get('design')
+    design = chip.top()
     options.append('-e')
     options.append(design)
 

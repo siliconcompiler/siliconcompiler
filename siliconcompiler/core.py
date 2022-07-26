@@ -141,6 +141,22 @@ class Chip:
         return self.get('design')
 
     ###########################################################################
+    def top(self):
+        '''Gets the name of the design's entrypoint for compilation and
+        simulation.
+
+        This method should be used to name input and output files in tool
+        drivers, rather than relying on chip.get('design') directly.
+
+        Returns :keypath:`option, entrypoint` if it has been set, otherwise
+        :keypath:`design`.
+        '''
+        entrypoint = self.get('option', 'entrypoint')
+        if not entrypoint:
+            return self.design
+        return entrypoint
+
+    ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
 
         self.logger = logging.getLogger(uuid.uuid4().hex)
@@ -1432,7 +1448,7 @@ class Chip:
             jobname = self.get('option', 'jobname')
 
         workdir = self._getworkdir(jobname, step, index)
-        design = self.get('design')
+        design = self.top()
         filename = f"{workdir}/outputs/{design}.{filetype}"
 
         self.logger.debug("Finding result %s", filename)
@@ -1520,10 +1536,10 @@ class Chip:
         '''
         Prints out schema as TCL dictionary
         '''
-
-        fout.write("#############################################")
-        fout.write("#!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!")
-        fout.write("#############################################\n")
+        manifest_header = os.path.join(self.scroot, 'data', 'sc_manifest_header.tcl')
+        with open(manifest_header, 'r') as f:
+            fout.write(f.read())
+        fout.write('\n')
 
         allkeys = self.getkeys(cfg=cfg)
 
@@ -3077,7 +3093,7 @@ class Chip:
             paramstr = "None"
 
         info_list = ["SUMMARY:\n",
-                     "design : " + self.get('design'),
+                     "design : " + self.top(),
                      "params : " + paramstr,
                      "jobdir : "+ jobdir,
                      ]
@@ -3152,13 +3168,11 @@ class Chip:
 
         # Create a report for the Chip object which can be viewed in a web browser.
         # Place report files in the build's root directory.
-        web_dir = os.path.join(self.get('option', 'builddir'),
-                               self.get('design'),
-                               self.get('option', 'jobname'))
+        web_dir = self._getworkdir()
         if os.path.isdir(web_dir):
             # Gather essential variables.
             templ_dir = os.path.join(self.scroot, 'templates', 'report')
-            design = self.get('design')
+            design = self.top()
             flow = self.get('option', 'flow')
             flow_steps = steplist
             flow_tasks = {}
@@ -3294,7 +3308,7 @@ class Chip:
             >>> chip.clock('clk, period=1.0)
            Create a clock named 'clk' with a 1.0ns period.
         """
-        design = self.get('design')
+        design = self.top()
         self.set('datasheet', design, 'pin', pin, 'type', 'global', 'clk')
 
         period_range = (period * 1e-9, period * 1e-9, period * 1e-9)
@@ -3704,6 +3718,7 @@ class Chip:
         ##################
         # Shared parameters (long function!)
         design = self.get('design')
+        top = self.top()
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
         quiet = self.get('option', 'quiet') and (step not in self.get('option', 'bkpt'))
@@ -3942,7 +3957,7 @@ class Chip:
                 if self.get('tool', tool, 'stdout', step, index, 'destination') == 'log':
                     stdout_file = step + "." + stdout_suffix
                 elif self.get('tool', tool, 'stdout', step, index, 'destination') == 'output':
-                    stdout_file =  os.path.join('outputs', self.get('design')) + "." + stdout_suffix
+                    stdout_file =  os.path.join('outputs', top + "." + stdout_suffix)
                 elif self.get('tool', tool, 'stdout', step, index, 'destination') == 'none':
                     stdout_file =  os.devnull
                 else:
@@ -3954,7 +3969,7 @@ class Chip:
                 if self.get('tool', tool, 'stderr', step, index, 'destination') == 'log':
                     stderr_file = step + "." + stderr_suffix
                 elif self.get('tool', tool, 'stderr', step, index, 'destination') == 'output':
-                    stderr_file =  os.path.join('outputs', self.get('design')) + "." + stderr_suffix
+                    stderr_file =  os.path.join('outputs', top + "." + stderr_suffix)
                 elif self.get('tool', tool, 'stderr', step, index, 'destination') == 'none':
                     stderr_file =  os.devnull
                 else:
@@ -4604,7 +4619,7 @@ class Chip:
         # Finding last layout if no argument specified
         if filename is None:
             self.logger.info('Searching build directory for layout to show.')
-            design = self.get('design')
+            design = self.top()
             # TODO: keeping the below logic for backwards compatibility. Once
             # all flows/examples register their outputs in ['output', ...], we
             # can fully switch over to the generic logic.

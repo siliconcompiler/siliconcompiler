@@ -54,7 +54,7 @@ def setup(chip):
     chip.set('tool', tool, 'option', step, index,  [], clobber=False)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'output', step, index, chip.get('design') + '.v')
+    chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
 
     # Schema requirements
     chip.add('tool', tool, 'require', step, index, 'input,bsv')
@@ -74,7 +74,7 @@ def parse_version(stdout):
 def runtime_options(chip):
     cmdlist = []
 
-    design = chip.get('design')
+    design = chip.top()
 
     cmdlist.append('-verilog')
     cmdlist.append(f'-vdir {VLOG_DIR}')
@@ -116,7 +116,7 @@ def post_process(chip):
 
     # bsc outputs each compiled module to its own Verilog file, so we
     # concatenate them all to create a pickled output we can pass along.
-    design = chip.get('design')
+    design = chip.top()
     with open(os.path.join('outputs', f'{design}.v'), 'w') as pickled_vlog:
         for src in os.listdir(VLOG_DIR):
             with open(os.path.join(VLOG_DIR, src), 'r') as vlog_mod:

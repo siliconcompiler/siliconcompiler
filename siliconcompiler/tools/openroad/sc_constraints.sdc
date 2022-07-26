@@ -2,7 +2,7 @@
 
 source sc_manifest.tcl
 
-set sc_design [dict get $sc_cfg design]
+set sc_design [sc_top]
 
 if {[dict exists $sc_cfg datasheet] && [dict exists $sc_cfg datasheet $sc_design]} {
     foreach pin [dict keys [dict get $sc_cfg datasheet $sc_design pin]] {

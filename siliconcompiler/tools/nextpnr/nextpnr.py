@@ -41,7 +41,7 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=0.2', clobber=clobber)
     chip.set('tool', tool, 'option', step, index, "", clobber=clobber)
 
-    topmodule = chip.get('design')
+    topmodule = chip.top()
     chip.set('tool', tool, 'input', step, index, f'{topmodule}_netlist.json')
     chip.set('tool', tool, 'output', step, index, f'{topmodule}.asc')
 
@@ -54,7 +54,7 @@ def runtime_options(chip):
     '''
 
     partname = chip.get('fpga', 'partname')
-    topmodule = chip.get('design')
+    topmodule = chip.top()
 
     options = []
 

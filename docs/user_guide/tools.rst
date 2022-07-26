@@ -129,7 +129,7 @@ The post_process function can also be used to post process the output data in th
   def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-    design = chip.get('design')
+    design = chip.top()
     step = chip.get('arg', 'step')
 
     if step != 'import':
@@ -191,7 +191,7 @@ The Surelog example below illustrates the process of defining a runtime_options 
     for value in chip.find_files('option', 'source'):
         cmdlist.append(value)
 
-    cmdlist.append('-top ' + chip.get('design'))
+    cmdlist.append('-top ' + chip.top())
     # make sure we can find .sv files in ydirs
     cmdlist.append('+libext+.sv')
 
@@ -244,13 +244,15 @@ Schema configuration handoff from SiliconCompiler to script based tools is accom
    dict set sc_cfg constraint [list gcd.sdc ]
    dict set sc_cfg source [list gcd.v ]
 
+This generated manifest also includes a helper function, ``sc_top``, that handles the logic for determining the name of the design's top-level module (mirroring the logic of :meth:`.top()`).
+
 It is the responsibility of the tool reference flow developer to bind the standardized SiliconCompiler TCL schema to the tool specific TCL commands and variables. The TCL snippet below shows how the `OpenRoad TCL reference flow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/sc_apr.tcl>`_ remaps the TCL nested dictionary to simple lists and scalars at the beginning of the flow for the sake of clarity.
 
 
 .. code-block:: tcl
 
    #Design
-   set sc_design     [dict get $sc_cfg design]
+   set sc_design     [sc_top]
    set sc_optmode    [dict get $sc_cfg optmode]
 
    # APR Parameters

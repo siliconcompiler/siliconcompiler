@@ -64,7 +64,7 @@ def setup(chip):
     options.append('-dnull')
     chip.set('tool', tool, 'option', step, index,  options, clobber=False)
 
-    design = chip.get('design')
+    design = chip.top()
     if chip.valid('input', 'gds'):
         chip.add('tool', tool, 'require', step, index, ','.join(['input', 'gds']))
     else:
@@ -97,7 +97,7 @@ def post_process(chip):
     '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    design = chip.get('design')
+    design = chip.top()
 
     if step == 'drc':
         report_path = f'reports/{design}.drc'

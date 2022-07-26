@@ -57,7 +57,7 @@ def setup(chip):
     # since this step should run after import, the top design module should be
     # set and we can read the pickled Verilog without accessing the original
     # sources
-    topmodule = chip.get('design')
+    topmodule = chip.top()
     chip.set('tool', tool, 'option', step, index,  [])
     chip.add('tool', tool, 'option', step, index,  "inputs/" + topmodule + ".v")
     chip.add('tool', tool, 'option', step, index,  "--write=outputs/" + topmodule + ".v")

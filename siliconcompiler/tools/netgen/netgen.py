@@ -58,7 +58,7 @@ def setup(chip):
     options.append('source')
     chip.set('tool', tool, 'option', step, index, options, clobber=False)
 
-    design = chip.get('design')
+    design = chip.top()
     chip.add('tool', tool, 'input', step, index, f'{design}.spice')
     if chip.valid('input', 'netlist'):
         chip.add('tool', tool, 'require', step, index, ','.join(['input', 'netlist']))
@@ -96,7 +96,7 @@ def post_process(chip):
     '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    design = chip.get('design')
+    design = chip.top()
 
     with open(f'{step}.errors', 'r') as f:
         errors = len(f.readlines())
