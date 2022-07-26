@@ -1886,9 +1886,11 @@ class Chip:
                             if self._keypath_empty(keypath):
                                 error = True
                                 self.logger.error(f"Value empty for [{keypath}] for {tool}.")
-                    if self._keypath_empty(['tool', tool, 'exe']):
+
+                    if (self._keypath_empty(['tool', tool, 'exe']) and
+                        self.find_function(tool, 'run', 'tools') is None):
                         error = True
-                        self.logger.error(f'Executable not specified for tool {tool}')
+                        self.logger.error(f'No executable or run() function specified for tool {tool}')
 
         if 'SC_VALID_PATHS' in os.environ:
             if not self._check_files():
@@ -3879,6 +3881,10 @@ class Chip:
             for item in self.getkeys('tool', tool, 'env', step, index):
                 os.environ[item] = self.get('tool', tool, 'env', step, index, item)
 
+        run_func = None
+        if tool not in self.builtin:
+            run_func = self.find_function(tool, 'run', 'tools')
+
         ##################
         # 12. Check exe version
 
@@ -3904,7 +3910,7 @@ class Chip:
                     self._haltstep(step, index)
             else:
                 self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
-        elif tool not in self.builtin:
+        elif tool not in self.builtin and run_func is None:
             exe_base = self.get('tool', tool, 'exe')
             self.logger.error(f'Executable {exe_base} not found')
             self._haltstep(step, index)
@@ -3927,8 +3933,11 @@ class Chip:
         # TODO: Currently no memory usage tracking in breakpoints, builtins, or unexpected errors.
         max_mem_bytes = 0
 
+        retcode = 0
         if tool in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
+        elif run_func and not self.get('option', 'skipall'):
+            retcode = run_func(self)
         elif not self.get('option', 'skipall'):
             cmdlist = self._makecmd(tool, step, index)
             exe_base = os.path.basename(cmdlist[0])
@@ -4031,9 +4040,9 @@ class Chip:
                             sys.stdout.write(stderr_reader.read())
                     retcode = proc.returncode
 
-            if retcode != 0:
-                self.logger.warning('Command failed with code %d. See log file %s', retcode, os.path.abspath(logfile))
-                self._haltstep(step, index)
+        if retcode != 0:
+            self.logger.warning('Command failed with code %d. See log file %s', retcode, os.path.abspath(logfile))
+            self._haltstep(step, index)
 
         ##################
         # 16. Capture cpu runtime and memory footprint.
@@ -4051,7 +4060,7 @@ class Chip:
 
         ##################
         # 18. Check log file (must be after post-process)
-        if (tool not in self.builtin) and (not self.get('option', 'skipall')) :
+        if (tool not in self.builtin) and (not self.get('option', 'skipall')) and (run_func is None):
             matches = self.check_logfile(step=step, index=index, display=not quiet)
             if 'errors' in matches:
                 errors = self.get('metric', step, index, 'errors')
