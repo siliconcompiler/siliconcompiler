@@ -3583,6 +3583,8 @@ class Chip:
             for step, index in steplist:
                 if not failed[step][index]:
                     real = self.get('metric', step, index, metric)
+                    if real is None:
+                        continue
                     max_val[metric] = max(max_val[metric], real)
                     min_val[metric] = min(min_val[metric], real)
 
@@ -4098,7 +4100,8 @@ class Chip:
         ##################
         # Stop if there are errors
         errors = self.get('metric', step, index, 'errors')
-        if errors > 0 and not self.get('option', 'flowcontinue'):
+        if errors and not self.get('option', 'flowcontinue'):
+            # TODO: should we warn if errors is not set?
             self.logger.error(f'{tool} reported {errors} errors during {step}{index}')
             self._haltstep(step, index)
 
