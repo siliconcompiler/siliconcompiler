@@ -35,9 +35,13 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip.set('input', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.load_target("freepdk45_demo")
 
-    # run an import just to collect files
-    chip.set('option', 'steplist', 'import')
-    chip.run()
+    # collect input files
+    cwd = os.getcwd()
+    workdir = chip._getworkdir(step='import', index='0')
+    os.makedirs(workdir)
+    os.chdir(workdir)
+    chip._collect('import', '0')
+    os.chdir(cwd)
 
     env = {
         'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks'),
@@ -57,9 +61,13 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip.set('input', 'sdc', False, field='copy')
     chip.load_target("freepdk45_demo")
 
-    # run an import just to collect files
-    chip.set('option', 'steplist', 'import')
-    chip.run()
+    # collect input files
+    workdir = chip._getworkdir(step='import', index='0')
+    cwd = os.getcwd()
+    os.makedirs(workdir)
+    os.chdir(workdir)
+    chip._collect('import', '0')
+    os.chdir(cwd)
 
     env = {
         'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks'),
