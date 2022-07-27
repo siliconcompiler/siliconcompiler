@@ -146,6 +146,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
     pathed_files.append(lef)
 
   layoutOptions.lefdef_config.lef_files = pathed_files
+  layoutOptions.lefdef_config.read_lef_with_def = False
 
   # Load def file
   main_layout = pya.Layout()
