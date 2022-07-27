@@ -148,6 +148,11 @@ if {$sc_step == "floorplan"} {
     link_design $sc_design
 }
 
+# Read ODB
+if {[file exists "inputs/$sc_design.odb"]} {
+    read_db "inputs/$sc_design.odb"
+}
+
 # Read DEF
 if {[dict exists $sc_cfg "input" def]} {
     if {$sc_step != "floorplan"} {
