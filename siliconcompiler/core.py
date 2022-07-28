@@ -4207,6 +4207,22 @@ class Chip:
             self.error("['option', 'flow'] must be set before calling run()",
                        fatal=True)
 
+        # Auto-update jobname if ['option', 'jobincr'] is True
+        # Do this before initializing logger so that it picks up correct jobname
+        if self.get('option', 'jobincr'):
+            workdir = self._getworkdir()
+            if os.path.isdir(workdir):
+                # Strip off digits following jobname, if any
+                stem = self.get('option', 'jobname').rstrip('0123456789')
+
+                designdir = os.path.dirname(workdir)
+                jobid = 0
+                for job in os.listdir(designdir):
+                    m = re.match(stem + r'(\d+)', job)
+                    if m:
+                        jobid = max(jobid, int(m.group(1)))
+                self.set('option', 'jobname', f'{stem}{jobid+1}')
+
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
 
@@ -4361,19 +4377,6 @@ class Chip:
                     tool = self.get('flowgraph', flow, step, index, 'tool')
                     if tool not in self.builtin:
                         self._setup_tool(tool, step, index)
-
-            # Implement auto-update of jobincrement
-            try:
-                alljobs = os.listdir(self.get('option','builddir') + "/" + self.get('design'))
-                if self.get('option','jobincr'):
-                    jobid = 0
-                    for item in alljobs:
-                        m = re.match(self.get('option','jobname')+r'(\d+)', item)
-                        if m:
-                            jobid = max(jobid, int(m.group(1)))
-                    self.set('option', 'jobid', str(jobid + 1))
-            except:
-                pass
 
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
