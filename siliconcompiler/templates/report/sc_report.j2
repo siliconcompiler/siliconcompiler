@@ -121,6 +121,7 @@
                 ok_li.innerHTML = '<b>Item Accepted:</b> <input id="' + ok_id + '" type="checkbox" ' + checked + '/>';
                 new_child_list.appendChild(ok_li);
               }
+              /* TODO: Optional free-text entry, but the 'report' parameter is intended for file paths.
               else if (el == 'report') {
                 // Provide a text input field for arbitrary checklist item metadata.
                 rpt_li = document.createElement("li");
@@ -132,6 +133,7 @@
                 rpt_li.innerHTML = '<b>Item Reporting Metadata:</b><br/><textarea id="' + rpt_id + '" rows="3" cols="32">' + rpt_content + '</textarea>';
                 new_child_list.appendChild(rpt_li);
               }
+              */
               else {
                 // Display other keys' values.
                 val_li = document.createElement("li");
@@ -201,7 +203,8 @@
                   else {
                     cur_manifest['checklist']['{{ checklist_name }}']['{{ item_name }}']['ok']['value'] = "false";
                   }
-                  cur_manifest['checklist']['{{ checklist_name }}']['{{ item_name }}']['report']['value'] = [rpt_el.value];
+                  // TODO: Optional free-text entry.
+                  //cur_manifest['checklist']['{{ checklist_name }}']['{{ item_name }}']['report']['value'] = [rpt_el.value];
                 {% endif %}
               {% endfor %}
             {% endif %}
