@@ -46,8 +46,9 @@ def setup(chip):
 
     #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
+    chip.add('asic', 'macrolib', 'sky130io')
 
-    #5. et project specific design choices
+    #5. Set project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
     chip.set('asic', 'stackup', '5M1LI')
     # TODO: how does LI get taken into account?
