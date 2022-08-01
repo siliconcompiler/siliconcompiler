@@ -1,3 +1,5 @@
+import os
+
 import siliconcompiler
 
 def test_jobincr():
@@ -9,7 +11,7 @@ def test_jobincr():
     chip.set('option', 'jobincr', True)
 
     chip.run()
-    assert chip._getworkdir().endswith('build/test/job0')
+    assert chip._getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job0']
 
     chip.run()
-    assert chip._getworkdir().endswith('build/test/job1')
+    assert chip._getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job1']

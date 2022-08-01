@@ -16,8 +16,8 @@ SiliconCompiler 0.9.3 (2022-08-01)
 * Added basic editing functionality for signoff checklists in HTML report.
 * Changed file collection behavior:
 
-  * For local runs, inputs are not copied into imports/ at all.
-  * For remote runs, inputs are copied into imports/0/inputs/ only, not outputs/.
+  * For local runs, inputs are not copied into import/ at all.
+  * For remote runs, inputs are copied into import/0/inputs/ only, not outputs/.
 * Implemented ['option', 'entrypoint'], allowing users to specify an alternative top-level.
 * Implemented support for "pure Python" tools.
 
