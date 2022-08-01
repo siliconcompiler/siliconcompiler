@@ -12,7 +12,7 @@ set sc_index  [dict get $sc_cfg arg index]
 set sc_refdir [dict get $sc_cfg tool $sc_tool refdir $sc_step $sc_index ]
 
 set sc_mode        [dict get $sc_cfg option mode]
-set sc_design      [dict get $sc_cfg design]
+set sc_design      [sc_top]
 set sc_targetlibs  [dict get $sc_cfg asic logiclib]
 
 # TODO: properly handle complexity here

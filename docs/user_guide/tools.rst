@@ -52,7 +52,7 @@ SiliconCompiler execution depends on implementing adapter code "drivers" for eac
    * - **post_process**
      - Post-executable logic
      - chip
-     - exit code
+     - n/a
      - run()
      - yes
 
@@ -61,6 +61,13 @@ SiliconCompiler execution depends on implementing adapter code "drivers" for eac
      - None
      - chip
      - sphinx
+     - no
+
+   * - **run**
+     - Pure Python tool
+     - chip
+     - exit code
+     - run()
      - no
 
 For a complete example of a tool setup module, see `OpenROAD <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/openroad.py>`_. For more in depth information about the various :keypath:`tool` parameters, see the :ref:`Schema <SiliconCompiler Schema>` section of the reference manual.
@@ -129,7 +136,7 @@ The post_process function can also be used to post process the output data in th
   def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-    design = chip.get('design')
+    design = chip.top()
     step = chip.get('arg', 'step')
 
     if step != 'import':
@@ -147,15 +154,6 @@ The post_process function can also be used to post process the output data in th
                 outfile.write(infile.read())
             # in case end of file is missing a newline
             outfile.write('\n')
-
-    # Copy files from inputs to outputs. Need to skip pickled Verilog and
-    # manifest since new versions of those are written.
-    utils.copytree("inputs", "outputs", dirs_exist_ok=True, link=True,
-                   ignore=[f'{design}.v', f'{design}.pkg.json'])
-
-    return 0
-
-Note that the return value of the post_process() function is interpreted as an integer error code where zero indicates success. This can be used to signal errors that should halt execution but do not trigger a non-zero exit status from the executable itself.
 
 runtime_options(chip)
 -----------------------
@@ -191,7 +189,7 @@ The Surelog example below illustrates the process of defining a runtime_options 
     for value in chip.find_files('option', 'source'):
         cmdlist.append(value)
 
-    cmdlist.append('-top ' + chip.get('design'))
+    cmdlist.append('-top ' + chip.top())
     # make sure we can find .sv files in ydirs
     cmdlist.append('+libext+.sv')
 
@@ -226,6 +224,19 @@ The SiliconCompiler includes automated document generators that search all tool 
     setup(chip)
     return chip
 
+run(chip)
+------------
+
+SiliconCompiler supports pure-Python tools that execute a Python function rather than an executable. To define a pure-Python tool, add a function called ``run()`` in your tool driver, which takes in a Chip object and implements your tool's desired functionality. This function should return an integer exit code, with zero indicating success.
+
+Note that pure-Python tool drivers still require a ``setup()`` function, but most :keypath:`tool` fields will not be meaningful. At the moment, pure-Python tools do not support the following features:
+
+* Version checking
+* Replay scripts
+* Task timeout
+* Memory usage tracking
+* Breakpoints
+* Output redirection/regex-based logfile parsing
 
 TCL interface
 --------------
@@ -244,13 +255,15 @@ Schema configuration handoff from SiliconCompiler to script based tools is accom
    dict set sc_cfg constraint [list gcd.sdc ]
    dict set sc_cfg source [list gcd.v ]
 
+This generated manifest also includes a helper function, ``sc_top``, that handles the logic for determining the name of the design's top-level module (mirroring the logic of :meth:`.top()`).
+
 It is the responsibility of the tool reference flow developer to bind the standardized SiliconCompiler TCL schema to the tool specific TCL commands and variables. The TCL snippet below shows how the `OpenRoad TCL reference flow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/sc_apr.tcl>`_ remaps the TCL nested dictionary to simple lists and scalars at the beginning of the flow for the sake of clarity.
 
 
 .. code-block:: tcl
 
    #Design
-   set sc_design     [dict get $sc_cfg design]
+   set sc_design     [sc_top]
    set sc_optmode    [dict get $sc_cfg optmode]
 
    # APR Parameters

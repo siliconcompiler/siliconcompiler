@@ -132,7 +132,7 @@ setup(
 
     #include_package_data=True,
     package_data={
-        'siliconcompiler': ['templates/*.j2', 'templates/report/*'],
+        'siliconcompiler': ['templates/*.j2', 'templates/report/*', 'data/*'],
         'siliconcompiler.tools': get_package_data('tools'),
         'siliconcompiler.checklists': get_package_data('checklists'),
     },

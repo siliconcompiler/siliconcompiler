@@ -35,9 +35,13 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip.set('input', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.load_target("freepdk45_demo")
 
-    # run an import just to collect files
-    chip.set('option', 'steplist', 'import')
-    chip.run()
+    # collect input files
+    cwd = os.getcwd()
+    workdir = chip._getworkdir(step='import', index='0')
+    os.makedirs(workdir)
+    os.chdir(workdir)
+    chip._collect('import', '0')
+    os.chdir(cwd)
 
     env = {
         'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks'),
@@ -57,9 +61,13 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip.set('input', 'sdc', False, field='copy')
     chip.load_target("freepdk45_demo")
 
-    # run an import just to collect files
-    chip.set('option', 'steplist', 'import')
-    chip.run()
+    # collect input files
+    workdir = chip._getworkdir(step='import', index='0')
+    cwd = os.getcwd()
+    os.makedirs(workdir)
+    os.chdir(workdir)
+    chip._collect('import', '0')
+    os.chdir(cwd)
 
     env = {
         'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks'),
@@ -118,6 +126,27 @@ def test_merged_graph_good(merge_flow_chip):
     merge_flow_chip.set('tool', 'bar', 'output', 'parallel2', '0', 'foo.out')
 
     assert merge_flow_chip.check_manifest()
+
+def test_merged_graph_good_steplist():
+    chip = siliconcompiler.Chip('test')
+    flow = 'test'
+    chip.node(flow, 'import', 'nop')
+    chip.node(flow, 'parallel1', 'echo')
+    chip.node(flow, 'parallel2', 'echo')
+    chip.node(flow, 'merge', 'echo')
+    chip.node(flow, 'export', 'echo')
+    chip.edge(flow, 'import', 'parallel1')
+    chip.edge(flow, 'import', 'parallel2')
+    chip.edge(flow, 'parallel1', 'merge')
+    chip.edge(flow, 'parallel2', 'merge')
+    chip.edge(flow, 'merge', 'export')
+    chip.set('option', 'flow', 'test')
+
+    chip.run()
+
+    chip.set('option', 'steplist', ['merge', 'export'])
+
+    assert chip.check_manifest()
 
 def test_merged_graph_bad_same(merge_flow_chip):
     # Two merged steps can't output the same thing

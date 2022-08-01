@@ -91,9 +91,7 @@ def remote_run(chip):
     request_remote_run(chip)
 
     # Remove the local 'import.tar.gz' archive.
-    local_archive = os.path.join(chip.get('option', 'builddir'),
-                                 chip.get('design'),
-                                 chip.get('option', 'jobname'),
+    local_archive = os.path.join(chip._getworkdir(),
                                  'import.tar.gz')
     if os.path.isfile(local_archive):
         os.remove(local_archive)
@@ -123,16 +121,13 @@ def request_remote_run(chip):
     remote_run_url = urllib.parse.urljoin(get_base_url(chip), '/remote_run/')
 
     # Use authentication if necessary.
-    job_nameid = f"{chip.get('option', 'jobname')}"
     post_params = {
         'chip_cfg': chip.cfg,
         'params': {
             'job_hash': chip.status['jobhash'],
         }
     }
-    local_build_dir = os.path.join(chip.get('option', 'builddir'),
-                                   chip.get('design'),
-                                   job_nameid)
+    local_build_dir = chip._getworkdir()
     rcfg = chip.status['remote_cfg']
     if ('username' in rcfg) and ('password' in rcfg):
         post_params['params']['username'] = rcfg['username']

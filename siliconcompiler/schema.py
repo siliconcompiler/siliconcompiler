@@ -2467,7 +2467,7 @@ def schema_option(cfg):
             schelp="""
             Forces an auto-update of the jobname parameter if a directory
             matching the jobname is found in the build directory. If the
-            jobname does not include a trailing digit, then a the number
+            jobname does not include a trailing digit, then the number
             '1' is added to the jobname before updating the jobname
             parameter.""")
 

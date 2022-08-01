@@ -39,7 +39,7 @@ def setup(chip):
     tool = 'icarus'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    design = chip.get('design')
+    design = chip.top()
 
     # Standard Setup
     chip.set('tool', tool, 'exe', 'iverilog')

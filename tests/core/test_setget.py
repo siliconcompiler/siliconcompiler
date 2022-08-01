@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import siliconcompiler
+import pytest
 import re
+import siliconcompiler
 
 def _cast(val, sctype):
     if sctype.startswith('['):
@@ -77,6 +78,40 @@ def test_set_field_bool():
     chip = siliconcompiler.Chip('test')
     chip.set('input', 'txt', False, field='copy')
     assert chip.get('input', 'txt', field='copy') is False
+
+def test_getkeys_invalid_field():
+    chip = siliconcompiler.Chip('test')
+    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+        chip.getkeys('option', None)
+
+def test_add_invalid_field():
+    chip = siliconcompiler.Chip('test')
+    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+        chip.add('option', None, 'test_val')
+
+def test_set_invalid_field():
+    chip = siliconcompiler.Chip('test')
+    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+        chip.set('option', None, 'test_val')
+
+def test_get_invalid_field():
+    chip = siliconcompiler.Chip('test')
+    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+        chip.get('option', None)
+
+def test_get_invalid_field_continue():
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'continue', True)
+    ret_val = chip.get('option', None)
+    assert ret_val == None
+
+def test_set_valid_field_to_none():
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'jobscheduler', 'slurm')
+    chip.set('option', 'jobscheduler', None)
+    jobscheduler = chip.get('option', 'jobscheduler')
+    assert jobscheduler == None
+    assert chip._error == False
 
 def test_set_field_error():
     chip = siliconcompiler.Chip('test')

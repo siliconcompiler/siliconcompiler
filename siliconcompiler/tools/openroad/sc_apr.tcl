@@ -23,7 +23,7 @@ set sc_index  [dict get $sc_cfg arg index]
 set sc_refdir [dict get $sc_cfg tool $sc_tool refdir $sc_step $sc_index ]
 
 # Design
-set sc_design     [dict get $sc_cfg design]
+set sc_design     [sc_top]
 set sc_optmode    [dict get $sc_cfg option optmode]
 set sc_flow       [dict get $sc_cfg option flow]
 set sc_pdk        [dict get $sc_cfg option pdk]

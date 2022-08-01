@@ -223,9 +223,6 @@ class Server:
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('option', 'remote', False, clobber=True)
         chip.set('option', 'credentials', '', clobber=True)
-        # Rename source files in the config dict; the 'import' step already
-        # ran and collected the sources into a single Verilog file.
-        chip.set('input', 'verilog', '%s/import/%s/outputs/%s.v'%(build_dir, '0', chip.get('design')), clobber=True)
 
         # Write JSON config to shared compute storage.
         subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
@@ -400,7 +397,8 @@ class Server:
 
         # Assemble core job parameters.
         job_hash = chip.status['jobhash']
-        top_module = chip.get('design')
+        design = chip.get('design')
+        top_module = chip.top()
         job_nameid = f"{chip.get('option', 'jobname')}"
         nfs_mount = self.cfg['nfsmount']['value'][-1]
 
@@ -409,13 +407,7 @@ class Server:
 
         # Reset 'build' directory in NFS storage.
         build_dir = '/tmp/%s_%s'%(job_hash, job_nameid)
-        jobs_dir = '%s/%s'%(build_dir, top_module)
         os.mkdir(build_dir)
-
-        # Rename source files in the config dict; the 'import' step already
-        # ran and collected the sources into a single Verilog file.
-        #TODO: This only works for import? (was current id)
-        chip.set('input', 'verilog', f"{build_dir}/{top_module}/{job_nameid}/import/0/outputs/{top_module}.v", clobber=True)
 
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
