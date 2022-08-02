@@ -148,12 +148,7 @@ if {$sc_step == "floorplan"} {
     link_design $sc_design
 }
 
-# Read ODB
-if {[file exists "inputs/$sc_design.odb"]} {
-    read_db "inputs/$sc_design.odb"
-}
-
-# Read DEF
+# Read ODB or DEF
 if {[dict exists $sc_cfg "input" def]} {
     if {$sc_step != "floorplan"} {
         # Floorplan initialize handled separately in sc_floorplan.tcl
@@ -161,7 +156,11 @@ if {[dict exists $sc_cfg "input" def]} {
             read_def $def
         }
     }
+} elseif {[file exists "inputs/$sc_design.odb"]} {
+    # Prioritize ODB files over DEF, if available.
+    read_db "inputs/$sc_design.odb"
 } elseif {[file exists "inputs/$sc_design.def"]} {
+    # Fallback to DEF if no OpenDB file is available.
     read_def "inputs/$sc_design.def"
 } elseif {$sc_step == "showdef"} {
     read_def $env(SC_FILENAME)
