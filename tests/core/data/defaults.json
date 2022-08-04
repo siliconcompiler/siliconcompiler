@@ -1103,21 +1103,21 @@
                 "value": []
             },
             "libcorner": {
-                "defvalue": null,
+                "defvalue": [],
                 "example": [
                     "cli: -constraint_libcorner 'worst ttt'",
                     "api: chip.set('constraint', 'worst', 'libcorner', 'ttt')"
                 ],
-                "help": "Library corner applied to the scenario to scale\nlibrary timing models based on the libcorner value for models\nthat support it. The parameter is ignored for libraries that\nhave one hard coded model per libcorner.",
+                "help": "List of characterization corners used to select\ntiming files for all logiclibs and macrolibs.",
                 "lock": "false",
                 "notes": null,
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Constraint library corner",
-                "signature": null,
+                "signature": [],
                 "switch": "-constraint_libcorner 'scenario <str>'",
-                "type": "str",
-                "value": null
+                "type": "[str]",
+                "value": []
             },
             "mode": {
                 "defvalue": null,
