@@ -170,7 +170,7 @@ def post_process(chip):
     elif step == 'lec':
         with open(step + ".log") as f:
             for line in f:
-                if line.endswith('Equivalence successfully proven!'):
+                if line.endswith('Equivalence successfully proven!\n'):
                     chip.set('metric', step, index, 'drvs', 0, clobber=True)
                     continue
 

@@ -3118,35 +3118,43 @@ class Chip:
             for index in indices_to_show[step]:
                 header.append(f'{step}{index}'.center(colwidth))
 
-        # figure out which metrics have non-zero weights
-        metric_list = []
-        for step in steplist:
-            for metric in self.getkeys('metric','default','default'):
-                if metric in self.getkeys('flowgraph', flow, step, '0', 'weight'):
-                    if self.get('flowgraph', flow, step, '0', 'weight', metric) is not None:
-                        if metric not in metric_list:
-                            metric_list.append(metric)
+        # Gather data and determine which metrics to show
+        # We show a metric if:
+        # - it is not in ['option', 'metricoff'] -AND-
+        # - at least one step in the steplist has a non-zero weight for the metric -OR -
+        #   at least one step in the steplist set a value for it
+        metrics_to_show = []
+        for metric in self.getkeys('metric', 'default', 'default'):
+            if metric in self.get('option', 'metricoff'):
+                continue
 
-        # print out all metrics
-        metrics = []
-        for metric in metric_list:
-            metrics.append(" " + metric)
             row = []
+            show_metric = False
             for step in steplist:
                 for index in indices_to_show[step]:
-                    value = self.get('metric', step, index, metric)
+                    if (
+                        metric in self.getkeys('flowgraph', flow, step, index, 'weight') and
+                        self.get('flowgraph', flow, step, index, 'weight', metric)
+                    ):
+                        show_metric = True
 
+                    value = self.get('metric', step, index, metric)
                     if value is None:
-                        value = 'ERR'
+                        value = '---'
                     else:
                         value = str(value)
+                        show_metric = True
 
                     row.append(" " + value.center(colwidth))
-            data.append(row)
+
+            if show_metric:
+                metrics_to_show.append(metric)
+                data.append(row)
 
         pandas.set_option('display.max_rows', 500)
         pandas.set_option('display.max_columns', 500)
         pandas.set_option('display.width', 100)
+        metrics = [" " + metric for metric in metrics_to_show]
         df = pandas.DataFrame(data, metrics, header)
         print(df.to_string())
         print("-"*135)
@@ -3194,7 +3202,7 @@ class Chip:
                 wf.write(env.get_template('sc_report.j2').render(
                     manifest = self.cfg,
                     pruned_cfg = pruned_cfg,
-                    metric_keys = metric_list,
+                    metric_keys = metrics_to_show,
                     metrics = self.cfg['metric'],
                     tasks = flow_tasks,
                     img_data = img_data,
@@ -3557,6 +3565,9 @@ class Chip:
                     if self.valid('flowgraph', flow, step, index, 'goal', metric):
                         goal = self.get('flowgraph', flow, step, index, 'goal', metric)
                         real = self.get('metric', step, index, metric)
+                        if real is None:
+                            self.error(f'Metric {metric} has goal for {step}{index} '
+                                'but it has not been set.', fatal=True)
                         if abs(real) > goal:
                             self.logger.warning(f"Step {step}{index} failed "
                                 f"because it didn't meet goals for '{metric}' "
@@ -3572,6 +3583,8 @@ class Chip:
             for step, index in steplist:
                 if not failed[step][index]:
                     real = self.get('metric', step, index, metric)
+                    if real is None:
+                        continue
                     max_val[metric] = max(max_val[metric], real)
                     min_val[metric] = min(min_val[metric], real)
 
@@ -3590,6 +3603,9 @@ class Chip:
                     continue
 
                 real = self.get('metric', step, index, metric)
+                if real is None:
+                    self.error(f'Metric {metric} has weight for {step}{index} '
+                        'but it has not been set.', fatal=True)
 
                 if not (max_val[metric] - min_val[metric]) == 0:
                     scaled = (real - min_val[metric]) / (max_val[metric] - min_val[metric])
@@ -3666,31 +3682,30 @@ class Chip:
         to run.
 
         Execution flow:
-        T1. Start wall timer
-        T2. Defer job to compute node if using job scheduler
-        T3. Set up working directory + chdir
-        T4. Merge manifests from all input dependancies
-        T5. Write manifest to input directory for convenience
-        T6. Reset all metrics to 0 (consider removing)
-        T7. Select inputs
-        T8. Copy data from previous step outputs into inputs
-        T9. Check manifest
-        T10. Run pre_process() function
-        T11. Set environment variables
-        T12. Check EXE version
-        T13. Save manifest as TCL/YAML
-        T14. Start CPU timer
-        T15. Run EXE
-        T16. stop CPU timer
-        T17. Run post_process()
-        T18. Check log file
-        T19. Hash all task files
-        T20. Stop Wall timer
-        T21. Make a task record
-        T22. Save manifest to disk
-        T23. Halt if any errors found
-        T24. Clean up
-        T25. chdir
+        - Start wall timer
+        - Defer job to compute node if using job scheduler
+        - Set up working directory + chdir
+        - Merge manifests from all input dependancies
+        - Write manifest to input directory for convenience
+        - Select inputs
+        - Copy data from previous step outputs into inputs
+        - Check manifest
+        - Run pre_process() function
+        - Set environment variables
+        - Check EXE version
+        - Save manifest as TCL/YAML
+        - Start CPU timer
+        - Run EXE
+        - stop CPU timer
+        - Run post_process()
+        - Check log file
+        - Hash all task files
+        - Stop Wall timer
+        - Make a task record
+        - Save manifest to disk
+        - Halt if any errors found
+        - Clean up
+        - chdir
 
         Note that since _runtask occurs in its own process with a separate
         address space, any changes made to the `self` object will not
@@ -3709,11 +3724,11 @@ class Chip:
         quiet = self.get('option', 'quiet') and (step not in self.get('option', 'bkpt'))
 
         ##################
-        # 1. Start wall timer
+        # Start wall timer
         wall_start = time.time()
 
         ##################
-        # 2. Defer job to compute node
+        # Defer job to compute node
         # If the job is configured to run on a cluster, collect the schema
         # and send it to a compute node for deferred execution.
         # (Run the initial 'import' stage[s] locally)
@@ -3726,7 +3741,7 @@ class Chip:
             return
 
         ##################
-        # 3. Directory setup
+        # Directory setup
         # support for sharing data across jobs
         job = self.get('option', 'jobname')
         in_job = job
@@ -3745,7 +3760,7 @@ class Chip:
         os.makedirs('reports', exist_ok=True)
 
         ##################
-        # 4. Merge manifests from all input dependancies
+        # Merge manifests from all input dependancies
 
         all_inputs = []
         if not self.get('option', 'remote'):
@@ -3757,7 +3772,7 @@ class Chip:
                     self._read_manifest(cfgfile, clobber=False, partial=True)
 
         ##################
-        # 5. Write manifest prior to step running into inputs
+        # Write manifest prior to step running into inputs
 
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
@@ -3765,15 +3780,7 @@ class Chip:
         #self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
-        # 6. Make metrics zero
-        # TODO: There should be no need for this, but need to fix
-        # without it we need to be more careful with flows to make sure
-        # things like the builtin functions don't look at None values
-        for metric in self.getkeys('metric', 'default', 'default'):
-            self.set('metric', step, index, metric, 0)
-
-        ##################
-        # 7. Select inputs
+        # Select inputs
 
         args = self.get('flowgraph', flow, step, index, 'args')
         inputs = self.get('flowgraph', flow, step, index, 'input')
@@ -3805,7 +3812,7 @@ class Chip:
         self.set('flowgraph', flow, step, index, 'select', sel_inputs)
 
         ##################
-        # 8. Copy (link) output data from previous steps
+        # Copy (link) output data from previous steps
 
         if step == 'import' and self.get('option', 'remote'):
             # Collect inputs into import directory only for remote runs, since
@@ -3830,7 +3837,7 @@ class Chip:
                 ignore=[f'{design}.pkg.json'], link=True)
 
         ##################
-        # 9. Check manifest
+        # Check manifest
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
 
@@ -3840,7 +3847,7 @@ class Chip:
                 self._haltstep(step, index)
 
         ##################
-        # 10. Run preprocess step for tool
+        # Run preprocess step for tool
         if tool not in self.builtin:
             func = self.find_function(tool, "pre_process", 'tools')
             if func:
@@ -3850,7 +3857,7 @@ class Chip:
                     self._haltstep(step, index)
 
         ##################
-        # 11. Set environment variables
+        # Set environment variables
 
         # License file configuration.
         for item in self.getkeys('tool', tool, 'licenseserver'):
@@ -3869,7 +3876,7 @@ class Chip:
             run_func = self.find_function(tool, 'run', 'tools')
 
         ##################
-        # 12. Check exe version
+        # Check exe version
 
         vercheck = not self.get('option', 'novercheck')
         veropt = self.get('tool', tool, 'vswitch')
@@ -3899,19 +3906,19 @@ class Chip:
             self._haltstep(step, index)
 
         ##################
-        # 13. Write manifest (tool interface) (Don't move this!)
+        # Write manifest (tool interface) (Don't move this!)
         suffix = self.get('tool', tool, 'format')
         if suffix:
             pruneopt = bool(suffix!='tcl')
             self.write_manifest(f"sc_manifest.{suffix}", prune=pruneopt, abspath=True)
 
         ##################
-        # 14. Start CPU Timer
+        # Start CPU Timer
         self.logger.debug(f"Starting executable")
         cpu_start = time.time()
 
         ##################
-        # 15. Run executable (or copy inputs to outputs for builtin functions)
+        # Run executable (or copy inputs to outputs for builtin functions)
 
         # TODO: Currently no memory usage tracking in breakpoints, builtins, or unexpected errors.
         max_mem_bytes = 0
@@ -4028,34 +4035,38 @@ class Chip:
             self._haltstep(step, index)
 
         ##################
-        # 16. Capture cpu runtime and memory footprint.
+        # Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
         self.set('metric', step, index, 'exetime', cputime)
         self.set('metric', step, index, 'memory', max_mem_bytes)
 
         ##################
-        # 17. Post process
+        # Post process
         if (tool not in self.builtin) and (not self.get('option', 'skipall')) :
             func = self.find_function(tool, 'post_process', 'tools')
             if func:
                 func(self)
 
         ##################
-        # 18. Check log file (must be after post-process)
+        # Check log file (must be after post-process)
         if (tool not in self.builtin) and (not self.get('option', 'skipall')) and (run_func is None):
             matches = self.check_logfile(step=step, index=index, display=not quiet)
             if 'errors' in matches:
                 errors = self.get('metric', step, index, 'errors')
+                if errors is None:
+                    errors = 0
                 errors += matches['errors']
                 self.set('metric', step, index, 'errors', errors)
             if 'warnings' in matches:
                 warnings = self.get('metric', step, index, 'warnings')
+                if warnings is None:
+                    warnings = 0
                 warnings += matches['warnings']
                 self.set('metric', step, index, 'warnings', warnings)
 
         ##################
-        # 19. Hash files
+        # Hash files
         if self.get('option', 'hash') and (tool not in self.builtin):
             # hash all outputs
             self.hash_files('tool', tool, 'output', step, index)
@@ -4067,19 +4078,19 @@ class Chip:
                         self.hash_files(*args)
 
         ##################
-        # 20. Capture wall runtime and cpu cores
+        # Capture wall runtime and cpu cores
         wall_end = time.time()
         walltime = round((wall_end - wall_start),2)
         self.set('metric',step, index, 'tasktime', walltime)
         self.logger.info(f"Finished task in {walltime}s")
 
         ##################
-        # 21. Make a record if tracking is enabled
+        # Make a record if tracking is enabled
         if self.get('option', 'track'):
             self._make_record(step, index, wall_start, wall_end, version, toolpath, cmdlist[1:])
 
         ##################
-        # 22. Save a successful manifest
+        # Save a successful manifest
         self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
@@ -4087,19 +4098,20 @@ class Chip:
         self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
 
         ##################
-        # 23. Stop if there are errors
+        # Stop if there are errors
         errors = self.get('metric', step, index, 'errors')
-        if errors > 0 and not self.get('option', 'flowcontinue'):
+        if errors and not self.get('option', 'flowcontinue'):
+            # TODO: should we warn if errors is not set?
             self.logger.error(f'{tool} reported {errors} errors during {step}{index}')
             self._haltstep(step, index)
 
         ##################
-        # 24. Clean up non-essential files
+        # Clean up non-essential files
         if self.get('option', 'clean'):
             self._eda_clean(tool, step, index)
 
         ##################
-        # 25. return to original directory
+        # return to original directory
         os.chdir(cwd)
 
     ###########################################################################

@@ -312,10 +312,19 @@
                   {% for index in tasks[step] %}
                     {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
                       <td>(failed)</td>
-                    {% elif step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ manifest["metric"][step][index][mk]["value"] }}</a></td>
                     {% else %}
-                      <td>{{ manifest["metric"][step][index][mk]["value"] }}</td>
+                      {% set value = manifest["metric"][step][index][mk]["value"] %}
+                      {% if value is not none %}
+                        {% set valuestr = value %}
+                      {% else %}
+                        {% set valuestr = "---" %}
+                      {% endif %}
+
+                      {% if step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
+                        <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ valuestr }}</a></td>
+                      {% else %}
+                        <td>{{ valuestr }}</td>
+                      {% endif %}
                     {% endif %}
                   {% endfor %}
                 {% endfor %}
@@ -348,10 +357,19 @@
                   {% for mk in metric_keys %}
                     {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
                       <td>(failed)</td>
-                    {% elif step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ manifest["metric"][step][index][mk]["value"] }}</a></td>
                     {% else %}
-                      <td>{{ manifest["metric"][step][index][mk]["value"] }}</td>
+                      {% set value = manifest["metric"][step][index][mk]["value"] %}
+                      {% if value is not none %}
+                        {% set valuestr = value %}
+                      {% else %}
+                        {% set valuestr = "---" %}
+                      {% endif %}
+
+                      {% if step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
+                        <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ valuestr }}</a></td>
+                      {% else %}
+                        <td>{{ valuestr }}</td>
+                      {% endif %}
                     {% endif %}
                   {% endfor %}
                 </tr>
