@@ -16,21 +16,23 @@ set sc_scenarios   [dict keys [dict get $sc_cfg constraint]]
 
 set stat_libs ""
 foreach item $sc_scenarios {
-    set libcorner [dict get $sc_cfg constraint $item libcorner]
-    foreach lib $sc_targetlibs {
-	puts "$item $libcorner $sc_delaymodel $lib"
-        set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
-        yosys read_liberty -lib $lib_file
-    }
-    foreach lib $sc_macrolibs {
-        if [dict exists dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner] {
-            set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
-            yosys read_liberty -lib $lib_file
-            append stat_libs "-liberty $lib_file "
-        }
+    foreach libcorner [dict get $sc_cfg constraint $item libcorner] {
+	foreach lib $sc_targetlibs {
+	    if [dict exists dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner] {
+		set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
+		yosys read_liberty -lib $lib_file
+	    }
+	}
+	foreach lib $sc_macrolibs {
+	    if [dict exists dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner] {
+		set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
+		yosys read_liberty -lib $lib_file
+		append stat_libs "-liberty $lib_file "
+	    }
+	}
     }
 }
-puts "HELLO $sc_mode"
+
 ########################################################
 # Synthesis
 ########################################################

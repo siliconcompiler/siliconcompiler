@@ -121,12 +121,12 @@ read_lef  $sc_techlef
 
 # Read Liberty
 foreach item $sc_scenarios {
-    set corner [dict get $sc_cfg constraint $item libcorner]
-    foreach lib "$sc_targetlibs $sc_macrolibs" {
-	#Liberty
-	if {[dict exists $sc_cfg library $lib model timing $sc_delaymodel]} {
-	    set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $corner]
-	    read_liberty $lib_file
+    foreach corner [dict get $sc_cfg constraint $item libcorner] {
+	foreach lib "$sc_targetlibs $sc_macrolibs" {
+	    if {[dict exists $sc_cfg library $lib model timing $sc_delaymodel $corner]} {
+		set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $corner]
+		read_liberty $lib_file
+	    }
 	}
     }
 }
