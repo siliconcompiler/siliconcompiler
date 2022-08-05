@@ -9,6 +9,9 @@ wget --no-check-certificate https://www.klayout.org/downloads/CentOS_7/klayout-0
 yum install -y python3 ruby qt-x11
 rpm -i klayout-0.27.5-0.x86_64.rpm
 
+# Required for Surelog
+pip3 install orderedmultidict
+
 # Build surelog (install prefix defined outside file)
 git submodule update --init --recursive third_party/tools/surelog
 cd third_party/tools/surelog

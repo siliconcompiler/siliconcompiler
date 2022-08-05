@@ -26,6 +26,9 @@ where java && java -version
 where python && python --version
 where ninja && ninja --version
 
+:: Required for Surelog
+pip3 install orderedmultidict
+
 git submodule update --init --recursive third_party/tools/surelog
 chdir third_party/tools/surelog
 
