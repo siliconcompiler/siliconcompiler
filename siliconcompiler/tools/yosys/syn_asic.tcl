@@ -27,7 +27,6 @@ foreach item $sc_scenarios {
 	}
 	# Yosys doesn't handle macro PG pins properly, so we don't use the .libs here
 	# Instead we use black boxes for all macros.
-	set sc_macrolibs []
 	foreach lib $sc_macrolibs {
 	    if {[dict exists $sc_cfg library $lib model timing $sc_delaymodel $libcorner]} {
 		puts "SC: Reading liberty file (corner=$libcorner, lib=$lib, mode=$sc_delaymodel)"
