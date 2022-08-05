@@ -2,7 +2,7 @@
 
 # Install dependencies
 yum --disablerepo=epel -y update ca-certificates
-yum install -y libuuid-devel zlib-devel java-1.8.0-openjdk-devel graphviz xorg-x11-server-Xvfb wget
+yum install -y libuuid-devel zlib-devel java-11-openjdk-devel graphviz xorg-x11-server-Xvfb wget
 
 # Install Klayout (for chip.show() test)
 wget --no-check-certificate https://www.klayout.org/downloads/CentOS_7/klayout-0.27.5-0.x86_64.rpm
@@ -12,8 +12,6 @@ rpm -i klayout-0.27.5-0.x86_64.rpm
 # Build surelog (install prefix defined outside file)
 git submodule update --init --recursive third_party/tools/surelog
 cd third_party/tools/surelog
-# Fix insecure Git protocol
-sed -i 's/git:\/\/github.com\/nemtrif\/utfcpp/https:\/\/github.com\/nemtrif\/utfcpp/g' third_party/antlr4_fast/runtime/Cpp/runtime/CMakeLists.txt
 
 export LDFLAGS="-lrt"
 make
