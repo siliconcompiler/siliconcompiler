@@ -1351,13 +1351,16 @@ class Chip:
 
         """
         if cfg is None:
-            cfg = self.cfg
+            if job is not None:
+                cfg = self.cfg['history'][job]
+            else:
+                cfg = self.cfg
 
-        copyall = self.get('option', 'copyall', cfg=cfg, job=job)
-        paramtype = self.get(*keypath, field='type', cfg=cfg, job=job)
+        copyall = self.get('option', 'copyall', cfg=cfg)
+        paramtype = self.get(*keypath, field='type', cfg=cfg)
 
         if 'file' in paramtype:
-            copy = self.get(*keypath, field='copy', cfg=cfg, job=job)
+            copy = self.get(*keypath, field='copy', cfg=cfg)
         else:
             copy = False
 
@@ -1367,7 +1370,7 @@ class Chip:
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        paths = self.get(*keypath, cfg=cfg, job=job)
+        paths = self.get(*keypath, cfg=cfg)
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
