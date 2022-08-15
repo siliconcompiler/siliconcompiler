@@ -4,7 +4,7 @@ choco install -y swig --side-by-side --version=3.0.12
 
 :: Build Surelog
 :: Based on Surelog CI script: https://github.com/chipsalliance/Surelog/blob/master/.github/workflows/main.yml
-call "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
 
 set CMAKE_GENERATOR=Ninja
 set CC=cl

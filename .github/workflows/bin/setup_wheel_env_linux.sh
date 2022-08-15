@@ -21,7 +21,3 @@ make
 make install
 
 cd -
-
-# Hack because Surelog does not search lib64 install directory
-mkdir -p siliconcompiler/tools/surelog/lib/surelog/sv/
-cp siliconcompiler/tools/surelog/lib64/surelog/sv/builtin.sv siliconcompiler/tools/surelog/lib/surelog/sv/builtin.sv

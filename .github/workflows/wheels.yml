@@ -42,6 +42,11 @@ jobs:
         java-version: 11
         java-package: jre
         architecture: x64
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+        architecture: x64
 
     - name: Setup env (Windows)
       if: matrix.os == 'windows-latest'
