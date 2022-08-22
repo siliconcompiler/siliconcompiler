@@ -53,6 +53,14 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
     ###########################
     # Automatic Pin Placement
     ###########################
+    if [dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_h] {
+        set h_mult [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_h] 0]
+        set_pin_thick_multiplier -hor_multiplier $h_mult
+    }
+    if [dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_v] {
+        set v_mult [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_v] 0]
+        set_pin_thick_multiplier -ver_multiplier $v_mult
+    }
 
     place_pins -hor_layers $sc_hpinmetal \
 	-ver_layers $sc_vpinmetal \
