@@ -52,6 +52,8 @@ def build_core():
     core_chip = configure_chip('heartbeat')
     design = core_chip.get('design')
     core_chip.set('input', 'verilog', 'heartbeat.v')
+    core_chip.set('tool', 'openroad', 'var', 'floorplan', '0', 'pin_thickness_h', ['2'])
+    core_chip.set('tool', 'openroad', 'var', 'floorplan', '0', 'pin_thickness_v', ['2'])
     core_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
     core_chip.set('tool', 'openroad', 'var', 'route', '0', 'grt_allow_congestion', ['true'])
     core_chip.clock('clk', period=20)
@@ -145,7 +147,7 @@ global_connect
 
 set_voltage_domain -name Core -power vccd1 -ground vssd1
 
-define_pdn_grid -name core_grid -macro -grid_over_boundary -default -voltage_domain Core
+define_pdn_grid -name core_grid -macro -grid_over_pg_pins -default -voltage_domain Core -starts_with POWER
 add_pdn_stripe -grid core_grid -layer met1 -width 0.48 -starts_with POWER -followpins
 add_pdn_connect -grid core_grid -layers {met1 met4}
 

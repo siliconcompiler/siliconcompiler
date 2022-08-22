@@ -65,7 +65,7 @@
       // Helper method to download the current manifest as a .json file.
       // Creates a virtual 'a' tag and sends it a click event to download the data as a file.
       const saveTemplateAsFile = (filename, dataObjToWrite) => {
-        const blob = new Blob([JSON.stringify(dataObjToWrite)], { type: "text/json" });
+        const blob = new Blob([JSON.stringify(dataObjToWrite, null, 4)], { type: "text/json" });
         const link = document.createElement("a");
 
         link.download = filename;
@@ -82,8 +82,85 @@
         link.remove()
       };
 
-      // Initialization function to setup buttons/links/etc after all DOM elements are lodaed.
-      document.addEventListener("DOMContentLoaded", function() {
+      // Initialize the JSON manifest. Use the 'pruned' version for signoff purposes.
+      //var cur_manifest = {{ manifest|tojson|safe }};
+      var cur_manifest = {{ pruned_cfg|tojson|safe }};
+
+      // Recursive helper for manifest generation.
+      function generateManifestBranch(cfg, keypath, parent_list_el) {
+        // Iterate over all elements in the given JSON dict.
+        // TODO: Sort keys?
+        for (const el in cfg) {
+          if (!('value' in cfg[el]) && !('help' in cfg[el])) {
+            // Branch value.
+            new_child = document.createElement("li");
+            new_child.innerHTML = '<a href="#">' + el + '</a>'
+            new_child_list = document.createElement("ul");
+            new_child.appendChild(new_child_list);
+            parent_list_el.appendChild(new_child);
+            generateManifestBranch(cfg[el], (keypath.concat(el)), new_child_list);
+          }
+          else if ('value' in cfg[el]) {
+            // Leaf value.
+            new_child = document.createElement("li");
+            new_child.classList.add("open");
+            new_child.innerHTML = '<a href="#">' + el + '</a>'
+            new_child_list = document.createElement("ul");
+            shorthelp_li = document.createElement("li");
+            shorthelp_li.innerHTML = cfg[el]['shorthelp'];
+            new_child_list.appendChild(shorthelp_li);
+            if (keypath.indexOf('checklist') > -1) {
+              if (el == 'ok') {
+                // Provide a checkbox for acceptance of the checklist item.
+                ok_li = document.createElement("li");
+                ok_id = 'ok_' + keypath.join('_');
+                checked = '';
+                if ((cfg[el]['value']) && (['false', 'False'].indexOf(cfg[el]['value']) <= -1)) {
+                  checked = 'checked';
+                }
+                ok_li.innerHTML = '<b>Item Accepted:</b> <input id="' + ok_id + '" type="checkbox" ' + checked + '/>';
+                new_child_list.appendChild(ok_li);
+              }
+              /* TODO: Optional free-text entry, but the 'report' parameter is intended for file paths.
+              else if (el == 'report') {
+                // Provide a text input field for arbitrary checklist item metadata.
+                rpt_li = document.createElement("li");
+                rpt_id = 'report_' + keypath.join('_');
+                rpt_content = '';
+                if ((cfg[el]['value'].length > 0) && (cfg[el]['value'][0])) {
+                  rpt_content = cfg[el]['value'][0];
+                }
+                rpt_li.innerHTML = '<b>Item Reporting Metadata:</b><br/><textarea id="' + rpt_id + '" rows="3" cols="32">' + rpt_content + '</textarea>';
+                new_child_list.appendChild(rpt_li);
+              }
+              */
+              else {
+                // Display other keys' values.
+                val_li = document.createElement("li");
+                val_li.innerHTML = '<b>Value:</b> ' + cfg[el]['value'];
+                new_child_list.appendChild(val_li);
+              }
+            }
+            else {
+              val_li = document.createElement("li");
+              val_li.innerHTML = '<b>Value:</b> ' + cfg[el]['value'];
+              new_child_list.appendChild(val_li);
+            }
+            new_child.appendChild(new_child_list);
+            parent_list_el.appendChild(new_child);
+          }
+        }
+      };
+
+      // Helper method to generate a manifest tree-view from a JSON object.
+      function generateManifestView(cfg) {
+        // Remove the existing tree view elements.
+        top_ul = document.getElementById("manifest_ul_top");
+        top_ul.replaceChildren();
+
+        // Recursively add li/ul elements to the tree.
+        generateManifestBranch(cfg, [], top_ul);
+
         // Foldable manifest tree logic.
         // Source: https://stackoverflow.com/a/36297446.
         var tree = document.querySelectorAll('ul.tree a:not(:last-child)');
@@ -102,14 +179,55 @@
                 }
             });
         }
+      };
 
-        // Initialize the JSON manifest. TODO: There should probably be a 'file upload' option too
-        var cur_manifest = {{ manifest|tojson|safe }};
+      // Initialization function to setup buttons/links/etc after all DOM elements are lodaed.
+      document.addEventListener("DOMContentLoaded", function() {
+        // Fill in the initial manifest view.
+        generateManifestView(cur_manifest);
 
         // Setup the 'download manifest' button.
         var download_btn = document.getElementById("download_manifest_btn");
         download_btn.addEventListener('click', () => {
+          // Update the 'cur_manifest' value with any checklist items which might have changed.
+          // TODO: A recursive macro like the tree view could also work, but the checklists are shallow.
+          {% for checklist_name in manifest['checklist'].keys() %}
+            {% if checklist_name != 'default' %}
+              {% for item_name in manifest['checklist'][checklist_name].keys() %}
+                {% if item_name != 'default' %}
+                  var ok_el = document.getElementById("ok_checklist_{{ checklist_name }}_{{ item_name }}");
+                  var rpt_el = document.getElementById("report_checklist_{{ checklist_name }}_{{ item_name }}");
+                  if (ok_el.checked) {
+                    cur_manifest['checklist']['{{ checklist_name }}']['{{ item_name }}']['ok']['value'] = "true";
+                  }
+                  else {
+                    cur_manifest['checklist']['{{ checklist_name }}']['{{ item_name }}']['ok']['value'] = "false";
+                  }
+                  // TODO: Optional free-text entry.
+                  //cur_manifest['checklist']['{{ checklist_name }}']['{{ item_name }}']['report']['value'] = [rpt_el.value];
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+          {% endfor %}
+
+          // Send the updated JSON manifest back to the client as a "download" from RAM to disk.
           saveTemplateAsFile('{{ manifest["design"]["value"] }}.json', cur_manifest);
+        });
+
+        // Setup the 'upload manifest' button listener.
+        // TODO: Better error-checking for manifest correctness?
+        var upload_btn = document.getElementById("upload_manifest_btn");
+        upload_btn.addEventListener('click', () => {
+          var manifest_file_in = document.getElementById("manifest_upload_input");
+          if (manifest_file_in.files.length != 1) { return; }
+          var new_manifest_filereader = new FileReader();
+          new_manifest_filereader.readAsText(manifest_file_in.files[0]);
+          new_manifest_filereader.onload = function(event) {
+            var manifest_txt = event.target.result;
+            console.log(manifest_txt);
+            var new_manifest = JSON.parse(manifest_txt);
+            generateManifestView(new_manifest);
+          };
         });
 
         // Setup links in the metrics tables. Each metric is associated with at least one log file.
@@ -143,7 +261,11 @@
       {% include 'bootstrap.min.js' %}
     </script>
 
-    <span style="width: 33%; float: left;>
+    <div style="text-align: center; width: 100%;">
+      <h1>Design Summary: "{{ manifest['design']['value'] }}"</h1>
+    </div>
+
+    <span style="width: 33%; float: left;">
       {% if img_data %}
         <div style="text-align: center; width: 100%;">
           <h2>GDS Preview</h2>
@@ -151,12 +273,19 @@
         </div>
       {% endif %}
 
-      <div style="text-align: center;"><a class="btn btn-primary" data-bs-toggle="collapse" href="#mqa_checklist_div", role="button", aria-controls="mqa_checklist_div" style="width:50%;">
-        Toggle Checklist Mockup
-      </a></div>
-      <div id="mqa_checklist_div" class="collapse" style="text-align: center;">
-        <h2>(Checklist Items go here)</h2>
-        <button id="download_manifest_btn" class="btn btn-warning">Download Manifest</button>
+      <div id="reviewer_name_entry_div" style="text-align: center;">
+        <b>Reviewer Name/ID: </b>
+        <br>
+        <input id="reviewer_name_entry" type="text">
+      </div>
+
+      <div id="cur_manifest_upload" style="text-align: center;">
+        <input id="manifest_upload_input" type="file"/>
+        <button id="upload_manifest_btn" class="btn btn-danger">Load Manifest</button>
+      </div>
+
+      <div id="cur_manifest_download" style="text-align: center;">
+        <button id="download_manifest_btn" class="btn btn-warning">Save Updated Manifest</button>
       </div>
     </span>
 
@@ -183,10 +312,19 @@
                   {% for index in tasks[step] %}
                     {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
                       <td>(failed)</td>
-                    {% elif step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ manifest["metric"][step][index][mk]["value"] }}</a></td>
                     {% else %}
-                      <td>{{ manifest["metric"][step][index][mk]["value"] }}</td>
+                      {% set value = manifest["metric"][step][index][mk]["value"] %}
+                      {% if value is not none %}
+                        {% set valuestr = value %}
+                      {% else %}
+                        {% set valuestr = "---" %}
+                      {% endif %}
+
+                      {% if step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
+                        <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ valuestr }}</a></td>
+                      {% else %}
+                        <td>{{ valuestr }}</td>
+                      {% endif %}
                     {% endif %}
                   {% endfor %}
                 {% endfor %}
@@ -219,10 +357,19 @@
                   {% for mk in metric_keys %}
                     {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
                       <td>(failed)</td>
-                    {% elif step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                      <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ manifest["metric"][step][index][mk]["value"] }}</a></td>
                     {% else %}
-                      <td>{{ manifest["metric"][step][index][mk]["value"] }}</td>
+                      {% set value = manifest["metric"][step][index][mk]["value"] %}
+                      {% if value is not none %}
+                        {% set valuestr = value %}
+                      {% else %}
+                        {% set valuestr = "---" %}
+                      {% endif %}
+
+                      {% if step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
+                        <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ valuestr }}</a></td>
+                      {% else %}
+                        <td>{{ valuestr }}</td>
+                      {% endif %}
                     {% endif %}
                   {% endfor %}
                 </tr>
@@ -236,29 +383,9 @@
         Toggle Manifest Dropdown
       </a></div>
 
-      {% macro manifest_tree(cfg) %}
-        {% for key in cfg.keys() | sort %}
-          {% if 'value' not in cfg[key] and 'help' not in cfg[key] %}
-            <li><a href="#">{{ key }}</a>
-              <ul>
-                {{ manifest_tree(cfg[key]) }}
-              </ul>
-            </li>
-          {% elif 'value' in cfg[key] %}
-            <li class="open"><a href="#">{{ key }}</a>
-              <ul>
-                <li>{{ cfg[key]['shorthelp'] }}</li>
-                <li><b>Value:</b> {{ cfg[key]['value'] }}</li>
-              </ul>
-            </li>
-          {% endif %}
-        {% endfor %}
-      {% endmacro %}
-
-      <div id="manifest_dropdown_div" class="collapse" style="text-align: left;">
+      <div id="manifest_dropdown_div" class="collapse" style="text-align: left; padding-left: 3em;">
         <h2>Manifest</h2>
-        <ul class="tree">
-          {{ manifest_tree(pruned_cfg) }}
+        <ul id="manifest_ul_top" class="tree">
         </ul>
       </div>
 

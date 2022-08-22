@@ -15,22 +15,29 @@ set sc_scenarios   [dict keys [dict get $sc_cfg constraint]]
 ########################################################
 
 set stat_libs ""
+
 foreach item $sc_scenarios {
-    set libcorner [dict get $sc_cfg constraint $item libcorner]
-    foreach lib $sc_targetlibs {
-	puts "$item $libcorner $sc_delaymodel $lib"
-        set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
-        yosys read_liberty -lib $lib_file
-    }
-    foreach lib $sc_macrolibs {
-        if [dict exists dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner] {
-            set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
-            yosys read_liberty -lib $lib_file
-            append stat_libs "-liberty $lib_file "
-        }
+    foreach libcorner [dict get $sc_cfg constraint $item libcorner] {
+	foreach lib $sc_targetlibs {
+	    if {[dict exists $sc_cfg library $lib model timing $sc_delaymodel $libcorner]} {
+		puts "SC Reading liberty file (corner=$libcorner, lib=$lib, mode=$sc_delaymodel)"
+		set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
+		yosys read_liberty -lib $lib_file
+	    }
+	}
+	# Yosys doesn't handle macro PG pins properly, so we don't use the .libs here
+	# Instead we use black boxes for all macros.
+	foreach lib $sc_macrolibs {
+	    if {[dict exists $sc_cfg library $lib model timing $sc_delaymodel $libcorner]} {
+		puts "SC: Reading liberty file (corner=$libcorner, lib=$lib, mode=$sc_delaymodel)"
+		set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
+		yosys read_liberty -lib $lib_file
+		append stat_libs "-liberty $lib_file "
+	    }
+	}
     }
 }
-puts "HELLO $sc_mode"
+
 ########################################################
 # Synthesis
 ########################################################
@@ -60,7 +67,7 @@ if [dict exists dict get $sc_cfg library $sc_mainlib asic "file" $sc_tool techma
 }
 
 #TODO: Fix better
-set libcorner    [dict get $sc_cfg constraint [lindex $sc_scenarios 0] libcorner]
+set libcorner    [lindex [dict get $sc_cfg constraint [lindex $sc_scenarios 0] libcorner] 0]
 set mainlib      [dict get $sc_cfg library $sc_mainlib model timing $sc_delaymodel $libcorner]
 
 yosys dfflibmap -liberty $mainlib

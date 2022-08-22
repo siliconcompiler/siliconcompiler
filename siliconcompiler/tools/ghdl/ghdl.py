@@ -76,11 +76,13 @@ def runtime_options(chip):
     options.append('--out=verilog')
     options.append('--no-formal')
 
+    # currently only -fsynopsys and --latches supported
+    valid_extraopts = ['-fsynopsys', '--latches']
+
     if chip.valid('tool', 'ghdl', 'var', step, index, 'extraopts'):
         extra_opts = chip.get('tool', 'ghdl', 'var', step, index, 'extraopts')
-        # currently only -fsynopsys supported
         for opt in extra_opts:
-            if opt == '-fsynopsys':
+            if opt in valid_extraopts:
                 options.append(opt)
             else:
                 chip.error('Unsupported option ' + opt)

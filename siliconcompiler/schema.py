@@ -2467,7 +2467,7 @@ def schema_option(cfg):
             schelp="""
             Forces an auto-update of the jobname parameter if a directory
             matching the jobname is found in the build directory. If the
-            jobname does not include a trailing digit, then a the number
+            jobname does not include a trailing digit, then the number
             '1' is added to the jobname before updating the jobname
             parameter.""")
 
@@ -3490,16 +3490,14 @@ def schema_constraint(cfg, scenario='default'):
             schelp="""Chip temperature applied to the scenario specified in degrees C.""")
 
     scparam(cfg,['constraint', scenario, 'libcorner'],
-            sctype='str',
+            sctype='[str]',
             scope='job',
             shorthelp="Constraint library corner",
             switch="-constraint_libcorner 'scenario <str>'",
             example=["cli: -constraint_libcorner 'worst ttt'",
                     "api: chip.set('constraint', 'worst', 'libcorner', 'ttt')"],
-            schelp="""Library corner applied to the scenario to scale
-            library timing models based on the libcorner value for models
-            that support it. The parameter is ignored for libraries that
-            have one hard coded model per libcorner.""")
+            schelp="""List of characterization corners used to select
+            timing files for all logiclibs and macrolibs.""")
 
     scparam(cfg,['constraint', scenario, 'pexcorner'],
             sctype='str',

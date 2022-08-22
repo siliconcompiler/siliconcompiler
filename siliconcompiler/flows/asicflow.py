@@ -143,9 +143,18 @@ def setup(chip, flowname='asicflow'):
             elif step != 'import':
                 chip.edge(flowname, prevstep, step, head_index=index)
             # metrics
-            for metric in  ('errors','drvs','holdwns','setupwns','holdtns','setuptns'):
+            goal_metrics = ()
+            weight_metrics = ()
+            if tool == 'yosys':
+                goal_metrics = ('errors',)
+                weight_metrics = ()
+            elif tool == 'openroad':
+                goal_metrics = ('errors', 'setupwns', 'setuptns')
+                weight_metrics = ('cellarea', 'peakpower', 'leakagepower')
+
+            for metric in goal_metrics:
                 chip.set('flowgraph', flowname, step, str(index), 'goal', metric, 0)
-            for metric in ('cellarea', 'peakpower', 'leakagepower'):
+            for metric in weight_metrics:
                 chip.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
         prevstep = step
 

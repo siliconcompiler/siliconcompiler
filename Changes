@@ -8,6 +8,29 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.9.3 (2022-08-01)
+=========================================
+
+**Major:**
+
+* Added basic editing functionality for signoff checklists in HTML report.
+* Changed file collection behavior:
+
+  * For local runs, inputs are not copied into import/ at all.
+  * For remote runs, inputs are copied into import/0/inputs/ only, not outputs/.
+* Implemented ['option', 'entrypoint'], allowing users to specify an alternative top-level.
+* Implemented support for "pure Python" tools.
+
+  * A ``run()`` method inside a tool setup file will be run instead of an executable.
+
+**Minor:**
+
+* Changed ``run()`` behavior to read metrics from all leaf tasks.
+* Fixed implementation of ['option', 'jobincr'].
+* Fixed bug causing exception on ``summary()`` for machines with a default encoding other than UTF-8.
+* Fixed logfile reading logic to gracefully handle invalid characters.
+* Improved error messages for some common issues.
+
 SiliconCompiler 0.9.2 (2022-07-08)
 =========================================
 
