@@ -32,21 +32,18 @@ def test_py(setup_example_test):
     # "Found unsupported expression..." (x72) + 2 ABC Warnings
     assert chip.get('metric', 'syn', '0', 'warnings') == 74
 
-    # "Core area lower left snapped to..."
-    assert chip.get('metric', 'floorplan', '0', 'warnings') == 1
+    assert chip.get('metric', 'floorplan', '0', 'warnings') == 0
 
     assert chip.get('metric', 'physyn', '0', 'warnings') == 0
 
-    # "Could not find power special net"
-    assert chip.get('metric', 'place', '0', 'warnings') == 1
+    assert chip.get('metric', 'place', '0', 'warnings') == 0
 
     # "1584 wires are pure wire and no slew degradation"
     # "Creating fake entries in the LUT"
     # "Could not find power special net" (x2)
-    assert chip.get('metric', 'cts', '0', 'warnings') == 4
+    assert chip.get('metric', 'cts', '0', 'warnings') == 2
 
-    # "No OR_DEFAULT vias defined"
-    assert chip.get('metric', 'route', '0', 'warnings') == 1
+    assert chip.get('metric', 'route', '0', 'warnings') == 0
 
     assert chip.get('metric', 'dfm', '0', 'warnings') == 0
 
