@@ -156,12 +156,13 @@ if {[dict exists $sc_cfg "input" def]} {
             read_def $def
         }
     }
-} elseif {[file exists "inputs/$sc_design.odb"]} {
-    # Prioritize ODB files over DEF, if available.
-    read_db "inputs/$sc_design.odb"
 } elseif {[file exists "inputs/$sc_design.def"]} {
     # Fallback to DEF if no OpenDB file is available.
     read_def "inputs/$sc_design.def"
+} elseif {[file exists "inputs/$sc_design.odb"]} {
+    # TODO: We should prioritize ODB files over DEF, if available.
+    # Currently, doing that causes netgen errors.
+    read_db "inputs/$sc_design.odb"
 } elseif {$sc_step == "showdef"} {
     read_def $env(SC_FILENAME)
 }
