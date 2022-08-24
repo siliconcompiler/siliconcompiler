@@ -17,6 +17,7 @@ set MAKE_DIR=C:\make\bin
 set TCL_DIR=%PROGRAMFILES%\Git\mingw64\bin
 set SWIG_DIR=%PROGRMDATA%\chocolatey\lib\swig\tools\install\swigwin-3.0.12
 set PATH=%pythonLocation%;%SWIG_DIR%;%JAVA_HOME%\bin;%MAKE_DIR%;%TCL_DIR%;%PATH%
+set ADDITIONAL_CMAKE_OPTIONS=-DPython3_ROOT_DIR=%pythonLocation%
 
 set
 where cmake && cmake --version
