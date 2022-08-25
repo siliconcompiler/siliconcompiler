@@ -476,6 +476,16 @@ class ExampleGen(DynamicGen):
 
         return section
 
+def keypath_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+    # Split and clean up keypath
+    keys = [key.strip() for key in text.split(',')]
+    try:
+        return [keypath(*keys)], []
+    except ValueError as e:
+        msg = inliner.reporter.error(f'{rawtext}: {e}', line=lineno)
+        prb = inliner.problematic(rawtext, rawtext, msg)
+        return [prb], [msg]
+
 def setup(app):
     app.add_directive('flowgen', FlowGen)
     app.add_directive('pdkgen', PDKGen)
@@ -484,6 +494,7 @@ def setup(app):
     app.add_directive('appgen', AppGen)
     app.add_directive('examplegen', ExampleGen)
     app.add_directive('targetgen', TargetGen)
+    app.add_role('keypath', keypath_role)
 
     return {
         'version': siliconcompiler.__version__,

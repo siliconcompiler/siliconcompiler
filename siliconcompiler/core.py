@@ -1054,7 +1054,7 @@ class Chip:
                 if field == 'value':
                     (type_ok,type_error) = self._typecheck(cfg[param], param, val)
                     if not type_ok:
-                        self.error("%s", type_error)
+                        self.error(type_error)
                 # converting python True/False to lower case string
                 if (field == 'value') and (cfg[param]['type'] == 'bool'):
                     if val == True:
@@ -1351,13 +1351,16 @@ class Chip:
 
         """
         if cfg is None:
-            cfg = self.cfg
+            if job is not None:
+                cfg = self.cfg['history'][job]
+            else:
+                cfg = self.cfg
 
-        copyall = self.get('option', 'copyall', cfg=cfg, job=job)
-        paramtype = self.get(*keypath, field='type', cfg=cfg, job=job)
+        copyall = self.get('option', 'copyall', cfg=cfg)
+        paramtype = self.get(*keypath, field='type', cfg=cfg)
 
         if 'file' in paramtype:
-            copy = self.get(*keypath, field='copy', cfg=cfg, job=job)
+            copy = self.get(*keypath, field='copy', cfg=cfg)
         else:
             copy = False
 
@@ -1367,7 +1370,7 @@ class Chip:
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        paths = self.get(*keypath, cfg=cfg, job=job)
+        paths = self.get(*keypath, cfg=cfg)
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
@@ -2075,13 +2078,10 @@ class Chip:
                                         clobber=clobber,
                                         partial=False)
 
+        # TODO: better way to handle this?
         if 'library' in localcfg and not partial:
             for libname in localcfg['library'].keys():
-                if libname in self.cfg['library']:
-                    # TODO: should we make this a proper merge?
-                    self.logger.warning(f'Overwriting existing library {libname} '
-                        f'in object with values read from {filename}.')
-                self._import_library(libname, localcfg['library'][libname])
+                self._import_library(libname, localcfg['library'][libname], job=job)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
@@ -2252,7 +2252,8 @@ class Chip:
                 self.logger.error(f"Item {item} 'ok' field not checked")
                 error = True
 
-        self.logger.info('Check succeeded!')
+        if not error:
+            self.logger.info('Check succeeded!')
 
         return not error
 
@@ -2416,12 +2417,20 @@ class Chip:
         self._import_library(lib_chip.design, lib_chip.cfg)
 
     ###########################################################################
-    def _import_library(self, libname, libcfg):
+    def _import_library(self, libname, libcfg, job=None):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
-        self.cfg['library'][libname] = copy.deepcopy(libcfg)
-        if 'pdk' in self.cfg['library'][libname]:
-            del self.cfg['library'][libname]['pdk']
+        if job:
+            cfg = self.cfg['history'][job]['library']
+        else:
+            cfg = self.cfg['library']
+
+        if libname in cfg:
+            self.logger.warning(f'Overwriting existing library {libname}')
+
+        cfg[libname] = copy.deepcopy(libcfg)
+        if 'pdk' in cfg:
+            del cfg[libname]['pdk']
 
     ###########################################################################
     def write_depgraph(self, filename):
@@ -2578,9 +2587,9 @@ class Chip:
 
         Creates a single compressed archive (.tgz) based on the design,
         jobname, and flowgraph in the current chip manifest. Individual
-        steps and/or indices can be archived based on argumnets specified.
+        steps and/or indices can be archived based on arguments specified.
         By default, all steps and indices in the flowgraph are archived.
-        By default, only the outputs directory content and the log file
+        By default, only outputs, reports, log files, and the final manifest
         are archived.
 
         Args:
@@ -2610,18 +2619,29 @@ class Chip:
             archive_name = f"{design}_{jobname}.tgz"
 
         with tarfile.open(archive_name, "w:gz") as tar:
+            # Don't use _getworkdir() since we want a relative path for arcname
+            jobdir = os.path.join(buildpath, design, jobname)
+
+            manifest = os.path.join(jobdir, f'{design}.pkg.json')
+            if os.path.isfile(manifest):
+                tar.add(os.path.abspath(manifest), arcname=manifest)
+            else:
+                self.loger.warning('Archiving job with failed or incomplete run.')
+
             for step in steplist:
                 if index:
                     indexlist = [index]
                 else:
                     indexlist = self.getkeys('flowgraph', flow, step)
                 for item in indexlist:
-                    basedir = os.path.join(buildpath, design, jobname, step, item)
+                    basedir = os.path.join(jobdir, step, item)
                     if all_files:
                          tar.add(os.path.abspath(basedir), arcname=basedir)
                     else:
+                        reportdir = os.path.join(basedir, 'reports')
                         outdir = os.path.join(basedir,'outputs')
                         logfile = os.path.join(basedir, step+'.log')
+                        tar.add(os.path.abspath(reportdir), arcname=reportdir)
                         tar.add(os.path.abspath(outdir), arcname=outdir)
                         if os.path.isfile(logfile):
                             tar.add(os.path.abspath(logfile), arcname=logfile)
