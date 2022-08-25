@@ -34,6 +34,20 @@ jobs:
           siliconcompiler/tools/surelog/lib/surelog/sv/builtin.sv
         key: ${{ matrix.os }}-${{ steps.get-surelog.outputs.version }}
 
+    # Needed for Surelog
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: 11
+        java-package: jre
+        architecture: x64
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+        architecture: x64
+
     - name: Setup env (Windows)
       if: matrix.os == 'windows-latest'
       run: |
