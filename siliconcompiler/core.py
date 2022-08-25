@@ -2078,13 +2078,10 @@ class Chip:
                                         clobber=clobber,
                                         partial=False)
 
+        # TODO: better way to handle this?
         if 'library' in localcfg and not partial:
             for libname in localcfg['library'].keys():
-                if libname in self.cfg['library']:
-                    # TODO: should we make this a proper merge?
-                    self.logger.warning(f'Overwriting existing library {libname} '
-                        f'in object with values read from {filename}.')
-                self._import_library(libname, localcfg['library'][libname])
+                self._import_library(libname, localcfg['library'][libname], job=job)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
@@ -2420,12 +2417,20 @@ class Chip:
         self._import_library(lib_chip.design, lib_chip.cfg)
 
     ###########################################################################
-    def _import_library(self, libname, libcfg):
+    def _import_library(self, libname, libcfg, job=None):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
-        self.cfg['library'][libname] = copy.deepcopy(libcfg)
-        if 'pdk' in self.cfg['library'][libname]:
-            del self.cfg['library'][libname]['pdk']
+        if job:
+            cfg = self.cfg['history'][job]['library']
+        else:
+            cfg = self.cfg['library']
+
+        if libname in cfg:
+            self.logger.warning(f'Overwriting existing library {libname}')
+
+        cfg[libname] = copy.deepcopy(libcfg)
+        if 'pdk' in cfg:
+            del cfg[libname]['pdk']
 
     ###########################################################################
     def write_depgraph(self, filename):
