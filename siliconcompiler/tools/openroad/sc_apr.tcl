@@ -148,7 +148,7 @@ if {$sc_step == "floorplan"} {
     link_design $sc_design
 }
 
-# Read DEF
+# Read ODB or DEF
 if {[dict exists $sc_cfg "input" def]} {
     if {$sc_step != "floorplan"} {
         # Floorplan initialize handled separately in sc_floorplan.tcl
@@ -157,7 +157,12 @@ if {[dict exists $sc_cfg "input" def]} {
         }
     }
 } elseif {[file exists "inputs/$sc_design.def"]} {
+    # Fallback to DEF if no OpenDB file is available.
     read_def "inputs/$sc_design.def"
+} elseif {[file exists "inputs/$sc_design.odb"]} {
+    # TODO: We should prioritize ODB files over DEF, if available.
+    # Currently, doing that causes netgen errors.
+    read_db "inputs/$sc_design.odb"
 } elseif {$sc_step == "showdef"} {
     read_def $env(SC_FILENAME)
 }
