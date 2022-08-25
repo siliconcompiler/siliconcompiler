@@ -57,7 +57,12 @@ def setup(chip):
     options = []
     options.append('-parse')
 
-    # Wite back options tp cfg
+    # With newer versions of Surelog (at least 1.35 and up), this option is
+    # necessary to make bundled versions work.
+    # TODO: why?
+    options.append('-nocache')
+
+    # Wite back options to cfg
     chip.add('tool', tool, 'option', step, index, options)
 
     # Input/Output requirements
