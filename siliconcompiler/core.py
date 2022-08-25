@@ -1054,7 +1054,7 @@ class Chip:
                 if field == 'value':
                     (type_ok,type_error) = self._typecheck(cfg[param], param, val)
                     if not type_ok:
-                        self.error("%s", type_error)
+                        self.error(type_error)
                 # converting python True/False to lower case string
                 if (field == 'value') and (cfg[param]['type'] == 'bool'):
                     if val == True:
