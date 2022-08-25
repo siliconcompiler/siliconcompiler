@@ -2255,7 +2255,8 @@ class Chip:
                 self.logger.error(f"Item {item} 'ok' field not checked")
                 error = True
 
-        self.logger.info('Check succeeded!')
+        if not error:
+            self.logger.info('Check succeeded!')
 
         return not error
 
