@@ -8,6 +8,26 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.9.4 (2022-08-25)
+=========================================
+
+**Major:**
+
+* Changed ``run()`` logic to not reset metrics to zero.
+
+  * ``summary()`` will only display metrics that have been explicitly set.
+
+**Minor:**
+
+* Schema: Changed ['constraint', <scenario>, 'libcorner'] from scalar to list.
+* Added support for --latches option in GHDL driver.
+* Added ``:keypath:`` directive to distributed Sphinx extensions.
+* Added reports and final manifest to ``archive()`` outputs.
+* Fixed bug where ``job`` argument to ``find_files()`` was not handled properly.
+* Fixed pin sizes and PDN vias in Caravel wrapper example.
+* Updated flow scripts to support newer version of OpenROAD.
+* Updated version of Surelog bundled with wheels distribution.
+
 SiliconCompiler 0.9.3 (2022-08-01)
 =========================================
 
