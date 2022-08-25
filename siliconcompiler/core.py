@@ -2587,9 +2587,9 @@ class Chip:
 
         Creates a single compressed archive (.tgz) based on the design,
         jobname, and flowgraph in the current chip manifest. Individual
-        steps and/or indices can be archived based on argumnets specified.
+        steps and/or indices can be archived based on arguments specified.
         By default, all steps and indices in the flowgraph are archived.
-        By default, only the outputs directory content and the log file
+        By default, only outputs, reports, log files, and the final manifest
         are archived.
 
         Args:
@@ -2619,18 +2619,29 @@ class Chip:
             archive_name = f"{design}_{jobname}.tgz"
 
         with tarfile.open(archive_name, "w:gz") as tar:
+            # Don't use _getworkdir() since we want a relative path for arcname
+            jobdir = os.path.join(buildpath, design, jobname)
+
+            manifest = os.path.join(jobdir, f'{design}.pkg.json')
+            if os.path.isfile(manifest):
+                tar.add(os.path.abspath(manifest), arcname=manifest)
+            else:
+                self.loger.warning('Archiving job with failed or incomplete run.')
+
             for step in steplist:
                 if index:
                     indexlist = [index]
                 else:
                     indexlist = self.getkeys('flowgraph', flow, step)
                 for item in indexlist:
-                    basedir = os.path.join(buildpath, design, jobname, step, item)
+                    basedir = os.path.join(jobdir, step, item)
                     if all_files:
                          tar.add(os.path.abspath(basedir), arcname=basedir)
                     else:
+                        reportdir = os.path.join(basedir, 'reports')
                         outdir = os.path.join(basedir,'outputs')
                         logfile = os.path.join(basedir, step+'.log')
+                        tar.add(os.path.abspath(reportdir), arcname=reportdir)
                         tar.add(os.path.abspath(outdir), arcname=outdir)
                         if os.path.isfile(logfile):
                             tar.add(os.path.abspath(logfile), arcname=logfile)
