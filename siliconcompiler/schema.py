@@ -1572,6 +1572,47 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             Path to the entry script called by the executable specified
             on a per tool and per step basis.""")
 
+    scparam(cfg, ['tool', tool, 'prescript', step, index],
+            sctype='[file]',
+            shorthelp="Tool: pre-step script",
+            switch="-tool_prescript 'tool step index <file>'",
+            example=[
+                "cli: -tool_prescript 'yosys syn 0 syn_pre.tcl'",
+                "api: chip.set('tool','yosys','prescript','syn','0','syn_pre.tcl')"],
+            schelp="""
+            Path to a user supplied script to execute after reading in the design
+            but before the main execution stage of the step. Exact entry point
+            depends on the step and main script being executed. An example
+            of a prescript entry point would be immediately before global
+            placement.""")
+
+    scparam(cfg, ['tool', tool, 'postscript', step, index],
+            sctype='[file]',
+            shorthelp="Tool: post-step script",
+            switch="-tool_postscript 'tool step index <file>'",
+            example=[
+                "cli: -tool_postscript 'yosys syn 0 syn_post.tcl'",
+                "api: chip.set('tool','yosys','postscript','syn','0','syn_post.tcl')"],
+            schelp="""
+            Path to a user supplied script to execute after the main execution
+            stage of the step but before the design is saved.
+            Exact entry point depends on the step and main script being
+            executed. An example of a postscript entry point would be immediately
+            after global placement.""")
+
+    scparam(cfg, ['tool', tool, 'file', step, index, 'default'],
+            sctype='[file]',
+            shorthelp="Tool: user file",
+            switch="-tool_file 'tool step index key <file>'",
+            example=[
+                "cli: -tool_file 'openroad floorplan 0 macroplace macroplace.tcl'",
+                "api: chip.set('tool','openroad','file','floorplan','0','macroplace','macroplace.tcl')"],
+            schelp="""
+            Paths to user supplied files mapped to keys. Keys and filetypes must
+            match what's expected by the tool/reference script consuming the
+            file.
+            """)
+
     scparam(cfg, ['tool', tool, 'keep', step, index],
             sctype='[str]',
             shorthelp="Tool: files to keep",
