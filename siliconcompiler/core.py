@@ -84,7 +84,9 @@ class Chip:
         except FileNotFoundError:
             self.error("""SiliconCompiler must be run from a directory that exists.
 If you are sure that your working directory is valid, try running `cd $(pwd)`.""", fatal=True)
-        self.cfg = schema_cfg()
+
+        self.schema = Schema()
+
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
         # such as a web server or supervisor process. Currently supported keys:
@@ -103,12 +105,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.builtin = ['minimum','maximum',
                         'nop', 'mux', 'join', 'verify']
 
-        # We set 'design' and 'loglevel' directly in the config dictionary
+        # We set 'design' and 'loglevel' by directly calling the schema object
         # because of a chicken-and-egg problem: self.set() relies on the logger,
         # but the logger relies on these values.
-        self.cfg['design']['value'] = design
+        self.schema.set('design', design)
         if loglevel:
-            self.cfg['option']['loglevel']['value'] = loglevel
+            self.schema.set('option', 'loglevel', loglevel)
 
         self._init_logger()
 
@@ -796,7 +798,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return False
 
     ###########################################################################
-    def get(self, *keypath, field='value', job=None, cfg=None):
+    def get(self, *keypath, field='value', job=None):
         """
         Returns a schema parameter field.
 
@@ -813,8 +815,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             field(str): Parameter field to fetch.
             job (str): Jobname to use for dictionary access in place of the
                 current active jobname.
-            cfg(dict): Alternate dictionary to access in place of the default
-                chip object schema dictionary.
 
         Returns:
             Value found for the keypath and field provided.
@@ -824,20 +824,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Returns the name of the foundry from the PDK.
 
         """
+        self.logger.debug(f"Reading from {keypath}. Field = '{field}'")
 
-        if cfg is None:
-            if job is not None:
-                cfg = self.cfg['history'][job]
-            else:
-                cfg = self.cfg
-
-        keypathstr = f'{keypath}'
-
-        self.logger.debug(f"Reading from {keypathstr}. Field = '{field}'")
-        return self._search(cfg, keypathstr, *keypath, field=field, mode='get')
+        try:
+            return self.schema.get(*keypath, field=field, job=job)
+        except ValueError as e:
+            self.error(str(e))
+            return None
 
     ###########################################################################
-    def getkeys(self, *keypath, cfg=None, job=None):
+    def getkeys(self, *keypath, job=None):
         """
         Returns a list of schema dictionary keys.
 
@@ -848,7 +844,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             keypath (list str): Variable length ordered schema key list
-            cfg (dict): Alternate dictionary to access in place of self.cfg
             job (str): Jobname to use for dictionary access in place of the
                 current active jobname.
 
@@ -861,27 +856,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> keylist = chip.getkeys()
             Returns all list of all keypaths in the schema.
         """
-
-        if cfg is None:
-            if job is None:
-                cfg = self.cfg
-            else:
-                cfg = self.cfg['history'][job]
-
-        if len(list(keypath)) > 0:
-            keypathstr = f'{keypath}'
-            self.logger.debug('Getting schema parameter keys for: %s', keypathstr)
-            keys = list(self._search(cfg, keypathstr, *keypath, mode='getkeys'))
-            if 'default' in keys:
-                keys.remove('default')
+        if len(keypath) > 0:
+            self.logger.debug(f'Getting schema parameter keys for {keypath}')
         else:
             self.logger.debug('Getting all schema parameter keys.')
-            keys = list(self._allkeys(cfg))
 
-        return keys
+        try:
+            return self.schema.getkeys(*keypath, job=job)
+        except ValueError as e:
+            self.error(str(e))
+            return None
 
     ###########################################################################
-    def getdict(self, *keypath, cfg=None):
+    def getdict(self, *keypath):
         """
         Returns a schema dictionary.
 
@@ -891,7 +878,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             keypath(list str): Variable length ordered schema key list
-            cfg(dict): Alternate dictionary to access in place of self.cfg
 
         Returns:
             A schema dictionary
@@ -900,19 +886,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> pdk = chip.getdict('pdk')
             Returns the complete dictionary found for the keypath 'pdk'
         """
+        self.logger.debug(f'Getting cfg for: {keypath}')
 
-        if cfg is None:
-            cfg = self.cfg
-
-        if len(list(keypath)) > 0:
-            keypathstr = ','.join(keypath)
-            self.logger.debug('Getting cfg for: %s', keypathstr)
-            localcfg = self._search(cfg, keypathstr, *keypath, mode='getcfg')
-
-        return copy.deepcopy(localcfg)
+        try:
+            return self.schema.getdict(*keypath)
+        except ValueError as e:
+            self.error(str(e))
+            return None
 
     ###########################################################################
-    def set(self, *args, field='value', clobber=True, cfg=None):
+    def set(self, *args, field='value', clobber=True):
         '''
         Sets a schema parameter field.
 
@@ -929,31 +912,29 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Chip object error flag.
 
         Args:
-            args (list): Parameter keypath followed by a value to set.
+            keypath (list): Parameter keypath followed by a value to set.
             field (str): Parameter field to set.
             clobber (bool): Existing value is overwritten if True.
-            cfg(dict): Alternate dictionary to access in place of self.cfg
 
         Examples:
             >>> chip.set('design', 'top')
             Sets the name of the design to 'top'
         '''
-
-        if cfg is None:
-            cfg = self.cfg
-
-        keypathstr = f'{args[:-1]}'
-        all_args = list(args)
+        keypath = args[:-1]
+        value = args[-1]
+        self.logger.debug(f'Setting {keypath} to {value}')
 
         # Special case to ensure loglevel is updated ASAP
-        if len(args) == 3 and args[1] == 'loglevel' and field == 'value':
-            self.logger.setLevel(args[2])
+        if keypath == ['option', 'loglevel'] and field == 'value':
+            self.logger.setLevel(value)
 
-        self.logger.debug(f"Setting {keypathstr} to {args[-1]}")
-        return self._search(cfg, keypathstr, *all_args, field=field, mode='set', clobber=clobber)
+        try:
+            self.schema.set(*keypath, value, field=field, clobber=clobber)
+        except ValueError as e:
+            self.error(e)
 
     ###########################################################################
-    def add(self, *args, cfg=None, field='value'):
+    def add(self, *args, field='value'):
         '''
         Adds item(s) to a schema parameter list.
 
@@ -970,239 +951,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             args (list): Parameter keypath followed by a value to add.
-            cfg(dict): Alternate dictionary to access in place of self.cfg
             field (str): Parameter field to set.
 
         Examples:
             >>> chip.add('source', 'hello.v')
             Adds the file 'hello.v' to the list of sources.
         '''
+        self.logger.debug(f'Appending value {args[-1]} to {args[:-1]}')
 
-        if cfg is None:
-            cfg = self.cfg
-
-        keypathstr = f'{args[:-1]}'
-        all_args = list(args)
-
-        self.logger.debug(f'Appending value {args[-1]} to {keypathstr}')
-        return self._search(cfg, keypathstr, *all_args, field=field, mode='add')
-
-
-    ###########################################################################
-    def _allkeys(self, cfg, keys=None, keylist=None):
-        '''
-        Returns list of all keypaths in the schema.
-        '''
-
-        if keys is None:
-            keylist = []
-            keys = []
-        for k in cfg:
-            newkeys = keys.copy()
-            newkeys.append(k)
-            if 'defvalue' in cfg[k]:
-                keylist.append(newkeys)
-            else:
-                self._allkeys(cfg[k], keys=newkeys, keylist=keylist)
-        return keylist
-
-    ###########################################################################
-    def _search(self, cfg, keypath, *args, field='value', mode='get', clobber=True):
-        '''
-        Internal recursive function that searches the Chip schema for a
-        match to the combination of *args and fields supplied. The function is
-        used to set and get data within the dictionary.
-
-        Args:
-            cfg(dict): The cfg schema to search
-            keypath (str): Concatenated keypath used for error logging.
-            args (str): Keypath/value variable list used for access
-            field(str): Leaf cell field to access.
-            mode(str): Action (set/get/add/getkeys/getkeys)
-            clobber(bool): Specifies to clobber (for set action)
-
-        '''
-
-        all_args = list(args)
-        param = all_args[0]
-        val = all_args[-1]
-        empty = [None, 'null', [], 'false']
-
-        # Ensure that all keypath values are strings.
-        # Scripts may accidentally pass in [None] if a prior schema entry was unexpectedly empty.
-        keys_to_check = args
-        if mode in ['set', 'add']:
-            # Ignore the value parameter for 'set' and 'add' operations.
-            keys_to_check = args[:-1]
-        for key in keys_to_check:
-            if not isinstance(key, str):
-                self.error(
-                    f'Invalid keypath: {keypath}\n'
-                    'Your Chip configuration may be missing a parameter which is expected by your build script.')
-                return None
-
-        #set/add leaf cell (all_args=(param,val))
-        if (mode in ('set', 'add')) & (len(all_args) == 2):
-            # clean error if key not found
-            if (not param in cfg) & (not 'default' in cfg):
-                self.error(f"Set/Add keypath {keypath} does not exist.")
-            else:
-                # making an 'instance' of default if not found
-                if (not param in cfg) & ('default' in cfg):
-                    cfg[param] = copy.deepcopy(cfg['default'])
-                list_type =bool(re.match(r'\[', cfg[param]['type']))
-                # checking for illegal fields
-                if not field in cfg[param] and (field != 'value'):
-                    self.error(f"Field '{field}' for keypath {keypath}' is not a valid field.")
-                # check legality of value
-                if field == 'value':
-                    (type_ok,type_error) = self._typecheck(cfg[param], param, val)
-                    if not type_ok:
-                        self.error(type_error)
-                # converting python True/False to lower case string
-                if (field == 'value') and (cfg[param]['type'] == 'bool'):
-                    if val == True:
-                        val = "true"
-                    elif val == False:
-                        val = "false"
-                # checking if value has been set
-                # TODO: fix clobber!!
-                selval = cfg[param]['value']
-                # updating values
-                if cfg[param]['lock'] == "true":
-                    self.logger.debug("Ignoring {mode}{} to {keypath}. Lock bit is set.")
-                elif (mode == 'set'):
-                    if (field != 'value') or (selval in empty) or clobber:
-                        if field in ('copy', 'lock'):
-                            # boolean fields
-                            if val is True:
-                                cfg[param][field] = "true"
-                            elif val is False:
-                                cfg[param][field] = "false"
-                            else:
-                                self.error(f'{field} must be set to boolean.')
-                        elif field in ('hashalgo', 'scope', 'require', 'type', 'unit',
-                                       'shorthelp', 'notes', 'switch', 'help'):
-                            # awlays string scalars
-                            cfg[param][field] = val
-                        elif field in ('example'):
-                            # list from default schema (already a list)
-                            cfg[param][field] = val
-                        elif field in ('signature', 'filehash', 'date', 'author'):
-                            # convert to list if appropriate
-                            if isinstance(val, list) | (not list_type):
-                                cfg[param][field] = val
-                            else:
-                                cfg[param][field] = [val]
-                        elif (not list_type) & (val is None):
-                            # special case for None
-                            cfg[param][field] = None
-                        elif (not list_type) & (not isinstance(val, list)):
-                            # convert to string for scalar value
-                            cfg[param][field] = str(val)
-                        elif list_type & (not isinstance(val, list)):
-                            # convert to string for list value
-                            cfg[param][field] = [str(val)]
-                        elif list_type & isinstance(val, list):
-                            # converting tuples to strings
-                            if re.search(r'\(', cfg[param]['type']):
-                                cfg[param][field] = list(map(str,val))
-                            else:
-                                cfg[param][field] = val
-                        else:
-                            self.error(f"Assigning list to scalar for {keypath}")
-                    else:
-                        self.logger.debug(f"Ignoring set() to {keypath}, value already set. Use clobber=true to override.")
-                elif (mode == 'add'):
-                    if field in ('filehash', 'date', 'author', 'signature'):
-                        cfg[param][field].append(str(val))
-                    elif field in ('copy', 'lock'):
-                        self.error(f"Illegal use of add() for scalar field {field}.")
-                    elif list_type & (not isinstance(val, list)):
-                        cfg[param][field].append(str(val))
-                    elif list_type & isinstance(val, list):
-                        cfg[param][field].extend(val)
-                    else:
-                        self.error(f"Illegal use of add() for scalar parameter {keypath}.")
-                return cfg[param][field]
-        #get leaf cell (all_args=param)
-        elif len(all_args) == 1:
-            if not param in cfg:
-                self.error(f"Get keypath {keypath} does not exist.")
-            elif mode == 'getcfg':
-                return cfg[param]
-            elif mode == 'getkeys':
-                return cfg[param].keys()
-            else:
-                if not (field in cfg[param]) and (field!='value'):
-                    self.error(f"Field '{field}' not found for keypath {keypath}")
-                elif field == 'value':
-                    #Select default if no value has been set
-                    if field not in cfg[param]:
-                        selval = cfg[param]['defvalue']
-                    else:
-                        selval =  cfg[param]['value']
-                    #check for list
-                    if bool(re.match(r'\[', cfg[param]['type'])):
-                        sctype = re.sub(r'[\[\]]', '', cfg[param]['type'])
-                        return_list = []
-                        if selval is None:
-                            return None
-                        for item in selval:
-                            if sctype == 'int':
-                                return_list.append(int(item))
-                            elif sctype == 'float':
-                                return_list.append(float(item))
-                            elif sctype.startswith('(str,'):
-                                if isinstance(item,tuple):
-                                    return_list.append(item)
-                                else:
-                                    tuplestr = re.sub(r'[\(\)\'\s]','',item)
-                                    return_list.append(tuple(tuplestr.split(',')))
-                            elif sctype.startswith('(float,'):
-                                if isinstance(item,tuple):
-                                    return_list.append(item)
-                                else:
-                                    tuplestr = re.sub(r'[\(\)\s]','',item)
-                                    return_list.append(tuple(map(float, tuplestr.split(','))))
-                            else:
-                                return_list.append(item)
-                        return return_list
-                    else:
-                        if selval is None:
-                            # Unset scalar of any type
-                            scalar = None
-                        elif cfg[param]['type'] == "int":
-                            #print(selval, type(selval))
-                            scalar = int(float(selval))
-                        elif cfg[param]['type'] == "float":
-                            scalar = float(selval)
-                        elif cfg[param]['type'] == "bool":
-                            scalar = (selval == 'true')
-                        elif re.match(r'\(', cfg[param]['type']):
-                            tuplestr = re.sub(r'[\(\)\s]','',selval)
-                            scalar = tuple(map(float, tuplestr.split(',')))
-                        else:
-                            scalar = selval
-                        return scalar
-                #all non-value fields are strings (or lists of strings)
-                else:
-                    if cfg[param][field] == 'true':
-                        return True
-                    elif cfg[param][field] == 'false':
-                        return False
-                    else:
-                        return cfg[param][field]
-        #if not leaf cell descend tree
-        else:
-            ##copying in default tree for dynamic trees
-            if not param in cfg and 'default' in cfg:
-                cfg[param] = copy.deepcopy(cfg['default'])
-            elif not param in cfg:
-                self.error(f"Get keypath {keypath} does not exist.")
-                return None
-            all_args.pop(0)
-            return self._search(cfg[param], keypath, *all_args, field=field, mode=mode, clobber=clobber)
+        try:
+            self.schema.add(*args, field=field)
+        except ValueError as e:
+            self.error(str(e))
 
     ###########################################################################
     def _prune(self, cfg, top=True, keeplists=False):
@@ -1320,7 +1080,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return result
 
     ###########################################################################
-    def find_files(self, *keypath, cfg=None, missing_ok=False, job=None):
+    def find_files(self, *keypath, missing_ok=False, job=None):
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -1354,17 +1114,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             the schema.
 
         """
-        if cfg is None:
-            if job is not None:
-                cfg = self.cfg['history'][job]
-            else:
-                cfg = self.cfg
-
-        copyall = self.get('option', 'copyall', cfg=cfg)
-        paramtype = self.get(*keypath, field='type', cfg=cfg)
+        copyall = self.get('option', 'copyall', job=job)
+        paramtype = self.get(*keypath, field='type', job=job)
 
         if 'file' in paramtype:
-            copy = self.get(*keypath, field='copy', cfg=cfg)
+            copy = self.get(*keypath, field='copy', job=job)
         else:
             copy = False
 
@@ -1374,7 +1128,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        paths = self.get(*keypath, cfg=cfg)
+        paths = self.get(*keypath, job=job)
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
@@ -1573,7 +1327,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 fout.write(outstr)
 
     ###########################################################################
-
     def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
         """
         Merges an external manifest with the current compilation manifest.
@@ -1607,21 +1360,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return False
 
     ###########################################################################
-    def _merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False, partial=False):
+    def _merge_manifest(self, cfg, clobber=True, clear=True, check=False, partial=False, job=None):
         """
         Internal merge_manifest() implementation with `partial` arg.
 
         partial (bool): If True, perform a partial merge, only merging keypaths
         that may have been updated during run().
         """
-        if job is not None:
-            # fill ith default schema before populating
-            self.cfg['history'][job] = schema_cfg()
-            dst = self.cfg['history'][job]
-        else:
-            dst = self.cfg
-
-        for keylist in self.getkeys(cfg=cfg):
+        src = Schema(cfg)
+        for keylist in src.getkeys():
             if partial and not self._key_may_be_updated(keylist):
                 continue
             if keylist[0] in ('history', 'library'):
@@ -1629,26 +1376,24 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             #only read in valid keypaths without 'default'
             key_valid = True
             if check:
-                key_valid = self.valid(*keylist, quiet=False, default_valid=True)
+                key_valid = self.valid(*keylist, quiet=False, default_valid=True, job=job)
             if key_valid and 'default' not in keylist:
                 # update value, handling scalars vs. lists
-                typestr = self.get(*keylist, cfg=cfg, field='type')
-                val = self.get(*keylist, cfg=cfg)
-                arg = keylist.copy()
-                arg.append(val)
+                typestr = src.get(*keylist, field='type')
+                val = src.get(*keylist)
                 if bool(re.match(r'\[', typestr)) & bool(not clear):
-                    self.add(*arg, cfg=dst)
+                    self.add(*keylist, val, job=job)
                 else:
-                    self.set(*arg, cfg=dst, clobber=clobber)
+                    self.set(*keylist, val, clobber=clobber, job=job)
 
                 # update other fields that a user might modify
-                for field in self.getdict(*keylist, cfg=cfg).keys():
+                for field in src.getdict(*keylist).keys():
                     if field in ('value', 'switch', 'type', 'require', 'defvalue',
                                  'shorthelp', 'example', 'help'):
                         # skip these fields (value handled above, others are static)
                         continue
-                    v = self.get(*keylist, cfg=cfg, field=field)
-                    self.set(*keylist, v, cfg=dst, field=field)
+                    v = src.get(*keylist, field=field)
+                    self.set(*keylist, v, field=field, job=job)
 
     ###########################################################################
     def _keypath_empty(self, key):
@@ -2076,10 +1821,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if 'history' in localcfg and not partial:
             for historic_job in localcfg['history'].keys():
                 self._merge_manifest(localcfg['history'][historic_job],
-                                        job=historic_job,
-                                        clear=clear,
-                                        clobber=clobber,
-                                        partial=False)
+                                     job=historic_job,
+                                     clear=clear,
+                                     clobber=clobber,
+                                     partial=False)
 
         # TODO: better way to handle this?
         if 'library' in localcfg and not partial:
@@ -2087,7 +1832,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self._import_library(libname, localcfg['library'][libname], job=job, clobber=clobber)
 
     ###########################################################################
-    def write_manifest(self, filename, prune=True, abspath=False, job=None):
+    def write_manifest(self, filename, prune=True, abspath=False):
         '''
         Writes the compilation manifest to a file.
 
@@ -2120,9 +1865,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 keeplists = True
             else:
                 keeplists = False
-            cfgcopy = self._prune(self.cfg, keeplists=keeplists)
+            cfgcopy = self._prune(self.schema.cfg, keeplists=keeplists)
         else:
-            cfgcopy = copy.deepcopy(self.cfg)
+            cfgcopy = copy.deepcopy(self.schema.cfg)
 
         # resolve absolute paths
         if abspath:
@@ -2417,16 +2162,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             lib_chip (Chip): An instance of Chip to import.
         '''
-        self._import_library(lib_chip.design, lib_chip.cfg)
+        self._import_library(lib_chip.design, lib_chip.schema.cfg)
 
     ###########################################################################
     def _import_library(self, libname, libcfg, job=None, clobber=True):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
         if job:
-            cfg = self.cfg['history'][job]['library']
+            cfg = self.schema.cfg['history'][job]['library']
         else:
-            cfg = self.cfg['library']
+            cfg = self.schema.cfg['library']
 
         if libname in cfg:
             if clobber:
@@ -3272,7 +3017,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         depth = {}
         for step in self.getkeys('flowgraph', flow):
             depth[step] = 0
-            for path in self._allpaths(self.cfg, flow, step, str(0)):
+            for path in self._allpaths(flow, step, '0'):
                 if len(list(path)) > depth[step]:
                     depth[step] = len(path)
 
@@ -3281,7 +3026,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return list(sorted_dict.keys())
 
     ###########################################################################
-    def _allpaths(self, cfg, flow, step, index, path=None):
+    def _allpaths(self, flow, step, index, path=None):
         '''Recursive helper for finding all paths from provided step, index to
         root node(s) with no inputs.
 
@@ -3291,16 +3036,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if path is None:
             path = []
 
-        inputs = self.get('flowgraph', flow, step, index, 'input', cfg=cfg)
+        inputs = self.get('flowgraph', flow, step, index, 'input')
 
-        if not self.get('flowgraph', flow, step, index, 'input', cfg=cfg):
+        if not self.get('flowgraph', flow, step, index, 'input'):
             return [path]
         else:
             allpaths = []
             for in_step, in_index in inputs:
                 newpath = path.copy()
                 newpath.append(in_step + in_index)
-                allpaths.extend(self._allpaths(cfg, flow, in_step, in_index, path=newpath))
+                allpaths.extend(self._allpaths(flow, in_step, in_index, path=newpath))
 
         return allpaths
 
@@ -4573,53 +4318,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'index', None, clobber=True)
 
         # Store run in history
-        self.record_history()
+        self.schema.record_history()
 
         # Storing manifest in job root directory
         filepath =  os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
-
-    ##########################################################################
-    def record_history(self):
-        '''
-        Copies all non-empty parameters from current job into the history
-        dictionary.
-        '''
-
-        # initialize new dict
-        jobname = self.get('option','jobname')
-        self.cfg['history'][jobname] = {}
-
-        # copy in all empty values of scope job
-        allkeys = self.getkeys()
-        for key in allkeys:
-            # ignore history in case of cumulative history
-            if key[0] != 'history':
-                scope = self.get(*key, field='scope')
-                if not self._keypath_empty(key) and (scope == 'job'):
-                    self._copyparam(self.cfg,
-                                    self.cfg['history'][jobname],
-                                    key)
-
-    ###########################################################################
-    def _copyparam(self, cfgsrc, cfgdst, keypath):
-        '''
-        Copies a parameter into the manifest history dictionary.
-        '''
-
-        # 1. decend keypath, pop each key as its used
-        # 2. create key if missing in destination dict
-        # 3. populate leaf cell when keypath empty
-        if keypath:
-            key = keypath[0]
-            keypath.pop(0)
-            if key not in cfgdst.keys():
-                cfgdst[key] = {}
-            self._copyparam(cfgsrc[key], cfgdst[key], keypath)
-        else:
-            for key in cfgsrc.keys():
-                if key not in ('example', 'switch', 'help'):
-                    cfgdst[key] = copy.deepcopy(cfgsrc[key])
 
     ###########################################################################
     def _find_showable_output(self, tool=None):
@@ -4816,70 +4519,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ############################################################################
     # Chip helper Functions
     ############################################################################
-    def _typecheck(self, cfg, leafkey, value):
-        ''' Schema type checking
-        '''
-        ok = True
-        valuetype = type(value)
-        errormsg = ""
-        if (not re.match(r'\[',cfg['type'])) & (valuetype==list):
-            errormsg = "Value must be scalar."
-            ok = False
-            # Iterate over list
-        else:
-            # Create list for iteration
-            if valuetype == list:
-                valuelist = value
-            else:
-                valuelist = [value]
-                # Make type python compatible
-            cfgtype = re.sub(r'[\[\]]', '', cfg['type'])
-            for item in valuelist:
-                valuetype =  type(item)
-                if ((cfgtype != valuetype.__name__) and (item is not None)):
-                    tupletype = re.match(r'\([\w\,]+\)',cfgtype)
-                    #TODO: check tuples!
-                    if tupletype:
-                        pass
-                    elif cfgtype == 'bool':
-                        if not item in ['true', 'false']:
-                            errormsg = "Valid boolean values are True/False/'true'/'false'"
-                            ok = False
-                    elif cfgtype == 'file':
-                        pass
-                    elif cfgtype == 'dir':
-                        pass
-                    elif (cfgtype == 'float'):
-                        try:
-                            float(item)
-                        except:
-                            errormsg = "Type mismatch. Cannot cast item to float."
-                            ok = False
-                    elif (cfgtype == 'int'):
-                        try:
-                            int(item)
-                        except:
-                            errormsg = "Type mismatch. Cannot cast item to int."
-                            ok = False
-                    elif item is not None:
-                        errormsg = "Type mismach."
-                        ok = False
-
-        # Logger message
-        if type(value) == list:
-            printvalue = ','.join(map(str, value))
-        else:
-            printvalue = str(value)
-        errormsg = (errormsg +
-                    " Key=" + str(leafkey) +
-                    ", Expected Type=" + cfg['type'] +
-                    ", Entered Type=" + valuetype.__name__ +
-                    ", Value=" + printvalue)
-
-
-        return (ok, errormsg)
-
-    #######################################
     def _getexe(self, tool):
         path = self.get('tool', tool, 'path')
         exe = self.get('tool', tool, 'exe')

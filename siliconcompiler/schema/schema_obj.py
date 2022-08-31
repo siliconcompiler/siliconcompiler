@@ -1,0 +1,490 @@
+# Copyright 2022 Silicon Compiler Authors. All Rights Reserved.
+
+import copy
+import re
+
+from .schema_cfg import schema_cfg
+
+class Schema:
+    def __init__(self, cfg=None):
+        if cfg is None:
+            self.cfg = schema_cfg()
+        else:
+            self.cfg = copy.deepcopy(cfg)
+
+    ###########################################################################
+    def get(self, *keypath, field='value', job=None):
+        """
+        Returns a schema parameter field.
+
+        Returns a schema parameter field based on the keypath provided in the
+        ``*keypath``. See the :ref:`Schema Reference Manual<SiliconCompiler
+        Schema>` for documentation of all supported keypaths. The returned type
+        is consistent with the type field of the parameter. Fetching parameters
+        with empty or undefined value files returns None for scalar types and []
+        (empty list) for list types.  Accessing a non-existent keypath produces
+        a logger error message and raises the Chip object error flag.
+
+        Args:
+            keypath(list str): Variable length schema key list.
+            field(str): Parameter field to fetch.
+
+        Returns:
+            Value found for the keypath and field provided.
+
+        Examples:
+            >>> foundry = chip.get('pdk', 'foundry')
+            Returns the name of the foundry from the PDK.
+
+        """
+        if job is None:
+            cfg = self.cfg
+        else:
+            cfg = self.cfg['history'][job]
+
+        return self._search(cfg, str(keypath), *keypath, field=field, mode='get')
+
+    ###########################################################################
+    def set(self, *args, field='value', clobber=True):
+        '''
+        Sets a schema parameter field.
+
+        Sets a schema parameter field based on the keypath and value provided in
+        the ``*args``. See the :ref:`Schema Reference Manual<SiliconCompiler
+        Schema>` for documentation of all supported keypaths. New schema
+        dictionaries are automatically created for keypaths that overlap with
+        'default' dictionaries. The write action is ignored if the parameter
+        value is non-empty and the clobber option is set to False.
+
+        The value provided must agree with the dictionary parameter 'type'.
+        Accessing a non-existent keypath or providing a value that disagrees
+        with the parameter type produces a logger error message and raises the
+        Chip object error flag.
+
+        Args:
+            keypath (list): Variable length schema key list.
+            value: Value to set. Type depends on particular parameter.
+            field (str): Parameter field to set.
+            clobber (bool): Existing value is overwritten if True.
+
+        Examples:
+            >>> chip.set('design', 'top')
+            Sets the name of the design to 'top'
+        '''
+        keypath = args[:-1]
+        value = args[-1]
+        return self._search(self.cfg, str(keypath), *keypath, value, field=field, mode='set', clobber=clobber)
+
+    ###########################################################################
+    def add(self, *args, field='value'):
+        '''
+        Adds item(s) to a schema parameter list.
+
+        Adds item(s) to schema parameter list based on the keypath and value
+        provided in the ``*args``.  See the :ref:`Schema Reference
+        Manual<SiliconCompiler Schema>` for documentation of all supported
+        keypaths. New schema dictionaries are automatically created for keypaths
+        that overlap with 'default' dictionaries.
+
+        The value provided must agree with the dictionary parameter 'type'.
+        Accessing a non-existent keypath, providing a value that disagrees
+        with the parameter type, or using add with a scalar parameter produces
+        a logger error message and raises the Chip object error flag.
+
+        Args:
+            args (list): Parameter keypath followed by a value to add.
+            cfg(dict): Alternate dictionary to access in place of self.cfg
+            field (str): Parameter field to set.
+
+        Examples:
+            >>> chip.add('source', 'hello.v')
+            Adds the file 'hello.v' to the list of sources.
+        '''
+        keypath = args[:-1]
+        value = args[-1]
+        return self._search(self.cfg, str(keypath), *keypath, value, field=field, mode='add')
+
+    ###########################################################################
+    def getkeys(self, *keypath, job=None):
+        """
+        Returns a list of schema dictionary keys.
+
+        Searches the schema for the keypath provided and returns a list of
+        keys found, excluding the generic 'default' key. Accessing a
+        non-existent keypath produces a logger error message and raises the
+        Chip object error flag.
+
+        Args:
+            keypath (list str): Variable length ordered schema key list
+
+        Returns:
+            List of keys found for the keypath provided.
+
+        Examples:
+            >>> keylist = chip.getkeys('pdk')
+            Returns all keys for the 'pdk' keypath.
+            >>> keylist = chip.getkeys()
+            Returns all list of all keypaths in the schema.
+        """
+        if job is None:
+            cfg = self.cfg
+        else:
+            cfg = self.cfg['history'][job]
+
+        if len(keypath) > 0:
+            keys = list(self._search(cfg, str(keypath), *keypath, mode='getkeys'))
+            if 'default' in keys:
+                keys.remove('default')
+        else:
+            keys = list(self._allkeys())
+
+        return keys
+
+    ###########################################################################
+    def getdict(self, *keypath):
+        """
+        Returns a schema dictionary.
+
+        Searches the schema for the keypath provided and returns a complete
+        dictionary. Accessing a non-existent keypath produces a logger error
+        message and raises the Chip object error flag.
+
+        Args:
+            keypath(list str): Variable length ordered schema key list
+            cfg(dict): Alternate dictionary to access in place of self.cfg
+
+        Returns:
+            A schema dictionary
+
+        Examples:
+            >>> pdk = chip.getdict('pdk')
+            Returns the complete dictionary found for the keypath 'pdk'
+        """
+        if len(keypath) > 0:
+            localcfg = self._search(self.cfg, str(keypath), *keypath, mode='getcfg')
+        # TODO: error condition?
+
+        return copy.deepcopy(localcfg)
+
+    ##########################################################################
+    def record_history(self):
+        '''
+        Copies all non-empty parameters from current job into the history
+        dictionary.
+        '''
+
+        # initialize new dict
+        jobname = self.get('option','jobname')
+        self.cfg['history'][jobname] = {}
+
+        # copy in all empty values of scope job
+        allkeys = self.getkeys()
+        for key in allkeys:
+            # ignore history in case of cumulative history
+            if key[0] != 'history':
+                scope = self.get(*key, field='scope')
+                if not self._keypath_empty(key) and (scope == 'job'):
+                    self._copyparam(self.cfg,
+                                    self.cfg['history'][jobname],
+                                    key)
+
+    def _search(self, cfg, keypath, *args, field='value', mode='get', clobber=True):
+        '''
+        Internal recursive function that searches the Chip schema for a
+        match to the combination of *args and fields supplied. The function is
+        used to set and get data within the dictionary.
+
+        Args:
+            cfg(dict): The cfg schema to search
+            keypath (str): Concatenated keypath used for error logging.
+            args (str): Keypath/value variable list used for access
+            field(str): Leaf cell field to access.
+            mode(str): Action (set/get/add/getkeys/getkeys)
+            clobber(bool): Specifies to clobber (for set action)
+
+        '''
+
+        all_args = list(args)
+        param = all_args[0]
+        val = all_args[-1]
+        empty = [None, 'null', [], 'false']
+
+        # Ensure that all keypath values are strings.
+        # Scripts may accidentally pass in [None] if a prior schema entry was unexpectedly empty.
+        keys_to_check = args
+        if mode in ['set', 'add']:
+            # Ignore the value parameter for 'set' and 'add' operations.
+            keys_to_check = args[:-1]
+        for key in keys_to_check:
+            if not isinstance(key, str):
+                raise ValueError(f"Key '{key}' in keypath {keypath} is not a string.")
+
+        #set/add leaf cell (all_args=(param,val))
+        if (mode in ('set', 'add')) & (len(all_args) == 2):
+            # clean error if key not found
+            if (not param in cfg) & (not 'default' in cfg):
+                raise ValueError(f"Set/Add keypath {keypath} does not exist.")
+            else:
+                # making an 'instance' of default if not found
+                if (not param in cfg) & ('default' in cfg):
+                    cfg[param] = copy.deepcopy(cfg['default'])
+                list_type =bool(re.match(r'\[', cfg[param]['type']))
+                # checking for illegal fields
+                if not field in cfg[param] and (field != 'value'):
+                    raise ValueError(f"Field '{field}' for keypath {keypath} is not a valid field.")
+                # check legality of value
+                if field == 'value':
+                    (type_ok,type_error) = self._typecheck(cfg[param], param, val)
+                    if not type_ok:
+                        self.error("%s", type_error)
+                # converting python True/False to lower case string
+                if (field == 'value') and (cfg[param]['type'] == 'bool'):
+                    if val == True:
+                        val = "true"
+                    elif val == False:
+                        val = "false"
+                # checking if value has been set
+                # TODO: fix clobber!!
+                selval = cfg[param]['value']
+                # updating values
+                if cfg[param]['lock'] == "true":
+                    # TODO: add back warning
+                    pass
+                elif (mode == 'set'):
+                    if (field != 'value') or (selval in empty) or clobber:
+                        if field in ('copy', 'lock'):
+                            # boolean fields
+                            if val is True:
+                                cfg[param][field] = "true"
+                            elif val is False:
+                                cfg[param][field] = "false"
+                            else:
+                                self.error(f'{field} must be set to boolean.')
+                        elif field in ('hashalgo', 'scope', 'require', 'type', 'unit',
+                                       'shorthelp', 'notes', 'switch', 'help'):
+                            # awlays string scalars
+                            cfg[param][field] = val
+                        elif field in ('example'):
+                            # list from default schema (already a list)
+                            cfg[param][field] = val
+                        elif field in ('signature', 'filehash', 'date', 'author'):
+                            # convert to list if appropriate
+                            if isinstance(val, list) | (not list_type):
+                                cfg[param][field] = val
+                            else:
+                                cfg[param][field] = [val]
+                        elif (not list_type) & (val is None):
+                            # special case for None
+                            cfg[param][field] = None
+                        elif (not list_type) & (not isinstance(val, list)):
+                            # convert to string for scalar value
+                            cfg[param][field] = str(val)
+                        elif list_type & (not isinstance(val, list)):
+                            # convert to string for list value
+                            cfg[param][field] = [str(val)]
+                        elif list_type & isinstance(val, list):
+                            # converting tuples to strings
+                            if re.search(r'\(', cfg[param]['type']):
+                                cfg[param][field] = list(map(str,val))
+                            else:
+                                cfg[param][field] = val
+                        else:
+                            raise ValueError(f"Assigning list to scalar for {keypath}")
+                    else:
+                        # TODO: re-enable
+                        #self.logger.debug(f"Ignoring set() to {keypath}, value already set. Use clobber=true to override.")
+                        pass
+                elif (mode == 'add'):
+                    if field in ('filehash', 'date', 'author', 'signature'):
+                        cfg[param][field].append(str(val))
+                    elif field in ('copy', 'lock'):
+                        raise ValueError(f"Illegal use of add() for scalar field {field}.")
+                    elif list_type & (not isinstance(val, list)):
+                        cfg[param][field].append(str(val))
+                    elif list_type & isinstance(val, list):
+                        cfg[param][field].extend(val)
+                    else:
+                        raise ValueError(f"Illegal use of add() for scalar parameter {keypath}.")
+                return cfg[param][field]
+        #get leaf cell (all_args=param)
+        elif len(all_args) == 1:
+            if not param in cfg:
+                raise ValueError(f"Get keypath {keypath} does not exist.")
+            elif mode == 'getcfg':
+                return cfg[param]
+            elif mode == 'getkeys':
+                return cfg[param].keys()
+            else:
+                if not (field in cfg[param]) and (field!='value'):
+                    raise ValueError(f"Field '{field}' not found for keypath {keypath}")
+                elif field == 'value':
+                    #Select default if no value has been set
+                    if field not in cfg[param]:
+                        selval = cfg[param]['defvalue']
+                    else:
+                        selval =  cfg[param]['value']
+                    #check for list
+                    if bool(re.match(r'\[', cfg[param]['type'])):
+                        sctype = re.sub(r'[\[\]]', '', cfg[param]['type'])
+                        return_list = []
+                        if selval is None:
+                            return None
+                        for item in selval:
+                            if sctype == 'int':
+                                return_list.append(int(item))
+                            elif sctype == 'float':
+                                return_list.append(float(item))
+                            elif sctype.startswith('(str,'):
+                                if isinstance(item,tuple):
+                                    return_list.append(item)
+                                else:
+                                    tuplestr = re.sub(r'[\(\)\'\s]','',item)
+                                    return_list.append(tuple(tuplestr.split(',')))
+                            elif sctype.startswith('(float,'):
+                                if isinstance(item,tuple):
+                                    return_list.append(item)
+                                else:
+                                    tuplestr = re.sub(r'[\(\)\s]','',item)
+                                    return_list.append(tuple(map(float, tuplestr.split(','))))
+                            else:
+                                return_list.append(item)
+                        return return_list
+                    else:
+                        if selval is None:
+                            # Unset scalar of any type
+                            scalar = None
+                        elif cfg[param]['type'] == "int":
+                            #print(selval, type(selval))
+                            scalar = int(float(selval))
+                        elif cfg[param]['type'] == "float":
+                            scalar = float(selval)
+                        elif cfg[param]['type'] == "bool":
+                            scalar = (selval == 'true')
+                        elif re.match(r'\(', cfg[param]['type']):
+                            tuplestr = re.sub(r'[\(\)\s]','',selval)
+                            scalar = tuple(map(float, tuplestr.split(',')))
+                        else:
+                            scalar = selval
+                        return scalar
+                #all non-value fields are strings (or lists of strings)
+                else:
+                    if cfg[param][field] == 'true':
+                        return True
+                    elif cfg[param][field] == 'false':
+                        return False
+                    else:
+                        return cfg[param][field]
+        #if not leaf cell descend tree
+        else:
+            ##copying in default tree for dynamic trees
+            if not param in cfg and 'default' in cfg:
+                cfg[param] = copy.deepcopy(cfg['default'])
+            elif not param in cfg:
+                raise ValueError(f"Get keypath {keypath} does not exist.")
+            all_args.pop(0)
+            return self._search(cfg[param], keypath, *all_args, field=field, mode=mode, clobber=clobber)
+
+    ###########################################################################
+    def _allkeys(self, cfg=None, keys=None, keylist=None):
+        '''
+        Returns list of all keypaths in the schema.
+        '''
+        if cfg is None:
+            cfg = self.cfg
+
+        if keys is None:
+            keylist = []
+            keys = []
+        for k in cfg:
+            newkeys = keys.copy()
+            newkeys.append(k)
+            if 'defvalue' in cfg[k]:
+                keylist.append(newkeys)
+            else:
+                self._allkeys(cfg=cfg[k], keys=newkeys, keylist=keylist)
+        return keylist
+
+    ###########################################################################
+    def _copyparam(self, cfgsrc, cfgdst, keypath):
+        '''
+        Copies a parameter into the manifest history dictionary.
+        '''
+
+        # 1. decend keypath, pop each key as its used
+        # 2. create key if missing in destination dict
+        # 3. populate leaf cell when keypath empty
+        if keypath:
+            key = keypath[0]
+            keypath.pop(0)
+            if key not in cfgdst.keys():
+                cfgdst[key] = {}
+            self._copyparam(cfgsrc[key], cfgdst[key], keypath)
+        else:
+            for key in cfgsrc.keys():
+                if key not in ('example', 'switch', 'help'):
+                    cfgdst[key] = copy.deepcopy(cfgsrc[key])
+
+    ###########################################################################
+    def _typecheck(self, cfg, leafkey, value):
+        ''' Schema type checking
+        '''
+        ok = True
+        valuetype = type(value)
+        errormsg = ""
+        if (not re.match(r'\[',cfg['type'])) & (valuetype==list):
+            errormsg = "Value must be scalar."
+            ok = False
+            # Iterate over list
+        else:
+            # Create list for iteration
+            if valuetype == list:
+                valuelist = value
+            else:
+                valuelist = [value]
+                # Make type python compatible
+            cfgtype = re.sub(r'[\[\]]', '', cfg['type'])
+            for item in valuelist:
+                valuetype =  type(item)
+                if ((cfgtype != valuetype.__name__) and (item is not None)):
+                    tupletype = re.match(r'\([\w\,]+\)',cfgtype)
+                    #TODO: check tuples!
+                    if tupletype:
+                        pass
+                    elif cfgtype == 'bool':
+                        if not item in ['true', 'false']:
+                            errormsg = "Valid boolean values are True/False/'true'/'false'"
+                            ok = False
+                    elif cfgtype == 'file':
+                        pass
+                    elif cfgtype == 'dir':
+                        pass
+                    elif (cfgtype == 'float'):
+                        try:
+                            float(item)
+                        except:
+                            errormsg = "Type mismatch. Cannot cast item to float."
+                            ok = False
+                    elif (cfgtype == 'int'):
+                        try:
+                            int(item)
+                        except:
+                            errormsg = "Type mismatch. Cannot cast item to int."
+                            ok = False
+                    elif item is not None:
+                        errormsg = "Type mismach."
+                        ok = False
+
+        # Logger message
+        if type(value) == list:
+            printvalue = ','.join(map(str, value))
+        else:
+            printvalue = str(value)
+        errormsg = (errormsg +
+                    " Key=" + str(leafkey) +
+                    ", Expected Type=" + cfg['type'] +
+                    ", Entered Type=" + valuetype.__name__ +
+                    ", Value=" + printvalue)
+
+
+        return (ok, errormsg)
+

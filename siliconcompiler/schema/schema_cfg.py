@@ -1,12 +1,10 @@
-# Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
+# Copyright 2022 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import utils
-
-import re
-import os
-import sys
 import copy as pycopy
 import json
+import re
+
+from siliconcompiler import utils
 
 SCHEMA_VERSION = '0.9.0'
 
