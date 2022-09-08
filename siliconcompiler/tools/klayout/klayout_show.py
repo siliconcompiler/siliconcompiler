@@ -69,6 +69,9 @@ layoutOptions.lefdef_config.produce_blockages = True
 layoutOptions.lefdef_config.produce_cell_outlines = True
 layoutOptions.lefdef_config.produce_obstructions = True
 
+# Always use LEF geometry even when LEF file contains FOREIGN statement.
+layoutOptions.lefdef_config.macro_resolution_mode = 1
+
 app = pya.Application.instance()
 
 # Opinionated default KLayout configuration
