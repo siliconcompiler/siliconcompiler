@@ -4019,28 +4019,40 @@ class Chip:
                     proc = subprocess.Popen(cmdlist,
                                             stdout=stdout_writer,
                                             stderr=stderr_writer)
+                    # How long to wait for proc to quit on ctrl-c before force
+                    # terminating.
+                    TERMINATE_TIMEOUT = 5
+                    try:
+                        while proc.poll() is None:
+                            # Gather subprocess memory usage.
+                            try:
+                                pproc = psutil.Process(proc.pid)
+                                max_mem_bytes = max(max_mem_bytes, pproc.memory_full_info().uss)
+                            except psutil.Error:
+                                # Process may have already terminated or been killed.
+                                # Retain existing memory usage statistics in this case.
+                                pass
 
-                    while proc.poll() is None:
-                        # Gather subprocess memory usage.
-                        try:
-                            pproc = psutil.Process(proc.pid)
-                            max_mem_bytes = max(max_mem_bytes, pproc.memory_full_info().uss)
-                        except psutil.Error:
-                            # Process may have already terminated or been killed.
-                            # Retain existing memory usage statistics in this case.
-                            pass
-
-                        # Loop until process terminates
-                        if not quiet:
-                            if is_stdout_log:
-                                sys.stdout.write(stdout_reader.read())
-                            if is_stderr_log:
-                                sys.stdout.write(stderr_reader.read())
-                        if timeout is not None and time.time() - cmd_start_time > timeout:
-                            self.logger.error(f'Step timed out after {timeout} seconds')
-                            proc.terminate()
-                            self._haltstep(step, index)
-                        time.sleep(0.1)
+                            # Loop until process terminates
+                            if not quiet:
+                                if is_stdout_log:
+                                    sys.stdout.write(stdout_reader.read())
+                                if is_stderr_log:
+                                    sys.stdout.write(stderr_reader.read())
+                            if timeout is not None and time.time() - cmd_start_time > timeout:
+                                self.logger.error(f'Step timed out after {timeout} seconds')
+                                proc.terminate()
+                                self._haltstep(step, index)
+                            time.sleep(0.1)
+                    except KeyboardInterrupt:
+                        interrupt_time = time.time()
+                        self.logger.info(f'Received ctrl-c, waiting for {tool} to exit...')
+                        while proc.poll() is None and (time.time() - interrupt_time) < TERMINATE_TIMEOUT:
+                            time.sleep(0.5)
+                        if proc.poll() is None:
+                            self.logger.warning(f'{tool} did not exit within {TERMINATE_TIMEOUT} seconds. Terminating...')
+                            utils.terminate_process(proc.pid)
+                        self._haltstep(step, index, log=False)
 
                     # Read the remaining
                     if not quiet:
