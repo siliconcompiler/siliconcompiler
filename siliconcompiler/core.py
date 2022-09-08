@@ -4041,7 +4041,7 @@ class Chip:
                                     sys.stdout.write(stderr_reader.read())
                             if timeout is not None and time.time() - cmd_start_time > timeout:
                                 self.logger.error(f'Step timed out after {timeout} seconds')
-                                proc.terminate()
+                                utils.terminate_process(proc.pid)
                                 self._haltstep(step, index)
                             time.sleep(0.1)
                     except KeyboardInterrupt:
