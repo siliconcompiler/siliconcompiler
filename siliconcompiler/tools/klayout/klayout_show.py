@@ -12,7 +12,7 @@ with open('sc_manifest.json', 'r') as f:
 
 # Extract info from manifest
 sc_pdk = sc_cfg['option']['pdk']['value']
-sc_stackup = sc_cfg['pdk'][sc_pdk]['stackup']['value'][0]
+sc_stackup = sc_cfg['asic']['stackup']['value']
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
 sc_libtype = list(sc_cfg['library'][sc_mainlib]['asic']['footprint'].keys())[0]
 
@@ -61,6 +61,7 @@ if lib_lef is not None:
 
 # Overwrite LEFs specified in tech file with the LEFs we took from the manifest.
 layoutOptions.lefdef_config.lef_files = lefs
+print("LEFS", lefs)
 
 # These may be disabled in our KLayout tech file for reasons relating to GDS
 # export, but for the purposes of viewing we'll hardcode them to True.
