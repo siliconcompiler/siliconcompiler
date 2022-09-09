@@ -12,7 +12,7 @@ with open('sc_manifest.json', 'r') as f:
 
 # Extract info from manifest
 sc_pdk = sc_cfg['option']['pdk']['value']
-sc_stackup = sc_cfg['pdk'][sc_pdk]['stackup']['value'][0]
+sc_stackup = sc_cfg['asic']['stackup']['value']
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
 sc_libtype = list(sc_cfg['library'][sc_mainlib]['asic']['footprint'].keys())[0]
 
@@ -67,6 +67,9 @@ layoutOptions.lefdef_config.lef_files = lefs
 layoutOptions.lefdef_config.produce_blockages = True
 layoutOptions.lefdef_config.produce_cell_outlines = True
 layoutOptions.lefdef_config.produce_obstructions = True
+
+# Always use LEF geometry even when LEF file contains FOREIGN statement.
+layoutOptions.lefdef_config.macro_resolution_mode = 1
 
 app = pya.Application.instance()
 
