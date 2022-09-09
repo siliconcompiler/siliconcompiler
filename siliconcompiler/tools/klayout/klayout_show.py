@@ -61,7 +61,6 @@ if lib_lef is not None:
 
 # Overwrite LEFs specified in tech file with the LEFs we took from the manifest.
 layoutOptions.lefdef_config.lef_files = lefs
-print("LEFS", lefs)
 
 # These may be disabled in our KLayout tech file for reasons relating to GDS
 # export, but for the purposes of viewing we'll hardcode them to True.
