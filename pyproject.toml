@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools>=42",
+    "setuptools>=42,<64",
     "wheel",
     "cython",
     "scikit-build>=0.12",
