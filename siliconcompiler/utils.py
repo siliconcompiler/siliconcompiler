@@ -4,8 +4,7 @@ import psutil
 import sys
 import xml.etree.ElementTree as ET
 import re
-
-def copytree(src, dst, ignore=[], dirs_exist_ok=False, link=False):
+def copytree(src, dst, include=None, ignore=None, dirs_exist_ok=False, link=False):
     '''Simple implementation of shutil.copytree to give us a dirs_exist_ok
     option in Python < 3.8.
 
@@ -15,7 +14,9 @@ def copytree(src, dst, ignore=[], dirs_exist_ok=False, link=False):
     os.makedirs(dst, exist_ok=dirs_exist_ok)
 
     for name in os.listdir(src):
-        if name in ignore:
+        if (include is not None) and (name not in include):
+            continue
+        if (ignore is not None) and (name in ignore):
             continue
 
         srcfile = os.path.join(src, name)

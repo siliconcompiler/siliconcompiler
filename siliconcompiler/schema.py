@@ -1250,6 +1250,22 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             List of selected inputs for the current step/index specified as
             (in_step,in_index) tuple.""")
 
+    filetype = 'default'
+    filename = 'default'
+    scparam(cfg,['flowgraph', flow, step, index, 'file', 'input', filetype, filename],
+            sctype='[(str,str)]',
+            shorthelp="Flowgraph: input file source",
+            switch="-flowgraph_file_input 'flow step index filetype filename <(str, str)>'",
+            example= [
+                "cli: -flowgraph_file_input 'asicflow cts 0 def design.def (floorplan, 0)'",
+                "api:  chip.set('flowgraph','asicflow', 'cts','0','def', 'design.def', ('floorplan','0'))"],
+            schelp="""
+            Which task is responsible for providing an input of a certain
+            type/name to the current task. This can be used to restrict which
+            output files of input tasks get copied into the inputs of the
+            current task. If this parameter is unused, then all outputs from the
+            input tasks will be copied.""")
+
     return cfg
 
 
@@ -1635,6 +1651,21 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             step basis. If not specified, SC queries the operating system and sets
             the threads based on the maximum thread count supported by the
             hardware.""")
+
+    filetype = 'default'
+    scparam(cfg, ['tool', tool, 'infile', step, index, filetype],
+            sctype='[str]',
+            shorthelp="Tool: input file path",
+            switch="-tool_infile 'tool step index filetype <str>'",
+            example=["cli: -tool_infile 'openroad floorplan 0 def floorplan.def'",
+                     "api: chip.set('tool','openroad','infile','floorplan','0','def','floorplan.def)"],
+            schelp="""
+            Paths to input files of a particular type. This gets set by the
+            runtime, and is currently only set by flows that use the
+            :keypath:`flowgraph,<flow>,<step>,<index>,file,input` parameter.
+            This parameter can be read by tool scripts or in a tool driver's
+            ``runtime_options()`` method to avoid hardcoding input file
+            names.""")
 
     return cfg
 

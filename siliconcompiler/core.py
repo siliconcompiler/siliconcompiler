@@ -1966,6 +1966,7 @@ class Chip:
                 in_tasks = self.get('flowgraph', flow, step, index, 'input')
                 all_inputs = set()
                 for in_step, in_index in in_tasks:
+                    copied_inputs = self._inputs_expected_from_task(step, index, in_step, in_index)
                     if in_step not in steplist:
                         # If we're not running the input step, the required
                         # inputs need to already be copied into the build
@@ -1992,6 +1993,8 @@ class Chip:
                         inputs = self._gather_outputs(in_step, in_index)
 
                     for inp in inputs:
+                        if copied_inputs is not None and inp not in copied_inputs:
+                            continue
                         if inp in all_inputs:
                             self.logger.error(f'Invalid flow: {step}{index} '
                                 f'receives {inp} from multiple input tasks')
@@ -3364,7 +3367,7 @@ class Chip:
             self.set('flowgraph', flow, step, str(index), 'weight', metric, 0)
 
     ###########################################################################
-    def edge(self, flow, tail, head, tail_index=0, head_index=0):
+    def edge(self, flow, tail, head, tail_index=0, head_index=0, files=None):
         '''
         Creates a directed edge from a tail node to a head node.
 
@@ -3374,6 +3377,7 @@ class Chip:
         The method modifies the following parameters:
 
         ['flowgraph', flow, head, str(head_index), 'input']
+        ['flowgraph', flow, head, str(head_index), 'file', 'input']
 
         Args:
             flow (str): Name of flow
@@ -3381,6 +3385,9 @@ class Chip:
             head (str): Name of head node
             tail_index (int): Index of tail node to connect
             head_index (int): Index of head node to connect
+            files (list of tuple): List of files provided by tail to head, as a
+                list of tuples of (filename, filetype). If None, all files are
+                provided by tail to head.
 
         Examples:
             >>> chip.edge('place', 'cts')
@@ -3400,6 +3407,10 @@ class Chip:
         #TODO: add error checking
         # Adding
         self.add('flowgraph', flow, head, str(head_index), 'input', (tail, str(tail_index)))
+
+        if files is not None:
+            for filename, filetype in files:
+                self.set('flowgraph', flow, head, str(head_index), 'file', 'input', filetype, filename, (tail, str(tail_index)))
 
     ###########################################################################
     def graph(self, flow, subflow, name=None):
@@ -3851,9 +3862,13 @@ class Chip:
                 self.logger.error(f'Halting step due to previous error in {in_step}{in_index}')
                 self._haltstep(step, index)
 
+            in_files = self._inputs_expected_from_task(step, index, in_step, in_index)
+
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
-            utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
+            utils.copytree(f'../../../{in_job}/{in_step}/{in_index}/outputs', 'inputs/',
+                dirs_exist_ok=True,
+                include=in_files, # not very robust, TODO: add checking that these inputs exist?
                 ignore=[f'{design}.pkg.json'], link=True)
 
         ##################
@@ -4183,6 +4198,12 @@ class Chip:
 
     ###########################################################################
     def _setup_tool(self, tool, step, index):
+        flow = self.get('option', 'flow')
+        # Set paths to drive tool inputs
+        for filetype in self.getkeys('flowgraph', flow, step, index, 'file', 'input'):
+            for file in self.getkeys('flowgraph', flow, step, index, 'file', 'input', filetype):
+                self.add('tool', tool, 'infile', step, index, filetype, os.path.join('inputs', file))
+
         self.set('arg','step', step)
         self.set('arg','index', index)
 
@@ -5172,6 +5193,21 @@ class Chip:
             return
 
         raise SiliconCompilerError(msg)
+
+    def _inputs_expected_from_task(self, step, index, in_step, in_index):
+        '''Returns set of inputs expected by step/index from in_step/in_index.
+        If task expects to receive everything, returns None.'''
+        flow = self.get('option', f'flow')
+        in_files = None
+        if len(self.getkeys('flowgraph', flow, step, index, 'file', 'input')) > 0:
+            in_files = set()
+            for filetype in self.getkeys('flowgraph', flow, step, index, 'file', 'input'):
+                for filename in self.getkeys('flowgraph', flow, step, index, 'file', 'input', filetype):
+                    provider_task = self.get('flowgraph', flow, step, index, 'file', 'input', filetype, filename)[0]
+                    if provider_task == (in_step, in_index):
+                        in_files.add(filename)
+
+        return in_files
 
 ###############################################################################
 # Package Customization classes
