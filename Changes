@@ -8,6 +8,17 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.9.5 (2022-09-12)
+=========================================
+
+**Minor:**
+
+* Schema: Added ['tool', <tool>, 'prescript'/'postscript', <step>, <index>] to support user-supplied pre- and post-scripts for script-based tools.
+* Schema: Added ['tool', <tool>, 'file', <step>, <index>] passthrough parameter.
+* Added runtime logic to terminate tools that do not exit on their own after a job is interrupted with ctrl-c.
+* Fixed KLayout show bugs.
+* Fixed issue building SC in editable mode using newer versions of Pip/setuptools.
+
 SiliconCompiler 0.9.4 (2022-08-25)
 =========================================
 
