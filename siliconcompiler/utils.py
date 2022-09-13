@@ -5,6 +5,8 @@ import sys
 import xml.etree.ElementTree as ET
 import re
 
+PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 def copytree(src, dst, ignore=[], dirs_exist_ok=False, link=False):
     '''Simple implementation of shutil.copytree to give us a dirs_exist_ok
     option in Python < 3.8.
@@ -81,6 +83,47 @@ def terminate_process(pid, timeout=3):
         # If processes are still alive after timeout seconds, send more
         # aggressive signal.
         p.kill()
+
+def escape_val_tcl(val, typestr):
+    '''Recursive helper function for converting Python values to safe TCL
+    values, based on the SC type string.'''
+    if val is None:
+        return ''
+    elif typestr.startswith('('):
+        # Recurse into each item of tuple
+        subtypes = typestr.strip('()').split(',')
+        valstr = ' '.join(escape_val_tcl(v, subtype.strip())
+                          for v, subtype in zip(val, subtypes))
+        return f'[list {valstr}]'
+    elif typestr.startswith('['):
+        # Recurse into each item of list
+        subtype = typestr.strip('[]')
+        valstr = ' '.join(escape_val_tcl(v, subtype) for v in val)
+        return f'[list {valstr}]'
+    elif typestr == 'bool':
+        return 'true' if val else 'false'
+    elif typestr == 'str':
+        # Escape string by surrounding it with "" and escaping the few
+        # special characters that still get considered inside "". We don't
+        # use {}, since this requires adding permanent backslashes to any
+        # curly braces inside the string.
+        # Source: https://www.tcl.tk/man/tcl8.4/TclCmd/Tcl.html (section [4] on)
+        escaped_val = (val.replace('\\', '\\\\') # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
+                            .replace('[', '\\[')   # escape '[' to avoid command substition
+                            .replace('$', '\\$')   # escape '$' to avoid variable substition
+                            .replace('"', '\\"'))  # escape '"' to avoid string terminating early
+        return '"' + escaped_val + '"'
+    elif typestr in ('file', 'dir'):
+        # Replace $VAR with $env(VAR) for tcl
+        val = re.sub(r'\$(\w+)', r'$env(\1)', val)
+        # Same escapes as applied to string, minus $ (since we want to resolve env vars).
+        escaped_val = (val.replace('\\', '\\\\') # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
+                            .replace('[', '\\[')   # escape '[' to avoid command substition
+                            .replace('"', '\\"'))  # escape '"' to avoid string terminating early
+        return '"' +  escaped_val + '"'
+    else:
+        # floats/ints just become strings
+        return str(val)
 
 # This class holds all the information about a single primitive defined in the FPGA arch file
 class PbPrimitive:

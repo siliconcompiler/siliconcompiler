@@ -1,8 +1,12 @@
 # Copyright 2022 Silicon Compiler Authors. All Rights Reserved.
 
 import copy
+import json
+import os
 import re
+import yaml
 
+from siliconcompiler import utils
 from .schema_cfg import schema_cfg
 
 class Schema:
@@ -488,3 +492,129 @@ class Schema:
 
         return (ok, errormsg)
 
+    ###########################################################################
+    def write_json(self, fout):
+        fout.write(json.dumps(self.cfg, indent=4, sort_keys=True))
+
+    def write_yaml(self, fout):
+        fout.write(yaml.dump(self.cfg, Dumper=YamlIndentDumper, default_flow_style=False))
+
+    ###########################################################################
+    def write_tcl(self, fout, prefix=""):
+        '''
+        Prints out schema as TCL dictionary
+        '''
+        manifest_header = os.path.join(utils.PACKAGE_ROOT, 'data', 'sc_manifest_header.tcl')
+        with open(manifest_header, 'r') as f:
+            fout.write(f.read())
+        fout.write('\n')
+
+        allkeys = self.getkeys()
+
+        for key in allkeys:
+            typestr = self.get(*key, field='type')
+            value = self.get(*key)
+
+            #create a TCL dict
+            keystr = ' '.join(key)
+
+            valstr = utils.escape_val_tcl(value, typestr)
+
+            if not (typestr.startswith('[') or typestr.startswith('(')):
+                # treat scalars as lists as well
+                valstr = f'[list {valstr}]'
+
+            outstr = f"{prefix} {keystr} {valstr}\n"
+
+            #print out all non default values
+            if 'default' not in key:
+                fout.write(outstr)
+
+
+    ###########################################################################
+    def write_csv(self, fout):
+        csvwriter = csv.writer(fout)
+        csvwriter.writerow(['Keypath', 'Value'])
+
+        allkeys = self.getkeys()
+        for key in allkeys:
+            keypath = ','.join(key)
+            value = self.get(*key)
+            if isinstance(value,list):
+                for item in value:
+                    csvwriter.writerow([keypath, item])
+            else:
+                csvwriter.writerow([keypath, value])
+
+    def prune(self, keeplists=False):
+        # When at top of tree loop maxdepth times to make sure all stale
+        # branches have been removed, not elegant, but stupid-simple
+        # "good enough"
+
+        #10 should be enough for anyone...
+        maxdepth = 10
+
+        for _ in range(maxdepth):
+            self._prune(self.cfg, keeplists=keeplists)
+
+    ###########################################################################
+    def _prune(self, cfg, keeplists=False):
+        '''
+        Internal recursive function that creates a local copy of the Chip
+        schema (cfg) with only essential non-empty parameters retained.
+
+        '''
+        # TODO: rename
+        localcfg = cfg
+
+        #Prune when the default & value are set to the following
+        if keeplists:
+            empty = ("null", None)
+        else:
+            empty = ("null", None, [])
+
+        #Loop through all keys starting at the top
+        for k in list(localcfg.keys()):
+            #removing all default/template keys
+            # reached a default subgraph, delete it
+            if k == 'default':
+                del localcfg[k]
+            # reached leaf-cell
+            elif 'help' in localcfg[k].keys():
+                del localcfg[k]['help']
+            elif 'example' in localcfg[k].keys():
+                del localcfg[k]['example']
+            elif 'defvalue' in localcfg[k].keys():
+                if localcfg[k]['defvalue'] in empty:
+                    if 'value' in localcfg[k].keys():
+                        if localcfg[k]['value'] in empty:
+                            del localcfg[k]
+                    else:
+                        del localcfg[k]
+            #removing stale branches
+            elif not localcfg[k]:
+                localcfg.pop(k)
+            #keep traversing tree
+            else:
+                self._prune(cfg=localcfg[k], keeplists=keeplists)
+
+    def copy(self):
+        return Schema(self.cfg)
+
+    ###########################################################################
+    def _keypath_empty(self, key):
+        '''
+        Utility function to check key for an empty list.
+        '''
+
+        emptylist = ("null", None, [])
+
+        value = self.get(*key)
+        defvalue = self.get(*key, field='defvalue')
+        value_empty = (defvalue in emptylist) and (value in emptylist)
+
+        return value_empty
+
+class YamlIndentDumper(yaml.Dumper):
+    def increase_indent(self, flow=False, indentless=False):
+        return super(YamlIndentDumper, self).increase_indent(flow, False)

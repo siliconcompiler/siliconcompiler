@@ -965,65 +965,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(str(e))
 
     ###########################################################################
-    def _prune(self, cfg, top=True, keeplists=False):
-        '''
-        Internal recursive function that creates a local copy of the Chip
-        schema (cfg) with only essential non-empty parameters retained.
-
-        '''
-
-        # create a local copy of dict
-        if top:
-            localcfg = copy.deepcopy(cfg)
-        else:
-            localcfg = cfg
-
-        #10 should be enough for anyone...
-        maxdepth = 10
-        i = 0
-
-        #Prune when the default & value are set to the following
-        if keeplists:
-            empty = ("null", None)
-        else:
-            empty = ("null", None, [])
-
-        # When at top of tree loop maxdepth times to make sure all stale
-        # branches have been removed, not elegant, but stupid-simple
-        # "good enough"
-        while i < maxdepth:
-            #Loop through all keys starting at the top
-            for k in list(localcfg.keys()):
-                #removing all default/template keys
-                # reached a default subgraph, delete it
-                if k == 'default':
-                    del localcfg[k]
-                # reached leaf-cell
-                elif 'help' in localcfg[k].keys():
-                    del localcfg[k]['help']
-                elif 'example' in localcfg[k].keys():
-                    del localcfg[k]['example']
-                elif 'defvalue' in localcfg[k].keys():
-                    if localcfg[k]['defvalue'] in empty:
-                        if 'value' in localcfg[k].keys():
-                            if localcfg[k]['value'] in empty:
-                                del localcfg[k]
-                        else:
-                            del localcfg[k]
-                #removing stale branches
-                elif not localcfg[k]:
-                    localcfg.pop(k)
-                #keep traversing tree
-                else:
-                    self._prune(cfg=localcfg[k], top=False, keeplists=keeplists)
-            if top:
-                i += 1
-            else:
-                break
-
-        return localcfg
-
-    ###########################################################################
     def _find_sc_file(self, filename, missing_ok=False):
         """
         Returns the absolute path for the filename provided.
@@ -1223,108 +1164,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return None
 
     ###########################################################################
-    def _abspath(self, cfg):
+    def _abspath(self):
         '''
-        Internal function that goes through provided dictionary and resolves all
-        relative paths where required.
+        Internal function that returns a copy of the chip schema with all
+        relative paths resolved where required.
         '''
-
-        for keypath in self.getkeys(cfg=cfg):
-            paramtype = self.get(*keypath, cfg=cfg, field='type')
-            value = self.get(*keypath, cfg=cfg)
+        schema = self.schema.copy()
+        for keypath in self.getkeys():
+            paramtype = self.get(*keypath, field='type')
+            value = self.get(*keypath)
             if value:
                 #only do something if type is file or dir
                 if 'file' in paramtype or 'dir' in paramtype:
-                    abspaths = self.find_files(*keypath, cfg=cfg, missing_ok=True)
-                    self.set(*keypath, abspaths, cfg=cfg)
-
-    ###########################################################################
-    def _print_csv(self, cfg, fout):
-        csvwriter = csv.writer(fout)
-        csvwriter.writerow(['Keypath', 'Value'])
-
-        allkeys = self.getkeys(cfg=cfg)
-        for key in allkeys:
-            keypath = ','.join(key)
-            value = self.get(*key, cfg=cfg)
-            if isinstance(value,list):
-                for item in value:
-                    csvwriter.writerow([keypath, item])
-            else:
-                csvwriter.writerow([keypath, value])
-
-    ###########################################################################
-    def _escape_val_tcl(self, val, typestr):
-        '''Recursive helper function for converting Python values to safe TCL
-        values, based on the SC type string.'''
-        if val is None:
-            return ''
-        elif typestr.startswith('('):
-            # Recurse into each item of tuple
-            subtypes = typestr.strip('()').split(',')
-            valstr = ' '.join(self._escape_val_tcl(v, subtype.strip())
-                              for v, subtype in zip(val, subtypes))
-            return f'[list {valstr}]'
-        elif typestr.startswith('['):
-            # Recurse into each item of list
-            subtype = typestr.strip('[]')
-            valstr = ' '.join(self._escape_val_tcl(v, subtype) for v in val)
-            return f'[list {valstr}]'
-        elif typestr == 'bool':
-            return 'true' if val else 'false'
-        elif typestr == 'str':
-            # Escape string by surrounding it with "" and escaping the few
-            # special characters that still get considered inside "". We don't
-            # use {}, since this requires adding permanent backslashes to any
-            # curly braces inside the string.
-            # Source: https://www.tcl.tk/man/tcl8.4/TclCmd/Tcl.html (section [4] on)
-            escaped_val = (val.replace('\\', '\\\\') # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
-                              .replace('[', '\\[')   # escape '[' to avoid command substition
-                              .replace('$', '\\$')   # escape '$' to avoid variable substition
-                              .replace('"', '\\"'))  # escape '"' to avoid string terminating early
-            return '"' + escaped_val + '"'
-        elif typestr in ('file', 'dir'):
-            # Replace $VAR with $env(VAR) for tcl
-            val = re.sub(r'\$(\w+)', r'$env(\1)', val)
-            # Same escapes as applied to string, minus $ (since we want to resolve env vars).
-            escaped_val = (val.replace('\\', '\\\\') # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
-                              .replace('[', '\\[')   # escape '[' to avoid command substition
-                              .replace('"', '\\"'))  # escape '"' to avoid string terminating early
-            return '"' +  escaped_val + '"'
-        else:
-            # floats/ints just become strings
-            return str(val)
-
-    ###########################################################################
-    def _print_tcl(self, cfg, fout=None, prefix=""):
-        '''
-        Prints out schema as TCL dictionary
-        '''
-        manifest_header = os.path.join(self.scroot, 'data', 'sc_manifest_header.tcl')
-        with open(manifest_header, 'r') as f:
-            fout.write(f.read())
-        fout.write('\n')
-
-        allkeys = self.getkeys(cfg=cfg)
-
-        for key in allkeys:
-            typestr = self.get(*key, cfg=cfg, field='type')
-            value = self.get(*key, cfg=cfg)
-
-            #create a TCL dict
-            keystr = ' '.join(key)
-
-            valstr = self._escape_val_tcl(value, typestr)
-
-            if not (typestr.startswith('[') or typestr.startswith('(')):
-                # treat scalars as lists as well
-                valstr = f'[list {valstr}]'
-
-            outstr = f"{prefix} {keystr} {valstr}\n"
-
-            #print out all non default values
-            if 'default' not in key:
-                fout.write(outstr)
+                    abspaths = self.find_files(*keypath, missing_ok=True)
+                    schema.set(*keypath, abspaths)
+        return schema
 
     ###########################################################################
     def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
@@ -1368,6 +1222,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         that may have been updated during run().
         """
         src = Schema(cfg)
+        if job is not None:
+            dest = Schema(self.schema.getdict('history', job))
+        else:
+            dest = self.schema
+
         for keylist in src.getkeys():
             if partial and not self._key_may_be_updated(keylist):
                 continue
@@ -1376,15 +1235,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             #only read in valid keypaths without 'default'
             key_valid = True
             if check:
-                key_valid = self.valid(*keylist, quiet=False, default_valid=True, job=job)
+                key_valid = dest.valid(*keylist, quiet=False, default_valid=True)
             if key_valid and 'default' not in keylist:
                 # update value, handling scalars vs. lists
                 typestr = src.get(*keylist, field='type')
                 val = src.get(*keylist)
                 if bool(re.match(r'\[', typestr)) & bool(not clear):
-                    self.add(*keylist, val, job=job)
+                    dest.add(*keylist, val)
                 else:
-                    self.set(*keylist, val, clobber=clobber, job=job)
+                    dest.set(*keylist, val, clobber=clobber)
 
                 # update other fields that a user might modify
                 for field in src.getdict(*keylist).keys():
@@ -1393,21 +1252,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         # skip these fields (value handled above, others are static)
                         continue
                     v = src.get(*keylist, field=field)
-                    self.set(*keylist, v, field=field, job=job)
-
-    ###########################################################################
-    def _keypath_empty(self, key):
-        '''
-        Utility function to check key for an empty list.
-        '''
-
-        emptylist = ("null", None, [])
-
-        value = self.get(*key)
-        defvalue = self.get(*key, field='defvalue')
-        value_empty = (defvalue in emptylist) and (value in emptylist)
-
-        return value_empty
+                    dest.set(*keylist, v, field=field)
 
     ###########################################################################
     def _check_files(self):
@@ -1619,7 +1464,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key and 'history' not in key and 'library' not in key:
-                key_empty = self._keypath_empty(key)
+                key_empty = self.schema._keypath_empty(key)
                 requirement = self.get(*key, field='require')
                 if key_empty and (str(requirement) == 'all'):
                     error = True
@@ -1638,11 +1483,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         all_required = self.get('tool', tool, 'require', step, index)
                         for item in all_required:
                             keypath = item.split(',')
-                            if self._keypath_empty(keypath):
+                            if self.schema._keypath_empty(keypath):
                                 error = True
                                 self.logger.error(f"Value empty for [{keypath}] for {tool}.")
 
-                    if (self._keypath_empty(['tool', tool, 'exe']) and
+                    if (self.schema._keypath_empty(['tool', tool, 'exe']) and
                         self.find_function(tool, 'run', 'tools') is None):
                         error = True
                         self.logger.error(f'No executable or run() function specified for tool {tool}')
@@ -1858,6 +1703,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
 
+        # resolve absolute paths
+        if abspath:
+            schema = self._abspath()
+        else:
+            schema = self.schema.copy()
+
         if prune:
             self.logger.debug('Pruning dictionary before writing file %s', filepath)
             # Keep empty lists to simplify TCL coding
@@ -1865,13 +1716,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 keeplists = True
             else:
                 keeplists = False
-            cfgcopy = self._prune(self.schema.cfg, keeplists=keeplists)
-        else:
-            cfgcopy = copy.deepcopy(self.schema.cfg)
-
-        # resolve absolute paths
-        if abspath:
-            self._abspath(cfgcopy)
+            schema.prune(keeplists=keeplists)
 
         is_csv = re.search(r'(\.csv)(\.gz)*$', filepath)
 
@@ -1888,13 +1733,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # format specific printing
         try:
             if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
-                fout.write(json.dumps(cfgcopy, indent=4, sort_keys=True))
+                schema.write_json(fout)
             elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
-                fout.write(yaml.dump(cfgcopy, Dumper=YamlIndentDumper, default_flow_style=False))
+                schema.write_yaml(fout)
             elif re.search(r'(\.tcl)(\.gz)*$', filepath):
-                self._print_tcl(cfgcopy, prefix="dict set sc_cfg", fout=fout)
+                schema.write_tcl(fout, prefix="dict set sc_cfg")
             elif is_csv:
-                self._print_csv(cfgcopy, fout=fout)
+                schema.write_csv(fout)
             else:
                 self.error('File format not recognized %s', filepath)
         finally:
@@ -2959,7 +2804,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Generate results page by passing the Chip manifest into the Jinja2 template.
             env = Environment(loader=FileSystemLoader(templ_dir))
             results_page = os.path.join(web_dir, 'report.html')
-            pruned_cfg = self._prune(self.cfg)
+
+            schema = self.schema.copy()
+            schema.prune()
+            pruned_cfg = schema.cfg
             if 'history' in pruned_cfg:
                 del pruned_cfg['history']
             if 'library' in pruned_cfg:
@@ -2971,10 +2819,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # default encoding is not UTF-8.
             with open(results_page, 'w', encoding='utf-8') as wf:
                 wf.write(env.get_template('sc_report.j2').render(
-                    manifest = self.cfg,
+                    manifest = self.schema.cfg,
                     pruned_cfg = pruned_cfg,
                     metric_keys = metrics_to_show,
-                    metrics = self.cfg['metric'],
+                    metrics = self.schema.cfg['metric'],
                     tasks = flow_tasks,
                     img_data = img_data,
                 ))
@@ -4839,15 +4687,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self._error = True
             return
 
-        raise SiliconCompilerError(msg)
+        raise SiliconCompilerError(msg) from None
 
 ###############################################################################
 # Package Customization classes
 ###############################################################################
-
-class YamlIndentDumper(yaml.Dumper):
-    def increase_indent(self, flow=False, indentless=False):
-        return super(YamlIndentDumper, self).increase_indent(flow, False)
 
 class SiliconCompilerError(Exception):
     ''' Minimal Exception wrapper used to raise sc runtime errors.
