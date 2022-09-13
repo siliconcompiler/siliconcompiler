@@ -1985,7 +1985,7 @@
                                     "defvalue": [],
                                     "example": [
                                         "cli: -flowgraph_file_input 'asicflow cts 0 def design.def (floorplan, 0)'",
-                                        "api:  chip.set('flowgraph','asicflow', 'cts','0','def', 'design.def', ('floorplan','0'))"
+                                        "api:  chip.set('flowgraph','asicflow','cts','0','file','input','def','design.def',('floorplan','0'))"
                                     ],
                                     "help": "Which task is responsible for providing an input of a certain\ntype/name to the current task. This can be used to restrict which\noutput files of input tasks get copied into the inputs of the\ncurrent task. If this parameter is unused, then all outputs from the\ninput tasks will be copied.",
                                     "lock": "false",

@@ -1258,7 +1258,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             switch="-flowgraph_file_input 'flow step index filetype filename <(str, str)>'",
             example= [
                 "cli: -flowgraph_file_input 'asicflow cts 0 def design.def (floorplan, 0)'",
-                "api:  chip.set('flowgraph','asicflow', 'cts','0','def', 'design.def', ('floorplan','0'))"],
+                "api:  chip.set('flowgraph','asicflow','cts','0','file','input','def','design.def',('floorplan','0'))"],
             schelp="""
             Which task is responsible for providing an input of a certain
             type/name to the current task. This can be used to restrict which
