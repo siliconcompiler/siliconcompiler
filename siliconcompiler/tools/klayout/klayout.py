@@ -85,7 +85,7 @@ def setup(chip, mode="batch"):
     else:
         clobber = False
         script = 'klayout_export.py'
-        option = ['-zz', '-r']
+        option = ['-b', '-r']
 
     chip.set('tool', tool, 'exe', klayout_exe)
     chip.set('tool', tool, 'vswitch', ['-zz', '-v'])
@@ -126,25 +126,9 @@ def setup(chip, mode="batch"):
         else:
             chip.error(f'Stackup and targetlib paremeters required for Klayout.')
 
-    logfile = f"{step}.log"
-
     # Log file parsing
-    chip.set('tool', tool, 'regex', step, index, 'warnings', "WARNING", clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', "ERROR", clobber=False)
-
-################################
-#  Environment setup
-################################
-
-def setup_env(chip):
-    '''
-    Creates environment setup files in the current directory.
-
-    Setup is based on the parameters passed in through the chip object.
-
-    '''
-
-    return 0
+    chip.set('tool', tool, 'regex', step, index, 'warnings', r'(WARNING|warning)', clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', r'ERROR', clobber=False)
 
 ################################
 #  Custom runtime options

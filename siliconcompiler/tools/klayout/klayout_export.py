@@ -135,17 +135,17 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
   tech.load(tech_file)
   layoutOptions = tech.load_layout_options
   layoutOptions.lefdef_config.macro_resolution_mode = 1
-  pathed_files = []
+  pathed_files = set()
   for fn in layoutOptions.lefdef_config.lef_files:
     if fn[0:2] == './':
-      pathed_files.append(foundry_lefs + fn[1:])
+      pathed_files.add(foundry_lefs + fn[1:])
     else:
-      pathed_files.append(fn)
+      pathed_files.add(fn)
 
   for lef in macro_lefs:
-    pathed_files.append(lef)
+    pathed_files.add(lef)
 
-  layoutOptions.lefdef_config.lef_files = pathed_files
+  layoutOptions.lefdef_config.lef_files = list(pathed_files)
   layoutOptions.lefdef_config.read_lef_with_def = False
 
   # Load def file
