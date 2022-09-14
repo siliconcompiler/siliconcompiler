@@ -17,7 +17,7 @@ def test_checklist():
 
     chip.set('metric','syn','0', 'errors', 1)
     chip.set('tool', 'yosys', 'report', 'syn', '0', 'errors', 'yosys.log')
-    chip.record_history()
+    chip.schema.record_history()
 
     #automated fail
     chip.set('checklist','iso', 'd0', 'criteria', 'errors==0')

@@ -1,6 +1,7 @@
 # Copyright 2022 Silicon Compiler Authors. All Rights Reserved.
 
 import copy
+import csv
 import json
 import os
 import re

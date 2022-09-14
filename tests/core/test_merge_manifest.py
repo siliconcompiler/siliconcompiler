@@ -1,10 +1,9 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
 import copy
-import json
 import siliconcompiler
 
-from siliconcompiler.schema import schema_flowgraph
+from siliconcompiler.schema.schema_cfg import schema_flowgraph
 
 def test_merge_manifest():
 

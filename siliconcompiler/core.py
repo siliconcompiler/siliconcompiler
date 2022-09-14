@@ -3014,9 +3014,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.graph('asicflow')
             Instantiates Creates a directed edge from place to cts.
         '''
-
+        # TODO: can we refactor this to not rely on config hacks
         if flow not in self.getkeys('flowgraph'):
-            self.cfg['flowgraph'][flow] ={}
+            self.schema.cfg['flowgraph'][flow] ={}
 
         # uniquify each step
         for step in self.getkeys('flowgraph',subflow):
@@ -3025,12 +3025,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 newstep = name + "." + step
             if newstep not in self.getkeys('flowgraph', flow):
-                self.cfg['flowgraph'][flow][newstep] ={}
+                self.schema.cfg['flowgraph'][flow][newstep] ={}
             # recursive copy
-            for key in self._allkeys(self.cfg['flowgraph'][subflow][step]):
-                self._copyparam(self.cfg['flowgraph'][subflow][step],
-                                self.cfg['flowgraph'][flow][newstep],
-                                key)
+            for key in self.schema._allkeys(self.schema.cfg['flowgraph'][subflow][step]):
+                self.schema._copyparam(self.schema.cfg['flowgraph'][subflow][step],
+                                       self.schema.cfg['flowgraph'][flow][newstep],
+                                       key)
             # update step names
             for index in self.getkeys('flowgraph', flow, newstep):
                 all_inputs = self.get('flowgraph', flow, newstep, index,'input')
