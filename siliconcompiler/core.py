@@ -1933,7 +1933,7 @@ class Chip:
             else:
                 outputs = set()
 
-        if step == 'import':
+        if step == 'import' and self.get('option', 'remote'):
             imports = {self._get_imported_filename(p) for p in self._collect_paths()}
             outputs.update(imports)
 
