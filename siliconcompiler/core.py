@@ -2074,7 +2074,7 @@ class Chip:
         # TODO: better way to handle this?
         if 'library' in localcfg and not partial:
             for libname in localcfg['library'].keys():
-                self._import_library(libname, localcfg['library'][libname], job=job)
+                self._import_library(libname, localcfg['library'][libname], job=job, clobber=clobber)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
@@ -2410,7 +2410,7 @@ class Chip:
         self._import_library(lib_chip.design, lib_chip.cfg)
 
     ###########################################################################
-    def _import_library(self, libname, libcfg, job=None):
+    def _import_library(self, libname, libcfg, job=None, clobber=True):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
         if job:
@@ -2419,7 +2419,10 @@ class Chip:
             cfg = self.cfg['library']
 
         if libname in cfg:
-            self.logger.warning(f'Overwriting existing library {libname}')
+            if clobber:
+                self.logger.warning(f'Overwriting existing library {libname}')
+            else:
+                return
 
         cfg[libname] = copy.deepcopy(libcfg)
         if 'pdk' in cfg:
