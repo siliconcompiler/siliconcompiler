@@ -151,7 +151,7 @@ def setup(chip, mode='batch'):
 
     # basic warning and error grep check on logfile
     chip.set('tool', tool, 'regex', step, index, 'warnings', r'^\[WARNING', clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', r'ERROR', clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'errors', r'^\[ERROR', clobber=False)
 
     # reports
     logfile = f"{step}.log"
