@@ -4288,6 +4288,21 @@ class Chip:
             else:
                 indexlist[step] = self.getkeys('flowgraph', flow, step)
 
+        # Before running, we want to pick up any values that had been set in
+        # tasks that have already been run and are not going to be re-run. This
+        # is necessary to capture tool setup from past tasks, since tool setup
+        # is only performed for what's in the steplist.
+        for step in self.getkeys('flowgraph', flow):
+            for index in self.getkeys('flowgraph', flow, step):
+                if step in steplist and index in indexlist[step]:
+                    in_job = self._get_in_job(step, index)
+                    for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
+                        if in_step not in steplist or in_index not in indexlist[in_step]:
+                            workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
+                            manifest = os.path.join(workdir, 'outputs', f'{self.design}.pkg.json')
+                            if os.path.isfile(manifest):
+                                self.read_manifest(manifest, clobber=False)
+
         # Reset flowgraph/records/metrics by probing build directory. We need
         # to set values to None for steps we may re-run so that merging
         # manifests from _runtask() actually updates values.
