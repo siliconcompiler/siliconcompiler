@@ -77,10 +77,13 @@ yosys opt
 source "$sc_refdir/syn_strategies.tcl"
 
 set script ""
-if {[dict exists $sc_cfg eda $sc_tool variable $sc_step $sc_index strategy]} {
-    set sc_strategy [dict get $sc_cfg eda $sc_tool variable $sc_step $sc_index strategy]
+if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index strategy]} {
+    set sc_strategy [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index strategy]
     if { [dict exists $syn_strategies $sc_strategy] } {
         set script [dict get $syn_strategies $sc_strategy]
+    } elseif { [string match "+*" $sc_strategy] } {
+        # ABC script passthrough
+        set script $sc_stratety
     } else {
         puts "Warning: no such synthesis strategy $sc_strategy"
     }
