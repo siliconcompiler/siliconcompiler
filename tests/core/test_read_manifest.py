@@ -44,7 +44,7 @@ def test_read_defaults(datadir):
     chip.write_manifest("actual.json", prune=False)
     chip.read_manifest("actual.json")
 
-    # independent dump of chip.cfg
+    # independent dump of schema
     with open("actual.json", 'w') as f:
         print(json.dumps(chip.schema.cfg, indent=4, sort_keys=True), file=f)
     with open("actual.json", 'r') as f:
