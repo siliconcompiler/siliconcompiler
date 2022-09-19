@@ -4292,6 +4292,10 @@ class Chip:
         # tasks that have already been run and are not going to be re-run. This
         # is necessary to capture tool setup from past tasks, since tool setup
         # is only performed for what's in the steplist.
+
+        # Hack to restore the value of the 'remote' parameter.
+        # TODO: remove this after #1146 is fixed.
+        remote = self.get('option', 'remote')
         for step in self.getkeys('flowgraph', flow):
             for index in self.getkeys('flowgraph', flow, step):
                 if step in steplist and index in indexlist[step]:
@@ -4302,6 +4306,7 @@ class Chip:
                             manifest = os.path.join(workdir, 'outputs', f'{self.design}.pkg.json')
                             if os.path.isfile(manifest):
                                 self.read_manifest(manifest, clobber=False)
+        self.set('option', 'remote', remote)
 
         # Reset flowgraph/records/metrics by probing build directory. We need
         # to set values to None for steps we may re-run so that merging
