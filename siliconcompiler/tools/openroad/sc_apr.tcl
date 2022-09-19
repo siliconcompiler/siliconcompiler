@@ -133,7 +133,9 @@ foreach item $sc_scenarios {
 
 # Read Lefs
 foreach lib "$sc_targetlibs $sc_macrolibs" {
-    read_lef [dict get $sc_cfg library $lib model layout lef $sc_stackup]
+    foreach lef [dict get $sc_cfg library $lib model layout lef $sc_stackup] {
+        read_lef $lef
+    }
 }
 
 # Read Verilog
