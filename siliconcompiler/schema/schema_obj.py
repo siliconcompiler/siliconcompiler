@@ -171,6 +171,52 @@ class Schema:
 
         return copy.deepcopy(localcfg)
 
+    ###########################################################################
+    def valid(self, *args, valid_keypaths=None, default_valid=False):
+        """
+        Checks validity of a keypath.
+
+        Checks the validity of a parameter keypath and returns True if the
+        keypath is valid and False if invalid.
+
+        Args:
+            keypath(list str): Variable length schema key list.
+            valid_keypaths (list of list): List of valid keypaths as lists. If
+                None, check against all keypaths in the schema.
+
+        Returns:
+            Boolean indicating validity of keypath.
+
+        Examples:
+            >>> check = chip.valid('design')
+            Returns True.
+            >>> check = chip.valid('blah')
+            Returns False.
+        """
+        keylist = list(args)
+        if default_valid:
+            default = 'default'
+        else:
+            default = None
+
+        if valid_keypaths is None:
+            valid_keypaths = self.getkeys()
+
+        # Look for a full match with default playing wild card
+        for valid_keypath in valid_keypaths:
+            if len(keylist) != len(valid_keypath):
+                continue
+
+            ok = True
+            for i in range(len(keylist)):
+                if valid_keypath[i] not in (keylist[i], default):
+                    ok = False
+                    break
+            if ok:
+                return True
+
+        return False
+
     ##########################################################################
     def record_history(self):
         '''
@@ -241,7 +287,7 @@ class Schema:
                 if field == 'value':
                     (type_ok,type_error) = self._typecheck(cfg[param], param, val)
                     if not type_ok:
-                        self.error("%s", type_error)
+                        raise TypeError(type_error)
                 # converting python True/False to lower case string
                 if (field == 'value') and (cfg[param]['type'] == 'bool'):
                     if val == True:
@@ -264,7 +310,7 @@ class Schema:
                             elif val is False:
                                 cfg[param][field] = "false"
                             else:
-                                self.error(f'{field} must be set to boolean.')
+                                raise TypeError(f'{field} must be set to boolean.')
                         elif field in ('hashalgo', 'scope', 'require', 'type', 'unit',
                                        'shorthelp', 'notes', 'switch', 'help'):
                             # awlays string scalars

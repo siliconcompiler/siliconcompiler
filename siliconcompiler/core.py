@@ -420,7 +420,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 ext = ext.lstrip('.')
                 if ext in input_map:
                     filetype = input_map[ext]
-                    if self.valid('input', filetype, quiet=True):
+                    if self.valid('input', filetype):
                         self.add('input', filetype, source)
                     else:
                         self.set('input', filetype, source)
@@ -466,7 +466,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.info(f"Command line argument entered: {args} Value: {val}")
                 typestr = self.get(*keypath, field='type')
                 if typestr.startswith('['):
-                    if self.valid(*args, quiet=True):
+                    if self.valid(*args):
                         self.add(*args, val)
                     else:
                         self.set(*args, val, clobber=True)
@@ -746,7 +746,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
 
     ###########################################################################
-    def valid(self, *args, valid_keypaths=None, quiet=True, default_valid=False):
+    def valid(self, *keypath, valid_keypaths=None, default_valid=False):
         """
         Checks validity of a keypath.
 
@@ -768,34 +768,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> check = chip.valid('blah')
             Returns False.
         """
-
-        keypathstr = ','.join(args)
-        keylist = list(args)
-        if default_valid:
-            default = 'default'
-        else:
-            default = None
-
-        if valid_keypaths is None:
-            valid_keypaths = self.getkeys()
-
-        # Look for a full match with default playing wild card
-        for valid_keypath in valid_keypaths:
-            if len(keylist) != len(valid_keypath):
-                continue
-
-            ok = True
-            for i in range(len(keylist)):
-                if valid_keypath[i] not in (keylist[i], default):
-                    ok = False
-                    break
-            if ok:
-                return True
-
-        # Match not found
-        if not quiet:
-            self.logger.warning(f"Keypath [{keypathstr}] is not valid")
-        return False
+        return self.schema.valid(*keypath, valid_keypaths=valid_keypaths,
+                                 default_valid=default_valid)
 
     ###########################################################################
     def get(self, *keypath, field='value', job=None):
@@ -828,7 +802,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         try:
             return self.schema.get(*keypath, field=field, job=job)
-        except ValueError as e:
+        except (ValueError, TypeError) as e:
             self.error(str(e))
             return None
 
@@ -863,7 +837,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         try:
             return self.schema.getkeys(*keypath, job=job)
-        except ValueError as e:
+        except (ValueError, TypeError) as e:
             self.error(str(e))
             return None
 
@@ -890,7 +864,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         try:
             return self.schema.getdict(*keypath)
-        except ValueError as e:
+        except (ValueError, TypeError) as e:
             self.error(str(e))
             return None
 
@@ -930,7 +904,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         try:
             self.schema.set(*keypath, value, field=field, clobber=clobber)
-        except ValueError as e:
+        except (ValueError, TypeError) as e:
             self.error(e)
 
     ###########################################################################
@@ -961,7 +935,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         try:
             self.schema.add(*args, field=field)
-        except ValueError as e:
+        except (ValueError, TypeError) as e:
             self.error(str(e))
 
     ###########################################################################
@@ -1235,7 +1209,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             #only read in valid keypaths without 'default'
             key_valid = True
             if check:
-                key_valid = dest.valid(*keylist, quiet=False, default_valid=True)
+                key_valid = dest.valid(*keylist, default_valid=True)
+                if not key_valid:
+                    self.logger.warning(f'Keypath {keylist} is not valid')
             if key_valid and 'default' not in keylist:
                 # update value, handling scalars vs. lists
                 typestr = src.get(*keylist, field='type')
@@ -3697,7 +3673,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # hash all outputs
             self.hash_files('tool', tool, 'output', step, index)
             # hash all requirements
-            if self.valid('tool', tool, 'require', step, index, quiet=True):
+            if self.valid('tool', tool, 'require', step, index):
                 for item in self.get('tool', tool, 'require', step, index):
                     args = item.split(',')
                     if 'file' in self.get(*args, field='type'):
