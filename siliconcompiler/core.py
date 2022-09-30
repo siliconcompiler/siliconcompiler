@@ -1757,9 +1757,15 @@ class Chip:
                 paramtype = self.get(*keypath, field='type')
                 if ('file' in paramtype) or ('dir' in paramtype):
                     abspath = self.find_files(*keypath, missing_ok=True)
-                    if abspath is None or (isinstance(abspath, list) and None in abspath):
-                        self.logger.error(f"Required file keypath {keypath} can't be resolved.")
-                        error = True
+                    unresolved_paths = self.get(*keypath)
+                    if not isinstance(abspath, list):
+                        abspath = [abspath]
+                        unresolved_paths = [unresolved_paths]
+                    for i, path in enumerate(abspath):
+                        if path is None:
+                            unresolved_path = unresolved_paths[i]
+                            self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
+                            error = True
 
         # Need to run this check here since file resolution can change in
         # _runtask().
