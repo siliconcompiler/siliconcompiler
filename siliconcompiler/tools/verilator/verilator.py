@@ -1,6 +1,5 @@
 import os
 import subprocess
-import re
 
 import siliconcompiler
 
@@ -43,12 +42,8 @@ def make_docs():
     from :keypath:`input, c`. Outputs an executable in
     ``outputs/<design>.vexe``.
 
-    This steps accepts a restricted set of CLI switches in :keypath:`tool,
-    verilator, var, <step>, <index>, extraopts` that are passed through
-    directly to Verilator. Currently supported switches include:
-
-    * ``--trace``
-
+    This step supports using the :keypath:`option, trace` parameter to enable
+    Verilator's ``--trace`` flag.
 
     For all steps, this driver runs Verilator using the ``-sv`` switch to enable
     parsing a subset of SystemVerilog features. All steps also support using
@@ -105,6 +100,9 @@ def setup(chip):
         # Make warnings non-fatal in relaxed mode
         chip.add('tool', tool, 'option', step, index, ['-Wno-fatal', '-Wno-UNOPTFLAT'])
 
+    for warning in chip.get('tool', tool, 'warningoff'):
+        chip.add('tool', tool, 'option', step, index, f'-Wno-{warning}')
+
     # Step-based CLI options
     if step == 'import':
         chip.add('tool', tool, 'option', step, index,  ['--lint-only', '--debug'])
@@ -112,19 +110,28 @@ def setup(chip):
             chip.add('tool', tool, 'option', step, index, '-D' + value)
         # File-based arguments added in runtime_options()
     elif step == 'lint':
-        chip.add('tool', tool, 'option', step, index,  ['--lint-only', '--debug'])
+        chip.add('tool', tool, 'option', step, index,  ['--lint-only'])
         chip.add('tool', tool, 'option', step, index, f'inputs/{design}.v')
     elif step == 'compile':
         chip.add('tool', tool, 'option', step, index,  ['--cc', '--exe'])
         chip.add('tool', tool, 'option', step, index, f'inputs/{design}.v')
         chip.add('tool', tool, 'option', step, index, f'-o ../outputs/{design}.vexe')
 
-        if chip.valid('tool', tool, 'var', step, index, 'extraopts'):
-            extra_opts = chip.get('tool', tool, 'var', step, index, 'extraopts')
-            for opt in extra_opts:
-                if opt not in ('--trace'):
-                    chip.error(f'Illegal option {opt}')
-                chip.add('tool', tool, 'option', step, index, opt)
+        if chip.get('option', 'trace'):
+            chip.add('tool', tool, 'option', step, index, '--trace')
+
+        if chip.valid('tool', tool, 'var', step, index, 'cflags'):
+            cflags_list = chip.get('tool', tool, 'var', step, index, 'cflags')
+            cflags_str = '"' + ' '.join(cflags_list) + '"'
+            chip.add('tool', tool, 'option', step, index, '-CFLAGS')
+            chip.add('tool', tool, 'option', step, index, cflags_str)
+
+        if chip.valid('tool', tool, 'var', step, index, 'ldflags'):
+            ldflags_list = chip.get('tool', tool, 'var', step, index, 'ldflags')
+            ldflags_str = '"' + ' '.join(ldflags_list) + '"'
+            chip.add('tool', tool, 'option', step, index, '-LDFLAGS')
+            chip.add('tool', tool, 'option', step, index, ldflags_str)
+
         # File-based arguments added in runtime_options()
 
    # I/O requirements
@@ -198,7 +205,12 @@ def post_process(chip):
         # Run make to compile Verilated design into executable.
         # If we upgrade our minimum supported Verilog, we can remove this and
         # use the --build flag instead.
-        subprocess.run(['make', '-C', 'obj_dir', '-f', f'V{design}.mk'])
+        proc = subprocess.run(['make', '-C', 'obj_dir', '-f', f'V{design}.mk'])
+        if proc.returncode > 0:
+            chip.error(
+                f'Make returned error code {proc.returncode} when compiling '
+                'Verilated design', fatal=True
+            )
 
 ##################################################
 if __name__ == "__main__":
