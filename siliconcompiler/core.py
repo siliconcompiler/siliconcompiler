@@ -1838,13 +1838,10 @@ class Chip:
 
         for step in steplist:
             for index in indexlist[step]:
-                in_job = None
-                if (step in self.getkeys('option', 'jobinput') and
-                    index in self.getkeys('option', 'jobinput', step)):
-                    in_job = self.get('option', 'jobinput', step, index)
+                in_job = self._get_in_job(step, index)
 
                 for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                    if in_job is not None:
+                    if in_job != self.get('option', 'jobname'):
                         workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
                         cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
                         if not os.path.isfile(cfg):
@@ -1976,11 +1973,7 @@ class Chip:
                         # If we're not running the input step, the required
                         # inputs need to already be copied into the build
                         # directory.
-                        jobname = self.get('option', 'jobname')
-                        if self.valid('option', 'jobinput', step, index):
-                            in_job = self.get('option', 'jobinput', step, index)
-                        else:
-                            in_job = jobname
+                        in_job = self._get_in_job(step, index)
                         workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
                         in_step_out_dir = os.path.join(workdir, 'outputs')
 
@@ -2087,7 +2080,7 @@ class Chip:
         # TODO: better way to handle this?
         if 'library' in localcfg and not partial:
             for libname in localcfg['library'].keys():
-                self._import_library(libname, localcfg['library'][libname], job=job)
+                self._import_library(libname, localcfg['library'][libname], job=job, clobber=clobber)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
@@ -2423,7 +2416,7 @@ class Chip:
         self._import_library(lib_chip.design, lib_chip.cfg)
 
     ###########################################################################
-    def _import_library(self, libname, libcfg, job=None):
+    def _import_library(self, libname, libcfg, job=None, clobber=True):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
         if job:
@@ -2432,7 +2425,10 @@ class Chip:
             cfg = self.cfg['library']
 
         if libname in cfg:
-            self.logger.warning(f'Overwriting existing library {libname}')
+            if clobber:
+                self.logger.warning(f'Overwriting existing library {libname}')
+            else:
+                return
 
         cfg[libname] = copy.deepcopy(libcfg)
         if 'pdk' in cfg:
@@ -3768,12 +3764,7 @@ class Chip:
 
         ##################
         # Directory setup
-        # support for sharing data across jobs
-        job = self.get('option', 'jobname')
-        in_job = job
-        if step in self.getkeys('option', 'jobinput'):
-            if index in self.getkeys('option', 'jobinput', step):
-                in_job = self.get('option', 'jobinput', step, index)
+        in_job = self._get_in_job(step, index)
 
         workdir = self._getworkdir(step=step,index=index)
         cwd = os.getcwd()
@@ -4303,6 +4294,26 @@ class Chip:
             else:
                 indexlist[step] = self.getkeys('flowgraph', flow, step)
 
+        # Before running, we want to pick up any values that had been set in
+        # tasks that have already been run and are not going to be re-run. This
+        # is necessary to capture tool setup from past tasks, since tool setup
+        # is only performed for what's in the steplist.
+
+        # Hack to restore the value of the 'remote' parameter.
+        # TODO: remove this after #1146 is fixed.
+        remote = self.get('option', 'remote')
+        for step in self.getkeys('flowgraph', flow):
+            for index in self.getkeys('flowgraph', flow, step):
+                if step in steplist and index in indexlist[step]:
+                    in_job = self._get_in_job(step, index)
+                    for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
+                        if in_step not in steplist or in_index not in indexlist[in_step]:
+                            workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
+                            manifest = os.path.join(workdir, 'outputs', f'{self.design}.pkg.json')
+                            if os.path.isfile(manifest):
+                                self.read_manifest(manifest, clobber=False)
+        self.set('option', 'remote', remote)
+
         # Reset flowgraph/records/metrics by probing build directory. We need
         # to set values to None for steps we may re-run so that merging
         # manifests from _runtask() actually updates values.
@@ -4451,9 +4462,7 @@ class Chip:
 
                     inputs = [step+index for step, index in self.get('flowgraph', flow, step, index, 'input')]
 
-                    if (step in self.getkeys('option','jobinput') and
-                        index in self.getkeys('option','jobinput', step) and
-                        self.get('option','jobinput', step, index) != jobname):
+                    if (self._get_in_job(step, index) != jobname):
                         # If we specify a different job as input to this task,
                         # we assume we are good to run it.
                         tasks_to_run[step+index] = []
@@ -5160,6 +5169,16 @@ class Chip:
         self.logger.error(f"Version check failed for {tool}. Check installation.")
         self.logger.error(f"Found version {reported_version}, did not satisfy any version specifier set {allowedstr}.")
         return False
+
+    def _get_in_job(self, step, index):
+        # Get name of job that provides input to a given step and index.
+        job = self.get('option', 'jobname')
+        in_job = job
+        if step in self.getkeys('option', 'jobinput'):
+            if index in self.getkeys('option', 'jobinput', step):
+                in_job = self.get('option', 'jobinput', step, index)
+
+        return in_job
 
     def error(self, msg, fatal=False):
         '''Raises error.

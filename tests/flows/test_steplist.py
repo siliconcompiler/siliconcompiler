@@ -1,3 +1,6 @@
+import copy
+import os
+
 import siliconcompiler
 
 import pytest
@@ -25,6 +28,23 @@ def test_steplist(gcd_chip):
     gcd_chip.set('option', 'steplist', ['floorplan'])
     gcd_chip.run()
     assert gcd_chip.find_result('def', step='floorplan')
+
+@pytest.mark.eda
+def test_steplist_keep_reports(gcd_chip):
+    '''Regression test for making sure that reports from previous steps are
+    still mapped when a script is re-run with a steplist.'''
+    fresh_chip = copy.deepcopy(gcd_chip)
+
+    # Initial run
+    gcd_chip.set('option', 'steplist', ['import', 'syn'])
+    gcd_chip.run()
+    assert gcd_chip.get('tool', 'yosys', 'report', 'syn', '0', 'cellarea') is not None
+    report = gcd_chip.get('tool', 'yosys', 'report', 'syn', '0', 'cellarea')
+
+    # Run a new step from a fresh chip object
+    fresh_chip.set('option', 'steplist', ['floorplan'])
+    fresh_chip.run()
+    assert fresh_chip.get('tool', 'yosys', 'report', 'syn', '0', 'cellarea') == report
 
 @pytest.mark.eda
 def test_invalid(gcd_chip):
