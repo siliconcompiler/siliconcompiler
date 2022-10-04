@@ -8,6 +8,23 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.9.6 (2022-10-03)
+=========================================
+
+**Major:**
+
+* Fixed bug that causes tool setup information to be lost when running a flow in multiple chunks using a steplist.
+
+**Minor:**
+
+* Fixed old schema references in Yosys synthesis strategy scripts.
+* Updated error message for missing file requirements.
+* Updated OpenROAD scripts to handle multiple LEF files.
+* Updated KLayout driver to use batch mode flag and capture more warnings.
+* Updated Verilator driver to implement ['option', 'trace], ['option', 'warningoff'], and provide passthroughs for CFLAGS and LDFLAGS.
+* Removed support for 'extraopts' passthrough in Verilator driver.
+* Updated version of Surelog bundled with wheels distribution.
+
 SiliconCompiler 0.9.5 (2022-09-12)
 =========================================
 
