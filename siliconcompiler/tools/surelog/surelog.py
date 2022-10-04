@@ -104,23 +104,23 @@ def runtime_options(chip):
     # Deduplicated source files
     # Library directories.
     ydir_files = chip.find_files('option', 'ydir')
-    if ydir_files != list(set(ydir_files)):
+    if len(ydir_files) != len(set(ydir_files)):
         chip.logger.warning(f"Removing duplicate 'ydir' inputs from: {ydir_files}")
-    for value in list(set(ydir_files)):
+    for value in set(ydir_files):
         cmdlist.append('-y ' + value)
 
     # Library files.
     vlib_files = chip.find_files('option', 'vlib')
-    if vlib_files != list(set(vlib_files)):
+    if len(vlib_files) != len(set(vlib_files)):
         chip.logger.warning(f"Removing duplicate 'vlib' inputs from: {vlib_files}")
-    for value in list(set(vlib_files)):
+    for value in set(vlib_files):
         cmdlist.append('-v ' + value)
 
     # Include paths.
     idir_files = chip.find_files('option', 'idir')
-    if idir_files != list(set(idir_files)):
+    if len(idir_files) != len(set(idir_files)):
         chip.logger.warning(f"Removing duplicate 'idir' inputs from: {idir_files}")
-    for value in list(set(idir_files)):
+    for value in set(idir_files):
         cmdlist.append('-I' + value)
 
     # Extra environment variable defines (don't need deduplicating)
@@ -129,16 +129,16 @@ def runtime_options(chip):
 
     # Command-line argument file(s).
     cmdfiles = chip.find_files('option', 'cmdfile')
-    if cmdfiles != list(set(cmdfiles)):
+    if len(cmdfiles) != len(set(cmdfiles)):
         chip.logger.warning(f"Removing duplicate 'cmdfile' inputs from: {cmdfiles}")
-    for value in list(set(cmdfiles)):
+    for value in set(cmdfiles):
         cmdlist.append('-f ' + value)
 
     # Source files.
     src_files = chip.find_files('input', 'verilog')
-    if src_files != list(set(src_files)):
+    if len(src_files) != len(set(src_files)):
         chip.logger.warning(f"Removing duplicate source file inputs from: {src_files}")
-    for value in list(set(src_files)):
+    for value in set(src_files):
         cmdlist.append(value)
 
     cmdlist.append('-top ' + chip.top())
