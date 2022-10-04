@@ -78,8 +78,12 @@ class Chip:
 
         # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
-        self.cwd = os.getcwd()
         self._error = False
+        try:
+            self.cwd = os.getcwd()
+        except FileNotFoundError:
+            self.error("""SiliconCompiler must be run from a directory that exists.
+If you are sure that your working directory is valid, try running `cd $(pwd)`.""", fatal=True)
         self.cfg = schema_cfg()
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
