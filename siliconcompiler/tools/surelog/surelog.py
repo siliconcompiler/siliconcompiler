@@ -101,18 +101,44 @@ def runtime_options(chip):
 
     cmdlist = []
 
-    # source files
-    for value in chip.find_files('option', 'ydir'):
+    # Deduplicated source files
+    # Library directories.
+    ydir_files = chip.find_files('option', 'ydir')
+    if len(ydir_files) != len(set(ydir_files)):
+        chip.logger.warning(f"Removing duplicate 'ydir' inputs from: {ydir_files}")
+    for value in set(ydir_files):
         cmdlist.append('-y ' + value)
-    for value in chip.find_files('option', 'vlib'):
+
+    # Library files.
+    vlib_files = chip.find_files('option', 'vlib')
+    if len(vlib_files) != len(set(vlib_files)):
+        chip.logger.warning(f"Removing duplicate 'vlib' inputs from: {vlib_files}")
+    for value in set(vlib_files):
         cmdlist.append('-v ' + value)
-    for value in chip.find_files('option', 'idir'):
+
+    # Include paths.
+    idir_files = chip.find_files('option', 'idir')
+    if len(idir_files) != len(set(idir_files)):
+        chip.logger.warning(f"Removing duplicate 'idir' inputs from: {idir_files}")
+    for value in set(idir_files):
         cmdlist.append('-I' + value)
+
+    # Extra environment variable defines (don't need deduplicating)
     for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('option', 'cmdfile'):
+
+    # Command-line argument file(s).
+    cmdfiles = chip.find_files('option', 'cmdfile')
+    if len(cmdfiles) != len(set(cmdfiles)):
+        chip.logger.warning(f"Removing duplicate 'cmdfile' inputs from: {cmdfiles}")
+    for value in set(cmdfiles):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('input', 'verilog'):
+
+    # Source files.
+    src_files = chip.find_files('input', 'verilog')
+    if len(src_files) != len(set(src_files)):
+        chip.logger.warning(f"Removing duplicate source file inputs from: {src_files}")
+    for value in set(src_files):
         cmdlist.append(value)
 
     cmdlist.append('-top ' + chip.top())
