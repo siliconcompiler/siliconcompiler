@@ -105,7 +105,6 @@ def remote_run(chip):
           is_busy = is_busy_info['busy']
           if is_busy:
               if (':' in is_busy_info['message']):
-                  chip.logger.info(f'MSG:\n{is_busy_info["message"]}\n')
                   msg_lines = is_busy_info['message'].splitlines()
                   cur_step = msg_lines[0][msg_lines[0].find(': ')+2:]
                   cur_log = '\n'.join(msg_lines[1:])
