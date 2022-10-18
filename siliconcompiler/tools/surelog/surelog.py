@@ -144,7 +144,7 @@ def runtime_options(chip):
     cmdlist.append('-top ' + chip.top())
     # make sure we can find .sv files in ydirs
     # TODO: need to add libext
-    cmdlist.append('+libext+.sv+.v')
+    cmdlist.append('+libext+.sv+.v+.vh')
 
     # Set up user-provided parameters to ensure we elaborate the correct modules
     for param in chip.getkeys('option', 'param'):
