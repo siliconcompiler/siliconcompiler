@@ -99,11 +99,22 @@ def remote_run(chip):
     # Check the job's progress periodically until it finishes.
     is_busy = True
     while is_busy:
-      chip.logger.info("Job is still running. (%d seconds)"%(
-                       int(time.monotonic() - step_start)))
       time.sleep(30)
       try:
-          is_busy = is_job_busy(chip)
+          is_busy_info = is_job_busy(chip)
+          is_busy = is_busy_info['busy']
+          if is_busy:
+              if (':' in is_busy_info['message']):
+                  msg_lines = is_busy_info['message'].splitlines()
+                  cur_step = msg_lines[0][msg_lines[0].find(': ')+2:]
+                  cur_log = '\n'.join(msg_lines[1:])
+                  chip.logger.info("Job is still running (%d seconds, step: %s)."%(
+                                   int(time.monotonic() - step_start), cur_step))
+                  if cur_log:
+                      chip.logger.info(f"Last 10 lines of logfile:\n{cur_log}\n")
+              else:
+                  chip.logger.info(f"Job is still running (%d seconds, step: unknown)"%(
+                                   int(time.monotonic() - step_start)))
       except:
           # Sometimes an exception is raised if the request library cannot
           # reach the server due to a transient network issue.
@@ -190,6 +201,7 @@ def is_job_busy(chip):
         post_params['key'] = rcfg['password']
 
     # Make the request and print its response.
+    info = {}
     redirect_url = remote_run_url
     while redirect_url:
         resp = requests.post(redirect_url,
@@ -198,7 +210,9 @@ def is_job_busy(chip):
         if resp.status_code == 302:
             redirect_url = resp.headers['Location']
         else:
-            return (resp.text != "Job has no running steps.")
+            info['busy'] = (resp.text != "Job has no running steps.")
+            info['message'] = resp.text
+            return info
 
 ###################################
 def delete_job(chip):
