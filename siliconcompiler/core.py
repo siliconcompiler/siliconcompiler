@@ -755,9 +755,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             keypath(list str): Variable length schema key list.
-            valid_keypaths (list of list): List of valid keypaths as lists. If
-                None, check against all keypaths in the schema.
-            quiet (bool): If True, don't display warnings for invalid keypaths.
+            default_valid (bool): Whether to consider "default" in valid
+            keypaths as a wildcard. Defaults to False.
 
         Returns:
             Boolean indicating validity of keypath.
@@ -767,6 +766,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Returns True.
             >>> check = chip.valid('blah')
             Returns False.
+            >>> check = chip.valid('metric', 'foo', '0', 'tasktime', default_valid=True)
+            Returns True, even if "foo" and "0" aren't in current configuration.
         """
         return self.schema.valid(*keypath, valid_keypaths=valid_keypaths,
                                  default_valid=default_valid)
@@ -886,7 +887,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Chip object error flag.
 
         Args:
-            keypath (list): Parameter keypath followed by a value to set.
+            args (list): Parameter keypath followed by a value to set.
             field (str): Parameter field to set.
             clobber (bool): Existing value is overwritten if True.
 
@@ -1010,8 +1011,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             keypath (list str): Variable length schema key list.
-            cfg (dict): Alternate dictionary to access in place of the default
-                chip object schema dictionary.
             missing_ok (bool): If True, silently return None when files aren't
                 found. If False, print an error and set the error flag.
             job (str): Jobname to use for dictionary access in place of the
@@ -1024,7 +1023,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             entry, depending on whether it is found.
 
         Examples:
-            >>> chip.find_files('source')
+            >>> chip.find_files('input', 'verilog')
             Returns a list of absolute paths to source files, as specified in
             the schema.
 
