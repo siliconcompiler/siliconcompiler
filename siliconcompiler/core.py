@@ -1188,7 +1188,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return False
 
     ###########################################################################
-    def _merge_manifest(self, cfg, clobber=True, clear=True, check=False, partial=False, job=None):
+    def _merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False, partial=False):
         """
         Internal merge_manifest() implementation with `partial` arg.
 
@@ -1197,7 +1197,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         """
         src = Schema(cfg)
         if job is not None:
-            dest = Schema(self.schema.getdict('history', job))
+            # TODO: do we really want to overwrite any existing job schema
+            # values?
+            dest = Schema()
         else:
             dest = self.schema
 
