@@ -3,7 +3,7 @@ import sphinx.addnodes
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 
-from siliconcompiler.schema import schema_cfg
+from siliconcompiler.schema import Schema
 
 # Docutils helpers
 def build_table(items, colwidths=None, colspec=None):
@@ -134,7 +134,7 @@ def keypath(*args):
     '''Helper function for displaying Schema keypaths.'''
     text_parts = []
     key_parts = []
-    cfg = schema_cfg()
+    cfg = Schema().cfg
     for key in args:
         if list(cfg.keys()) != ['default']:
             text_parts.append(f"'{key}'")

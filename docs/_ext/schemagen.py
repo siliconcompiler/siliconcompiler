@@ -4,7 +4,7 @@ from docutils.statemachine import ViewList
 from sphinx.util.docutils import SphinxDirective
 
 import siliconcompiler
-from siliconcompiler.schema import schema_cfg
+from siliconcompiler.schema import Schema
 from siliconcompiler.sphinx_ext.utils import *
 
 # Main Sphinx plugin
@@ -13,7 +13,7 @@ class SchemaGen(SphinxDirective):
     def run(self):
         self.env.note_dependency('../siliconcompiler/schema.py')
 
-        schema = schema_cfg()
+        schema = Schema().cfg
 
         return self.process_schema(schema)
 
