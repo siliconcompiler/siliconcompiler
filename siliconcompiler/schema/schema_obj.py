@@ -11,6 +11,20 @@ from siliconcompiler import utils
 from .schema_cfg import schema_cfg
 
 class Schema:
+    """Object for storing and accessing configuration values corresponding to
+    the SiliconCompiler schema.
+
+    Most user-facing interaction with the schema should occur through an
+    instance of :class:`~siliconcompiler.core.Chip`, but this class is available
+    for schema manipulation tasks that don't require the additional context of a
+    Chip object.
+
+    Args:
+        cfg (dict): Initial configuration dictionary. This may be a subtree of
+            the schema. If not provided, the object is initialized to default
+            values for all parameters.
+    """
+
     def __init__(self, cfg=None):
         if cfg is None:
             self.cfg = schema_cfg()
@@ -22,25 +36,7 @@ class Schema:
         """
         Returns a schema parameter field.
 
-        Returns a schema parameter field based on the keypath provided in the
-        ``*keypath``. See the :ref:`Schema Reference Manual<SiliconCompiler
-        Schema>` for documentation of all supported keypaths. The returned type
-        is consistent with the type field of the parameter. Fetching parameters
-        with empty or undefined value files returns None for scalar types and []
-        (empty list) for list types.  Accessing a non-existent keypath produces
-        a logger error message and raises the Chip object error flag.
-
-        Args:
-            keypath(list str): Variable length schema key list.
-            field(str): Parameter field to fetch.
-
-        Returns:
-            Value found for the keypath and field provided.
-
-        Examples:
-            >>> foundry = chip.get('pdk', 'foundry')
-            Returns the name of the foundry from the PDK.
-
+        See :meth:`~siliconcompiler.core.Chip.get` for detailed documentation.
         """
         if job is None:
             cfg = self.cfg
@@ -54,27 +50,7 @@ class Schema:
         '''
         Sets a schema parameter field.
 
-        Sets a schema parameter field based on the keypath and value provided in
-        the ``*args``. See the :ref:`Schema Reference Manual<SiliconCompiler
-        Schema>` for documentation of all supported keypaths. New schema
-        dictionaries are automatically created for keypaths that overlap with
-        'default' dictionaries. The write action is ignored if the parameter
-        value is non-empty and the clobber option is set to False.
-
-        The value provided must agree with the dictionary parameter 'type'.
-        Accessing a non-existent keypath or providing a value that disagrees
-        with the parameter type produces a logger error message and raises the
-        Chip object error flag.
-
-        Args:
-            keypath (list): Variable length schema key list.
-            value: Value to set. Type depends on particular parameter.
-            field (str): Parameter field to set.
-            clobber (bool): Existing value is overwritten if True.
-
-        Examples:
-            >>> chip.set('design', 'top')
-            Sets the name of the design to 'top'
+        See :meth:`~siliconcompiler.core.Chip.set` for detailed documentation.
         '''
         keypath = args[:-1]
         value = args[-1]
@@ -85,25 +61,7 @@ class Schema:
         '''
         Adds item(s) to a schema parameter list.
 
-        Adds item(s) to schema parameter list based on the keypath and value
-        provided in the ``*args``.  See the :ref:`Schema Reference
-        Manual<SiliconCompiler Schema>` for documentation of all supported
-        keypaths. New schema dictionaries are automatically created for keypaths
-        that overlap with 'default' dictionaries.
-
-        The value provided must agree with the dictionary parameter 'type'.
-        Accessing a non-existent keypath, providing a value that disagrees
-        with the parameter type, or using add with a scalar parameter produces
-        a logger error message and raises the Chip object error flag.
-
-        Args:
-            args (list): Parameter keypath followed by a value to add.
-            cfg(dict): Alternate dictionary to access in place of self.cfg
-            field (str): Parameter field to set.
-
-        Examples:
-            >>> chip.add('source', 'hello.v')
-            Adds the file 'hello.v' to the list of sources.
+        See :meth:`~siliconcompiler.core.Chip.add` for detailed documentation.
         '''
         keypath = args[:-1]
         value = args[-1]
@@ -114,22 +72,7 @@ class Schema:
         """
         Returns a list of schema dictionary keys.
 
-        Searches the schema for the keypath provided and returns a list of
-        keys found, excluding the generic 'default' key. Accessing a
-        non-existent keypath produces a logger error message and raises the
-        Chip object error flag.
-
-        Args:
-            keypath (list str): Variable length ordered schema key list
-
-        Returns:
-            List of keys found for the keypath provided.
-
-        Examples:
-            >>> keylist = chip.getkeys('pdk')
-            Returns all keys for the 'pdk' keypath.
-            >>> keylist = chip.getkeys()
-            Returns all list of all keypaths in the schema.
+        See :meth:`~siliconcompiler.core.Chip.getkeys` for detailed documentation.
         """
         if job is None:
             cfg = self.cfg
@@ -150,20 +93,8 @@ class Schema:
         """
         Returns a schema dictionary.
 
-        Searches the schema for the keypath provided and returns a complete
-        dictionary. Accessing a non-existent keypath produces a logger error
-        message and raises the Chip object error flag.
-
-        Args:
-            keypath(list str): Variable length ordered schema key list
-            cfg(dict): Alternate dictionary to access in place of self.cfg
-
-        Returns:
-            A schema dictionary
-
-        Examples:
-            >>> pdk = chip.getdict('pdk')
-            Returns the complete dictionary found for the keypath 'pdk'
+        See :meth:`~siliconcompiler.core.Chip.getdict` for detailed
+        documentation.
         """
         if len(keypath) > 0:
             localcfg = self._search(self.cfg, str(keypath), *keypath, mode='getcfg')
@@ -176,22 +107,8 @@ class Schema:
         """
         Checks validity of a keypath.
 
-        Checks the validity of a parameter keypath and returns True if the
-        keypath is valid and False if invalid.
-
-        Args:
-            keypath(list str): Variable length schema key list.
-            valid_keypaths (list of list): List of valid keypaths as lists. If
-                None, check against all keypaths in the schema.
-
-        Returns:
-            Boolean indicating validity of keypath.
-
-        Examples:
-            >>> check = chip.valid('design')
-            Returns True.
-            >>> check = chip.valid('blah')
-            Returns False.
+        See :meth:`~siliconcompiler.core.Chip.valid` for detailed
+        documentation.
         """
         keylist = list(args)
         if default_valid:
@@ -543,6 +460,7 @@ class Schema:
     def write_json(self, fout):
         fout.write(json.dumps(self.cfg, indent=4, sort_keys=True))
 
+    ###########################################################################
     def write_yaml(self, fout):
         fout.write(yaml.dump(self.cfg, Dumper=YamlIndentDumper, default_flow_style=False))
 
@@ -593,7 +511,14 @@ class Schema:
             else:
                 csvwriter.writerow([keypath, value])
 
+    ###########################################################################
+    def copy(self):
+        '''Returns deep copy of Schema object.'''
+        return Schema(self.cfg)
+
+    ###########################################################################
     def prune(self, keeplists=False):
+        '''Remove all empty parameters from configuration dictionary.'''
         # When at top of tree loop maxdepth times to make sure all stale
         # branches have been removed, not elegant, but stupid-simple
         # "good enough"
@@ -644,9 +569,6 @@ class Schema:
             #keep traversing tree
             else:
                 self._prune(cfg=localcfg[k], keeplists=keeplists)
-
-    def copy(self):
-        return Schema(self.cfg)
 
     ###########################################################################
     def _keypath_empty(self, key):
