@@ -97,6 +97,8 @@ def scparam(cfg,
             cfg['date'] = []
             cfg['author'] = []
 
+        if re.search(r'file|dir',sctype):
+            cfg['package'] = None
 
 #############################################################################
 # CHIP CONFIGURATION

@@ -41,6 +41,7 @@ import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from timeit import default_timer as timer
+import importlib.metadata
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
 from siliconcompiler.scheduler import _deferstep
@@ -511,14 +512,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Imports the freepdk45 module and runs the setup_pdk function
 
         '''
-
         # module search path depends on modtype
         if moduletype is None:
             for item in ('targets', 'flows', 'tools', 'pdks', 'libs', 'checklists'):
-                fullpath = self.find_function(modulename, funcname, module_type=item)
+                fullpath = self.find_function(modulename, funcname, moduletype=item)
                 if fullpath:
                     break
-        elif moduletype in ('targets','flows', 'pdks', 'libs'):
+        else:
+            ep_name = f'siliconcompiler.{moduletype}'
+            entry_points = importlib.metadata.entry_points()
+            if ep_name in entry_points:
+                for ep in entry_points[ep_name]:
+                    if modulename == ep.name:
+                        module = ep.load()
+                        if hasattr(module, funcname):
+                            return getattr(module, funcname)
+                        else:
+                            return None
+
+        self.logger.warning(f'Attempting to load module {modulename} via $SCPATH. This approach is deprecated.')
+
+        if moduletype in ('targets','flows', 'pdks', 'libs'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}.py", missing_ok=True)
         elif moduletype in ('tools', 'checklists'):
             fullpath = self._find_sc_file(f"{moduletype}/{modulename}/{modulename}.py", missing_ok=True)
@@ -912,7 +926,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return copy.deepcopy(localcfg)
 
     ###########################################################################
-    def set(self, *args, field='value', clobber=True, cfg=None):
+    def set(self, *args, field='value', clobber=True, cfg=None, package=None):
         '''
         Sets a schema parameter field.
 
@@ -933,6 +947,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             field (str): Parameter field to set.
             clobber (bool): Existing value is overwritten if True.
             cfg(dict): Alternate dictionary to access in place of self.cfg
+            package (str): Name of Python package containing this file.
 
         Examples:
             >>> chip.set('design', 'top')
@@ -950,6 +965,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.setLevel(args[2])
 
         self.logger.debug(f"Setting {keypathstr} to {args[-1]}")
+
+        if package is not None:
+            self._search(cfg, keypathstr, *all_args[:-1], package, field='package', mode='set', clobber=clobber)
         return self._search(cfg, keypathstr, *all_args, field=field, mode='set', clobber=clobber)
 
     ###########################################################################
@@ -1264,7 +1282,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return localcfg
 
     ###########################################################################
-    def _find_sc_file(self, filename, missing_ok=False):
+    def _find_sc_file(self, filename, missing_ok=False, package=None):
         """
         Returns the absolute path for the filename provided.
 
@@ -1294,6 +1312,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # If we have a path relative to our cwd or an abs path, pass-through here
         if os.path.exists(os.path.abspath(filename)):
             return os.path.abspath(filename)
+
+        if package:
+            # how fast is this?
+            module = importlib.import_module(package[0])
+            root = os.path.dirname(module.__file__)
+            abspath = os.path.join(root, filename)
+            if os.path.exists(abspath):
+                return abspath
 
         # Otherwise, search relative to scpaths
         scpaths = [self.scroot, self.cwd]
@@ -1413,6 +1439,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             return result
 
+        package = self.get(*keypath, field='package', cfg=cfg)
         for path in paths:
             if (copyall or copy) and ('file' in paramtype):
                 name = self._get_imported_filename(path)
@@ -1423,7 +1450,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # file may not have been gathered in imports yet)
                     result.append(abspath)
                     continue
-            result.append(self._find_sc_file(path, missing_ok=missing_ok))
+            result.append(self._find_sc_file(path, missing_ok=missing_ok, package=package))
         # Convert back to scalar if that was original type
         if not is_list:
             return result[0]

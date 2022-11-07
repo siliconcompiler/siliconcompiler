@@ -79,6 +79,11 @@ for app in os.listdir('siliconcompiler/apps'):
 
 entry_points = entry_points_apps + ["sc-server=siliconcompiler.server:main", "sc-crypt=siliconcompiler.crypto:main"]
 
+tools = []
+for tool in os.listdir('siliconcompiler/tools'):
+    if os.path.isfile(f'siliconcompiler/tools/{tool}/{tool}.py'):
+        tools.append(f'{tool} = siliconcompiler.tools.{tool}.{tool}')
+
 # Remove the _skbuild/ directory before running install procedure. This helps
 # fix very opaque bugs we've run into where the install fails due to some bad
 # state being cached in this directory. This means we won't get caching of build
@@ -140,6 +145,28 @@ setup(
     python_requires=">=3.6",
     install_requires=install_reqs,
     extras_require = extras_req,
-    entry_points={"console_scripts": entry_points},
+    entry_points={
+        'console_scripts': entry_points,
+        'siliconcompiler.checklists': [
+            'oh_tapeout = siliconcompiler.checklists.oh_tapeout',
+        ],
+        'siliconcompiler.libs': [
+            'asap7sc7p5t = siliconcompiler.libs.asap7sc7p5t',
+            'nangate45 = siliconcompiler.libs.nangate45',
+            'sky130hd = siliconcompiler.libs.sky130hd',
+            'sky130io = siliconcompiler.libs.sky130io'
+        ],
+        'siliconcompiler.pdks': [
+            'asap7 = siliconcompiler.pdks.asap7',
+            'freepdk45 = siliconcompiler.pdks.freepdk45',
+            'skywater130 = siliconcomipler.pdks.skywater130'
+        ],
+        'siliconcompiler.targets': [
+            'freepdk45_demo = siliconcompiler.targets.freepdk45_demo',
+            'skywater130_demo = siliconcompiler.targets.skywater130_demo',
+            'asap7_demo = siliconcompiler.targets.skywater130_demo',
+        ],
+        'siliconcompiler.tools': tools
+    },
     **skbuild_args
 )
