@@ -3948,6 +3948,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if tool in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
         elif run_func and not self.get('option', 'skipall'):
+            logfile = None
             retcode = run_func(self)
         elif not self.get('option', 'skipall'):
             cmdlist = self._makecmd(tool, step, index)
@@ -3966,7 +3967,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # of these features for an interactive session. Logic for
                 # forwarding to file based on
                 # https://docs.python.org/3/library/pty.html#example.
-                logfile = step + '.log'
                 with open(logfile, 'wb') as log_writer:
                     def read(fd):
                         data = os.read(fd, 1024)
@@ -4064,7 +4064,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     retcode = proc.returncode
 
         if retcode != 0:
-            self.logger.warning('Command failed with code %d. See log file %s', retcode, os.path.abspath(logfile))
+            msg = f'Command failed with code {retcode}.'
+            if logfile:
+                # No log file for pure-Python tools.
+                msg += f' See log file {os.path.abspath(logfile)}'
+            self.logger.warning(msg)
             self._haltstep(step, index)
 
         ##################
