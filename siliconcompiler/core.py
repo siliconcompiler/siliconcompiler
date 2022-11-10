@@ -1573,84 +1573,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 fout.write(outstr)
 
     ###########################################################################
-
-    def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
-        """
-        Merges an external manifest with the current compilation manifest.
-
-        All value fields in the provided schema dictionary are merged into the
-        current chip object. Dictionaries with non-existent keypath produces a
-        logger error message and raises the Chip object error flag.
-
-        Args:
-            job (str): Specifies non-default job to merge into
-            clear (bool): If True, disables append operations for list type
-            clobber (bool): If True, overwrites existing parameter value
-            check (bool): If True, checks the validity of each key
-            partial (bool): If True, perform a partial merge, only merging
-                keypaths that may have been updated during run().
-
-        Examples:
-            >>> chip.merge_manifest('my.pkg.json')
-           Merges all parameters in my.pk.json into the Chip object
-
-        """
-        self._merge_manifest(cfg, job, clobber, clear, check)
-
-    def _key_may_be_updated(self, keypath):
-        '''Helper that returns whether `keypath` can be updated mid-run.'''
-        # TODO: cleaner way to manage this?
-        if keypath[0] in ('metric', 'record'):
-            return True
-        if keypath[0] == 'flowgraph' and keypath[4] in ('select', 'status'):
-            return True
-        return False
-
-    ###########################################################################
-    def _merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False, partial=False):
-        """
-        Internal merge_manifest() implementation with `partial` arg.
-
-        partial (bool): If True, perform a partial merge, only merging keypaths
-        that may have been updated during run().
-        """
-        if job is not None:
-            # fill ith default schema before populating
-            self.cfg['history'][job] = schema_cfg()
-            dst = self.cfg['history'][job]
-        else:
-            dst = self.cfg
-
-        for keylist in self.getkeys(cfg=cfg):
-            if partial and not self._key_may_be_updated(keylist):
-                continue
-            if keylist[0] in ('history', 'library'):
-                continue
-            #only read in valid keypaths without 'default'
-            key_valid = True
-            if check:
-                key_valid = self.valid(*keylist, quiet=False, default_valid=True)
-            if key_valid and 'default' not in keylist:
-                # update value, handling scalars vs. lists
-                typestr = self.get(*keylist, cfg=cfg, field='type')
-                val = self.get(*keylist, cfg=cfg)
-                arg = keylist.copy()
-                arg.append(val)
-                if bool(re.match(r'\[', typestr)) & bool(not clear):
-                    self.add(*arg, cfg=dst)
-                else:
-                    self.set(*arg, cfg=dst, clobber=clobber)
-
-                # update other fields that a user might modify
-                for field in self.getdict(*keylist, cfg=cfg).keys():
-                    if field in ('value', 'switch', 'type', 'require', 'defvalue',
-                                 'shorthelp', 'example', 'help'):
-                        # skip these fields (value handled above, others are static)
-                        continue
-                    v = self.get(*keylist, cfg=cfg, field=field)
-                    self.set(*keylist, v, cfg=dst, field=field)
-
-    ###########################################################################
     def _keypath_empty(self, key):
         '''
         Utility function to check key for an empty list.
@@ -2034,6 +1956,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._read_manifest(filename, job=job, clear=clear, clobber=clobber)
 
     ###########################################################################
+    def _read_task_results(self, step, index, job=None, clear=True, clobber=True):
+        """
+        Internal read_manifest implementation to merge in results from parallel tasks.
+
+        If a task has more than one input, the two schemas should be identical except for
+        newly-logged results from each task. Therefore, we can quickly merge parallel schema inputs
+        by loading one, and copying over the metrics/history/file-hash information for the rest.
+        """
+
+        # Find the manifest output from the previous step.
+        if not job:
+            job = self.get('option', 'jobname')
+        task_manifest = self.find_result('.pkg.json', step, jobname=job, index=index)
+
+        # Manifest must exist.
+        self.logger.debug(f"Reading task results from manifest {filepath}")
+        if not os.path.isfile(task_manifest):
+            self.error(f"Manifest file not found {task_manifest}", fatal=True)
+
+        # TODO: Read and replace task results.
+
+    ###########################################################################
     def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
         """
         Internal read_manifest() implementation with `partial` arg.
@@ -2069,18 +2013,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             'schema version into current chip object. Skipping...')
             return
 
-        # Merging arguments with the Chip configuration
-        self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
+        # Overwrite old config.
+        self.cfg = localcfg
 
-        # Read history
-        if 'history' in localcfg and not partial:
-            for historic_job in localcfg['history'].keys():
-                self._merge_manifest(localcfg['history'][historic_job],
-                                        job=historic_job,
-                                        clear=clear,
-                                        clobber=clobber,
-                                        partial=False)
-
+        # Reload libs.
         # TODO: better way to handle this?
         if 'library' in localcfg and not partial:
             for libname in localcfg['library'].keys():
@@ -3784,13 +3720,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Merge manifests from all input dependancies
 
         all_inputs = []
+        first_merge_done = False
         if not self.get('option', 'remote'):
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 in_task_status = status[in_step + in_index]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_task_status)
                 if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
-                    self._read_manifest(cfgfile, clobber=False, partial=True)
+                    if not first_merge_done:
+                        self._read_manifest(cfgfile, clobber=True)
+                    else:
+                        self._read_task_results(cfgfile, in_step, in_index)
 
         ##################
         # Write manifest prior to step running into inputs
@@ -4128,7 +4068,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
-        self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
+        self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"), prune=False)
 
         ##################
         # Stop if there are errors
