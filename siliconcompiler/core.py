@@ -2323,6 +2323,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # install missing dependencies
         depgraph[design] = []
+        self.logger.warning(deps)
+        # TODO: Workaround for no pruning
+        deps.pop('default', None)
         for dep in deps.keys():
             #TODO: Proper PEP semver matching
             ver = list(deps[dep])[0]
@@ -2352,6 +2355,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 subdesign = localcfg['design']['value']
                 depgraph[subdesign] = []
                 for item in localcfg['package']['dependency'].keys():
+                    # TODO: Workaround for no pruning
+                    if item == 'default':
+                        continue
                     subver = localcfg['package']['dependency'][item]['value']
                     if (item in upstream) and (upstream[item] == subver):
                         # Circular imports are not supported.
