@@ -155,10 +155,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Returns :keypath:`option, entrypoint` if it has been set, otherwise
         :keypath:`design`.
         '''
-        entrypoint = self.get('option', 'entrypoint')
-        if not entrypoint:
+        if (not 'entrypoint' in self.getkeys('option')) or (not self.get('option', 'entrypoint')):
             return self.design
-        return entrypoint
+        return self.get('option', 'entrypoint')
 
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
@@ -3054,8 +3053,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Custom reporting modes
         paramlist = []
-        for item in self.getkeys('option', 'param'):
-            paramlist.append(item+"="+self.get('option', 'param', item))
+        if 'param' in self.getkeys('option'):
+            for item in self.getkeys('option', 'param'):
+                paramlist.append(item+"="+self.get('option', 'param', item))
 
         if paramlist:
             paramstr = ', '.join(paramlist)
@@ -3109,7 +3109,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # - at least one step in the steplist has a non-zero weight for the metric -OR -
         #   at least one step in the steplist set a value for it
         metrics_to_show = []
-        for metric in self.getkeys('metric', 'default', 'default'):
+        default_metrics = schema_metric({})
+        for metric in self.getkeys('metric', 'default', 'default', cfg=default_metrics):
             if metric in self.get('option', 'metricoff'):
                 continue
 
