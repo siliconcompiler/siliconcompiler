@@ -1461,7 +1461,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         design = self.top()
         filename = f"{workdir}/outputs/{design}.{filetype}"
 
-        self.logger.debug("Finding result %s", filename)
+        self.logger.debug("Finding result %s\n", filename)
 
         if os.path.isfile(filename):
             return filename
@@ -1956,7 +1956,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._read_manifest(filename, job=job, clear=clear, clobber=clobber)
 
     ###########################################################################
-    def _read_task_results(self, step, index, job=None, clear=True, clobber=True):
+    def _read_task_results(self, task_manifest, step, index, job=None, clear=True, clobber=True):
         """
         Internal read_manifest implementation to merge in results from parallel tasks.
 
@@ -1965,17 +1965,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         by loading one, and copying over the metrics/history/file-hash information for the rest.
         """
 
-        # Find the manifest output from the previous step.
-        if not job:
-            job = self.get('option', 'jobname')
-        task_manifest = self.find_result('.pkg.json', step, jobname=job, index=index)
-
         # Manifest must exist.
-        self.logger.debug(f"Reading task results from manifest {filepath}")
+        self.logger.debug(f"Reading task results from manifest {task_manifest}")
         if not os.path.isfile(task_manifest):
             self.error(f"Manifest file not found {task_manifest}", fatal=True)
 
-        # TODO: Read and replace task results.
+        # Read and replace task results. TODO: gz support
+        keypaths = [
+            ['metric', step, index],
+            ['record', step, index],
+            ['flowgraph', step, index, 'select'],
+            ['flowgraph', step, index, 'status'],
+            # TODO: 'tool', [tools], step, index, 'output/input'
+        ]
+        with open(task_manifest, 'r') as mf:
+            tman = json.loads(mf.read())
+            for kp in keypaths:
+                if self.valid(*kp):
+                    replace = self.getdict(*kp, cfg=tman)
+                    repl_dict = self.cfg
+                    for k in kp:
+                        repl_dict = repl_dict[k]
+                    repl_dict = replace
 
     ###########################################################################
     def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
@@ -2013,6 +2024,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             'schema version into current chip object. Skipping...')
             return
 
+        # Record history.
+        if not 'history' in localcfg:
+            localcfg['history'] = {}
+        if job is not None:
+            localcfg['history'][job] = copy.deepcopy(self.cfg)
+
         # Overwrite old config.
         self.cfg = localcfg
 
@@ -2023,7 +2040,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self._import_library(libname, localcfg['library'][libname], job=job, clobber=clobber)
 
     ###########################################################################
-    def write_manifest(self, filename, prune=True, abspath=False, job=None):
+    def write_manifest(self, filename, prune=False, abspath=False, job=None):
         '''
         Writes the compilation manifest to a file.
 
@@ -3729,6 +3746,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     if not first_merge_done:
                         self._read_manifest(cfgfile, clobber=True)
+                        first_merge_done=True
                     else:
                         self._read_task_results(cfgfile, in_step, in_index)
 
