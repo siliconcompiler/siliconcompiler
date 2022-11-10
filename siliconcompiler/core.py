@@ -905,7 +905,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             cfg = self.cfg
 
         if len(list(keypath)) > 0:
-            keypathstr = ','.join(keypath)
+            keypathstr = f'{keypath}'
             self.logger.debug('Getting cfg for: %s', keypathstr)
             localcfg = self._search(cfg, keypathstr, *keypath, mode='getcfg')
 
@@ -1604,6 +1604,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return True
         if keypath[0] == 'flowgraph' and keypath[4] in ('select', 'status'):
             return True
+        if self.get(*keypath, field='type') in ['file', '[file]']:
+            return True
         return False
 
     ###########################################################################
@@ -1624,7 +1626,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for keylist in self.getkeys(cfg=cfg):
             if partial and not self._key_may_be_updated(keylist):
                 continue
-            if keylist[0] in ('history', 'library'):
+            if keylist[0] in ('history'):
                 continue
             #only read in valid keypaths without 'default'
             key_valid = True
@@ -2080,11 +2082,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         clear=clear,
                                         clobber=clobber,
                                         partial=False)
-
-        # TODO: better way to handle this?
-        if 'library' in localcfg and not partial:
-            for libname in localcfg['library'].keys():
-                self._import_library(libname, localcfg['library'][libname], job=job, clobber=clobber)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
@@ -3798,7 +3795,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         os.makedirs('inputs', exist_ok=True)
-        #self.write_manifest(f'inputs/{design}.pkg.json')
+        self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
         # Select inputs
