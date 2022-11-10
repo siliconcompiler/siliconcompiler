@@ -1626,7 +1626,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for keylist in self.getkeys(cfg=cfg):
             if partial and not self._key_may_be_updated(keylist):
                 continue
-            if keylist[0] in ('history'):
+            if keylist[0] in ('history', 'library'):
                 continue
             #only read in valid keypaths without 'default'
             key_valid = True
@@ -2082,6 +2082,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         clear=clear,
                                         clobber=clobber,
                                         partial=False)
+
+        # TODO: better way to handle this?
+        if 'library' in localcfg and not partial:
+            for libname in localcfg['library'].keys():
+                self._import_library(libname, localcfg['library'][libname], job=job, clobber=clobber)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False, job=None):
