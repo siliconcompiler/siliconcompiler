@@ -395,7 +395,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if 'option_loglevel' in cmdargs.keys():
             self.logger.setLevel(cmdargs['option_loglevel'])
 
-        # 2. read in target if set
+        # 2. read in all cfg files
+        if 'option_cfg' in cmdargs.keys():
+            for item in cmdargs['option_cfg']:
+                self.read_manifest(item, clobber=True, clear=True)
+
+        # 3. read in target if set
         if 'option_target' in cmdargs.keys():
             if 'arg_pdk' in cmdargs.keys():
                 raise NotImplementedError("NOT IMPLEMENTED: ['arg', 'pdk'] parameter with target")
@@ -405,11 +410,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.set('fpga', 'partname', cmdargs['fpga_partname'], clobber=True)
             # running target command
             self.load_target(cmdargs['option_target'])
-
-        # 4. read in all cfg files
-        if 'option_cfg' in cmdargs.keys():
-            for item in cmdargs['option_cfg']:
-                self.read_manifest(item, clobber=True, clear=True)
 
         # Map sources to ['input'] keypath.
         if 'source' in cmdargs:
@@ -3747,12 +3747,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         os.makedirs('reports', exist_ok=True)
 
         ##################
-        # Merge manifests from all input dependancies
+        # Merge manifests from all input dependancies,
+        # unless the inputs are not in 'steplist' (already loaded)
 
         all_inputs = []
         first_merge_done = False
-        if not self.get('option', 'remote'):
+        if (not self.get('option', 'remote')):
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
+                if self.get('option', 'steplist') and (not in_step in self.get('option', 'steplist')):
+                    continue
                 in_task_status = status[in_step + in_index]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_task_status)
                 if in_task_status != TaskStatus.ERROR:

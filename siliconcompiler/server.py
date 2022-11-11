@@ -501,7 +501,7 @@ class Server:
             # server itself. (Note: local runs are mostly synchronous, so
             # this will probably block the server from responding to other
             # calls. It should only be used for testing and development.)
-            cfg_out = f"{build_dir}/configs/chip{jobid}.json"
+            cfg_out = f"{build_dir}/{chip.design}/{chip.get('option', 'jobname')}/import/0/outputs/{chip.design}.pkg.json"
             chip.write_manifest(cfg_out)
             run_cmd = f'sc -cfg {cfg_out}'
 
