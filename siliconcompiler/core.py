@@ -1976,22 +1976,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f"Manifest file not found {task_manifest}", fatal=True)
 
         # Read and replace task results. TODO: gz support
+        flow = self.get('option', 'flow')
         keypaths = [
             ['metric', step, index],
             ['record', step, index],
-            ['flowgraph', step, index, 'select'],
-            ['flowgraph', step, index, 'status'],
+            ['flowgraph', flow, step, index, 'select'],
+            ['flowgraph', flow, step, index, 'status'],
             # TODO: 'tool', [tools], step, index, 'output/input'
         ]
         with open(task_manifest, 'r') as mf:
             tman = json.loads(mf.read())
             for kp in keypaths:
-                if self.valid(*kp):
-                    replace = self.getdict(*kp, cfg=tman)
-                    repl_dict = self.cfg
-                    for k in kp:
-                        repl_dict = repl_dict[k]
-                    repl_dict = replace
+                replace = self.getdict(*kp, cfg=tman)
+                repl_dict = self.cfg
+                for k in kp:
+                    repl_dict = repl_dict[k]
+                repl_dict.update(replace)
 
     ###########################################################################
     def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
@@ -3758,13 +3758,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     continue
                 in_task_status = status[in_step + in_index]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_task_status)
-                if in_task_status != TaskStatus.ERROR:
-                    cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
-                    if not first_merge_done:
-                        self._read_manifest(cfgfile, clobber=True)
-                        first_merge_done=True
-                    else:
-                        self._read_task_results(cfgfile, in_step, in_index)
+                cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
+                if not first_merge_done:
+                    self._read_manifest(cfgfile, clobber=True)
+                    first_merge_done=True
+                else:
+                    self._read_task_results(cfgfile, in_step, in_index)
 
         ##################
         # Write manifest prior to step running into inputs
@@ -4125,6 +4124,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _haltstep(self, step, index, log=True):
         if log:
             self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
+        self.set('flowgraph', self.get('option', 'flow'), step, index, 'status', TaskStatus.ERROR)
+        self.write_manifest(f'outputs/{self.design}.pkg.json')
         sys.exit(1)
 
     ###########################################################################
@@ -5174,6 +5175,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self._error = True
             return
 
+        self.write_manifest(f'outputs/{self.design}.pkg.json')
         raise SiliconCompilerError(msg)
 
 ###############################################################################
