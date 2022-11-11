@@ -107,6 +107,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # because of a chicken-and-egg problem: self.set() relies on the logger,
         # but the logger relies on these values.
         self.cfg['design']['value'] = design
+        self.cfg['option']['entrypoint']['value'] = design
         if loglevel:
             self.cfg['option']['loglevel']['value'] = loglevel
 
@@ -155,7 +156,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Returns :keypath:`option, entrypoint` if it has been set, otherwise
         :keypath:`design`.
         '''
-        if (not 'entrypoint' in self.getkeys('option')) or (not self.get('option', 'entrypoint')):
+        if not self.get('option', 'entrypoint'):
             return self.design
         return self.get('option', 'entrypoint')
 
@@ -1235,23 +1236,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for k in list(localcfg.keys()):
                 #removing all default/template keys
                 # reached a default subgraph, delete it
+                # TODO: Keep?
                 if k == 'default':
-                    del localcfg[k]
+                    #del localcfg[k]
+                    continue
                 # reached leaf-cell
                 elif 'help' in localcfg[k].keys():
                     del localcfg[k]['help']
                 elif 'example' in localcfg[k].keys():
                     del localcfg[k]['example']
+                # TODO: keep?
                 elif 'defvalue' in localcfg[k].keys():
-                    if localcfg[k]['defvalue'] in empty:
-                        if 'value' in localcfg[k].keys():
-                            if localcfg[k]['value'] in empty:
-                                del localcfg[k]
-                        else:
-                            del localcfg[k]
+                    continue
+                    #if localcfg[k]['defvalue'] in empty:
+                    #    if 'value' in localcfg[k].keys():
+                    #        if localcfg[k]['value'] in empty:
+                    #            del localcfg[k]
+                    #    else:
+                    #        del localcfg[k]
                 #removing stale branches
                 elif not localcfg[k]:
-                    localcfg.pop(k)
+                    #localcfg.pop(k)
+                    continue
                 #keep traversing tree
                 else:
                     self._prune(cfg=localcfg[k], top=False, keeplists=keeplists)
@@ -2039,7 +2045,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self._import_library(libname, localcfg['library'][libname], job=job, clobber=clobber)
 
     ###########################################################################
-    def write_manifest(self, filename, prune=False, abspath=False, job=None):
+    def write_manifest(self, filename, prune=True, abspath=False, job=None):
         '''
         Writes the compilation manifest to a file.
 
@@ -4093,7 +4099,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
 
-        self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"), prune=False)
+        self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
 
         ##################
         # Stop if there are errors
