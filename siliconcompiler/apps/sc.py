@@ -73,6 +73,8 @@ def main():
 
         topmodule = os.path.splitext(os.path.basename(topfile))[0]
         chip.set('design', topmodule)
+    if chip.get('option', 'entrypoint') == UNSET_DESIGN:
+        chip.set('option', 'entrypoint', chip.get('design'))
 
     # Set demo target if none specified
     if not chip.get('option', 'target'):
