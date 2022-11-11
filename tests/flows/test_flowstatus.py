@@ -60,6 +60,11 @@ def test_flowstatus(scroot, steplist):
 
     chip.summary()
 
+    # If 'minimum' step is never performed, need to manually load both 'final' manifests.
+    # TODO: Sort of hack-y?
+    if steplist[-1] == 'place':
+        chip._read_manifest(chip.find_result('pkg.json', 'place', index='0'))
+        chip._read_task_results(chip.find_result('pkg.json', 'place', index='1'), 'place', '1')
     assert chip.get('flowgraph', flow, 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
     assert chip.get('flowgraph', flow, 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
 
@@ -110,6 +115,10 @@ def test_long_branch(scroot):
 
     chip.run()
 
+    # If 'minimum' step is never performed, need to manually load both 'final' manifests.
+    # TODO: Sort of hack-y?
+    chip._read_manifest(chip.find_result('pkg.json', 'place', index='0'))
+    chip._read_task_results(chip.find_result('pkg.json', 'place', index='1'), 'place', '1')
     assert chip.get('flowgraph', flow, 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
     assert chip.get('flowgraph', flow, 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
 
