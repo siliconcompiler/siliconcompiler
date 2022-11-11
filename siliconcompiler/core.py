@@ -1977,12 +1977,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Read and replace task results. TODO: gz support
         flow = self.get('option', 'flow')
+        tool = self.get('flowgraph', flow, step, index, 'tool')
         keypaths = [
             ['metric', step, index],
             ['record', step, index],
             ['flowgraph', flow, step, index, 'select'],
             ['flowgraph', flow, step, index, 'status'],
-            # TODO: 'tool', [tools], step, index, 'output/input'
+            ['tool', tool, step, index, 'input'],
+            ['tool', tool, step, index, 'output'],
         ]
         with open(task_manifest, 'r') as mf:
             tman = json.loads(mf.read())
