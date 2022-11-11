@@ -1955,7 +1955,7 @@
         "signature": null,
         "switch": "-design <str>",
         "type": "str",
-        "value": null
+        "value": "test"
     },
     "flowgraph": {
         "default": {
@@ -3385,7 +3385,7 @@
             "signature": null,
             "switch": "-entrypoint <str>",
             "type": "str",
-            "value": null
+            "value": "test"
         },
         "env": {
             "default": {
