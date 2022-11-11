@@ -5175,7 +5175,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self._error = True
             return
 
-        self.write_manifest(f'outputs/{self.design}.pkg.json')
         raise SiliconCompilerError(msg)
 
 ###############################################################################
