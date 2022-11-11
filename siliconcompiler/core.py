@@ -1989,11 +1989,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         with open(task_manifest, 'r') as mf:
             tman = json.loads(mf.read())
             for kp in keypaths:
-                replace = self.getdict(*kp, cfg=tman)
-                repl_dict = self.cfg
-                for k in kp:
-                    repl_dict = repl_dict[k]
-                repl_dict.update(replace)
+                try:
+                    replace = self.getdict(*kp, cfg=tman)
+                    repl_dict = self.cfg
+                    for k in kp:
+                        repl_dict = repl_dict[k]
+                    repl_dict.update(replace)
+                except SiliconCompilerError:
+                    # It's okay if there is nothing at the given keypath to copy; builtins, no I/O, etc
+                    pass
 
     ###########################################################################
     def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
