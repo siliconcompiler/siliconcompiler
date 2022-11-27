@@ -429,13 +429,13 @@ class Schema:
                     elif (cfgtype == 'float'):
                         try:
                             float(item)
-                        except:
+                        except ValueError:
                             errormsg = "Type mismatch. Cannot cast item to float."
                             ok = False
                     elif (cfgtype == 'int'):
                         try:
                             int(item)
-                        except:
+                        except ValueError:
                             errormsg = "Type mismatch. Cannot cast item to int."
                             ok = False
                     elif item is not None:

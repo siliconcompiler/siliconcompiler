@@ -104,6 +104,6 @@ try:
         gds_img.save(f'../{design}/{jobname}/{design}.png', 'PNG')
         # Done, exit.
         app.exit(0)
-except:
+except Exception:
     # 'screenshot' var may not be defined.
     pass

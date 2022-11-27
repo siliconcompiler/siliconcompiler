@@ -26,7 +26,7 @@ def _layer_i(layer):
     '''Helper function to go from SC layer name to layer position in stackup.'''
     try:
         return int(layer.lstrip('m'))
-    except:
+    except Exception:
         raise ValueError(f'Invalid routing layer {layer}.')
 
 def _get_rect_intersection(r1, r2):

@@ -73,7 +73,7 @@ class Server:
                         'priv_key': mapping['priv_key'],
                         'password': mapping['password'],
                     }
-            except:
+            except Exception:
                 self.logger.warning("Could not find well-formatted 'users.json' "\
                                     "file in the server's working directory. "\
                                     "(User : Key) mappings were not imported.")
