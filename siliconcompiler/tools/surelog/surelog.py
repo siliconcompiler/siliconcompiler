@@ -62,6 +62,10 @@ def setup(chip):
     # TODO: why?
     options.append('-nocache')
 
+    # We don't use UHDM currently, so disable. For large designs, this file is
+    # very big and takes a while to write out.
+    options.append('-nouhdm')
+
     # Wite back options to cfg
     chip.add('tool', tool, 'option', step, index, options)
 
@@ -81,6 +85,10 @@ def setup(chip):
     # Log file parsing
     chip.set('tool', tool, 'regex', step, index, 'warnings', r'^\[WRN:', clobber=False)
     chip.set('tool', tool, 'regex', step, index, 'errors', r'^\[(ERR|FTL|SNT):', clobber=False)
+
+    warnings_off = chip.get('tool', tool, 'warningoff')
+    for warning in warnings_off:
+        chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}')
 
 def parse_version(stdout):
     # Surelog --version output looks like:
