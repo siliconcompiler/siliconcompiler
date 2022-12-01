@@ -33,9 +33,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          # Workaround for Github Actions issue
-          # https://github.com/actions/virtual-environments/issues/5237
-          (sudo apt-get -y update || true) && sudo apt-get install graphviz
+          sudo apt-get update
+          sudo apt-get install graphviz
 
       - name: Set up Python ${{ matrix.version.python }}
         uses: actions/setup-python@v2
