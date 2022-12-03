@@ -2,40 +2,32 @@
 # DESIGNER's CHOICE
 ####################
 
-set sc_targetlibs  [dict get $sc_cfg asic logiclib]
-set sc_macrolibs   [dict get $sc_cfg asic macrolib]
-set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
-set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
-set sc_tie         [dict get $sc_cfg library $sc_mainlib asic cells tie]
-set sc_buf         [dict get $sc_cfg library $sc_mainlib asic cells buf]
-set sc_scenarios   [dict keys [dict get $sc_cfg constraint]]
+set sc_libraries        [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index synthesis_libraries]
+if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index synthesis_libraries_macros]} {
+    set sc_macro_libraries [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index synthesis_libraries_macros]
+} else {
+    set sc_macro_libraries []
+}
+set sc_mainlib          [lindex [dict get $sc_cfg asic logiclib] 0]
+set sc_tie              [dict get $sc_cfg library $sc_mainlib asic cells tie]
+set sc_buf              [dict get $sc_cfg library $sc_mainlib asic cells buf]
 
 ########################################################
 # Read Libraries
 ########################################################
 
-set stat_libs ""
-
-foreach item $sc_scenarios {
-    foreach libcorner [dict get $sc_cfg constraint $item libcorner] {
-	foreach lib $sc_targetlibs {
-	    if {[dict exists $sc_cfg library $lib model timing $sc_delaymodel $libcorner]} {
-		puts "SC Reading liberty file (corner=$libcorner, lib=$lib, mode=$sc_delaymodel)"
-		set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
-		yosys read_liberty -lib $lib_file
-	    }
-	}
-	# Yosys doesn't handle macro PG pins properly, so we don't use the .libs here
-	# Instead we use black boxes for all macros.
-	foreach lib $sc_macrolibs {
-	    if {[dict exists $sc_cfg library $lib model timing $sc_delaymodel $libcorner]} {
-		puts "SC: Reading liberty file (corner=$libcorner, lib=$lib, mode=$sc_delaymodel)"
-		set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $libcorner]
-		yosys read_liberty -lib $lib_file
-		append stat_libs "-liberty $lib_file "
-	    }
-	}
-    }
+set lib_args ""
+foreach lib_file $sc_libraries {
+    puts "SC Reading liberty file: $lib_file"
+    yosys read_liberty -lib $lib_file
+    append lib_args "-liberty $lib_file "
+}
+set stat_libs $lib_args
+append stat_libs "-liberty inputs/dff_liberty.lib "
+foreach lib_file $sc_macro_libraries {
+    puts "SC: Reading liberty file: $lib_file"
+    yosys read_liberty -lib $lib_file
+    append stat_libs "-liberty $lib_file "
 }
 
 ########################################################
@@ -52,27 +44,59 @@ foreach item $sc_scenarios {
 # read_liberty calls for it to not affect synthesis results.
 yosys hierarchy -top $sc_design
 
-yosys synth "-flatten" -top $sc_design
+# Mark modules to keep from getting removed in flattening
+if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index preserve_modules]} {
+    foreach module [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index preserve_modules] {
+        yosys select -module $module
+        yosys setattr -mod -set keep_hierarchy 1
+        yosys select -clear
+    }
+}
+
+set synth_args ""
+if {[dict get $sc_cfg tool $sc_tool var $sc_step $sc_index flatten] == "True"} {
+    append synth_args "-flatten "
+}
+yosys synth {*}$synth_args -top $sc_design
 
 yosys opt -purge
 
 ########################################################
 # Technology Mapping
 ########################################################
-if [dict exists dict get $sc_cfg library $sc_mainlib asic "file" $sc_tool techmap] {
-    set sc_techmap     [dict get $sc_cfg library $sc_mainlib asic "file" $sc_tool techmap]
-    foreach mapfile $sc_techmap {
-	yosys techmap -map $mapfile
+proc post_techmap { { opt_args "" } } {
+    # perform techmap in case previous techmaps introduced constructs that need techmapping
+    yosys techmap
+    # Quick optimization
+    yosys opt {*}$opt_args -purge
+}
+if {[dict get $sc_cfg tool $sc_tool var $sc_step $sc_index map_adders] != "False"} {
+    set sc_adder_techmap [lindex [dict get $sc_cfg library $sc_mainlib asic "file" $sc_tool addermap] 0]
+    # extract the full adders
+    yosys extract_fa
+    # map full adders
+    yosys techmap -map $sc_adder_techmap
+    post_techmap -fast
+}
+
+if [dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index techmap] {
+    foreach mapfile [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index techmap] {
+        yosys techmap -map $mapfile
+        post_techmap -fast
     }
 }
 
-#TODO: Fix better
-set libcorner    [lindex [dict get $sc_cfg constraint [lindex $sc_scenarios 0] libcorner] 0]
-set mainlib      [dict get $sc_cfg library $sc_mainlib model timing $sc_delaymodel $libcorner]
+if {[dict get $sc_cfg tool $sc_tool var $sc_step $sc_index autoname] == "True"} {
+    # use autoname to preserve some design naming
+    # by doing it before dfflibmap the names will be slightly shorter since they will
+    # only contain the $DFF_P names vs. the full library name of the associated flip-flop
+    yosys autoname
+}
 
-yosys dfflibmap -liberty $mainlib
+yosys dfflibmap -liberty "inputs/dff_liberty.lib"
 
-yosys opt
+# perform final techmap and opt in case previous techmaps introduced constructs that need techmapping
+post_techmap
 
 source "$sc_refdir/syn_strategies.tcl"
 
@@ -95,13 +119,20 @@ if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index strategy]} {
 #   set_driving_cell and set_load call (but perhaps we should just pass along a
 #   user-provided constraint)
 
+set abc_args ""
+if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index abc_clock_period]} {
+    set abc_clock_period [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index abc_clock_period]
+    # assumes units are ps
+    append abc_args "-D $abc_clock_period "
+}
+if {[file exists "inputs/abc.constraints"]} {
+    append abc_args "-constr inputs/abc.constraints "
+}
 if {$script != ""} {
-    yosys abc -liberty $mainlib -script $script
-} else {
-    yosys abc -liberty $mainlib
+    append abc_args "-script $script "
 }
 
-yosys stat -liberty $mainlib {*}$stat_libs
+yosys abc {*}$lib_args {*}$abc_args
 
 ########################################################
 # Cleanup
@@ -109,11 +140,15 @@ yosys stat -liberty $mainlib {*}$stat_libs
 
 yosys setundef -zero
 
+yosys splitnets
+
+yosys clean -purge
+
 if {[llength $sc_tie] == 2} {
     set sc_tiehi [split [lindex $sc_tie 0] /]
     set sc_tielo [split [lindex $sc_tie 1] /]
 
-    yosys hilomap -hicell {*}$sc_tiehi -locell {*}$sc_tielo
+    yosys hilomap -singleton -hicell {*}$sc_tiehi -locell {*}$sc_tielo
 }
 
 if {[llength $sc_buf] == 1} {
@@ -121,6 +156,12 @@ if {[llength $sc_buf] == 1} {
     yosys insbuf -buf {*}$sc_buf_split
 }
 
-yosys splitnets
+yosys clean -purge
 
-yosys clean
+# turn off echo to prevent the stat command from showing up in the json file
+yosys echo off
+yosys tee -o ./reports/stat.json stat -json -top $sc_design {*}$stat_libs
+## currently Yosys does not place area into json (PR#3605)
+set area_metric [yosys tee -s result.string scratchpad -get stat.area]
+yosys echo on
+yosys log "SC_METRIC: area: ${area_metric}"
