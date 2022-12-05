@@ -127,7 +127,6 @@ def build_top():
 
     # (No?) tapcells in the top-level wrapper.
     libtype = 'unithd'
-    #chip.cfg['pdk']['aprtech']['openroad'][stackup][libtype].pop('tapcells')
 
     # No I/O buffers in the top-level wrapper, but keep tie-hi/lo cells.
     #chip.set('library', 'sky130hd', 'cells', 'tie', [])

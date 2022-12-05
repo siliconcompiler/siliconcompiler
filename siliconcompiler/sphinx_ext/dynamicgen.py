@@ -273,7 +273,9 @@ class FlowGen(DynamicGen):
                 cfg = chip.getdict(prefix, step)
                 if cfg is None:
                     continue
-                pruned = chip._prune(cfg)
+                schema = Schema(cfg)
+                schema.prune()
+                pruned = schema.cfg
                 if prefix not in step_cfg:
                     step_cfg[prefix] = {}
                 step_cfg[prefix][step] = pruned
@@ -285,7 +287,9 @@ class FlowGen(DynamicGen):
         section_key = '-'.join(['flows', modname, 'option', 'showtool'])
         section = build_section('showtool', section_key)
         cfg = chip.getdict('option', 'showtool')
-        pruned = chip._prune(cfg)
+        schema = Schema(cfg)
+        schema.prune()
+        pruned = schema.cfg
         table = build_schema_value_table(pruned, keypath_prefix=['option', 'showtool'])
         if table is not None:
             section += table
@@ -342,7 +346,9 @@ class ToolGen(DynamicGen):
     def display_config(self, chip, modname):
         '''Display config under `eda, <modname>` in a single table.'''
         cfg = chip.getdict('tool', modname)
-        pruned = chip._prune(cfg)
+        schema = Schema(cfg)
+        schema.prune()
+        pruned = schema.cfg
         table = build_schema_value_table(pruned, keypath_prefix=['tool', modname])
         if table is not None:
             return table
@@ -410,7 +416,9 @@ class TargetGen(DynamicGen):
         filtered_cfg = {}
         for key in ('asic', 'constraint', 'option'):
             filtered_cfg[key] = chip.getdict(key)
-        pruned_cfg = chip._prune(filtered_cfg)
+        schema = Schema(filtered_cfg)
+        schema.prune()
+        pruned_cfg = schema.cfg
 
         if len(pruned_cfg) > 0:
             schema_section = build_section('Configuration', key=f'{modname}-config')

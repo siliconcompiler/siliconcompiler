@@ -133,7 +133,7 @@ def request_remote_run(chip):
 
     # Use authentication if necessary.
     post_params = {
-        'chip_cfg': chip.cfg,
+        'chip_cfg': chip.schema.cfg,
         'params': {
             'job_hash': chip.status['jobhash'],
         }

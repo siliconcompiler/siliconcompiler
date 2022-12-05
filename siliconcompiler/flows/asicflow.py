@@ -101,7 +101,7 @@ def setup(chip, flowname='asicflow'):
 
     # Clear old flowgraph if it exists
     if flowname in chip.getkeys('flowgraph'):
-        del chip.cfg['flowgraph'][flowname]
+        del chip.schema.cfg['flowgraph'][flowname]
 
     #Remove built in steps where appropriate
     flowpipe = []

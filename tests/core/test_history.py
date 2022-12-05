@@ -10,7 +10,7 @@ def test_history(datadir):
     chip.read_manifest(manifest)
 
     # record history
-    chip.record_history()
+    chip.schema.record_history()
 
     # record new manifest
     chip.write_manifest("history.json")
