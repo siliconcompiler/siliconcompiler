@@ -968,7 +968,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         filename = self._resolve_env_vars(filename)
 
         # If we have an absolute path, pass-through here
-        if os.path.isabs(filename):
+        if os.path.isabs(filename) and os.path.exists(filename):
             return filename
 
         # Otherwise, search relative to scpaths
