@@ -5,10 +5,10 @@ To facilitate encapsulation and reuse of schema parameters related to design tar
 
 :meth:`.load_target()` takes in a string ``targetname``, and it will search for the path ``targets/<targetname>.py`` in the following locations, in this order:
 
-  #. The root of the SiliconCompiler Python package, wherever it is installed.
   #. The working directory from where the CLI app was called or the :class:`.Chip()` object instantiated.
   #. Paths specified in the :keypath:`option, scpath` schema parameter, separated by the OS-specific path separator (``:`` on Linux/macOS, ``;`` on Windows).
   #. Paths specified in the $SCPATH environment variable, separated by the OS-specific path separator.
+  #. The root of the SiliconCompiler Python package, wherever it is installed.
 
 The ability to configure the search paths via a schema parameter or environment variable enables users to create custom targets and place them anywhere on their filesystem. Note that this file resolution scheme is also used by SC for resolving all other relative paths, not just target modules.
 

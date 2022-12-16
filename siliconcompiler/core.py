@@ -967,15 +967,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Replacing environment variables
         filename = self._resolve_env_vars(filename)
 
-        # If we have a path relative to our cwd or an abs path, pass-through here
-        if os.path.exists(os.path.abspath(filename)):
-            return os.path.abspath(filename)
+        # If we have an absolute path, pass-through here
+        if os.path.isabs(filename):
+            return filename
 
         # Otherwise, search relative to scpaths
-        scpaths = [self.scroot, self.cwd]
+        scpaths = [self.cwd]
         scpaths.extend(self.get('option', 'scpath'))
         if 'SCPATH' in os.environ:
             scpaths.extend(os.environ['SCPATH'].split(os.pathsep))
+        scpaths.append(self.scroot)
 
         searchdirs = ', '.join(scpaths)
         self.logger.debug(f"Searching for file {filename} in {searchdirs}")
