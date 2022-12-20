@@ -115,7 +115,7 @@ def remote_run(chip):
               else:
                   chip.logger.info(f"Job is still running (%d seconds, step: unknown)"%(
                                    int(time.monotonic() - step_start)))
-      except:
+      except Exception:
           # Sometimes an exception is raised if the request library cannot
           # reach the server due to a transient network issue.
           # Retrying ensures that jobs don't break off when the connection drops.

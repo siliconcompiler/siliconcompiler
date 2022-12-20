@@ -545,7 +545,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 function = None
             return function
-        except:
+        except Exception:
             traceback.print_exc()
             self.error(f"Module setup failed for '{modulename}'")
 
