@@ -19,7 +19,7 @@ To simplify flow development, the project incorporates a simple object oriented 
 
 The expansive data schema, standardized plug-in interfaces, and built-in dynamic module search functionality enables SiliconCompiler to scale effectively to a large number of tools and PDKs. The open source :ref:`Tool<Tools directory>` and :ref:`PDK<PDK directory>` sections in the reference manual serves as a good starting point for folks who want to add their own PDKs and tools.
 
-To further reduce design access barriers, the project also supports a :ref:`client-server <Remote Processing>` execution model that leverages the cloud to: 1.) reduce tool installation barriers, 2.) reduce the barrier to massively parallel elastic compute, 3) address the NDA barrier for PDK and EDA tools.
+To further reduce design access barriers, the project also supports a :ref:`client-server <Remote Processing>` execution model that leverages the cloud to: 1) reduce tool installation barriers, 2) reduce the barrier to massively parallel elastic compute, 3) address the NDA barrier for PDK and EDA tools.
 
 .. image:: ../_images/sc_arch.svg
 
