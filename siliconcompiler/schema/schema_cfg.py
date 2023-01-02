@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.9.0'
+SCHEMA_VERSION = '0.10.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -109,8 +109,6 @@ def schema_cfg():
     # Version number following semver standard.
     # Software version syncs with SC releases (from _metadata)
 
-    SCHEMA_VERSION = '0.8.0'
-
     # Basic schema setup
     cfg = {}
 
@@ -140,6 +138,18 @@ def schema_cfg():
                     "api: chip.set('design', 'hello_world')"],
             schelp="""Name of the top level module or library. Required for all
             chip objects.""")
+
+    # Lambda value
+    scparam(cfg,['lambda'],
+            sctype='float',
+            scope='global',
+            shorthelp="Lambda value",
+            switch="-lambda <float>",
+            example=["cli: -lambda 1e-6",
+                    "api: chip.set('lambda', 1e-6)"],
+            schelp="""Elementary distance unit used for scaling all relative
+            dimensional schema parameters to derive absolute locations, lengths,
+            and widths.""")
 
     # input/output
     io = {'input': ['Input','true'],
@@ -188,11 +198,282 @@ def schema_cfg():
     # Modeling
     cfg = schema_model(cfg)
 
+    # Schematic/Layout
+    cfg = schema_schematic(cfg)
+    cfg = schema_layout(cfg)
+
     # Datasheeet
     cfg = schema_datasheet(cfg)
 
     # Packaging
     cfg = schema_package(cfg)
+
+    return cfg
+
+###############################################################################
+# Schematic
+###############################################################################
+
+def schema_schematic(cfg):
+    ''' Schematic configuration
+    '''
+
+    name = 'default'
+    filetype = 'default'
+
+    scparam(cfg,['schematic', 'component', name],
+            sctype='str',
+            shorthelp="Schematic component",
+            switch="-schematic_component 'name <str>'",
+            example=[
+                "cli: -schematic_component 'i0 za001",
+                "api:  chip.set('schematic', 'component', 'i0', 'za001')"],
+            schelp="""Unique manufacturer part number (MPN) of the  named
+            component.""")
+
+    scparam(cfg, ['schematic', 'net', name],
+            sctype='[(str,str)]',
+            shorthelp="Schematic net",
+            switch="-schematic_net 'name <(str,str)>'",
+            example=[
+                "cli: -schematic_net 'netA[7:0] (i0,in[7:0])'",
+                "api: chip.add('schematic', 'net', 'netA[7:0]', ('i0','in[7:0]'))"],
+            schelp="""
+            List of component pins and primary design pins connected to the named net
+            specified as (component,pin) tuples. For net connnetions to primary
+            pins, the 'component' entry should be an empty string. Bused connections
+            are specified using the Verilog square bracket syntax (ie [msb:lsb])""")
+
+    scparam(cfg, ['schematic', 'pin', name],
+            sctype='(str,str)',
+            shorthelp="Schematic pin",
+            switch="-schematic_pin 'name <(str,str)>'",
+            example=[
+                "cli: -schematic_pin 'out[7:0] (output,signal)'",
+                "api: chip.set('schematic', 'pin', 'out[7:0]', ('output','signal'))"],
+            schelp="""
+            Design primary pin definitions, specified (direction,type) tuples
+            on a per pin basis. Allowed directions are: input, output, and
+            inout. Allowed types are: analog, clock, ground, power, signal.
+            An empty 'type' defaults to signal.""")
+
+    scparam(cfg, ['schematic', 'interface', name],
+            sctype='[(str,str)]',
+            shorthelp="Schematic interface",
+            switch="-schematic_interface 'name <(str,str)>'",
+            example=[
+                "cli: -schematic_interface 'name (clk,clk0)'",
+                "api: chip.set('schematic','interface','ddr',('clk','clk0')"],
+            schelp="""
+            Signal interface definition specified as a list of (key,value) mapping
+            tuples, wherein the key is the standardaized interface name and the
+            value is the design pin name.Bus pins are specified using the Verilog
+            square bracket syntax (ie [msb:lsb]).""")
+
+    scparam(cfg, ['schematic', 'parameter', name],
+            sctype='[(str,str)]',
+            shorthelp="Schematic parameter",
+            switch="-schematic_parameter 'obj <(str,str)>'",
+            example=[
+                "cli: -schematic_parameter 'i0 (speed,fast)'",
+                "api: chip.set('schematic','parameter', 'i0', ('speed','fast')"],
+            schelp="""
+            List of parameter definitions attached to a named pin, net, or
+            component pecified as (key,value) tuples.""")
+
+    scparam(cfg, ['schematic', 'netlist', filetype],
+            sctype='[file]',
+            shorthelp="Schematic netlist",
+            switch="-schematic_netlist 'filetype <file>'",
+            example=[
+                "cli: -schematic_netlist 'verilog my.v'",
+                "api: chip.set('schematic','netlist', 'verilog', 'my.v')"],
+            schelp="""
+            File pointer to a desgin netlist specified on a per format basis.
+            The netlist in thefile is expected to exactly match the manifest
+            schematic netlist structure (ie. components, pins, and connectivity).""")
+
+    return cfg
+
+###############################################################################
+# Layout
+###############################################################################
+
+def schema_layout(cfg):
+    ''' Layout configuration
+    '''
+
+    name = 'default'
+    filetype = 'default'
+    shape = 'default'
+
+    #########
+    # OPTIONS
+    #########
+    scparam(cfg, ['layout', 'outline'],
+            sctype='[(float,float)]',
+            shorthelp="Layout outline",
+            switch="-layout_outline <(float,float)>",
+            example=[
+                "cli: -layout_outline '(0,0)'",
+                "api: chip.add('layout', 'outline', (0,0))"],
+            schelp="""
+            List of (x,y) points that define the design's physical outline.
+            Simple rectangle areas can be defined with two points, one for the
+            lower left corner and one for the upper right corner. Layout
+            systems (like PCBs""")
+
+    scparam(cfg, ['layout', 'centroid'],
+            sctype='(float,float)',
+            shorthelp="Layout centroid",
+            switch="-layout_centroid  <(float,float)>'",
+            example=[
+                "cli: -layout_centroid (5,5)",
+                "api: chip.set('layout', 'centroid', (5,5))"],
+            schelp="""
+            Center point of the component. Most components will have the
+            centroid at the center of the outline.""")
+
+    scparam(cfg, ['layout', 'footprint'],
+            sctype='str',
+            shorthelp="Layout footprint",
+            switch="-layout_footprint <str>",
+            example=[
+                "cli: -layout_footprint 'dip14'",
+                "api: chip.set('layout', 'footprint', 'dip14')"],
+            schelp="""
+            Name of footprint reference name for use in sytstems using
+            libraries of standardized footprints (eg. PCB).""")
+
+    scparam(cfg, ['layout', 'substrate'],
+            sctype='str',
+            shorthelp="Layout substrate",
+            switch="-layout_substrate <str>",
+            example=[
+                "cli: -layout_substrate mypcb0",
+                "api: chip.set('layout', 'substrate', 'mypcb0')"],
+            schelp="""
+            Reference name (name) of the substrate that all design components
+            are placed on. The substrate can be any planar surface (eg.
+            PCB, package-substrate, silicon interposer).""")
+
+    ###########
+    # COMPONENT
+    ###########
+    scparam(cfg, ['layout', 'component', name, 'location'],
+            sctype='(float,float)',
+            shorthelp="Layout component location",
+            switch="-layout_component_location 'inst <(float,float)>'",
+            example=[
+                "cli: -layout_component_location 'i0 (2.0,3.0)'",
+                "api: chip.set('layout', 'component', 'i0', 'location', (2.0,3.0)"],
+            schelp="""
+            The (X,Y) location of the components offset from origin of the baselayer
+            located in the lower left corner, specified in terms of elementary
+            lambda units. Absolute location values are resolved by multiplying
+            the location with the 'lambda' value.""")
+
+    scparam(cfg, ['layout', 'component', name, 'bottomside'],
+            sctype='bool',
+            shorthelp="Layout component bottomside option",
+            switch="-layout_component_bottomside 'inst <bool>'",
+            example=[
+                "cli: -layout_component_bottomside 'i0 true'",
+                "api: chip.set('layout', 'component', 'i0', 'bottomside', True)"],
+            schelp="""
+            Boolean parameter specifying that the component should be placed
+            on the bottom side of the subsizestrate.""")
+
+    scparam(cfg, ['layout', 'component', name, 'rotation'],
+            sctype='float',
+            shorthelp="Layout component rotation",
+            switch="-layout_component_rotation 'inst <float>'",
+            example=[
+                "cli: -layout_component_rotation 'i0 90'",
+                "api: chip.set('layout', 'component', 'i0', 'rotation', '90')"],
+            schelp="""
+            Placement rotation of the component specified in degrees. Rotation
+            goes counter-clockwise for all parts on top and clock-wise for parts
+            on the bottom. In both cases, this is from the perspective of looking
+            at the top of the board. Rotation is specified in degrees.""")
+
+    scparam(cfg, ['layout', 'component', name, 'flip'],
+            sctype='bool',
+            shorthelp="Layout component flip option",
+            switch="-layout_component_flip 'inst <bool>'",
+            example=[
+                "cli: -layout_component_flip 'i0 true'",
+                "api: chip.set('layout', 'component', 'i0', 'flip', 'true')"],
+            schelp="""
+            Boolean parameter specifying that the library component should be flipped
+            around the vertical axis befong being placed on the substrate. The need to
+            flip a component depends on the component footprint. Most dies have pads
+            facing up and so must be flipped when assembled face down (eg. flip-chip,
+            WCSP).""")
+
+    scparam(cfg, ['layout', 'component', name, 'parameter'],
+            sctype='[(str,str)]',
+            shorthelp="Layout component parameter",
+            switch="-layout_component_parameter 'name <(str,str)>'",
+            example=[
+                "cli: -layout_component_parameter 'i0 (place,fixed)'",
+                "api: chip.set('layout', 'component', 'i0', 'parameter, ('place','fixed')"],
+            schelp="""
+            List of layout parameter definitions attached to a named component.""")
+
+    #######
+    # PINS
+    #######
+    scparam(cfg, ['layout', 'pin', name, 'shape'],
+            sctype='str',
+            shorthelp="Layout pin type",
+            switch="-layout_pin_shape 'clk <str>'",
+            example=[
+                "cli: -layout_pin_shape 'clk rectangle'",
+                "api: chip.set('layout', 'pin', 'i0', 'shape', 'rectangle')"],
+            schelp="""
+            Shape of named pin. Legal shapes are: rectangle, circle,
+            polygon, track,...""")
+
+    scparam(cfg, ['layout', 'pin', name, 'pad'],
+            sctype='[(float,float)]',
+            shorthelp="Layout pin pad area",
+            switch="-layout_pin_pad 'clk <(float,float)>'",
+            example=[
+                "cli: -layout_pin_pad 'clk (3,3)'",
+                "api: chip.set('layout', 'pin', 'clk', 'pad', (3,3))"],
+            schelp="""
+            Location and size of named pin's landing pad specifie as a
+            tuple based on the shape of the landing pad.
+
+            circle:    [(diameter,diameter), (x0,y0)]
+            rectangle: [(width,height), (x0,y0)]
+            polygon:   [(halo,halo), (x0,y0), (x1,y1), (x2,y2), ...]
+            track:     [(width,width), (x0,y0), (x1,y1), (x2,y2), ...]
+
+            """)
+
+    scparam(cfg, ['layout', 'pin', name, 'parameter'],
+            sctype='[(str,str)]',
+            shorthelp="Layout pin parameter",
+            switch="-layout_pin_parameter 'name <(str,str)>'",
+            example=[
+                "cli: -layout_pin_parameter 'clk (ndr,2x)'",
+                "api: chip.set('layout', 'pin', 'clk', 'parameter', ('ndr','2x'))"],
+            schelp="""
+            List of layout parameter definitions attached to a named pin, net, or
+            component pecified as (key,value) tuples.""")
+
+    # gds, def, oasis, gerber, lef, kicad_mod
+    scparam(cfg, ['layout', 'database', filetype],
+            sctype='[file]',
+            shorthelp="Layout database",
+            switch="-layout_databse 'filetype <file>'",
+            example=[
+                "cli: -layout_database 'gds my.gds'",
+                "api: chip.set('layout', 'database', 'gds', 'my.gds')"],
+            schelp="""
+            File pointer to a desgin layout database specified on a per format basis.""")
 
     return cfg
 
@@ -778,7 +1059,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: special variable",
             switch="-pdk_var 'pdkname tool stackup key <str>'",
             example=[
-                "cli: -pdk_var 'asap7 xyce modeltype M10 bsim4'""",
+                "cli: -pdk_var 'asap7 xyce modeltype M10 bsim4'",
                 "api: chip.set('pdk','asap7','var','xyce','modeltype','M10','bsim4')"],
             schelp="""
             List of key/value strings specified on a per tool and per stackup basis.
@@ -3344,7 +3625,7 @@ def schema_asic(cfg):
             shorthelp="ASIC: die area outline",
             switch="-asic_diearea <[(float,float)]>",
             example= ["cli: -asic_diearea '(0,0)'",
-                    "api: chip.set('asic', 'diearea', (0,0))"],
+                      "api: chip.set('asic', 'diearea', (0,0))"],
             schelp="""
             List of (x,y) points that define the outline of the die area for the
             physical design. Simple rectangle areas can be defined with two points,
