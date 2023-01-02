@@ -488,7 +488,8 @@ class Schema:
 
             valstr = utils.escape_val_tcl(value, typestr)
 
-            if not (typestr.startswith('[') or typestr.startswith('(')):
+            #if not (typestr.startswith('[') or typestr.startswith('(')):
+            if not (typestr.startswith('[')):
                 # treat scalars as lists as well
                 valstr = f'[list {valstr}]'
 
