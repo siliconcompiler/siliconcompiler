@@ -226,7 +226,7 @@ def schema_schematic(cfg):
             shorthelp="Schematic component",
             switch="-schematic_component 'name <str>'",
             example=[
-                "cli: -schematic_component 'i0 za001",
+                "cli: -schematic_component 'i0 za001'",
                 "api:  chip.set('schematic', 'component', 'i0', 'za001')"],
             schelp="""Unique manufacturer part number (MPN) of the  named
             component.""")
@@ -468,7 +468,7 @@ def schema_layout(cfg):
     scparam(cfg, ['layout', 'database', filetype],
             sctype='[file]',
             shorthelp="Layout database",
-            switch="-layout_databse 'filetype <file>'",
+            switch="-layout_database 'filetype <file>'",
             example=[
                 "cli: -layout_database 'gds my.gds'",
                 "api: chip.set('layout', 'database', 'gds', 'my.gds')"],
