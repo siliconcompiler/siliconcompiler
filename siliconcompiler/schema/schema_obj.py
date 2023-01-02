@@ -328,9 +328,12 @@ class Schema:
                             scalar = float(selval)
                         elif cfg[param]['type'] == "bool":
                             scalar = (selval == 'true')
-                        elif re.match(r'\(', cfg[param]['type']):
+                        elif re.match(r'\(float', cfg[param]['type']):
                             tuplestr = re.sub(r'[\(\)\s]','',selval)
                             scalar = tuple(map(float, tuplestr.split(',')))
+                        elif re.match(r'\(str', cfg[param]['type']):
+                            tuplestr = re.sub(r'[\(\)\'\s]','',selval)
+                            scalar = tuple(tuplestr.split(','))
                         else:
                             scalar = selval
                         return scalar
