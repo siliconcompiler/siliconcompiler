@@ -488,10 +488,13 @@ class Schema:
 
             valstr = utils.escape_val_tcl(value, typestr)
 
-            #if not (typestr.startswith('[') or typestr.startswith('(')):
-            if not (typestr.startswith('[')):
-                # treat scalars as lists as well
+            # Turning scalars into lists
+            if not (typestr.startswith('[') or typestr.startswith('(')):
                 valstr = f'[list {valstr}]'
+
+            # TODO: Temp fix to get rid of empty args
+            if valstr=='':
+                valstr = f'[list ]'
 
             outstr = f"{prefix} {keystr} {valstr}\n"
 
