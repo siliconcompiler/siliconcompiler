@@ -65,8 +65,6 @@ def _deferstep(chip, step, index, status):
         # TODO: LSF support is untested and currently unsupported.
         schedule_cmd = ['lsrun']
 
-    time.sleep(1.0)
-
     # Create a command to defer execution to a compute node.
     script_path = f'{cfg_dir}/{step}{index}.sh'
     with open(script_path, 'w') as sf:
