@@ -141,6 +141,18 @@ def setup(chip):
         chip.set('tool', tool, 'var', step, index, 'abc_clock_period', str(get_abc_period(chip)), clobber=False)
         chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'abc_clock_period']))
 
+        # document parameters
+        chip.set('tool', tool, 'var', step, index, 'preserve_modules', 'List of modules in input files to prevent flatten from "flattening"', field='help')
+        chip.set('tool', tool, 'var', step, index, 'flatten', 'True/False, invoke synth with the -flatten option', field='help')
+        chip.set('tool', tool, 'var', step, index, 'autoname', 'True/False, call autoname to rename wires based on registers', field='help')
+        chip.set('tool', tool, 'var', step, index, 'map_adders', 'False/path to map_adders, techmap adders in Yosys', field='help')
+        chip.set('tool', tool, 'var', step, index, 'synthesis_corner', 'Timing corner to use for synthesis', field='help')
+        chip.set('tool', tool, 'var', step, index, 'dff_liberty', 'Liberty file to use for flip-flop mapping, if not specified the first in the logiclib is used', field='help')
+        chip.set('tool', tool, 'var', step, index, 'abc_constraint_driver', 'Buffer that drives the abc techmapping, defaults to first buffer specified', field='help')
+        chip.set('tool', tool, 'var', step, index, 'abc_constraint_load', 'Capacitive load for the abc techmapping in fF, if not specified it will not be used', field='help')
+        chip.set('tool', tool, 'var', step, index, 'abc_clock_period', 'Clock period to use for synthesis in ps, if more than one clock is specified, the smallest period is used.', field='help')
+        chip.set('tool', tool, 'var', step, index, 'abc_clock_derating', 'Used to derate the clock period to further constrain the clock, values between 0 and 1', field='help')
+
     else:
         chip.add('tool', tool, 'require', step, index, ",".join(['fpga', 'partname']))
 
@@ -349,20 +361,24 @@ def create_abc_synthesis_constraints(chip):
 
     abc_driver = None
     if chip.valid('tool', tool, 'var', step, index, 'abc_constraint_driver'):
-        abc_driver = chip.get('tool', tool, 'var', step, index, 'abc_constraint_driver')[0]
+        abc_driver = chip.get('tool', tool, 'var', step, index, 'abc_constraint_driver')
+        if abc_driver:
+            abc_driver = abc_driver[0]
 
     abc_load = None
     if chip.valid('tool', tool, 'var', step, index, 'abc_constraint_load'):
-        abc_load = float(chip.get('tool', tool, 'var', step, index, 'abc_constraint_load')[0])
+        abc_load = chip.get('tool', tool, 'var', step, index, 'abc_constraint_load')
+        if abc_load:
+            abc_load = float(abc_load[0])
 
-    if abc_driver is None and abc_load is None:
+    if not abc_driver and not abc_load:
         # either is set so nothing to do
         return
 
     with open("inputs/abc.constraints", "w") as f:
-        if abc_driver is not None:
+        if abc_driver:
             f.write(f"set_driving_cell {abc_driver}\n")
-        if abc_load is not None:
+        if abc_load:
             # convert to fF
             if chip.get('unit', 'capacitance')[0] == 'p':
                 abc_load *= 1000
