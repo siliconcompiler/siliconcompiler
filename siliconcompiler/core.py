@@ -675,6 +675,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             self.error(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
 
+    ##########################################################################
+    def use(self, module):
+        '''
+        Loads a SiliconCompiler module into the current chip object by calling
+        a module.setup() method.
+        '''
+
+        self.import_library(module.setup())
+
+
     ###########################################################################
     def list_metrics(self):
         '''
@@ -1723,6 +1733,24 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error('File format not recognized %s', filepath)
         finally:
             fout.close()
+
+    ###########################################################################
+    def write_netlist(self, filename):
+        '''
+        Design netlist
+        '''
+
+    ###########################################################################
+    def write_bom(self, filename):
+        '''
+        Bill of material.
+        '''
+
+    ###########################################################################
+    def write_cpl(self, filename):
+        '''
+        Centroid, xy , pick and place, position file,...
+        '''
 
     ###########################################################################
     def check_checklist(self, standard, items=None, check_ok=False):
