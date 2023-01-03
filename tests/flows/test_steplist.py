@@ -34,7 +34,7 @@ def test_steplist_keep_reports(gcd_chip):
     '''Regression test for making sure that reports from previous steps are
     still mapped when a script is re-run with a steplist.'''
     fresh_chip = siliconcompiler.Chip(gcd_chip.design)
-    fresh_chip.cfg = copy.deepcopy(gcd_chip.cfg)
+    fresh_chip.schema = gcd_chip.schema.copy()
 
     # Initial run
     gcd_chip.set('option', 'steplist', ['import', 'syn'])
