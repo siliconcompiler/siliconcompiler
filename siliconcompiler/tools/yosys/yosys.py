@@ -452,21 +452,22 @@ def get_abc_period(chip):
 
     period = None
     # get clock information from sdc files
-    for sdc in chip.find_files('input', 'sdc'):
-        lines = []
-        with open(sdc, 'r') as f:
-            lines = f.read().splitlines()
+    if chip.valid('input', 'sdc'):
+        for sdc in chip.find_files('input', 'sdc'):
+            lines = []
+            with open(sdc, 'r') as f:
+                lines = f.read().splitlines()
 
-        # TODO: handle line continuations
-        for line in lines:
-            clock_period = re.findall(r"create_clock.*-period\s+([0-9\.]+)", line)
-            if clock_period:
-                clock_period = float(clock_period[0])
+            # TODO: handle line continuations
+            for line in lines:
+                clock_period = re.findall(r"create_clock.*-period\s+([0-9\.]+)", line)
+                if clock_period:
+                    clock_period = float(clock_period[0])
 
-                if period is None:
-                    period = clock_period
-                else:
-                    period = min(period, clock_period)
+                    if period is None:
+                        period = clock_period
+                    else:
+                        period = min(period, clock_period)
 
     if period is None and chip.valid('clock'):
         # get clock information from defined clocks
