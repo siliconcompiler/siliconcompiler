@@ -135,6 +135,10 @@ def setup(chip):
         chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'synthesis_corner']))
         chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'dff_liberty']))
 
+        # Constants needed by yosys, do not allow overriding of values so force clobbering
+        chip.set('tool', tool, 'var', step, index, 'dff_liberty_file', "inputs/sc_dff_library.lib", clobber=True)
+        chip.set('tool', tool, 'var', step, index, 'abc_constraint_file', "inputs/sc_abc.constraints", clobber=True)
+
         abc_driver = get_abc_driver(chip)
         if abc_driver is not None:
             chip.set('tool', tool, 'var', step, index, 'abc_constraint_driver', abc_driver, clobber=False)
@@ -318,7 +322,7 @@ def prepare_synthesis_libraries(chip):
 
         dff_dont_use.extend(ignore)
 
-    markDontUse.processLibertyFile(dff_liberty_file, "inputs/dff_liberty.lib", dff_dont_use)
+    markDontUse.processLibertyFile(dff_liberty_file, chip.get('tool', tool, 'var', step, index, 'dff_liberty_file')[0], dff_dont_use)
 
     #### Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
 
@@ -375,7 +379,7 @@ def create_abc_synthesis_constraints(chip):
         # either is set so nothing to do
         return
 
-    with open("inputs/abc.constraints", "w") as f:
+    with open(chip.get('tool', tool, 'var', step, index, 'abc_constraint_file')[0], "w") as f:
         if abc_driver:
             f.write(f"set_driving_cell {abc_driver}\n")
         if abc_load:

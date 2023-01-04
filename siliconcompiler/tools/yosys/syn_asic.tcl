@@ -12,22 +12,16 @@ set sc_mainlib          [lindex [dict get $sc_cfg asic logiclib] 0]
 set sc_tie              [dict get $sc_cfg library $sc_mainlib asic cells tie]
 set sc_buf              [dict get $sc_cfg library $sc_mainlib asic cells buf]
 
+set sc_dff_library      [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index dff_liberty_file] 0]
+set sc_abc_constraints  [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index abc_constraint_file] 0]
+
 ########################################################
 # Read Libraries
 ########################################################
 
-set lib_args ""
-foreach lib_file $sc_libraries {
+foreach lib_file "$sc_libraries $sc_macro_libraries" {
     puts "SC Reading liberty file: $lib_file"
     yosys read_liberty -lib $lib_file
-    append lib_args "-liberty $lib_file "
-}
-set stat_libs $lib_args
-append stat_libs "-liberty inputs/dff_liberty.lib "
-foreach lib_file $sc_macro_libraries {
-    puts "SC: Reading liberty file: $lib_file"
-    yosys read_liberty -lib $lib_file
-    append stat_libs "-liberty $lib_file "
 }
 
 ########################################################
@@ -53,9 +47,9 @@ if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index preserve_modules]}
     }
 }
 
-set synth_args ""
+set synth_args []
 if {[dict get $sc_cfg tool $sc_tool var $sc_step $sc_index flatten] == "True"} {
-    append synth_args "-flatten "
+    lappend synth_args "-flatten"
 }
 yosys synth {*}$synth_args -top $sc_design
 
@@ -93,7 +87,7 @@ if {[dict get $sc_cfg tool $sc_tool var $sc_step $sc_index autoname] == "True"} 
     yosys autoname
 }
 
-yosys dfflibmap -liberty "inputs/dff_liberty.lib"
+yosys dfflibmap -liberty $sc_dff_library
 
 # perform final techmap and opt in case previous techmaps introduced constructs that need techmapping
 post_techmap
@@ -119,20 +113,23 @@ if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index strategy]} {
 #   set_driving_cell and set_load call (but perhaps we should just pass along a
 #   user-provided constraint)
 
-set abc_args ""
+set abc_args []
 if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index abc_clock_period]} {
     set abc_clock_period [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index abc_clock_period]
     # assumes units are ps
-    append abc_args "-D $abc_clock_period "
+    lappend abc_args "-D" $abc_clock_period
 }
-if {[file exists "inputs/abc.constraints"]} {
-    append abc_args "-constr inputs/abc.constraints "
+if {[file exists $sc_abc_constraints]} {
+    lappend abc_args "-constr" $sc_abc_constraints
 }
 if {$script != ""} {
-    append abc_args "-script $script "
+    lappend abc_args "-script" $script
+}
+foreach lib_file $sc_libraries {
+    lappend abc_args "-liberty" $lib_file
 }
 
-yosys abc {*}$lib_args {*}$abc_args
+yosys abc -liberty $sc_dff_library {*}$abc_args
 
 ########################################################
 # Cleanup
@@ -158,6 +155,11 @@ if {[llength $sc_buf] == 1} {
 
 yosys clean -purge
 
+set stat_libs []
+lappend stat_libs "-liberty" $sc_dff_library
+foreach lib_file "$sc_libraries $sc_macro_libraries" {
+    lappend stat_libs "-liberty" $lib_file
+}
 # turn off echo to prevent the stat command from showing up in the json file
 yosys echo off
 yosys tee -o ./reports/stat.json stat -json -top $sc_design {*}$stat_libs
