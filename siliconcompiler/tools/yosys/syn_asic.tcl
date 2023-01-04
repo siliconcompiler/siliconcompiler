@@ -20,7 +20,6 @@ set sc_abc_constraints  [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc
 ########################################################
 
 foreach lib_file "$sc_libraries $sc_macro_libraries" {
-    puts "SC Reading liberty file: $lib_file"
     yosys read_liberty -lib $lib_file
 }
 
@@ -103,7 +102,7 @@ if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index strategy]} {
         # ABC script passthrough
         set script $sc_stratety
     } else {
-        puts "Warning: no such synthesis strategy $sc_strategy"
+        yosys log "Warning: no such synthesis strategy $sc_strategy"
     }
 }
 
