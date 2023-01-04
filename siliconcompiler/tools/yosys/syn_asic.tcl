@@ -115,8 +115,10 @@ if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index strategy]} {
 set abc_args []
 if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index abc_clock_period]} {
     set abc_clock_period [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index abc_clock_period]
-    # assumes units are ps
-    lappend abc_args "-D" $abc_clock_period
+    if { [llength $abc_clock_period] != 0 } {
+        # assumes units are ps
+        lappend abc_args "-D" $abc_clock_period
+    }
 }
 if {[file exists $sc_abc_constraints]} {
     lappend abc_args "-constr" $sc_abc_constraints
