@@ -234,12 +234,12 @@ def post_process(chip):
         registers = None
         with open(f"{step}.log", 'r') as f:
             for line in f:
-                if chip.get('metric', step, index, 'cellarea') is not None:
+                if chip.get('metric', step, index, 'cellarea'):
                     area_metric = re.findall(r"^SC_METRIC: area: ([0-9.]+)", line)
-                    if len(area_metric) != 0:
-                        chip.set('metric', step, index, 'cellarea', round(float(area_metric[0]), 2))
+                    if area_metric:
+                        chip.set('metric', step, index, 'cellarea', round(float(area_metric[0]), 2), clobber=True)
                 line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
-                if len(line_registers) != 0:
+                if line_registers:
                     if registers is None:
                         registers = 0
                     registers += int(line_registers[0])
