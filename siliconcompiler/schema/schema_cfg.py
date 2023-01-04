@@ -306,6 +306,7 @@ def schema_layout(cfg):
     name = 'default'
     filetype = 'default'
     shape = 'default'
+    stackup = 'default'
 
     #########
     # OPTIONS
@@ -465,13 +466,13 @@ def schema_layout(cfg):
             component pecified as (key,value) tuples.""")
 
     # gds, def, oasis, gerber, lef, kicad_mod
-    scparam(cfg, ['layout', 'database', filetype],
+    scparam(cfg, ['layout', 'database', name, filetype, stackup],
             sctype='[file]',
             shorthelp="Layout database",
-            switch="-layout_database 'filetype <file>'",
+            switch="-layout_database 'name filetype <file>'",
             example=[
-                "cli: -layout_database 'gds my.gds'",
-                "api: chip.set('layout', 'database', 'gds', 'my.gds')"],
+                "cli: -layout_database 'nangate45 gds 10M nangate45.gds'",
+                "api: chip.set('layout', 'database', 'nangate45', 'gds', '10M', 'my.gds')"],
             schelp="""
             File pointer to a desgin layout database specified on a per format basis.""")
 
