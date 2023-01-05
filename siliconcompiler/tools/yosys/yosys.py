@@ -449,7 +449,9 @@ def get_abc_period(chip):
     index = chip.get('arg','index')
 
     if chip.valid('tool', tool, 'var', step, index, 'abc_clock_period'):
-        return chip.get('tool', tool, 'var', step, index, 'abc_clock_period')[0]
+        abc_clock_period = chip.get('tool', tool, 'var', step, index, 'abc_clock_period')
+        if abc_clock_period:
+            return abc_clock_period[0]
 
     period = None
     # get clock information from sdc files
