@@ -6,12 +6,13 @@ import gzip
 import fnmatch
 import argparse  # argument parsing
 
-def processLibertyFile(input_file, output_file, dont_use):
+def processLibertyFile(input_file, output_file, dont_use, quiet=False):
     # Convert * wildcards to regex wildcards
     patternList = fnmatch.translate(dont_use).split()
 
     # Read input file
-    print("Opening file for replace:", input_file)
+    if not quiet:
+        print("Opening file for replace:", input_file)
     if input_file.endswith(".gz") or input_file.endswith(".GZ"):
         f = gzip.open(input_file, 'rt', encoding="utf-8")
     else:
@@ -25,29 +26,34 @@ def processLibertyFile(input_file, output_file, dont_use):
     # print(pattern)
     replace = r"\1\n    dont_use : true;"
     content, count = re.subn(pattern, replace, content, 0, re.M)
-    print("Marked", count, "cells as dont_use")
+    if not quiet:
+        print("Marked", count, "cells as dont_use")
 
     # Yosys-abc throws an error if original_pin is found within the liberty file.
     # removing
     pattern = r"(.*original_pin.*)"
     replace = r"/* \1 */;"
     content, count = re.subn(pattern, replace, content)
-    print("Commented", count, "lines containing \"original_pin\"")
+    if not quiet:
+        print("Commented", count, "lines containing \"original_pin\"")
 
     # Yosys, does not like properties that start with : !, without quotes
     pattern = r":\s+(!.*)\s+;"
     replace = r': "\1" ;'
     content, count = re.subn(pattern, replace, content)
-    print("Replaced malformed functions", count)
+    if not quiet:
+        print("Replaced malformed functions", count)
 
     # Yosys-abc throws an error if the units are specified in 0.001pf, instead of 1ff
     pattern = r"capacitive_load_unit\s+\(0.001,pf\);"
     replace = "capacitive_load_unit (1,ff);"
     content, count = re.subn(pattern, replace, content)
-    print("Replaced capacitive load", count)
+    if not quiet:
+        print("Replaced capacitive load", count)
 
     # Write output file
-    print("Writing replaced file:", output_file)
+    if not quiet:
+        print("Writing replaced file:", output_file)
     f = open(output_file, "w")
     f.write(content)
     f.close()

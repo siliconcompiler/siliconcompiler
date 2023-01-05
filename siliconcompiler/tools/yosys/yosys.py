@@ -140,10 +140,12 @@ def setup(chip):
         chip.set('tool', tool, 'var', step, index, 'abc_constraint_file', "inputs/sc_abc.constraints", clobber=True)
 
         abc_driver = get_abc_driver(chip)
-        if abc_driver is not None:
+        if abc_driver:
             chip.set('tool', tool, 'var', step, index, 'abc_constraint_driver', abc_driver, clobber=False)
-        chip.set('tool', tool, 'var', step, index, 'abc_clock_period', str(get_abc_period(chip)), clobber=False)
-        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'abc_clock_period']))
+        abc_clock_period = get_abc_period(chip)
+        if abc_clock_period:
+            chip.set('tool', tool, 'var', step, index, 'abc_clock_period', str(abc_clock_period), clobber=False)
+            chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'abc_clock_period']))
 
         # document parameters
         chip.set('tool', tool, 'var', step, index, 'preserve_modules', 'List of modules in input files to prevent flatten from "flattening"', field='help')
@@ -225,19 +227,18 @@ def post_process(chip):
                 metrics = metrics["design"]
 
             if "area" in metrics:
-                chip.set('metric', step, index, 'cellarea', round(float(metrics["area"]), 2), clobber=True)
+                chip.set('metric', step, index, 'cellarea', float(metrics["area"]), clobber=True)
             if "num_cells" in metrics:
                 chip.set('metric', step, index, 'cells', int(metrics["num_cells"]), clobber=True)
 
         registers = None
         with open(f"{step}.log", 'r') as f:
             for line in f:
-                if chip.get('metric', step, index, 'cellarea') is not None:
-                    area_metric = re.findall(r"^SC_METRIC: area: ([0-9.]+)", line)
-                    if len(area_metric) != 0:
-                        chip.set('metric', step, index, 'cellarea', round(float(area_metric[0]), 2))
+                area_metric = re.findall(r"^SC_METRIC: area: ([0-9.]+)", line)
+                if area_metric:
+                    chip.set('metric', step, index, 'cellarea', float(area_metric[0]), clobber=True)
                 line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
-                if len(line_registers) != 0:
+                if line_registers:
                     if registers is None:
                         registers = 0
                     registers += int(line_registers[0])
@@ -322,7 +323,7 @@ def prepare_synthesis_libraries(chip):
 
         dff_dont_use.extend(ignore)
 
-    markDontUse.processLibertyFile(dff_liberty_file, chip.get('tool', tool, 'var', step, index, 'dff_liberty_file')[0], dff_dont_use)
+    markDontUse.processLibertyFile(dff_liberty_file, chip.get('tool', tool, 'var', step, index, 'dff_liberty_file')[0], dff_dont_use, chip.get('option', 'quiet'))
 
     #### Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
 
@@ -342,7 +343,7 @@ def prepare_synthesis_libraries(chip):
     def process_lib_file(libtype, lib, lib_file, dont_use):
         input_base_name = os.path.splitext(os.path.basename(lib_file))[0]
         output_file = f"inputs/sc_{libtype}_{lib}_{input_base_name}.lib"
-        markDontUse.processLibertyFile(lib_file, output_file, dont_use)
+        markDontUse.processLibertyFile(lib_file, output_file, dont_use, chip.get('option', 'quiet'))
 
         var_name = 'synthesis_libraries'
         if (libtype == "macrolib"):
@@ -450,23 +451,24 @@ def get_abc_period(chip):
 
     period = None
     # get clock information from sdc files
-    for sdc in chip.find_files('input', 'sdc'):
-        lines = []
-        with open(sdc, 'r') as f:
-            lines = f.read().splitlines()
+    if chip.valid('input', 'sdc'):
+        for sdc in chip.find_files('input', 'sdc'):
+            lines = []
+            with open(sdc, 'r') as f:
+                lines = f.read().splitlines()
 
-        # TODO: handle line continuations
-        for line in lines:
-            clock_period = re.findall(r"create_clock.*-period\s+([0-9\.]+)", line)
-            if clock_period is not None:
-                clock_period = float(clock_period[0])
+            # TODO: handle line continuations
+            for line in lines:
+                clock_period = re.findall(r"create_clock.*-period\s+([0-9\.]+)", line)
+                if clock_period:
+                    clock_period = float(clock_period[0])
 
-                if period is None:
-                    period = clock_period
-                else:
-                    period = min(period, clock_period)
+                    if period is None:
+                        period = clock_period
+                    else:
+                        period = min(period, clock_period)
 
-    if period is None:
+    if period is None and chip.valid('clock'):
         # get clock information from defined clocks
         for clock in chip.getkeys('clock'):
             if not chip.valid('clock', clock, 'period'):
