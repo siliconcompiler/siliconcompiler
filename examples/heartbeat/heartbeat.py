@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import siliconcompiler                            # import python package
 
 def main():
