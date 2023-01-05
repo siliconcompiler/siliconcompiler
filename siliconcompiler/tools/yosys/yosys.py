@@ -125,6 +125,8 @@ def setup(chip):
 
         # copy techmapping from libraries
         for lib in chip.get('asic', 'logiclib') + chip.get('asic', 'macrolib'):
+            if not chip.valid('library', lib, 'asic', 'file', tool, 'techmap'):
+                continue
             for techmap in chip.find_files('library', lib, 'asic', 'file', tool, 'techmap'):
                 if techmap is None:
                     continue
