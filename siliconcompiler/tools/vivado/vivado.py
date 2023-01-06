@@ -31,8 +31,6 @@ def make_docs():
 ################################
 
 def setup(chip, mode='batch'):
-    '''
-    '''
 
     # default tool settings, note, not additive!
     tool = 'vivado'
@@ -44,17 +42,22 @@ def setup(chip, mode='batch'):
 
     clobber = True
 
-    if mode == 'batch':
-        clobber = True
-        script = '/compile.tcl'
-        option = "-mode batch -source"
+    script = '/compile.tcl'
+    option = "-nolog -nojournal -mode batch -source"
 
     # General settings
-    chip.set('tool', tool, 'exe', tool, clobber=clobber)
-    chip.set('tool', tool, 'vendor', vendor, clobber=clobber)
-    chip.set('tool', tool, 'vswitch', '-version', clobber=clobber)
-    chip.set('tool', tool, 'version', '0', clobber=clobber)
-    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=clobber)
-    chip.set('tool', tool, 'script', step, index, script, clobber=clobber)
-    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
-    chip.set('tool', tool, 'option', step, index, option, clobber=clobber)
+    chip.set('tool', tool, 'exe', tool)
+    chip.set('tool', tool, 'vendor', vendor)
+    chip.set('tool', tool, 'vswitch', '-version', clobber=False)
+    chip.set('tool', tool, 'format', 'tcl', clobber=False)
+    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=False)
+    chip.set('tool', tool, 'script', step, index, script, clobber=False)
+    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'option', step, index, option, clobber=False)
+
+def parse_version(stdout):
+    # Vivado v2021.2 (64-bit)
+    return stdout.split()[1]
+
+def normalize_version(version):
+    return version.lstrip('v')
