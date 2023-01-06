@@ -125,6 +125,8 @@ def setup(chip):
 
         # copy techmapping from libraries
         for lib in chip.get('asic', 'logiclib') + chip.get('asic', 'macrolib'):
+            if not chip.valid('library', lib, 'asic', 'file', tool, 'techmap'):
+                continue
             for techmap in chip.find_files('library', lib, 'asic', 'file', tool, 'techmap'):
                 if techmap is None:
                     continue
@@ -447,7 +449,9 @@ def get_abc_period(chip):
     index = chip.get('arg','index')
 
     if chip.valid('tool', tool, 'var', step, index, 'abc_clock_period'):
-        return chip.get('tool', tool, 'var', step, index, 'abc_clock_period')[0]
+        abc_clock_period = chip.get('tool', tool, 'var', step, index, 'abc_clock_period')
+        if abc_clock_period:
+            return abc_clock_period[0]
 
     period = None
     # get clock information from sdc files
