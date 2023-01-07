@@ -173,7 +173,7 @@ def schema_cfg():
                 systemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,
                 saif, vcd, spef, sdf.""")
 
-    # Inputs and constraints
+    # Constraints
     cfg = schema_constraint(cfg)
 
     # Options
@@ -267,7 +267,7 @@ def schema_schematic(cfg):
             schelp="""
             Signal interface definition specified as a list of (key,value) mapping
             tuples, wherein the key is the standardaized interface name and the
-            value is the design pin name.Bus pins are specified using the Verilog
+            value is the design pin name. Bus pins are specified using the Verilog
             square bracket syntax (ie [msb:lsb]).""")
 
     scparam(cfg, ['schematic', 'parameter', name],
@@ -307,101 +307,6 @@ def schema_layout(cfg):
     filetype = 'default'
     shape = 'default'
     stackup = 'default'
-
-    #########
-    # OPTIONS
-    #########
-    scparam(cfg, ['layout', 'size'],
-            sctype='[(float,float)]',
-            shorthelp="Layout outline",
-            switch="-layout_outline <(float,float)>",
-            example=[
-                "cli: -layout_outline '(0,0)'",
-                "api: chip.add('layout', 'outline', (0,0))"],
-            schelp="""
-            List of (x,y) points that define the design's physical outline.
-            Simple rectangle areas can be defined with two points, one for the
-            lower left corner and one for the upper right corner. Layout
-            systems (like PCBs""")
-
-    scparam(cfg, ['layout', 'footprint'],
-            sctype='str',
-            shorthelp="Layout footprint",
-            switch="-layout_footprint <str>",
-            example=[
-                "cli: -layout_footprint 'dip14'",
-                "api: chip.set('layout', 'footprint', 'dip14')"],
-            schelp="""
-            Name of footprint reference name for use in sytstems using
-            libraries of standardized footprints (eg. PCB).""")
-
-    ###########
-    # COMPONENT
-    ###########
-    scparam(cfg, ['layout', 'component', name, 'location'],
-            sctype='(float,float,float)',
-            shorthelp="Layout component location",
-            switch="-layout_component_location 'inst <(float,float)>'",
-            example=[
-                "cli: -layout_component_location 'i0 (2.0,3.0)'",
-                "api: chip.set('layout', 'component', 'i0', 'location', (2.0,3.0)"],
-            schelp="""
-            The (X,Y) location of the components offset from origin of the baselayer
-            located in the lower left corner, specified in terms of elementary
-            lambda units. Absolute location values are resolved by multiplying
-            the location with the 'lambda' value.""")
-
-    scparam(cfg, ['layout', 'component', name, 'rotation'],
-            sctype='float',
-            shorthelp="Layout component rotation",
-            switch="-layout_component_rotation 'inst <float>'",
-            example=[
-                "cli: -layout_component_rotation 'i0 90'",
-                "api: chip.set('layout', 'component', 'i0', 'rotation', '90')"],
-            schelp="""
-            Placement rotation of the component specified in degrees. Rotation
-            goes counter-clockwise for all parts on top and clock-wise for parts
-            on the bottom. In both cases, this is from the perspective of looking
-            at the top of the board. Rotation is specified in degrees.""")
-
-    scparam(cfg, ['layout', 'component', name, 'flip'],
-            sctype='bool',
-            shorthelp="Layout component flip option",
-            switch="-layout_component_flip 'inst <bool>'",
-            example=[
-                "cli: -layout_component_flip 'i0 true'",
-                "api: chip.set('layout', 'component', 'i0', 'flip', 'true')"],
-            schelp="""
-            Boolean parameter specifying that the library component should be flipped
-            around the vertical axis befong being placed on the substrate. The need to
-            flip a component depends on the component footprint. Most dies have pads
-            facing up and so must be flipped when assembled face down (eg. flip-chip,
-            WCSP).""")
-
-    scparam(cfg, ['layout', 'component', name, 'parameter'],
-            sctype='[(str,str)]',
-            shorthelp="Layout component parameter",
-            switch="-layout_component_parameter 'name <(str,str)>'",
-            example=[
-                "cli: -layout_component_parameter 'i0 (place,fixed)'",
-                "api: chip.set('layout', 'component', 'i0', 'parameter, ('place','fixed')"],
-            schelp="""
-            List of layout parameter definitions attached to a named component.""")
-
-    #######
-    # PINS
-    #######
-
-    scparam(cfg, ['layout', 'pin', name, 'location'],
-            sctype='[(float,float, float)]',
-            shorthelp="Layout pin location",
-            switch="-layout_pin_location 'clk <(float,float,float)>'",
-            example=[
-                "cli: -layout_pin_pad 'clk (3,3,0)'",
-                "api: chip.set('layout', 'pin', 'clk', 'pad', (3,3,0))"],
-            schelp="""
-            Pin location constraint."""
-            )
 
     # gds, def, oasis, gerber, lef, kicad_mod
     scparam(cfg, ['layout', name, filetype, stackup],
@@ -3616,7 +3521,7 @@ def schema_asic(cfg):
             shorthelp="ASIC: special variable",
             switch="-asic_variable 'tool key <str>'",
             example=[
-                "cli: -asic_variable 'xyce modeltype bsim4'""",
+                "cli: -asic_variable 'xyce modeltype bsim4'",
                 "api: chip.set('asic','var','xyce','modeltype','bsim4')"],
             schelp="""
             List of key/value strings specified on a per basis. The parameter
@@ -3729,7 +3634,8 @@ def schema_asic(cfg):
 
 def schema_constraint(cfg, scenario='default'):
 
-    scparam(cfg,['constraint', scenario, 'voltage'],
+    # TIMING
+    scparam(cfg,['constraint', 'timing', scenario, 'voltage'],
             sctype='float',
             unit='V',
             scope='job',
@@ -3739,7 +3645,7 @@ def schema_constraint(cfg, scenario='default'):
                      "api: chip.set('constraint', 'worst','voltage', '0.9')"],
             schelp="""Operating voltage applied to the scenario.""")
 
-    scparam(cfg,['constraint', scenario, 'temperature'],
+    scparam(cfg,['constraint', 'timing', scenario, 'temperature'],
             sctype='float',
             scope='job',
             shorthelp="Constraint temperature",
@@ -3748,7 +3654,7 @@ def schema_constraint(cfg, scenario='default'):
                      "api: chip.set('constraint', 'worst', 'temperature','125')"],
             schelp="""Chip temperature applied to the scenario specified in degrees C.""")
 
-    scparam(cfg,['constraint', scenario, 'libcorner'],
+    scparam(cfg,['constraint', 'timing', scenario, 'libcorner'],
             sctype='[str]',
             scope='job',
             shorthelp="Constraint library corner",
@@ -3758,7 +3664,7 @@ def schema_constraint(cfg, scenario='default'):
             schelp="""List of characterization corners used to select
             timing files for all logiclibs and macrolibs.""")
 
-    scparam(cfg,['constraint', scenario, 'pexcorner'],
+    scparam(cfg,['constraint', 'timing', scenario, 'pexcorner'],
             sctype='str',
             scope='job',
             shorthelp="Constraint pex corner",
@@ -3769,7 +3675,7 @@ def schema_constraint(cfg, scenario='default'):
             'pexcorner' string must match a corner found in the pdk
             pexmodel setup.""")
 
-    scparam(cfg,['constraint', scenario, 'opcond'],
+    scparam(cfg,['constraint', 'timing', scenario, 'opcond'],
             sctype='str',
             scope='job',
             shorthelp="Constraint operating condition",
@@ -3780,7 +3686,7 @@ def schema_constraint(cfg, scenario='default'):
             can be used to access specific conditions within the library
             timing models from the 'logiclib' timing models.""")
 
-    scparam(cfg,['constraint', scenario, 'mode'],
+    scparam(cfg,['constraint', 'timing', scenario, 'mode'],
             sctype='str',
             scope='job',
             shorthelp="Constraint operating mode",
@@ -3790,7 +3696,7 @@ def schema_constraint(cfg, scenario='default'):
             schelp="""Operating mode for the scenario. Operating mode strings
             can be values such as test, functional, standby.""")
 
-    scparam(cfg,['constraint', scenario, 'file'],
+    scparam(cfg,['constraint', 'timing', scenario, 'file'],
             sctype='[file]',
             scope='job',
             copy='true',
@@ -3803,7 +3709,7 @@ def schema_constraint(cfg, scenario='default'):
             'constraint' parameter. If no constraints are found, a default
             constraint file is used based on the clock definitions.""")
 
-    scparam(cfg,['constraint', scenario, 'check'],
+    scparam(cfg,['constraint', 'timing', scenario, 'check'],
             sctype='[str]',
             scope='job',
             shorthelp="Constraint checks to perform",
@@ -3816,6 +3722,64 @@ def schema_constraint(cfg, scenario='default'):
             Checks generally include objectives like meeting setup and hold goals
             and minimize power. Standard check names include setup, hold, power,
             noise, reliability.""")
+
+    # LAYOUT
+    scparam(cfg, ['constraint', 'layout', name, 'size'],
+            sctype='[(float,float)]',
+            shorthelp="Layout size constraint",
+            switch="-constraint_size 'i0 <(float,float)'>",
+            example=[
+                "cli: -constraint_layout_size '(0,0)'",
+                "api: chip.add('constraint', 'layout', 'size', (0,0))"],
+            schelp="""
+            List of (x,y) points that constrains the design's physical size.
+            Simple rectangle areas can be defined with two points, one for the
+            lower left corner and one for the upper right corner. The outline
+            is a goal, not an exact specification. The compiler and layout
+            system may adjust sizes to meet competing goals such as
+            manufacturing design rules.""")
+
+    scparam(cfg, ['constraint', 'layout', name, 'placement'],
+            sctype='(float,float,float)',
+            shorthelp="Layout placement constraint",
+            switch="-constraint_layout_placement 'inst <(float,float, float)>'",
+            example=[
+                "cli: -constraint_location 'i0 (2.0,3.0,0.0)'",
+                "api: chip.set('constraint', 'location', 'i0', 'location', (2.0,3.0,0.0)"],
+            schelp="""
+            The (X,Y,Z) location of a named pin or component offset from the system
+            design origin in the lower left corner, specified in terms of
+            elementary lambda units. The provides values serves as a goal not an
+            exact specification. The compiler and layout system may slightly adjust
+            locations to meet grid and manufacturing design rules. Exact physical layouts
+            are reflected in the 'layout' database files.""")
+
+    scparam(cfg, ['constraint', 'layout',  name, 'rotation'],
+            sctype='float',
+            shorthelp="Layout component rotation",
+            switch="-layout_component_rotation 'inst <float>'",
+            example=[
+                "cli: -layout_component_rotation 'i0 90'",
+                "api: chip.set('layout', 'component', 'i0', 'rotation', '90')"],
+            schelp="""
+            Placement rotation of the component specified in degrees. Rotation
+            goes counter-clockwise for all parts on top and clock-wise for parts
+            on the bottom. In both cases, this is from the perspective of looking
+            at the top of the board. Rotation is specified in degrees.""")
+
+    scparam(cfg, ['constraint', 'layout', name, 'flip'],
+            sctype='bool',
+            shorthelp="Layout component flip option",
+            switch="-layout_component_flip 'inst <bool>'",
+            example=[
+                "cli: -layout_component_flip 'i0 true'",
+                "api: chip.set('layout', 'component', 'i0', 'flip', 'true')"],
+            schelp="""
+            Boolean parameter specifying that the named library component should be flipped
+            around the vertical axis befong being placed on the substrate. The need to
+            flip a component depends on the component footprint. Most dies have pads
+            facing up and so must be flipped when assembled face down (eg. flip-chip,
+            WCSP).""")
 
     return cfg
 
