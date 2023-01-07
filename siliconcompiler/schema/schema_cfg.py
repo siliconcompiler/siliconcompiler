@@ -346,18 +346,6 @@ def schema_layout(cfg):
             Name of footprint reference name for use in sytstems using
             libraries of standardized footprints (eg. PCB).""")
 
-    scparam(cfg, ['layout', 'substrate'],
-            sctype='str',
-            shorthelp="Layout substrate",
-            switch="-layout_substrate <str>",
-            example=[
-                "cli: -layout_substrate mypcb0",
-                "api: chip.set('layout', 'substrate', 'mypcb0')"],
-            schelp="""
-            Reference name (name) of the substrate that all design components
-            are placed on. The substrate can be any planar surface (eg.
-            PCB, package-substrate, silicon interposer).""")
-
     ###########
     # COMPONENT
     ###########
