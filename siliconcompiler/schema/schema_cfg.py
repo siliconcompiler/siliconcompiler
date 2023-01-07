@@ -1070,7 +1070,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
     # Device Features
     scparam(cfg, ['datasheet', design, 'feature', name],
             sctype='float',
-            shorthelp=f"Datasheet: device feature specification",
+            shorthelp=f"Datasheet: device features",
             switch=f"-datasheet_feature 'design name <float>'",
             example=[
                 f"cli: -datasheet_feature 'mydevice ram 64e6'",
@@ -1107,7 +1107,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
     package = 'default'
     scparam(cfg, ['datasheet', design, 'pin', name, 'map', package],
             sctype='str',
-            shorthelp=f"Datasheet: package pin map",
+            shorthelp=f"Datasheet: pin map",
             switch=f"-datasheet_pin_map 'design name package <str>'",
             example=[
                 f"cli: -datasheet_pin_map 'mydevice in0 bga512 B4'",
@@ -1206,8 +1206,9 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                'vcm': ['common mode voltage', (0.3, 1.2, 1.6), 'V'],
                'vdiff': ['differential voltage', (0.2, 0.3, 0.9), 'V'],
                'vnoise': ['random voltage noise', (0,0.01,0.1), 'V'],
-               'vhbm': ['machine model ESD tolerance', (100, 300, 500), 'V'],
-               'vcdm': ['human body model ESD tolerance', (100,300,500), 'V'],
+               'vhbm': ['HBM ESD tolerance', (200, 250, 300), 'V'],
+               'vcdm': ['CDM ESD tolerance', (125,150,175), 'V'],
+               'vmm': ['MM ESD tolerance', (100,125,150), 'V'],
                'rdiff': ['differential pair resistance', (45,50,55), 'ohm'],
                'rpullup': ['pullup resistance', (1000, 1200, 3000), 'ohm'],
                'rpulldown': ['pulldown resistance', (1000, 1200, 3000), 'ohm'],
@@ -1220,7 +1221,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
         scparam(cfg, ['datasheet', design, 'pin', name, item, mode],
                 unit=val[2],
                 sctype='(float,float,float)',
-                shorthelp=f"Datasheet: {val[0]}",
+                shorthelp=f"Datasheet: pin {val[0]}",
                 switch=f"-datasheet_pin_{item} 'design pin mode <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_pin_{item} 'mydevice sclk global {val[1]}'",
@@ -1241,7 +1242,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
         scparam(cfg, ['datasheet', design, 'pin', name, item, mode],
                 unit=val[2],
                 sctype='(float,float,float)',
-                shorthelp=f"Datasheet: {val[0]}",
+                shorthelp=f"Datasheet: pin {val[0]}",
                 switch=f"-datasheet_pin_{item} 'design pin mode <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_pin_{item} 'mydevice sclk global {val[1]}'",
@@ -3633,7 +3634,6 @@ def schema_asic(cfg):
 ############################################
 
 def schema_constraint(cfg, scenario='default', instance = 'default'):
-
 
     # TIMING
     scparam(cfg,['constraint', 'timing', scenario, 'voltage'],
