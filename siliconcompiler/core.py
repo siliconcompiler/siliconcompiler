@@ -4384,7 +4384,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if license_file:
                 envvars[item] = ':'.join(license_file)
         if self.get('tool', tool, 'path'):
-            envvars['PATH'] = self.get('tool', tool, 'path') + os.pathsep + '$PATH'
+            envvars['PATH'] = self.get('tool', tool, 'path') + os.pathsep + os.environ['PATH']
         else:
             envvars['PATH'] = os.environ['PATH']
         if (step in self.getkeys('tool', tool, 'env') and
