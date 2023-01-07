@@ -3632,7 +3632,8 @@ def schema_asic(cfg):
 # Constraints
 ############################################
 
-def schema_constraint(cfg, scenario='default'):
+def schema_constraint(cfg, scenario='default', instance = 'default'):
+
 
     # TIMING
     scparam(cfg,['constraint', 'timing', scenario, 'voltage'],
@@ -3724,58 +3725,71 @@ def schema_constraint(cfg, scenario='default'):
             noise, reliability.""")
 
     # LAYOUT
-    scparam(cfg, ['constraint', 'layout', name, 'size'],
+    scparam(cfg, ['constraint', 'layout', instance, 'outline'],
             sctype='[(float,float)]',
-            shorthelp="Layout size constraint",
-            switch="-constraint_size 'i0 <(float,float)'>",
+            shorthelp="Constraint: Component outline",
+            switch="-constraint_layout_size 'i0 <(float,float)'>",
             example=[
-                "cli: -constraint_layout_size '(0,0)'",
-                "api: chip.add('constraint', 'layout', 'size', (0,0))"],
+                "cli: -constraint_layout_size 'i0 (0,0)'",
+                "api: chip.add('constraint', 'layout', 'i0', 'size', (0,0))"],
             schelp="""
-            List of (x,y) points that constrains the design's physical size.
-            Simple rectangle areas can be defined with two points, one for the
-            lower left corner and one for the upper right corner. The outline
-            is a goal, not an exact specification. The compiler and layout
-            system may adjust sizes to meet competing goals such as
-            manufacturing design rules.""")
+            List of (x,y) points that constrains the outline of a named
+            instance. A named component can be any legal reference
+            designator (instance) in the layout database including components
+            (parts), keepout areas, pins. Simple rectangle areas can be defined
+            with two points, one for the lower left corner and one for the
+            upper right corner. The 'outline' parameter is a goal, not an
+            exact specification. The compiler and layout system may adjust
+            sizes to meet competing goals such as manufacturing design
+            rules.""")
 
-    scparam(cfg, ['constraint', 'layout', name, 'placement'],
+    scparam(cfg, ['constraint', 'layout', instance, 'placement'],
             sctype='(float,float,float)',
-            shorthelp="Layout placement constraint",
+            shorthelp="Constraint: Component placement",
             switch="-constraint_layout_placement 'inst <(float,float, float)>'",
             example=[
-                "cli: -constraint_location 'i0 (2.0,3.0,0.0)'",
-                "api: chip.set('constraint', 'location', 'i0', 'location', (2.0,3.0,0.0)"],
+                "cli: -constraint_layout_placement 'i0 (2.0,3.0,0.0)'",
+                "api: chip.set('constraint', 'layout', 'i0', 'placement', (2.0,3.0,0.0)"],
             schelp="""
-            The (X,Y,Z) location of a named pin or component offset from the system
-            design origin in the lower left corner, specified in terms of
-            elementary lambda units. The provides values serves as a goal not an
-            exact specification. The compiler and layout system may slightly adjust
-            locations to meet grid and manufacturing design rules. Exact physical layouts
-            are reflected in the 'layout' database files.""")
+            Placement location of a named component, specified as a (x,y,z) tuple of
+            floats. The location refers to the placement of the center/centroid of the
+            component. A named component an be any legal reference designator (instance)
+            in the system layout database including components (parts), keepout areas,
+            pins. he 'placement' parameter is a goal/intent, not an exact specification.
+            The compiler and layout system may adjust sizes to meet competing
+            goals such as manufacturing design  rules and grid placement
+            guidelines. The 'z' coordinate shall be set to 0 for planar systems
+            with only (x,y) coordinates. Discretized systems like PCB stacks,
+            package stacks, and breadboards only allow a reduced
+            set of floating point values (0,1,2,3). The user specifying the
+            placement will need to have some understanding of the type of
+            layout system the component is being placed in (ASIC, SIP, PCB) but
+            should not need to know exact manufacturing specifications.""")
 
-    scparam(cfg, ['constraint', 'layout',  name, 'rotation'],
+    scparam(cfg, ['constraint', 'layout',  instance, 'rotation'],
             sctype='float',
-            shorthelp="Layout component rotation",
-            switch="-layout_component_rotation 'inst <float>'",
+            shorthelp="Constraint: Component rotation",
+            switch="-constraint_layout_rotation 'inst <float>'",
             example=[
-                "cli: -layout_component_rotation 'i0 90'",
-                "api: chip.set('layout', 'component', 'i0', 'rotation', '90')"],
+                "cli: -constraint_layout_rotation 'i0 90'",
+                "api: chip.set('constraint', 'layout', 'i0', 'rotation', '90')"],
             schelp="""
             Placement rotation of the component specified in degrees. Rotation
             goes counter-clockwise for all parts on top and clock-wise for parts
             on the bottom. In both cases, this is from the perspective of looking
-            at the top of the board. Rotation is specified in degrees.""")
+            at the top of the board. Rotation is specified in degrees. Most gridded
+            layout systems (like ASICs) only allow a finite number of rotation
+            values (0,90,180,270).""")
 
-    scparam(cfg, ['constraint', 'layout', name, 'flip'],
+    scparam(cfg, ['constraint', 'layout', instance, 'flip'],
             sctype='bool',
-            shorthelp="Layout component flip option",
-            switch="-layout_component_flip 'inst <bool>'",
+            shorthelp="Constraint: Component flip option",
+            switch="-constraint_layout_flip 'inst <bool>'",
             example=[
                 "cli: -layout_component_flip 'i0 true'",
                 "api: chip.set('layout', 'component', 'i0', 'flip', 'true')"],
             schelp="""
-            Boolean parameter specifying that the named library component should be flipped
+            Boolean parameter specifying that the instanced library component should be flipped
             around the vertical axis befong being placed on the substrate. The need to
             flip a component depends on the component footprint. Most dies have pads
             facing up and so must be flipped when assembled face down (eg. flip-chip,
