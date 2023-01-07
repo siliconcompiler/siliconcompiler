@@ -145,7 +145,7 @@ def request_remote_run(chip):
         post_params['params']['key'] = rcfg['password']
 
     # If '-remote_user' and '-remote_key' are not both specified,
-    # no authorizaion is configured; proceed without crypto.
+    # no authorization is configured; proceed without crypto.
     # If they were specified, these files are now encrypted.
     subprocess.run(['tar',
                     '-czf',

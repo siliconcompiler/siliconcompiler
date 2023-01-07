@@ -79,7 +79,7 @@ your Python virtual environment.
 
    python heartbeat.py
 
-Alternatively, the simple hearbeat example can be run calling the
+Alternatively, the simple heartbeat example can be run calling the
 SiliconCompiler 'sc' program directly from the command line.
 
 .. literalinclude:: examples/heartbeat/run.sh

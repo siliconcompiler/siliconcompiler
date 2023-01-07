@@ -137,11 +137,11 @@ SiliconCompiler 0.9.0 (2022-05-19)
   * Added ['output', ...] to store pointers to flow outputs.
   * Added ['model', ...] to store pointers to design abstractions (timing libraries, layouts, etc).
   * Added ['datasheet', ...] to store information about design's interface.
-  * Added ['unit', ...]  to store user driven SI units specificaiton (temp,voltage, etc)
+  * Added ['unit', ...]  to store user driven SI units specification (temp,voltage, etc)
   * Renamed ['eda', ...] to ['tool', ...]
   * Renamed ['mcmm', ...] to ['constraint', ...]
   * Replaced ['source'], ['constraint'], and ['read', ...] with more flexible ['input', \<filetype\>] to supply input files.
-  * Added support for storing multiple PDKs in schema and selecting which one to use for run (analagous to flows).
+  * Added support for storing multiple PDKs in schema and selecting which one to use for run (analogous to flows).
   * Change ['flowgraph'] to support modular flow composition
   * Added support for package management ['depgrah'].
   * Added checklist support.
@@ -233,7 +233,7 @@ SiliconCompiler 0.4.1 (2022-01-06)
 
 **Minor:**
 
-* Fix bug in Yosys parameter requirements spec that made check_manifest() too scrict
+* Fix bug in Yosys parameter requirements spec that made check_manifest() too strict
 
 SiliconCompiler 0.4.0 (2022-01-05)
 ===================================
