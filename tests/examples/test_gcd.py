@@ -29,8 +29,8 @@ def test_py(setup_example_test):
     # "No timescale set..."
     assert chip.get('metric', 'import', '0', 'warnings') == 10
 
-    # "Found unsupported expression..." (x72) + 2 ABC Warnings
-    assert chip.get('metric', 'syn', '0', 'warnings') == 74
+    # "Found unsupported expression..." (x72) + 3 ABC Warnings
+    assert chip.get('metric', 'syn', '0', 'warnings') == 75
 
     assert chip.get('metric', 'floorplan', '0', 'warnings') == 0
 

@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# This test does not work at the moment (Jan 4, 2023)
+
 import siliconcompiler
 
 def main():
@@ -6,11 +9,11 @@ def main():
     # Create instance of Chip class
     chip = siliconcompiler.Chip('gcd', loglevel='INFO')
 
-    chip.add('source', 'gcd.v')
-    chip.add('constraint', 'gcd.sdc')
-    chip.set('relax', True)
-    chip.set('quiet', True)
-    chip.set('skipcheck', True)
+    chip.add('input', 'verilog', 'gcd.v')
+    chip.add('input', 'sdc', 'gcd.sdc')
+    chip.set('option', 'relax', True)
+    chip.set('option', 'quiet', True)
+    chip.set('option', 'skipcheck', True)
 
     chip.load_target("skywater130_demo")
 
@@ -48,7 +51,7 @@ def main():
     chip.write_manifest("top0.tcl")
     chip.edge('top','import','apr')
     chip.edge("top", "apr", "dv")
-    chip.set('flow', 'top')
+    chip.set('option', 'flow', 'top')
     chip.write_flowgraph("top.png")
     chip.write_manifest("top.tcl")
 

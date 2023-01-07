@@ -4427,7 +4427,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             envvar_cmd = 'export'
             for key, val in envvars.items():
-                print(f'{envvar_cmd} {key}={val}', file=f)
+                print(f'{envvar_cmd} {key}="{val}"', file=f)
 
             replay_cmdlist = [os.path.basename(cmdlist[0])] + cmdlist[1:]
             print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in replay_cmdlist), file=f)

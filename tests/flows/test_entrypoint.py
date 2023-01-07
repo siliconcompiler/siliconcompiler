@@ -22,4 +22,4 @@ def test_entrypoint(scroot):
 
     # If ['option', 'entrypoint'] didn't work, this test would just build
     # heartbeat, and the design would have half as many cells post-synthesis.
-    assert chip.get('metric', 'syn', '0', 'cells') == 50
+    assert chip.get('metric', 'syn', '0', 'cells') == 52

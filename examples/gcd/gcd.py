@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 import siliconcompiler
+import os
 
 def main(root='.'):
     '''Simple asicflow example.'''
@@ -21,4 +23,4 @@ def main(root='.'):
     chip.summary()
 
 if __name__ == '__main__':
-    main(root='examples/gcd')
+    main(root=os.path.dirname(__file__))
