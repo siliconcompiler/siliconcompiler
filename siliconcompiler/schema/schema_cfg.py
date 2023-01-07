@@ -311,7 +311,7 @@ def schema_layout(cfg):
     #########
     # OPTIONS
     #########
-    scparam(cfg, ['layout', 'outline'],
+    scparam(cfg, ['layout', 'size'],
             sctype='[(float,float)]',
             shorthelp="Layout outline",
             switch="-layout_outline <(float,float)>",
@@ -323,17 +323,6 @@ def schema_layout(cfg):
             Simple rectangle areas can be defined with two points, one for the
             lower left corner and one for the upper right corner. Layout
             systems (like PCBs""")
-
-    scparam(cfg, ['layout', 'centroid'],
-            sctype='(float,float)',
-            shorthelp="Layout centroid",
-            switch="-layout_centroid  <(float,float)>'",
-            example=[
-                "cli: -layout_centroid (5,5)",
-                "api: chip.set('layout', 'centroid', (5,5))"],
-            schelp="""
-            Center point of the component. Most components will have the
-            centroid at the center of the outline.""")
 
     scparam(cfg, ['layout', 'footprint'],
             sctype='str',
@@ -350,7 +339,7 @@ def schema_layout(cfg):
     # COMPONENT
     ###########
     scparam(cfg, ['layout', 'component', name, 'location'],
-            sctype='(float,float)',
+            sctype='(float,float,float)',
             shorthelp="Layout component location",
             switch="-layout_component_location 'inst <(float,float)>'",
             example=[
@@ -361,17 +350,6 @@ def schema_layout(cfg):
             located in the lower left corner, specified in terms of elementary
             lambda units. Absolute location values are resolved by multiplying
             the location with the 'lambda' value.""")
-
-    scparam(cfg, ['layout', 'component', name, 'bottomside'],
-            sctype='bool',
-            shorthelp="Layout component bottomside option",
-            switch="-layout_component_bottomside 'inst <bool>'",
-            example=[
-                "cli: -layout_component_bottomside 'i0 true'",
-                "api: chip.set('layout', 'component', 'i0', 'bottomside', True)"],
-            schelp="""
-            Boolean parameter specifying that the component should be placed
-            on the bottom side of the subsizestrate.""")
 
     scparam(cfg, ['layout', 'component', name, 'rotation'],
             sctype='float',
@@ -413,48 +391,20 @@ def schema_layout(cfg):
     #######
     # PINS
     #######
-    scparam(cfg, ['layout', 'pin', name, 'shape'],
-            sctype='str',
-            shorthelp="Layout pin type",
-            switch="-layout_pin_shape 'clk <str>'",
+
+    scparam(cfg, ['layout', 'pin', name, 'location'],
+            sctype='[(float,float, float)]',
+            shorthelp="Layout pin location",
+            switch="-layout_pin_location 'clk <(float,float,float)>'",
             example=[
-                "cli: -layout_pin_shape 'clk rectangle'",
-                "api: chip.set('layout', 'pin', 'i0', 'shape', 'rectangle')"],
+                "cli: -layout_pin_pad 'clk (3,3,0)'",
+                "api: chip.set('layout', 'pin', 'clk', 'pad', (3,3,0))"],
             schelp="""
-            Shape of named pin. Legal shapes are: rectangle, circle,
-            polygon, track,...""")
-
-    scparam(cfg, ['layout', 'pin', name, 'pad'],
-            sctype='[(float,float)]',
-            shorthelp="Layout pin pad area",
-            switch="-layout_pin_pad 'clk <(float,float)>'",
-            example=[
-                "cli: -layout_pin_pad 'clk (3,3)'",
-                "api: chip.set('layout', 'pin', 'clk', 'pad', (3,3))"],
-            schelp="""
-            Location and size of named pin's landing pad specifie as a
-            tuple based on the shape of the landing pad.
-
-            circle:    [(diameter,diameter), (x0,y0)]
-            rectangle: [(width,height), (x0,y0)]
-            polygon:   [(halo,halo), (x0,y0), (x1,y1), (x2,y2), ...]
-            track:     [(width,width), (x0,y0), (x1,y1), (x2,y2), ...]
-
-            """)
-
-    scparam(cfg, ['layout', 'pin', name, 'parameter'],
-            sctype='[(str,str)]',
-            shorthelp="Layout pin parameter",
-            switch="-layout_pin_parameter 'name <(str,str)>'",
-            example=[
-                "cli: -layout_pin_parameter 'clk (ndr,2x)'",
-                "api: chip.set('layout', 'pin', 'clk', 'parameter', ('ndr','2x'))"],
-            schelp="""
-            List of layout parameter definitions attached to a named pin, net, or
-            component pecified as (key,value) tuples.""")
+            Pin location constraint."""
+            )
 
     # gds, def, oasis, gerber, lef, kicad_mod
-    scparam(cfg, ['layout', 'database', name, filetype, stackup],
+    scparam(cfg, ['layout', name, filetype, stackup],
             sctype='[file]',
             shorthelp="Layout database",
             switch="-layout_database 'name filetype <file>'",
