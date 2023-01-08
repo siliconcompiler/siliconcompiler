@@ -147,11 +147,12 @@ def schema_cfg():
             switch="-lambda <float>",
             example=["cli: -lambda 1e-6",
                     "api: chip.set('lambda', 1e-6)"],
-            schelp="""Elementary distance unit used for scaling all relative
-            dimensional schema parameters to derive absolute locations, lengths,
-            and widths.""")
+            schelp="""Elementary distance unit used for scaling all
+            schema physical parameters (layout constraints, size, outline,
+            area, margin etc).""")
 
     # input/output
+    # TODO: Add schematic, layout models here!!!!!!
     io = {'input': ['Input','true'],
           'output': ['Output','false']
     }
@@ -198,11 +199,10 @@ def schema_cfg():
     # Modeling
     cfg = schema_model(cfg)
 
-    # Schematic/Layout
+    # Schematic Entry
     cfg = schema_schematic(cfg)
-    cfg = schema_layout(cfg)
 
-    # Datasheeet
+    # Datasheet
     cfg = schema_datasheet(cfg)
 
     # Packaging
@@ -223,7 +223,7 @@ def schema_schematic(cfg):
 
     scparam(cfg,['schematic', 'component', name],
             sctype='str',
-            shorthelp="Schematic component",
+            shorthelp="Schematic: component (instance)",
             switch="-schematic_component 'name <str>'",
             example=[
                 "cli: -schematic_component 'i0 za001'",
@@ -233,7 +233,7 @@ def schema_schematic(cfg):
 
     scparam(cfg, ['schematic', 'net', name],
             sctype='[(str,str)]',
-            shorthelp="Schematic net",
+            shorthelp="Schematic: net definition",
             switch="-schematic_net 'name <(str,str)>'",
             example=[
                 "cli: -schematic_net 'netA[7:0] (i0,in[7:0])'",
@@ -246,7 +246,7 @@ def schema_schematic(cfg):
 
     scparam(cfg, ['schematic', 'pin', name],
             sctype='(str,str)',
-            shorthelp="Schematic pin",
+            shorthelp="Schematic: pin definition",
             switch="-schematic_pin 'name <(str,str)>'",
             example=[
                 "cli: -schematic_pin 'out[7:0] (output,signal)'",
@@ -259,7 +259,7 @@ def schema_schematic(cfg):
 
     scparam(cfg, ['schematic', 'interface', name],
             sctype='[(str,str)]',
-            shorthelp="Schematic interface",
+            shorthelp="Schematic: interface definition",
             switch="-schematic_interface 'name <(str,str)>'",
             example=[
                 "cli: -schematic_interface 'name (clk,clk0)'",
@@ -272,7 +272,7 @@ def schema_schematic(cfg):
 
     scparam(cfg, ['schematic', 'parameter', name],
             sctype='[(str,str)]',
-            shorthelp="Schematic parameter",
+            shorthelp="Schematic: parameter definition ",
             switch="-schematic_parameter 'obj <(str,str)>'",
             example=[
                 "cli: -schematic_parameter 'i0 (speed,fast)'",
@@ -280,44 +280,6 @@ def schema_schematic(cfg):
             schelp="""
             List of parameter definitions attached to a named pin, net, or
             component pecified as (key,value) tuples.""")
-
-    scparam(cfg, ['schematic', 'netlist', filetype],
-            sctype='[file]',
-            shorthelp="Schematic netlist",
-            switch="-schematic_netlist 'filetype <file>'",
-            example=[
-                "cli: -schematic_netlist 'verilog my.v'",
-                "api: chip.set('schematic','netlist', 'verilog', 'my.v')"],
-            schelp="""
-            File pointer to a desgin netlist specified on a per format basis.
-            The netlist in thefile is expected to exactly match the manifest
-            schematic netlist structure (ie. components, pins, and connectivity).""")
-
-    return cfg
-
-###############################################################################
-# Layout
-###############################################################################
-
-def schema_layout(cfg):
-    ''' Layout configuration
-    '''
-
-    name = 'default'
-    filetype = 'default'
-    shape = 'default'
-    stackup = 'default'
-
-    # gds, def, oasis, gerber, lef, kicad_mod
-    scparam(cfg, ['layout', name, filetype, stackup],
-            sctype='[file]',
-            shorthelp="Layout database",
-            switch="-layout_database 'name filetype <file>'",
-            example=[
-                "cli: -layout_database 'nangate45 gds 10M nangate45.gds'",
-                "api: chip.set('layout', 'database', 'nangate45', 'gds', '10M', 'my.gds')"],
-            schelp="""
-            File pointer to a desgin layout database specified on a per format basis.""")
 
     return cfg
 
@@ -2902,7 +2864,7 @@ def schema_package(cfg):
     scparam(cfg, ['package', 'depgraph', module],
             sctype='[(str,str)]',
             scope='global',
-            shorthelp=f"Package dependency list",
+            shorthelp=f"Package: dependency list",
             switch=f"-package_depgraph 'module <(str,str)>'",
             example=[
                 f"cli: -package_depgraph 'top (cpu,1.0.1)'",
@@ -3640,38 +3602,38 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             sctype='float',
             unit='V',
             scope='job',
-            shorthelp="Constraint voltage level",
-            switch="-constraint_voltage 'scenario <float>'",
-            example=["cli: -constraint_voltage 'worst 0.9'",
-                     "api: chip.set('constraint', 'worst','voltage', '0.9')"],
+            shorthelp="Constraint: voltage level",
+            switch="-constraint_timing_voltage 'scenario <float>'",
+            example=["cli: -constraint_timing_voltage 'worst 0.9'",
+                     "api: chip.set('constraint', 'timing', 'worst','voltage', '0.9')"],
             schelp="""Operating voltage applied to the scenario.""")
 
     scparam(cfg,['constraint', 'timing', scenario, 'temperature'],
             sctype='float',
             scope='job',
-            shorthelp="Constraint temperature",
-            switch="-constraint_temperature 'scenario <float>'",
-            example=["cli: -constraint_temperature 'worst 125'",
-                     "api: chip.set('constraint', 'worst', 'temperature','125')"],
+            shorthelp="Constraint: temperature",
+            switch="-constraint_timing_temperature 'scenario <float>'",
+            example=["cli: -constraint_timing_temperature 'worst 125'",
+                     "api: chip.set('constraint', 'timing', 'worst', 'temperature','125')"],
             schelp="""Chip temperature applied to the scenario specified in degrees C.""")
 
     scparam(cfg,['constraint', 'timing', scenario, 'libcorner'],
             sctype='[str]',
             scope='job',
-            shorthelp="Constraint library corner",
-            switch="-constraint_libcorner 'scenario <str>'",
-            example=["cli: -constraint_libcorner 'worst ttt'",
-                    "api: chip.set('constraint', 'worst', 'libcorner', 'ttt')"],
+            shorthelp="Constraint: library corner",
+            switch="-constraint_timing_libcorner 'scenario <str>'",
+            example=["cli: -constraint_timing_libcorner 'worst ttt'",
+                    "api: chip.set('constraint', 'timing', 'worst', 'libcorner', 'ttt')"],
             schelp="""List of characterization corners used to select
             timing files for all logiclibs and macrolibs.""")
 
     scparam(cfg,['constraint', 'timing', scenario, 'pexcorner'],
             sctype='str',
             scope='job',
-            shorthelp="Constraint pex corner",
-            switch="-constraint_pexcorner 'scenario <str>'",
-            example=["cli: -constraint_pexcorner 'worst max'",
-                    "api: chip.set('constraint', 'worst', 'pexcorner', 'max')"],
+            shorthelp="Constraint: pex corner",
+            switch="-constraint_ptiming_excorner 'scenario <str>'",
+            example=["cli: -constraint_timing_pexcorner 'worst max'",
+                    "api: chip.set('constraint', 'timing', 'worst', 'pexcorner', 'max')"],
             schelp="""Parasitic corner applied to the scenario. The
             'pexcorner' string must match a corner found in the pdk
             pexmodel setup.""")
@@ -3679,10 +3641,10 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
     scparam(cfg,['constraint', 'timing', scenario, 'opcond'],
             sctype='str',
             scope='job',
-            shorthelp="Constraint operating condition",
-            switch="-constraint_opcond 'scenario <str>'",
-            example=["cli: -constraint_opcond 'worst typical_1.0'",
-                     "api: chip.set('constraint', 'worst', 'opcond',  'typical_1.0')"],
+            shorthelp="Constraint: operating condition",
+            switch="-constraint_timing_opcond 'scenario <str>'",
+            example=["cli: -constraint_timing_opcond 'worst typical_1.0'",
+                     "api: chip.set('constraint', 'timing', 'worst', 'opcond',  'typical_1.0')"],
             schelp="""Operating condition applied to the scenario. The value
             can be used to access specific conditions within the library
             timing models from the 'logiclib' timing models.""")
@@ -3690,10 +3652,10 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
     scparam(cfg,['constraint', 'timing', scenario, 'mode'],
             sctype='str',
             scope='job',
-            shorthelp="Constraint operating mode",
-            switch="-constraint_mode 'scenario <str>'",
-            example=["cli: -constraint_mode 'worst test'",
-                     "api: chip.set('constraint',  'worst','mode', 'test')"],
+            shorthelp="Constraint: operating mode",
+            switch="-constraint_timing_mode 'scenario <str>'",
+            example=["cli: -constraint_timing_mode 'worst test'",
+                     "api: chip.set('constraint', 'timing', 'worst','mode', 'test')"],
             schelp="""Operating mode for the scenario. Operating mode strings
             can be values such as test, functional, standby.""")
 
@@ -3701,10 +3663,11 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             sctype='[file]',
             scope='job',
             copy='true',
-            shorthelp="Constraint files",
-            switch="-constraint_file 'scenario <file>'",
-            example=["cli: -constraint_file 'worst hello.sdc'",
-                     "api: chip.set('constraint','worst','file', 'hello.sdc')"],
+            shorthelp="Constraint: SDC files",
+            switch="-constraint_timing_file 'scenario <file>'",
+            example=[
+                "cli: -constraint_timing_file 'worst hello.sdc'",
+                "api: chip.set('constraint', 'timing', 'worst','file', 'hello.sdc')"],
             schelp="""List of timing constraint files to use for the scenario. The
             values are combined with any constraints specified by the design
             'constraint' parameter. If no constraints are found, a default
@@ -3713,10 +3676,11 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
     scparam(cfg,['constraint', 'timing', scenario, 'check'],
             sctype='[str]',
             scope='job',
-            shorthelp="Constraint checks to perform",
-            switch="-constraint_check 'scenario <str>'",
-            example=["cli: -constraint_check 'worst check setup'",
-                    "api: chip.add('constraint','worst','check','setup')"],
+            shorthelp="Constraint: timing checks",
+            switch="-constraint_timing_check 'scenario <str>'",
+            example=[
+                "cli: -constraint_timing_check 'worst check setup'",
+                "api: chip.add('constraint', 'timing', 'worst','check','setup')"],
             schelp="""
             List of checks for to perform for the scenario. The checks must
             align with the capabilities of the EDA tools and flow being used.
@@ -3724,38 +3688,34 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             and minimize power. Standard check names include setup, hold, power,
             noise, reliability.""")
 
-    # LAYOUT
-    scparam(cfg, ['constraint', 'layout', instance, 'outline'],
+    # COMPONENTS
+    scparam(cfg, ['constraint', 'component', instance, 'outline'],
             sctype='[(float,float)]',
             shorthelp="Constraint: Component outline",
-            switch="-constraint_layout_size 'i0 <(float,float)'>",
+            switch="-constraint_component_size 'i0 <(float,float)'>",
             example=[
-                "cli: -constraint_layout_size 'i0 (0,0)'",
-                "api: chip.add('constraint', 'layout', 'i0', 'size', (0,0))"],
+                "cli: -constraint_component_size 'i0 (0,0)'",
+                "api: chip.add('constraint', 'component', 'i0', 'size', (0,0))"],
             schelp="""
             List of (x,y) points that constrains the outline of a named
-            instance. A named component can be any legal reference
-            designator (instance) in the layout database including components
-            (parts), keepout areas, pins. Simple rectangle areas can be defined
+            instance. Simple rectangle areas can be defined
             with two points, one for the lower left corner and one for the
             upper right corner. The 'outline' parameter is a goal, not an
-            exact specification. The compiler and layout system may adjust
+            exact specification. The compiler and component system may adjust
             sizes to meet competing goals such as manufacturing design
             rules.""")
 
-    scparam(cfg, ['constraint', 'layout', instance, 'placement'],
+    scparam(cfg, ['constraint', 'component', instance, 'placement'],
             sctype='(float,float,float)',
             shorthelp="Constraint: Component placement",
-            switch="-constraint_layout_placement 'inst <(float,float, float)>'",
+            switch="-constraint_component_placement 'inst <(float,float, float)>'",
             example=[
-                "cli: -constraint_layout_placement 'i0 (2.0,3.0,0.0)'",
-                "api: chip.set('constraint', 'layout', 'i0', 'placement', (2.0,3.0,0.0)"],
+                "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
+                "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"],
             schelp="""
             Placement location of a named component, specified as a (x,y,z) tuple of
             floats. The location refers to the placement of the center/centroid of the
-            component. A named component an be any legal reference designator (instance)
-            in the system layout database including components (parts), keepout areas,
-            pins. he 'placement' parameter is a goal/intent, not an exact specification.
+            component. The 'placement' parameter is a goal/intent, not an exact specification.
             The compiler and layout system may adjust sizes to meet competing
             goals such as manufacturing design  rules and grid placement
             guidelines. The 'z' coordinate shall be set to 0 for planar systems
@@ -3766,13 +3726,13 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             layout system the component is being placed in (ASIC, SIP, PCB) but
             should not need to know exact manufacturing specifications.""")
 
-    scparam(cfg, ['constraint', 'layout',  instance, 'rotation'],
+    scparam(cfg, ['constraint', 'component',  instance, 'rotation'],
             sctype='float',
             shorthelp="Constraint: Component rotation",
-            switch="-constraint_layout_rotation 'inst <float>'",
+            switch="-constraint_component_rotation 'inst <float>'",
             example=[
-                "cli: -constraint_layout_rotation 'i0 90'",
-                "api: chip.set('constraint', 'layout', 'i0', 'rotation', '90')"],
+                "cli: -constraint_component_rotation 'i0 90'",
+                "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"],
             schelp="""
             Placement rotation of the component specified in degrees. Rotation
             goes counter-clockwise for all parts on top and clock-wise for parts
@@ -3781,19 +3741,38 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             layout systems (like ASICs) only allow a finite number of rotation
             values (0,90,180,270).""")
 
-    scparam(cfg, ['constraint', 'layout', instance, 'flip'],
+    scparam(cfg, ['constraint', 'component', instance, 'flip'],
             sctype='bool',
             shorthelp="Constraint: Component flip option",
-            switch="-constraint_layout_flip 'inst <bool>'",
+            switch="-constraint_component_flip 'inst <bool>'",
             example=[
-                "cli: -layout_component_flip 'i0 true'",
-                "api: chip.set('layout', 'component', 'i0', 'flip', 'true')"],
+                "cli: -component_component_flip 'i0 true'",
+                "api: chip.set('component', 'component', 'i0', 'flip', 'true')"],
             schelp="""
             Boolean parameter specifying that the instanced library component should be flipped
             around the vertical axis befong being placed on the substrate. The need to
             flip a component depends on the component footprint. Most dies have pads
             facing up and so must be flipped when assembled face down (eg. flip-chip,
             WCSP).""")
+
+    # PINS
+    scparam(cfg, ['constraint', 'pin', instance, 'placement'],
+            sctype='(float,float,float)',
+            shorthelp="Constraint: Pin placement",
+            switch="-constraint_pin_placement 'inst <(float,float, float)>'",
+            example=[
+                "cli: -constraint_pin_placement 'i0 (2.0,3.0,0.0)'",
+                "api: chip.set('constraint', 'pin', 'i0', 'placement', (2.0,3.0,0.0)"],
+            schelp="""
+            Placement location of a named pin, specified as a (x,y,z) tuple of
+            floats. The location refers to the placement of the center of the
+            pin. Rhe 'placement' parameter is a goal/intent, not an exact specification.
+            The compiler and layout system may adjust sizes to meet competing
+            goals such as manufacturing design  rules and grid placement
+            guidelines. The 'z' coordinate shall be set to 0 for planar components
+            with only (x,y) coordinates. Discretized systems like 3D chips with
+            pins on to and bottom may choose to discretize the top and bottom
+            layer as 0,1 or use absolute coordinates.""")
 
     return cfg
 
