@@ -63,10 +63,10 @@ def setup(chip):
 
     #6. Timing corners
     corner = 'typical'
-    chip.set('constraint','worst','libcorner', corner)
-    chip.set('constraint','worst','pexcorner', corner)
-    chip.set('constraint','worst','mode', 'func')
-    chip.set('constraint','worst','check', ['setup','hold'])
+    chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
+    chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)
+    chip.set('constraint', 'timing', 'worst', 'mode', 'func')
+    chip.set('constraint', 'timing', 'worst', 'check', ['setup','hold'])
 
 #########################
 if __name__ == "__main__":
