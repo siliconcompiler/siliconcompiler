@@ -30,7 +30,6 @@ def test_steplist(gcd_chip):
     assert gcd_chip.find_result('def', step='floorplan')
 
 @pytest.mark.eda
-@pytest.mark.skip(reason="cfg no longer used")
 def test_steplist_keep_reports(gcd_chip):
     '''Regression test for making sure that reports from previous steps are
     still mapped when a script is re-run with a steplist.'''

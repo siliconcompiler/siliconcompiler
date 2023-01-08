@@ -18,8 +18,8 @@ set sc_targetlibs  [dict get $sc_cfg asic logiclib]
 # TODO: properly handle complexity here
 set lib [lindex $sc_targetlibs 0]
 set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
-set sc_scenarios   [dict keys [dict get $sc_cfg constraint]]
-set sc_libcorner [dict get $sc_cfg constraint [lindex $sc_scenarios 0] libcorner]
+set sc_scenarios   [dict keys [dict get $sc_cfg constraint timing]]
+set sc_libcorner [dict get $sc_cfg constraint timing [lindex $sc_scenarios 0] libcorner]
 set sc_liberty [dict get $sc_cfg library $lib model timing $sc_delaymodel $sc_libcorner]
 
 if {[dict exists $sc_cfg tool $sc_tool "variable" $sc_step $sc_index induction_steps]} {
