@@ -3631,7 +3631,7 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             sctype='str',
             scope='job',
             shorthelp="Constraint: pex corner",
-            switch="-constraint_ptiming_excorner 'scenario <str>'",
+            switch="-constraint_timing_pexcorner 'scenario <str>'",
             example=["cli: -constraint_timing_pexcorner 'worst max'",
                     "api: chip.set('constraint', 'timing', 'worst', 'pexcorner', 'max')"],
             schelp="""Parasitic corner applied to the scenario. The
@@ -3692,10 +3692,10 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
     scparam(cfg, ['constraint', 'component', instance, 'outline'],
             sctype='[(float,float)]',
             shorthelp="Constraint: Component outline",
-            switch="-constraint_component_size 'i0 <(float,float)'>",
+            switch="-constraint_component_outline 'i0 <(float,float)'>",
             example=[
-                "cli: -constraint_component_size 'i0 (0,0)'",
-                "api: chip.add('constraint', 'component', 'i0', 'size', (0,0))"],
+                "cli: -constraint_component_outline 'i0 (0,0)'",
+                "api: chip.add('constraint', 'component', 'i0', 'outline', (0,0))"],
             schelp="""
             List of (x,y) points that constrains the outline of a named
             instance. Simple rectangle areas can be defined
@@ -3746,8 +3746,8 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             shorthelp="Constraint: Component flip option",
             switch="-constraint_component_flip 'inst <bool>'",
             example=[
-                "cli: -component_component_flip 'i0 true'",
-                "api: chip.set('component', 'component', 'i0', 'flip', 'true')"],
+                "cli: -constraint_component_flip 'i0 true'",
+                "api: chip.set('constraint', 'component', 'i0', 'flip', 'true')"],
             schelp="""
             Boolean parameter specifying that the instanced library component should be flipped
             around the vertical axis befong being placed on the substrate. The need to

@@ -1062,148 +1062,243 @@
         }
     },
     "constraint": {
-        "default": {
-            "check": {
-                "defvalue": [],
-                "example": [
-                    "cli: -constraint_check 'worst check setup'",
-                    "api: chip.add('constraint','worst','check','setup')"
-                ],
-                "help": "List of checks for to perform for the scenario. The checks must\nalign with the capabilities of the EDA tools and flow being used.\nChecks generally include objectives like meeting setup and hold goals\nand minimize power. Standard check names include setup, hold, power,\nnoise, reliability.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint checks to perform",
-                "signature": [],
-                "switch": "-constraint_check 'scenario <str>'",
-                "type": "[str]",
-                "value": []
-            },
-            "file": {
-                "author": [],
-                "copy": "true",
-                "date": [],
-                "defvalue": [],
-                "example": [
-                    "cli: -constraint_file 'worst hello.sdc'",
-                    "api: chip.set('constraint','worst','file', 'hello.sdc')"
-                ],
-                "filehash": [],
-                "hashalgo": "sha256",
-                "help": "List of timing constraint files to use for the scenario. The\nvalues are combined with any constraints specified by the design\n'constraint' parameter. If no constraints are found, a default\nconstraint file is used based on the clock definitions.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint files",
-                "signature": [],
-                "switch": "-constraint_file 'scenario <file>'",
-                "type": "[file]",
-                "value": []
-            },
-            "libcorner": {
-                "defvalue": [],
-                "example": [
-                    "cli: -constraint_libcorner 'worst ttt'",
-                    "api: chip.set('constraint', 'worst', 'libcorner', 'ttt')"
-                ],
-                "help": "List of characterization corners used to select\ntiming files for all logiclibs and macrolibs.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint library corner",
-                "signature": [],
-                "switch": "-constraint_libcorner 'scenario <str>'",
-                "type": "[str]",
-                "value": []
-            },
-            "mode": {
-                "defvalue": null,
-                "example": [
-                    "cli: -constraint_mode 'worst test'",
-                    "api: chip.set('constraint',  'worst','mode', 'test')"
-                ],
-                "help": "Operating mode for the scenario. Operating mode strings\ncan be values such as test, functional, standby.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint operating mode",
-                "signature": null,
-                "switch": "-constraint_mode 'scenario <str>'",
-                "type": "str",
-                "value": null
-            },
-            "opcond": {
-                "defvalue": null,
-                "example": [
-                    "cli: -constraint_opcond 'worst typical_1.0'",
-                    "api: chip.set('constraint', 'worst', 'opcond',  'typical_1.0')"
-                ],
-                "help": "Operating condition applied to the scenario. The value\ncan be used to access specific conditions within the library\ntiming models from the 'logiclib' timing models.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint operating condition",
-                "signature": null,
-                "switch": "-constraint_opcond 'scenario <str>'",
-                "type": "str",
-                "value": null
-            },
-            "pexcorner": {
-                "defvalue": null,
-                "example": [
-                    "cli: -constraint_pexcorner 'worst max'",
-                    "api: chip.set('constraint', 'worst', 'pexcorner', 'max')"
-                ],
-                "help": "Parasitic corner applied to the scenario. The\n'pexcorner' string must match a corner found in the pdk\npexmodel setup.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint pex corner",
-                "signature": null,
-                "switch": "-constraint_pexcorner 'scenario <str>'",
-                "type": "str",
-                "value": null
-            },
-            "temperature": {
-                "defvalue": null,
-                "example": [
-                    "cli: -constraint_temperature 'worst 125'",
-                    "api: chip.set('constraint', 'worst', 'temperature','125')"
-                ],
-                "help": "Chip temperature applied to the scenario specified in degrees C.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint temperature",
-                "signature": null,
-                "switch": "-constraint_temperature 'scenario <float>'",
-                "type": "float",
-                "value": null
-            },
-            "voltage": {
-                "defvalue": null,
-                "example": [
-                    "cli: -constraint_voltage 'worst 0.9'",
-                    "api: chip.set('constraint', 'worst','voltage', '0.9')"
-                ],
-                "help": "Operating voltage applied to the scenario.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint voltage level",
-                "signature": null,
-                "switch": "-constraint_voltage 'scenario <float>'",
-                "type": "float",
-                "unit": "V",
-                "value": null
+        "component": {
+            "default": {
+                "flip": {
+                    "defvalue": "false",
+                    "example": [
+                        "cli: -constraint_component_flip 'i0 true'",
+                        "api: chip.set('constraint', 'component', 'i0', 'flip', 'true')"
+                    ],
+                    "help": "Boolean parameter specifying that the instanced library component should be flipped\naround the vertical axis befong being placed on the substrate. The need to\nflip a component depends on the component footprint. Most dies have pads\nfacing up and so must be flipped when assembled face down (eg. flip-chip,\nWCSP).",
+                    "lock": "false",
+                    "notes": null,
+                    "require": "all",
+                    "scope": "job",
+                    "shorthelp": "Constraint: Component flip option",
+                    "signature": null,
+                    "switch": "-constraint_component_flip 'inst <bool>'",
+                    "type": "bool",
+                    "value": "false"
+                },
+                "outline": {
+                    "defvalue": [],
+                    "example": [
+                        "cli: -constraint_component_outline 'i0 (0,0)'",
+                        "api: chip.add('constraint', 'component', 'i0', 'outline', (0,0))"
+                    ],
+                    "help": "List of (x,y) points that constrains the outline of a named\ninstance. Simple rectangle areas can be defined\nwith two points, one for the lower left corner and one for the\nupper right corner. The 'outline' parameter is a goal, not an\nexact specification. The compiler and component system may adjust\nsizes to meet competing goals such as manufacturing design\nrules.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Component outline",
+                    "signature": [],
+                    "switch": "-constraint_component_outline 'i0 <(float,float)'>",
+                    "type": "[(float,float)]",
+                    "value": []
+                },
+                "placement": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
+                        "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"
+                    ],
+                    "help": "Placement location of a named component, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Component placement",
+                    "signature": null,
+                    "switch": "-constraint_component_placement 'inst <(float,float, float)>'",
+                    "type": "(float,float,float)",
+                    "value": null
+                },
+                "rotation": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_component_rotation 'i0 90'",
+                        "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"
+                    ],
+                    "help": "Placement rotation of the component specified in degrees. Rotation\ngoes counter-clockwise for all parts on top and clock-wise for parts\non the bottom. In both cases, this is from the perspective of looking\nat the top of the board. Rotation is specified in degrees. Most gridded\nlayout systems (like ASICs) only allow a finite number of rotation\nvalues (0,90,180,270).",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Component rotation",
+                    "signature": null,
+                    "switch": "-constraint_component_rotation 'inst <float>'",
+                    "type": "float",
+                    "value": null
+                }
+            }
+        },
+        "pin": {
+            "default": {
+                "placement": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_pin_placement 'i0 (2.0,3.0,0.0)'",
+                        "api: chip.set('constraint', 'pin', 'i0', 'placement', (2.0,3.0,0.0)"
+                    ],
+                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. Rhe 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on to and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Pin placement",
+                    "signature": null,
+                    "switch": "-constraint_pin_placement 'inst <(float,float, float)>'",
+                    "type": "(float,float,float)",
+                    "value": null
+                }
+            }
+        },
+        "timing": {
+            "default": {
+                "check": {
+                    "defvalue": [],
+                    "example": [
+                        "cli: -constraint_timing_check 'worst check setup'",
+                        "api: chip.add('constraint', 'timing', 'worst','check','setup')"
+                    ],
+                    "help": "List of checks for to perform for the scenario. The checks must\nalign with the capabilities of the EDA tools and flow being used.\nChecks generally include objectives like meeting setup and hold goals\nand minimize power. Standard check names include setup, hold, power,\nnoise, reliability.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: timing checks",
+                    "signature": [],
+                    "switch": "-constraint_timing_check 'scenario <str>'",
+                    "type": "[str]",
+                    "value": []
+                },
+                "file": {
+                    "author": [],
+                    "copy": "true",
+                    "date": [],
+                    "defvalue": [],
+                    "example": [
+                        "cli: -constraint_timing_file 'worst hello.sdc'",
+                        "api: chip.set('constraint', 'timing', 'worst','file', 'hello.sdc')"
+                    ],
+                    "filehash": [],
+                    "hashalgo": "sha256",
+                    "help": "List of timing constraint files to use for the scenario. The\nvalues are combined with any constraints specified by the design\n'constraint' parameter. If no constraints are found, a default\nconstraint file is used based on the clock definitions.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: SDC files",
+                    "signature": [],
+                    "switch": "-constraint_timing_file 'scenario <file>'",
+                    "type": "[file]",
+                    "value": []
+                },
+                "libcorner": {
+                    "defvalue": [],
+                    "example": [
+                        "cli: -constraint_timing_libcorner 'worst ttt'",
+                        "api: chip.set('constraint', 'timing', 'worst', 'libcorner', 'ttt')"
+                    ],
+                    "help": "List of characterization corners used to select\ntiming files for all logiclibs and macrolibs.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: library corner",
+                    "signature": [],
+                    "switch": "-constraint_timing_libcorner 'scenario <str>'",
+                    "type": "[str]",
+                    "value": []
+                },
+                "mode": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_timing_mode 'worst test'",
+                        "api: chip.set('constraint', 'timing', 'worst','mode', 'test')"
+                    ],
+                    "help": "Operating mode for the scenario. Operating mode strings\ncan be values such as test, functional, standby.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: operating mode",
+                    "signature": null,
+                    "switch": "-constraint_timing_mode 'scenario <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "opcond": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_timing_opcond 'worst typical_1.0'",
+                        "api: chip.set('constraint', 'timing', 'worst', 'opcond',  'typical_1.0')"
+                    ],
+                    "help": "Operating condition applied to the scenario. The value\ncan be used to access specific conditions within the library\ntiming models from the 'logiclib' timing models.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: operating condition",
+                    "signature": null,
+                    "switch": "-constraint_timing_opcond 'scenario <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "pexcorner": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_timing_pexcorner 'worst max'",
+                        "api: chip.set('constraint', 'timing', 'worst', 'pexcorner', 'max')"
+                    ],
+                    "help": "Parasitic corner applied to the scenario. The\n'pexcorner' string must match a corner found in the pdk\npexmodel setup.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pex corner",
+                    "signature": null,
+                    "switch": "-constraint_timing_pexcorner 'scenario <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "temperature": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_timing_temperature 'worst 125'",
+                        "api: chip.set('constraint', 'timing', 'worst', 'temperature','125')"
+                    ],
+                    "help": "Chip temperature applied to the scenario specified in degrees C.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: temperature",
+                    "signature": null,
+                    "switch": "-constraint_timing_temperature 'scenario <float>'",
+                    "type": "float",
+                    "value": null
+                },
+                "voltage": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_timing_voltage 'worst 0.9'",
+                        "api: chip.set('constraint', 'timing', 'worst','voltage', '0.9')"
+                    ],
+                    "help": "Operating voltage applied to the scenario.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: voltage level",
+                    "signature": null,
+                    "switch": "-constraint_timing_voltage 'scenario <float>'",
+                    "type": "float",
+                    "unit": "V",
+                    "value": null
+                }
             }
         }
     },
@@ -1221,7 +1316,7 @@
                     "notes": null,
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: device feature specification",
+                    "shorthelp": "Datasheet: device features",
                     "signature": null,
                     "switch": "-datasheet_feature 'design name <float>'",
                     "type": "float",
@@ -1297,7 +1392,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: capacitance",
+                            "shorthelp": "Datasheet: pin capacitance",
                             "signature": null,
                             "switch": "-datasheet_pin_capacitance 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1374,7 +1469,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: duty cycle",
+                            "shorthelp": "Datasheet: pin duty cycle",
                             "signature": null,
                             "switch": "-datasheet_pin_dutycycle 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1413,7 +1508,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: drive current",
+                            "shorthelp": "Datasheet: pin drive current",
                             "signature": null,
                             "switch": "-datasheet_pin_idrive 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1433,7 +1528,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: injection current",
+                            "shorthelp": "Datasheet: pin injection current",
                             "signature": null,
                             "switch": "-datasheet_pin_iinject 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1453,7 +1548,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: leakage current",
+                            "shorthelp": "Datasheet: pin leakage current",
                             "signature": null,
                             "switch": "-datasheet_pin_ileakage 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1473,7 +1568,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: package pin map",
+                            "shorthelp": "Datasheet: pin map",
                             "signature": null,
                             "switch": "-datasheet_pin_map 'design name package <str>'",
                             "type": "str",
@@ -1492,7 +1587,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: differential pair resistance",
+                            "shorthelp": "Datasheet: pin differential pair resistance",
                             "signature": null,
                             "switch": "-datasheet_pin_rdiff 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1531,7 +1626,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pulldown resistance",
+                            "shorthelp": "Datasheet: pin pulldown resistance",
                             "signature": null,
                             "switch": "-datasheet_pin_rpulldown 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1551,7 +1646,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pullup resistance",
+                            "shorthelp": "Datasheet: pin pullup resistance",
                             "signature": null,
                             "switch": "-datasheet_pin_rpullup 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1609,7 +1704,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: fall transition",
+                            "shorthelp": "Datasheet: pin fall transition",
                             "signature": null,
                             "switch": "-datasheet_pin_tfall 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1629,7 +1724,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: hold time",
+                            "shorthelp": "Datasheet: pin hold time",
                             "signature": null,
                             "switch": "-datasheet_pin_thold 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1649,7 +1744,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: rms jitter",
+                            "shorthelp": "Datasheet: pin rms jitter",
                             "signature": null,
                             "switch": "-datasheet_pin_tjitter 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1669,7 +1764,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: minimum period",
+                            "shorthelp": "Datasheet: pin minimum period",
                             "signature": null,
                             "switch": "-datasheet_pin_tperiod 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1689,7 +1784,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pulse width",
+                            "shorthelp": "Datasheet: pin pulse width",
                             "signature": null,
                             "switch": "-datasheet_pin_tpulse 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1709,7 +1804,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: rise transition",
+                            "shorthelp": "Datasheet: pin rise transition",
                             "signature": null,
                             "switch": "-datasheet_pin_trise 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1729,7 +1824,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: setup time",
+                            "shorthelp": "Datasheet: pin setup time",
                             "signature": null,
                             "switch": "-datasheet_pin_tsetup 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1760,15 +1855,15 @@
                         "default": {
                             "defvalue": null,
                             "example": [
-                                "cli: -datasheet_pin_vcdm 'mydevice sclk global (100, 300, 500)'",
-                                "api: chip.set('datasheet','mydevice','pin','sclk','vcdm','global',(100, 300, 500)"
+                                "cli: -datasheet_pin_vcdm 'mydevice sclk global (125, 150, 175)'",
+                                "api: chip.set('datasheet','mydevice','pin','sclk','vcdm','global',(125, 150, 175)"
                             ],
-                            "help": "Pin human body model ESD tolerance. Values are tuples of (min, typical, max).",
+                            "help": "Pin CDM ESD tolerance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: human body model ESD tolerance",
+                            "shorthelp": "Datasheet: pin CDM ESD tolerance",
                             "signature": null,
                             "switch": "-datasheet_pin_vcdm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1788,7 +1883,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: common mode voltage",
+                            "shorthelp": "Datasheet: pin common mode voltage",
                             "signature": null,
                             "switch": "-datasheet_pin_vcm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1808,7 +1903,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: differential voltage",
+                            "shorthelp": "Datasheet: pin differential voltage",
                             "signature": null,
                             "switch": "-datasheet_pin_vdiff 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1820,15 +1915,15 @@
                         "default": {
                             "defvalue": null,
                             "example": [
-                                "cli: -datasheet_pin_vhbm 'mydevice sclk global (100, 300, 500)'",
-                                "api: chip.set('datasheet','mydevice','pin','sclk','vhbm','global',(100, 300, 500)"
+                                "cli: -datasheet_pin_vhbm 'mydevice sclk global (200, 250, 300)'",
+                                "api: chip.set('datasheet','mydevice','pin','sclk','vhbm','global',(200, 250, 300)"
                             ],
-                            "help": "Pin machine model ESD tolerance. Values are tuples of (min, typical, max).",
+                            "help": "Pin HBM ESD tolerance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: machine model ESD tolerance",
+                            "shorthelp": "Datasheet: pin HBM ESD tolerance",
                             "signature": null,
                             "switch": "-datasheet_pin_vhbm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1848,7 +1943,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: high input voltage level",
+                            "shorthelp": "Datasheet: pin high input voltage level",
                             "signature": null,
                             "switch": "-datasheet_pin_vih 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1868,9 +1963,29 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: low input voltage level",
+                            "shorthelp": "Datasheet: pin low input voltage level",
                             "signature": null,
                             "switch": "-datasheet_pin_vil 'design pin mode <(float,float,float)>'",
+                            "type": "(float,float,float)",
+                            "unit": "V",
+                            "value": null
+                        }
+                    },
+                    "vmm": {
+                        "default": {
+                            "defvalue": null,
+                            "example": [
+                                "cli: -datasheet_pin_vmm 'mydevice sclk global (100, 125, 150)'",
+                                "api: chip.set('datasheet','mydevice','pin','sclk','vmm','global',(100, 125, 150)"
+                            ],
+                            "help": "Pin MM ESD tolerance. Values are tuples of (min, typical, max).",
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: pin MM ESD tolerance",
+                            "signature": null,
+                            "switch": "-datasheet_pin_vmm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V",
                             "value": null
@@ -1888,7 +2003,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: random voltage noise",
+                            "shorthelp": "Datasheet: pin random voltage noise",
                             "signature": null,
                             "switch": "-datasheet_pin_vnoise 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1908,7 +2023,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: high output voltage level",
+                            "shorthelp": "Datasheet: pin high output voltage level",
                             "signature": null,
                             "switch": "-datasheet_pin_voh 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1928,7 +2043,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: low output voltage level",
+                            "shorthelp": "Datasheet: pin low output voltage level",
                             "signature": null,
                             "switch": "-datasheet_pin_vol 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -2263,7 +2378,7 @@
             "cli: -lambda 1e-6",
             "api: chip.set('lambda', 1e-6)"
         ],
-        "help": "Elementary distance unit used for scaling all relative\ndimensional schema parameters to derive absolute locations, lengths,\nand widths.",
+        "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
         "lock": "false",
         "notes": null,
         "require": null,
@@ -2273,244 +2388,6 @@
         "switch": "-lambda <float>",
         "type": "float",
         "value": null
-    },
-    "layout": {
-        "centroid": {
-            "defvalue": null,
-            "example": [
-                "cli: -layout_centroid (5,5)",
-                "api: chip.set('layout', 'centroid', (5,5))"
-            ],
-            "help": "Center point of the component. Most components will have the\ncentroid at the center of the outline.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Layout centroid",
-            "signature": null,
-            "switch": "-layout_centroid  <(float,float)>'",
-            "type": "(float,float)",
-            "value": null
-        },
-        "component": {
-            "default": {
-                "bottomside": {
-                    "defvalue": "false",
-                    "example": [
-                        "cli: -layout_component_bottomside 'i0 true'",
-                        "api: chip.set('layout', 'component', 'i0', 'bottomside', True)"
-                    ],
-                    "help": "Boolean parameter specifying that the component should be placed\non the bottom side of the subsizestrate.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": "all",
-                    "scope": "job",
-                    "shorthelp": "Layout component bottomside option",
-                    "signature": null,
-                    "switch": "-layout_component_bottomside 'inst <bool>'",
-                    "type": "bool",
-                    "value": "false"
-                },
-                "flip": {
-                    "defvalue": "false",
-                    "example": [
-                        "cli: -layout_component_flip 'i0 true'",
-                        "api: chip.set('layout', 'component', 'i0', 'flip', 'true')"
-                    ],
-                    "help": "Boolean parameter specifying that the library component should be flipped\naround the vertical axis befong being placed on the substrate. The need to\nflip a component depends on the component footprint. Most dies have pads\nfacing up and so must be flipped when assembled face down (eg. flip-chip,\nWCSP).",
-                    "lock": "false",
-                    "notes": null,
-                    "require": "all",
-                    "scope": "job",
-                    "shorthelp": "Layout component flip option",
-                    "signature": null,
-                    "switch": "-layout_component_flip 'inst <bool>'",
-                    "type": "bool",
-                    "value": "false"
-                },
-                "location": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -layout_component_location 'i0 (2.0,3.0)'",
-                        "api: chip.set('layout', 'component', 'i0', 'location', (2.0,3.0)"
-                    ],
-                    "help": "The (X,Y) location of the components offset from origin of the baselayer\nlocated in the lower left corner, specified in terms of elementary\nlambda units. Absolute location values are resolved by multiplying\nthe location with the 'lambda' value.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Layout component location",
-                    "signature": null,
-                    "switch": "-layout_component_location 'inst <(float,float)>'",
-                    "type": "(float,float)",
-                    "value": null
-                },
-                "parameter": {
-                    "defvalue": [],
-                    "example": [
-                        "cli: -layout_component_parameter 'i0 (place,fixed)'",
-                        "api: chip.set('layout', 'component', 'i0', 'parameter, ('place','fixed')"
-                    ],
-                    "help": "List of layout parameter definitions attached to a named component.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Layout component parameter",
-                    "signature": [],
-                    "switch": "-layout_component_parameter 'name <(str,str)>'",
-                    "type": "[(str,str)]",
-                    "value": []
-                },
-                "rotation": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -layout_component_rotation 'i0 90'",
-                        "api: chip.set('layout', 'component', 'i0', 'rotation', '90')"
-                    ],
-                    "help": "Placement rotation of the component specified in degrees. Rotation\ngoes counter-clockwise for all parts on top and clock-wise for parts\non the bottom. In both cases, this is from the perspective of looking\nat the top of the board. Rotation is specified in degrees.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Layout component rotation",
-                    "signature": null,
-                    "switch": "-layout_component_rotation 'inst <float>'",
-                    "type": "float",
-                    "value": null
-                }
-            }
-        },
-        "database": {
-            "default": {
-                "author": [],
-                "copy": "false",
-                "date": [],
-                "defvalue": [],
-                "example": [
-                    "cli: -layout_database 'gds my.gds'",
-                    "api: chip.set('layout', 'database', 'gds', 'my.gds')"
-                ],
-                "filehash": [],
-                "hashalgo": "sha256",
-                "help": "File pointer to a desgin layout database specified on a per format basis.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Layout database",
-                "signature": [],
-                "switch": "-layout_database 'filetype <file>'",
-                "type": "[file]",
-                "value": []
-            }
-        },
-        "footprint": {
-            "defvalue": null,
-            "example": [
-                "cli: -layout_footprint 'dip14'",
-                "api: chip.set('layout', 'footprint', 'dip14')"
-            ],
-            "help": "Name of footprint reference name for use in sytstems using\nlibraries of standardized footprints (eg. PCB).",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Layout footprint",
-            "signature": null,
-            "switch": "-layout_footprint <str>",
-            "type": "str",
-            "value": null
-        },
-        "outline": {
-            "defvalue": [],
-            "example": [
-                "cli: -layout_outline '(0,0)'",
-                "api: chip.add('layout', 'outline', (0,0))"
-            ],
-            "help": "List of (x,y) points that define the design's physical outline.\nSimple rectangle areas can be defined with two points, one for the\nlower left corner and one for the upper right corner. Layout\nsystems (like PCBs",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Layout outline",
-            "signature": [],
-            "switch": "-layout_outline <(float,float)>",
-            "type": "[(float,float)]",
-            "value": []
-        },
-        "pin": {
-            "default": {
-                "pad": {
-                    "defvalue": [],
-                    "example": [
-                        "cli: -layout_pin_pad 'clk (3,3)'",
-                        "api: chip.set('layout', 'pin', 'clk', 'pad', (3,3))"
-                    ],
-                    "help": "Location and size of named pin's landing pad specifie as a\ntuple based on the shape of the landing pad.\n\ncircle:    [(diameter,diameter), (x0,y0)]\nrectangle: [(width,height), (x0,y0)]\npolygon:   [(halo,halo), (x0,y0), (x1,y1), (x2,y2), ...]\ntrack:     [(width,width), (x0,y0), (x1,y1), (x2,y2), ...]",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Layout pin pad area",
-                    "signature": [],
-                    "switch": "-layout_pin_pad 'clk <(float,float)>'",
-                    "type": "[(float,float)]",
-                    "value": []
-                },
-                "parameter": {
-                    "defvalue": [],
-                    "example": [
-                        "cli: -layout_pin_parameter 'clk (ndr,2x)'",
-                        "api: chip.set('layout', 'pin', 'clk', 'parameter', ('ndr','2x'))"
-                    ],
-                    "help": "List of layout parameter definitions attached to a named pin, net, or\ncomponent pecified as (key,value) tuples.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Layout pin parameter",
-                    "signature": [],
-                    "switch": "-layout_pin_parameter 'name <(str,str)>'",
-                    "type": "[(str,str)]",
-                    "value": []
-                },
-                "shape": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -layout_pin_shape 'clk rectangle'",
-                        "api: chip.set('layout', 'pin', 'i0', 'shape', 'rectangle')"
-                    ],
-                    "help": "Shape of named pin. Legal shapes are: rectangle, circle,\npolygon, track,...",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Layout pin type",
-                    "signature": null,
-                    "switch": "-layout_pin_shape 'clk <str>'",
-                    "type": "str",
-                    "value": null
-                }
-            }
-        },
-        "substrate": {
-            "defvalue": null,
-            "example": [
-                "cli: -layout_substrate mypcb0",
-                "api: chip.set('layout', 'substrate', 'mypcb0')"
-            ],
-            "help": "Reference name (name) of the substrate that all design components\nare placed on. The substrate can be any planar surface (eg.\nPCB, package-substrate, silicon interposer).",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Layout substrate",
-            "signature": null,
-            "switch": "-layout_substrate <str>",
-            "type": "str",
-            "value": null
-        }
     },
     "library": {},
     "metric": {
@@ -4486,7 +4363,7 @@
                 "notes": null,
                 "require": null,
                 "scope": "global",
-                "shorthelp": "Package dependency list",
+                "shorthelp": "Package: dependency list",
                 "signature": [],
                 "switch": "-package_depgraph 'module <(str,str)>'",
                 "type": "[(str,str)]",
@@ -6255,7 +6132,7 @@
                 "notes": null,
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Schematic component",
+                "shorthelp": "Schematic: component (instance)",
                 "signature": null,
                 "switch": "-schematic_component 'name <str>'",
                 "type": "str",
@@ -6269,12 +6146,12 @@
                     "cli: -schematic_interface 'name (clk,clk0)'",
                     "api: chip.set('schematic','interface','ddr',('clk','clk0')"
                 ],
-                "help": "Signal interface definition specified as a list of (key,value) mapping\ntuples, wherein the key is the standardaized interface name and the\nvalue is the design pin name.Bus pins are specified using the Verilog\nsquare bracket syntax (ie [msb:lsb]).",
+                "help": "Signal interface definition specified as a list of (key,value) mapping\ntuples, wherein the key is the standardaized interface name and the\nvalue is the design pin name. Bus pins are specified using the Verilog\nsquare bracket syntax (ie [msb:lsb]).",
                 "lock": "false",
                 "notes": null,
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Schematic interface",
+                "shorthelp": "Schematic: interface definition",
                 "signature": [],
                 "switch": "-schematic_interface 'name <(str,str)>'",
                 "type": "[(str,str)]",
@@ -6293,34 +6170,10 @@
                 "notes": null,
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Schematic net",
+                "shorthelp": "Schematic: net definition",
                 "signature": [],
                 "switch": "-schematic_net 'name <(str,str)>'",
                 "type": "[(str,str)]",
-                "value": []
-            }
-        },
-        "netlist": {
-            "default": {
-                "author": [],
-                "copy": "false",
-                "date": [],
-                "defvalue": [],
-                "example": [
-                    "cli: -schematic_netlist 'verilog my.v'",
-                    "api: chip.set('schematic','netlist', 'verilog', 'my.v')"
-                ],
-                "filehash": [],
-                "hashalgo": "sha256",
-                "help": "File pointer to a desgin netlist specified on a per format basis.\nThe netlist in thefile is expected to exactly match the manifest\nschematic netlist structure (ie. components, pins, and connectivity).",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Schematic netlist",
-                "signature": [],
-                "switch": "-schematic_netlist 'filetype <file>'",
-                "type": "[file]",
                 "value": []
             }
         },
@@ -6336,7 +6189,7 @@
                 "notes": null,
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Schematic parameter",
+                "shorthelp": "Schematic: parameter definition ",
                 "signature": [],
                 "switch": "-schematic_parameter 'obj <(str,str)>'",
                 "type": "[(str,str)]",
@@ -6355,7 +6208,7 @@
                 "notes": null,
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Schematic pin",
+                "shorthelp": "Schematic: pin definition",
                 "signature": null,
                 "switch": "-schematic_pin 'name <(str,str)>'",
                 "type": "(str,str)",

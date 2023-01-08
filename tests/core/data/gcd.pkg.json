@@ -246,59 +246,61 @@
         }
     },
     "constraint": {
-        "worst": {
-            "check": {
-                "defvalue": [],
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint checks to perform",
-                "signature": [],
-                "switch": "-constraint_check 'scenario <str>'",
-                "type": "[str]",
-                "value": [
-                    "setup",
-                    "hold"
-                ]
-            },
-            "libcorner": {
-                "defvalue": [],
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint library corner",
-                "signature": [],
-                "switch": "-constraint_libcorner 'scenario <str>'",
-                "type": "[str]",
-                "value": [
-                    "typical"
-                ]
-            },
-            "mode": {
-                "defvalue": null,
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint operating mode",
-                "signature": null,
-                "switch": "-constraint_mode 'scenario <str>'",
-                "type": "str",
-                "value": "func"
-            },
-            "pexcorner": {
-                "defvalue": null,
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint pex corner",
-                "signature": null,
-                "switch": "-constraint_pexcorner 'scenario <str>'",
-                "type": "str",
-                "value": "typical"
+        "timing": {
+            "worst": {
+                "check": {
+                    "defvalue": [],
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: timing checks",
+                    "signature": [],
+                    "switch": "-constraint_timing_check 'scenario <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "setup",
+                        "hold"
+                    ]
+                },
+                "libcorner": {
+                    "defvalue": [],
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: library corner",
+                    "signature": [],
+                    "switch": "-constraint_timing_libcorner 'scenario <str>'",
+                    "type": "[str]",
+                    "value": [
+                        "typical"
+                    ]
+                },
+                "mode": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: operating mode",
+                    "signature": null,
+                    "switch": "-constraint_timing_mode 'scenario <str>'",
+                    "type": "str",
+                    "value": "func"
+                },
+                "pexcorner": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pex corner",
+                    "signature": null,
+                    "switch": "-constraint_ptiming_excorner 'scenario <str>'",
+                    "type": "str",
+                    "value": "typical"
+                }
             }
         }
     },
@@ -10228,7 +10230,7 @@
                     "switch": "-metric_cellarea 'step index <float>'",
                     "type": "float",
                     "unit": "um^2",
-                    "value": "494.0"
+                    "value": "490.0"
                 },
                 "cells": {
                     "defvalue": null,
@@ -10278,7 +10280,7 @@
                     "switch": "-metric_leakagepower 'step index <float>'",
                     "type": "float",
                     "unit": "mw",
-                    "value": "1.17e-05"
+                    "value": "1.14e-05"
                 },
                 "memory": {
                     "defvalue": null,
@@ -10291,7 +10293,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "106496000.0"
+                    "value": "104894464.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -10316,7 +10318,7 @@
                     "switch": "-metric_peakpower 'step index <float>'",
                     "type": "float",
                     "unit": "mw",
-                    "value": "0.000277"
+                    "value": "0.000279"
                 },
                 "pins": {
                     "defvalue": null,
@@ -10380,7 +10382,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "2.07"
+                    "value": "2.03"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -10393,7 +10395,7 @@
                     "switch": "-metric_totalarea 'step index <float>'",
                     "type": "float",
                     "unit": "um^2",
-                    "value": "6175.0"
+                    "value": "6125.0"
                 },
                 "utilization": {
                     "defvalue": null,
@@ -10435,7 +10437,7 @@
                     "switch": "-metric_cellarea 'step index <float>'",
                     "type": "float",
                     "unit": "um^2",
-                    "value": "494.0"
+                    "value": "490.0"
                 },
                 "cells": {
                     "defvalue": null,
@@ -10447,7 +10449,7 @@
                     "signature": null,
                     "switch": "-metric_cells 'step index <float>'",
                     "type": "int",
-                    "value": "1839"
+                    "value": "1872"
                 },
                 "errors": {
                     "defvalue": null,
@@ -10485,7 +10487,7 @@
                     "switch": "-metric_leakagepower 'step index <float>'",
                     "type": "float",
                     "unit": "mw",
-                    "value": "1.17e-05"
+                    "value": "1.14e-05"
                 },
                 "memory": {
                     "defvalue": null,
@@ -10498,7 +10500,969 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "86073344.0"
+                    "value": "86282240.0"
+                },
+                "nets": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: nets",
+                    "signature": null,
+                    "switch": "-metric_nets 'step index <float>'",
+                    "type": "int",
+                    "value": "381"
+                },
+                "peakpower": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: peakpower",
+                    "signature": null,
+                    "switch": "-metric_peakpower 'step index <float>'",
+                    "type": "float",
+                    "unit": "mw",
+                    "value": "0.000292"
+                },
+                "pins": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: pins",
+                    "signature": null,
+                    "switch": "-metric_pins 'step index <float>'",
+                    "type": "int",
+                    "value": "54"
+                },
+                "setupslack": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setupslack",
+                    "signature": null,
+                    "switch": "-metric_setupslack 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.11"
+                },
+                "setuptns": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setuptns",
+                    "signature": null,
+                    "switch": "-metric_setuptns 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.0"
+                },
+                "setupwns": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setupwns",
+                    "signature": null,
+                    "switch": "-metric_setupwns 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.0"
+                },
+                "tasktime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: tasktime",
+                    "signature": null,
+                    "switch": "-metric_tasktime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "0.53"
+                },
+                "totalarea": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: totalarea",
+                    "signature": null,
+                    "switch": "-metric_totalarea 'step index <float>'",
+                    "type": "float",
+                    "unit": "um^2",
+                    "value": "6125.0"
+                },
+                "utilization": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: area utilization",
+                    "signature": null,
+                    "switch": "-metric_utilization step index <float>",
+                    "type": "float",
+                    "unit": "%",
+                    "value": "8.0"
+                },
+                "warnings": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total warnings",
+                    "signature": null,
+                    "switch": "-metric_warnings 'step index <int>'",
+                    "type": "int",
+                    "value": "0"
+                }
+            }
+        },
+        "export": {
+            "0": {
+                "errors": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total errors",
+                    "signature": null,
+                    "switch": "-metric_errors 'step index <int>'",
+                    "type": "int",
+                    "value": "0"
+                },
+                "exetime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: exetime",
+                    "signature": null,
+                    "switch": "-metric_exetime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "0.85"
+                },
+                "memory": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: memory",
+                    "signature": null,
+                    "switch": "-metric_memory 'step index <float>'",
+                    "type": "float",
+                    "unit": "B",
+                    "value": "374087680"
+                },
+                "tasktime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: tasktime",
+                    "signature": null,
+                    "switch": "-metric_tasktime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "1.15"
+                },
+                "warnings": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total warnings",
+                    "signature": null,
+                    "switch": "-metric_warnings 'step index <int>'",
+                    "type": "int",
+                    "value": "1"
+                }
+            }
+        },
+        "floorplan": {
+            "0": {
+                "cellarea": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: cellarea",
+                    "signature": null,
+                    "switch": "-metric_cellarea 'step index <float>'",
+                    "type": "float",
+                    "unit": "um^2",
+                    "value": "412.0"
+                },
+                "cells": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: cells",
+                    "signature": null,
+                    "switch": "-metric_cells 'step index <float>'",
+                    "type": "int",
+                    "value": "252"
+                },
+                "errors": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total errors",
+                    "signature": null,
+                    "switch": "-metric_errors 'step index <int>'",
+                    "type": "int",
+                    "value": "0"
+                },
+                "exetime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: exetime",
+                    "signature": null,
+                    "switch": "-metric_exetime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "0.31"
+                },
+                "leakagepower": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: leakagepower",
+                    "signature": null,
+                    "switch": "-metric_leakagepower 'step index <float>'",
+                    "type": "float",
+                    "unit": "mw",
+                    "value": "8.6e-06"
+                },
+                "memory": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: memory",
+                    "signature": null,
+                    "switch": "-metric_memory 'step index <float>'",
+                    "type": "float",
+                    "unit": "B",
+                    "value": "86097920.0"
+                },
+                "nets": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: nets",
+                    "signature": null,
+                    "switch": "-metric_nets 'step index <float>'",
+                    "type": "int",
+                    "value": "323"
+                },
+                "peakpower": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: peakpower",
+                    "signature": null,
+                    "switch": "-metric_peakpower 'step index <float>'",
+                    "type": "float",
+                    "unit": "mw",
+                    "value": "0.00019"
+                },
+                "pins": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: pins",
+                    "signature": null,
+                    "switch": "-metric_pins 'step index <float>'",
+                    "type": "int",
+                    "value": "54"
+                },
+                "setupslack": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setupslack",
+                    "signature": null,
+                    "switch": "-metric_setupslack 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.11"
+                },
+                "setuptns": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setuptns",
+                    "signature": null,
+                    "switch": "-metric_setuptns 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.0"
+                },
+                "setupwns": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setupwns",
+                    "signature": null,
+                    "switch": "-metric_setupwns 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.0"
+                },
+                "tasktime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: tasktime",
+                    "signature": null,
+                    "switch": "-metric_tasktime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "0.55"
+                },
+                "totalarea": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: totalarea",
+                    "signature": null,
+                    "switch": "-metric_totalarea 'step index <float>'",
+                    "type": "float",
+                    "unit": "um^2",
+                    "value": "6866.67"
+                },
+                "utilization": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: area utilization",
+                    "signature": null,
+                    "switch": "-metric_utilization step index <float>",
+                    "type": "float",
+                    "unit": "%",
+                    "value": "6.0"
+                },
+                "warnings": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total warnings",
+                    "signature": null,
+                    "switch": "-metric_warnings 'step index <int>'",
+                    "type": "int",
+                    "value": "0"
+                }
+            }
+        },
+        "import": {
+            "0": {
+                "errors": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total errors",
+                    "signature": null,
+                    "switch": "-metric_errors 'step index <int>'",
+                    "type": "int",
+                    "value": "0"
+                },
+                "exetime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: exetime",
+                    "signature": null,
+                    "switch": "-metric_exetime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "0.3"
+                },
+                "memory": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: memory",
+                    "signature": null,
+                    "switch": "-metric_memory 'step index <float>'",
+                    "type": "float",
+                    "unit": "B",
+                    "value": "31358976.0"
+                },
+                "tasktime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: tasktime",
+                    "signature": null,
+                    "switch": "-metric_tasktime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "0.32"
+                },
+                "warnings": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total warnings",
+                    "signature": null,
+                    "switch": "-metric_warnings 'step index <int>'",
+                    "type": "int",
+                    "value": "10"
+                }
+            }
+        },
+        "physyn": {
+            "0": {
+                "cellarea": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: cellarea",
+                    "signature": null,
+                    "switch": "-metric_cellarea 'step index <float>'",
+                    "type": "float",
+                    "unit": "um^2",
+                    "value": "412.0"
+                },
+                "cells": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: cells",
+                    "signature": null,
+                    "switch": "-metric_cells 'step index <float>'",
+                    "type": "int",
+                    "value": "252"
+                },
+                "errors": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total errors",
+                    "signature": null,
+                    "switch": "-metric_errors 'step index <int>'",
+                    "type": "int",
+                    "value": "0"
+                },
+                "exetime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: exetime",
+                    "signature": null,
+                    "switch": "-metric_exetime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "0.31"
+                },
+                "leakagepower": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: leakagepower",
+                    "signature": null,
+                    "switch": "-metric_leakagepower 'step index <float>'",
+                    "type": "float",
+                    "unit": "mw",
+                    "value": "8.6e-06"
+                },
+                "memory": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: memory",
+                    "signature": null,
+                    "switch": "-metric_memory 'step index <float>'",
+                    "type": "float",
+                    "unit": "B",
+                    "value": "86233088.0"
+                },
+                "nets": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: nets",
+                    "signature": null,
+                    "switch": "-metric_nets 'step index <float>'",
+                    "type": "int",
+                    "value": "323"
+                },
+                "peakpower": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: peakpower",
+                    "signature": null,
+                    "switch": "-metric_peakpower 'step index <float>'",
+                    "type": "float",
+                    "unit": "mw",
+                    "value": "0.00019"
+                },
+                "pins": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: pins",
+                    "signature": null,
+                    "switch": "-metric_pins 'step index <float>'",
+                    "type": "int",
+                    "value": "54"
+                },
+                "setupslack": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setupslack",
+                    "signature": null,
+                    "switch": "-metric_setupslack 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.11"
+                },
+                "setuptns": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setuptns",
+                    "signature": null,
+                    "switch": "-metric_setuptns 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.0"
+                },
+                "setupwns": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setupwns",
+                    "signature": null,
+                    "switch": "-metric_setupwns 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.0"
+                },
+                "tasktime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: tasktime",
+                    "signature": null,
+                    "switch": "-metric_tasktime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "0.59"
+                },
+                "totalarea": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: totalarea",
+                    "signature": null,
+                    "switch": "-metric_totalarea 'step index <float>'",
+                    "type": "float",
+                    "unit": "um^2",
+                    "value": "6866.67"
+                },
+                "utilization": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: area utilization",
+                    "signature": null,
+                    "switch": "-metric_utilization step index <float>",
+                    "type": "float",
+                    "unit": "%",
+                    "value": "6.0"
+                },
+                "warnings": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total warnings",
+                    "signature": null,
+                    "switch": "-metric_warnings 'step index <int>'",
+                    "type": "int",
+                    "value": "0"
+                }
+            }
+        },
+        "place": {
+            "0": {
+                "cellarea": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: cellarea",
+                    "signature": null,
+                    "switch": "-metric_cellarea 'step index <float>'",
+                    "type": "float",
+                    "unit": "um^2",
+                    "value": "481.0"
+                },
+                "cells": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: cells",
+                    "signature": null,
+                    "switch": "-metric_cells 'step index <float>'",
+                    "type": "int",
+                    "value": "305"
+                },
+                "errors": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total errors",
+                    "signature": null,
+                    "switch": "-metric_errors 'step index <int>'",
+                    "type": "int",
+                    "value": "0"
+                },
+                "exetime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: exetime",
+                    "signature": null,
+                    "switch": "-metric_exetime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "0.51"
+                },
+                "leakagepower": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: leakagepower",
+                    "signature": null,
+                    "switch": "-metric_leakagepower 'step index <float>'",
+                    "type": "float",
+                    "unit": "mw",
+                    "value": "1.1e-05"
+                },
+                "memory": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: memory",
+                    "signature": null,
+                    "switch": "-metric_memory 'step index <float>'",
+                    "type": "float",
+                    "unit": "B",
+                    "value": "141029376.0"
+                },
+                "nets": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: nets",
+                    "signature": null,
+                    "switch": "-metric_nets 'step index <float>'",
+                    "type": "int",
+                    "value": "376"
+                },
+                "peakpower": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: peakpower",
+                    "signature": null,
+                    "switch": "-metric_peakpower 'step index <float>'",
+                    "type": "float",
+                    "unit": "mw",
+                    "value": "0.000206"
+                },
+                "pins": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: pins",
+                    "signature": null,
+                    "switch": "-metric_pins 'step index <float>'",
+                    "type": "int",
+                    "value": "54"
+                },
+                "setupslack": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setupslack",
+                    "signature": null,
+                    "switch": "-metric_setupslack 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.11"
+                },
+                "setuptns": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setuptns",
+                    "signature": null,
+                    "switch": "-metric_setuptns 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.0"
+                },
+                "setupwns": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: setupwns",
+                    "signature": null,
+                    "switch": "-metric_setupwns 'step index <float>'",
+                    "type": "float",
+                    "unit": "ns",
+                    "value": "0.0"
+                },
+                "tasktime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: tasktime",
+                    "signature": null,
+                    "switch": "-metric_tasktime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "0.71"
+                },
+                "totalarea": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: totalarea",
+                    "signature": null,
+                    "switch": "-metric_totalarea 'step index <float>'",
+                    "type": "float",
+                    "unit": "um^2",
+                    "value": "6012.5"
+                },
+                "utilization": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: area utilization",
+                    "signature": null,
+                    "switch": "-metric_utilization step index <float>",
+                    "type": "float",
+                    "unit": "%",
+                    "value": "8.0"
+                },
+                "warnings": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total warnings",
+                    "signature": null,
+                    "switch": "-metric_warnings 'step index <int>'",
+                    "type": "int",
+                    "value": "0"
+                }
+            }
+        },
+        "route": {
+            "0": {
+                "cellarea": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: cellarea",
+                    "signature": null,
+                    "switch": "-metric_cellarea 'step index <float>'",
+                    "type": "float",
+                    "unit": "um^2",
+                    "value": "490.0"
+                },
+                "cells": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: cells",
+                    "signature": null,
+                    "switch": "-metric_cells 'step index <float>'",
+                    "type": "int",
+                    "value": "1872"
+                },
+                "errors": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: total errors",
+                    "signature": null,
+                    "switch": "-metric_errors 'step index <int>'",
+                    "type": "int",
+                    "value": "0"
+                },
+                "exetime": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: exetime",
+                    "signature": null,
+                    "switch": "-metric_exetime 'step index <float>'",
+                    "type": "float",
+                    "unit": "s",
+                    "value": "2.11"
+                },
+                "leakagepower": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: leakagepower",
+                    "signature": null,
+                    "switch": "-metric_leakagepower 'step index <float>'",
+                    "type": "float",
+                    "unit": "mw",
+                    "value": "1.14e-05"
+                },
+                "memory": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: memory",
+                    "signature": null,
+                    "switch": "-metric_memory 'step index <float>'",
+                    "type": "float",
+                    "unit": "B",
+                    "value": "817012736.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -10587,7 +11551,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.6"
+                    "value": "2.38"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -10600,969 +11564,7 @@
                     "switch": "-metric_totalarea 'step index <float>'",
                     "type": "float",
                     "unit": "um^2",
-                    "value": "6175.0"
-                },
-                "utilization": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: area utilization",
-                    "signature": null,
-                    "switch": "-metric_utilization step index <float>",
-                    "type": "float",
-                    "unit": "%",
-                    "value": "8.0"
-                },
-                "warnings": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total warnings",
-                    "signature": null,
-                    "switch": "-metric_warnings 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                }
-            }
-        },
-        "export": {
-            "0": {
-                "errors": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total errors",
-                    "signature": null,
-                    "switch": "-metric_errors 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                },
-                "exetime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: exetime",
-                    "signature": null,
-                    "switch": "-metric_exetime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "0.96"
-                },
-                "memory": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: memory",
-                    "signature": null,
-                    "switch": "-metric_memory 'step index <float>'",
-                    "type": "float",
-                    "unit": "B",
-                    "value": "374013952"
-                },
-                "tasktime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: tasktime",
-                    "signature": null,
-                    "switch": "-metric_tasktime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "1.26"
-                },
-                "warnings": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total warnings",
-                    "signature": null,
-                    "switch": "-metric_warnings 'step index <int>'",
-                    "type": "int",
-                    "value": "1"
-                }
-            }
-        },
-        "floorplan": {
-            "0": {
-                "cellarea": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: cellarea",
-                    "signature": null,
-                    "switch": "-metric_cellarea 'step index <float>'",
-                    "type": "float",
-                    "unit": "um^2",
-                    "value": "415.0"
-                },
-                "cells": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: cells",
-                    "signature": null,
-                    "switch": "-metric_cells 'step index <float>'",
-                    "type": "int",
-                    "value": "250"
-                },
-                "errors": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total errors",
-                    "signature": null,
-                    "switch": "-metric_errors 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                },
-                "exetime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: exetime",
-                    "signature": null,
-                    "switch": "-metric_exetime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "0.31"
-                },
-                "leakagepower": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: leakagepower",
-                    "signature": null,
-                    "switch": "-metric_leakagepower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": "8.69e-06"
-                },
-                "memory": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: memory",
-                    "signature": null,
-                    "switch": "-metric_memory 'step index <float>'",
-                    "type": "float",
-                    "unit": "B",
-                    "value": "85999616.0"
-                },
-                "nets": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: nets",
-                    "signature": null,
-                    "switch": "-metric_nets 'step index <float>'",
-                    "type": "int",
-                    "value": "321"
-                },
-                "peakpower": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: peakpower",
-                    "signature": null,
-                    "switch": "-metric_peakpower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": "0.000188"
-                },
-                "pins": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: pins",
-                    "signature": null,
-                    "switch": "-metric_pins 'step index <float>'",
-                    "type": "int",
-                    "value": "54"
-                },
-                "setupslack": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setupslack",
-                    "signature": null,
-                    "switch": "-metric_setupslack 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.11"
-                },
-                "setuptns": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setuptns",
-                    "signature": null,
-                    "switch": "-metric_setuptns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.0"
-                },
-                "setupwns": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setupwns",
-                    "signature": null,
-                    "switch": "-metric_setupwns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.0"
-                },
-                "tasktime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: tasktime",
-                    "signature": null,
-                    "switch": "-metric_tasktime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "0.55"
-                },
-                "totalarea": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: totalarea",
-                    "signature": null,
-                    "switch": "-metric_totalarea 'step index <float>'",
-                    "type": "float",
-                    "unit": "um^2",
-                    "value": "6916.67"
-                },
-                "utilization": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: area utilization",
-                    "signature": null,
-                    "switch": "-metric_utilization step index <float>",
-                    "type": "float",
-                    "unit": "%",
-                    "value": "6.0"
-                },
-                "warnings": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total warnings",
-                    "signature": null,
-                    "switch": "-metric_warnings 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                }
-            }
-        },
-        "import": {
-            "0": {
-                "errors": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total errors",
-                    "signature": null,
-                    "switch": "-metric_errors 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                },
-                "exetime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: exetime",
-                    "signature": null,
-                    "switch": "-metric_exetime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "0.3"
-                },
-                "memory": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: memory",
-                    "signature": null,
-                    "switch": "-metric_memory 'step index <float>'",
-                    "type": "float",
-                    "unit": "B",
-                    "value": "31330304.0"
-                },
-                "tasktime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: tasktime",
-                    "signature": null,
-                    "switch": "-metric_tasktime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "0.32"
-                },
-                "warnings": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total warnings",
-                    "signature": null,
-                    "switch": "-metric_warnings 'step index <int>'",
-                    "type": "int",
-                    "value": "10"
-                }
-            }
-        },
-        "physyn": {
-            "0": {
-                "cellarea": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: cellarea",
-                    "signature": null,
-                    "switch": "-metric_cellarea 'step index <float>'",
-                    "type": "float",
-                    "unit": "um^2",
-                    "value": "415.0"
-                },
-                "cells": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: cells",
-                    "signature": null,
-                    "switch": "-metric_cells 'step index <float>'",
-                    "type": "int",
-                    "value": "250"
-                },
-                "errors": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total errors",
-                    "signature": null,
-                    "switch": "-metric_errors 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                },
-                "exetime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: exetime",
-                    "signature": null,
-                    "switch": "-metric_exetime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "0.31"
-                },
-                "leakagepower": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: leakagepower",
-                    "signature": null,
-                    "switch": "-metric_leakagepower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": "8.69e-06"
-                },
-                "memory": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: memory",
-                    "signature": null,
-                    "switch": "-metric_memory 'step index <float>'",
-                    "type": "float",
-                    "unit": "B",
-                    "value": "86360064.0"
-                },
-                "nets": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: nets",
-                    "signature": null,
-                    "switch": "-metric_nets 'step index <float>'",
-                    "type": "int",
-                    "value": "321"
-                },
-                "peakpower": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: peakpower",
-                    "signature": null,
-                    "switch": "-metric_peakpower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": "0.000188"
-                },
-                "pins": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: pins",
-                    "signature": null,
-                    "switch": "-metric_pins 'step index <float>'",
-                    "type": "int",
-                    "value": "54"
-                },
-                "setupslack": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setupslack",
-                    "signature": null,
-                    "switch": "-metric_setupslack 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.11"
-                },
-                "setuptns": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setuptns",
-                    "signature": null,
-                    "switch": "-metric_setuptns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.0"
-                },
-                "setupwns": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setupwns",
-                    "signature": null,
-                    "switch": "-metric_setupwns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.0"
-                },
-                "tasktime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: tasktime",
-                    "signature": null,
-                    "switch": "-metric_tasktime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "0.5"
-                },
-                "totalarea": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: totalarea",
-                    "signature": null,
-                    "switch": "-metric_totalarea 'step index <float>'",
-                    "type": "float",
-                    "unit": "um^2",
-                    "value": "6916.67"
-                },
-                "utilization": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: area utilization",
-                    "signature": null,
-                    "switch": "-metric_utilization step index <float>",
-                    "type": "float",
-                    "unit": "%",
-                    "value": "6.0"
-                },
-                "warnings": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total warnings",
-                    "signature": null,
-                    "switch": "-metric_warnings 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                }
-            }
-        },
-        "place": {
-            "0": {
-                "cellarea": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: cellarea",
-                    "signature": null,
-                    "switch": "-metric_cellarea 'step index <float>'",
-                    "type": "float",
-                    "unit": "um^2",
-                    "value": "485.0"
-                },
-                "cells": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: cells",
-                    "signature": null,
-                    "switch": "-metric_cells 'step index <float>'",
-                    "type": "int",
-                    "value": "305"
-                },
-                "errors": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total errors",
-                    "signature": null,
-                    "switch": "-metric_errors 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                },
-                "exetime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: exetime",
-                    "signature": null,
-                    "switch": "-metric_exetime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "0.51"
-                },
-                "leakagepower": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: leakagepower",
-                    "signature": null,
-                    "switch": "-metric_leakagepower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": "1.12e-05"
-                },
-                "memory": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: memory",
-                    "signature": null,
-                    "switch": "-metric_memory 'step index <float>'",
-                    "type": "float",
-                    "unit": "B",
-                    "value": "164712448.0"
-                },
-                "nets": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: nets",
-                    "signature": null,
-                    "switch": "-metric_nets 'step index <float>'",
-                    "type": "int",
-                    "value": "376"
-                },
-                "peakpower": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: peakpower",
-                    "signature": null,
-                    "switch": "-metric_peakpower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": "0.000205"
-                },
-                "pins": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: pins",
-                    "signature": null,
-                    "switch": "-metric_pins 'step index <float>'",
-                    "type": "int",
-                    "value": "54"
-                },
-                "setupslack": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setupslack",
-                    "signature": null,
-                    "switch": "-metric_setupslack 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.11"
-                },
-                "setuptns": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setuptns",
-                    "signature": null,
-                    "switch": "-metric_setuptns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.0"
-                },
-                "setupwns": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setupwns",
-                    "signature": null,
-                    "switch": "-metric_setupwns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.0"
-                },
-                "tasktime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: tasktime",
-                    "signature": null,
-                    "switch": "-metric_tasktime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "0.8"
-                },
-                "totalarea": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: totalarea",
-                    "signature": null,
-                    "switch": "-metric_totalarea 'step index <float>'",
-                    "type": "float",
-                    "unit": "um^2",
-                    "value": "6062.5"
-                },
-                "utilization": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: area utilization",
-                    "signature": null,
-                    "switch": "-metric_utilization step index <float>",
-                    "type": "float",
-                    "unit": "%",
-                    "value": "8.0"
-                },
-                "warnings": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total warnings",
-                    "signature": null,
-                    "switch": "-metric_warnings 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                }
-            }
-        },
-        "route": {
-            "0": {
-                "cellarea": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: cellarea",
-                    "signature": null,
-                    "switch": "-metric_cellarea 'step index <float>'",
-                    "type": "float",
-                    "unit": "um^2",
-                    "value": "494.0"
-                },
-                "cells": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: cells",
-                    "signature": null,
-                    "switch": "-metric_cells 'step index <float>'",
-                    "type": "int",
-                    "value": "1839"
-                },
-                "errors": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: total errors",
-                    "signature": null,
-                    "switch": "-metric_errors 'step index <int>'",
-                    "type": "int",
-                    "value": "0"
-                },
-                "exetime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: exetime",
-                    "signature": null,
-                    "switch": "-metric_exetime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "2.23"
-                },
-                "leakagepower": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: leakagepower",
-                    "signature": null,
-                    "switch": "-metric_leakagepower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": "1.17e-05"
-                },
-                "memory": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: memory",
-                    "signature": null,
-                    "switch": "-metric_memory 'step index <float>'",
-                    "type": "float",
-                    "unit": "B",
-                    "value": "818745344.0"
-                },
-                "nets": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: nets",
-                    "signature": null,
-                    "switch": "-metric_nets 'step index <float>'",
-                    "type": "int",
-                    "value": "381"
-                },
-                "peakpower": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: peakpower",
-                    "signature": null,
-                    "switch": "-metric_peakpower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": "0.000289"
-                },
-                "pins": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: pins",
-                    "signature": null,
-                    "switch": "-metric_pins 'step index <float>'",
-                    "type": "int",
-                    "value": "54"
-                },
-                "setupslack": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setupslack",
-                    "signature": null,
-                    "switch": "-metric_setupslack 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.11"
-                },
-                "setuptns": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setuptns",
-                    "signature": null,
-                    "switch": "-metric_setuptns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.0"
-                },
-                "setupwns": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: setupwns",
-                    "signature": null,
-                    "switch": "-metric_setupwns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": "0.0"
-                },
-                "tasktime": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: tasktime",
-                    "signature": null,
-                    "switch": "-metric_tasktime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": "2.48"
-                },
-                "totalarea": {
-                    "defvalue": null,
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Metric: totalarea",
-                    "signature": null,
-                    "switch": "-metric_totalarea 'step index <float>'",
-                    "type": "float",
-                    "unit": "um^2",
-                    "value": "6175.0"
+                    "value": "6125.0"
                 },
                 "utilization": {
                     "defvalue": null,
@@ -11587,7 +11589,7 @@
                     "signature": null,
                     "switch": "-metric_vias 'step index <float>'",
                     "type": "int",
-                    "value": "2154"
+                    "value": "2188"
                 },
                 "warnings": {
                     "defvalue": null,
@@ -11612,7 +11614,7 @@
                     "switch": "-metric_wirelength 'step index <float>'",
                     "type": "float",
                     "unit": "um",
-                    "value": "6296.0"
+                    "value": "6264.0"
                 }
             }
         },
@@ -11629,7 +11631,7 @@
                     "switch": "-metric_cellarea 'step index <float>'",
                     "type": "float",
                     "unit": "um^2",
-                    "value": "414.96"
+                    "value": "420.0"
                 },
                 "cells": {
                     "defvalue": null,
@@ -11641,7 +11643,7 @@
                     "signature": null,
                     "switch": "-metric_cells 'step index <float>'",
                     "type": "int",
-                    "value": "250"
+                    "value": "262"
                 },
                 "errors": {
                     "defvalue": null,
@@ -11666,7 +11668,7 @@
                     "switch": "-metric_exetime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.61"
+                    "value": "0.71"
                 },
                 "memory": {
                     "defvalue": null,
@@ -11679,7 +11681,19 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "31072256.0"
+                    "value": "31481856.0"
+                },
+                "registers": {
+                    "defvalue": null,
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Metric: registers",
+                    "signature": null,
+                    "switch": "-metric_registers 'step index <float>'",
+                    "type": "int",
+                    "value": "35"
                 },
                 "tasktime": {
                     "defvalue": null,
@@ -11692,7 +11706,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.78"
+                    "value": "1.59"
                 },
                 "warnings": {
                     "defvalue": null,
@@ -11704,7 +11718,7 @@
                     "signature": null,
                     "switch": "-metric_warnings 'step index <int>'",
                     "type": "int",
-                    "value": "74"
+                    "value": "75"
                 }
             }
         }
@@ -13379,7 +13393,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:25"
+                    "value": "2023-01-07 22:26:56"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -13487,7 +13501,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:23"
+                    "value": "2023-01-07 22:26:54"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -13575,7 +13589,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:28"
+                    "value": "2023-01-07 22:26:59"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -13683,7 +13697,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:28"
+                    "value": "2023-01-07 22:26:59"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -13771,7 +13785,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:30"
+                    "value": "2023-01-07 22:27:01"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -13879,7 +13893,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:28"
+                    "value": "2023-01-07 22:27:00"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -13967,7 +13981,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:21"
+                    "value": "2023-01-07 22:26:52"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14075,7 +14089,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:20"
+                    "value": "2023-01-07 22:26:51"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -14163,7 +14177,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:19"
+                    "value": "2023-01-07 22:26:49"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14271,7 +14285,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:18"
+                    "value": "2023-01-07 22:26:49"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -14359,7 +14373,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:21"
+                    "value": "2023-01-07 22:26:53"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14467,7 +14481,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:21"
+                    "value": "2023-01-07 22:26:52"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -14555,7 +14569,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:22"
+                    "value": "2023-01-07 22:26:54"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14663,7 +14677,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:22"
+                    "value": "2023-01-07 22:26:53"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -14751,7 +14765,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:27"
+                    "value": "2023-01-07 22:26:59"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14859,7 +14873,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:25"
+                    "value": "2023-01-07 22:26:56"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -14947,7 +14961,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:20"
+                    "value": "2023-01-07 22:26:51"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -15055,7 +15069,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-02 06:30:19"
+                    "value": "2023-01-07 22:26:49"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -15079,7 +15093,7 @@
                     "signature": null,
                     "switch": "-record_toolpath 'step index <str>'",
                     "type": "str",
-                    "value": "/home/aolofsson/work/zeroasic/siliconcompiler/third_party/tools/openroad/tools/install/yosys/bin/yosys"
+                    "value": "/usr/local/bin/yosys"
                 },
                 "toolversion": {
                     "defvalue": null,
@@ -15091,7 +15105,7 @@
                     "signature": null,
                     "switch": "-record_toolversion 'step index <str>'",
                     "type": "str",
-                    "value": "0.13+15"
+                    "value": "0.24"
                 },
                 "userid": {
                     "defvalue": null,
@@ -19256,7 +19270,7 @@
                             "switch": "-tool_report 'tool step index metric <str>'",
                             "type": "[file]",
                             "value": [
-                                "syn.log"
+                                "reports/stat.json"
                             ]
                         },
                         "coverage": {
@@ -19370,7 +19384,7 @@
                             "switch": "-tool_report 'tool step index metric <str>'",
                             "type": "[file]",
                             "value": [
-                                "syn.log"
+                                "reports/stat.json"
                             ]
                         },
                         "pins": {
@@ -19389,7 +19403,7 @@
                             "switch": "-tool_report 'tool step index metric <str>'",
                             "type": "[file]",
                             "value": [
-                                "syn.log"
+                                "reports/stat.json"
                             ]
                         },
                         "registers": {
@@ -19466,7 +19480,13 @@
                         "type": "[str]",
                         "value": [
                             "asic,logiclib",
-                            "library,nangate45,model,timing,nldm,typical"
+                            "library,nangate45,model,timing,nldm,typical",
+                            "tool,yosys,var,syn,0,flatten",
+                            "tool,yosys,var,syn,0,autoname",
+                            "tool,yosys,var,syn,0,map_adders",
+                            "tool,yosys,var,syn,0,synthesis_corner",
+                            "tool,yosys,var,syn,0,dff_liberty",
+                            "tool,yosys,var,syn,0,abc_clock_period"
                         ]
                     }
                 }
@@ -19554,6 +19574,166 @@
                     }
                 }
             },
+            "var": {
+                "syn": {
+                    "0": {
+                        "abc_clock_period": {
+                            "defvalue": [],
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool: script variables",
+                            "signature": [],
+                            "switch": "-tool_variable 'tool step index key <str>'",
+                            "type": "[str]",
+                            "value": [
+                                "2000"
+                            ]
+                        },
+                        "abc_constraint_driver": {
+                            "defvalue": [],
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool: script variables",
+                            "signature": [],
+                            "switch": "-tool_variable 'tool step index key <str>'",
+                            "type": "[str]",
+                            "value": [
+                                "BUF_X4"
+                            ]
+                        },
+                        "abc_constraint_file": {
+                            "defvalue": [],
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool: script variables",
+                            "signature": [],
+                            "switch": "-tool_variable 'tool step index key <str>'",
+                            "type": "[str]",
+                            "value": [
+                                "inputs/sc_abc.constraints"
+                            ]
+                        },
+                        "autoname": {
+                            "defvalue": [],
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool: script variables",
+                            "signature": [],
+                            "switch": "-tool_variable 'tool step index key <str>'",
+                            "type": "[str]",
+                            "value": [
+                                "True"
+                            ]
+                        },
+                        "dff_liberty": {
+                            "defvalue": [],
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool: script variables",
+                            "signature": [],
+                            "switch": "-tool_variable 'tool step index key <str>'",
+                            "type": "[str]",
+                            "value": [
+                                "/home/aolofsson/work/zeroasic/third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/lib/NangateOpenCellLibrary_typical.lib"
+                            ]
+                        },
+                        "dff_liberty_file": {
+                            "defvalue": [],
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool: script variables",
+                            "signature": [],
+                            "switch": "-tool_variable 'tool step index key <str>'",
+                            "type": "[str]",
+                            "value": [
+                                "inputs/sc_dff_library.lib"
+                            ]
+                        },
+                        "flatten": {
+                            "defvalue": [],
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool: script variables",
+                            "signature": [],
+                            "switch": "-tool_variable 'tool step index key <str>'",
+                            "type": "[str]",
+                            "value": [
+                                "True"
+                            ]
+                        },
+                        "map_adders": {
+                            "defvalue": [],
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool: script variables",
+                            "signature": [],
+                            "switch": "-tool_variable 'tool step index key <str>'",
+                            "type": "[str]",
+                            "value": [
+                                "False"
+                            ]
+                        },
+                        "synthesis_corner": {
+                            "defvalue": [],
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool: script variables",
+                            "signature": [],
+                            "switch": "-tool_variable 'tool step index key <str>'",
+                            "type": "[str]",
+                            "value": [
+                                "typical"
+                            ]
+                        },
+                        "synthesis_libraries": {
+                            "defvalue": [],
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool: script variables",
+                            "signature": [],
+                            "switch": "-tool_variable 'tool step index key <str>'",
+                            "type": "[str]",
+                            "value": [
+                                "inputs/sc_logiclib_nangate45_NangateOpenCellLibrary_typical.lib"
+                            ]
+                        },
+                        "techmap": {
+                            "defvalue": [],
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Tool: script variables",
+                            "signature": [],
+                            "switch": "-tool_variable 'tool step index key <str>'",
+                            "type": "[str]",
+                            "value": [
+                                "/home/aolofsson/work/zeroasic/third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/techmap/yosys/cells_latch.v"
+                            ]
+                        }
+                    }
+                }
+            },
             "version": {
                 "defvalue": [],
                 "lock": "false",
@@ -19565,7 +19745,7 @@
                 "switch": "-tool_version 'tool <str>'",
                 "type": "[str]",
                 "value": [
-                    ">=0.13"
+                    ">=0.24"
                 ]
             },
             "vswitch": {
