@@ -44,10 +44,6 @@ def setup(chip):
     lib.add('model', 'layout', 'lef', stackup, libdir+'/lef/sky130_fd_sc_hd_merged.lef')
     lib.add('model', 'layout', 'gds', stackup, libdir+'/gds/sky130_fd_sc_hd.gds')
 
-    # Techmap
-    lib.add('asic', 'file', 'yosys', 'techmap',
-             libdir + '/techmap/yosys/cells_latch.v')
-
     # Power grid specifier
     lib.set('asic', 'pgmetal', 'm1')
 
@@ -120,6 +116,22 @@ def setup(chip):
     # tie cells
     lib.add('asic', 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
                                       'sky130_fd_sc_hd__conb_1/LO'])
+
+    # Defaults for OpenROAD tool variables
+    lib.set('asic', 'var', 'openroad', 'place_density', ['0.6'])
+    lib.set('asic', 'var', 'openroad', 'pad_global_place', ['4'])
+    lib.set('asic', 'var', 'openroad', 'pad_detail_place', ['2'])
+    lib.set('asic', 'var', 'openroad', 'macro_place_halo', ['1', '1'])
+    lib.set('asic', 'var', 'openroad', 'macro_place_channel', ['80', '80'])
+
+    # Yosys techmap
+    lib.add('asic', 'file', 'yosys', 'techmap',
+             libdir + '/techmap/yosys/cells_latch.v')
+
+    # Openroad specific files
+    lib.set('asic', 'file', 'openroad', 'pdngen', libdir+'/apr/openroad/pdngen.tcl')
+    lib.set('asic', 'file', 'openroad', 'global_connect', libdir+'/apr/openroad/global_connect.tcl')
+    lib.set('asic', 'file', 'openroad', 'tapcells', libdir+'/apr/openroad/tapcell.tcl')
 
     chip.import_library(lib)
 
