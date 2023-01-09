@@ -2,17 +2,17 @@ import siliconcompiler
 import os
 import pytest
 
-    
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_spree(scroot):
     spree_dir = os.path.join(scroot, 'examples', 'spree')
     source = os.path.join(spree_dir, 'spree.v')
     arch = os.path.join(spree_dir, 'arch.xml')
-    
+
     chip = siliconcompiler.Chip('spree')
-    
-    chip.add('input', 'verilog', source)
+
+    chip.add('input', 'rtl', 'verilog', source)
     chip.set('fpga', 'arch', arch)
     chip.set('fpga', 'partname', 'dummy')
     chip.load_flow('fpgaflow')

@@ -57,7 +57,7 @@ def setup(chip):
     chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input,bsv')
+    chip.add('tool', tool, 'require', step, index, 'input, hll, bsv')
 
 def parse_version(stdout):
     # Examples:
@@ -89,7 +89,7 @@ def runtime_options(chip):
     for value in chip.get('option', 'define'):
         cmdlist.append('-D ' + value)
 
-    sources = chip.find_files('input', 'bsv')
+    sources = chip.find_files('input', 'hll', 'bsv')
     if len(sources) != 1:
         raise ValueError('Bluespec frontend only supports one source file!')
     cmdlist.append(sources[0])
