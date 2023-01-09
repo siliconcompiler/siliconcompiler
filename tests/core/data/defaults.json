@@ -2350,44 +2350,29 @@
     "history": {},
     "input": {
         "default": {
-            "author": [],
-            "copy": "true",
-            "date": [],
-            "defvalue": [],
-            "example": [
-                "cli: -input 'verilog hello_world.v'",
-                "api: chip.set(input,'verilog','hello_world.v')"
-            ],
-            "filehash": [],
-            "hashalgo": "sha256",
-            "help": "List of input files specified by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Input files",
-            "signature": [],
-            "switch": "-input 'filetype <file>'",
-            "type": "[file]",
-            "value": []
+            "default": {
+                "author": [],
+                "copy": "true",
+                "date": [],
+                "defvalue": [],
+                "example": [
+                    "cli: -input 'rtl verilog hello_world.v'",
+                    "api: chip.set(input, 'rtl','verilog','hello_world.v')"
+                ],
+                "filehash": [],
+                "hashalgo": "sha256",
+                "help": "List of files of type ('filetype') grouped as a named set ('fileset').\nThe exact names of filetypes and filesets must match the string names\nused by the tasks called during flowgraph execution. By convention,\nthe fileset names should match the the name of the flowgraph being\nexecuted.",
+                "lock": "false",
+                "notes": null,
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Input: files",
+                "signature": [],
+                "switch": "-input 'fileset filetype <file>'",
+                "type": "[file]",
+                "value": []
+            }
         }
-    },
-    "lambda": {
-        "defvalue": null,
-        "example": [
-            "cli: -lambda 1e-6",
-            "api: chip.set('lambda', 1e-6)"
-        ],
-        "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
-        "lock": "false",
-        "notes": null,
-        "require": null,
-        "scope": "global",
-        "shorthelp": "Lambda value",
-        "signature": null,
-        "switch": "-lambda <float>",
-        "type": "float",
-        "value": null
     },
     "library": {},
     "metric": {
@@ -4203,26 +4188,28 @@
     },
     "output": {
         "default": {
-            "author": [],
-            "copy": "false",
-            "date": [],
-            "defvalue": [],
-            "example": [
-                "cli: -output 'verilog hello_world.v'",
-                "api: chip.set(output,'verilog','hello_world.v')"
-            ],
-            "filehash": [],
-            "hashalgo": "sha256",
-            "help": "List of output files specified by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Output files",
-            "signature": [],
-            "switch": "-output 'filetype <file>'",
-            "type": "[file]",
-            "value": []
+            "default": {
+                "author": [],
+                "copy": "false",
+                "date": [],
+                "defvalue": [],
+                "example": [
+                    "cli: -output 'rtl verilog hello_world.v'",
+                    "api: chip.set(output, 'rtl','verilog','hello_world.v')"
+                ],
+                "filehash": [],
+                "hashalgo": "sha256",
+                "help": "List of files of type ('filetype') grouped as a named set ('fileset').\nThe exact names of filetypes and filesets must match the string names\nused by the tasks called during flowgraph execution. By convention,\nthe fileset names should match the the name of the flowgraph being\nexecuted.",
+                "lock": "false",
+                "notes": null,
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Output: files",
+                "signature": [],
+                "switch": "-output 'fileset filetype <file>'",
+                "type": "[file]",
+                "value": []
+            }
         }
     },
     "package": {
@@ -6899,6 +6886,23 @@
             "switch": "-unit_inductance '<str>'",
             "type": "str",
             "value": "nh"
+        },
+        "lambda": {
+            "defvalue": null,
+            "example": [
+                "cli: -unit_lambda 1e-6",
+                "api: chip.set('unit', 'lambda', 1e-6)"
+            ],
+            "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
+            "lock": "false",
+            "notes": null,
+            "require": null,
+            "scope": "global",
+            "shorthelp": "Unit: Lambda value",
+            "signature": null,
+            "switch": "-unit_lambda <float>",
+            "type": "float",
+            "value": null
         },
         "length": {
             "defvalue": "um",
