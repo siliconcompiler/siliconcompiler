@@ -1070,7 +1070,7 @@
                         "cli: -constraint_component_flip 'i0 true'",
                         "api: chip.set('constraint', 'component', 'i0', 'flip', 'true')"
                     ],
-                    "help": "Boolean parameter specifying that the instanced library component should be flipped\naround the vertical axis befong being placed on the substrate. The need to\nflip a component depends on the component footprint. Most dies have pads\nfacing up and so must be flipped when assembled face down (eg. flip-chip,\nWCSP).",
+                    "help": "Boolean parameter specifying that the instanced library component should be flipped\naround the vertical axis before being placed on the substrate. The need to\nflip a component depends on the component footprint. Most dies have pads\nfacing up and so must be flipped when assembled face down (eg. flip-chip,\nWCSP).",
                     "lock": "false",
                     "notes": null,
                     "require": "all",
@@ -1104,7 +1104,7 @@
                         "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
                         "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"
                     ],
-                    "help": "Placement location of a named component, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
+                    "help": "Placement location of a named component, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -1136,13 +1136,30 @@
         },
         "pin": {
             "default": {
+                "layer": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_pin_layer 'nreset m4'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"
+                    ],
+                    "help": "Pin metal layer specified based on the SC standard layer stack\nstarting with m1 as the lowest routing layer and ending\nwith m<n> as the highest routing layer.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Pin layer",
+                    "signature": null,
+                    "switch": "-constraint_pin_layer 'nreset <str>'",
+                    "type": "str",
+                    "value": null
+                },
                 "placement": {
                     "defvalue": null,
                     "example": [
-                        "cli: -constraint_pin_placement 'i0 (2.0,3.0,0.0)'",
-                        "api: chip.set('constraint', 'pin', 'i0', 'placement', (2.0,3.0,0.0)"
+                        "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0)"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. Rhe 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on to and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates.",
+                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on to and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -2371,23 +2388,6 @@
             "type": "[file]",
             "value": []
         }
-    },
-    "lambda": {
-        "defvalue": null,
-        "example": [
-            "cli: -lambda 1e-6",
-            "api: chip.set('lambda', 1e-6)"
-        ],
-        "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
-        "lock": "false",
-        "notes": null,
-        "require": null,
-        "scope": "global",
-        "shorthelp": "Lambda value",
-        "signature": null,
-        "switch": "-lambda <float>",
-        "type": "float",
-        "value": null
     },
     "library": {},
     "metric": {
@@ -6146,7 +6146,7 @@
                     "cli: -schematic_interface 'name (clk,clk0)'",
                     "api: chip.set('schematic','interface','ddr',('clk','clk0')"
                 ],
-                "help": "Signal interface definition specified as a list of (key,value) mapping\ntuples, wherein the key is the standardaized interface name and the\nvalue is the design pin name. Bus pins are specified using the Verilog\nsquare bracket syntax (ie [msb:lsb]).",
+                "help": "Signal interface definition specified as a list of (key,value) mapping\ntuples, wherein the key is the standardized interface name and the\nvalue is the design pin name. Bus pins are specified using the Verilog\nsquare bracket syntax (ie [msb:lsb]).",
                 "lock": "false",
                 "notes": null,
                 "require": null,
@@ -6184,7 +6184,7 @@
                     "cli: -schematic_parameter 'i0 (speed,fast)'",
                     "api: chip.set('schematic','parameter', 'i0', ('speed','fast')"
                 ],
-                "help": "List of parameter definitions attached to a named pin, net, or\ncomponent pecified as (key,value) tuples.",
+                "help": "List of parameter definitions attached to a named pin, net, or\ncomponent specified as (key,value) tuples.",
                 "lock": "false",
                 "notes": null,
                 "require": null,
@@ -6899,6 +6899,23 @@
             "switch": "-unit_inductance '<str>'",
             "type": "str",
             "value": "nh"
+        },
+        "lambda": {
+            "defvalue": "1.0",
+            "example": [
+                "cli: -unit_lambda 1e-6",
+                "api: chip.set('unit', 'lambda', 1e-6)"
+            ],
+            "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
+            "lock": "false",
+            "notes": null,
+            "require": null,
+            "scope": "global",
+            "shorthelp": "Unit: Lambda value",
+            "signature": null,
+            "switch": "-unit_lambda <float>",
+            "type": "float",
+            "value": "1.0"
         },
         "length": {
             "defvalue": "um",

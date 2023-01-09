@@ -254,7 +254,7 @@ def schema_schematic(cfg):
                 "api: chip.set('schematic','interface','ddr',('clk','clk0')"],
             schelp="""
             Signal interface definition specified as a list of (key,value) mapping
-            tuples, wherein the key is the standardaized interface name and the
+            tuples, wherein the key is the standardized interface name and the
             value is the design pin name. Bus pins are specified using the Verilog
             square bracket syntax (ie [msb:lsb]).""")
 
@@ -267,7 +267,7 @@ def schema_schematic(cfg):
                 "api: chip.set('schematic','parameter', 'i0', ('speed','fast')"],
             schelp="""
             List of parameter definitions attached to a named pin, net, or
-            component pecified as (key,value) tuples.""")
+            component specified as (key,value) tuples.""")
 
     return cfg
 
@@ -2177,7 +2177,7 @@ def schema_unit(cfg):
 
     scparam(cfg,['unit', 'lambda'],
             sctype='float',
-            defvalue='1.0'
+            defvalue='1.0',
             scope='global',
             shorthelp="Unit: Lambda value",
             switch="-unit_lambda <float>",
@@ -3716,7 +3716,7 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             Placement location of a named component, specified as a (x,y,z) tuple of
             floats. The location refers to the placement of the center/centroid of the
             component. The 'placement' parameter is a goal/intent, not an exact specification.
-            The compiler and layout system may adjust sizes to meet competing
+            The compiler and layout system may adjust coordinates to meet competing
             goals such as manufacturing design  rules and grid placement
             guidelines. The 'z' coordinate shall be set to 0 for planar systems
             with only (x,y) coordinates. Discretized systems like PCB stacks,
@@ -3750,7 +3750,7 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
                 "api: chip.set('constraint', 'component', 'i0', 'flip', 'true')"],
             schelp="""
             Boolean parameter specifying that the instanced library component should be flipped
-            around the vertical axis befong being placed on the substrate. The need to
+            around the vertical axis before being placed on the substrate. The need to
             flip a component depends on the component footprint. Most dies have pads
             facing up and so must be flipped when assembled face down (eg. flip-chip,
             WCSP).""")
@@ -3761,18 +3761,31 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             shorthelp="Constraint: Pin placement",
             switch="-constraint_pin_placement 'inst <(float,float, float)>'",
             example=[
-                "cli: -constraint_pin_placement 'i0 (2.0,3.0,0.0)'",
-                "api: chip.set('constraint', 'pin', 'i0', 'placement', (2.0,3.0,0.0)"],
+                "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0)"],
             schelp="""
             Placement location of a named pin, specified as a (x,y,z) tuple of
             floats. The location refers to the placement of the center of the
-            pin. Rhe 'placement' parameter is a goal/intent, not an exact specification.
+            pin. The 'placement' parameter is a goal/intent, not an exact specification.
             The compiler and layout system may adjust sizes to meet competing
             goals such as manufacturing design  rules and grid placement
             guidelines. The 'z' coordinate shall be set to 0 for planar components
             with only (x,y) coordinates. Discretized systems like 3D chips with
             pins on to and bottom may choose to discretize the top and bottom
             layer as 0,1 or use absolute coordinates.""")
+
+    scparam(cfg, ['constraint', 'pin', instance, 'layer'],
+            sctype='str',
+            shorthelp="Constraint: Pin layer",
+            switch="-constraint_pin_layer 'nreset <str>'",
+            example=[
+                "cli: -constraint_pin_layer 'nreset m4'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"],
+            schelp="""
+            Pin metal layer specified based on the SC standard layer stack
+            starting with m1 as the lowest routing layer and ending
+            with m<n> as the highest routing layer.""")
+
 
     return cfg
 
