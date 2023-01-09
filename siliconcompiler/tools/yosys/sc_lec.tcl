@@ -34,7 +34,7 @@ yosys read_liberty -ignore_miss_func $sc_liberty
 if {[file exists "inputs/$sc_design.v"]} {
     set source "inputs/$sc_design.v"
 } else {
-    set source [lindex [dict get $sc_cfg input verilog] 0]
+    set source [lindex [dict get $sc_cfg input rtl verilog] 0]
 }
 yosys read_verilog $source
 
@@ -51,8 +51,8 @@ yosys design -stash gold
 
 # Gate netlist
 yosys read_liberty -ignore_miss_func $sc_liberty
-if {[dict exists $sc_cfg input netlist]} {
-    set netlist [lindex [dict get $sc_cfg input netlist] 0]
+if {[dict exists $sc_cfg input asic netlist]} {
+    set netlist [lindex [dict get $sc_cfg input asic netlist] 0]
 } else {
     set netlist "inputs/$sc_design.vg"
 }

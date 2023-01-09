@@ -80,10 +80,10 @@ def setup(chip):
         chip.add('tool', tool, 'output', step, index, design + '_netlist.json')
         chip.add('tool', tool, 'output', step, index, design + '.blif')
     elif step == 'lec':
-        if (not chip.valid('input', 'netlist') or
-            not chip.get('input', 'netlist')):
+        if (not chip.valid('input', 'asic', 'netlist') or
+            not chip.get('input', 'asic', 'netlist')):
             chip.set('tool', tool, 'input', step, index, design + '.vg')
-        if not chip.get('input', 'verilog'):
+        if not chip.get('input', 'rtl', 'verilog'):
             # TODO: Not sure this logic makes sense? Seems like reverse of
             # what's in TCL
             chip.set('tool', tool, 'input', step, index, design + '.v')
@@ -454,9 +454,11 @@ def get_abc_period(chip):
             return abc_clock_period[0]
 
     period = None
+
     # get clock information from sdc files
-    if chip.valid('input', 'sdc'):
-        for sdc in chip.find_files('input', 'sdc'):
+    # TODO: fix for fpga/asic differentiation later
+    if chip.valid('input', 'asic', 'sdc'):
+        for sdc in chip.find_files('input', 'asic', 'sdc'):
             lines = []
             with open(sdc, 'r') as f:
                 lines = f.read().splitlines()

@@ -73,7 +73,8 @@ def setup(chip):
     chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
+    # TODO: what filesets are used by surelog, RTL only?
+    #chip.add('tool', tool, 'require', step, index, ",".join(['input', 'rtl', 'verilog']))
 
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
@@ -183,7 +184,7 @@ def runtime_options(chip):
     # Sources
     #######################
 
-    src_files = chip.find_files('input', 'verilog')
+    src_files = chip.find_files('input', 'rtl', 'verilog')
 
     # TODO: add back later
     #for item in chip.getkeys('library'):
