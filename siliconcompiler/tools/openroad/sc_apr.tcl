@@ -140,8 +140,8 @@ foreach lib "$sc_targetlibs $sc_macrolibs" {
 
 # Read Verilog
 if {$sc_step == "floorplan"} {
-    if {[dict exists $sc_cfg "input" "asic" netlist]} {
-        foreach netlist [dict get $sc_cfg "input" "asic" netlist] {
+    if {[dict exists $sc_cfg input netlist verilog ]} {
+        foreach netlist [dict get $sc_cfg input netlist verilog] {
             read_verilog $netlist
         }
     } else {
@@ -151,10 +151,10 @@ if {$sc_step == "floorplan"} {
 }
 
 # Read ODB or DEF
-if {[dict exists $sc_cfg "input" "asic" def]} {
+if {[dict exists $sc_cfg input layout def]} {
     if {$sc_step != "floorplan"} {
         # Floorplan initialize handled separately in sc_floorplan.tcl
-        foreach def [dict get $sc_cfg "input" "asic" def] {
+        foreach def [dict get $sc_cfg input layout def] {
             read_def $def
         }
     }
@@ -171,8 +171,8 @@ if {[dict exists $sc_cfg "input" "asic" def]} {
 
 # Read SDC (in order of priority)
 # TODO: add logic for reading from ['constraint', ...] once we support MCMM
-if {[dict exists $sc_cfg "input" "asic" sdc]} {
-    foreach sdc [dict get $sc_cfg "input" "asic" sdc] {
+if {[dict exists $sc_cfg input asic sdc]} {
+    foreach sdc [dict get $sc_cfg input asic sdc] {
 	# read step constraint if exists
 	read_sdc $sdc
     }

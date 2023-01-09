@@ -136,12 +136,12 @@ def setup(chip):
 
    # I/O requirements
     if step == 'import':
-        chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
+        chip.add('tool', tool, 'require', step, index, ",".join(['input', 'rtl', 'verilog']))
         chip.set('tool', tool, 'output', step, index, f'{design}.v')
     elif step == 'lint':
         chip.set('tool', tool, 'input', step, index, f'{design}.v')
     elif step == 'compile':
-        chip.add('tool', tool, 'require', step, index, ",".join(['input', 'c']))
+        chip.add('tool', tool, 'require', step, index, ",".join(['input', 'hll', 'c']))
         chip.set('tool', tool, 'input', step, index, f'{design}.v')
         chip.set('tool', tool, 'output', step, index, f'{design}.vexe')
 
@@ -166,10 +166,10 @@ def runtime_options(chip):
             cmdlist.append('-I' + value)
         for value in chip.find_files('option', 'cmdfile'):
             cmdlist.append('-f ' + value)
-        for value in chip.find_files('input', 'verilog'):
+        for value in chip.find_files('input', 'rtl', 'verilog'):
             cmdlist.append(value)
     elif step == 'compile':
-        for value in chip.find_files('input', 'c'):
+        for value in chip.find_files('input', 'hll', 'c'):
             cmdlist.append(value)
 
     return cmdlist

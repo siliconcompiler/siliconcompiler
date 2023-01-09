@@ -83,8 +83,8 @@ def setup(chip, mode='batch'):
     if step in ['floorplan', 'physyn', 'place', 'cts', 'route', 'dfm']:
         design = chip.top()
         if step == 'floorplan':
-            if (not chip.valid('input', 'asic', 'netlist') or
-                not chip.get('input', 'asic', 'netlist')):
+            if (not chip.valid('input', 'netlist', 'verilog') or
+                not chip.get('input', 'netlist', 'verilog')):
                 chip.add('tool', tool, 'input', step, index, design +'.vg')
         else:
             if (not chip.valid('input', 'asic', 'def') or

@@ -80,8 +80,8 @@ def setup(chip):
         chip.add('tool', tool, 'output', step, index, design + '_netlist.json')
         chip.add('tool', tool, 'output', step, index, design + '.blif')
     elif step == 'lec':
-        if (not chip.valid('input', 'asic', 'netlist') or
-            not chip.get('input', 'asic', 'netlist')):
+        if (not chip.valid('input', 'netlist', 'verilog') or
+            not chip.get('input', 'netlist', 'verilog')):
             chip.set('tool', tool, 'input', step, index, design + '.vg')
         if not chip.get('input', 'rtl', 'verilog'):
             # TODO: Not sure this logic makes sense? Seems like reverse of

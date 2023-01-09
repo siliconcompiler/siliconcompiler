@@ -51,8 +51,8 @@ yosys design -stash gold
 
 # Gate netlist
 yosys read_liberty -ignore_miss_func $sc_liberty
-if {[dict exists $sc_cfg input asic netlist]} {
-    set netlist [lindex [dict get $sc_cfg input asic netlist] 0]
+if {[dict exists $sc_cfg input netlist verilog]} {
+    set netlist [lindex [dict get $sc_cfg input netlist verilog] 0]
 } else {
     set netlist "inputs/$sc_design.vg"
 }
