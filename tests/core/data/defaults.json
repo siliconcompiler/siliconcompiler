@@ -2107,7 +2107,7 @@
                                 "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
                                 "api:  chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"
                             ],
-                            "help": "Weights specified on a per step and per metric basis used to give\neffective \"goodnes\" score for a step by calculating the sum all step\nreal metrics results by the corresponding per step weights.",
+                            "help": "Weights specified on a per step and per metric basis used to give\neffective \"goodness\" score for a step by calculating the sum all step\nreal metrics results by the corresponding per step weights.",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -2245,7 +2245,7 @@
             ],
             "filehash": [],
             "hashalgo": "sha256",
-            "help": "List of input files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
+            "help": "List of input files specified by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -2441,7 +2441,7 @@
                         "cli: -metric_exetime 'dfm 0 10.0'",
                         "api: chip.set('metric','dfm','0','exetime', 10.0)"
                     ],
-                    "help": "Metric tracking time spent by the eda executable 'exe' on a\nper step and index basis. It does not include the siliconcompiler\nruntime overhead or time waitig for I/O operations and\ninter-processor communication to complete.",
+                    "help": "Metric tracking time spent by the eda executable 'exe' on a\nper step and index basis. It does not include the siliconcompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -2829,7 +2829,7 @@
                         "cli: -metric_tasktime 'dfm 0 10.0'",
                         "api: chip.set('metric','dfm','0','tasktime', 10.0)"
                     ],
-                    "help": "Metric trakcing the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
+                    "help": "Metric tracking the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -3623,7 +3623,7 @@
                 "cli: -metricoff 'wirelength'",
                 "api: chip.set('option','metricoff','wirelength')"
             ],
-            "help": "List of metrics to supress when printing out the run\nsummary.",
+            "help": "List of metrics to suppress when printing out the run\nsummary.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -3984,7 +3984,7 @@
                 "cli: -target freepdk45_demo",
                 "api: chip.set('option','target','freepdk45_demo')"
             ],
-            "help": "Sets a target module to be used for compilation. The target\nmodule must set up all paramaters needed. The target module\nmay load multiple flows and libraries.",
+            "help": "Sets a target module to be used for compilation. The target\nmodule must set up all parameters needed. The target module\nmay load multiple flows and libraries.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -4081,7 +4081,7 @@
             ],
             "filehash": [],
             "hashalgo": "sha256",
-            "help": "List of output files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
+            "help": "List of output files specified by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -4212,7 +4212,7 @@
                 "notes": null,
                 "require": null,
                 "scope": "global",
-                "shorthelp": "Package: version dependancies",
+                "shorthelp": "Package: version dependencies",
                 "signature": [],
                 "switch": "-package_dependency 'module <str>'",
                 "type": "[str]",
@@ -5583,7 +5583,7 @@
                         "cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
                         "api:  chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"
                     ],
-                    "help": "Thickness of a manfuatured unit specified on a per stackup basis.",
+                    "help": "Thickness of a manufactured unit specified on a per stackup basis.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -5956,7 +5956,7 @@
                         "cli: -record_toolversion 'dfm 0 <1.0>'",
                         "api: chip.set('record','dfm','0','toolversion', <1.0>)"
                     ],
-                    "help": "Record tracking the tool version per step and index basis. The tool version captured correspnds to the 'tool'\nparameter within the 'eda' dictionary.",
+                    "help": "Record tracking the tool version per step and index basis. The tool version captured corresponds to the 'tool'\nparameter within the 'eda' dictionary.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -6319,7 +6319,7 @@
                                 "cli: -tool_regex 'openroad place 0 errors -v ERROR'",
                                 "api: chip.set('tool','openroad','regex','place','0','errors','-v ERROR')"
                             ],
-                            "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceeded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`tool, <tool>,\nreport` parameter for those metrics, if not already present.",
+                            "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`tool, <tool>,\nreport` parameter for those metrics, if not already present.",
                             "lock": "false",
                             "notes": null,
                             "require": null,
