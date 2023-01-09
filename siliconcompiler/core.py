@@ -1735,24 +1735,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             fout.close()
 
     ###########################################################################
-    def write_netlist(self, filename):
-        '''
-        Design netlist
-        '''
-
-    ###########################################################################
-    def write_bom(self, filename):
-        '''
-        Bill of material.
-        '''
-
-    ###########################################################################
-    def write_cpl(self, filename):
-        '''
-        Centroid, xy , pick and place, position file,...
-        '''
-
-    ###########################################################################
     def check_checklist(self, standard, items=None, check_ok=False):
         '''
         Check items in a checklist.
