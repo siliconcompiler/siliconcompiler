@@ -139,40 +139,30 @@ def schema_cfg():
             schelp="""Name of the top level module or library. Required for all
             chip objects.""")
 
-    # Lambda value
-    scparam(cfg,['lambda'],
-            sctype='float',
-            scope='global',
-            shorthelp="Lambda value",
-            switch="-lambda <float>",
-            example=["cli: -lambda 1e-6",
-                    "api: chip.set('lambda', 1e-6)"],
-            schelp="""Elementary distance unit used for scaling all
-            schema physical parameters (layout constraints, size, outline,
-            area, margin etc).""")
-
-    # input/output
-    # TODO: Add schematic, layout models here!!!!!!
+    # input
     io = {'input': ['Input','true'],
           'output': ['Output','false']
     }
 
     filetype = 'default'
+    fileset = 'default'
+
     for item, val in io.items():
-        scparam(cfg,[item, filetype],
+        scparam(cfg,[item, fileset, filetype],
                 sctype='[file]',
                 copy=f"{val[1]}",
-                shorthelp=f"{val[0]} files",
-                switch=f"-{item} 'filetype <file>'",
+                shorthelp=f"{val[0]}: files",
+                switch=f"-{item} 'fileset filetype <file>'",
                 example=[
-                    f"cli: -{item} 'verilog hello_world.v'",
-                    f"api: chip.set({item},'verilog','hello_world.v')"],
+                    f"cli: -{item} 'rtl verilog hello_world.v'",
+                    f"api: chip.set({item}, 'rtl','verilog','hello_world.v')"],
                 schelp=f"""
-                List of {item} files specified by type. The filetype name must
-                align with the parameter names within the flow and tool setup
-                scripts. Examples of acceptable file types include python, c,
-                systemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,
-                saif, vcd, spef, sdf.""")
+                List of files of type ('filetype') grouped as a named set ('fileset').
+                The exact names of filetypes and filesets must match the string names
+                used by the tasks called during flowgraph execution. By convention,
+                the fileset names should match the the name of the flowgraph being
+                executed.""")
+
 
     # Constraints
     cfg = schema_constraint(cfg)
@@ -2186,6 +2176,18 @@ def schema_unit(cfg):
                     f"api: chip.set('unit','{item}',{val})"],
                 schelp=f"""
                 Units used for {item} when not explicitly specified.""")
+
+    # Lambda value
+    scparam(cfg,['unit', 'lambda'],
+            sctype='float',
+            scope='global',
+            shorthelp="Unit: Lambda value",
+            switch="-unit_lambda <float>",
+            example=["cli: -unit_lambda 1e-6",
+                    "api: chip.set('unit', 'lambda', 1e-6)"],
+            schelp="""Elementary distance unit used for scaling all
+            schema physical parameters (layout constraints, size, outline,
+            area, margin etc).""")
 
     return cfg
 
