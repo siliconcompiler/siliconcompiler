@@ -50,6 +50,16 @@ def test_find_sc_file_relative(datadir):
 
     assert chip._find_sc_file('test.txt', missing_ok=True) is not None
 
+def test_find_sc_file_cwd():
+    chip = siliconcompiler.Chip('test')
+    mydir = os.getcwd()
+
+    os.mkdir('test')
+    os.chdir('test')
+    # Should be relative to starting directory
+    assert chip._find_sc_file('.') == mydir
+    os.chdir(mydir)
+
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir
