@@ -41,7 +41,7 @@ def setup(chip):
     chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input, hll, c')
+    chip.add('tool', tool, 'require', step, index, 'input,hll,c')
 
 def parse_version(stdout):
     # Long multiline output, but second-to-last line looks like:
