@@ -61,7 +61,7 @@ def runtime_options(chip):
         cmdlist.append('-I' + value)
     for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('input', 'c'):
+    for value in chip.find_files('input', 'hll', 'c'):
         cmdlist.append(value)
 
     cmdlist.append('--top-fname=' + chip.top())
