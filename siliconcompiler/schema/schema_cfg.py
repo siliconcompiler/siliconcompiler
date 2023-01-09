@@ -139,18 +139,6 @@ def schema_cfg():
             schelp="""Name of the top level module or library. Required for all
             chip objects.""")
 
-    # Lambda value
-    scparam(cfg,['lambda'],
-            sctype='float',
-            scope='global',
-            shorthelp="Lambda value",
-            switch="-lambda <float>",
-            example=["cli: -lambda 1e-6",
-                    "api: chip.set('lambda', 1e-6)"],
-            schelp="""Elementary distance unit used for scaling all
-            schema physical parameters (layout constraints, size, outline,
-            area, margin etc).""")
-
     # input/output
     # TODO: Add schematic, layout models here!!!!!!
     io = {'input': ['Input','true'],
@@ -2186,6 +2174,18 @@ def schema_unit(cfg):
                     f"api: chip.set('unit','{item}',{val})"],
                 schelp=f"""
                 Units used for {item} when not explicitly specified.""")
+
+    scparam(cfg,['unit', 'lambda'],
+            sctype='float',
+            defvalue='1.0'
+            scope='global',
+            shorthelp="Unit: Lambda value",
+            switch="-unit_lambda <float>",
+            example=["cli: -unit_lambda 1e-6",
+                    "api: chip.set('unit', 'lambda', 1e-6)"],
+            schelp="""Elementary distance unit used for scaling all
+            schema physical parameters (layout constraints, size, outline,
+            area, margin etc).""")
 
     return cfg
 
