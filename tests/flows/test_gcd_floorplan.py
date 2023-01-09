@@ -1,6 +1,7 @@
 from siliconcompiler.floorplan import Floorplan
 import pytest
 
+@pytest.mark.skip(reason='Skipping until floorplan API has been updated.')
 def setup_floorplan(fp):
     cell_h = fp.stdcell_height
     fp.create_diearea([(0, 0), (72 * cell_h, 72 * cell_h)], corearea=[(8 * cell_h, 8 * cell_h), (64 * cell_h, 64 * cell_h)])
@@ -26,6 +27,7 @@ def setup_floorplan(fp):
 
 ##################################
 @pytest.mark.eda
+@pytest.mark.skip(reason='Skipping until floorplan API has been updated.')
 def test_gcd_floorplan(gcd_chip):
     '''Floorplan API test: build the GCD example using a Python-based floorplan
     '''

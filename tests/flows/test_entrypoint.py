@@ -9,8 +9,8 @@ def test_entrypoint(scroot):
     datadir = os.path.join(scroot, 'tests', 'data')
     chip = siliconcompiler.Chip('heartbeat')
 
-    chip.add('input', 'verilog', os.path.join(datadir, 'heartbeat.v'))
-    chip.add('input', 'verilog', os.path.join(datadir, 'heartbeat_top.v'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(datadir, 'heartbeat.v'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(datadir, 'heartbeat_top.v'))
 
     chip.set('option', 'entrypoint', 'heartbeat_top')
 

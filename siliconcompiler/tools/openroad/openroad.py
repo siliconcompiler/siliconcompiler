@@ -87,8 +87,8 @@ def setup(chip, mode='batch'):
                 not chip.get('input', 'netlist', 'verilog')):
                 chip.add('tool', tool, 'input', step, index, design +'.vg')
         else:
-            if (not chip.valid('input', 'asic', 'def') or
-                not chip.get('input', 'asic', 'def')):
+            if (not chip.valid('input', 'layout', 'def') or
+                not chip.get('input', 'layout', 'def')):
                 chip.add('tool', tool, 'input', step, index, design +'.def')
 
         chip.add('tool', tool, 'output', step, index, design + '.sdc')
@@ -109,8 +109,8 @@ def setup(chip, mode='batch'):
         # chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
         # chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
         chip.add('tool', tool, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
-        if chip.valid('input', 'asic', 'floorplan.def'):
-            chip.set('tool', tool, 'require', step, index, ",".join(['input', 'asic', 'floorplan.def']))
+        if chip.valid('input', 'layout', 'floorplan.def'):
+            chip.set('tool', tool, 'require', step, index, ",".join(['input', 'layout', 'floorplan.def']))
 
         for lib in (targetlibs + macrolibs):
             if 'nldm' in chip.getkeys('library', lib, 'model', 'timing'):
@@ -195,7 +195,7 @@ def pre_process(chip):
     if (step != 'floorplan' or
         chip.get('asic', 'diearea') or
         chip.get('asic', 'corearea') or
-        chip.valid('input', 'asic', 'floorplan.def')):
+        chip.valid('input', 'layout', 'floorplan.def')):
         return
 
     r = _infer_diearea(chip)
