@@ -1,4 +1,4 @@
 #!/bin/bash
 
-sc GCD.scala -frontend chisel
+sc -input "hll scala GCD.scala" -frontend chisel
 sc-show -design GCD
