@@ -950,6 +950,51 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(str(e))
 
     ###########################################################################
+    def input(self, filename, fileset=None, filetype=None):
+        '''
+        Adds file to a filset. The default behavior is to infet filetypes and
+        filesets based on the suffix of the file extensions. The method is
+        a wrapper function for set.add('input', filset, filetype,...)
+
+        Default filetype and filset based on suffix:
+
+        filetype  | fileset   | suffix (case insensitive)
+        ----------|-----------|---------------------------------------------
+        c         | hll       | c,cc,cpp,c++,cp,cxx,hpp
+        bsv       | hll       | bsv
+        scala     | hll       | scala
+        python    | hll       | py
+        verilog   | rtl       | v,vg,sv,verilog
+        vhdl      | rtl       | vhd, vhdl
+        liberty   | timing    | lib, ccs
+        def       | layout    | def
+        lef       | layout    | lef
+        gds       | layout    | gds, gds2, gdsII
+        gerber    | layout    | gbr, gerber
+        cdl       | netlist   | cdl
+        spice     | netlist   | sp
+        vcd       | waveform  | vcd
+        sdc       | constraint| sdc
+
+        Args:
+            fileset (str): File grouping
+            filetype (str): File type
+
+        '''
+
+        #TODO: make util function for suffix (same for input/output)
+        #TODO implement suffix lookup
+
+        self.add('input', fileset, filetype, filename)
+
+    ###########################################################################
+    def output(self, filename, fileset=None, filetype=None):
+        ''' Same as input'''
+
+
+        self.add('output', fileset, filetype, filename)
+
+    ###########################################################################
     def _find_sc_file(self, filename, missing_ok=False):
         """
         Returns the absolute path for the filename provided.
