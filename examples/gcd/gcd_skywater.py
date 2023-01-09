@@ -27,7 +27,7 @@ def main():
     # 1) RTL2GDS
 
     def_path = make_floorplan(chip)
-    chip.set('input', 'asic', 'def', 'floorplan.def', def_path)
+    chip.set('input', 'layout', 'floorplan.def', def_path)
 
     chip.set('option', 'jobname', 'rtl2gds')
     chip.run()
@@ -41,8 +41,8 @@ def main():
     chip.set('option', 'jobname', 'signoff')
     chip.set('option', 'flow', 'signoffflow')
 
-    chip.set('input', 'asic', 'gds', gds_path)
-    chip.set('input', 'asic', 'netlist', vg_path)
+    chip.set('input', 'layout', 'gds', gds_path)
+    chip.set('input', 'netlist', 'verilog', vg_path)
 
     chip.run()
     chip.summary()

@@ -16,8 +16,8 @@ if {[dict exists $sc_cfg tool netgen var $sc_step $sc_index exclude]} {
 }
 
 set layout_file "inputs/$sc_design.spice"
-if {[dict exists $sc_cfg "input" "asic" netlist]} {
-    set schematic_file [dict get $sc_cfg "input" "asic" netlist]
+if {[dict exists $sc_cfg "input" netlist verilog]} {
+    set schematic_file [dict get $sc_cfg "input" netlist verilog]
 } else {
     set schematic_file "inputs/$sc_design.vg"
 }

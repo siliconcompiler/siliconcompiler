@@ -57,7 +57,7 @@ def setup(chip):
     chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input, hll, bsv')
+    chip.add('tool', tool, 'require', step, index, 'input,hll,bsv')
 
 def parse_version(stdout):
     # Examples:

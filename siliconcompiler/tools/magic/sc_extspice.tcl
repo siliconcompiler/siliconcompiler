@@ -29,8 +29,8 @@ foreach lib $sc_macrolibs {
     }
 }
 
-if {[dict exists $sc_cfg input asic gds]} {
-    set gds_path [dict get $sc_cfg input asic gds]
+if {[dict exists $sc_cfg input layout gds]} {
+    set gds_path [dict get $sc_cfg input layout gds]
 } else {
     set gds_path "inputs/$sc_design.gds"
 }
