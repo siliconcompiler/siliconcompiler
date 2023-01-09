@@ -1,0 +1,1 @@
+../../../../asap7sc7p5t_lvt/r1p7/apr/openroad/global_connect.tcl
