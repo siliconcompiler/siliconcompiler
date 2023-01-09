@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sc heartbeat.v \
-  heartbeat.sdc \
-  -design heartbeat \
-  -target "freepdk45_demo"
+sc -design heartbeat \
+   -input "rtl verilog heartbeat.v" \
+   -input "asic sdc heartbeat.sdc" \
+   -target "freepdk45_demo"

@@ -13,7 +13,7 @@ def main():
     # Create instance of Chip class
     chip = siliconcompiler.Chip("gcd")
 
-    chip.add('input', 'verilog', 'gcd.v')
+    chip.add('input', 'rtl', 'verilog', 'gcd.v')
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 
@@ -27,7 +27,7 @@ def main():
     # 1) RTL2GDS
 
     def_path = make_floorplan(chip)
-    chip.set('input', 'floorplan.def', def_path)
+    chip.set('input', 'asic', 'def', 'floorplan.def', def_path)
 
     chip.set('option', 'jobname', 'rtl2gds')
     chip.run()
@@ -41,8 +41,8 @@ def main():
     chip.set('option', 'jobname', 'signoff')
     chip.set('option', 'flow', 'signoffflow')
 
-    chip.set('input', 'gds', gds_path)
-    chip.set('input', 'netlist', vg_path)
+    chip.set('input', 'asic', 'gds', gds_path)
+    chip.set('input', 'asic', 'netlist', vg_path)
 
     chip.run()
     chip.summary()
