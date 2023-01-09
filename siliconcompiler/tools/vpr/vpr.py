@@ -65,7 +65,7 @@ def setup(chip):
     options.append(blif)
 
     if 'sdc' in chip.getkeys('input'):
-        options.append(f"--sdc_file {chip.get('input', 'fpga', 'sdc')}")
+        options.append(f"--sdc_file {chip.get('input', 'sdc')}")
 
     threads = chip.get('tool', tool, 'threads', step, index)
     options.append(f"--num_workers {threads}")
