@@ -26,8 +26,8 @@ def main():
 
     # 1) RTL2GDS
 
-    def_path = make_floorplan(chip)
-    chip.set('input', 'floorplan.def', def_path)
+    #def_path = make_floorplan(chip)
+    #chip.set('input', 'floorplan.def', def_path)
 
     chip.set('option', 'jobname', 'rtl2gds')
     chip.run()
