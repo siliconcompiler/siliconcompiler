@@ -168,7 +168,7 @@ def schema_cfg():
                     f"cli: -{item} 'verilog hello_world.v'",
                     f"api: chip.set({item},'verilog','hello_world.v')"],
                 schelp=f"""
-                List of {item} files specifed by type. The filetype name must
+                List of {item} files specified by type. The filetype name must
                 align with the parameter names within the flow and tool setup
                 scripts. Examples of acceptable file types include python, c,
                 systemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,
@@ -442,7 +442,7 @@ def schema_pdk(cfg, stackup='default'):
             example=["cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
                     "api:  chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"],
             schelp="""
-            Thickness of a manfuatured unit specified on a per stackup basis.""")
+            Thickness of a manufactured unit specified on a per stackup basis.""")
 
     scparam(cfg, ['pdk', pdkname, 'wafersize'],
             sctype='float',
@@ -1240,7 +1240,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
                 "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
                 "api:  chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"],
             schelp="""Weights specified on a per step and per metric basis used to give
-            effective "goodnes" score for a step by calculating the sum all step
+            effective "goodness" score for a step by calculating the sum all step
             real metrics results by the corresponding per step weights.""")
 
     scparam(cfg,['flowgraph', flow, step, index, 'goal', metric],
@@ -1474,7 +1474,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             match. Starting with the first list entry, each grep output is piped
             into the following grep command in the list. Supported grep options
             include ``-v`` and ``-e``. Patterns starting with "-" should be
-            directly preceeded by the ``-e`` option. The following example
+            directly preceded by the ``-e`` option. The following example
             illustrates the concept.
 
             UNIX grep:
@@ -2033,7 +2033,7 @@ def schema_metric(cfg, step='default', index='default'):
             schelp=f"""
             Metric tracking time spent by the eda executable 'exe' on a
             per step and index basis. It does not include the siliconcompiler
-            runtime overhead or time waitig for I/O operations and
+            runtime overhead or time waiting for I/O operations and
             inter-processor communication to complete.""")
 
     item = 'tasktime'
@@ -2046,7 +2046,7 @@ def schema_metric(cfg, step='default', index='default'):
                 f"cli: -metric_{item} 'dfm 0 10.0'",
                 f"api: chip.set('metric','dfm','0','{item}', 10.0)"],
             schelp=f"""
-            Metric trakcing the total amount of time spent on a task from
+            Metric tracking the total amount of time spent on a task from
             beginning to end, including data transfers and pre/post
             processing.""")
 
@@ -2119,7 +2119,7 @@ def schema_record(cfg, step='default', index='default'):
                              """Version number for the SiliconCompiler software."""],
                'toolversion': ['tool version',
                                '1.0',
-                               """The tool version captured correspnds to the 'tool'
+                               """The tool version captured corresponds to the 'tool'
                                parameter within the 'eda' dictionary."""],
                'toolpath': ['tool path',
                              '/usr/bin/openroad',
@@ -2271,7 +2271,7 @@ def schema_option(cfg):
                      "api: chip.set('option','target','freepdk45_demo')"],
             schelp="""
             Sets a target module to be used for compilation. The target
-            module must set up all paramaters needed. The target module
+            module must set up all parameters needed. The target module
             may load multiple flows and libraries.
             """)
 
@@ -2525,7 +2525,7 @@ def schema_option(cfg):
                 "cli: -metricoff 'wirelength'",
                 "api: chip.set('option','metricoff','wirelength')"],
             schelp="""
-            List of metrics to supress when printing out the run
+            List of metrics to suppress when printing out the run
             summary.""")
 
     # Booleans
@@ -2973,7 +2973,7 @@ def schema_package(cfg):
     scparam(cfg,['package', 'dependency', module],
             sctype='[str]',
             scope='global',
-            shorthelp=f"Package: version dependancies",
+            shorthelp=f"Package: version dependencies",
             switch=f"-package_dependency 'module <str>'",
             example=[
                 f"cli: -package_dependency 'hello 1.0'",

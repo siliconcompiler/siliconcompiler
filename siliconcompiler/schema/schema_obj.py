@@ -381,7 +381,7 @@ class Schema:
         Copies a parameter into the manifest history dictionary.
         '''
 
-        # 1. decend keypath, pop each key as its used
+        # 1. descend keypath, pop each key as its used
         # 2. create key if missing in destination dict
         # 3. populate leaf cell when keypath empty
         if keypath:

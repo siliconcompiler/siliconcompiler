@@ -1062,7 +1062,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Special cases for various ['eda', ...] files that may be implicitly
         # under the workdir (or refdir in the case of scripts).
         # TODO: it may be cleaner to have a file resolution scope flag in schema
-        # (e.g. 'scpath', 'workdir', 'refdir'), rather than harcoding special
+        # (e.g. 'scpath', 'workdir', 'refdir'), rather than hardcoding special
         # cases.
         if keypath[0] == 'tool' and keypath[2] in ('input', 'output', 'report'):
             step = keypath[3]
@@ -2262,7 +2262,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Files are located using the find_files() function.
 
-        The file hash calculation is performed basd on the 'algo' setting.
+        The file hash calculation is performed based on the 'algo' setting.
         Supported algorithms include SHA1, SHA224, SHA256, SHA384, SHA512,
         and MD5.
 
@@ -2345,7 +2345,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Uses the shoelace formulate to calculate the design area using
         the (x,y) point tuples from the 'diearea' parameter. If only diearea
-        paramater only contains two points, then the first and second point
+        parameter only contains two points, then the first and second point
         must be the lower left and upper right points of the rectangle.
         (Ref: https://en.wikipedia.org/wiki/Shoelace_formula)
 
@@ -2919,7 +2919,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ['datasheet', name, 'jitter']
 
         Args:
-            pin (str): Full hiearchical path to clk pin.
+            pin (str): Full hierarchical path to clk pin.
             period (float): Clock period specified in ns.
             jitter (float): Clock jitter specified in ns.
 
@@ -2943,7 +2943,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Creates a flowgraph node by binding a tool to a task. A task is defined
         as the combination of a step and index. A tool can be an external
-        exeuctable or one of the built in functions in the SiliconCompiler
+        executable or one of the built in functions in the SiliconCompiler
         framework). Built in functions include: minimum, maximum, join, mux,
         verify.
 
@@ -4412,7 +4412,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if license_file:
                 envvars[item] = ':'.join(license_file)
         if self.get('tool', tool, 'path'):
-            envvars['PATH'] = self.get('tool', tool, 'path') + os.pathsep + '$PATH'
+            envvars['PATH'] = self.get('tool', tool, 'path') + os.pathsep + os.environ['PATH']
         else:
             envvars['PATH'] = os.environ['PATH']
         if (step in self.getkeys('tool', tool, 'env') and
