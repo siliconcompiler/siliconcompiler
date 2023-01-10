@@ -127,22 +127,28 @@ To handle complex scenarios required by advanced PDKs, the Schema supports dynam
 
 .. code-block:: python
 
-   filetype = 'default
-   corner = 'default'
-   # ...
-   scparam(cfg,['model', 'timing', filetype, corner],
+
+
+    corner='default'
+    padkname='default'
+    tool='default'
+    stackup='default'
+    scparam(cfg, ['pdk', pdkname, 'pexmodel', tool, stackup, corner],
             sctype='[file]',
             scope='global',
-            shorthelp=f"Model: Timing",
-            switch=f"-model_timing 'filetype corner <file>'",
+            shorthelp="PDK: parasitic TCAD models",
+            switch="-pdk_pexmodel 'pdkname tool stackup corner <file>'",
             example=[
-                f"cli: -model_timing 'nldm-libgz ss ss.lib.gz'",
-                f"api: chip.set('model','timing','nldm-ldb','ss','ss.ldb')"],
-            schelp=f"""
-            Filepaths to static timing models specified on a per filetype and
-            per corner basis.  Examples of filetypes include: nldm, nldm-ldb,
-            nldm-libgz, ccs, ccs-libgz, ccs-ldb, scm, scm-libgz, scm-ldb,
-            aocv, aocv-libgz, aocv-ldb.""")
+                "cli: -pdk_pexmodel 'asap7 fastcap M10 max wire.mod'",
+                "api: chip.set('pdk','asap7','pexmodel','fastcap','M10','max','wire.mod')"],
+            schelp="""
+            List of filepaths to PDK wire TCAD models used during automated
+            synthesis, APR, and signoff verification. Pexmodels are specified on
+            a per metal stack basis. Corner values depend on the process being
+            used, but typically include nomenclature such as min, max, nominal.
+            For exact names, refer to the DRM. Pexmodels are generally not
+            standardized and specified on a per tool basis. An example of pexmodel
+            type is 'fastcap'.""")
 
 The SiliconCompiler Schema is roughly divided into the following major sub-groups:
 
