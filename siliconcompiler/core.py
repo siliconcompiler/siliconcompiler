@@ -1022,15 +1022,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Replacing environment variables
         filename = self._resolve_env_vars(filename)
 
-        # If we have a path relative to our cwd or an abs path, pass-through here
-        if os.path.exists(os.path.abspath(filename)):
-            return os.path.abspath(filename)
+        # If we have an absolute path, pass-through here
+        if os.path.isabs(filename) and os.path.exists(filename):
+            return filename
 
         # Otherwise, search relative to scpaths
-        scpaths = [self.scroot, self.cwd]
+        scpaths = [self.cwd]
         scpaths.extend(self.get('option', 'scpath'))
         if 'SCPATH' in os.environ:
             scpaths.extend(os.environ['SCPATH'].split(os.pathsep))
+        scpaths.append(self.scroot)
 
         searchdirs = ', '.join(scpaths)
         self.logger.debug(f"Searching for file {filename} in {searchdirs}")
@@ -1778,24 +1779,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error('File format not recognized %s', filepath)
         finally:
             fout.close()
-
-    ###########################################################################
-    def write_netlist(self, filename):
-        '''
-        Design netlist
-        '''
-
-    ###########################################################################
-    def write_bom(self, filename):
-        '''
-        Bill of material.
-        '''
-
-    ###########################################################################
-    def write_cpl(self, filename):
-        '''
-        Centroid, xy , pick and place, position file,...
-        '''
 
     ###########################################################################
     def check_checklist(self, standard, items=None, check_ok=False):
