@@ -104,14 +104,14 @@ def setup(chip):
             # add timing library requirements
             for lib in chip.get('asic', 'logiclib'):
                 # mandatory for logiclibs
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', delaymodel, syn_corner]))
+                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', syn_corner, delaymodel]))
 
             for lib in chip.get('asic', 'macrolib'):
                 # optional for macrolibs
-                if not chip.valid('library', lib, 'model', 'timing', delaymodel, syn_corner):
+                if not chip.valid('library', lib, 'output', syn_corner, delaymodel):
                     continue
 
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', delaymodel, syn_corner]))
+                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', syn_corner, delaymodel]))
 
         mainlib = chip.get('asic', 'logiclib')[0]
         # set default control knobs
@@ -318,7 +318,7 @@ def prepare_synthesis_libraries(chip):
     dff_dont_use = []
     for lib in chip.get('asic', 'logiclib'):
         ignore = chip.get('library', lib, 'asic', 'cells', 'ignore')
-        if dff_liberty_file in chip.find_files('library', lib, 'model', 'timing', delaymodel, corner):
+        if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel):
             # if we have the exact library, use those ignores, otherwise continue to build full list
             dff_dont_use = ignore
             break
@@ -335,8 +335,8 @@ def prepare_synthesis_libraries(chip):
     def get_synthesis_libraries(lib):
         if chip.valid('library', lib, 'asic', 'file', 'yosys', 'synthesis_libraries'):
             synthesis_libraries = chip.find_files('library', lib, 'asic', 'file', 'yosys', 'synthesis_libraries')
-        elif chip.valid('library', lib, 'model', 'timing', delaymodel, corner):
-            synthesis_libraries = chip.find_files('library', lib, 'model', 'timing', delaymodel, corner)
+        elif chip.valid('library', lib, 'output', corner, delaymodel):
+            synthesis_libraries = chip.find_files('library', lib, 'output', corner, delaymodel)
         else:
             synthesis_libraries = []
 
@@ -433,10 +433,10 @@ def get_dff_liberty_file(chip):
     # if dff liberty file is not set, use the first liberty file defined
     delaymodel = chip.get('asic', 'delaymodel')
     for lib in chip.get('asic', 'logiclib'):
-        if not chip.valid('library', lib, 'model', 'timing', delaymodel, corner):
+        if not chip.valid('library', lib, 'output', corner, delaymodel):
             continue
 
-        lib_files = chip.find_files('library', lib, 'model', 'timing', delaymodel, corner)
+        lib_files = chip.find_files('library', lib, 'output', corner, delaymodel)
         if len(lib_files) > 0:
             return lib_files[0]
 

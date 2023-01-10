@@ -92,8 +92,8 @@ def test_check_missing_file_param():
     # not real file, will cause error
     libname = 'nangate45'
     corner = 'typical'
-    chip.add('library', libname, 'model', 'timing',
-             'nldm', corner, '/fake/timing/file.lib')
+    chip.add('library', libname, 'output', corner, 'nldm',
+             '/fake/timing/file.lib')
 
     assert not chip.check_manifest()
 

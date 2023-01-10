@@ -121,8 +121,8 @@ def setup(chip, mode="batch"):
             chip.add('tool', tool, 'require', step, index,  ",".join(['pdk', pdk, 'layermap', 'klayout', 'def','gds', stackup]))
 
             for lib in (targetlibs + macrolibs):
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'gds', stackup]))
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
+                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'gds']))
+                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'lef']))
         else:
             chip.error(f'Stackup and targetlib paremeters required for Klayout.')
 

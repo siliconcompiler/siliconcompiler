@@ -40,9 +40,9 @@ def setup(chip):
     lib.set('asic', 'footprint', 'unithddbl', 'size', (0.46,5.44))
 
     # model files
-    lib.add('model', 'timing', 'nldm', corner, libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
-    lib.add('model', 'layout', 'lef', stackup, libdir+'/lef/sky130_fd_sc_hd_merged.lef')
-    lib.add('model', 'layout', 'gds', stackup, libdir+'/gds/sky130_fd_sc_hd.gds')
+    lib.add('model', corner, 'nldm', libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
+    lib.add('model', stackup, 'lef', libdir+'/lef/sky130_fd_sc_hd_merged.lef')
+    lib.add('model', stackup, 'gds', libdir+'/gds/sky130_fd_sc_hd.gds')
 
     # Techmap
     lib.add('asic', 'file', 'yosys', 'techmap',
