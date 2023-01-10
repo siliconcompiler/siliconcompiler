@@ -958,23 +958,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Default filetype and filset based on suffix:
 
-        filetype  | fileset   | suffix (case insensitive)
-        ----------|-----------|---------------------------------------------
-        c         | hll       | c,cc,cpp,c++,cp,cxx,hpp
-        bsv       | hll       | bsv
-        scala     | hll       | scala
-        python    | hll       | py
-        verilog   | rtl       | v,vg,sv,verilog
-        vhdl      | rtl       | vhd, vhdl
-        liberty   | timing    | lib, ccs
-        def       | layout    | def
-        lef       | layout    | lef
-        gds       | layout    | gds, gds2, gdsII
-        gerber    | layout    | gbr, gerber
-        cdl       | netlist   | cdl
-        spice     | netlist   | sp
-        vcd       | waveform  | vcd
-        sdc       | constraint| sdc
+        .. code:: none
+
+            filetype  | fileset   | suffix (case insensitive)
+            ----------|-----------|---------------------------------------------
+            c         | hll       | c,cc,cpp,c++,cp,cxx,hpp
+            bsv       | hll       | bsv
+            scala     | hll       | scala
+            python    | hll       | py
+            verilog   | rtl       | v,vg,sv,verilog
+            vhdl      | rtl       | vhd, vhdl
+            liberty   | timing    | lib, ccs
+            def       | layout    | def
+            lef       | layout    | lef
+            gds       | layout    | gds, gds2, gdsII
+            gerber    | layout    | gbr, gerber
+            cdl       | netlist   | cdl
+            spice     | netlist   | sp
+            vcd       | waveform  | vcd
+            sdc       | constraint| sdc
 
         Args:
             fileset (str): File grouping
