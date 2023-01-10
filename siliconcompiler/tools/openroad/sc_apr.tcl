@@ -45,7 +45,7 @@ set sc_maxfanout   [dict get $sc_cfg asic maxfanout]
 set sc_maxlength   [dict get $sc_cfg asic maxlength]
 set sc_maxcap      [dict get $sc_cfg asic maxcap]
 set sc_maxslew     [dict get $sc_cfg asic maxslew]
-set sc_scenarios   [dict keys [dict get $sc_cfg constraint]]
+set sc_scenarios   [dict keys [dict get $sc_cfg constraint timing]]
 
 # PDK agnostic design rule translation
 dict for {key value} [dict get $sc_cfg pdk $sc_pdk grid $sc_stackup] {
@@ -121,7 +121,7 @@ read_lef  $sc_techlef
 
 # Read Liberty
 foreach item $sc_scenarios {
-    foreach corner [dict get $sc_cfg constraint $item libcorner] {
+    foreach corner [dict get $sc_cfg constraint timing $item libcorner] {
 	foreach lib "$sc_targetlibs $sc_macrolibs" {
 	    if {[dict exists $sc_cfg library $lib model timing $sc_delaymodel $corner]} {
 		set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $corner]

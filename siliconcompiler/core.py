@@ -675,6 +675,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             self.error(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
 
+    ##########################################################################
+    def use(self, module):
+        '''
+        Loads a SiliconCompiler module into the current chip object by calling
+        a module.setup() method.
+        '''
+
+        self.import_library(module.setup())
+
+
     ###########################################################################
     def list_metrics(self):
         '''

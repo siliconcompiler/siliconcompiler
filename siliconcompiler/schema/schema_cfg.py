@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.9.0'
+SCHEMA_VERSION = '0.10.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -109,8 +109,6 @@ def schema_cfg():
     # Version number following semver standard.
     # Software version syncs with SC releases (from _metadata)
 
-    SCHEMA_VERSION = '0.8.0'
-
     # Basic schema setup
     cfg = {}
 
@@ -142,6 +140,7 @@ def schema_cfg():
             chip objects.""")
 
     # input/output
+    # TODO: Add schematic, layout models here!!!!!!
     io = {'input': ['Input','true'],
           'output': ['Output','false']
     }
@@ -163,7 +162,7 @@ def schema_cfg():
                 systemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,
                 saif, vcd, spef, sdf.""")
 
-    # Inputs and constraints
+    # Constraints
     cfg = schema_constraint(cfg)
 
     # Options
@@ -188,7 +187,7 @@ def schema_cfg():
     # Modeling
     cfg = schema_model(cfg)
 
-    # Datasheeet
+    # Datasheet
     cfg = schema_datasheet(cfg)
 
     # Packaging
@@ -778,7 +777,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: special variable",
             switch="-pdk_var 'pdkname tool stackup key <str>'",
             example=[
-                "cli: -pdk_var 'asap7 xyce modeltype M10 bsim4'""",
+                "cli: -pdk_var 'asap7 xyce modeltype M10 bsim4'",
                 "api: chip.set('pdk','asap7','var','xyce','modeltype','M10','bsim4')"],
             schelp="""
             List of key/value strings specified on a per tool and per stackup basis.
@@ -945,7 +944,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
     # Device Features
     scparam(cfg, ['datasheet', design, 'feature', name],
             sctype='float',
-            shorthelp=f"Datasheet: device feature specification",
+            shorthelp=f"Datasheet: device features",
             switch=f"-datasheet_feature 'design name <float>'",
             example=[
                 f"cli: -datasheet_feature 'mydevice ram 64e6'",
@@ -982,7 +981,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
     package = 'default'
     scparam(cfg, ['datasheet', design, 'pin', name, 'map', package],
             sctype='str',
-            shorthelp=f"Datasheet: package pin map",
+            shorthelp=f"Datasheet: pin map",
             switch=f"-datasheet_pin_map 'design name package <str>'",
             example=[
                 f"cli: -datasheet_pin_map 'mydevice in0 bga512 B4'",
@@ -1081,8 +1080,9 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                'vcm': ['common mode voltage', (0.3, 1.2, 1.6), 'V'],
                'vdiff': ['differential voltage', (0.2, 0.3, 0.9), 'V'],
                'vnoise': ['random voltage noise', (0,0.01,0.1), 'V'],
-               'vhbm': ['machine model ESD tolerance', (100, 300, 500), 'V'],
-               'vcdm': ['human body model ESD tolerance', (100,300,500), 'V'],
+               'vhbm': ['HBM ESD tolerance', (200, 250, 300), 'V'],
+               'vcdm': ['CDM ESD tolerance', (125,150,175), 'V'],
+               'vmm': ['MM ESD tolerance', (100,125,150), 'V'],
                'rdiff': ['differential pair resistance', (45,50,55), 'ohm'],
                'rpullup': ['pullup resistance', (1000, 1200, 3000), 'ohm'],
                'rpulldown': ['pulldown resistance', (1000, 1200, 3000), 'ohm'],
@@ -1095,7 +1095,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
         scparam(cfg, ['datasheet', design, 'pin', name, item, mode],
                 unit=val[2],
                 sctype='(float,float,float)',
-                shorthelp=f"Datasheet: {val[0]}",
+                shorthelp=f"Datasheet: pin {val[0]}",
                 switch=f"-datasheet_pin_{item} 'design pin mode <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_pin_{item} 'mydevice sclk global {val[1]}'",
@@ -1116,7 +1116,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
         scparam(cfg, ['datasheet', design, 'pin', name, item, mode],
                 unit=val[2],
                 sctype='(float,float,float)',
-                shorthelp=f"Datasheet: {val[0]}",
+                shorthelp=f"Datasheet: pin {val[0]}",
                 switch=f"-datasheet_pin_{item} 'design pin mode <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_pin_{item} 'mydevice sclk global {val[1]}'",
@@ -2099,6 +2099,18 @@ def schema_unit(cfg):
                 schelp=f"""
                 Units used for {item} when not explicitly specified.""")
 
+    scparam(cfg,['unit', 'lambda'],
+            sctype='float',
+            defvalue='1.0',
+            scope='global',
+            shorthelp="Unit: Lambda value",
+            switch="-unit_lambda <float>",
+            example=["cli: -unit_lambda 1e-6",
+                    "api: chip.set('unit', 'lambda', 1e-6)"],
+            schelp="""Elementary distance unit used for scaling all
+            schema physical parameters (layout constraints, size, outline,
+            area, margin etc).""")
+
     return cfg
 
 ###########################################################################
@@ -2776,7 +2788,7 @@ def schema_package(cfg):
     scparam(cfg, ['package', 'depgraph', module],
             sctype='[(str,str)]',
             scope='global',
-            shorthelp=f"Package dependency list",
+            shorthelp=f"Package: dependency list",
             switch=f"-package_depgraph 'module <(str,str)>'",
             example=[
                 f"cli: -package_depgraph 'top (cpu,1.0.1)'",
@@ -3344,7 +3356,7 @@ def schema_asic(cfg):
             shorthelp="ASIC: die area outline",
             switch="-asic_diearea <[(float,float)]>",
             example= ["cli: -asic_diearea '(0,0)'",
-                    "api: chip.set('asic', 'diearea', (0,0))"],
+                      "api: chip.set('asic', 'diearea', (0,0))"],
             schelp="""
             List of (x,y) points that define the outline of the die area for the
             physical design. Simple rectangle areas can be defined with two points,
@@ -3396,7 +3408,7 @@ def schema_asic(cfg):
             shorthelp="ASIC: special variable",
             switch="-asic_variable 'tool key <str>'",
             example=[
-                "cli: -asic_variable 'xyce modeltype bsim4'""",
+                "cli: -asic_variable 'xyce modeltype bsim4'",
                 "api: chip.set('asic','var','xyce','modeltype','bsim4')"],
             schelp="""
             List of key/value strings specified on a per basis. The parameter
@@ -3507,95 +3519,183 @@ def schema_asic(cfg):
 # Constraints
 ############################################
 
-def schema_constraint(cfg, scenario='default'):
+def schema_constraint(cfg, scenario='default', name = 'default'):
 
-    scparam(cfg,['constraint', scenario, 'voltage'],
+
+
+    # TIMING
+    scparam(cfg,['constraint', 'timing', scenario, 'voltage'],
             sctype='float',
             unit='V',
             scope='job',
-            shorthelp="Constraint voltage level",
-            switch="-constraint_voltage 'scenario <float>'",
-            example=["cli: -constraint_voltage 'worst 0.9'",
-                     "api: chip.set('constraint', 'worst','voltage', '0.9')"],
+            shorthelp="Constraint: voltage level",
+            switch="-constraint_timing_voltage 'scenario <float>'",
+            example=["cli: -constraint_timing_voltage 'worst 0.9'",
+                     "api: chip.set('constraint', 'timing', 'worst','voltage', '0.9')"],
             schelp="""Operating voltage applied to the scenario.""")
 
-    scparam(cfg,['constraint', scenario, 'temperature'],
+    scparam(cfg,['constraint', 'timing', scenario, 'temperature'],
             sctype='float',
             scope='job',
-            shorthelp="Constraint temperature",
-            switch="-constraint_temperature 'scenario <float>'",
-            example=["cli: -constraint_temperature 'worst 125'",
-                     "api: chip.set('constraint', 'worst', 'temperature','125')"],
+            shorthelp="Constraint: temperature",
+            switch="-constraint_timing_temperature 'scenario <float>'",
+            example=["cli: -constraint_timing_temperature 'worst 125'",
+                     "api: chip.set('constraint', 'timing', 'worst', 'temperature','125')"],
             schelp="""Chip temperature applied to the scenario specified in degrees C.""")
 
-    scparam(cfg,['constraint', scenario, 'libcorner'],
+    scparam(cfg,['constraint', 'timing', scenario, 'libcorner'],
             sctype='[str]',
             scope='job',
-            shorthelp="Constraint library corner",
-            switch="-constraint_libcorner 'scenario <str>'",
-            example=["cli: -constraint_libcorner 'worst ttt'",
-                    "api: chip.set('constraint', 'worst', 'libcorner', 'ttt')"],
+            shorthelp="Constraint: library corner",
+            switch="-constraint_timing_libcorner 'scenario <str>'",
+            example=["cli: -constraint_timing_libcorner 'worst ttt'",
+                    "api: chip.set('constraint', 'timing', 'worst', 'libcorner', 'ttt')"],
             schelp="""List of characterization corners used to select
             timing files for all logiclibs and macrolibs.""")
 
-    scparam(cfg,['constraint', scenario, 'pexcorner'],
+    scparam(cfg,['constraint', 'timing', scenario, 'pexcorner'],
             sctype='str',
             scope='job',
-            shorthelp="Constraint pex corner",
-            switch="-constraint_pexcorner 'scenario <str>'",
-            example=["cli: -constraint_pexcorner 'worst max'",
-                    "api: chip.set('constraint', 'worst', 'pexcorner', 'max')"],
+            shorthelp="Constraint: pex corner",
+            switch="-constraint_timing_pexcorner 'scenario <str>'",
+            example=["cli: -constraint_timing_pexcorner 'worst max'",
+                    "api: chip.set('constraint', 'timing', 'worst', 'pexcorner', 'max')"],
             schelp="""Parasitic corner applied to the scenario. The
             'pexcorner' string must match a corner found in the pdk
             pexmodel setup.""")
 
-    scparam(cfg,['constraint', scenario, 'opcond'],
+    scparam(cfg,['constraint', 'timing', scenario, 'opcond'],
             sctype='str',
             scope='job',
-            shorthelp="Constraint operating condition",
-            switch="-constraint_opcond 'scenario <str>'",
-            example=["cli: -constraint_opcond 'worst typical_1.0'",
-                     "api: chip.set('constraint', 'worst', 'opcond',  'typical_1.0')"],
+            shorthelp="Constraint: operating condition",
+            switch="-constraint_timing_opcond 'scenario <str>'",
+            example=["cli: -constraint_timing_opcond 'worst typical_1.0'",
+                     "api: chip.set('constraint', 'timing', 'worst', 'opcond',  'typical_1.0')"],
             schelp="""Operating condition applied to the scenario. The value
             can be used to access specific conditions within the library
             timing models from the 'logiclib' timing models.""")
 
-    scparam(cfg,['constraint', scenario, 'mode'],
+    scparam(cfg,['constraint', 'timing', scenario, 'mode'],
             sctype='str',
             scope='job',
-            shorthelp="Constraint operating mode",
-            switch="-constraint_mode 'scenario <str>'",
-            example=["cli: -constraint_mode 'worst test'",
-                     "api: chip.set('constraint',  'worst','mode', 'test')"],
+            shorthelp="Constraint: operating mode",
+            switch="-constraint_timing_mode 'scenario <str>'",
+            example=["cli: -constraint_timing_mode 'worst test'",
+                     "api: chip.set('constraint', 'timing', 'worst','mode', 'test')"],
             schelp="""Operating mode for the scenario. Operating mode strings
             can be values such as test, functional, standby.""")
 
-    scparam(cfg,['constraint', scenario, 'file'],
+    scparam(cfg,['constraint', 'timing', scenario, 'file'],
             sctype='[file]',
             scope='job',
             copy='true',
-            shorthelp="Constraint files",
-            switch="-constraint_file 'scenario <file>'",
-            example=["cli: -constraint_file 'worst hello.sdc'",
-                     "api: chip.set('constraint','worst','file', 'hello.sdc')"],
+            shorthelp="Constraint: SDC files",
+            switch="-constraint_timing_file 'scenario <file>'",
+            example=[
+                "cli: -constraint_timing_file 'worst hello.sdc'",
+                "api: chip.set('constraint', 'timing', 'worst','file', 'hello.sdc')"],
             schelp="""List of timing constraint files to use for the scenario. The
             values are combined with any constraints specified by the design
             'constraint' parameter. If no constraints are found, a default
             constraint file is used based on the clock definitions.""")
 
-    scparam(cfg,['constraint', scenario, 'check'],
+    scparam(cfg,['constraint', 'timing', scenario, 'check'],
             sctype='[str]',
             scope='job',
-            shorthelp="Constraint checks to perform",
-            switch="-constraint_check 'scenario <str>'",
-            example=["cli: -constraint_check 'worst check setup'",
-                    "api: chip.add('constraint','worst','check','setup')"],
+            shorthelp="Constraint: timing checks",
+            switch="-constraint_timing_check 'scenario <str>'",
+            example=[
+                "cli: -constraint_timing_check 'worst check setup'",
+                "api: chip.add('constraint', 'timing', 'worst','check','setup')"],
             schelp="""
             List of checks for to perform for the scenario. The checks must
             align with the capabilities of the EDA tools and flow being used.
             Checks generally include objectives like meeting setup and hold goals
             and minimize power. Standard check names include setup, hold, power,
             noise, reliability.""")
+
+    # COMPONENTS
+    scparam(cfg, ['constraint', 'component', name, 'placement'],
+            sctype='(float,float,float)',
+            shorthelp="Constraint: Component placement",
+            switch="-constraint_component_placement 'name <(float,float, float)>'",
+            example=[
+                "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
+                "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"],
+            schelp="""
+            Placement location of a named component, specified as a (x,y,z) tuple of
+            floats. The location refers to the placement of the center/centroid of the
+            component. The 'placement' parameter is a goal/intent, not an exact specification.
+            The compiler and layout system may adjust coordinates to meet competing
+            goals such as manufacturing design  rules and grid placement
+            guidelines. The 'z' coordinate shall be set to 0 for planar systems
+            with only (x,y) coordinates. Discretized systems like PCB stacks,
+            package stacks, and breadboards only allow a reduced
+            set of floating point values (0,1,2,3). The user specifying the
+            placement will need to have some understanding of the type of
+            layout system the component is being placed in (ASIC, SIP, PCB) but
+            should not need to know exact manufacturing specifications.""")
+
+    scparam(cfg, ['constraint', 'component',  name, 'rotation'],
+            sctype='float',
+            shorthelp="Constraint: Component rotation",
+            switch="-constraint_component_rotation 'name <float>'",
+            example=[
+                "cli: -constraint_component_rotation 'i0 90'",
+                "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"],
+            schelp="""
+            Placement rotation of the component specified in degrees. Rotation
+            goes counter-clockwise for all parts on top and clock-wise for parts
+            on the bottom. In both cases, this is from the perspective of looking
+            at the top of the board. Rotation is specified in degrees. Most gridded
+            layout systems (like ASICs) only allow a finite number of rotation
+            values (0,90,180,270).""")
+
+    scparam(cfg, ['constraint', 'component', name, 'flip'],
+            sctype='bool',
+            shorthelp="Constraint: Component flip option",
+            switch="-constraint_component_flip 'name <bool>'",
+            example=[
+                "cli: -constraint_component_flip 'i0 true'",
+                "api: chip.set('constraint', 'component', 'i0', 'flip', 'true')"],
+            schelp="""
+            Boolean parameter specifying that the instanced library component should be flipped
+            around the vertical axis before being placed on the substrate. The need to
+            flip a component depends on the component footprint. Most dies have pads
+            facing up and so must be flipped when assembled face down (eg. flip-chip,
+            WCSP).""")
+
+    # PINS
+    scparam(cfg, ['constraint', 'pin', name, 'placement'],
+            sctype='(float,float,float)',
+            shorthelp="Constraint: Pin placement",
+            switch="-constraint_pin_placement 'name <(float,float, float)>'",
+            example=[
+                "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0)"],
+            schelp="""
+            Placement location of a named pin, specified as a (x,y,z) tuple of
+            floats. The location refers to the placement of the center of the
+            pin. The 'placement' parameter is a goal/intent, not an exact specification.
+            The compiler and layout system may adjust sizes to meet competing
+            goals such as manufacturing design  rules and grid placement
+            guidelines. The 'z' coordinate shall be set to 0 for planar components
+            with only (x,y) coordinates. Discretized systems like 3D chips with
+            pins on to and bottom may choose to discretize the top and bottom
+            layer as 0,1 or use absolute coordinates.""")
+
+    scparam(cfg, ['constraint', 'pin', name, 'layer'],
+            sctype='str',
+            shorthelp="Constraint: Pin layer",
+            switch="-constraint_pin_layer 'name <str>'",
+            example=[
+                "cli: -constraint_pin_layer 'nreset m4'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"],
+            schelp="""
+            Pin metal layer specified based on the SC standard layer stack
+            starting with m1 as the lowest routing layer and ending
+            with m<n> as the highest routing layer.""")
+
 
     return cfg
 

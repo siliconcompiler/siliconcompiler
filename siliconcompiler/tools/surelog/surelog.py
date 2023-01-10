@@ -109,50 +109,108 @@ def runtime_options(chip):
 
     cmdlist = []
 
-    # Deduplicated source files
-    # Library directories.
+    #####################
+    # Library directories
+    #####################
+
     ydir_files = chip.find_files('option', 'ydir')
+
+    for item in chip.getkeys('library'):
+        ydir_files.extend(chip.find_files('library', item, 'option', 'ydir'))
+
+    # Deduplicated source files
     if len(ydir_files) != len(set(ydir_files)):
         chip.logger.warning(f"Removing duplicate 'ydir' inputs from: {ydir_files}")
     for value in set(ydir_files):
         cmdlist.append('-y ' + value)
 
-    # Library files.
+    #####################
+    # Library files
+    #####################
+
     vlib_files = chip.find_files('option', 'vlib')
+
+    for item in chip.getkeys('library'):
+        vlib_files.extend(chip.find_files('library', item, 'option', 'vlib'))
+
     if len(vlib_files) != len(set(vlib_files)):
         chip.logger.warning(f"Removing duplicate 'vlib' inputs from: {vlib_files}")
     for value in set(vlib_files):
         cmdlist.append('-v ' + value)
 
-    # Include paths.
+    #####################
+    # Include paths
+    #####################
+
     idir_files = chip.find_files('option', 'idir')
+
+    for item in chip.getkeys('library'):
+        idir_files.extend(chip.find_files('library', item, 'option', 'idir'))
+
     if len(idir_files) != len(set(idir_files)):
         chip.logger.warning(f"Removing duplicate 'idir' inputs from: {idir_files}")
     for value in set(idir_files):
         cmdlist.append('-I' + value)
 
+    #######################
+    # Variable Definitions
+    #######################
+
     # Extra environment variable defines (don't need deduplicating)
     for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
 
+    for item in chip.getkeys('library'):
+        for value in chip.get('library', item, 'option', 'define'):
+            cmdlist.append('-D' + value)
+
+    #######################
+    # Command files
+    #######################
+
     # Command-line argument file(s).
-    cmdfiles = chip.find_files('option', 'cmdfile')
-    if len(cmdfiles) != len(set(cmdfiles)):
-        chip.logger.warning(f"Removing duplicate 'cmdfile' inputs from: {cmdfiles}")
-    for value in set(cmdfiles):
+    cmd_files = chip.find_files('option', 'cmdfile')
+
+    for item in chip.getkeys('library'):
+        cmd_files.extend(chip.find_files('library', item, 'option', 'cmdfile'))
+
+    if len(cmd_files) != len(set(cmd_files)):
+        chip.logger.warning(f"Removing duplicate 'cmdfile' inputs from: {cmd_files}")
+    for value in set(cmd_files):
         cmdlist.append('-f ' + value)
 
-    # Source files.
+    #######################
+    # Sources
+    #######################
+
     src_files = chip.find_files('input', 'verilog')
+
+    # TODO: add back later
+    #for item in chip.getkeys('library'):
+    #    src_files.extend(chip.find_files('library', item, 'input', 'verilog'))
+
     if len(src_files) != len(set(src_files)):
         chip.logger.warning(f"Removing duplicate source file inputs from: {src_files}")
     for value in set(src_files):
         cmdlist.append(value)
 
+    #######################
+    # Top Module
+    #######################
+
     cmdlist.append('-top ' + chip.top())
+
+    #######################
+    # Lib extensions
+    #######################
+
     # make sure we can find .sv files in ydirs
     # TODO: need to add libext
     cmdlist.append('+libext+.sv+.v')
+
+    ###############################
+    # Parameters (top module only)
+    ###############################
 
     # Set up user-provided parameters to ensure we elaborate the correct modules
     for param in chip.getkeys('option', 'param'):
