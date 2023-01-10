@@ -3519,7 +3519,9 @@ def schema_asic(cfg):
 # Constraints
 ############################################
 
-def schema_constraint(cfg, scenario='default', instance = 'default'):
+def schema_constraint(cfg, scenario='default', name = 'default'):
+
+
 
     # TIMING
     scparam(cfg,['constraint', 'timing', scenario, 'voltage'],
@@ -3613,23 +3615,7 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             noise, reliability.""")
 
     # COMPONENTS
-    scparam(cfg, ['constraint', 'component', instance, 'outline'],
-            sctype='[(float,float)]',
-            shorthelp="Constraint: Component outline",
-            switch="-constraint_component_outline 'i0 <(float,float)'>",
-            example=[
-                "cli: -constraint_component_outline 'i0 (0,0)'",
-                "api: chip.add('constraint', 'component', 'i0', 'outline', (0,0))"],
-            schelp="""
-            List of (x,y) points that constrains the outline of a named
-            instance. Simple rectangle areas can be defined
-            with two points, one for the lower left corner and one for the
-            upper right corner. The 'outline' parameter is a goal, not an
-            exact specification. The compiler and component system may adjust
-            sizes to meet competing goals such as manufacturing design
-            rules.""")
-
-    scparam(cfg, ['constraint', 'component', instance, 'placement'],
+    scparam(cfg, ['constraint', 'component', name, 'placement'],
             sctype='(float,float,float)',
             shorthelp="Constraint: Component placement",
             switch="-constraint_component_placement 'inst <(float,float, float)>'",
@@ -3650,7 +3636,7 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             layout system the component is being placed in (ASIC, SIP, PCB) but
             should not need to know exact manufacturing specifications.""")
 
-    scparam(cfg, ['constraint', 'component',  instance, 'rotation'],
+    scparam(cfg, ['constraint', 'component',  name, 'rotation'],
             sctype='float',
             shorthelp="Constraint: Component rotation",
             switch="-constraint_component_rotation 'inst <float>'",
@@ -3665,7 +3651,7 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             layout systems (like ASICs) only allow a finite number of rotation
             values (0,90,180,270).""")
 
-    scparam(cfg, ['constraint', 'component', instance, 'flip'],
+    scparam(cfg, ['constraint', 'component', name, 'flip'],
             sctype='bool',
             shorthelp="Constraint: Component flip option",
             switch="-constraint_component_flip 'inst <bool>'",
@@ -3680,7 +3666,7 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             WCSP).""")
 
     # PINS
-    scparam(cfg, ['constraint', 'pin', instance, 'placement'],
+    scparam(cfg, ['constraint', 'pin', name, 'placement'],
             sctype='(float,float,float)',
             shorthelp="Constraint: Pin placement",
             switch="-constraint_pin_placement 'inst <(float,float, float)>'",
@@ -3698,10 +3684,10 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             pins on to and bottom may choose to discretize the top and bottom
             layer as 0,1 or use absolute coordinates.""")
 
-    scparam(cfg, ['constraint', 'pin', instance, 'layer'],
+    scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',
             shorthelp="Constraint: Pin layer",
-            switch="-constraint_pin_layer 'nreset <str>'",
+            switch="-constraint_pin_layer 'name <str>'",
             example=[
                 "cli: -constraint_pin_layer 'nreset m4'",
                 "api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"],
