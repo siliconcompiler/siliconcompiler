@@ -12,7 +12,7 @@ def _fp(datadir):
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
     lib = Chip(lib)
-    lib.set('model', 'layout', 'lef', stackup, os.path.join(datadir, 'ram.lef'))
+    lib.set('output', stackup, 'lef', os.path.join(datadir, 'ram.lef'))
     c.import_library(lib)
 
     fp = Floorplan(c)
@@ -86,13 +86,13 @@ def test_padring(datadir):
     stackup = '10M'
     chip.add('asic', 'macrolib', macro)
     lib = Chip(macro)
-    lib.set('model', 'layout', 'lef', stackup, os.path.join(datadir, 'iocells.lef'))
+    lib.set('output', stackup, 'lef', os.path.join(datadir, 'iocells.lef'))
     chip.import_library(lib)
 
     macro = 'sram_32x2048_1rw'
     chip.add('asic', 'macrolib', macro)
     lib = Chip(macro)
-    lib.set('model', 'layout', 'lef', stackup, os.path.join(datadir, f'{macro}.lef'))
+    lib.set('output', stackup, 'lef', os.path.join(datadir, f'{macro}.lef'))
     chip.import_library(lib)
 
     fp = Floorplan(chip)
@@ -188,7 +188,7 @@ def test_place_vias(datadir):
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
     lib = Chip(lib)
-    lib.add('model', 'layout', 'lef', stackup, os.path.join(datadir, 'ram.lef'))
+    lib.add('output', stackup, 'lef', os.path.join(datadir, 'ram.lef'))
     c.import_library(lib)
 
     fp = Floorplan(c)
