@@ -3618,7 +3618,7 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
     scparam(cfg, ['constraint', 'component', name, 'placement'],
             sctype='(float,float,float)',
             shorthelp="Constraint: Component placement",
-            switch="-constraint_component_placement 'inst <(float,float, float)>'",
+            switch="-constraint_component_placement 'name <(float,float, float)>'",
             example=[
                 "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
                 "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"],
@@ -3639,7 +3639,7 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
     scparam(cfg, ['constraint', 'component',  name, 'rotation'],
             sctype='float',
             shorthelp="Constraint: Component rotation",
-            switch="-constraint_component_rotation 'inst <float>'",
+            switch="-constraint_component_rotation 'name <float>'",
             example=[
                 "cli: -constraint_component_rotation 'i0 90'",
                 "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"],
@@ -3654,7 +3654,7 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
     scparam(cfg, ['constraint', 'component', name, 'flip'],
             sctype='bool',
             shorthelp="Constraint: Component flip option",
-            switch="-constraint_component_flip 'inst <bool>'",
+            switch="-constraint_component_flip 'name <bool>'",
             example=[
                 "cli: -constraint_component_flip 'i0 true'",
                 "api: chip.set('constraint', 'component', 'i0', 'flip', 'true')"],
@@ -3669,7 +3669,7 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
     scparam(cfg, ['constraint', 'pin', name, 'placement'],
             sctype='(float,float,float)',
             shorthelp="Constraint: Pin placement",
-            switch="-constraint_pin_placement 'inst <(float,float, float)>'",
+            switch="-constraint_pin_placement 'name <(float,float, float)>'",
             example=[
                 "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
                 "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0)"],

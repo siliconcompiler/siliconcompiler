@@ -1081,23 +1081,6 @@
                     "type": "bool",
                     "value": "false"
                 },
-                "outline": {
-                    "defvalue": [],
-                    "example": [
-                        "cli: -constraint_component_outline 'i0 (0,0)'",
-                        "api: chip.add('constraint', 'component', 'i0', 'outline', (0,0))"
-                    ],
-                    "help": "List of (x,y) points that constrains the outline of a named\ninstance. Simple rectangle areas can be defined\nwith two points, one for the lower left corner and one for the\nupper right corner. The 'outline' parameter is a goal, not an\nexact specification. The compiler and component system may adjust\nsizes to meet competing goals such as manufacturing design\nrules.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Constraint: Component outline",
-                    "signature": [],
-                    "switch": "-constraint_component_outline 'i0 <(float,float)'>",
-                    "type": "[(float,float)]",
-                    "value": []
-                },
                 "placement": {
                     "defvalue": null,
                     "example": [
@@ -1149,7 +1132,7 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Pin layer",
                     "signature": null,
-                    "switch": "-constraint_pin_layer 'nreset <str>'",
+                    "switch": "-constraint_pin_layer 'name <str>'",
                     "type": "str",
                     "value": null
                 },
