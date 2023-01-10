@@ -1077,7 +1077,7 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Component flip option",
                     "signature": null,
-                    "switch": "-constraint_component_flip 'inst <bool>'",
+                    "switch": "-constraint_component_flip 'name <bool>'",
                     "type": "bool",
                     "value": "false"
                 },
@@ -1094,7 +1094,7 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Component placement",
                     "signature": null,
-                    "switch": "-constraint_component_placement 'inst <(float,float, float)>'",
+                    "switch": "-constraint_component_placement 'name <(float,float, float)>'",
                     "type": "(float,float,float)",
                     "value": null
                 },
@@ -1111,7 +1111,7 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Component rotation",
                     "signature": null,
-                    "switch": "-constraint_component_rotation 'inst <float>'",
+                    "switch": "-constraint_component_rotation 'name <float>'",
                     "type": "float",
                     "value": null
                 }
@@ -1149,7 +1149,7 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Pin placement",
                     "signature": null,
-                    "switch": "-constraint_pin_placement 'inst <(float,float, float)>'",
+                    "switch": "-constraint_pin_placement 'name <(float,float, float)>'",
                     "type": "(float,float,float)",
                     "value": null
                 }
