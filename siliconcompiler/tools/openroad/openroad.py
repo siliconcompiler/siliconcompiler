@@ -1,6 +1,6 @@
 import math
 import os
-import re
+import shutil
 import json
 from jinja2 import Template
 
@@ -50,7 +50,10 @@ def setup(chip, mode='batch'):
     flow = chip.get('option', 'flow')
     pdkname = chip.get('option', 'pdk')
 
-    if mode == 'show':
+    is_screenshot = mode == 'screenshot' or step == 'screenshot'
+    is_show_screenshot = mode == 'show' or step == 'show' or is_screenshot
+    if is_show_screenshot:
+        mode = 'show'
         clobber = True
         option = "-no_init -gui"
     else:
@@ -60,18 +63,20 @@ def setup(chip, mode='batch'):
     script = 'sc_apr.tcl'
 
     # exit automatically in batch mode and not bkpt
-    if (mode=='batch') and (step not in chip.get('option', 'bkpt')):
+    if (mode=='batch' or is_screenshot) and (step not in chip.get('option', 'bkpt')):
         option += " -exit"
 
     option += " -metrics reports/metrics.json"
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-6417', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-6445', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
     chip.set('tool', tool, 'option',  step, index, option, clobber=clobber)
     chip.set('tool', tool, 'refdir',  step, index, refdir, clobber=clobber)
     chip.set('tool', tool, 'script',  step, index, script, clobber=clobber)
+
+    design = chip.top()
 
     # normalizing thread count based on parallelism and local
     threads = os.cpu_count()
@@ -84,7 +89,6 @@ def setup(chip, mode='batch'):
     # Input/Output requirements for default asicflow steps
     # TODO: long-term, we want to remove hard-coded step names from tool files.
     if step in ['floorplan', 'physyn', 'place', 'cts', 'route', 'dfm']:
-        design = chip.top()
         if step == 'floorplan':
             if (not chip.valid('input', 'netlist', 'verilog') or
                 not chip.get('input', 'netlist', 'verilog')):
@@ -99,6 +103,16 @@ def setup(chip, mode='batch'):
         chip.add('tool', tool, 'output', step, index, design + '.def')
         chip.add('tool', tool, 'output', step, index, design + '.odb')
         chip.add('tool', tool, 'output', step, index, design + '.lef')
+    elif is_show_screenshot:
+        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filepath']))
+        chip.set('tool', tool, 'var', step, index, 'show_exit', 'true' if is_screenshot else 'false', clobber=False)
+        if is_screenshot:
+            chip.add('tool', tool, 'output', step, index, design + '.png')
+            chip.set('tool', tool, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
+
+    if chip.get('option', 'nodisplay'):
+        # Tells QT to use the offscreen platform if nodisplay is used
+        chip.set('tool', tool, 'env', step, index, 'QT_QPA_PLATFORM', 'offscreen')
 
     # openroad makes use of these parameters
     targetlibs = chip.get('asic', 'logiclib')
@@ -274,6 +288,10 @@ def normalize_version(version):
 
 def pre_process(chip):
 
+    step = chip.get('arg', 'step')
+    if (step == "show" or step == "screenshot"):
+        copy_show_files(chip)
+    
     # Build estimate PEX
     build_pex_corners(chip)
 
@@ -438,6 +456,20 @@ def build_pex_corners(chip):
 
                 f.write("\n")
                 f.write("{0}\n\n".format(64 * "#"))
+
+def copy_show_files(chip):
+
+    tool = 'openroad'
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    show_file = chip.get('tool', tool, 'var', step, index, 'show_filepath')[0]
+    show_type = chip.get('tool', tool, 'var', step, index, 'show_filetype')[0]
+    dst_file = "inputs/"+chip.top()+"."+show_type
+    shutil.copy2(show_file, dst_file)
+    sdc_file = os.path.dirname(show_file)+"/"+chip.top()+".sdc"
+    if os.path.exists(sdc_file):
+        shutil.copy2(sdc_file, "inputs/"+chip.top()+".sdc")
 
 ##################################################
 if __name__ == "__main__":
