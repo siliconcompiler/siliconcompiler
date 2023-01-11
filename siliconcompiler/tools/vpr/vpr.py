@@ -90,7 +90,7 @@ def pre_process(chip):
     with open(blif_file,'r+') as f:
         netlist = f.read()
         f.seek(0)
-        netlist = re.sub('\$undef', 'unconn', netlist)
+        netlist = re.sub(r'\$undef', 'unconn', netlist)
         f.write(netlist)
         f.truncate()
 

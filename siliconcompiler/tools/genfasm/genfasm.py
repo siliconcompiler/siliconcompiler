@@ -81,7 +81,7 @@ def find_chann_width():
     vpr_std_out = f"inputs/vpr_stdout.log"
     with open(vpr_std_out, 'r') as vpr_report:
         for line in vpr_report:
-            match = re.search("Circuit successfully routed with a channel width factor of (\d+)", line)
+            match = re.search(r"Circuit successfully routed with a channel width factor of (\d+)", line)
             if match:
                 return match.group(1)
 

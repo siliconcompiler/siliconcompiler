@@ -40,8 +40,6 @@ def build_core():
     # Configure the Chip object for a full build.
     core_chip.set('input', 'asic', 'floorplan.def', 'floorplan/heartbeat.def', clobber=True)
     core_chip.set('input', 'rtl', 'verilog', 'heartbeat.v')
-    core_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
-    core_chip.set('tool', 'openroad', 'var', 'route', '0', 'grt_allow_congestion', ['true'])
     core_chip.clock('clk', period=20)
 
     # Run the actual ASIC build flow with the resulting floorplan.
@@ -69,11 +67,11 @@ def build_top():
     stackup = chip.get('asic', 'stackup')
     chip.add('asic', 'macrolib', libname)
     lib = Chip(libname)
-    lib.set('model', 'layout', 'lef', stackup, 'floorplan/heartbeat.lef')
-    lib.set('model', 'layout', 'gds', stackup, 'heartbeat.gds')
-    lib.set('output', 'netlist', 'heartbeat.vg')
+    lib.set('output', stackup, 'lef', 'floorplan/heartbeat.lef')
+    lib.set('output', stackup, 'gds', 'heartbeat.gds')
+    lib.set('output', 'netlist', 'verilog', 'heartbeat.vg')
     chip.import_library(lib)
-    chip.set('input', 'asic', 'def', 'floorplan/heartbeat_top.def')
+    chip.set('input', 'layout', 'def', 'floorplan/heartbeat_top.def')
 
     chip.set('input', 'rtl', 'verilog', 'heartbeat_top.v')
     chip.add('input', 'rtl', 'verilog', 'heartbeat.bb.v')
