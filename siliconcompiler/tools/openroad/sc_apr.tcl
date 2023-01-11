@@ -183,9 +183,9 @@ set sc_macrolibs [dict get $sc_cfg asic macrolib]
 define_corners {*}$sc_corners
 foreach lib "$sc_targetlibs $sc_macrolibs" {
   #Liberty
-  if {[dict exists $sc_cfg library $lib model timing $sc_delaymodel]} {
-    foreach corner $sc_corners {
-      foreach lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $corner] {
+  foreach corner $sc_corners {
+    if {[dict exists $sc_cfg library $lib output $corner $sc_delaymodel]} {
+      foreach lib_file [dict get $sc_cfg library $lib output $corner $sc_delaymodel] {
         read_liberty -corner $corner $lib_file
       }
     }
@@ -201,15 +201,15 @@ if {[file exists "inputs/$sc_design.odb"]} {
 
   # Read Lefs
   foreach lib "$sc_targetlibs $sc_macrolibs" {
-    foreach lef_file [dict get $sc_cfg library $lib model layout lef $sc_stackup] {
+    foreach lef_file [dict get $sc_cfg library $lib output $sc_stackup lef] {
       read_lef $lef_file
     }
   }
 
   if {$sc_step == "floorplan"} {
     # Read Verilog
-    if {[dict exists $sc_cfg "input" netlist]} {
-      foreach netlist [dict get $sc_cfg "input" netlist] {
+    if {[dict exists $sc_cfg input netlist verilog]} {
+      foreach netlist [dict get $sc_cfg input netlist verilog] {
         read_verilog $netlist
       }
     } else {
@@ -221,11 +221,10 @@ if {[file exists "inputs/$sc_design.odb"]} {
     if {[file exists "inputs/$sc_design.def"]} {
       # get from previous step
       read_def "inputs/$sc_design.def"
-    } elseif {[dict exists $sc_cfg "input" def]} {
+    } elseif {[dict exists $sc_cfg input layout def]} {
       # Floorplan initialize handled separately in sc_floorplan.tcl
-      foreach def [dict get $sc_cfg "input" def] {
-        read_def $def
-      }
+      set sc_def [lindex [dict get $sc_cfg input layout def] 0]
+      read_def $sc_def
     } elseif {$sc_step == "showdef"} {
       read_def $env(SC_FILENAME)
     }
@@ -237,8 +236,8 @@ if {[file exists "inputs/$sc_design.odb"]} {
 if {[file exists "inputs/$sc_design.sdc"]} {
   # get from previous step
   read_sdc "inputs/$sc_design.sdc"
-} elseif {[dict exists $sc_cfg "input" sdc]} {
-  foreach sdc [dict get $sc_cfg "input" sdc] {
+} elseif {[dict exists $sc_cfg input asic sdc]} {
+  foreach sdc [dict get $sc_cfg input asic sdc] {
     # read step constraint if exists
     read_sdc $sdc
   }

@@ -18,8 +18,8 @@ proc design_has_unplaced_macros {} {
 # Initialize floorplan
 ###########################
 
-if {[dict exists $sc_cfg "input" "floorplan.def"]} {
-  set def [dict get $sc_cfg "input" "floorplan.def"]
+if {[dict exists $sc_cfg input layout floorplan.def]} {
+  set def [dict get $sc_cfg input layout floorplan.def]
   read_def -floorplan_initialize $def
 } else {
   #NOTE: assuming a two tuple value as lower left, upper right

@@ -65,8 +65,8 @@ def setup(chip):
     chip.set('tool', tool, 'option', step, index,  options, clobber=False)
 
     design = chip.top()
-    if chip.valid('input', 'gds'):
-        chip.add('tool', tool, 'require', step, index, ','.join(['input', 'gds']))
+    if chip.valid('input', 'layout', 'gds'):
+        chip.add('tool', tool, 'require', step, index, ','.join(['input', 'layout', 'gds']))
     else:
         chip.add('tool', tool, 'input', step, index, f'{design}.gds')
     if step == 'extspice':

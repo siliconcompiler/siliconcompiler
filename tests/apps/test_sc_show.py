@@ -22,17 +22,17 @@ def heartbeat_dir(tmpdir_factory):
     chip = siliconcompiler.Chip('heartbeat')
     chip.set('option', 'loglevel', 'ERROR')
     chip.set('option', 'quiet', True)
-    chip.add('input', 'verilog', os.path.join(datadir, 'heartbeat.v'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(datadir, 'heartbeat.v'))
     chip.load_target('freepdk45_demo')
     chip.run()
 
     return cwd
 
 @pytest.mark.parametrize('flags', [
-    ['-input', 'def build/heartbeat/job0/dfm/0/outputs/heartbeat.def'],
-    ['-input', 'gds build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
+    ['-input', 'layout def build/heartbeat/job0/dfm/0/outputs/heartbeat.def'],
+    ['-input', 'layout gds build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
     ['-design', 'heartbeat'],
-    ['-input', 'def build/heartbeat/job0/export/0/inputs/heartbeat.def',
+    ['-input', 'layout def build/heartbeat/job0/export/0/inputs/heartbeat.def',
      '-cfg', 'build/heartbeat/job0/export/0/outputs/heartbeat.pkg.json']
     ])
 @pytest.mark.eda

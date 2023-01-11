@@ -76,8 +76,8 @@ def test_setget():
 
 def test_set_field_bool():
     chip = siliconcompiler.Chip('test')
-    chip.set('input', 'txt', False, field='copy')
-    assert chip.get('input', 'txt', field='copy') is False
+    chip.set('input', 'doc', 'txt', False, field='copy')
+    assert chip.get('input', 'doc', 'txt', field='copy') is False
 
 def test_getkeys_invalid_field():
     chip = siliconcompiler.Chip('test')
@@ -116,16 +116,16 @@ def test_set_valid_field_to_none():
 def test_set_field_error():
     chip = siliconcompiler.Chip('test')
     chip.set('option', 'continue', True)
-    chip.set('input', 'txt', 'asdf', field='copy')
+    chip.set('input', 'doc', 'txt', 'asdf', field='copy')
     # expect copy flag unchanged and error triggered
-    assert chip.get('input', 'txt', field='copy') is True
+    assert chip.get('input', 'doc', 'txt', field='copy') is True
     assert chip._error == True
 
 def test_set_add_field_list():
     chip = siliconcompiler.Chip('test')
-    chip.set('input', 'txt', 'Alyssa P. Hacker', field='author')
-    chip.add('input', 'txt', 'Ben Bitdiddle', field='author')
-    assert chip.get('input', 'txt', field='author') == ['Alyssa P. Hacker', 'Ben Bitdiddle']
+    chip.set('input', 'doc', 'txt', 'Alyssa P. Hacker', field='author')
+    chip.add('input', 'doc', 'txt', 'Ben Bitdiddle', field='author')
+    assert chip.get('input', 'doc', 'txt', field='author') == ['Alyssa P. Hacker', 'Ben Bitdiddle']
 
 #########################
 if __name__ == "__main__":

@@ -86,12 +86,12 @@ def setup(chip, mode='batch'):
     if step in ['floorplan', 'physyn', 'place', 'cts', 'route', 'dfm']:
         design = chip.top()
         if step == 'floorplan':
-            if (not chip.valid('input', 'netlist') or
-                not chip.get('input', 'netlist')):
+            if (not chip.valid('input', 'netlist', 'verilog') or
+                not chip.get('input', 'netlist', 'verilog')):
                 chip.add('tool', tool, 'input', step, index, design +'.vg')
         else:
-            if (not chip.valid('input', 'def') or
-                not chip.get('input', 'def')):
+            if (not chip.valid('input', 'layout', 'def') or
+                not chip.get('input', 'layout', 'def')):
                 chip.add('tool', tool, 'input', step, index, design +'.def')
 
         chip.add('tool', tool, 'output', step, index, design + '.sdc')
@@ -114,8 +114,8 @@ def setup(chip, mode='batch'):
         # chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
         # chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
         chip.add('tool', tool, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
-        if chip.valid('input', 'floorplan.def'):
-            chip.add('tool', tool, 'require', step, index, ",".join(['input', 'floorplan.def']))
+        if chip.valid('input', 'layout', 'floorplan.def'):
+            chip.add('tool', tool, 'require', step, index, ",".join(['input', 'layout', 'floorplan.def']))
 
         # set tapcell file
         tapfile = None
@@ -129,13 +129,13 @@ def setup(chip, mode='batch'):
         corners = get_corners(chip)
         for lib in targetlibs:
             for corner in corners:
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', 'nldm', corner]))
-            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
+                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', corner, delaymodel]))
+            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'lef']))
         for lib in macrolibs:
-            if chip.valid('library', lib, 'model', 'timing', 'nldm'):
-                for corner in corners:
-                    chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', 'nldm', corner]))
-            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
+            for corner in corners:
+                if chip.valid('library', lib, 'output', corner, delaymodel):
+                    chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', corner, delaymodel]))
+            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'lef']))
     else:
         chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
 

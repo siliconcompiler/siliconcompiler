@@ -14,7 +14,7 @@ def main():
 
     # Plugging design into SC
     chip = siliconcompiler.Chip(design)
-    chip.add('input', 'verilog', rootdir+'/mathlib/hdl/'+design+'.v')
+    chip.add('input', 'rtl', 'verilog', rootdir+'/mathlib/hdl/'+design+'.v')
     chip.set('option', 'param', 'N', str(N))
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)

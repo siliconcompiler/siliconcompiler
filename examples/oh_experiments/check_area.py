@@ -22,7 +22,7 @@ def checkarea(filelist, libdir, target):
           design = re.match(r'.*/(\w+)\.v',item).group(1)
           chip = siliconcompiler.Chip(design)
           chip.load_target(target)
-          chip.add('input', 'verilog', item)
+          chip.add('input', 'rtl', 'verilog', item)
           chip.add('option', 'ydir', libdir)
           chip.set('option','quiet', True)
           chip.set('option','steplist', ['import', 'syn'])

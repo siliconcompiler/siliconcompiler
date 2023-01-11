@@ -76,5 +76,4 @@ library
 
 The "library" prefix stores the schema parameters of library chip objects that have been imported into the current chip object, keyed by library name. These values are accessed directly using the schema access functions. For example, the following line returns the path to a LEF file associated with a library called "mylib"::
 
-    chip.find_files('library', 'mylib', 'model', 'layout', 'lef', stackup)
-
+    chip.find_files('library', 'mylib', 'output', stackup, 'lef')

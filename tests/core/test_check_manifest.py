@@ -9,7 +9,7 @@ def test_check_manifest():
 
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
-    chip.set('input', 'verilog', 'examples/gcd/gcd.v')
+    chip.set('input', 'rtl', 'verilog', 'examples/gcd/gcd.v')
     flow = chip.get('option', 'flow')
     index = "0"
     steps = ['import', 'syn']
@@ -32,7 +32,7 @@ def test_check_manifest():
 def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip = siliconcompiler.Chip('gcd')
 
-    chip.set('input', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
+    chip.set('input', 'rtl', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.load_target("freepdk45_demo")
 
     # collect input files
@@ -56,9 +56,9 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
 def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip = siliconcompiler.Chip('gcd')
 
-    chip.set('input', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
-    chip.set('input', 'sdc', '/random/abs/path/to/file.sdc')
-    chip.set('input', 'sdc', False, field='copy')
+    chip.set('input', 'rtl', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
+    chip.set('input', 'asic', 'sdc', '/random/abs/path/to/file.sdc')
+    chip.set('input', 'asic', 'sdc', False, field='copy')
     chip.load_target("freepdk45_demo")
 
     # collect input files
@@ -92,8 +92,8 @@ def test_check_missing_file_param():
     # not real file, will cause error
     libname = 'nangate45'
     corner = 'typical'
-    chip.add('library', libname, 'model', 'timing',
-             'nldm', corner, '/fake/timing/file.lib')
+    chip.add('library', libname, 'output', corner, 'nldm',
+             '/fake/timing/file.lib')
 
     assert not chip.check_manifest()
 

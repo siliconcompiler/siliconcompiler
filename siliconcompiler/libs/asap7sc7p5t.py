@@ -31,15 +31,13 @@ def _setup_lib(libname, suffix):
     lib.set('asic', 'pdk', 'asap7')
 
     # timing
-    lib.add('model', 'timing', 'nldm', corner,
-            libdir+'/nldm/'+libname+'_ff.lib')
+    lib.add('output', corner, 'nldm', libdir+'/nldm/'+libname+'_ff.lib')
 
     # lef
-    lib.add('model', 'layout', 'lef', stackup,
-                libdir+'/lef/'+libname+'.lef')
+    lib.add('output', stackup, 'lef', libdir+'/lef/'+libname+'.lef')
+
     # gds
-    lib.add('model', 'layout', 'gds', stackup,
-                libdir+'/gds/'+libname+'.gds')
+    lib.add('output', stackup, 'gds', libdir+'/gds/'+libname+'.gds')
 
     # site name
     lib.set('asic', 'footprint', 'asap7sc7p5t', 'symmetry', 'Y')
@@ -56,7 +54,7 @@ def _setup_lib(libname, suffix):
 
     # tie cells
     lib.add('asic', 'cells', 'tie', [f"TIEHIx1_ASAP7_75t_{suffix}/H",
-                                        f"TIELOx1_ASAP7_75t_{suffix}/L"])
+                                     f"TIELOx1_ASAP7_75t_{suffix}/L"])
 
     # buffer
     # TODO: Need to fix this syntax!, not needed by modern tools!

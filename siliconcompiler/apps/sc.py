@@ -52,6 +52,9 @@ def main():
         'pcf': 'pcf'
     }
 
+    # TODO: Remove below and fix input_map concept
+    input_map = None
+
     # Read command-line inputs and generate Chip objects to run the flow on.
     chip.create_cmdline(progname,
                         description=description,
