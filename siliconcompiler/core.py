@@ -3408,6 +3408,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         os.makedirs(workdir, exist_ok=True)
 
         os.chdir(workdir)
+        os.makedirs('inputs', exist_ok=True)
         os.makedirs('outputs', exist_ok=True)
         os.makedirs('reports', exist_ok=True)
 
@@ -3422,14 +3423,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self._read_manifest(cfgfile, clobber=False, partial=True)
-
-        ##################
-        # Write manifest prior to step running into inputs
-
-        self.set('arg', 'step', None, clobber=True)
-        self.set('arg', 'index', None, clobber=True)
-        os.makedirs('inputs', exist_ok=True)
-        #self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
         # Select inputs
@@ -3760,8 +3753,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Save a successful manifest
         self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
-        self.set('arg', 'step', None, clobber=True)
-        self.set('arg', 'index', None, clobber=True)
 
         self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
 
