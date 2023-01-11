@@ -19,7 +19,7 @@ proc design_has_macros {} {
 }
 
 # Auto-generate floorplan if not defined yet
-if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
+if {[expr ! [dict exists $sc_cfg "input" "layout" "floorplan.def"]]} {
 
     #########################
     #Init Floorplan
@@ -119,7 +119,7 @@ if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
     ###########################
     # Initialize floorplan
     ###########################
-    set def [dict get $sc_cfg "input" "floorplan.def"]
+    set def [dict get $sc_cfg "input" "layout" "floorplan.def"]
     read_def -floorplan_initialize $def
 
     if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {

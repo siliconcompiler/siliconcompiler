@@ -13,7 +13,7 @@ def test_verilator(oh_dir):
     step = "import"
 
     chip = siliconcompiler.Chip(design)
-    chip.set('input', 'verilog', topfile)
+    chip.set('input', 'rtl', 'verilog', topfile)
     chip.set('option', 'ydir', ydir)
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)

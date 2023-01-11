@@ -18,8 +18,8 @@ def test_yosys_lec(datadir):
     chip.edge(flow, 'import', 'lec')
     chip.set('option', 'flow', flow)
 
-    chip.add('input', 'verilog', os.path.join(lec_dir, 'foo.v'))
-    chip.add('input', 'netlist', os.path.join(lec_dir, 'foo.vg'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(lec_dir, 'foo.v'))
+    chip.add('input', 'netlist', 'verilog', os.path.join(lec_dir, 'foo.vg'))
 
     chip.run()
 
@@ -43,8 +43,8 @@ def test_yosys_lec_broken(datadir):
     chip.edge(flow, 'import', 'lec')
     chip.set('option','flow', flow)
 
-    chip.add('input', 'verilog', os.path.join(lec_dir, 'foo_broken.v'))
-    chip.add('input', 'netlist', os.path.join(lec_dir, 'foo_broken.vg'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(lec_dir, 'foo_broken.v'))
+    chip.add('input', 'netlist', 'verilog', os.path.join(lec_dir, 'foo_broken.vg'))
 
     chip.run()
 

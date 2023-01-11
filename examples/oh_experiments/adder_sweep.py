@@ -21,7 +21,7 @@ def main():
     for n in datawidths:
         chip = siliconcompiler.Chip(design)
         chip.load_target('freepdk45_demo')
-        chip.add('input', 'verilog', source)
+        chip.add('input', 'rtl', 'verilog', source)
         chip.set('option', 'quiet', True)
         chip.set('option','relax', True)
         chip.set('option','steplist', ['import', 'syn'])

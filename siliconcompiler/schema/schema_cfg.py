@@ -140,27 +140,29 @@ def schema_cfg():
             chip objects.""")
 
     # input/output
-    # TODO: Add schematic, layout models here!!!!!!
     io = {'input': ['Input','true'],
           'output': ['Output','false']
     }
 
     filetype = 'default'
+    fileset = 'default'
+
     for item, val in io.items():
-        scparam(cfg,[item, filetype],
+        scparam(cfg,[item, fileset, filetype],
                 sctype='[file]',
                 copy=f"{val[1]}",
-                shorthelp=f"{val[0]} files",
-                switch=f"-{item} 'filetype <file>'",
+                shorthelp=f"{val[0]}: files",
+                switch=f"-{item} 'fileset filetype <file>'",
                 example=[
-                    f"cli: -{item} 'verilog hello_world.v'",
-                    f"api: chip.set({item},'verilog','hello_world.v')"],
+                    f"cli: -{item} 'rtl verilog hello_world.v'",
+                    f"api: chip.set({item}, 'rtl','verilog','hello_world.v')"],
                 schelp=f"""
-                List of {item} files specified by type. The filetype name must
-                align with the parameter names within the flow and tool setup
-                scripts. Examples of acceptable file types include python, c,
-                systemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,
-                saif, vcd, spef, sdf.""")
+                List of files of type ('filetype') grouped as a named set ('fileset').
+                The exact names of filetypes and filesets must match the string names
+                used by the tasks called during flowgraph execution. By convention,
+                the fileset names should match the the name of the flowgraph being
+                executed.""")
+
 
     # Constraints
     cfg = schema_constraint(cfg)
@@ -183,9 +185,6 @@ def schema_cfg():
     cfg = schema_checklist(cfg)
     cfg = schema_metric(cfg)
     cfg = schema_record(cfg)
-
-    # Modeling
-    cfg = schema_model(cfg)
 
     # Datasheet
     cfg = schema_datasheet(cfg)
@@ -818,120 +817,6 @@ def schema_pdk(cfg, stackup='default'):
                 example=[f"cli: -pdk_doc_{item} 'asap7 {item}.pdf'",
                          f"api: chip.set('pdk','asap7','doc',{item},'{item}.pdf')"],
                 schelp=f"""Filepath to {item} document.""")
-
-    return cfg
-
-###############################################################################
-# Design Modeling
-###############################################################################
-
-def schema_model(cfg):
-
-    corner = 'default'
-    filetype = 'default'
-    stackup =  'default'
-
-    # functional
-    scparam(cfg,['model', 'functional', filetype],
-            sctype='[file]',
-            scope='global',
-            shorthelp=f"Model: Functional",
-            switch=f"-model_functional 'filetype <file>'",
-            example=[
-                f"cli: -model_functional 'systemc adder.sc'",
-                f"api: chip.set('model','functional','systemc','adder.sc')"],
-            schelp=f"""
-            Filepaths to (fast) functional models specified on a per filetype
-            basis.""")
-
-    # formal
-    scparam(cfg,['model', 'formal', filetype],
-            sctype='[file]',
-            scope='global',
-            shorthelp=f"Model: Formal",
-            switch=f"-model_formal 'filetype <file>'",
-            example=[
-                f"cli: -model_formal 'smv adder.smv'",
-                f"api: chip.set('model','formal','smv','adder.smv')"],
-            schelp=f"""
-            Filepaths to formal models specified on a per filetype basis.""")
-
-    # rtl
-    scparam(cfg,['model', 'rtl', filetype],
-            sctype='[file]',
-            scope='global',
-            shorthelp=f"Model: RTL",
-            switch=f"-model_rtl 'filetype <file>'",
-            example=[
-                f"cli: -model_rtl 'systemc adder.sc'",
-                f"api: chip.set('model','rtl','systemc','adder.sc')"],
-            schelp=f"""
-            Filepaths to cycle accurate model specified on a per filetype
-            basis.""")
-
-    # IO
-    scparam(cfg,['model', 'io', filetype],
-            sctype='[file]',
-            scope='global',
-            shorthelp=f"Model: IO",
-            switch=f"-model_io 'filetype <file>'",
-            example=[
-                f"cli: -model_io 'ibis top.ibs'",
-                f"api: chip.set('model','io','ibis','top.ibis')"],
-            schelp=f"""
-            Filepaths to IO models specified on a per filetype basis.""")
-
-    # thermal
-    scparam(cfg,['model', 'thermal', filetype],
-            sctype='[file]',
-            scope='global',
-            shorthelp=f"Model: Thermal",
-            switch=f"-model_thermal 'filetype corner <file>'",
-            example=[
-                f"cli: -model_thermal 'delphi adder_thermal.sp'",
-                f"api: chip.set('model','thermal','delphi','adder_thermal.sp')"],
-            schelp=f"""
-            Filepaths to thermal models.""")
-
-    # timing
-    scparam(cfg,['model', 'timing', filetype, corner],
-            sctype='[file]',
-            scope='global',
-            shorthelp=f"Model: Timing",
-            switch=f"-model_timing 'filetype corner <file>'",
-            example=[
-                f"cli: -model_timing 'nldm-libgz ss ss.lib.gz'",
-                f"api: chip.set('model','timing','nldm-ldb','ss','ss.ldb')"],
-            schelp=f"""
-            Filepaths to static timing models specified on a per filetype and
-            per corner basis.  Examples of filetypes include: nldm, nldm-ldb,
-            nldm-libgz, ccs, ccs-libgz, ccs-ldb, scm, scm-libgz, scm-ldb,
-            aocv, aocv-libgz, aocv-ldb.""")
-
-    # power
-    scparam(cfg,['model', 'power', filetype, corner],
-            sctype='[file]',
-            scope='global',
-            shorthelp=f"Model: Power",
-            switch=f"-model_power 'filetype corner <file>'",
-            example=[
-                f"cli: -model_power 'apl ss adder.ss.apl'",
-                f"api: chip.set('model','power','apl','ss','adder.ss.apl')"],
-            schelp=f"""
-            Filepaths to power/current models.""")
-
-    # layout
-    scparam(cfg,['model', 'layout', filetype, stackup],
-            sctype='[file]',
-            scope='global',
-            shorthelp=f"Model: Layout",
-            switch=f"-model_layout 'filetype stackup <file>'",
-            example=[
-                f"cli: -model_layout 'lef 10M adder.lef'",
-                f"api: chip.set('model','layout','lef','10M','adder.lef')"],
-            schelp=f"""
-            Filepaths to abstract layout views specified on a per filetype
-            and per stackup basis.""")
 
     return cfg
 

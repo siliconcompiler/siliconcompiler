@@ -105,5 +105,5 @@ def pre_process(chip):
         shutil.copyfile(src, dst)
 
     # Hack: Chisel driver relies on Scala files being collected into '$CWD/inputs'
-    chip.set('input', 'scala', True, field='copy')
+    chip.set('input', 'hll', 'scala', True, field='copy')
     chip._collect(step, index)

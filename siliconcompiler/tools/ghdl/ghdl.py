@@ -50,7 +50,7 @@ def setup(chip):
     chip.set('tool', tool, 'stdout', step, index, 'suffix', 'v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input,vhdl')
+    chip.add('tool', tool, 'require', step, index, 'input,rtl,vhdl')
 
     design = chip.top()
 
@@ -88,7 +88,7 @@ def runtime_options(chip):
                 chip.error('Unsupported option ' + opt)
 
     # Add sources
-    for value in chip.find_files('input', 'vhdl'):
+    for value in chip.find_files('input', 'rtl', 'vhdl'):
         options.append(value)
 
     # Set top module

@@ -10,9 +10,9 @@ def test_basic(scroot, datadir):
     chip = siliconcompiler.Chip('heartbeat')
 
     v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
-    chip.set('input', 'verilog', v_src)
+    chip.set('input', 'rtl', 'verilog', v_src)
     c_src = os.path.join(datadir, 'heartbeat_tb.cpp')
-    chip.set('input', 'c', c_src)
+    chip.set('input', 'hll', 'c', c_src)
 
     chip.set('option', 'mode', 'sim')
 

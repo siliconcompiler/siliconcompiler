@@ -14,6 +14,7 @@ def setup(chip):
     process = 'skywater130'
     libname = 'sky130io'
     stackup = '5M1LI'
+    corner = 'typical'
 
     lib = siliconcompiler.Chip(libname)
 
@@ -30,12 +31,12 @@ def setup(chip):
     lib.set('asic', 'pdk', 'skywater130')
     lib.set('asic', 'stackup', stackup)
 
-    lib.set('model', 'timing', 'nldm', 'typical', os.path.join(libdir, 'sky130_dummy_io.lib'))
-    lib.set('model', 'layout', 'lef', stackup, os.path.join(libdir, 'sky130_ef_io.lef'))
+    lib.set('output', corner, 'nldm', os.path.join(libdir, 'sky130_dummy_io.lib'))
+    lib.set('output', stackup, 'lef', os.path.join(libdir, 'sky130_ef_io.lef'))
 
     # Need both GDS files: ef relies on fd one
-    lib.add('model', 'layout', 'gds', stackup, os.path.join(libdir, 'sky130_ef_io.gds'))
-    lib.add('model', 'layout', 'gds', stackup, os.path.join(libdir, 'sky130_fd_io.gds'))
-    lib.add('model', 'layout', 'gds', stackup, os.path.join(libdir, 'sky130_ef_io__gpiov2_pad_wrapped.gds'))
+    lib.add('output', stackup, 'gds', os.path.join(libdir, 'sky130_ef_io.gds'))
+    lib.add('output', stackup, 'gds', os.path.join(libdir, 'sky130_fd_io.gds'))
+    lib.add('output', stackup, 'gds', os.path.join(libdir, 'sky130_ef_io__gpiov2_pad_wrapped.gds'))
 
     chip.import_library(lib)

@@ -297,7 +297,7 @@
                     "scope": "job",
                     "shorthelp": "Constraint: pex corner",
                     "signature": null,
-                    "switch": "-constraint_ptiming_excorner 'scenario <str>'",
+                    "switch": "-constraint_timing_pexcorner 'scenario <str>'",
                     "type": "str",
                     "value": "typical"
                 }
@@ -9404,43 +9404,47 @@
         }
     },
     "input": {
-        "sdc": {
-            "author": [],
-            "copy": "true",
-            "date": [],
-            "defvalue": [],
-            "filehash": [],
-            "hashalgo": "sha256",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Input files",
-            "signature": [],
-            "switch": "-input 'filetype <file>'",
-            "type": "[file]",
-            "value": [
-                "gcd.sdc"
-            ]
+        "asic": {
+            "sdc": {
+                "author": [],
+                "copy": "true",
+                "date": [],
+                "defvalue": [],
+                "filehash": [],
+                "hashalgo": "sha256",
+                "lock": "false",
+                "notes": null,
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Input: files",
+                "signature": [],
+                "switch": "-input 'fileset filetype <file>'",
+                "type": "[file]",
+                "value": [
+                    "gcd.sdc"
+                ]
+            }
         },
-        "verilog": {
-            "author": [],
-            "copy": "true",
-            "date": [],
-            "defvalue": [],
-            "filehash": [],
-            "hashalgo": "sha256",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Input files",
-            "signature": [],
-            "switch": "-input 'filetype <file>'",
-            "type": "[file]",
-            "value": [
-                "gcd.v"
-            ]
+        "rtl": {
+            "verilog": {
+                "author": [],
+                "copy": "true",
+                "date": [],
+                "defvalue": [],
+                "filehash": [],
+                "hashalgo": "sha256",
+                "lock": "false",
+                "notes": null,
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Input: files",
+                "signature": [],
+                "switch": "-input 'fileset filetype <file>'",
+                "type": "[file]",
+                "value": [
+                    "gcd.v"
+                ]
+            }
         }
     },
     "library": {
@@ -9717,75 +9721,6 @@
                     "switch": "-fpga_program <bool>",
                     "type": "bool",
                     "value": "false"
-                }
-            },
-            "model": {
-                "layout": {
-                    "gds": {
-                        "10M": {
-                            "author": [],
-                            "copy": "false",
-                            "date": [],
-                            "defvalue": [],
-                            "filehash": [],
-                            "hashalgo": "sha256",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "global",
-                            "shorthelp": "Model: Layout",
-                            "signature": [],
-                            "switch": "-model_layout 'filetype stackup <file>'",
-                            "type": "[file]",
-                            "value": [
-                                "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/gds/NangateOpenCellLibrary.gds"
-                            ]
-                        }
-                    },
-                    "lef": {
-                        "10M": {
-                            "author": [],
-                            "copy": "false",
-                            "date": [],
-                            "defvalue": [],
-                            "filehash": [],
-                            "hashalgo": "sha256",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "global",
-                            "shorthelp": "Model: Layout",
-                            "signature": [],
-                            "switch": "-model_layout 'filetype stackup <file>'",
-                            "type": "[file]",
-                            "value": [
-                                "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/lef/NangateOpenCellLibrary.macro.mod.lef"
-                            ]
-                        }
-                    }
-                },
-                "timing": {
-                    "nldm": {
-                        "typical": {
-                            "author": [],
-                            "copy": "false",
-                            "date": [],
-                            "defvalue": [],
-                            "filehash": [],
-                            "hashalgo": "sha256",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "global",
-                            "shorthelp": "Model: Timing",
-                            "signature": [],
-                            "switch": "-model_timing 'filetype corner <file>'",
-                            "type": "[file]",
-                            "value": [
-                                "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/lib/NangateOpenCellLibrary_typical.lib"
-                            ]
-                        }
-                    }
                 }
             },
             "option": {
@@ -10066,6 +10001,69 @@
                     "value": "false"
                 }
             },
+            "output": {
+                "10M": {
+                    "gds": {
+                        "author": [],
+                        "copy": "false",
+                        "date": [],
+                        "defvalue": [],
+                        "filehash": [],
+                        "hashalgo": "sha256",
+                        "lock": "false",
+                        "notes": null,
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Output: files",
+                        "signature": [],
+                        "switch": "-output 'fileset filetype <file>'",
+                        "type": "[file]",
+                        "value": [
+                            "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/gds/NangateOpenCellLibrary.gds"
+                        ]
+                    },
+                    "lef": {
+                        "author": [],
+                        "copy": "false",
+                        "date": [],
+                        "defvalue": [],
+                        "filehash": [],
+                        "hashalgo": "sha256",
+                        "lock": "false",
+                        "notes": null,
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Output: files",
+                        "signature": [],
+                        "switch": "-output 'fileset filetype <file>'",
+                        "type": "[file]",
+                        "value": [
+                            "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/lef/NangateOpenCellLibrary.macro.mod.lef"
+                        ]
+                    }
+                },
+                "typical": {
+                    "nldm": {
+                        "author": [],
+                        "copy": "false",
+                        "date": [],
+                        "defvalue": [],
+                        "filehash": [],
+                        "hashalgo": "sha256",
+                        "lock": "false",
+                        "notes": null,
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Output: files",
+                        "signature": [],
+                        "switch": "-output 'fileset filetype <file>'",
+                        "type": "[file]",
+                        "value": [
+                            "../third_party/pdks/virtual/freepdk45/libs/nangate45/r1p0/lib/NangateOpenCellLibrary_typical.lib"
+                        ]
+                    }
+                }
+            },
             "package": {
                 "version": {
                     "defvalue": null,
@@ -10293,7 +10291,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "104894464.0"
+                    "value": "106676224.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -10382,7 +10380,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "2.03"
+                    "value": "2.05"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -10500,7 +10498,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "86282240.0"
+                    "value": "86876160.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -10669,7 +10667,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "374087680"
+                    "value": "374996992"
                 },
                 "tasktime": {
                     "defvalue": null,
@@ -10774,7 +10772,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "86097920.0"
+                    "value": "86913024.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -10863,7 +10861,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.55"
+                    "value": "0.52"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -10943,7 +10941,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "31358976.0"
+                    "value": "31383552.0"
                 },
                 "tasktime": {
                     "defvalue": null,
@@ -11048,7 +11046,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "86233088.0"
+                    "value": "86224896.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -11137,7 +11135,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.59"
+                    "value": "0.53"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -11255,7 +11253,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "141029376.0"
+                    "value": "150990848.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -11344,7 +11342,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "0.71"
+                    "value": "0.74"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -11436,7 +11434,7 @@
                     "switch": "-metric_exetime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "2.11"
+                    "value": "1.99"
                 },
                 "leakagepower": {
                     "defvalue": null,
@@ -11462,7 +11460,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "817012736.0"
+                    "value": "819961856.0"
                 },
                 "nets": {
                     "defvalue": null,
@@ -11551,7 +11549,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "2.38"
+                    "value": "2.24"
                 },
                 "totalarea": {
                     "defvalue": null,
@@ -11681,7 +11679,7 @@
                     "switch": "-metric_memory 'step index <float>'",
                     "type": "float",
                     "unit": "B",
-                    "value": "31481856.0"
+                    "value": "31105024.0"
                 },
                 "registers": {
                     "defvalue": null,
@@ -11706,7 +11704,7 @@
                     "switch": "-metric_tasktime 'step index <float>'",
                     "type": "float",
                     "unit": "s",
-                    "value": "1.59"
+                    "value": "1.58"
                 },
                 "warnings": {
                     "defvalue": null,
@@ -13393,7 +13391,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:56"
+                    "value": "2023-01-09 20:38:52"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -13501,7 +13499,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:54"
+                    "value": "2023-01-09 20:38:49"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -13589,7 +13587,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:59"
+                    "value": "2023-01-09 20:38:55"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -13697,7 +13695,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:59"
+                    "value": "2023-01-09 20:38:54"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -13785,7 +13783,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:27:01"
+                    "value": "2023-01-09 20:38:56"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -13893,7 +13891,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:27:00"
+                    "value": "2023-01-09 20:38:55"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -13981,7 +13979,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:52"
+                    "value": "2023-01-09 20:38:47"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14089,7 +14087,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:51"
+                    "value": "2023-01-09 20:38:47"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -14177,7 +14175,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:49"
+                    "value": "2023-01-09 20:38:45"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14285,7 +14283,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:49"
+                    "value": "2023-01-09 20:38:44"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -14373,7 +14371,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:53"
+                    "value": "2023-01-09 20:38:48"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14481,7 +14479,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:52"
+                    "value": "2023-01-09 20:38:48"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -14569,7 +14567,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:54"
+                    "value": "2023-01-09 20:38:49"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14677,7 +14675,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:53"
+                    "value": "2023-01-09 20:38:48"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -14765,7 +14763,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:59"
+                    "value": "2023-01-09 20:38:54"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -14873,7 +14871,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:56"
+                    "value": "2023-01-09 20:38:52"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -14961,7 +14959,7 @@
                     "signature": null,
                     "switch": "-record_endtime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:51"
+                    "value": "2023-01-09 20:38:47"
                 },
                 "ipaddr": {
                     "defvalue": null,
@@ -15069,7 +15067,7 @@
                     "signature": null,
                     "switch": "-record_starttime 'step index <str>'",
                     "type": "str",
-                    "value": "2023-01-07 22:26:49"
+                    "value": "2023-01-09 20:38:45"
                 },
                 "toolargs": {
                     "defvalue": null,
@@ -15349,8 +15347,8 @@
                             "asic,logiclib",
                             "asic,stackup",
                             "pdk,freepdk45,layermap,klayout,def,gds,10M",
-                            "library,nangate45,model,layout,gds,10M",
-                            "library,nangate45,model,layout,lef,10M"
+                            "library,nangate45,output,10M,gds",
+                            "library,nangate45,output,10M,lef"
                         ]
                     }
                 }
@@ -17593,8 +17591,6 @@
                             "asic,logiclib",
                             "asic,stackup",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,model,timing,nldm,typical",
-                            "library,nangate45,model,layout,lef,10M",
                             "tool,openroad,var,cts,0,place_density",
                             "tool,openroad,var,cts,0,pad_global_place",
                             "tool,openroad,var,cts,0,pad_detail_place",
@@ -17618,8 +17614,6 @@
                             "asic,logiclib",
                             "asic,stackup",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,model,timing,nldm,typical",
-                            "library,nangate45,model,layout,lef,10M",
                             "tool,openroad,var,dfm,0,place_density",
                             "tool,openroad,var,dfm,0,pad_global_place",
                             "tool,openroad,var,dfm,0,pad_detail_place",
@@ -17643,8 +17637,6 @@
                             "asic,logiclib",
                             "asic,stackup",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,model,timing,nldm,typical",
-                            "library,nangate45,model,layout,lef,10M",
                             "tool,openroad,var,floorplan,0,place_density",
                             "tool,openroad,var,floorplan,0,pad_global_place",
                             "tool,openroad,var,floorplan,0,pad_detail_place",
@@ -17668,8 +17660,6 @@
                             "asic,logiclib",
                             "asic,stackup",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,model,timing,nldm,typical",
-                            "library,nangate45,model,layout,lef,10M",
                             "tool,openroad,var,physyn,0,place_density",
                             "tool,openroad,var,physyn,0,pad_global_place",
                             "tool,openroad,var,physyn,0,pad_detail_place",
@@ -17693,8 +17683,6 @@
                             "asic,logiclib",
                             "asic,stackup",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,model,timing,nldm,typical",
-                            "library,nangate45,model,layout,lef,10M",
                             "tool,openroad,var,place,0,place_density",
                             "tool,openroad,var,place,0,pad_global_place",
                             "tool,openroad,var,place,0,pad_detail_place",
@@ -17718,8 +17706,6 @@
                             "asic,logiclib",
                             "asic,stackup",
                             "pdk,freepdk45,aprtech,openroad,10M,10t,lef",
-                            "library,nangate45,model,timing,nldm,typical",
-                            "library,nangate45,model,layout,lef,10M",
                             "tool,openroad,var,route,0,place_density",
                             "tool,openroad,var,route,0,pad_global_place",
                             "tool,openroad,var,route,0,pad_detail_place",
@@ -18916,24 +18902,6 @@
                     }
                 }
             },
-            "require": {
-                "import": {
-                    "0": {
-                        "defvalue": [],
-                        "lock": "false",
-                        "notes": null,
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Tool: parameter requirements",
-                        "signature": [],
-                        "switch": "-tool_require 'tool step index <str>'",
-                        "type": "[str]",
-                        "value": [
-                            "input,verilog"
-                        ]
-                    }
-                }
-            },
             "stderr": {
                 "import": {
                     "0": {
@@ -19480,7 +19448,7 @@
                         "type": "[str]",
                         "value": [
                             "asic,logiclib",
-                            "library,nangate45,model,timing,nldm,typical",
+                            "library,nangate45,output,typical,nldm",
                             "tool,yosys,var,syn,0,flatten",
                             "tool,yosys,var,syn,0,autoname",
                             "tool,yosys,var,syn,0,map_adders",

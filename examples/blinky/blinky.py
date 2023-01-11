@@ -2,8 +2,8 @@ import siliconcompiler
 
 def main():
     chip = siliconcompiler.Chip('blinky')
-    chip.set('input', 'verilog', 'blinky.v')
-    chip.set('input', 'pcf', 'icebreaker.pcf')
+    chip.set('input', 'rtl', 'verilog', 'blinky.v')
+    chip.set('input', 'fpga', 'pcf', 'icebreaker.pcf')
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
     chip.load_target('fpgaflow_demo')
 

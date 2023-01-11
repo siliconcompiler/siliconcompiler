@@ -7,7 +7,7 @@ The general flow to create and import a library is to instantiate a library :cla
 Here's an example of setting up and importing a library object::
 
   lib = siliconcompiler.Chip('mylibrary')
-  lib.add('model', 'layout', 'lef', stackup, 'mylibrary.lef')
+  lib.add('output', stackup, 'lef', 'mylibrary.lef')
   # ... add more library sources
 
   chip = siliconcompiler.Chip('mydesign')
@@ -18,13 +18,13 @@ Here's an example of setting up and importing a library object::
 
   run()
 
-The same approach is used to configure standard cell libraries, which are primarily defined using :keypath:`model` settings. In leading edge process nodes, it's not uncommon to have 10's to 100's of STA signoff corners, with each corner consuming gigabytes of disk space. The SiliconCompiler schema is designed to enable efficient setup of all library file pointers and to allow designers to easily select which libraries and which corners to use in any single run. The run time selection of corners, libraries, and timing enables an agile approach to design, wherein the designer can choose the level of accuracy and performance based on need. For example, early in the architecture exploration phase, speed matters and the right choice for synthesis may be to compile using a single stdcell library, using a NLDM model, at a single timing corner. As the design is fine tuned, and the team closes in on tapeout of a mass produced device, the compilation and signoff verification may use many VT libraries, CCS timing models, and hundreds of timing scenarios. Being able to make these trade-offs with a unified library setup and a couple of lines of designer Python settings, greatly reduces physical design speed and risk.
+The same approach is used to configure standard cell libraries, which are primarily defined using :keypath:`output` settings. In leading edge process nodes, it's not uncommon to have 10's to 100's of STA signoff corners, with each corner consuming gigabytes of disk space. The SiliconCompiler schema is designed to enable efficient setup of all library file pointers and to allow designers to easily select which libraries and which corners to use in any single run. The run time selection of corners, libraries, and timing enables an agile approach to design, wherein the designer can choose the level of accuracy and performance based on need. For example, early in the architecture exploration phase, speed matters and the right choice for synthesis may be to compile using a single stdcell library, using a NLDM model, at a single timing corner. As the design is fine tuned, and the team closes in on tapeout of a mass produced device, the compilation and signoff verification may use many VT libraries, CCS timing models, and hundreds of timing scenarios. Being able to make these trade-offs with a unified library setup and a couple of lines of designer Python settings, greatly reduces physical design speed and risk.
 
 The following code snippet shows how library GDS and LEF files can be set up in the SC schema::
 
     stackup = '<my-stackup>'
-    lib.add('model','layout','lef', stackup, '$FREEPDK45/lef/NangateOpenCellLibrary.lef')
-    lib.add('model','layout','gds', stackup, '$FREEPDK45/gds/NangateOpenCellLibrary.gds')
+    lib.add('output', stackup, 'lef', '$FREEPDK45/lef/NangateOpenCellLibrary.lef')
+    lib.add('output', stackup, 'gds', '$FREEPDK45/gds/NangateOpenCellLibrary.gds')
 
 SiliconCompiler also supports referencing soft libraries (RTL, C-code, etc), in which case many of the physical IP parameters can be omitted.
 

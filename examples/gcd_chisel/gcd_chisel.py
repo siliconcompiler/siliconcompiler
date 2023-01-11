@@ -4,7 +4,7 @@ import siliconcompiler
 
 def main():
     chip = siliconcompiler.Chip('GCD')
-    chip.set('input', 'scala', 'GCD.scala')
+    chip.set('input', 'hll', 'scala', 'GCD.scala')
     chip.set('option', 'frontend', 'chisel')
     # default Chisel clock pin is 'clock'
     chip.clock(pin='clock', period=5)

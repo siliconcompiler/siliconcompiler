@@ -8,8 +8,8 @@ def main(root='.'):
     '''Simple asicflow example.'''
 
     chip = siliconcompiler.Chip('gcd')
-    chip.add('input', 'verilog', f"{root}/gcd.v")
-    chip.add('input', 'sdc', f"{root}/gcd.sdc")
+    chip.add('input', 'rtl',  'verilog', f"{root}/gcd.v")
+    chip.add('input', 'asic', 'sdc', f"{root}/gcd.sdc")
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
     chip.set('option', 'track', True)

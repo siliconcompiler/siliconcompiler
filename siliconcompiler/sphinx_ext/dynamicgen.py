@@ -332,7 +332,7 @@ class LibGen(DynamicGen):
             section_key = '-'.join(['libs', modname, libname, 'configuration'])
             settings = build_section(libname, section_key)
 
-            for key in ('asic', 'model'):
+            for key in ('asic', 'output'):
                 cfg = chip.getdict('library', libname, key)
                 settings += build_config_recursive(cfg, keypath_prefix=[key], sec_key_prefix=['libs', modname, libname, key])
 
