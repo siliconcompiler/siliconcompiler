@@ -130,7 +130,7 @@ To handle complex scenarios required by advanced PDKs, the Schema supports dynam
 
 
     corner='default'
-    padkname='default'
+    pdkname='default'
     tool='default'
     stackup='default'
     scparam(cfg, ['pdk', pdkname, 'pexmodel', tool, stackup, corner],

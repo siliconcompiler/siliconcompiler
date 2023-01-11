@@ -952,7 +952,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ###########################################################################
     def input(self, filename, fileset=None, filetype=None):
         '''
-        Adds file to a filset. The default behavior is to infet filetypes and
+        Adds file to a filset. The default behavior is to infer filetypes and
         filesets based on the suffix of the file extensions. The method is
         a wrapper function for set.add('input', filset, filetype,...)
 
