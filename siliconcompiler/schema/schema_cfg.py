@@ -139,7 +139,7 @@ def schema_cfg():
             schelp="""Name of the top level module or library. Required for all
             chip objects.""")
 
-    # input
+    # input/output
     io = {'input': ['Input','true'],
           'output': ['Output','false']
     }
@@ -186,87 +186,11 @@ def schema_cfg():
     cfg = schema_metric(cfg)
     cfg = schema_record(cfg)
 
-    # Schematic Entry
-    cfg = schema_schematic(cfg)
-
     # Datasheet
     cfg = schema_datasheet(cfg)
 
     # Packaging
     cfg = schema_package(cfg)
-
-    return cfg
-
-###############################################################################
-# Schematic
-###############################################################################
-
-def schema_schematic(cfg):
-    ''' Schematic configuration
-    '''
-
-    name = 'default'
-    filetype = 'default'
-
-    scparam(cfg,['schematic', 'component', name],
-            sctype='str',
-            shorthelp="Schematic: component (instance)",
-            switch="-schematic_component 'name <str>'",
-            example=[
-                "cli: -schematic_component 'i0 za001'",
-                "api:  chip.set('schematic', 'component', 'i0', 'za001')"],
-            schelp="""Unique manufacturer part number (MPN) of the  named
-            component.""")
-
-    scparam(cfg, ['schematic', 'net', name],
-            sctype='[(str,str)]',
-            shorthelp="Schematic: net definition",
-            switch="-schematic_net 'name <(str,str)>'",
-            example=[
-                "cli: -schematic_net 'netA[7:0] (i0,in[7:0])'",
-                "api: chip.add('schematic', 'net', 'netA[7:0]', ('i0','in[7:0]'))"],
-            schelp="""
-            List of component pins and primary design pins connected to the named net
-            specified as (component,pin) tuples. For net connnetions to primary
-            pins, the 'component' entry should be an empty string. Bused connections
-            are specified using the Verilog square bracket syntax (ie [msb:lsb])""")
-
-    scparam(cfg, ['schematic', 'pin', name],
-            sctype='(str,str)',
-            shorthelp="Schematic: pin definition",
-            switch="-schematic_pin 'name <(str,str)>'",
-            example=[
-                "cli: -schematic_pin 'out[7:0] (output,signal)'",
-                "api: chip.set('schematic', 'pin', 'out[7:0]', ('output','signal'))"],
-            schelp="""
-            Design primary pin definitions, specified (direction,type) tuples
-            on a per pin basis. Allowed directions are: input, output, and
-            inout. Allowed types are: analog, clock, ground, power, signal.
-            An empty 'type' defaults to signal.""")
-
-    scparam(cfg, ['schematic', 'interface', name],
-            sctype='[(str,str)]',
-            shorthelp="Schematic: interface definition",
-            switch="-schematic_interface 'name <(str,str)>'",
-            example=[
-                "cli: -schematic_interface 'name (clk,clk0)'",
-                "api: chip.set('schematic','interface','ddr',('clk','clk0')"],
-            schelp="""
-            Signal interface definition specified as a list of (key,value) mapping
-            tuples, wherein the key is the standardaized interface name and the
-            value is the design pin name. Bus pins are specified using the Verilog
-            square bracket syntax (ie [msb:lsb]).""")
-
-    scparam(cfg, ['schematic', 'parameter', name],
-            sctype='[(str,str)]',
-            shorthelp="Schematic: parameter definition ",
-            switch="-schematic_parameter 'obj <(str,str)>'",
-            example=[
-                "cli: -schematic_parameter 'i0 (speed,fast)'",
-                "api: chip.set('schematic','parameter', 'i0', ('speed','fast')"],
-            schelp="""
-            List of parameter definitions attached to a named pin, net, or
-            component pecified as (key,value) tuples.""")
 
     return cfg
 
@@ -2060,9 +1984,9 @@ def schema_unit(cfg):
                 schelp=f"""
                 Units used for {item} when not explicitly specified.""")
 
-    # Lambda value
     scparam(cfg,['unit', 'lambda'],
             sctype='float',
+            defvalue='1.0',
             scope='global',
             shorthelp="Unit: Lambda value",
             switch="-unit_lambda <float>",
@@ -3480,7 +3404,9 @@ def schema_asic(cfg):
 # Constraints
 ############################################
 
-def schema_constraint(cfg, scenario='default', instance = 'default'):
+def schema_constraint(cfg, scenario='default', name = 'default'):
+
+
 
     # TIMING
     scparam(cfg,['constraint', 'timing', scenario, 'voltage'],
@@ -3574,26 +3500,10 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             noise, reliability.""")
 
     # COMPONENTS
-    scparam(cfg, ['constraint', 'component', instance, 'outline'],
-            sctype='[(float,float)]',
-            shorthelp="Constraint: Component outline",
-            switch="-constraint_component_outline 'i0 <(float,float)'>",
-            example=[
-                "cli: -constraint_component_outline 'i0 (0,0)'",
-                "api: chip.add('constraint', 'component', 'i0', 'outline', (0,0))"],
-            schelp="""
-            List of (x,y) points that constrains the outline of a named
-            instance. Simple rectangle areas can be defined
-            with two points, one for the lower left corner and one for the
-            upper right corner. The 'outline' parameter is a goal, not an
-            exact specification. The compiler and component system may adjust
-            sizes to meet competing goals such as manufacturing design
-            rules.""")
-
-    scparam(cfg, ['constraint', 'component', instance, 'placement'],
+    scparam(cfg, ['constraint', 'component', name, 'placement'],
             sctype='(float,float,float)',
             shorthelp="Constraint: Component placement",
-            switch="-constraint_component_placement 'inst <(float,float, float)>'",
+            switch="-constraint_component_placement 'name <(float,float, float)>'",
             example=[
                 "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
                 "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"],
@@ -3601,7 +3511,7 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             Placement location of a named component, specified as a (x,y,z) tuple of
             floats. The location refers to the placement of the center/centroid of the
             component. The 'placement' parameter is a goal/intent, not an exact specification.
-            The compiler and layout system may adjust sizes to meet competing
+            The compiler and layout system may adjust coordinates to meet competing
             goals such as manufacturing design  rules and grid placement
             guidelines. The 'z' coordinate shall be set to 0 for planar systems
             with only (x,y) coordinates. Discretized systems like PCB stacks,
@@ -3611,10 +3521,10 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             layout system the component is being placed in (ASIC, SIP, PCB) but
             should not need to know exact manufacturing specifications.""")
 
-    scparam(cfg, ['constraint', 'component',  instance, 'rotation'],
+    scparam(cfg, ['constraint', 'component',  name, 'rotation'],
             sctype='float',
             shorthelp="Constraint: Component rotation",
-            switch="-constraint_component_rotation 'inst <float>'",
+            switch="-constraint_component_rotation 'name <float>'",
             example=[
                 "cli: -constraint_component_rotation 'i0 90'",
                 "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"],
@@ -3626,38 +3536,51 @@ def schema_constraint(cfg, scenario='default', instance = 'default'):
             layout systems (like ASICs) only allow a finite number of rotation
             values (0,90,180,270).""")
 
-    scparam(cfg, ['constraint', 'component', instance, 'flip'],
+    scparam(cfg, ['constraint', 'component', name, 'flip'],
             sctype='bool',
             shorthelp="Constraint: Component flip option",
-            switch="-constraint_component_flip 'inst <bool>'",
+            switch="-constraint_component_flip 'name <bool>'",
             example=[
                 "cli: -constraint_component_flip 'i0 true'",
                 "api: chip.set('constraint', 'component', 'i0', 'flip', 'true')"],
             schelp="""
             Boolean parameter specifying that the instanced library component should be flipped
-            around the vertical axis befong being placed on the substrate. The need to
+            around the vertical axis before being placed on the substrate. The need to
             flip a component depends on the component footprint. Most dies have pads
             facing up and so must be flipped when assembled face down (eg. flip-chip,
             WCSP).""")
 
     # PINS
-    scparam(cfg, ['constraint', 'pin', instance, 'placement'],
+    scparam(cfg, ['constraint', 'pin', name, 'placement'],
             sctype='(float,float,float)',
             shorthelp="Constraint: Pin placement",
-            switch="-constraint_pin_placement 'inst <(float,float, float)>'",
+            switch="-constraint_pin_placement 'name <(float,float, float)>'",
             example=[
-                "cli: -constraint_pin_placement 'i0 (2.0,3.0,0.0)'",
-                "api: chip.set('constraint', 'pin', 'i0', 'placement', (2.0,3.0,0.0)"],
+                "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0)"],
             schelp="""
             Placement location of a named pin, specified as a (x,y,z) tuple of
             floats. The location refers to the placement of the center of the
-            pin. Rhe 'placement' parameter is a goal/intent, not an exact specification.
+            pin. The 'placement' parameter is a goal/intent, not an exact specification.
             The compiler and layout system may adjust sizes to meet competing
             goals such as manufacturing design  rules and grid placement
             guidelines. The 'z' coordinate shall be set to 0 for planar components
             with only (x,y) coordinates. Discretized systems like 3D chips with
             pins on to and bottom may choose to discretize the top and bottom
             layer as 0,1 or use absolute coordinates.""")
+
+    scparam(cfg, ['constraint', 'pin', name, 'layer'],
+            sctype='str',
+            shorthelp="Constraint: Pin layer",
+            switch="-constraint_pin_layer 'name <str>'",
+            example=[
+                "cli: -constraint_pin_layer 'nreset m4'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"],
+            schelp="""
+            Pin metal layer specified based on the SC standard layer stack
+            starting with m1 as the lowest routing layer and ending
+            with m<n> as the highest routing layer.""")
+
 
     return cfg
 
