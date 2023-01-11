@@ -1,9 +1,3 @@
-proc reopenStdout {file} {
-    close stdout
-    open $file w        ;# The standard channels are special
-}
-
-
 ###############################
 # Report Metrics
 ###############################
@@ -18,26 +12,73 @@ puts "$PREFIX report_checks -path_delay min"
 report_checks -fields $fields -path_delay min -format full_clock_expanded
 
 puts "$PREFIX unconstrained"
-report_checks  -fields $fields -unconstrained -format full_clock_expanded
+report_checks -fields $fields -unconstrained -format full_clock_expanded
 
-#TODO: should only be executed when there is a clock
-#puts "$PREFIX clock_skew"
-#report_clock_skew
+if {[llength [all_clocks]] > 0} {
+  puts "$PREFIX clock_skew"
+  report_clock_skew
+  report_clock_skew_metric -setup
+  report_clock_skew_metric -hold
+}
 
-puts "$PREFIX wns"
-report_wns
+puts "$PREFIX DRV violators"
+report_check_types -max_slew -max_capacitance -max_fanout -violators
+report_erc_metrics
+
+puts "$PREFIX floating nets"
+report_floating_nets -verbose
 
 puts "$PREFIX tns"
 report_tns
+report_tns_metric -setup
+report_tns_metric -hold
 
 puts "$PREFIX setupslack"
 report_worst_slack -max
+report_worst_slack_metric -setup
 
 puts "$PREFIX holdslack"
 report_worst_slack -min
+report_worst_slack_metric -hold
 
 puts "$PREFIX power"
-report_power
+report_power -corner $sc_power_corner
+report_power_metric -corner $sc_power_corner
 
 puts "$PREFIX cellarea"
 report_design_area
+report_design_area_metrics
+
+# get number of nets in design
+utl::metric_int "design__nets" [llength [[ord::get_db_block] getNets]]
+
+# get number of registers
+utl::metric_int "design__registers" [llength [all_registers]]
+
+# get number of buffers
+set bufs 0
+set invs 0
+foreach inst [get_cells -hierarchical *] {
+  set cell [$inst cell]
+  if { $cell == "NULL" } {
+    continue
+  }
+  set liberty_cell [$cell liberty_cell]
+  if { $liberty_cell == "NULL" } {
+    continue
+  }
+  if { [$liberty_cell is_buffer] } {
+    incr bufs
+  } elseif { [$liberty_cell is_inverter] } {
+    incr invs
+  }
+}
+utl::metric_int "design__buffers" [expr $bufs + $invs]
+
+# get number of unconstrained endpoints
+with_output_to_variable endpoints {check_setup -unconstrained_endpoints}
+set unconstrained_endpoints [regexp -all -inline {[0-9]+} $endpoints]
+if { $unconstrained_endpoints == "" } {
+  set unconstrained_endpoints 0
+}
+utl::metric_int "timing__unconstrained" $unconstrained_endpoints

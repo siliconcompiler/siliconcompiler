@@ -78,6 +78,7 @@ def setup(chip):
     chip.set('pdk', process, 'd0', d0)
 
     # APR tech file
+    # TODO: remove libtype
     for tool in ('openroad', 'klayout', 'magic'):
         chip.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
                  pdkdir+'/apr/freepdk45.tech.lef')
@@ -154,12 +155,9 @@ def setup(chip):
         else:
             chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'horizontal')
 
-    # Defaults for OpenROAD tool variables
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'place_density', ['0.3'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_global_place', ['2'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_detail_place', ['1'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_halo', ['22.4', '15.12'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_channel', ['18.8', '19.95'])
+    # PEX
+    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical', 
+        pdkdir + '/pex/openroad/typical.tcl')
 
 #########################
 if __name__ == "__main__":

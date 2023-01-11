@@ -1,41 +1,50 @@
-
 #######################################
 # Clock tree synthesis
 # (skip if no clocks defined)
 #######################################
 
-
 if {[llength [all_clocks]] > 0} {
 
-    # Clone clock tree inverters next to register loads
-    # so cts does not try to buffer the inverted clocks.
-    repair_clock_inverters
+  # Clone clock tree inverters next to register loads
+  # so cts does not try to buffer the inverted clocks.
+  repair_clock_inverters
 
-    clock_tree_synthesis -root_buf $sc_clkbuf -buf_list $sc_clkbuf \
-	-sink_clustering_enable \
-	-sink_clustering_size $openroad_cluster_size \
-	-sink_clustering_max_diameter $openroad_cluster_diameter \
-	-distance_between_buffers $openroad_cluster_diameter
+  set sc_cts_arguments []
+  if {$openroad_cts_balance_levels == "True"} {
+    lappend sc_cts_arguments "-balance_levels"
+  }
 
-    set_propagated_clock [all_clocks]
+  clock_tree_synthesis -root_buf $sc_clkbuf -buf_list $sc_clkbuf \
+    -sink_clustering_enable \
+    -sink_clustering_size $openroad_cts_cluster_size \
+    -sink_clustering_max_diameter $openroad_cts_cluster_diameter \
+    -distance_between_buffers $openroad_cts_distance_between_buffers \
+    {*}$sc_cts_arguments
 
-    estimate_parasitics -placement
+  set_propagated_clock [all_clocks]
 
-    repair_clock_nets
+  estimate_parasitics -placement
 
-    set_placement_padding -global \
-	-left $openroad_pad_detail_place \
-	-right $openroad_pad_detail_place
+  repair_clock_nets
 
-    detailed_placement
+  set_placement_padding -global \
+    -left $openroad_dpl_padding \
+    -right $openroad_dpl_padding
 
-    estimate_parasitics -placement
+  detailed_placement -max_displacement $openroad_dpl_max_displacement
+  check_placement -verbose
 
-    check_placement
+  estimate_parasitics -placement
+  repair_timing -setup -setup_margin $openroad_rsz_setup_slack_margin -hold_margin $openroad_rsz_hold_slack_margin
 
-    repair_timing -setup
-    repair_timing -hold
+  estimate_parasitics -placement
+  repair_timing -hold -setup_margin $openroad_rsz_setup_slack_margin -hold_margin $openroad_rsz_hold_slack_margin
 
-    detailed_placement
-    check_placement
+  detailed_placement -max_displacement $openroad_dpl_max_displacement
+  check_placement -verbose
 }
+
+global_connect
+
+# estimate for metrics
+estimate_parasitics -placement

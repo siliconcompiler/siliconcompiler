@@ -59,11 +59,6 @@ def setup(chip):
     lib.add('output', stackup, 'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
 
-
-    # Techmap
-    lib.add('asic', 'file', 'yosys', 'techmap',
-            libdir + '/techmap/yosys/cells_latch.v')
-
     lib.set('asic', 'pgmetal', 'm1')
 
 
@@ -100,6 +95,21 @@ def setup(chip):
 
     # Endcap
     lib.add('asic', 'cells','endcap', "FILLCELL_X1")
+
+    # Techmap
+    lib.add('asic', 'file', 'yosys', 'techmap',
+            libdir + '/techmap/yosys/cells_latch.v')
+
+    # Defaults for OpenROAD tool variables
+    lib.set('asic', 'var', 'openroad', 'place_density', ['0.35'])
+    lib.set('asic', 'var', 'openroad', 'pad_global_place', ['2'])
+    lib.set('asic', 'var', 'openroad', 'pad_detail_place', ['1'])
+    lib.set('asic', 'var', 'openroad', 'macro_place_halo', ['22.4', '15.12'])
+    lib.set('asic', 'var', 'openroad', 'macro_place_channel', ['18.8', '19.95'])
+
+    lib.set('asic', 'file', 'openroad', 'tapcells', libdir + '/apr/openroad/tapcell.tcl')
+    lib.set('asic', 'file', 'openroad', 'pdngen', libdir + '/apr/openroad/pdngen.tcl')
+    lib.set('asic', 'file', 'openroad', 'global_connect', libdir + '/apr/openroad/global_connect.tcl')
 
     chip.import_library(lib)
 
