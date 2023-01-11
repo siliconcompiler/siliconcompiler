@@ -48,15 +48,15 @@ def setup(chip):
     lib.set('asic', 'footprint', 'FreePDK45_38x28_10R_NP_162NW_34O', 'size', (0.19,1.4))
 
     # timing
-    lib.add('model', 'timing', 'nldm', corner,
+    lib.add('output', corner, 'nldm',
              libdir+'/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
-    lib.add('model', 'layout', 'lef', stackup,
+    lib.add('output', stackup, 'lef',
              libdir+'/lef/NangateOpenCellLibrary.macro.mod.lef')
 
     # gds
-    lib.add('model', 'layout', 'gds', stackup,
+    lib.add('output', stackup, 'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
 
 

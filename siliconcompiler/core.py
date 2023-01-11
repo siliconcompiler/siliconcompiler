@@ -675,6 +675,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             self.error(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
 
+    ##########################################################################
+    def use(self, module):
+        '''
+        Loads a SiliconCompiler module into the current chip object by calling
+        a module.setup() method.
+        '''
+
+        self.import_library(module.setup())
+
+
     ###########################################################################
     def list_metrics(self):
         '''
@@ -940,6 +950,53 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(str(e))
 
     ###########################################################################
+    def input(self, filename, fileset=None, filetype=None):
+        '''
+        Adds file to a filset. The default behavior is to infer filetypes and
+        filesets based on the suffix of the file extensions. The method is
+        a wrapper function for set.add('input', filset, filetype,...)
+
+        Default filetype and filset based on suffix:
+
+        .. code:: none
+
+            filetype  | fileset   | suffix (case insensitive)
+            ----------|-----------|---------------------------------------------
+            c         | hll       | c,cc,cpp,c++,cp,cxx,hpp
+            bsv       | hll       | bsv
+            scala     | hll       | scala
+            python    | hll       | py
+            verilog   | rtl       | v,vg,sv,verilog
+            vhdl      | rtl       | vhd, vhdl
+            liberty   | timing    | lib, ccs
+            def       | layout    | def
+            lef       | layout    | lef
+            gds       | layout    | gds, gds2, gdsII
+            gerber    | layout    | gbr, gerber
+            cdl       | netlist   | cdl
+            spice     | netlist   | sp
+            vcd       | waveform  | vcd
+            sdc       | constraint| sdc
+
+        Args:
+            fileset (str): File grouping
+            filetype (str): File type
+
+        '''
+
+        #TODO: make util function for suffix (same for input/output)
+        #TODO implement suffix lookup
+
+        self.add('input', fileset, filetype, filename)
+
+    ###########################################################################
+    def output(self, filename, fileset=None, filetype=None):
+        ''' Same as input'''
+
+
+        self.add('output', fileset, filetype, filename)
+
+    ###########################################################################
     def _find_sc_file(self, filename, missing_ok=False):
         """
         Returns the absolute path for the filename provided.
@@ -967,15 +1024,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Replacing environment variables
         filename = self._resolve_env_vars(filename)
 
-        # If we have a path relative to our cwd or an abs path, pass-through here
-        if os.path.exists(os.path.abspath(filename)):
-            return os.path.abspath(filename)
+        # If we have an absolute path, pass-through here
+        if os.path.isabs(filename) and os.path.exists(filename):
+            return filename
 
         # Otherwise, search relative to scpaths
-        scpaths = [self.scroot, self.cwd]
+        scpaths = [self.cwd]
         scpaths.extend(self.get('option', 'scpath'))
         if 'SCPATH' in os.environ:
             scpaths.extend(os.environ['SCPATH'].split(os.pathsep))
+        scpaths.append(self.scroot)
 
         searchdirs = ', '.join(scpaths)
         self.logger.debug(f"Searching for file {filename} in {searchdirs}")
@@ -1052,7 +1110,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Special cases for various ['eda', ...] files that may be implicitly
         # under the workdir (or refdir in the case of scripts).
         # TODO: it may be cleaner to have a file resolution scope flag in schema
-        # (e.g. 'scpath', 'workdir', 'refdir'), rather than harcoding special
+        # (e.g. 'scpath', 'workdir', 'refdir'), rather than hardcoding special
         # cases.
         if keypath[0] == 'tool' and keypath[2] in ('input', 'output', 'report'):
             step = keypath[3]
@@ -2234,7 +2292,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Files are located using the find_files() function.
 
-        The file hash calculation is performed basd on the 'algo' setting.
+        The file hash calculation is performed based on the 'algo' setting.
         Supported algorithms include SHA1, SHA224, SHA256, SHA384, SHA512,
         and MD5.
 
@@ -2317,7 +2375,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Uses the shoelace formulate to calculate the design area using
         the (x,y) point tuples from the 'diearea' parameter. If only diearea
-        paramater only contains two points, then the first and second point
+        parameter only contains two points, then the first and second point
         must be the lower left and upper right points of the rectangle.
         (Ref: https://en.wikipedia.org/wiki/Shoelace_formula)
 
@@ -2891,7 +2949,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ['datasheet', name, 'jitter']
 
         Args:
-            pin (str): Full hiearchical path to clk pin.
+            pin (str): Full hierarchical path to clk pin.
             period (float): Clock period specified in ns.
             jitter (float): Clock jitter specified in ns.
 
@@ -2915,7 +2973,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Creates a flowgraph node by binding a tool to a task. A task is defined
         as the combination of a step and index. A tool can be an external
-        exeuctable or one of the built in functions in the SiliconCompiler
+        executable or one of the built in functions in the SiliconCompiler
         framework). Built in functions include: minimum, maximum, join, mux,
         verify.
 
@@ -4384,7 +4442,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if license_file:
                 envvars[item] = ':'.join(license_file)
         if self.get('tool', tool, 'path'):
-            envvars['PATH'] = self.get('tool', tool, 'path') + os.pathsep + '$PATH'
+            envvars['PATH'] = self.get('tool', tool, 'path') + os.pathsep + os.environ['PATH']
         else:
             envvars['PATH'] = os.environ['PATH']
         if (step in self.getkeys('tool', tool, 'env') and
@@ -4399,7 +4457,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             envvar_cmd = 'export'
             for key, val in envvars.items():
-                print(f'{envvar_cmd} {key}={val}', file=f)
+                print(f'{envvar_cmd} {key}="{val}"', file=f)
 
             replay_cmdlist = [os.path.basename(cmdlist[0])] + cmdlist[1:]
             print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in replay_cmdlist), file=f)

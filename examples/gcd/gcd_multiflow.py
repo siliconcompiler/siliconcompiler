@@ -9,8 +9,8 @@ def main():
     # Create instance of Chip class
     chip = siliconcompiler.Chip('gcd', loglevel='INFO')
 
-    chip.add('input', 'verilog', 'gcd.v')
-    chip.add('input', 'sdc', 'gcd.sdc')
+    chip.add('input', 'rtl', 'verilog', 'gcd.v')
+    chip.add('input', 'asic', 'sdc', 'gcd.sdc')
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
     chip.set('option', 'skipcheck', True)

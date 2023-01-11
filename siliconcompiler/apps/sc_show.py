@@ -42,8 +42,8 @@ def main():
     #Error checking
     design = chip.get('design')
     design_set = design != UNSET_DESIGN
-    gds_mode = chip.valid('input', 'gds') and bool(chip.get('input', 'gds'))
-    def_mode = chip.valid('input', 'def') and bool(chip.get('input', 'def'))
+    gds_mode = chip.valid('input', 'layout', 'gds') and bool(chip.get('input', 'layout', 'gds'))
+    def_mode = chip.valid('input', 'layout', 'def') and bool(chip.get('input', 'layout', 'def'))
 
     if def_mode and gds_mode:
         chip.logger.error('Exclusive options -input_gds and -input_def cannot both be defined.')
@@ -54,9 +54,9 @@ def main():
 
     filename = None
     if gds_mode:
-        filename = chip.get('input', 'gds')[-1]
+        filename = chip.get('input', 'layout', 'gds')[-1]
     elif def_mode:
-        filename = chip.get('input', 'def')[-1]
+        filename = chip.get('input', 'layout', 'def')[-1]
 
     if (filename is not None) and (not chip.get('option', 'cfg')):
         # only autoload manifest if user doesn't supply manually

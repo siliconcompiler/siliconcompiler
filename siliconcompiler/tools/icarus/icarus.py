@@ -55,7 +55,7 @@ def setup(chip):
         chip.logger.error(f"Step '{step}' not supported in Icarus tool")
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input,verilog')
+    chip.add('tool', tool, 'require', step, index, 'input,rtl,verilog')
 
 ################################
 #  Custom runtime options
@@ -79,7 +79,7 @@ def runtime_options(chip):
         cmdlist.append('-D' + value)
     for value in chip.find_files('option','cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('input', 'verilog'):
+    for value in chip.find_files('input', 'rtl', 'verilog'):
         cmdlist.append(value)
 
     return cmdlist

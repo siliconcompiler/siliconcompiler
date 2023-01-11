@@ -8,11 +8,11 @@ import siliconcompiler
 def test_write_manifest():
 
     chip = siliconcompiler.Chip('top')
-    chip.add('input', 'sdc','top.sdc')
-    chip.add('input', 'verilog', 'top.v')
-    chip.add('input', 'verilog', 'a.v')
-    chip.add('input', 'verilog', 'b.v')
-    chip.add('input', 'verilog', 'c.v')
+    chip.add('input', 'asic', 'sdc','top.sdc')
+    chip.add('input', 'rtl', 'verilog', 'top.v')
+    chip.add('input', 'rtl', 'verilog', 'a.v')
+    chip.add('input', 'rtl', 'verilog', 'b.v')
+    chip.add('input', 'rtl', 'verilog', 'c.v')
 
     chip.write_manifest('top.pkg.json')
     chip.write_manifest('top.csv')
@@ -41,7 +41,7 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
     chip.set('option', 'quiet', True)
 
     # Test envvars
-    chip.set('input', 'verilog', 'rtl/$TOPMOD.v')
+    chip.set('input', 'rtl', 'verilog', 'rtl/$TOPMOD.v')
 
     chip.write_manifest('top.tcl')
 
@@ -63,11 +63,11 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
 
     assert tcl_eval('[lindex [lindex [dict get $sc_cfg asic diearea] 1] 0]') == '30.0'
     assert tcl_eval('[dict get $sc_cfg option quiet]') == 'true'
-    assert tcl_eval('[dict get $sc_cfg input verilog]') == 'rtl/design.v'
+    assert tcl_eval('[dict get $sc_cfg input rtl verilog]') == 'rtl/design.v'
 
 def test_csv():
     chip = siliconcompiler.Chip('test')
-    chip.set('input', 'verilog', 'source.v')
+    chip.set('input', 'rtl', 'verilog', 'source.v')
 
     chip.write_manifest('test.csv')
 
@@ -82,7 +82,7 @@ def test_csv():
             if keypath == 'design':
                 assert val == 'test'
                 design_found = True
-            elif keypath == 'input,verilog':
+            elif keypath == 'input,rtl,verilog':
                 assert val == 'source.v'
                 input_found = True
     assert design_found

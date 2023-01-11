@@ -72,7 +72,7 @@ class Sup:
             registry (str): File system directory or IP address of registry
             history (bool): Include job history in package
             metrics (bool): Include metrics in package
-            imports (bool): Include import files (sourcs) in package
+            imports (bool): Include import files (sources) in package
             exports (bool): Include export files (outputs) in package
 
         '''
@@ -108,7 +108,7 @@ class Sup:
         Install registry package in local cache.
 
         Args:
-            name (str): Package to install in formatl <design>-(<semver>)?
+            name (str): Package to install in format <design>-(<semver>)?
             registry (str): List of registries tos search
             nodeps (bool): Don't descend dependency tree if True
         '''

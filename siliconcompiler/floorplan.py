@@ -208,7 +208,7 @@ class Floorplan:
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = chip.find_files('library', macrolib, 'model', 'layout', 'lef', self.stackup)[0]
+            lef_path = chip.find_files('library', macrolib, 'output', self.stackup, 'lef')[0]
             lef_data = leflib.parse(lef_path)
 
             if 'macros' not in lef_data:

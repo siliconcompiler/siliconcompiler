@@ -246,14 +246,14 @@ if 'macrolib' in sc_cfg['asic']:
 
 in_gds = []
 for lib in libs:
-  in_gds.extend(sc_cfg['library'][lib]['model']['layout']['gds'][sc_stackup]['value'])
+  in_gds.extend(sc_cfg['library'][lib]['output'][sc_stackup]['gds']['value'])
 
-foundry_lef = os.path.dirname(sc_cfg['library'][sc_mainlib]['model']['layout']['lef'][sc_stackup]['value'][0])
+foundry_lef = os.path.dirname(sc_cfg['library'][sc_mainlib]['output'][sc_stackup]['lef']['value'][0])
 
 macro_lefs = []
 if 'macrolib' in sc_cfg['asic']:
   for lib in sc_cfg['asic']['macrolib']['value']:
-    macro_lefs.extend(sc_cfg['library'][lib]['model']['layout']['lef'][sc_stackup]['value'])
+    macro_lefs.extend(sc_cfg['library'][lib]['output'][sc_stackup]['lef']['value'])
 
 sc_step = sc_cfg['arg']['step']['value']
 sc_index = sc_cfg['arg']['index']['value']

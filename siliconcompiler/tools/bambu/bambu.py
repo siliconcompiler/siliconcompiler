@@ -41,7 +41,7 @@ def setup(chip):
     chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input,c')
+    chip.add('tool', tool, 'require', step, index, 'input,hll,c')
 
 def parse_version(stdout):
     # Long multiline output, but second-to-last line looks like:
@@ -61,7 +61,7 @@ def runtime_options(chip):
         cmdlist.append('-I' + value)
     for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('input', 'c'):
+    for value in chip.find_files('input', 'hll', 'c'):
         cmdlist.append(value)
 
     cmdlist.append('--top-fname=' + chip.top())

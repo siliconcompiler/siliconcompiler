@@ -1062,148 +1062,243 @@
         }
     },
     "constraint": {
-        "default": {
-            "check": {
-                "defvalue": [],
-                "example": [
-                    "cli: -constraint_check 'worst check setup'",
-                    "api: chip.add('constraint','worst','check','setup')"
-                ],
-                "help": "List of checks for to perform for the scenario. The checks must\nalign with the capabilities of the EDA tools and flow being used.\nChecks generally include objectives like meeting setup and hold goals\nand minimize power. Standard check names include setup, hold, power,\nnoise, reliability.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint checks to perform",
-                "signature": [],
-                "switch": "-constraint_check 'scenario <str>'",
-                "type": "[str]",
-                "value": []
-            },
-            "file": {
-                "author": [],
-                "copy": "true",
-                "date": [],
-                "defvalue": [],
-                "example": [
-                    "cli: -constraint_file 'worst hello.sdc'",
-                    "api: chip.set('constraint','worst','file', 'hello.sdc')"
-                ],
-                "filehash": [],
-                "hashalgo": "sha256",
-                "help": "List of timing constraint files to use for the scenario. The\nvalues are combined with any constraints specified by the design\n'constraint' parameter. If no constraints are found, a default\nconstraint file is used based on the clock definitions.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint files",
-                "signature": [],
-                "switch": "-constraint_file 'scenario <file>'",
-                "type": "[file]",
-                "value": []
-            },
-            "libcorner": {
-                "defvalue": [],
-                "example": [
-                    "cli: -constraint_libcorner 'worst ttt'",
-                    "api: chip.set('constraint', 'worst', 'libcorner', 'ttt')"
-                ],
-                "help": "List of characterization corners used to select\ntiming files for all logiclibs and macrolibs.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint library corner",
-                "signature": [],
-                "switch": "-constraint_libcorner 'scenario <str>'",
-                "type": "[str]",
-                "value": []
-            },
-            "mode": {
-                "defvalue": null,
-                "example": [
-                    "cli: -constraint_mode 'worst test'",
-                    "api: chip.set('constraint',  'worst','mode', 'test')"
-                ],
-                "help": "Operating mode for the scenario. Operating mode strings\ncan be values such as test, functional, standby.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint operating mode",
-                "signature": null,
-                "switch": "-constraint_mode 'scenario <str>'",
-                "type": "str",
-                "value": null
-            },
-            "opcond": {
-                "defvalue": null,
-                "example": [
-                    "cli: -constraint_opcond 'worst typical_1.0'",
-                    "api: chip.set('constraint', 'worst', 'opcond',  'typical_1.0')"
-                ],
-                "help": "Operating condition applied to the scenario. The value\ncan be used to access specific conditions within the library\ntiming models from the 'logiclib' timing models.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint operating condition",
-                "signature": null,
-                "switch": "-constraint_opcond 'scenario <str>'",
-                "type": "str",
-                "value": null
-            },
-            "pexcorner": {
-                "defvalue": null,
-                "example": [
-                    "cli: -constraint_pexcorner 'worst max'",
-                    "api: chip.set('constraint', 'worst', 'pexcorner', 'max')"
-                ],
-                "help": "Parasitic corner applied to the scenario. The\n'pexcorner' string must match a corner found in the pdk\npexmodel setup.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint pex corner",
-                "signature": null,
-                "switch": "-constraint_pexcorner 'scenario <str>'",
-                "type": "str",
-                "value": null
-            },
-            "temperature": {
-                "defvalue": null,
-                "example": [
-                    "cli: -constraint_temperature 'worst 125'",
-                    "api: chip.set('constraint', 'worst', 'temperature','125')"
-                ],
-                "help": "Chip temperature applied to the scenario specified in degrees C.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint temperature",
-                "signature": null,
-                "switch": "-constraint_temperature 'scenario <float>'",
-                "type": "float",
-                "value": null
-            },
-            "voltage": {
-                "defvalue": null,
-                "example": [
-                    "cli: -constraint_voltage 'worst 0.9'",
-                    "api: chip.set('constraint', 'worst','voltage', '0.9')"
-                ],
-                "help": "Operating voltage applied to the scenario.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Constraint voltage level",
-                "signature": null,
-                "switch": "-constraint_voltage 'scenario <float>'",
-                "type": "float",
-                "unit": "V",
-                "value": null
+        "component": {
+            "default": {
+                "flip": {
+                    "defvalue": "false",
+                    "example": [
+                        "cli: -constraint_component_flip 'i0 true'",
+                        "api: chip.set('constraint', 'component', 'i0', 'flip', 'true')"
+                    ],
+                    "help": "Boolean parameter specifying that the instanced library component should be flipped\naround the vertical axis before being placed on the substrate. The need to\nflip a component depends on the component footprint. Most dies have pads\nfacing up and so must be flipped when assembled face down (eg. flip-chip,\nWCSP).",
+                    "lock": "false",
+                    "notes": null,
+                    "require": "all",
+                    "scope": "job",
+                    "shorthelp": "Constraint: Component flip option",
+                    "signature": null,
+                    "switch": "-constraint_component_flip 'name <bool>'",
+                    "type": "bool",
+                    "value": "false"
+                },
+                "placement": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
+                        "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"
+                    ],
+                    "help": "Placement location of a named component, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Component placement",
+                    "signature": null,
+                    "switch": "-constraint_component_placement 'name <(float,float, float)>'",
+                    "type": "(float,float,float)",
+                    "value": null
+                },
+                "rotation": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_component_rotation 'i0 90'",
+                        "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"
+                    ],
+                    "help": "Placement rotation of the component specified in degrees. Rotation\ngoes counter-clockwise for all parts on top and clock-wise for parts\non the bottom. In both cases, this is from the perspective of looking\nat the top of the board. Rotation is specified in degrees. Most gridded\nlayout systems (like ASICs) only allow a finite number of rotation\nvalues (0,90,180,270).",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Component rotation",
+                    "signature": null,
+                    "switch": "-constraint_component_rotation 'name <float>'",
+                    "type": "float",
+                    "value": null
+                }
+            }
+        },
+        "pin": {
+            "default": {
+                "layer": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_pin_layer 'nreset m4'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"
+                    ],
+                    "help": "Pin metal layer specified based on the SC standard layer stack\nstarting with m1 as the lowest routing layer and ending\nwith m<n> as the highest routing layer.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Pin layer",
+                    "signature": null,
+                    "switch": "-constraint_pin_layer 'name <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "placement": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0)"
+                    ],
+                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on to and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Pin placement",
+                    "signature": null,
+                    "switch": "-constraint_pin_placement 'name <(float,float, float)>'",
+                    "type": "(float,float,float)",
+                    "value": null
+                }
+            }
+        },
+        "timing": {
+            "default": {
+                "check": {
+                    "defvalue": [],
+                    "example": [
+                        "cli: -constraint_timing_check 'worst check setup'",
+                        "api: chip.add('constraint', 'timing', 'worst','check','setup')"
+                    ],
+                    "help": "List of checks for to perform for the scenario. The checks must\nalign with the capabilities of the EDA tools and flow being used.\nChecks generally include objectives like meeting setup and hold goals\nand minimize power. Standard check names include setup, hold, power,\nnoise, reliability.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: timing checks",
+                    "signature": [],
+                    "switch": "-constraint_timing_check 'scenario <str>'",
+                    "type": "[str]",
+                    "value": []
+                },
+                "file": {
+                    "author": [],
+                    "copy": "true",
+                    "date": [],
+                    "defvalue": [],
+                    "example": [
+                        "cli: -constraint_timing_file 'worst hello.sdc'",
+                        "api: chip.set('constraint', 'timing', 'worst','file', 'hello.sdc')"
+                    ],
+                    "filehash": [],
+                    "hashalgo": "sha256",
+                    "help": "List of timing constraint files to use for the scenario. The\nvalues are combined with any constraints specified by the design\n'constraint' parameter. If no constraints are found, a default\nconstraint file is used based on the clock definitions.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: SDC files",
+                    "signature": [],
+                    "switch": "-constraint_timing_file 'scenario <file>'",
+                    "type": "[file]",
+                    "value": []
+                },
+                "libcorner": {
+                    "defvalue": [],
+                    "example": [
+                        "cli: -constraint_timing_libcorner 'worst ttt'",
+                        "api: chip.set('constraint', 'timing', 'worst', 'libcorner', 'ttt')"
+                    ],
+                    "help": "List of characterization corners used to select\ntiming files for all logiclibs and macrolibs.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: library corner",
+                    "signature": [],
+                    "switch": "-constraint_timing_libcorner 'scenario <str>'",
+                    "type": "[str]",
+                    "value": []
+                },
+                "mode": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_timing_mode 'worst test'",
+                        "api: chip.set('constraint', 'timing', 'worst','mode', 'test')"
+                    ],
+                    "help": "Operating mode for the scenario. Operating mode strings\ncan be values such as test, functional, standby.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: operating mode",
+                    "signature": null,
+                    "switch": "-constraint_timing_mode 'scenario <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "opcond": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_timing_opcond 'worst typical_1.0'",
+                        "api: chip.set('constraint', 'timing', 'worst', 'opcond',  'typical_1.0')"
+                    ],
+                    "help": "Operating condition applied to the scenario. The value\ncan be used to access specific conditions within the library\ntiming models from the 'logiclib' timing models.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: operating condition",
+                    "signature": null,
+                    "switch": "-constraint_timing_opcond 'scenario <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "pexcorner": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_timing_pexcorner 'worst max'",
+                        "api: chip.set('constraint', 'timing', 'worst', 'pexcorner', 'max')"
+                    ],
+                    "help": "Parasitic corner applied to the scenario. The\n'pexcorner' string must match a corner found in the pdk\npexmodel setup.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pex corner",
+                    "signature": null,
+                    "switch": "-constraint_timing_pexcorner 'scenario <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "temperature": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_timing_temperature 'worst 125'",
+                        "api: chip.set('constraint', 'timing', 'worst', 'temperature','125')"
+                    ],
+                    "help": "Chip temperature applied to the scenario specified in degrees C.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: temperature",
+                    "signature": null,
+                    "switch": "-constraint_timing_temperature 'scenario <float>'",
+                    "type": "float",
+                    "value": null
+                },
+                "voltage": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_timing_voltage 'worst 0.9'",
+                        "api: chip.set('constraint', 'timing', 'worst','voltage', '0.9')"
+                    ],
+                    "help": "Operating voltage applied to the scenario.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: voltage level",
+                    "signature": null,
+                    "switch": "-constraint_timing_voltage 'scenario <float>'",
+                    "type": "float",
+                    "unit": "V",
+                    "value": null
+                }
             }
         }
     },
@@ -1221,7 +1316,7 @@
                     "notes": null,
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: device feature specification",
+                    "shorthelp": "Datasheet: device features",
                     "signature": null,
                     "switch": "-datasheet_feature 'design name <float>'",
                     "type": "float",
@@ -1297,7 +1392,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: capacitance",
+                            "shorthelp": "Datasheet: pin capacitance",
                             "signature": null,
                             "switch": "-datasheet_pin_capacitance 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1374,7 +1469,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: duty cycle",
+                            "shorthelp": "Datasheet: pin duty cycle",
                             "signature": null,
                             "switch": "-datasheet_pin_dutycycle 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1413,7 +1508,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: drive current",
+                            "shorthelp": "Datasheet: pin drive current",
                             "signature": null,
                             "switch": "-datasheet_pin_idrive 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1433,7 +1528,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: injection current",
+                            "shorthelp": "Datasheet: pin injection current",
                             "signature": null,
                             "switch": "-datasheet_pin_iinject 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1453,7 +1548,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: leakage current",
+                            "shorthelp": "Datasheet: pin leakage current",
                             "signature": null,
                             "switch": "-datasheet_pin_ileakage 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1473,7 +1568,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: package pin map",
+                            "shorthelp": "Datasheet: pin map",
                             "signature": null,
                             "switch": "-datasheet_pin_map 'design name package <str>'",
                             "type": "str",
@@ -1492,7 +1587,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: differential pair resistance",
+                            "shorthelp": "Datasheet: pin differential pair resistance",
                             "signature": null,
                             "switch": "-datasheet_pin_rdiff 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1531,7 +1626,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pulldown resistance",
+                            "shorthelp": "Datasheet: pin pulldown resistance",
                             "signature": null,
                             "switch": "-datasheet_pin_rpulldown 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1551,7 +1646,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pullup resistance",
+                            "shorthelp": "Datasheet: pin pullup resistance",
                             "signature": null,
                             "switch": "-datasheet_pin_rpullup 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1609,7 +1704,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: fall transition",
+                            "shorthelp": "Datasheet: pin fall transition",
                             "signature": null,
                             "switch": "-datasheet_pin_tfall 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1629,7 +1724,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: hold time",
+                            "shorthelp": "Datasheet: pin hold time",
                             "signature": null,
                             "switch": "-datasheet_pin_thold 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1649,7 +1744,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: rms jitter",
+                            "shorthelp": "Datasheet: pin rms jitter",
                             "signature": null,
                             "switch": "-datasheet_pin_tjitter 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1669,7 +1764,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: minimum period",
+                            "shorthelp": "Datasheet: pin minimum period",
                             "signature": null,
                             "switch": "-datasheet_pin_tperiod 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1689,7 +1784,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pulse width",
+                            "shorthelp": "Datasheet: pin pulse width",
                             "signature": null,
                             "switch": "-datasheet_pin_tpulse 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1709,7 +1804,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: rise transition",
+                            "shorthelp": "Datasheet: pin rise transition",
                             "signature": null,
                             "switch": "-datasheet_pin_trise 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1729,7 +1824,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: setup time",
+                            "shorthelp": "Datasheet: pin setup time",
                             "signature": null,
                             "switch": "-datasheet_pin_tsetup 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1760,15 +1855,15 @@
                         "default": {
                             "defvalue": null,
                             "example": [
-                                "cli: -datasheet_pin_vcdm 'mydevice sclk global (100, 300, 500)'",
-                                "api: chip.set('datasheet','mydevice','pin','sclk','vcdm','global',(100, 300, 500)"
+                                "cli: -datasheet_pin_vcdm 'mydevice sclk global (125, 150, 175)'",
+                                "api: chip.set('datasheet','mydevice','pin','sclk','vcdm','global',(125, 150, 175)"
                             ],
-                            "help": "Pin human body model ESD tolerance. Values are tuples of (min, typical, max).",
+                            "help": "Pin CDM ESD tolerance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: human body model ESD tolerance",
+                            "shorthelp": "Datasheet: pin CDM ESD tolerance",
                             "signature": null,
                             "switch": "-datasheet_pin_vcdm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1788,7 +1883,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: common mode voltage",
+                            "shorthelp": "Datasheet: pin common mode voltage",
                             "signature": null,
                             "switch": "-datasheet_pin_vcm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1808,7 +1903,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: differential voltage",
+                            "shorthelp": "Datasheet: pin differential voltage",
                             "signature": null,
                             "switch": "-datasheet_pin_vdiff 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1820,15 +1915,15 @@
                         "default": {
                             "defvalue": null,
                             "example": [
-                                "cli: -datasheet_pin_vhbm 'mydevice sclk global (100, 300, 500)'",
-                                "api: chip.set('datasheet','mydevice','pin','sclk','vhbm','global',(100, 300, 500)"
+                                "cli: -datasheet_pin_vhbm 'mydevice sclk global (200, 250, 300)'",
+                                "api: chip.set('datasheet','mydevice','pin','sclk','vhbm','global',(200, 250, 300)"
                             ],
-                            "help": "Pin machine model ESD tolerance. Values are tuples of (min, typical, max).",
+                            "help": "Pin HBM ESD tolerance. Values are tuples of (min, typical, max).",
                             "lock": "false",
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: machine model ESD tolerance",
+                            "shorthelp": "Datasheet: pin HBM ESD tolerance",
                             "signature": null,
                             "switch": "-datasheet_pin_vhbm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1848,7 +1943,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: high input voltage level",
+                            "shorthelp": "Datasheet: pin high input voltage level",
                             "signature": null,
                             "switch": "-datasheet_pin_vih 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1868,9 +1963,29 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: low input voltage level",
+                            "shorthelp": "Datasheet: pin low input voltage level",
                             "signature": null,
                             "switch": "-datasheet_pin_vil 'design pin mode <(float,float,float)>'",
+                            "type": "(float,float,float)",
+                            "unit": "V",
+                            "value": null
+                        }
+                    },
+                    "vmm": {
+                        "default": {
+                            "defvalue": null,
+                            "example": [
+                                "cli: -datasheet_pin_vmm 'mydevice sclk global (100, 125, 150)'",
+                                "api: chip.set('datasheet','mydevice','pin','sclk','vmm','global',(100, 125, 150)"
+                            ],
+                            "help": "Pin MM ESD tolerance. Values are tuples of (min, typical, max).",
+                            "lock": "false",
+                            "notes": null,
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: pin MM ESD tolerance",
+                            "signature": null,
+                            "switch": "-datasheet_pin_vmm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V",
                             "value": null
@@ -1888,7 +2003,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: random voltage noise",
+                            "shorthelp": "Datasheet: pin random voltage noise",
                             "signature": null,
                             "switch": "-datasheet_pin_vnoise 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1908,7 +2023,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: high output voltage level",
+                            "shorthelp": "Datasheet: pin high output voltage level",
                             "signature": null,
                             "switch": "-datasheet_pin_voh 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -1928,7 +2043,7 @@
                             "notes": null,
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: low output voltage level",
+                            "shorthelp": "Datasheet: pin low output voltage level",
                             "signature": null,
                             "switch": "-datasheet_pin_vol 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
@@ -2107,7 +2222,7 @@
                                 "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
                                 "api:  chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"
                             ],
-                            "help": "Weights specified on a per step and per metric basis used to give\neffective \"goodnes\" score for a step by calculating the sum all step\nreal metrics results by the corresponding per step weights.",
+                            "help": "Weights specified on a per step and per metric basis used to give\neffective \"goodness\" score for a step by calculating the sum all step\nreal metrics results by the corresponding per step weights.",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -2235,26 +2350,28 @@
     "history": {},
     "input": {
         "default": {
-            "author": [],
-            "copy": "true",
-            "date": [],
-            "defvalue": [],
-            "example": [
-                "cli: -input 'verilog hello_world.v'",
-                "api: chip.set(input,'verilog','hello_world.v')"
-            ],
-            "filehash": [],
-            "hashalgo": "sha256",
-            "help": "List of input files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Input files",
-            "signature": [],
-            "switch": "-input 'filetype <file>'",
-            "type": "[file]",
-            "value": []
+            "default": {
+                "author": [],
+                "copy": "true",
+                "date": [],
+                "defvalue": [],
+                "example": [
+                    "cli: -input 'rtl verilog hello_world.v'",
+                    "api: chip.set(input, 'rtl','verilog','hello_world.v')"
+                ],
+                "filehash": [],
+                "hashalgo": "sha256",
+                "help": "List of files of type ('filetype') grouped as a named set ('fileset').\nThe exact names of filetypes and filesets must match the string names\nused by the tasks called during flowgraph execution. By convention,\nthe fileset names should match the the name of the flowgraph being\nexecuted.",
+                "lock": "false",
+                "notes": null,
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Input: files",
+                "signature": [],
+                "switch": "-input 'fileset filetype <file>'",
+                "type": "[file]",
+                "value": []
+            }
         }
     },
     "library": {},
@@ -2441,7 +2558,7 @@
                         "cli: -metric_exetime 'dfm 0 10.0'",
                         "api: chip.set('metric','dfm','0','exetime', 10.0)"
                     ],
-                    "help": "Metric tracking time spent by the eda executable 'exe' on a\nper step and index basis. It does not include the siliconcompiler\nruntime overhead or time waitig for I/O operations and\ninter-processor communication to complete.",
+                    "help": "Metric tracking time spent by the eda executable 'exe' on a\nper step and index basis. It does not include the siliconcompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -2829,7 +2946,7 @@
                         "cli: -metric_tasktime 'dfm 0 10.0'",
                         "api: chip.set('metric','dfm','0','tasktime', 10.0)"
                     ],
-                    "help": "Metric trakcing the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
+                    "help": "Metric tracking the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -2980,206 +3097,6 @@
                     "type": "float",
                     "unit": "um",
                     "value": null
-                }
-            }
-        }
-    },
-    "model": {
-        "formal": {
-            "default": {
-                "author": [],
-                "copy": "false",
-                "date": [],
-                "defvalue": [],
-                "example": [
-                    "cli: -model_formal 'smv adder.smv'",
-                    "api: chip.set('model','formal','smv','adder.smv')"
-                ],
-                "filehash": [],
-                "hashalgo": "sha256",
-                "help": "Filepaths to formal models specified on a per filetype basis.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "global",
-                "shorthelp": "Model: Formal",
-                "signature": [],
-                "switch": "-model_formal 'filetype <file>'",
-                "type": "[file]",
-                "value": []
-            }
-        },
-        "functional": {
-            "default": {
-                "author": [],
-                "copy": "false",
-                "date": [],
-                "defvalue": [],
-                "example": [
-                    "cli: -model_functional 'systemc adder.sc'",
-                    "api: chip.set('model','functional','systemc','adder.sc')"
-                ],
-                "filehash": [],
-                "hashalgo": "sha256",
-                "help": "Filepaths to (fast) functional models specified on a per filetype\nbasis.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "global",
-                "shorthelp": "Model: Functional",
-                "signature": [],
-                "switch": "-model_functional 'filetype <file>'",
-                "type": "[file]",
-                "value": []
-            }
-        },
-        "io": {
-            "default": {
-                "author": [],
-                "copy": "false",
-                "date": [],
-                "defvalue": [],
-                "example": [
-                    "cli: -model_io 'ibis top.ibs'",
-                    "api: chip.set('model','io','ibis','top.ibis')"
-                ],
-                "filehash": [],
-                "hashalgo": "sha256",
-                "help": "Filepaths to IO models specified on a per filetype basis.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "global",
-                "shorthelp": "Model: IO",
-                "signature": [],
-                "switch": "-model_io 'filetype <file>'",
-                "type": "[file]",
-                "value": []
-            }
-        },
-        "layout": {
-            "default": {
-                "default": {
-                    "author": [],
-                    "copy": "false",
-                    "date": [],
-                    "defvalue": [],
-                    "example": [
-                        "cli: -model_layout 'lef 10M adder.lef'",
-                        "api: chip.set('model','layout','lef','10M','adder.lef')"
-                    ],
-                    "filehash": [],
-                    "hashalgo": "sha256",
-                    "help": "Filepaths to abstract layout views specified on a per filetype\nand per stackup basis.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "Model: Layout",
-                    "signature": [],
-                    "switch": "-model_layout 'filetype stackup <file>'",
-                    "type": "[file]",
-                    "value": []
-                }
-            }
-        },
-        "power": {
-            "default": {
-                "default": {
-                    "author": [],
-                    "copy": "false",
-                    "date": [],
-                    "defvalue": [],
-                    "example": [
-                        "cli: -model_power 'apl ss adder.ss.apl'",
-                        "api: chip.set('model','power','apl','ss','adder.ss.apl')"
-                    ],
-                    "filehash": [],
-                    "hashalgo": "sha256",
-                    "help": "Filepaths to power/current models.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "Model: Power",
-                    "signature": [],
-                    "switch": "-model_power 'filetype corner <file>'",
-                    "type": "[file]",
-                    "value": []
-                }
-            }
-        },
-        "rtl": {
-            "default": {
-                "author": [],
-                "copy": "false",
-                "date": [],
-                "defvalue": [],
-                "example": [
-                    "cli: -model_rtl 'systemc adder.sc'",
-                    "api: chip.set('model','rtl','systemc','adder.sc')"
-                ],
-                "filehash": [],
-                "hashalgo": "sha256",
-                "help": "Filepaths to cycle accurate model specified on a per filetype\nbasis.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "global",
-                "shorthelp": "Model: RTL",
-                "signature": [],
-                "switch": "-model_rtl 'filetype <file>'",
-                "type": "[file]",
-                "value": []
-            }
-        },
-        "thermal": {
-            "default": {
-                "author": [],
-                "copy": "false",
-                "date": [],
-                "defvalue": [],
-                "example": [
-                    "cli: -model_thermal 'delphi adder_thermal.sp'",
-                    "api: chip.set('model','thermal','delphi','adder_thermal.sp')"
-                ],
-                "filehash": [],
-                "hashalgo": "sha256",
-                "help": "Filepaths to thermal models.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "global",
-                "shorthelp": "Model: Thermal",
-                "signature": [],
-                "switch": "-model_thermal 'filetype corner <file>'",
-                "type": "[file]",
-                "value": []
-            }
-        },
-        "timing": {
-            "default": {
-                "default": {
-                    "author": [],
-                    "copy": "false",
-                    "date": [],
-                    "defvalue": [],
-                    "example": [
-                        "cli: -model_timing 'nldm-libgz ss ss.lib.gz'",
-                        "api: chip.set('model','timing','nldm-ldb','ss','ss.ldb')"
-                    ],
-                    "filehash": [],
-                    "hashalgo": "sha256",
-                    "help": "Filepaths to static timing models specified on a per filetype and\nper corner basis.  Examples of filetypes include: nldm, nldm-ldb,\nnldm-libgz, ccs, ccs-libgz, ccs-ldb, scm, scm-libgz, scm-ldb,\naocv, aocv-libgz, aocv-ldb.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "Model: Timing",
-                    "signature": [],
-                    "switch": "-model_timing 'filetype corner <file>'",
-                    "type": "[file]",
-                    "value": []
                 }
             }
         }
@@ -3623,7 +3540,7 @@
                 "cli: -metricoff 'wirelength'",
                 "api: chip.set('option','metricoff','wirelength')"
             ],
-            "help": "List of metrics to supress when printing out the run\nsummary.",
+            "help": "List of metrics to suppress when printing out the run\nsummary.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -3984,7 +3901,7 @@
                 "cli: -target freepdk45_demo",
                 "api: chip.set('option','target','freepdk45_demo')"
             ],
-            "help": "Sets a target module to be used for compilation. The target\nmodule must set up all paramaters needed. The target module\nmay load multiple flows and libraries.",
+            "help": "Sets a target module to be used for compilation. The target\nmodule must set up all parameters needed. The target module\nmay load multiple flows and libraries.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -4071,26 +3988,28 @@
     },
     "output": {
         "default": {
-            "author": [],
-            "copy": "false",
-            "date": [],
-            "defvalue": [],
-            "example": [
-                "cli: -output 'verilog hello_world.v'",
-                "api: chip.set(output,'verilog','hello_world.v')"
-            ],
-            "filehash": [],
-            "hashalgo": "sha256",
-            "help": "List of output files specifed by type. The filetype name must\nalign with the parameter names within the flow and tool setup\nscripts. Examples of acceptable file types include python, c,\nsystemc, verilog, vhdl, netlist, def, gds, gerber, saif, sdc,\nsaif, vcd, spef, sdf.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Output files",
-            "signature": [],
-            "switch": "-output 'filetype <file>'",
-            "type": "[file]",
-            "value": []
+            "default": {
+                "author": [],
+                "copy": "false",
+                "date": [],
+                "defvalue": [],
+                "example": [
+                    "cli: -output 'rtl verilog hello_world.v'",
+                    "api: chip.set(output, 'rtl','verilog','hello_world.v')"
+                ],
+                "filehash": [],
+                "hashalgo": "sha256",
+                "help": "List of files of type ('filetype') grouped as a named set ('fileset').\nThe exact names of filetypes and filesets must match the string names\nused by the tasks called during flowgraph execution. By convention,\nthe fileset names should match the the name of the flowgraph being\nexecuted.",
+                "lock": "false",
+                "notes": null,
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Output: files",
+                "signature": [],
+                "switch": "-output 'fileset filetype <file>'",
+                "type": "[file]",
+                "value": []
+            }
         }
     },
     "package": {
@@ -4212,7 +4131,7 @@
                 "notes": null,
                 "require": null,
                 "scope": "global",
-                "shorthelp": "Package: version dependancies",
+                "shorthelp": "Package: version dependencies",
                 "signature": [],
                 "switch": "-package_dependency 'module <str>'",
                 "type": "[str]",
@@ -4231,7 +4150,7 @@
                 "notes": null,
                 "require": null,
                 "scope": "global",
-                "shorthelp": "Package dependency list",
+                "shorthelp": "Package: dependency list",
                 "signature": [],
                 "switch": "-package_depgraph 'module <(str,str)>'",
                 "type": "[(str,str)]",
@@ -5583,7 +5502,7 @@
                         "cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
                         "api:  chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"
                     ],
-                    "help": "Thickness of a manfuatured unit specified on a per stackup basis.",
+                    "help": "Thickness of a manufactured unit specified on a per stackup basis.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -5956,7 +5875,7 @@
                         "cli: -record_toolversion 'dfm 0 <1.0>'",
                         "api: chip.set('record','dfm','0','toolversion', <1.0>)"
                     ],
-                    "help": "Record tracking the tool version per step and index basis. The tool version captured correspnds to the 'tool'\nparameter within the 'eda' dictionary.",
+                    "help": "Record tracking the tool version per step and index basis. The tool version captured corresponds to the 'tool'\nparameter within the 'eda' dictionary.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -5988,7 +5907,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.8.0",
+        "defvalue": "0.10.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6001,7 +5920,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.8.0"
+        "value": "0.10.0"
     },
     "tool": {
         "default": {
@@ -6319,7 +6238,7 @@
                                 "cli: -tool_regex 'openroad place 0 errors -v ERROR'",
                                 "api: chip.set('tool','openroad','regex','place','0','errors','-v ERROR')"
                             ],
-                            "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceeded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`tool, <tool>,\nreport` parameter for those metrics, if not already present.",
+                            "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`tool, <tool>,\nreport` parameter for those metrics, if not already present.",
                             "lock": "false",
                             "notes": null,
                             "require": null,
@@ -6670,6 +6589,23 @@
             "switch": "-unit_inductance '<str>'",
             "type": "str",
             "value": "nh"
+        },
+        "lambda": {
+            "defvalue": "1.0",
+            "example": [
+                "cli: -unit_lambda 1e-6",
+                "api: chip.set('unit', 'lambda', 1e-6)"
+            ],
+            "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
+            "lock": "false",
+            "notes": null,
+            "require": null,
+            "scope": "global",
+            "shorthelp": "Unit: Lambda value",
+            "signature": null,
+            "switch": "-unit_lambda <float>",
+            "type": "float",
+            "value": "1.0"
         },
         "length": {
             "defvalue": "um",

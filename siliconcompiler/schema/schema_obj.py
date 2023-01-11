@@ -328,9 +328,12 @@ class Schema:
                             scalar = float(selval)
                         elif cfg[param]['type'] == "bool":
                             scalar = (selval == 'true')
-                        elif re.match(r'\(', cfg[param]['type']):
+                        elif re.match(r'\(float', cfg[param]['type']):
                             tuplestr = re.sub(r'[\(\)\s]','',selval)
                             scalar = tuple(map(float, tuplestr.split(',')))
+                        elif re.match(r'\(str', cfg[param]['type']):
+                            tuplestr = re.sub(r'[\(\)\'\s]','',selval)
+                            scalar = tuple(tuplestr.split(','))
                         else:
                             scalar = selval
                         return scalar
@@ -378,7 +381,7 @@ class Schema:
         Copies a parameter into the manifest history dictionary.
         '''
 
-        # 1. decend keypath, pop each key as its used
+        # 1. descend keypath, pop each key as its used
         # 2. create key if missing in destination dict
         # 3. populate leaf cell when keypath empty
         if keypath:
@@ -485,9 +488,13 @@ class Schema:
 
             valstr = utils.escape_val_tcl(value, typestr)
 
+            # Turning scalars into lists
             if not (typestr.startswith('[') or typestr.startswith('(')):
-                # treat scalars as lists as well
                 valstr = f'[list {valstr}]'
+
+            # TODO: Temp fix to get rid of empty args
+            if valstr=='':
+                valstr = f'[list ]'
 
             outstr = f"{prefix} {keystr} {valstr}\n"
 

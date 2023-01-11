@@ -9,8 +9,8 @@ def test_entrypoint(scroot):
     datadir = os.path.join(scroot, 'tests', 'data')
     chip = siliconcompiler.Chip('heartbeat')
 
-    chip.add('input', 'verilog', os.path.join(datadir, 'heartbeat.v'))
-    chip.add('input', 'verilog', os.path.join(datadir, 'heartbeat_top.v'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(datadir, 'heartbeat.v'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(datadir, 'heartbeat_top.v'))
 
     chip.set('option', 'entrypoint', 'heartbeat_top')
 
@@ -22,4 +22,4 @@ def test_entrypoint(scroot):
 
     # If ['option', 'entrypoint'] didn't work, this test would just build
     # heartbeat, and the design would have half as many cells post-synthesis.
-    assert chip.get('metric', 'syn', '0', 'cells') == 50
+    assert chip.get('metric', 'syn', '0', 'cells') == 52

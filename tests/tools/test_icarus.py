@@ -14,7 +14,7 @@ def test_icarus(oh_dir):
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
     chip.set('option', 'ydir', ydir)
-    chip.set('input', 'verilog', topfile)
+    chip.set('input', 'rtl', 'verilog', topfile)
     chip.set('option', 'mode', 'sim')
 
     flow = 'sim'

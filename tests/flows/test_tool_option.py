@@ -14,8 +14,8 @@ def test_tool_option(scroot):
 
     # Inserting value into configuration
     chip.set('design', 'gcd', clobber=True)
-    chip.add('input', 'verilog', os.path.join(gcd_ex_dir, 'gcd.v'))
-    chip.add('input', 'sdc', os.path.join(gcd_ex_dir, 'gcd.sdc'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(gcd_ex_dir, 'gcd.v'))
+    chip.add('input', 'asic', 'sdc', os.path.join(gcd_ex_dir, 'gcd.sdc'))
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
     chip.set('option', 'quiet', 'true')
@@ -60,7 +60,7 @@ def chip(scroot):
     design = "oh_fifo_sync"
 
     chip = siliconcompiler.Chip(design)
-    chip.set('input', 'def', def_file)
+    chip.set('input', 'layout', 'def', def_file)
     chip.set('option', 'quiet', True)
     chip.set('option','novercheck', 'true')
     chip.load_target('freepdk45_demo')

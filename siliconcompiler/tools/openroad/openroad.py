@@ -83,12 +83,12 @@ def setup(chip, mode='batch'):
     if step in ['floorplan', 'physyn', 'place', 'cts', 'route', 'dfm']:
         design = chip.top()
         if step == 'floorplan':
-            if (not chip.valid('input', 'netlist') or
-                not chip.get('input', 'netlist')):
+            if (not chip.valid('input', 'netlist', 'verilog') or
+                not chip.get('input', 'netlist', 'verilog')):
                 chip.add('tool', tool, 'input', step, index, design +'.vg')
         else:
-            if (not chip.valid('input', 'def') or
-                not chip.get('input', 'def')):
+            if (not chip.valid('input', 'layout', 'def') or
+                not chip.get('input', 'layout', 'def')):
                 chip.add('tool', tool, 'input', step, index, design +'.def')
 
         chip.add('tool', tool, 'output', step, index, design + '.sdc')
@@ -109,14 +109,14 @@ def setup(chip, mode='batch'):
         # chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
         # chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
         chip.add('tool', tool, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
-        if chip.valid('input', 'floorplan.def'):
-            chip.set('tool', tool, 'require', step, index, ",".join(['input', 'floorplan.def']))
+        if chip.valid('input', 'layout', 'floorplan.def'):
+            chip.set('tool', tool, 'require', step, index, ",".join(['input', 'layout', 'floorplan.def']))
 
-        for lib in (targetlibs + macrolibs):
-            if 'nldm' in chip.getkeys('library', lib, 'model', 'timing'):
-                for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
-                    chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', 'nldm', corner]))
-            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
+        #for lib in (targetlibs + macrolibs):
+        #    if 'nldm' in chip.getkeys('library', lib, 'output', 'timing'):
+        #        for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
+        #            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', 'nldm', corner]))
+        #    chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
     else:
         chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
 
@@ -195,7 +195,7 @@ def pre_process(chip):
     if (step != 'floorplan' or
         chip.get('asic', 'diearea') or
         chip.get('asic', 'corearea') or
-        chip.valid('input', 'floorplan.def')):
+        chip.valid('input', 'layout', 'floorplan.def')):
         return
 
     r = _infer_diearea(chip)

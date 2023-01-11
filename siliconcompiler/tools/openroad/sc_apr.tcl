@@ -45,7 +45,7 @@ set sc_maxfanout   [dict get $sc_cfg asic maxfanout]
 set sc_maxlength   [dict get $sc_cfg asic maxlength]
 set sc_maxcap      [dict get $sc_cfg asic maxcap]
 set sc_maxslew     [dict get $sc_cfg asic maxslew]
-set sc_scenarios   [dict keys [dict get $sc_cfg constraint]]
+set sc_scenarios   [dict keys [dict get $sc_cfg constraint timing]]
 
 # PDK agnostic design rule translation
 dict for {key value} [dict get $sc_cfg pdk $sc_pdk grid $sc_stackup] {
@@ -121,10 +121,10 @@ read_lef  $sc_techlef
 
 # Read Liberty
 foreach item $sc_scenarios {
-    foreach corner [dict get $sc_cfg constraint $item libcorner] {
+    foreach corner [dict get $sc_cfg constraint timing $item libcorner] {
 	foreach lib "$sc_targetlibs $sc_macrolibs" {
-	    if {[dict exists $sc_cfg library $lib model timing $sc_delaymodel $corner]} {
-		set lib_file [dict get $sc_cfg library $lib model timing $sc_delaymodel $corner]
+	    if {[dict exists $sc_cfg library $lib output $corner $sc_delaymodel]} {
+		set lib_file [dict get $sc_cfg library $lib output $corner $sc_delaymodel]
 		read_liberty $lib_file
 	    }
 	}
@@ -133,15 +133,15 @@ foreach item $sc_scenarios {
 
 # Read Lefs
 foreach lib "$sc_targetlibs $sc_macrolibs" {
-    foreach lef [dict get $sc_cfg library $lib model layout lef $sc_stackup] {
+    foreach lef [dict get $sc_cfg library $lib output $sc_stackup lef] {
         read_lef $lef
     }
 }
 
 # Read Verilog
 if {$sc_step == "floorplan"} {
-    if {[dict exists $sc_cfg "input" netlist]} {
-        foreach netlist [dict get $sc_cfg "input" netlist] {
+    if {[dict exists $sc_cfg input netlist verilog ]} {
+        foreach netlist [dict get $sc_cfg input netlist verilog] {
             read_verilog $netlist
         }
     } else {
@@ -151,10 +151,10 @@ if {$sc_step == "floorplan"} {
 }
 
 # Read ODB or DEF
-if {[dict exists $sc_cfg "input" def]} {
+if {[dict exists $sc_cfg input layout def]} {
     if {$sc_step != "floorplan"} {
         # Floorplan initialize handled separately in sc_floorplan.tcl
-        foreach def [dict get $sc_cfg "input" def] {
+        foreach def [dict get $sc_cfg input layout def] {
             read_def $def
         }
     }
@@ -171,8 +171,8 @@ if {[dict exists $sc_cfg "input" def]} {
 
 # Read SDC (in order of priority)
 # TODO: add logic for reading from ['constraint', ...] once we support MCMM
-if {[dict exists $sc_cfg "input" sdc]} {
-    foreach sdc [dict get $sc_cfg "input" sdc] {
+if {[dict exists $sc_cfg input asic sdc]} {
+    foreach sdc [dict get $sc_cfg input asic sdc] {
 	# read step constraint if exists
 	read_sdc $sdc
     }

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import math
 import shutil
@@ -519,7 +520,7 @@ def build_core():
     # Run the ASIC build flow with the resulting floorplan.
     core_chip.run()
     # (Un-comment to display a summary report)
-    #core_chip.summary()
+    core_chip.summary()
 
     # Copy stream files for padring integration.
     design = core_chip.top()
@@ -573,7 +574,7 @@ def build_top():
     # Run the top-level build.
     chip.run()
     # (Un-comment to display a summary report)
-    #chip.summary()
+    chip.summary()
 
 def main():
     # Build the core design, which gets placed inside the padring.

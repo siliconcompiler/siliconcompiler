@@ -32,14 +32,14 @@ if {[dict exists $sc_cfg tool magic var $sc_step $sc_index exclude]} {
 foreach lib $sc_macrolibs {
     puts $lib
     if {[lsearch -exact $sc_exclude $lib] >= 0} {
-        lef read [dict get $sc_cfg library $lib model layout lef $sc_stackup]
+        lef read [dict get $sc_cfg library $lib output $sc_stackup lef]
     }
 }
 
 gds noduplicates true
 
-if {[dict exists $sc_cfg input gds]} {
-    set gds_path [dict get $sc_cfg input gds]
+if {[dict exists $sc_cfg input layout gds]} {
+    set gds_path [dict get $sc_cfg input layout gds]
 } else {
     set gds_path "inputs/$sc_design.gds"
 }
