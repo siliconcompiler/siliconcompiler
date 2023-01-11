@@ -512,6 +512,8 @@ def build_core():
 
     # Configure the Chip object for a full build.
     core_chip.set('input', 'layout', 'floorplan.def', 'heartbeat.def', clobber=True)
+    core_chip.set('tool', 'openroad', 'var', 'floorplan', '0', 'pdn_enable', 'False', clobber=True)
+    core_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', '0.1', clobber=True)
     core_chip.set('input', 'rtl', 'verilog', 'heartbeat.v')
     core_chip.clock(pin='clk', period=20)
 
