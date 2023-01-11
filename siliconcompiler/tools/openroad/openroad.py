@@ -105,6 +105,10 @@ def setup(chip, mode='batch'):
     mainlib = targetlibs[0]
     macrolibs = chip.get('asic', 'macrolib')
     stackup = chip.get('asic', 'stackup')
+    delaymodel = chip.get('asic', 'delaymodel')
+    if delaymodel != 'nldm':
+        chip.logger.error(f'{delaymodel} delay model is not supported by {tool}, only nldm')
+
     if stackup and targetlibs:
         #Note: only one footprint supported in mainlib
         libtype = chip.get('library', mainlib, 'asic', 'libarch')
