@@ -235,7 +235,7 @@ except KeyError:
   design = sc_cfg['design']['value']
 
 try:
-  in_def = sc_cfg['input']['def']['value'][0]
+  in_def = sc_cfg['input']['layout']['def']['value'][0]
 except (KeyError, IndexError):
   in_def = os.path.join('inputs', f'{design}.def')
 out_gds = os.path.join('outputs', f'{design}.gds')

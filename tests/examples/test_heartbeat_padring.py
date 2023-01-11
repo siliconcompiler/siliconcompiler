@@ -1,7 +1,7 @@
 import os
-import pytest
-import siliconcompiler
 import sys
+
+import pytest
 
 @pytest.mark.eda
 def test_heartbeat_padring_with_floorplan(setup_example_test, oh_dir):

@@ -103,8 +103,8 @@ def setup(chip, mode="batch"):
 
     # Input/Output requirements for default flow
     if step in ['export']:
-        if (not chip.valid('input', 'def') or
-            not chip.get('input', 'def')):
+        if (not chip.valid('input', 'layout', 'def') or
+            not chip.get('input', 'layout', 'def')):
             chip.add('tool', tool, 'input', step, index, design + '.def')
         chip.add('tool', tool, 'output', step, index, design + '.gds')
 
