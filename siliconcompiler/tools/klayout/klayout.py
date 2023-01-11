@@ -78,7 +78,9 @@ def setup(chip, mode="batch"):
     else:
         klayout_exe = 'klayout'
 
-    if mode == 'show':
+    is_show = mode == 'show' or step == 'show'
+    is_screenshot = mode == 'screenshot' or step == 'screenshot'
+    if is_show or is_screenshot:
         clobber = False
         script = 'klayout_show.py'
         option = ['-nc', '-rm']
@@ -109,7 +111,14 @@ def setup(chip, mode="batch"):
         chip.add('tool', tool, 'output', step, index, design + '.gds')
 
     # Adding requirements
-    if mode != 'show':
+    if is_show or is_screenshot:
+        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filepath']))
+        chip.set('tool', tool, 'var', step, index, 'show_exit', 'true' if is_screenshot else 'false', clobber=False)
+        if is_screenshot:
+            chip.add('tool', tool, 'output', step, index, design + '.png')
+            chip.set('tool', tool, 'var', step, index, 'show_horizontal_resolution', '1024', clobber=False)
+            chip.set('tool', tool, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
+    else:
         targetlibs = chip.get('asic', 'logiclib')
         stackup = chip.get('asic', 'stackup')
         pdk = chip.get('option', 'pdk')
@@ -131,16 +140,6 @@ def setup(chip, mode="batch"):
     chip.set('tool', tool, 'regex', step, index, 'errors', r'ERROR', clobber=False)
 
 ################################
-#  Custom runtime options
-################################
-
-def runtime_options(chip):
-    '''
-    Custom runtime options, returns list of command line options.
-    '''
-    return []
-
-################################
 # Version Check
 ################################
 
@@ -148,6 +147,20 @@ def parse_version(stdout):
     # KLayout 0.26.11
     return stdout.split()[1]
 
+################################
+# Pre process
+################################
+
+def pre_process(chip):
+
+    tool = 'klayout'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
+    if (step == "show" or step == "screenshot"):
+        src = chip.get('tool', tool, 'var', step, index, 'show_filepath')[0]
+        dst = "inputs/"+os.path.basename(src)
+        shutil.copy2(src, dst)
 
 ##################################################
 if __name__ == "__main__":
