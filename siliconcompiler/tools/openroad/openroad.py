@@ -67,7 +67,7 @@ def setup(chip, mode='batch'):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-6360', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-6417', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
     chip.set('tool', tool, 'option',  step, index, option, clobber=clobber)
     chip.set('tool', tool, 'refdir',  step, index, refdir, clobber=clobber)
