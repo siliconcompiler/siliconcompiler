@@ -2085,7 +2085,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def write_flowgraph(self, filename, flow=None,
                         fillcolor='#ffffff', fontcolor='#000000',
                         fontsize='14', border=True, landscape=False):
-        '''Renders and saves the compilation flowgraph to a file.
+        r'''
+        Renders and saves the compilation flowgraph to a file.
 
         The chip object flowgraph is traversed to create a graphviz (\*.dot)
         file comprised of node, edges, and labels. The dot file is a
