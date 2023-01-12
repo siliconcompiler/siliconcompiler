@@ -38,8 +38,6 @@ def setup(chip, mode='batch'):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    clobber = True
-
     option = "-nolog -nojournal -mode batch -source"
 
     # General settings
@@ -96,8 +94,8 @@ def _parse_utilization(chip, step, index):
 
     with open('reports/total_utilization.rpt', 'r') as f:
         regexes = {
-            'luts': (re.compile(r'CLB LUTs\s+\|\s+(\d+)'), int),
-            'regs': (re.compile(r'CLB Registers\s+\|\s+(\d+)'), int),
+            'luts': (re.compile(r'(?:CLB|Slice) LUTs\s+\|\s+(\d+)'), int),
+            'regs': (re.compile(r'(?:CLB|Slice) Registers\s+\|\s+(\d+)'), int),
             'bram': (re.compile(r'Block RAM Tile\s+\|\s+(\d+(.\d+)?)'), float),
             # TODO: should URAM be float?
             'uram': (re.compile(r'URAM\s+\|\s+(\d+(.\d+)?)'), float)
@@ -105,7 +103,6 @@ def _parse_utilization(chip, step, index):
         vals = {}
 
         for line in f:
-            print(line)
             for metric, (regex, datatype) in regexes.items():
                 if metric in vals:
                     continue
@@ -114,7 +111,6 @@ def _parse_utilization(chip, step, index):
                     vals[metric] = datatype(match.group(1))
                     continue
 
-        print(vals)
         if 'luts' in vals:
             chip.set('metric', step, index, 'luts', vals['luts'])
         if 'regs' in vals:
