@@ -67,6 +67,12 @@ def setup(chip):
                    'luts', 'dsps', 'brams', 'registers', 'buffers'):
         chip.set('tool', tool, 'report', step, index, metric, f"{step}.log")
 
+    # Generic ASIC / FPGA mode setup.
+    if chip.get('option', 'mode') == 'fpga':
+        setup_fpga(chip)
+    else:
+        setup_asic(chip)
+
 def setup_asic(chip):
     ''' Helper method for configs specific to ASIC steps (both syn and lec).
     '''
@@ -172,10 +178,12 @@ def setup_syn(chip):
     chip.add('tool', tool, 'output', step, index, design + '_netlist.json')
     chip.add('tool', tool, 'output', step, index, design + '.blif')
 
-    if chip.get('option', 'mode') == 'fpga':
-        setup_fpga(chip)
-    else:
-        setup_asic(chip)
+def setup_syn_vpr(chip):
+    ''' Helper method for configs specific to VPR synthesis steps.
+    '''
+
+    # Currently, VPR synthesis uses the same args as normal ASIC/FPGA synthesis.
+    setup_syn(chip)
 
 def setup_lec(chip):
     ''' Helper method for configuring LEC steps.
@@ -197,11 +205,6 @@ def setup_lec(chip):
         # TODO: Not sure this logic makes sense? Seems like reverse of
         # what's in TCL
         chip.set('tool', tool, 'input', step, index, design + '.v')
-
-    if chip.get('option', 'mode') == 'fpga':
-        setup_fpga(chip)
-    else:
-        setup_asic(chip)
 
 #############################################
 # Runtime pre processing

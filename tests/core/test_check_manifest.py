@@ -1,7 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import importlib
 import siliconcompiler
-import sys
 
 import os
 
