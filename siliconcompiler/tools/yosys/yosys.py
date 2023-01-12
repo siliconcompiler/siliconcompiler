@@ -198,6 +198,11 @@ def setup_lec(chip):
         # what's in TCL
         chip.set('tool', tool, 'input', step, index, design + '.v')
 
+    if chip.get('option', 'mode') == 'fpga':
+        setup_fpga(chip)
+    else:
+        setup_asic(chip)
+
 #############################################
 # Runtime pre processing
 #############################################
