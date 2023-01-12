@@ -83,16 +83,10 @@ def test_check_missing_file_param():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
 
+    chip._setup_tool('yosys', 'syn', '0')
+
     chip.set('arg', 'step', 'syn')
     chip.set('arg', 'index', '0')
-
-    if not chip.scroot in sys.path:
-        sys.path.append(chip.scroot)
-    tool_module = importlib.import_module(f'tools.yosys.yosys')
-    setup_tool = getattr(tool_module, 'setup', None)
-    setup_tool(chip)
-    setup_step = getattr(tool_module, f'setup_syn', None)
-    setup_step(chip)
 
     chip.set('tool', 'yosys', 'input', 'syn', '0', [])
     chip.set('tool', 'yosys', 'output', 'syn', '0',[])
