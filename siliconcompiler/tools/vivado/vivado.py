@@ -28,7 +28,7 @@ def make_docs():
 # Setup Tool (pre executable)
 ################################
 
-def setup(chip, mode='batch'):
+def setup(chip):
 
     # default tool settings, note, not additive!
     tool = 'vivado'
@@ -94,7 +94,7 @@ def _parse_utilization(chip, step, index):
 
     with open('reports/total_utilization.rpt', 'r') as f:
         regexes = {
-            'luts': (re.compile(r'(?:CLB|Slice) LUTs\s+\|\s+(\d+)'), int),
+            'luts': (re.compile(r'(?:CLB|Slice) LUTs\*?\s+\|\s+(\d+)'), int),
             'regs': (re.compile(r'(?:CLB|Slice) Registers\s+\|\s+(\d+)'), int),
             'bram': (re.compile(r'Block RAM Tile\s+\|\s+(\d+(.\d+)?)'), float),
             # TODO: should URAM be float?
