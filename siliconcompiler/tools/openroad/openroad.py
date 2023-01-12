@@ -178,6 +178,7 @@ def setup(chip, mode='batch'):
 
     # set default values for openroad
     for variable, value in [('ifp_tie_separation', '0'),
+                            ('pdn_enable', 'True'),
                             ('gpl_routability_driven', 'True'),
                             ('gpl_timing_driven', 'True'),
                             ('dpo_enable', 'True'),
