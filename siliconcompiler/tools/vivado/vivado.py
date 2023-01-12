@@ -40,7 +40,6 @@ def setup(chip, mode='batch'):
 
     clobber = True
 
-    script = '/compile.tcl'
     option = "-nolog -nojournal -mode batch -source"
 
     # General settings
