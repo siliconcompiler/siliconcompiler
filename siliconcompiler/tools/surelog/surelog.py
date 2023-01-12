@@ -32,10 +32,12 @@ def make_docs():
 ################################
 
 def setup(chip):
-    ''' Sets up default settings on a per step basis
+    ''' Sets up default settings common to running Surelog.
     '''
 
     tool = 'surelog'
+    # Nothing in this method should rely on the value of 'step' or 'index', but they are used
+    # as schema keys in some important places, so we still need to fetch them.
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
@@ -49,31 +51,17 @@ def setup(chip):
     chip.set('tool', tool, 'exe', exe)
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=1.13', clobber=False)
-    chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
-    # -parse is slow but ensures the SV code is valid
-    # we might want an option to control when to enable this
-    # or replace surelog with a SV linter for the validate step
+    # Command-line options.
     options = []
-    options.append('-parse')
 
     # With newer versions of Surelog (at least 1.35 and up), this option is
     # necessary to make bundled versions work.
     # TODO: why?
     options.append('-nocache')
 
-    # We don't use UHDM currently, so disable. For large designs, this file is
-    # very big and takes a while to write out.
-    options.append('-nouhdm')
-
     # Wite back options to cfg
     chip.add('tool', tool, 'option', step, index, options)
-
-    # Input/Output requirements
-    chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
-
-    # Schema requirements
-    chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
 
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
@@ -89,6 +77,35 @@ def setup(chip):
     warnings_off = chip.get('tool', tool, 'warningoff')
     for warning in warnings_off:
         chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}')
+
+def setup_import(chip):
+    ''' Configure settings particular to the 'import' step.
+    '''
+
+    tool = 'surelog'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
+    # Runtime parameters.
+    chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
+
+    # Command-line options.
+    options = []
+    # -parse is slow but ensures the SV code is valid
+    # we might want an option to control when to enable this
+    # or replace surelog with a SV linter for the validate step
+    options.append('-parse')
+    # We don't use UHDM currently, so disable. For large designs, this file is
+    # very big and takes a while to write out.
+    options.append('-nouhdm')
+    # Wite back options to cfg
+    chip.add('tool', tool, 'option', step, index, options)
+
+    # Input/Output requirements
+    chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
+
+    # Schema requirements
+    chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
 
 def parse_version(stdout):
     # Surelog --version output looks like:

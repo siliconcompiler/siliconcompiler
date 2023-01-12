@@ -56,114 +56,6 @@ def setup(chip):
     chip.set('tool', tool, 'option', step, index, '-c', clobber=False)
     chip.set('tool', tool, 'refdir', step, index, refdir, clobber=False)
 
-    if re.search(r'syn', step):
-        script = 'sc_syn.tcl'
-    elif re.search(r'lec', step):
-        script = 'sc_lec.tcl'
-    else:
-        # Emit a warning for unsupported yosys step, but allow execution to proceed.
-        # Users can configure their own flows involving yosys, but they will be responsible for
-        # setting appropriate schema values, including 'script'.
-        script = ''
-        chip.logger.warning(f'Unsupported yosys step: {step}.')
-
-    chip.set('tool', tool, 'script', step, index, script, clobber=False)
-
-    design = chip.top()
-
-    # Input/output requirements
-    if step.startswith('syn'):
-        # TODO: Our yosys script can also accept uhdm or ilang files. How do we
-        # represent a set of possible inputs where you must pick one?
-        chip.set('tool', tool, 'input', step, index, design + '.v')
-        chip.set('tool', tool, 'output', step, index, design + '.vg')
-        chip.add('tool', tool, 'output', step, index, design + '_netlist.json')
-        chip.add('tool', tool, 'output', step, index, design + '.blif')
-    elif step == 'lec':
-        if (not chip.valid('input', 'netlist') or
-            not chip.get('input', 'netlist')):
-            chip.set('tool', tool, 'input', step, index, design + '.vg')
-        if not chip.get('input', 'verilog'):
-            # TODO: Not sure this logic makes sense? Seems like reverse of
-            # what's in TCL
-            chip.set('tool', tool, 'input', step, index, design + '.v')
-
-    # Schema requirements
-    if chip.get('option', 'mode') == 'asic':
-        chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
-
-        delaymodel = chip.get('asic', 'delaymodel')
-        syn_corner = get_synthesis_corner(chip)
-        # add synthesis corner information
-        if syn_corner is None:
-            chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'synthesis_corner']))
-        if get_dff_liberty_file(chip) is None:
-            chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'dff_liberty']))
-
-        if syn_corner is not None:
-            # add timing library requirements
-            for lib in chip.get('asic', 'logiclib'):
-                # mandatory for logiclibs
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', delaymodel, syn_corner]))
-
-            for lib in chip.get('asic', 'macrolib'):
-                # optional for macrolibs
-                if not chip.valid('library', lib, 'model', 'timing', delaymodel, syn_corner):
-                    continue
-
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', delaymodel, syn_corner]))
-
-        mainlib = chip.get('asic', 'logiclib')[0]
-        # set default control knobs
-        for option, value, additional_require in [('flatten', "True", None),
-                                                  ('autoname', "True", None),
-                                                  ('map_adders', "False", ['library', mainlib, 'asic', 'file', tool, 'addermap'])]:
-            chip.set('tool', tool, 'var', step, index, option, value, clobber=False)
-            chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, option]))
-            if additional_require is not None and chip.get('tool', tool, 'var', step, index, option)[0] == "True":
-                chip.add('tool', tool, 'require', step, index, ",".join(additional_require))
-
-        # copy techmapping from libraries
-        for lib in chip.get('asic', 'logiclib') + chip.get('asic', 'macrolib'):
-            if not chip.valid('library', lib, 'asic', 'file', tool, 'techmap'):
-                continue
-            for techmap in chip.find_files('library', lib, 'asic', 'file', tool, 'techmap'):
-                if techmap is None:
-                    continue
-                chip.add('tool', tool, 'var', step, index, 'techmap', techmap)
-
-        chip.set('tool', tool, 'var', step, index, 'synthesis_corner', get_synthesis_corner(chip), clobber=False)
-        chip.set('tool', tool, 'var', step, index, 'dff_liberty', get_dff_liberty_file(chip), clobber=False)
-        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'synthesis_corner']))
-        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'dff_liberty']))
-
-        # Constants needed by yosys, do not allow overriding of values so force clobbering
-        chip.set('tool', tool, 'var', step, index, 'dff_liberty_file', "inputs/sc_dff_library.lib", clobber=True)
-        chip.set('tool', tool, 'var', step, index, 'abc_constraint_file', "inputs/sc_abc.constraints", clobber=True)
-
-        abc_driver = get_abc_driver(chip)
-        if abc_driver:
-            chip.set('tool', tool, 'var', step, index, 'abc_constraint_driver', abc_driver, clobber=False)
-        abc_clock_period = get_abc_period(chip)
-        if abc_clock_period:
-            chip.set('tool', tool, 'var', step, index, 'abc_clock_period', str(abc_clock_period), clobber=False)
-            chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'abc_clock_period']))
-
-        # document parameters
-        chip.set('tool', tool, 'var', step, index, 'preserve_modules', 'List of modules in input files to prevent flatten from "flattening"', field='help')
-        chip.set('tool', tool, 'var', step, index, 'flatten', 'True/False, invoke synth with the -flatten option', field='help')
-        chip.set('tool', tool, 'var', step, index, 'autoname', 'True/False, call autoname to rename wires based on registers', field='help')
-        chip.set('tool', tool, 'var', step, index, 'map_adders', 'False/path to map_adders, techmap adders in Yosys', field='help')
-        chip.set('tool', tool, 'var', step, index, 'synthesis_corner', 'Timing corner to use for synthesis', field='help')
-        chip.set('tool', tool, 'var', step, index, 'dff_liberty', 'Liberty file to use for flip-flop mapping, if not specified the first in the logiclib is used', field='help')
-        chip.set('tool', tool, 'var', step, index, 'abc_constraint_driver', 'Buffer that drives the abc techmapping, defaults to first buffer specified', field='help')
-        chip.set('tool', tool, 'var', step, index, 'abc_constraint_load', 'Capacitive load for the abc techmapping in fF, if not specified it will not be used', field='help')
-        chip.set('tool', tool, 'var', step, index, 'abc_clock_period', 'Clock period to use for synthesis in ps, if more than one clock is specified, the smallest period is used.', field='help')
-        chip.set('tool', tool, 'var', step, index, 'abc_clock_derating', 'Used to derate the clock period to further constrain the clock, values between 0 and 1', field='help')
-
-    else:
-        chip.add('tool', tool, 'require', step, index, ",".join(['fpga', 'partname']))
-
     # Setting up regex patterns
     chip.set('tool', tool, 'regex', step, index, 'warnings', "Warning:", clobber=False)
     chip.set('tool', tool, 'regex', step, index, 'errors', "^ERROR", clobber=False)
@@ -174,6 +66,137 @@ def setup(chip):
     for metric in ('cellarea', 'errors', 'warnings', 'cellarea', 'drvs', 'coverage', 'security',
                    'luts', 'dsps', 'brams', 'registers', 'buffers'):
         chip.set('tool', tool, 'report', step, index, metric, f"{step}.log")
+
+def setup_asic(chip):
+    ''' Helper method for configs specific to ASIC steps (both syn and lec).
+    '''
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
+    # Set requirements and timing corner information.
+    chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
+    delaymodel = chip.get('asic', 'delaymodel')
+    syn_corner = get_synthesis_corner(chip)
+    # add synthesis corner information
+    if get_dff_liberty_file(chip) is None:
+        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'dff_liberty']))
+    if syn_corner is None:
+        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'synthesis_corner']))
+    else:
+        # add timing library requirements
+        for lib in chip.get('asic', 'logiclib'):
+            # mandatory for logiclibs
+            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', delaymodel, syn_corner]))
+        for lib in chip.get('asic', 'macrolib'):
+            # optional for macrolibs
+            if not chip.valid('library', lib, 'model', 'timing', delaymodel, syn_corner):
+                continue
+            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', delaymodel, syn_corner]))
+
+    mainlib = chip.get('asic', 'logiclib')[0]
+    # set default control knobs
+    for option, value, additional_require in [('flatten', "True", None),
+                                              ('autoname', "True", None),
+                                              ('map_adders', "False", ['library', mainlib, 'asic', 'file', tool, 'addermap'])]:
+        chip.set('tool', tool, 'var', step, index, option, value, clobber=False)
+        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, option]))
+        if additional_require is not None and chip.get('tool', tool, 'var', step, index, option)[0] == "True":
+            chip.add('tool', tool, 'require', step, index, ",".join(additional_require))
+
+    # copy techmapping from libraries
+    for lib in chip.get('asic', 'logiclib') + chip.get('asic', 'macrolib'):
+        if not chip.valid('library', lib, 'asic', 'file', tool, 'techmap'):
+            continue
+        for techmap in chip.find_files('library', lib, 'asic', 'file', tool, 'techmap'):
+            if techmap is None:
+                continue
+            chip.add('tool', tool, 'var', step, index, 'techmap', techmap)
+
+    chip.set('tool', tool, 'var', step, index, 'synthesis_corner', get_synthesis_corner(chip), clobber=False)
+    chip.set('tool', tool, 'var', step, index, 'dff_liberty', get_dff_liberty_file(chip), clobber=False)
+    chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'synthesis_corner']))
+    chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'dff_liberty']))
+
+    # Constants needed by yosys, do not allow overriding of values so force clobbering
+    chip.set('tool', tool, 'var', step, index, 'dff_liberty_file', "inputs/sc_dff_library.lib", clobber=True)
+    chip.set('tool', tool, 'var', step, index, 'abc_constraint_file', "inputs/sc_abc.constraints", clobber=True)
+
+    abc_driver = get_abc_driver(chip)
+    if abc_driver:
+        chip.set('tool', tool, 'var', step, index, 'abc_constraint_driver', abc_driver, clobber=False)
+    abc_clock_period = get_abc_period(chip)
+    if abc_clock_period:
+        chip.set('tool', tool, 'var', step, index, 'abc_clock_period', str(abc_clock_period), clobber=False)
+        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'abc_clock_period']))
+
+    # document parameters
+    chip.set('tool', tool, 'var', step, index, 'preserve_modules', 'List of modules in input files to prevent flatten from "flattening"', field='help')
+    chip.set('tool', tool, 'var', step, index, 'flatten', 'True/False, invoke synth with the -flatten option', field='help')
+    chip.set('tool', tool, 'var', step, index, 'autoname', 'True/False, call autoname to rename wires based on registers', field='help')
+    chip.set('tool', tool, 'var', step, index, 'map_adders', 'False/path to map_adders, techmap adders in Yosys', field='help')
+    chip.set('tool', tool, 'var', step, index, 'synthesis_corner', 'Timing corner to use for synthesis', field='help')
+    chip.set('tool', tool, 'var', step, index, 'dff_liberty', 'Liberty file to use for flip-flop mapping, if not specified the first in the logiclib is used', field='help')
+    chip.set('tool', tool, 'var', step, index, 'abc_constraint_driver', 'Buffer that drives the abc techmapping, defaults to first buffer specified', field='help')
+    chip.set('tool', tool, 'var', step, index, 'abc_constraint_load', 'Capacitive load for the abc techmapping in fF, if not specified it will not be used', field='help')
+    chip.set('tool', tool, 'var', step, index, 'abc_clock_period', 'Clock period to use for synthesis in ps, if more than one clock is specified, the smallest period is used.', field='help')
+    chip.set('tool', tool, 'var', step, index, 'abc_clock_derating', 'Used to derate the clock period to further constrain the clock, values between 0 and 1', field='help')
+
+def setup_fpga(chip):
+    ''' Helper method for configs specific to FPGA steps (both syn and lec).
+    '''
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
+    # Require that a partname is set for FPGA scripts.
+    chip.add('tool', tool, 'require', step, index, ",".join(['fpga', 'partname']))
+
+def setup_syn(chip):
+    ''' Helper method for configs specific to synthesis steps.
+    '''
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    design = chip.top()
+
+    # Set yosys script path.
+    chip.set('tool', tool, 'script', step, index, 'sc_syn.tcl', clobber=False)
+
+    # Input/output requirements.
+    chip.set('tool', tool, 'input', step, index, design + '.v')
+    chip.set('tool', tool, 'output', step, index, design + '.vg')
+    chip.add('tool', tool, 'output', step, index, design + '_netlist.json')
+    chip.add('tool', tool, 'output', step, index, design + '.blif')
+
+    if chip.get('option', 'mode') == 'fpga':
+        setup_fpga(chip)
+    else:
+        setup_asic(chip)
+
+def setup_lec(chip):
+    ''' Helper method for configuring LEC steps.
+    '''
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    design = chip.top()
+
+    # Set yosys script path.
+    chip.set('tool', tool, 'script', step, index, 'sc_lec.tcl', clobber=False)
+
+    # Input/output requirements.
+    if (not chip.valid('input', 'netlist') or
+        not chip.get('input', 'netlist')):
+        chip.set('tool', tool, 'input', step, index, design + '.vg')
+    if not chip.get('input', 'verilog'):
+        # TODO: Not sure this logic makes sense? Seems like reverse of
+        # what's in TCL
+        chip.set('tool', tool, 'input', step, index, design + '.v')
 
 #############################################
 # Runtime pre processing
