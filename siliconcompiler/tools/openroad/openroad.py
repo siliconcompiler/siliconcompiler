@@ -165,8 +165,10 @@ def setup(chip, mode='batch'):
             chip.set('tool', tool, 'var', step, index, variable, value,
                      clobber=False)
 
-        keypath = ','.join(['library', mainlib, 'asic', 'var', tool, variable])
-        chip.add('tool', tool, 'require', step, index, keypath)
+            keypath = ','.join(['library', mainlib, 'asic', 'var', tool, variable])
+            chip.add('tool', tool, 'require', step, index, keypath)
+
+        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, variable]))
 
     # Copy values from PDK if set
     for variable in ('detailed_route_default_via',
