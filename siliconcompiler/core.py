@@ -3774,19 +3774,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg','step', step)
         self.set('arg','index', index)
 
-        # Temporary Surelog/Yosys test, treating the setup scripts as a Python module..
-        if tool in ['surelog', 'yosys']:
-            # Add 'siliconcompiler/' to package search path, for 'tools/...' modules
-            sys.path.append(f'{os.path.dirname(__file__)}/')
-            tool_module = importlib.import_module(f'tools.{tool}.{tool}')
+        # Generic tool setup.
+        # TODO: $PYTHONPATH must include the directory that this 'core.py' file is in.
+        # That happens automatically with PyPi installs, but not for local checked-out repositories.
+        # Find the best way to automatically setup the search path iff necessary.
+        tool_module = importlib.import_module(f'tools.{tool}.{tool}')
+        setup_tool = getattr(tool_module, 'setup', None)
+        if setup_tool:
             tool_module.setup(self)
-            # TODO: Task/step setup call goes here, after moving its logic out of 'setup()'.
         else:
-            func = self.find_function(tool, 'setup', 'tools')
-            if func is None:
-                self.logger.error(f'setup() not found for tool {tool}')
-                sys.exit(1)
-            func(self)
+            # TODO: Should we update this to 'self.error(..., fatal=True)'?
+            self.logger.error(f'setup() not found for tool {tool}')
+            sys.exit(1)
+        # Step/task setup.
+        setup_step = getattr(tool_module, f'setup_{step}', None)
+        if setup_step:
+            setup_step(self)
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.
