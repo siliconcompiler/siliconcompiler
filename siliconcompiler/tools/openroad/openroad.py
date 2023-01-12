@@ -158,15 +158,17 @@ def setup(chip, mode='batch'):
         # For each OpenROAD tool variable, read default from main library and write it
         # into schema. If PDK doesn't contain a default, the value must be set
         # by the user, so we add the variable keypath as a requirement.
-        if chip.valid('library', lib, 'asic', 'var', tool, variable):
-            value = chip.get('library', lib, 'asic', 'var', tool, variable)
+        if chip.valid('library', mainlib, 'asic', 'var', tool, variable):
+            value = chip.get('library', mainlib, 'asic', 'var', tool, variable)
             # Clobber needs to be False here, since a user might want to
             # overwrite these.
             chip.set('tool', tool, 'var', step, index, variable, value,
                      clobber=False)
 
-        keypath = ','.join(['library', lib, 'asic', 'var', tool, variable])
-        chip.add('tool', tool, 'require', step, index, keypath)
+            keypath = ','.join(['library', mainlib, 'asic', 'var', tool, variable])
+            chip.add('tool', tool, 'require', step, index, keypath)
+
+        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, variable]))
 
     # Copy values from PDK if set
     for variable in ('detailed_route_default_via',
@@ -178,6 +180,7 @@ def setup(chip, mode='batch'):
 
     # set default values for openroad
     for variable, value in [('ifp_tie_separation', '0'),
+                            ('pdn_enable', 'True'),
                             ('gpl_routability_driven', 'True'),
                             ('gpl_timing_driven', 'True'),
                             ('dpo_enable', 'True'),

@@ -179,7 +179,8 @@ if { [dict exists $sc_cfg tool $sc_tool {var} $sc_step $sc_index global_connect]
 # Power Network
 ###########################
 
-if {[dict exists $sc_cfg tool $sc_tool {var} $sc_step $sc_index pdn_config]} {
+if {$openroad_pdn_enable == "True" && \
+    [dict exists $sc_cfg tool $sc_tool {var} $sc_step $sc_index pdn_config]} {
   foreach pdnconfig [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index pdn_config] {
     source $pdnconfig
   }

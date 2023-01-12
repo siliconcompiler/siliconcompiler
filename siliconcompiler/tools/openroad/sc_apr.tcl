@@ -58,6 +58,8 @@ set sc_scenarios   [dict keys [dict get $sc_cfg constraint timing]]
 
 set openroad_ifp_tie_separation [lindex [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index ifp_tie_separation] 0]
 
+set openroad_pdn_enable [lindex [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index pdn_enable] 0]
+
 set openroad_psm_enable [lindex [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index psm_enable] 0]
 
 set openroad_mpl_macro_place_halo [dict get $sc_cfg tool $sc_tool {var} $sc_step  $sc_index macro_place_halo]
