@@ -3774,10 +3774,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg','step', step)
         self.set('arg','index', index)
 
+        # Ensure that SC built-ins are on the $PYTHONPATH (only necessary for local installs)
+        if not self.scroot in sys.path:
+            sys.path.append(self.scroot)
+
         # Generic tool setup.
-        # TODO: $PYTHONPATH must include the directory that this 'core.py' file is in.
-        # That happens automatically with PyPi installs, but not for local checked-out repositories.
-        # Find the best way to automatically setup the search path iff necessary.
         tool_module = importlib.import_module(f'tools.{tool}.{tool}')
         setup_tool = getattr(tool_module, 'setup', None)
         if setup_tool:
