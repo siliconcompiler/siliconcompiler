@@ -3774,11 +3774,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg','step', step)
         self.set('arg','index', index)
 
-        func = self.find_function(tool, 'setup', 'tools')
-        if func is None:
-            self.logger.error(f'setup() not found for tool {tool}')
-            sys.exit(1)
-        func(self)
+        # Temporary Surelog/Yosys test, treating the setup scripts as a Python module..
+        if tool in ['surelog', 'yosys']:
+            # Add 'siliconcompiler/' to package search path, for 'tools/...' modules
+            sys.path.append(f'{os.path.dirname(__file__)}/')
+            tool_module = importlib.import_module(f'tools.{tool}.{tool}')
+            tool_module.setup(self)
+            # TODO: Task/step setup call goes here, after moving its logic out of 'setup()'.
+        else:
+            func = self.find_function(tool, 'setup', 'tools')
+            if func is None:
+                self.logger.error(f'setup() not found for tool {tool}')
+                sys.exit(1)
+            func(self)
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.
