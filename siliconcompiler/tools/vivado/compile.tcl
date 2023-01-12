@@ -79,3 +79,5 @@ report_utilization -file "reports/total_utilization.rpt"
 report_clock_utilization -file "reports/clock_utilization.rpt"
 report_drc -file "reports/drc.rpt"
 report_cdc -details -file "reports/cdc.rpt"
+
+report_design_analysis -qor_summary -json "qor_summary.json"
