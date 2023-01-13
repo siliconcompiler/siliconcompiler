@@ -10,7 +10,7 @@ source ./sc_manifest.tcl
 ##############################
 
 set sc_design     [sc_top]
-set sc_constraint [dict get $sc_cfg input xdc]
+set sc_constraint [dict get $sc_cfg input fpga xdc]
 set sc_partname   [dict get $sc_cfg fpga partname]
 set sc_step       [dict get $sc_cfg arg step]
 set sc_index      [dict get $sc_cfg arg index]
@@ -79,3 +79,5 @@ report_utilization -file "reports/total_utilization.rpt"
 report_clock_utilization -file "reports/clock_utilization.rpt"
 report_drc -file "reports/drc.rpt"
 report_cdc -details -file "reports/cdc.rpt"
+
+report_design_analysis -qor_summary -json "qor_summary.json"

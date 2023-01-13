@@ -4636,6 +4636,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         normalize_version = self.find_function(tool, 'normalize_version', 'tools')
         # Version is good if it matches any of the specifier sets in this list.
         spec_sets = self.get('tool', tool, 'version')
+        if not spec_sets:
+            return True
 
         for spec_set in spec_sets:
             split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
