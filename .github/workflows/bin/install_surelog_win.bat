@@ -30,8 +30,3 @@ where ninja && ninja --version
 :: Required for Surelog
 pip3 install orderedmultidict
 
-git submodule update --init --recursive third_party/tools/surelog
-chdir third_party/tools/surelog
-
-make
-make install

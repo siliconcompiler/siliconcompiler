@@ -12,12 +12,3 @@ rpm -i klayout-0.27.5-0.x86_64.rpm
 # Required for Surelog
 pip3 install orderedmultidict
 
-# Build surelog (install prefix defined outside file)
-git submodule update --init --recursive third_party/tools/surelog
-cd third_party/tools/surelog
-
-export LDFLAGS="-lrt"
-make
-make install
-
-cd -
