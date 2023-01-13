@@ -30,9 +30,9 @@ where ninja && ninja --version
 :: Required for Surelog
 pip3 install orderedmultidict
 
-git clone $(python3 $GITHUB_WORKSPACE/setup/_tools.py --tool surelog --field git-url) $GITHUB_WORKSPACE/surelog
-cd $GITHUB_WORKSPACE/surelog
-git checkout $(python3 $GITHUB_WORKSPACE/setup/_tools.py --tool surelog --field git-commit)
+git clone $(python3 setup/_tools.py --tool surelog --field git-url) surelog
+cd surelog
+git checkout $(python3 setup/_tools.py --tool surelog --field git-commit)
 git submodule update --init --recursive
 
 make
