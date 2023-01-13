@@ -59,6 +59,11 @@ jobs:
       if: matrix.os == 'macos-latest'
       run: |
         brew install graphviz
+        brew install bison
+        # https://github.com/The-OpenROAD-Project/OpenROAD/issues/1688
+        echo "/opt/homebrew/opt/bison/bin" >> $GITHUB_PATH
+        brew install flex
+        echo "/opt/homebrew/opt/flex/bin" >> $GITHUB_PATH
         brew install --cask klayout
         # https://github.com/ponty/PyVirtualDisplay/blob/master/.github/workflows/main.yml#L45
         brew install --cask xquartz
