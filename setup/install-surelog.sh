@@ -9,9 +9,9 @@ sudo apt-get install -y default-jre
 mkdir -p deps
 cd deps
 
-git clone https://github.com/chipsalliance/Surelog.git
-cd Surelog
-git checkout ad83eedc7de32ec15a3f7b4e271c6b45ddf547eb
+git clone $(python3 ${src_path}/_tools.py --tool surelog --field git-url) surelog
+cd surelog
+git checkout $(python3 ${src_path}/_tools.py --tool surelog --field git-commit)
 
 make
 sudo make install

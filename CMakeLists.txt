@@ -11,10 +11,21 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 
+execute_process(
+  COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/setup/_tools.py --tool openroad --field git-url
+  OUTPUT_VARIABLE openroad_URL
+)
+string(STRIP ${openroad_URL} openroad_URL)
+execute_process(
+  COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/setup/_tools.py --tool openroad --field git-commit
+  OUTPUT_VARIABLE openroad_COMMIT
+)
+string(STRIP ${openroad_COMMIT} openroad_COMMIT)
+
 include(FetchContent)
 FetchContent_Declare(openroad
-  GIT_REPOSITORY    https://github.com/The-OpenROAD-Project/OpenROAD.git
-  GIT_TAG           81706aef55de40a6f2eccadf25c20f418a554ab6
+  GIT_REPOSITORY    ${openroad_URL}
+  GIT_TAG           ${openroad_COMMIT}
   CONFIGURE_COMMAND ""
   BUILD_COMMAND     ""
 )

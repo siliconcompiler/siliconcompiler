@@ -1,0 +1,14 @@
+{
+  "openroad": {
+    "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
+    "git-commit": "81706aef55de40a6f2eccadf25c20f418a554ab6"
+  },
+  "yosys": {
+    "git-url": "https://github.com/YosysHQ/yosys.git",
+    "git-commit": "956c4e485a9463863f60c4dd03372db3fa8332a4"
+  },
+  "surelog": {
+    "git-url": "https://github.com/chipsalliance/Surelog.git",
+    "git-commit": "ad83eedc7de32ec15a3f7b4e271c6b45ddf547eb"
+  }
+}
