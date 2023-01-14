@@ -12,12 +12,12 @@ find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 
 execute_process(
-  COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/setup/_tools.py --tool odb --field git-url
+  COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/setup/_tools.py --tool openroad --field git-url
   OUTPUT_VARIABLE openroad_URL
 )
 string(STRIP ${openroad_URL} openroad_URL)
 execute_process(
-  COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/setup/_tools.py --tool odb --field git-commit
+  COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/setup/_tools.py --tool openroad --field git-commit
   OUTPUT_VARIABLE openroad_COMMIT
 )
 string(STRIP ${openroad_COMMIT} openroad_COMMIT)
