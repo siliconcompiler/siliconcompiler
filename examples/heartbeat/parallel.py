@@ -2,8 +2,6 @@
 
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import os
-import sys
 import multiprocessing
 import siliconcompiler
 import time
@@ -12,7 +10,7 @@ import time
 def run_design(design, M, job):
 
     chip = siliconcompiler.Chip(design, loglevel='INFO')
-    chip.add('input', 'verilog', design+'.v')
+    chip.add('input', 'rtl', 'verilog', design+'.v')
     chip.set('option', 'jobname', job)
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)

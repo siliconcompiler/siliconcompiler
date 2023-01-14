@@ -31,7 +31,7 @@ set schematic_fileset [readnet verilog $schematic_file]
 # Read netlists associated with all non-excluded macro libraries
 foreach lib $sc_macrolibs {
     if {[lsearch -exact $sc_exclude $lib] < 0} {
-        set netlist [dict get $sc_cfg library $lib output netlist]
+        set netlist [dict get $sc_cfg library $lib output netlist verilog]
         # Read $netlist into group of files associated with schematic
         readnet verilog $netlist $schematic_fileset
     }

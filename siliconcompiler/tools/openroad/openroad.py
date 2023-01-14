@@ -1,9 +1,10 @@
 import math
 import os
 import re
+import json
+from jinja2 import Template
 
 import siliconcompiler
-from siliconcompiler.floorplan import _infer_diearea
 
 ####################################################################
 # Make Docs
@@ -62,9 +63,11 @@ def setup(chip, mode='batch'):
     if (mode=='batch') and (step not in chip.get('option', 'bkpt')):
         option += " -exit"
 
+    option += " -metrics reports/metrics.json"
+
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-3394', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-6417', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
     chip.set('tool', tool, 'option',  step, index, option, clobber=clobber)
     chip.set('tool', tool, 'refdir',  step, index, refdir, clobber=clobber)
@@ -94,14 +97,20 @@ def setup(chip, mode='batch'):
         chip.add('tool', tool, 'output', step, index, design + '.sdc')
         chip.add('tool', tool, 'output', step, index, design + '.vg')
         chip.add('tool', tool, 'output', step, index, design + '.def')
+        chip.add('tool', tool, 'output', step, index, design + '.odb')
+        chip.add('tool', tool, 'output', step, index, design + '.lef')
 
     # openroad makes use of these parameters
     targetlibs = chip.get('asic', 'logiclib')
+    mainlib = targetlibs[0]
+    macrolibs = chip.get('asic', 'macrolib')
     stackup = chip.get('asic', 'stackup')
+    delaymodel = chip.get('asic', 'delaymodel')
+    if delaymodel != 'nldm':
+        chip.logger.error(f'{delaymodel} delay model is not supported by {tool}, only nldm')
+
     if stackup and targetlibs:
-        mainlib = targetlibs[0]
-        macrolibs = chip.get('asic', 'macrolib')
-        #Note: only one footprint supported in maainlib
+        #Note: only one footprint supported in mainlib
         libtype = chip.get('library', mainlib, 'asic', 'libarch')
 
         chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
@@ -110,15 +119,33 @@ def setup(chip, mode='batch'):
         # chip.add('tool', tool, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
         chip.add('tool', tool, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
         if chip.valid('input', 'layout', 'floorplan.def'):
-            chip.set('tool', tool, 'require', step, index, ",".join(['input', 'layout', 'floorplan.def']))
+            chip.add('tool', tool, 'require', step, index, ",".join(['input', 'layout', 'floorplan.def']))
 
-        #for lib in (targetlibs + macrolibs):
-        #    if 'nldm' in chip.getkeys('library', lib, 'output', 'timing'):
-        #        for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
-        #            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'timing', 'nldm', corner]))
-        #    chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
+        # set tapcell file
+        tapfile = None
+        if chip.valid('library', mainlib, 'asic', 'file', tool, 'tapcells'):
+            tapfile = chip.find_files('library', mainlib, 'asic', 'file', tool, 'tapcells')
+        elif chip.valid('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells'):
+            tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
+        if tapfile:
+            chip.set('tool', tool, 'var', step, index, 'ifp_tapcell', tapfile, clobber=False)
+
+        corners = get_corners(chip)
+        for lib in targetlibs:
+            for corner in corners:
+                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', corner, delaymodel]))
+            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'lef']))
+        for lib in macrolibs:
+            for corner in corners:
+                if chip.valid('library', lib, 'output', corner, delaymodel):
+                    chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', corner, delaymodel]))
+            chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'lef']))
     else:
         chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
+
+    chip.set('tool', tool, 'var', step, index, 'timing_corners', get_corners(chip), clobber=False)
+    chip.set('tool', tool, 'var', step, index, 'power_corner', get_power_corner(chip), clobber=False)
+    chip.set('tool', tool, 'var', step, index, 'parasitics', "inputs/sc_parasitics.tcl", clobber=True)
 
     variables = (
         'place_density',
@@ -128,38 +155,92 @@ def setup(chip, mode='batch'):
         'macro_place_channel'
     )
     for variable in variables:
-        # For each OpenROAD tool variable, read default from PDK and write it
+        # For each OpenROAD tool variable, read default from main library and write it
         # into schema. If PDK doesn't contain a default, the value must be set
         # by the user, so we add the variable keypath as a requirement.
-        if chip.valid('pdk', pdkname, 'var', tool, stackup, variable):
-            value = chip.get('pdk', pdkname, 'var', tool, stackup, variable)
+        if chip.valid('library', mainlib, 'asic', 'var', tool, variable):
+            value = chip.get('library', mainlib, 'asic', 'var', tool, variable)
             # Clobber needs to be False here, since a user might want to
             # overwrite these.
             chip.set('tool', tool, 'var', step, index, variable, value,
                      clobber=False)
 
-        keypath = ','.join(['tool', tool, 'var', step, index, variable])
-        chip.add('tool', tool, 'require', step, index, keypath)
+            keypath = ','.join(['library', mainlib, 'asic', 'var', tool, variable])
+            chip.add('tool', tool, 'require', step, index, keypath)
 
-    #for clock in chip.getkeys('clock'):
-    #    chip.add('tool', tool, 'require', step, index, ','.join(['clock', clock, 'period']))
-    #    chip.add('tool', tool, 'require', step, index, ','.join(['clock', clock, 'pin']))
+        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, variable]))
 
-    #for supply in chip.getkeys('supply'):
-    #    chip.add('tool', tool, 'require', step, index, ','.join(['supply', supply, 'level']))
-    #    chip.add('tool', tool, 'require', step, index, ','.join(['supply', supply, 'pin']))
+    # Copy values from PDK if set
+    for variable in ('detailed_route_default_via',
+                     'detailed_route_unidirectional_layer'):
+        if chip.valid('pdk', pdkname, 'var', tool, stackup, variable):
+            value = chip.get('pdk', pdkname, 'var', tool, stackup, variable)
+            chip.set('tool', tool, 'var', step, index, variable, value,
+                     clobber=False)
+
+    # set default values for openroad
+    for variable, value in [('ifp_tie_separation', '0'),
+                            ('pdn_enable', 'True'),
+                            ('gpl_routability_driven', 'True'),
+                            ('gpl_timing_driven', 'True'),
+                            ('dpo_enable', 'True'),
+                            ('dpo_max_displacement', '0'),
+                            ('dpl_max_displacement', '0'),
+                            ('cts_distance_between_buffers', '100'),
+                            ('cts_cluster_diameter', '100'),
+                            ('cts_cluster_size', '30'),
+                            ('cts_balance_levels', 'True'),
+                            ('grt_use_pin_access', 'False'),
+                            ('grt_overflow_iter', '100'),
+                            ('grt_macro_extension', '2'),
+                            ('grt_allow_congestion', 'False'),
+                            ('grt_allow_overflow', 'False'),
+                            ('grt_signal_min_layer', chip.get('asic', 'minlayer')),
+                            ('grt_signal_max_layer', chip.get('asic', 'maxlayer')),
+                            ('grt_clock_min_layer', chip.get('asic', 'minlayer')),
+                            ('grt_clock_max_layer', chip.get('asic', 'maxlayer')),
+                            ('drt_disable_via_gen', 'False'),
+                            ('drt_process_node', 'False'),
+                            ('drt_via_in_pin_bottom_layer', 'False'),
+                            ('drt_via_in_pin_top_layer', 'False'),
+                            ('drt_repair_pdn_vias', 'False'),
+                            ('drt_via_repair_post_route', 'False'),
+                            ('rsz_setup_slack_margin', '0.0'),
+                            ('rsz_hold_slack_margin', '0.0'),
+                            ('rsz_slew_margin', '0.0'),
+                            ('rsz_cap_margin', '0.0'),
+                            ('rsz_buffer_inputs', 'False'),
+                            ('rsz_buffer_outputs', 'False'),
+                            ('sta_early_timing_derate', '0.0'),
+                            ('sta_late_timing_derate', '0.0'),
+                            ('fin_add_fill', 'True'),
+                            ('psm_enable', 'True')
+                            ]:
+        chip.set('tool', tool, 'var', step, index, variable, value, clobber=False)
+
+    for libvar, openroadvar in [('pdngen', 'pdn_config'),
+                                ('global_connect', 'global_connect')]:
+        if chip.valid('tool', tool, 'var', step, index, openroadvar) and \
+           not chip.get('tool', tool, 'var', step, index, openroadvar):
+            # value already set
+            continue
+
+        # copy from libs
+        for lib in targetlibs + macrolibs:
+            if chip.valid('library', lib, 'asic', 'file', tool, libvar):
+                for pdn_config in chip.find_files('library', lib, 'asic', 'file', tool, libvar):
+                    chip.add('tool', tool, 'var', step, index, openroadvar, pdn_config)
 
     # basic warning and error grep check on logfile
-    chip.set('tool', tool, 'regex', step, index, 'warnings', r'^\[WARNING', clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', r'^\[WARNING|^Warning', clobber=False)
     chip.set('tool', tool, 'regex', step, index, 'errors', r'^\[ERROR', clobber=False)
 
     # reports
-    logfile = f"{step}.log"
-    for metric in (
-        'cellarea', 'totalarea', 'utilization', 'setuptns', 'setupwns',
-        'setupslack', 'wirelength', 'vias', 'peakpower', 'leakagepower'
-    ):
-        chip.set('tool', tool, 'report', step, index, metric, logfile)
+    for metric in ('vias', 'wirelength', 'cellarea', 'totalarea', 'utilization', 'setuptns', 'holdtns', 
+                   'setupslack', 'holdslack', 'setuppaths', 'holdpaths', 'unconstrained', 'peakpower', 
+                   'leakagepower', 'pins', 'cells', 'macros', 'nets', 'registers', 'buffers', 'drvs',
+                   'setupwns', 'holdwns'):
+        chip.set('tool', tool, 'report', step, index, metric, "reports/metrics.json")
 
 ################################
 # Version Check
@@ -187,26 +268,14 @@ def normalize_version(version):
     else:
         return '0'
 
+################################
+# Pre_process (pre executable)
+################################
+
 def pre_process(chip):
-    step = chip.get('arg', 'step')
 
-    # Only do diearea inference if we're on floorplanning step and these
-    # parameters are all unset.
-    if (step != 'floorplan' or
-        chip.get('asic', 'diearea') or
-        chip.get('asic', 'corearea') or
-        chip.valid('input', 'layout', 'floorplan.def')):
-        return
-
-    r = _infer_diearea(chip)
-    if r is None:
-        return
-    diearea, corearea = r
-
-    # TODO: this feels like a hack: putting these here puts them in
-    # sc_manifest.tcl, but they don't remain in the manifest in future steps.
-    chip.set('asic', 'diearea', diearea)
-    chip.set('asic', 'corearea', corearea)
+    # Build estimate PEX
+    build_pex_corners(chip)
 
 ################################
 # Post_process (post executable)
@@ -220,77 +289,155 @@ def post_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool = 'openroad'
-    logfile = f"{step}.log"
 
     # parsing log file
-    metric = None
+    with open("reports/metrics.json", 'r') as f:
+        metrics = json.load(f)
 
-    with open(logfile) as f:
-        for line in f:
-            metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)
-            area = re.search(r'^Design area (\d+)\s+u\^2\s+(.*)\%\s+utilization', line)
-            tns = re.search(r'^tns (.*)', line)
-            wns = re.search(r'^wns (.*)', line)
-            slack = re.search(r'^worst slack (.*)', line)
-            vias = re.search(r'^Total number of vias = (.*).', line)
-            wirelength = re.search(r'^Total wire length = (.*) um', line)
-            power = re.search(r'^Total(.*)', line)
-            if metricmatch:
-                metric = metricmatch.group(1)
-            elif area:
-                #TODO: not sure the openroad utilization makes sense?
-                cellarea = round(float(area.group(1)), 2)
-                utilization = round(float(area.group(2)), 2)
-                if utilization == 0:
-                    totalarea = 0.0
+        for metric, openroad_metric in [('vias', 'sc__step__route__vias'),
+                                        ('wirelength', 'sc__step__route__wirelength'),
+                                        ('cellarea', 'sc__metric__design__instance__area'),
+                                        ('totalarea', 'sc__metric__design__core__area'),
+                                        ('utilization', 'sc__metric__design__instance__utilization'),
+                                        ('setuptns', 'sc__metric__timing__setup__tns'),
+                                        ('holdtns', 'sc__metric__timing__hold__tns'),
+                                        ('setupslack', 'sc__metric__timing__setup__ws'),
+                                        ('holdslack', 'sc__metric__timing__hold__ws'),
+                                        ('setuppaths', 'sc__metric__timing__drv__setup_violation_count'),
+                                        ('holdpaths', 'sc__metric__timing__drv__hold_violation_count'),
+                                        ('unconstrained', 'sc__metric__timing__unconstrained'),
+                                        ('peakpower', 'sc__metric__power__total'),
+                                        ('leakagepower', 'sc__metric__power__leakage__total'),
+                                        ('pins', 'sc__metric__design__io'),
+                                        ('cells', 'sc__metric__design__instance__count'),
+                                        ('macros', 'sc__metric__design__instance__count__macros'),
+                                        ('nets', 'sc__metric__design__nets'),
+                                        ('registers', 'sc__metric__design__registers'),
+                                        ('buffers', 'sc__metric__design__buffers')]:
+            if openroad_metric in metrics:
+                chip.set('metric', step, index, metric, metrics[openroad_metric], clobber=True)
+
+        # setup wns and hold wns can be computed from setup slack and hold slack
+        if 'sc__metric__timing__setup__ws' in metrics:
+            wns = min(0.0, float(metrics['sc__metric__timing__setup__ws']))
+            chip.set('metric', step, index, 'setupwns', wns, clobber=True)
+
+        if 'sc__metric__timing__hold__ws' in metrics:
+            wns = min(0.0, float(metrics['sc__metric__timing__hold__ws']))
+            chip.set('metric', step, index, 'holdwns', wns, clobber=True)
+
+        drvs = None
+        for metric in ['sc__metric__timing__drv__max_slew',
+                       'sc__metric__timing__drv__max_cap',
+                       'sc__metric__timing__drv__max_fanout',
+                       'sc__step__route__drc_errors',
+                       'sc__metric__antenna__violating__nets',
+                       'sc__metric__antenna__violating__pins']:
+            if metric in metrics:
+                if drvs is None:
+                    drvs = int(metrics[metric])
                 else:
-                    totalarea = round(cellarea/(utilization/100), 2)
-                chip.set('metric', step, index, 'cellarea', cellarea, clobber=True)
-                chip.set('metric', step, index, 'totalarea', totalarea, clobber=True)
-                chip.set('metric', step, index, 'utilization', utilization, clobber=True)
-            elif tns:
-                chip.set('metric', step, index, 'setuptns', round(float(tns.group(1)), 2), clobber=True)
-            elif wns:
-                chip.set('metric', step, index, 'setupwns', round(float(wns.group(1)), 2), clobber=True)
-            elif slack:
-                chip.set('metric', step, index, 'setupslack', round(float(slack.group(1)), 2), clobber=True)
-            elif wirelength:
-                chip.set('metric', step, index, 'wirelength', round(float(wirelength.group(1)), 2), clobber=True)
-            elif vias:
-                chip.set('metric', step, index, 'vias', int(vias.group(1)), clobber=True)
-            elif metric == "power":
-                if power:
-                    powerlist = power.group(1).split()
-                    leakage = powerlist[2]
-                    total = powerlist[3]
-                    chip.set('metric', step, index, 'peakpower', float(total), clobber=True)
-                    chip.set('metric', step, index, 'leakagepower', float(leakage), clobber=True)
+                    drvs += int(metrics[metric])
 
-    #Temporary superhack!rm
-    #Getting cell count and net number from the first available DEF file output (if any)
-    out_def = ''
-    out_files = []
-    if chip.valid('tool', tool, 'output', step, index):
-        out_files = chip.get('tool', tool, 'output', step, index)
+        if drvs is not None:
+            chip.set('metric', step, index, 'drvs', str(drvs), clobber=True)
 
-    if out_files:
-        for fn in out_files:
-            if fn.endswith('.def'):
-                out_def = fn
-                break
-    out_def_path = os.path.join('outputs', out_def)
-    if out_def and os.path.isfile(out_def_path):
-        with open(os.path.join('outputs', out_def)) as f:
-            for line in f:
-                cells = re.search(r'^COMPONENTS (\d+)', line)
-                nets = re.search(r'^NETS (\d+)', line)
-                pins = re.search(r'^PINS (\d+)', line)
-                if cells:
-                    chip.set('metric', step, index, 'cells', int(cells.group(1)), clobber=True)
-                elif nets:
-                    chip.set('metric', step, index, 'nets', int(nets.group(1)), clobber=True)
-                elif pins:
-                    chip.set('metric', step, index, 'pins', int(pins.group(1)), clobber=True)
+######
+
+def get_corners(chip):
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool = 'openroad'
+
+    corners = set()
+    for constraint in chip.getkeys('constraint', 'timing'):
+        if chip.valid('constraint', 'timing', constraint, 'libcorner'):
+            corners.add(chip.get('constraint', 'timing', constraint, 'libcorner')[0])
+
+    return list(corners)
+
+def get_corner_by_check(chip, check):
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool = 'openroad'
+
+    for constraint in chip.getkeys('constraint', 'timing'):
+        if not chip.valid('constraint', 'timing', constraint, 'libcorner'):
+            continue
+
+        if chip.valid('constraint', 'timing', constraint, 'check'):
+            if check in chip.get('constraint', 'timing', constraint, 'check'):
+                return chip.get('constraint', 'timing', constraint, 'libcorner')[0]
+
+    # if not specified, just pick the first corner available
+    return get_corners(chip)[0]
+
+def get_power_corner(chip):
+
+    return get_corner_by_check(chip, "power")
+
+def get_setup_corner(chip):
+
+    return get_corner_by_check(chip, "setup")
+
+def build_pex_corners(chip):
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool = 'openroad'
+
+    pdkname = chip.get('option', 'pdk')
+    stackup = chip.get('asic', 'stackup')
+
+    corners = {}
+    for constraint in chip.getkeys('constraint', 'timing'):
+        libcorner = None
+        if chip.valid('constraint', 'timing', constraint, 'libcorner'):
+            libcorner = chip.get('constraint', 'timing', constraint, 'libcorner')[0]
+
+        pexcorner = None
+        if chip.valid('constraint', 'timing', constraint, 'pexcorner'):
+            pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner')
+
+        if not libcorner or not pexcorner:
+            continue
+        corners[libcorner] = pexcorner
+
+    default_corner = get_setup_corner(chip)
+    if default_corner in corners:
+        corners[None] = corners[default_corner]
+
+    with open(chip.get('tool', tool, 'var', step, index, 'parasitics')[0], 'w') as f:
+        for libcorner, pexcorner in corners.items():
+            if chip.valid('pdk', pdkname, 'pexmodel', tool, stackup, pexcorner):
+                pex_source_file = chip.find_files('pdk', pdkname, 'pexmodel', tool, stackup, pexcorner)[0]
+                if not pex_source_file:
+                    continue
+
+                pex_template = None
+                with open(pex_source_file, 'r') as pex_f:
+                    pex_template = Template(pex_f.read())
+
+                if not pex_template:
+                    continue
+
+                if libcorner is None:
+                    libcorner = "default"
+                    corner_specification = ""
+                else:
+                    corner_specification = f"-corner {libcorner}"
+
+                f.write("{0}\n".format(64 * "#"))
+                f.write(f"# Library corner \"{libcorner}\" -> PEX corner \"{pexcorner}\"\n")
+                f.write(f"# Source file: {pex_source_file}\n")
+                f.write("{0}\n".format(64 * "#"))
+
+                f.write(pex_template.render({"corner": corner_specification}))
+
+                f.write("\n")
+                f.write("{0}\n\n".format(64 * "#"))
 
 ##################################################
 if __name__ == "__main__":

@@ -66,7 +66,8 @@ def test_flowstatus(scroot, steplist):
 @pytest.mark.eda
 @pytest.mark.quick
 def test_long_branch(scroot):
-    '''Test for this case:
+    r'''
+    Test for this case:
 
     import0 --> place0 [fail] --> cts0
             \-> place1 [ ok ] --> cts1

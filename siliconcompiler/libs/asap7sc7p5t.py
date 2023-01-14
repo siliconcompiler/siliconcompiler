@@ -80,11 +80,24 @@ def _setup_lib(libname, suffix):
     # Endcap
     lib.add('asic', 'cells','endcap', f"DECAPx1_ASAP7_75t_{suffix}")
 
-    # Techmap
+    # Yosys techmap
     if libname.endswith('rvt'):
         # TODO: write map files for other groups
         lib.add('asic', 'file', 'yosys', 'techmap',
                     libdir + '/techmap/yosys/cells_latch.v')
+
+    # Defaults for OpenROAD tool variables
+    lib.set('asic', 'var', 'openroad', 'place_density', ['0.77'])
+    lib.set('asic', 'var', 'openroad', 'pad_global_place', ['2'])
+    lib.set('asic', 'var', 'openroad', 'pad_detail_place', ['1'])
+    lib.set('asic', 'var', 'openroad', 'macro_place_halo', ['22.4', '15.12'])
+    lib.set('asic', 'var', 'openroad', 'macro_place_channel', ['18.8', '19.95'])
+
+    # Openroad APR setup files
+    lib.set('asic', 'file', 'openroad', 'tracks', libdir + '/apr/openroad/tracks.tcl')
+    lib.set('asic', 'file', 'openroad', 'tapcells', libdir + '/apr/openroad/tapcells.tcl')
+    lib.set('asic', 'file', 'openroad', 'pdngen', libdir + '/apr/openroad/pdngen.tcl')
+    lib.set('asic', 'file', 'openroad', 'global_connect', libdir + '/apr/openroad/global_connect.tcl')
 
     return lib
 

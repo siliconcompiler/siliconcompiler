@@ -126,7 +126,7 @@ def flow_lookup(partname):
     artixultra = bool(re.match('^au', partname))
     kintex7 = bool(re.match('^xc7k', partname))
     kintexultra = bool(re.match('^xcku', partname))
-    zynq = bool(re.match('^z\-7', partname))
+    zynq = bool(re.match(r'^z\-7', partname))
     zynqultra = bool(re.match('^zu', partname))
     virtex7 = bool(re.match('^xc7v', partname))
     virtexultra = bool(re.match('^xcvu', partname))

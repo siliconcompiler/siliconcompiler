@@ -75,13 +75,10 @@ def setup(chip):
     chip.set('pdk', process, 'hscribe', hscribe)
     chip.set('pdk', process, 'vscribe', vscribe)
 
+    # TODO: remove libtype
     for tool in ('openroad', 'klayout', 'magic'):
         chip.set('pdk', process,'aprtech',tool,stackup, libtype,'lef',
                  pdkdir+'/apr/sky130_fd_sc_hd.tlef')
-
-    # Openroad specific files
-    chip.set('pdk', process, 'aprtech','openroad', stackup, libtype,'tapcells',
-             pdkdir+'/apr/tapcell.tcl')
 
     # DRC Runsets
     chip.set('pdk', process,'drc', 'runset', 'magic', stackup, 'basic', pdkdir+'/setup/magic/sky130A.tech')
@@ -138,12 +135,9 @@ def setup(chip):
     chip.set('pdk', process, 'grid', stackup, 'met5', 'ypitch',  3.4)
     chip.set('pdk', process, 'grid', stackup, 'met5', 'adj', 0.5)
 
-    # Defaults for OpenROAD tool variables
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'place_density', ['0.6'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_global_place', ['4'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_detail_place', ['2'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_halo', ['1', '1'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_channel', ['80', '80'])
+    # PEX
+    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical', 
+        pdkdir + '/pex/openroad/typical.tcl')
 
 #########################
 if __name__ == "__main__":

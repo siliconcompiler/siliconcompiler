@@ -2085,7 +2085,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def write_flowgraph(self, filename, flow=None,
                         fillcolor='#ffffff', fontcolor='#000000',
                         fontsize='14', border=True, landscape=False):
-        '''Renders and saves the compilation flowgraph to a file.
+        r'''
+        Renders and saves the compilation flowgraph to a file.
 
         The chip object flowgraph is traversed to create a graphviz (\*.dot)
         file comprised of node, edges, and labels. The dot file is a
@@ -4635,6 +4636,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         normalize_version = self.find_function(tool, 'normalize_version', 'tools')
         # Version is good if it matches any of the specifier sets in this list.
         spec_sets = self.get('tool', tool, 'version')
+        if not spec_sets:
+            return True
 
         for spec_set in spec_sets:
             split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
