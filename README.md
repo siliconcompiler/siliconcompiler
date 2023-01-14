@@ -75,7 +75,7 @@ To reduce the pain of tool installation, the project supports free remote compil
 Simple designs can be compiled using the built in command line 'sc' app:
 
 ```sh
-sc -remote -input "verilog heartbeat.v" -design heartbeat -target "freepdk45_demo"
+sc -remote -input "rtl verilog heartbeat.v" -design heartbeat -target "freepdk45_demo"
 ```
 
 # Documentation
