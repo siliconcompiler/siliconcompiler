@@ -30,11 +30,11 @@ where ninja && ninja --version
 :: Required for Surelog
 pip3 install orderedmultidict
 
-for /f "tokens=* USEBACKQ" %%i in ('python3 setup/_tools.py --tool surelog --field git-url') do set GITURL=%%i
-for /f "tokens=* USEBACKQ" %%i in ('python3 setup/_tools.py --tool surelog --field git-commit') do set GITCOMMIT=%%i
+for /f "tokens=* USEBACKQ" %%i in (`python3 setup/_tools.py --tool surelog --field git-url`) do set GITURL=%%i
+for /f "tokens=* USEBACKQ" %%i in (`python3 setup/_tools.py --tool surelog --field git-commit`) do set GITCOMMIT=%%i
 
-git clone %GITURL% surelog
-cd surelog
+git clone %GITURL%
+cd Surelog
 git checkout %GITCOMMIT%
 git submodule update --init --recursive
 
