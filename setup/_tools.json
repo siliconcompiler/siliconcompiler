@@ -3,6 +3,11 @@
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
     "git-commit": "81706aef55de40a6f2eccadf25c20f418a554ab6"
   },
+  "odb": {
+    "note": "Replica of OpenROAD, but needed for wheel building on Windows",
+    "git-url": "https://github.com/gadfort/OpenROAD.git",
+    "git-commit": "83899c3027e7bac56288fa03b795290ecb339135"
+  },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
     "git-commit": "956c4e485a9463863f60c4dd03372db3fa8332a4"

@@ -61,9 +61,9 @@ jobs:
         brew install graphviz
         brew install bison
         # https://github.com/The-OpenROAD-Project/OpenROAD/issues/1688
-        echo "/opt/homebrew/opt/bison/bin" >> $GITHUB_PATH
+        echo "/usr/local/opt/bison/bin" >> $GITHUB_PATH
         brew install flex
-        echo "/opt/homebrew/opt/flex/bin" >> $GITHUB_PATH
+        echo "/usr/local/opt/flex/bin" >> $GITHUB_PATH
         brew install --cask klayout
         # https://github.com/ponty/PyVirtualDisplay/blob/master/.github/workflows/main.yml#L45
         brew install --cask xquartz
@@ -85,6 +85,9 @@ jobs:
         CIBW_BEFORE_ALL_LINUX: >
           export PREFIX={package}/siliconcompiler/tools/surelog &&
           {package}/.github/workflows/bin/setup_wheel_env_linux.sh
+        CIBW_ENVIRONMENT_MACOS: >
+          LDFLAGS="-L/usr/local/opt/bison/lib -L/usr/local/opt/flex/lib"
+          CPPFLAGS="-I/usr/local/opt/flex/include"
         CIBW_ENVIRONMENT_WINDOWS: SC_CMAKEARGS="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake."
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_SKIP: "pp* *win32 *i686"
