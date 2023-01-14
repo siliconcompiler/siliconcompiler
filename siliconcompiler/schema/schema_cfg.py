@@ -179,6 +179,7 @@ def schema_cfg():
 
     # Flows
     cfg = schema_tool(cfg)
+    cfg = schema_task(cfg)
     cfg = schema_flowgraph(cfg)
 
     # Metrics
@@ -1140,11 +1141,9 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 # Tool Setup
 ###########################################################################
 
-def schema_tool(cfg, tool='default', step='default', index='default'):
+def schema_tool(cfg, tool='default'):
 
     key = 'default'
-    suffix = 'default'
-    metric = 'default'
 
     scparam(cfg, ['tool', tool, 'exe'],
             sctype='str',
@@ -1209,7 +1208,7 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
 
     scparam(cfg, ['tool', tool, 'format'],
             sctype='str',
-            shorthelp="Tool: manifest file format",
+            shorthelp="Tool: file format",
             switch="-tool_format 'tool <file>'",
             example=[ "cli: -tool_format 'yosys tcl'",
                       "api: chip.set('tool','yosys','format','tcl')"],
@@ -1217,36 +1216,13 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             File format for tool manifest handoff. Supported formats are tcl,
             yaml, and json.""")
 
-    scparam(cfg, ['tool', tool, 'warningoff'],
-            sctype='[str]',
-            shorthelp="Tool: warning filter",
-            switch="-tool_warningoff 'tool <str>'",
-            example=["cli: -tool_warningoff 'verilator COMBDLY'",
-                     "api: chip.set('tool','verilator','warningoff','COMBDLY')"],
-            schelp="""
-            A list of EDA warnings for which printing should be suppressed.
-            Generally this is done on a per design basis after review has
-            determined that warning can be safely ignored The code for turning
-            off warnings can be found in the specific tool reference manual.
-            """)
-
-    scparam(cfg, ['tool', tool, 'continue'],
-            sctype='bool',
-            shorthelp="Tool: continue-on-error option",
-            switch="-tool_continue 'tool <bool>'",
-            example=["cli: -tool_continue 'verilator true'",
-                     "api: chip.set('tool','verilator','continue', true)"],
-            schelp="""
-            Directs tool to continue operating even if errors are
-            encountered.""")
-
     scparam(cfg, ['tool', tool, 'licenseserver', key],
             sctype='[str]',
             shorthelp="Tool: license servers",
             switch="-tool_licenseserver 'name key <str>'",
             example=[
-                "cli: -tool_licenseserver 'atool ACME_LICENSE 1700@server'",
-                "api: chip.set('tool','atool','licenseserver','ACME_LICENSE','1700@server')"],
+                "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
+                "api: chip.set('tool','acme','licenseserver','ACME_LICENSE','1700@server')"],
             schelp="""
             Defines a set of tool specific environment variables used by the executables
             that depend on license key servers to control access. For multiple servers,
@@ -1254,17 +1230,44 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             runtime (run()) and the environment variables are set.
             """)
 
-    #######################
-    # Per step/index
-    ########################
+    return cfg
 
-    scparam(cfg, ['tool', tool, 'regex', step, index, suffix],
+def schema_task(cfg, task='default', step='default', index='default'):
+
+    suffix = 'default'
+    metric = 'default'
+    key = 'default'
+
+    scparam(cfg, ['task', task, 'warningoff', step, index],
             sctype='[str]',
-            shorthelp="Tool: regex filter",
-            switch="-tool_regex 'tool step index suffix <str>'",
+            shorthelp="Task: warning filter",
+            switch="-task_warningoff 'task <str>'",
+            example=["cli: -task_warningoff 'verilator COMBDLY'",
+                     "api: chip.set('task','verilator','warningoff','COMBDLY')"],
+            schelp="""
+            A list of EDA warnings for which printing should be suppressed.
+            Generally this is done on a per design basis after review has
+            determined that warning can be safely ignored The code for turning
+            off warnings can be found in the specific task reference manual.
+            """)
+
+    scparam(cfg, ['task', task, 'continue', step, index],
+            sctype='bool',
+            shorthelp="Task: continue-on-error option",
+            switch="-task_continue 'task <bool>'",
+            example=["cli: -task_continue 'verilator true'",
+                     "api: chip.set('task','verilator','continue', true)"],
+            schelp="""
+            Directs task to continue operating even if errors are
+            encountered.""")
+
+    scparam(cfg, ['task', task, 'regex', step, index, suffix],
+            sctype='[str]',
+            shorthelp="Task: regex filter",
+            switch="-task_regex 'task step index suffix <str>'",
             example=[
-                "cli: -tool_regex 'openroad place 0 errors -v ERROR'",
-                "api: chip.set('tool','openroad','regex','place','0','errors','-v ERROR')"],
+                "cli: -task_regex 'openroad place 0 errors -v ERROR'",
+                "api: chip.set('task','openroad','regex','place','0','errors','-v ERROR')"],
             schelp="""
             A list of piped together grep commands. Each entry represents a set
             of command line arguments for grep including the regex pattern to
@@ -1282,59 +1285,73 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
 
             SiliconCompiler::
 
-                chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', ["WARNING", "-v bbox"])
+                chip.set('task', 'openroad', 'regex', 'place', '0', 'warnings', ["WARNING", "-v bbox"])
 
             The "errors" and "warnings" suffixes are special cases. When set,
             the number of matches found for these regexes will be added to the
             errors and warnings metrics for the task, respectively. This will
-            also cause the logfile to be added to the :keypath:`tool, <tool>,
+            also cause the logfile to be added to the :keypath:`task, <task>,
             report` parameter for those metrics, if not already present.""")
 
-
-    scparam(cfg, ['tool', tool, 'option', step, index],
+    # Configuration: cli-option, tcl var, env var, file
+    scparam(cfg, ['task', task, 'option', step, index],
             sctype='[str]',
-            shorthelp="Tool: executable options",
-            switch="-tool_option 'tool step index <str>'",
+            shorthelp="Task: executable options",
+            switch="-task_option 'task step index <str>'",
             example=[
-                "cli: -tool_option 'openroad cts 0 -no_init'",
-                "api: chip.set('tool','openroad','option','cts','0','-no_init')"],
+                "cli: -task_option 'openroad cts 0 -no_init'",
+                "api: chip.set('task','openroad','option','cts','0','-no_init')"],
             schelp="""
-            List of command line options for the tool executable, specified on
-            a per tool and per step basis. Options must not include spaces.
+            List of command line options for the task executable, specified on
+            a per task and per step basis. Options must not include spaces.
             For multiple argument options, each option is a separate list element.
             """)
 
-    scparam(cfg, ['tool', tool, 'var', step, index, key],
+    scparam(cfg, ['task', task, 'var', step, index, key],
             sctype='[str]',
-            shorthelp="Tool: script variables",
-            switch="-tool_variable 'tool step index key <str>'",
+            shorthelp="Task: script variables",
+            switch="-task_variable 'task step index key <str>'",
             example=[
-                "cli: -tool_variable 'openroad cts 0 myvar 42'",
-                "api: chip.set('tool','openroad','var','cts','0','myvar','42')"],
+                "cli: -task_variable 'openroad cts 0 myvar 42'",
+                "api: chip.set('task','openroad','var','cts','0','myvar','42')"],
             schelp="""
-            Tool script variables specified as key value pairs. Variable
-            names and value types must match the name and type of tool and reference
+            Task script variables specified as key value pairs. Variable
+            names and value types must match the name and type of task and reference
             script consuming the variable.""")
 
-    scparam(cfg, ['tool', tool, 'env', step, index, key],
+    scparam(cfg, ['task', task, 'env', step, index, key],
             sctype='str',
-            shorthelp="Tool: environment variables",
-            switch="-tool_env 'tool step index name <str>'",
+            shorthelp="Task: environment variables",
+            switch="-task_env 'task step index name <str>'",
             example=[
-                "cli: -tool_env 'openroad cts 0 MYVAR 42'",
-                "api: chip.set('tool','openroad','env','cts','0','MYVAR','42')"],
+                "cli: -task_env 'openroad cts 0 MYVAR 42'",
+                "api: chip.set('task','openroad','env','cts','0','MYVAR','42')"],
             schelp="""
             Environment variables to set for individual tasks. Keys and values
-            should be set in accordance with the tool's documentation. Most
-            tools do not require extra environment variables to function.""")
+            should be set in accordance with the task's documentation. Most
+            tasks do not require extra environment variables to function.""")
 
-    scparam(cfg, ['tool', tool, 'input', step, index],
+    scparam(cfg, ['task', task, 'file', step, index, key],
             sctype='[file]',
-            shorthelp="Tool: input files",
-            switch="-tool_input 'tool step index <str>'",
+            shorthelp="Task: user file",
+            switch="-task_file 'task step index key <file>'",
             example=[
-                "cli: -tool_input 'openroad place 0 oh_add.def'",
-                "api: chip.set('tool','openroad','input','place','0','oh_add.def')"],
+                "cli: -task_file 'openroad floorplan 0 macroplace macroplace.tcl'",
+                "api: chip.set('task','openroad','file','floorplan','0','macroplace','macroplace.tcl')"],
+            schelp="""
+            Paths to user supplied files mapped to keys. Keys and filetypes must
+            match what's expected by the task/reference script consuming the
+            file.
+            """)
+
+    # Defintions of inputs, putputs, requirements
+    scparam(cfg, ['task', task, 'input', step, index],
+            sctype='[file]',
+            shorthelp="Task: input files",
+            switch="-task_input 'task step index <str>'",
+            example=[
+                "cli: -task_input 'openroad place 0 oh_add.def'",
+                "api: chip.set('task','openroad','input','place','0','oh_add.def')"],
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
             directory. The list of steps to copy files from is defined by the
@@ -1342,13 +1359,13 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             All files must be available for flow to continue. If a file
             is missing, the program exists on an error.""")
 
-    scparam(cfg, ['tool', tool, 'output', step, index],
+    scparam(cfg, ['task', task, 'output', step, index],
             sctype='[file]',
-            shorthelp="Tool: output files",
-            switch="-tool_output 'tool step index <str>'",
+            shorthelp="Task: output files",
+            switch="-task_output 'task step index <str>'",
             example=[
-                "cli: -tool_output 'openroad place 0 oh_add.def'",
-                "api: chip.set('tool','openroad','output','place','0','oh_add.def')"],
+                "cli: -task_output 'openroad place 0 oh_add.def'",
+                "api: chip.set('task','openroad','output','place','0','oh_add.def')"],
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
             directory. The list of steps to copy files from is defined by the
@@ -1356,14 +1373,14 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             All files must be available for flow to continue. If a file
             is missing, the program exists on an error.""")
 
-    scparam(cfg, ['tool', tool, 'stdout', step, index, 'destination'],
+    scparam(cfg, ['task', task, 'stdout', step, index, 'destination'],
             sctype='str',
             defvalue='log',
             scope='job',
-            shorthelp="Tool: Destination for stdout",
-            switch="-tool_stdout_destination 'tool step index [log|output|none]'",
-            example=["cli: -tool_stdout_destination 'ghdl import 0 log'",
-                    "api: chip.set('tool','ghdl','stdout','import','0','destination','log')"],
+            shorthelp="Task: Destination for stdout",
+            switch="-task_stdout_destination 'task step index [log|output|none]'",
+            example=["cli: -task_stdout_destination 'ghdl import 0 log'",
+                    "api: chip.set('task','ghdl','stdout','import','0','destination','log')"],
             schelp="""
             Defines where to direct the output generated over stdout.
             Supported options are:
@@ -1372,25 +1389,25 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             it is additionally dumped to the display output: the generated stream is stored
             in outputs/<design>.<suffix>""")
 
-    scparam(cfg, ['tool', tool, 'stdout', step, index, 'suffix'],
+    scparam(cfg, ['task', task, 'stdout', step, index, 'suffix'],
             sctype='str',
             defvalue='log',
             scope='job',
-            shorthelp="Tool: File suffix for redirected stdout",
-            switch="-tool_stdout_suffix 'tool step index <str>'",
-            example=["cli: -tool_stdout_suffix 'ghdl import 0 log'",
-                    "api: chip.set('tool','ghdl','stdout','import','0','suffix','log')"],
+            shorthelp="Task: File suffix for redirected stdout",
+            switch="-task_stdout_suffix 'task step index <str>'",
+            example=["cli: -task_stdout_suffix 'ghdl import 0 log'",
+                    "api: chip.set('task','ghdl','stdout','import','0','suffix','log')"],
             schelp="""
             Specifies the file extension for the content redirected from stdout.""")
 
-    scparam(cfg, ['tool', tool, 'stderr', step, index, 'destination'],
+    scparam(cfg, ['task', task, 'stderr', step, index, 'destination'],
             sctype='str',
             defvalue='log',
             scope='job',
-            shorthelp="Tool: Destination for stderr",
-            switch="-tool_stderr_destination 'tool step index [log|output|none]'",
-            example=["cli: -tool_stderr_destination 'ghdl import 0 log'",
-                    "api: chip.set('tool','ghdl','stderr','import','0','destination','log')"],
+            shorthelp="Task: Destination for stderr",
+            switch="-task_stderr_destination 'task step index [log|output|none]'",
+            example=["cli: -task_stderr_destination 'ghdl import 0 log'",
+                    "api: chip.set('task','ghdl','stderr','import','0','destination','log')"],
             schelp="""
             Defines where to direct the output generated over stderr.
             Supported options are:
@@ -1399,69 +1416,69 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             it is additionally dumped to the display output: the generated stream is
             stored in outputs/<design>.<suffix>""")
 
-    scparam(cfg, ['tool', tool, 'stderr', step, index, 'suffix'],
+    scparam(cfg, ['task', task, 'stderr', step, index, 'suffix'],
             sctype='str',
             defvalue='log',
             scope='job',
-            shorthelp="Tool: File suffix for redirected stderr",
-            switch="-tool_stderr_suffix 'tool step index <str>'",
-            example=["cli: -tool_stderr_suffix 'ghdl import 0 log'",
-                    "api: chip.set('tool','ghdl','stderr','import','0','suffix','log')"],
+            shorthelp="Task: File suffix for redirected stderr",
+            switch="-task_stderr_suffix 'task step index <str>'",
+            example=["cli: -task_stderr_suffix 'ghdl import 0 log'",
+                    "api: chip.set('task','ghdl','stderr','import','0','suffix','log')"],
             schelp="""
             Specifies the file extension for the content redirected from stderr.""")
 
-    scparam(cfg, ['tool', tool, 'require', step, index],
+    scparam(cfg, ['task', task, 'require', step, index],
             sctype='[str]',
-            shorthelp="Tool: parameter requirements",
-            switch="-tool_require 'tool step index <str>'",
+            shorthelp="Task: parameter requirements",
+            switch="-task_require 'task step index <str>'",
             example=[
-                "cli: -tool_require 'openroad cts 0 design'",
-                "api: chip.set('tool','openroad','require','cts','0','design')"],
+                "cli: -task_require 'openroad cts 0 design'",
+                "api: chip.set('task','openroad','require','cts','0','design')"],
             schelp="""
-            List of keypaths to required tool parameters. The list is used
+            List of keypaths to required task parameters. The list is used
             by check() to verify that all parameters have been set up before
             step execution begins.""")
 
-    scparam(cfg, ['tool', tool, 'report', step, index, metric],
+    scparam(cfg, ['task', task, 'report', step, index, metric],
             sctype='[file]',
-            shorthelp="Tool: report files",
-            switch="-tool_report 'tool step index metric <str>'",
+            shorthelp="Task: report files",
+            switch="-task_report 'task step index metric <str>'",
             example=[
-                 "cli: -tool_report 'openroad place 0 holdtns place.log'",
-                "api: chip.set('tool','openroad','report','syn','0','holdtns','place.log')"],
+                 "cli: -task_report 'openroad place 0 holdtns place.log'",
+                "api: chip.set('task','openroad','report','syn','0','holdtns','place.log')"],
             schelp="""
             List of report files associated with a specific 'metric'. The file path
             specified is relative to the run directory of the current task.""")
 
-    scparam(cfg, ['tool', tool, 'refdir', step, index],
+    scparam(cfg, ['task', task, 'refdir', step, index],
             sctype='[dir]',
-            shorthelp="Tool: script directory",
-            switch="-tool_refdir 'tool step index <dir>'",
+            shorthelp="Task: script directory",
+            switch="-task_refdir 'task step index <dir>'",
             example=[
-                "cli: -tool_refdir 'yosys syn 0 ./myref'",
-                "api:  chip.set('tool','yosys','refdir','syn','0','./myref')"],
+                "cli: -task_refdir 'yosys syn 0 ./myref'",
+                "api:  chip.set('task','yosys','refdir','syn','0','./myref')"],
             schelp="""
             Path to directories containing reference flow scripts, specified
             on a per step and index basis.""")
 
-    scparam(cfg, ['tool', tool, 'script', step, index],
+    scparam(cfg, ['task', task, 'script', step, index],
             sctype='[file]',
-            shorthelp="Tool: entry script",
-            switch="-tool_script 'tool step index <file>'",
+            shorthelp="Task: entry script",
+            switch="-task_script 'task step index <file>'",
             example=[
-                "cli: -tool_script 'yosys syn 0 syn.tcl'",
-                "api: chip.set('tool','yosys','script','syn','0','syn.tcl')"],
+                "cli: -task_script 'yosys syn 0 syn.tcl'",
+                "api: chip.set('task','yosys','script','syn','0','syn.tcl')"],
             schelp="""
             Path to the entry script called by the executable specified
-            on a per tool and per step basis.""")
+            on a per task and per step basis.""")
 
-    scparam(cfg, ['tool', tool, 'prescript', step, index],
+    scparam(cfg, ['task', task, 'prescript', step, index],
             sctype='[file]',
-            shorthelp="Tool: pre-step script",
-            switch="-tool_prescript 'tool step index <file>'",
+            shorthelp="Task: pre-step script",
+            switch="-task_prescript 'task step index <file>'",
             example=[
-                "cli: -tool_prescript 'yosys syn 0 syn_pre.tcl'",
-                "api: chip.set('tool','yosys','prescript','syn','0','syn_pre.tcl')"],
+                "cli: -task_prescript 'yosys syn 0 syn_pre.tcl'",
+                "api: chip.set('task','yosys','prescript','syn','0','syn_pre.tcl')"],
             schelp="""
             Path to a user supplied script to execute after reading in the design
             but before the main execution stage of the step. Exact entry point
@@ -1469,13 +1486,13 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             of a prescript entry point would be immediately before global
             placement.""")
 
-    scparam(cfg, ['tool', tool, 'postscript', step, index],
+    scparam(cfg, ['task', task, 'postscript', step, index],
             sctype='[file]',
-            shorthelp="Tool: post-step script",
-            switch="-tool_postscript 'tool step index <file>'",
+            shorthelp="Task: post-step script",
+            switch="-task_postscript 'task step index <file>'",
             example=[
-                "cli: -tool_postscript 'yosys syn 0 syn_post.tcl'",
-                "api: chip.set('tool','yosys','postscript','syn','0','syn_post.tcl')"],
+                "cli: -task_postscript 'yosys syn 0 syn_post.tcl'",
+                "api: chip.set('task','yosys','postscript','syn','0','syn_post.tcl')"],
             schelp="""
             Path to a user supplied script to execute after the main execution
             stage of the step but before the design is saved.
@@ -1483,38 +1500,25 @@ def schema_tool(cfg, tool='default', step='default', index='default'):
             executed. An example of a postscript entry point would be immediately
             after global placement.""")
 
-    scparam(cfg, ['tool', tool, 'file', step, index, 'default'],
-            sctype='[file]',
-            shorthelp="Tool: user file",
-            switch="-tool_file 'tool step index key <file>'",
-            example=[
-                "cli: -tool_file 'openroad floorplan 0 macroplace macroplace.tcl'",
-                "api: chip.set('tool','openroad','file','floorplan','0','macroplace','macroplace.tcl')"],
-            schelp="""
-            Paths to user supplied files mapped to keys. Keys and filetypes must
-            match what's expected by the tool/reference script consuming the
-            file.
-            """)
-
-    scparam(cfg, ['tool', tool, 'keep', step, index],
+    scparam(cfg, ['task', task, 'keep', step, index],
             sctype='[str]',
-            shorthelp="Tool: files to keep",
-            switch="-tool_keep 'tool step index <str>'",
+            shorthelp="Task: files to keep",
+            switch="-task_keep 'task step index <str>'",
             example=[
-                "cli: -tool_keep 'surelog import 0 slp_all'",
-                "api: chip.set('tool','surelog','script','import','0','slpp_all')"],
+                "cli: -task_keep 'surelog import 0 slp_all'",
+                "api: chip.set('task','surelog','script','import','0','slpp_all')"],
             schelp="""
             Names of additional files and directories in the work directory that
             should be kept when :keypath:`option, clean` is true.""")
 
-    scparam(cfg, ['tool', tool, 'threads', step, index],
+    scparam(cfg, ['task', task, 'threads', step, index],
             sctype='int',
-            shorthelp="Tool: thread parallelism",
-            switch="-tool_threads 'tool step index <int>'",
-            example=["cli: -tool_threads 'magic drc 0 64'",
-                     "api: chip.set('tool','magic','threads','drc','0','64')"],
+            shorthelp="Task: thread parallelism",
+            switch="-task_threads 'task step index <int>'",
+            example=["cli: -task_threads 'magic drc 0 64'",
+                     "api: chip.set('task','magic','threads','drc','0','64')"],
             schelp="""
-            Thread parallelism to use for execution specified on a per tool and per
+            Thread parallelism to use for execution specified on a per task and per
             step basis. If not specified, SC queries the operating system and sets
             the threads based on the maximum thread count supported by the
             hardware.""")
