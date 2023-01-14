@@ -38,8 +38,8 @@ A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silic
 |**ASIC APR**| OpenRoad, Synopsys, Cadence
 |**FPGA APR**| VPR, nextpnr, Vivado
 |**Layout Viewer**| Klayout, Cadence, Synopsys
-|**DRC/LVS**| Magic, Mentor, Synopsys
-|**PDKs**| sky130, asap7, freepdk45
+|**DRC/LVS**| Magic, Synopsys, Siemens
+|**PDKs**| sky130, asap7, freepdk45, gf12lp, intel16
 
 # Getting Started
 
