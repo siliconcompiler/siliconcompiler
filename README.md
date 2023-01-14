@@ -54,15 +54,15 @@ python -m pip upgrade siliconcompiler
 Converting RTL into DRC clean GDS takes less than 10 lines of simple Python code.
 
 ```python
-import siliconcompiler                      # import python package
-chip = siliconcompiler.Chip('heartbeat')    # create chip object
-chip.load_target('freepdk45_demo')          # load a pre-defined target
-chip.set('input', 'verilog', 'heartbeat.v') # set input sources
-chip.set('input', 'sdc', 'heartbeat.sdc')   # set constraints
-#chip.set('option','remote', True)          # enable remote execution
-chip.run()                                  # run compilation
-chip.summary()                              # print summary
-chip.show()                                 # show layout
+import siliconcompiler                             # import python package
+chip = siliconcompiler.Chip('heartbeat')           # create chip object
+chip.load_target('freepdk45_demo')                 # load a pre-defined target
+chip.set('input', 'rtl', 'verilog', 'heartbeat.v') # set input sources
+chip.set('input', 'asic', 'sdc', 'heartbeat.sdc')  # set constraints
+#chip.set('option','remote', True)                 # enable remote execution
+chip.run()                                         # run compilation
+chip.summary()                                     # print summary
+chip.show()                                        # show layout
 ```
 
 To reduce the pain of tool installation, the project supports free remote compilation at [siliconcompiler.com](siliconcompiler.com).
