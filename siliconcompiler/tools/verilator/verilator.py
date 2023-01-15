@@ -119,10 +119,10 @@ def setup(chip):
                 chip.add('tool', tool, 'task', task, 'option', step, index, '-D' + value)
         elif task == 'lint':
             chip.add('tool', tool, 'task', task, 'option', step, index,  ['--lint-only', '--debug'])
-            chip.set('tool', tool, 'task', task, 'input', step, index, f'{design}.v')
+            chip.set('tool', tool, 'task', task, 'input', step, index, f'inputs/{design}.v')
         elif task == 'compile':
             chip.add('tool', tool, 'task', task, 'option', step, index,  ['--cc', '--exe'])
-            chip.add('tool', tool, 'task', task, 'option', step, index, f'inputs/{design}.v')
+            chip.add('tool', tool, 'task', task, 'input', step, index, f'inputs/{design}.v')
             chip.add('tool', tool, 'task', task, 'option', step, index, f'-o ../outputs/{design}.vexe')
             chip.set('tool', tool, 'task', task, 'input', step, index, f'{design}.v')
 
