@@ -1372,9 +1372,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
-
-        #TODO: fix below
-        task = step
+        task = self.get('flowgraph', flow, step, index, 'task')
 
         if self.valid('tool', tool, 'task', task, 'input', step, index):
             required_inputs = self.get('tool', tool, 'task', task, 'input', step, index)
@@ -1519,11 +1517,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         #4. Check per tool parameter requirements (when tool exists)
         for step in steplist:
 
-            #TODO: fix
-            task = step
-
             for index in self.getkeys('flowgraph', flow, step):
                 tool = self.get('flowgraph', flow, step, index, 'tool')
+                tool = self.get('flowgraph', flow, step, index, 'task')
                 if (tool not in self.builtin) and (tool in self.getkeys('tool')):
                     # checking that requirements are set
                     if self.valid('tool', tool, 'task', task, 'require', step, index):
@@ -1555,9 +1551,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
-
-        #TODO: add task properly
-        task = step
+        task = self.get('flowgraph', flow, step, index, 'task')
 
         outputs = set()
         if tool in self.builtin:
@@ -1596,9 +1590,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         flow = self.get('option', 'flow')
         steplist = self.get('option', 'steplist')
 
-        #TODO: add task properly
-        task = step
-
         if not steplist:
             steplist = self.list_steps()
 
@@ -1606,6 +1597,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for index in self.getkeys('flowgraph', flow, step):
                 # For each task, check input requirements.
                 tool = self.get('flowgraph', flow, step, index, 'tool')
+                task = self.get('flowgraph', flow, step, index, 'task')
+
                 if tool in self.builtin:
                     # We can skip builtins since they don't have any particular
                     # input requirements -- they just pass through what they
@@ -1861,9 +1854,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # Automated checks
                     flow = self.get('option', 'flow', job=job)
                     tool = self.get('flowgraph', flow, step, index, 'tool', job=job)
-
-                    #TODO: fix properly
-                    task = step
+                    task = self.get('flowgraph', flow, step, index, 'task', job=job)
 
                     value = self.get('metric', step, index, metric,  job=job)
                     criteria_ok = self._safecompare(value, op, goal)
@@ -2626,9 +2617,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                    f'{step}.log')
 
         tool = self.get('flowgraph', flow, step, index, 'tool')
-
-        #TODO: Fix properly
-        task = step
+        task = self.get('flowgraph', flow, step, index, 'task')
 
         # Creating local dictionary (for speed)
         # self.get is slow
@@ -2992,15 +2981,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('datasheet', design, 'pin', pin, 'tjitter', 'global', jitter_range)
 
     ###########################################################################
-    def node(self, flow, step, tool, index=0):
+    def node(self, flow, step, tool, task=None, index=0):
         '''
         Creates a flowgraph node.
 
-        Creates a flowgraph node by binding a tool to a task. A task is defined
-        as the combination of a step and index. A tool can be an external
-        executable or one of the built in functions in the SiliconCompiler
-        framework). Built in functions include: minimum, maximum, join, mux,
-        verify.
+        Creates a flowgraph node by binding a step to a tool specific task.
+        A tool can be an external executable or one of the built in functions
+        in the SiliconCompiler framework). Built in functions include: minimum,
+        maximum, join, mux, verify.
 
         The method modifies the following schema parameters:
 
@@ -3009,9 +2997,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             flow (str): Flow name
-            step (str): Task step name
-            tool (str): Tool (or builtin function) to associate with task.
-            index (int): Task index
+            step (str): Step name
+            task (str): Task name, built in or tool specific
+            tool (str): Tool to associate with task.
+            index (int): Step index
 
         Examples:
             >>> chip.node('asicflow', 'place', 'openroad', index=0)
@@ -3020,6 +3009,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # bind tool to node
         self.set('flowgraph', flow, step, str(index), 'tool', tool)
+
+        tasks = self.getkeys('tool', tool, 'task')
+
+        if task is None:
+            if len(tasks>1):
+                self.error(f'Unable to resolve task name from {tasks}.')
+            else:
+                task = tasks[0]
+
+        self.set('flowgraph', flow, step, str(index), 'task', task)
+
         # set default weights
         for metric in self.getkeys('metric', 'default', 'default'):
             self.set('flowgraph', flow, step, str(index), 'weight', metric, 0)
@@ -3402,10 +3402,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         top = self.top()
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
-        quiet = self.get('option', 'quiet') and (step not in self.get('option', 'bkpt'))
+        task = self.get('flowgraph', flow, step, index, 'task')
 
-        #TODO, fix properly
-        task = step
+        quiet = self.get('option', 'quiet') and (step not in self.get('option', 'bkpt'))
 
         ##################
         # Start wall timer
@@ -3609,7 +3608,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             logfile = None
             retcode = run_func(self)
         elif not self.get('option', 'skipall'):
-            cmdlist = self._makecmd(tool, step, index)
+            cmdlist = self._makecmd(tool, task, step, index)
             exe_base = os.path.basename(cmdlist[0])
             cmdstr = ' '.join([exe_base] + cmdlist[1:])
             self.logger.info('Running in %s', workdir)
@@ -3803,7 +3802,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Clean up non-essential files
         if self.get('option', 'clean'):
-            self._eda_clean(tool, step, index)
+            self._eda_clean(tool, task, step, index)
 
         ##################
         # return to original directory
@@ -3816,7 +3815,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         sys.exit(1)
 
     ###########################################################################
-    def _eda_clean(self, tool, step, index):
+    def _eda_clean(self, tool, task, step, index):
         '''Cleans up work directory of unecessary files.
 
         Assumes our cwd is the workdir for step and index.
@@ -3824,16 +3823,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         keep = ['inputs', 'outputs', 'reports', f'{step}.log', 'replay.sh']
 
-
-        #TODO: fix properly
-        task = step
-
         manifest_format = self.get('tool', tool, 'format')
         if manifest_format:
             keep.append(f'sc_manifest.{manifest_format}')
 
         if self.valid('tool', tool, 'task', task, 'regex', step, index, 'default'):
-            for suffix in self.getkeys('tool', tool,'task', task,  'regex', step, index):
+            for suffix in self.getkeys('tool', tool, 'task', task,  'regex', step, index):
                 keep.append(f'{step}.{suffix}')
 
         # Tool-specific keep files
@@ -3849,7 +3844,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 os.remove(path)
 
     ###########################################################################
-    def _setup_tool(self, tool, step, index):
+    def _setup_tool(self, tool, task, step, index):
+
         self.set('arg','step', step)
         self.set('arg','index', index)
 
@@ -3858,9 +3854,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error(f'setup() not found for tool {tool}')
             sys.exit(1)
         func(self)
-
-        #TODO: fix below
-        task = step
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.
@@ -4089,8 +4082,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for index in indexlist[step]:
                     # Setting up tool is optional
                     tool = self.get('flowgraph', flow, step, index, 'tool')
+                    task = self.get('flowgraph', flow, step, index, 'task')
                     if tool not in self.builtin:
-                        self._setup_tool(tool, step, index)
+                        self._setup_tool(tool, task, step, index)
 
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
@@ -4354,7 +4348,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 success = False
             else:
                 # Running command
-                cmdlist = self._makecmd(tool, step, index, extra_options=extra_options)
+                cmdlist = self._makecmd(tool, task, step, index, extra_options=extra_options)
                 proc = subprocess.run(cmdlist)
                 success = proc.returncode == 0
         else:
@@ -4439,16 +4433,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return fullexe
 
     #######################################
-    def _makecmd(self, tool, step, index, extra_options=None):
+    def _makecmd(self, tool, task, step, index, extra_options=None):
         '''
         Constructs a subprocess run command based on eda tool setup.
         Creates a replay script in current directory.
         '''
 
         fullexe = self._getexe(tool)
-
-        #TODO: fix below
-        task = step
 
         self.write_manifest(f"{step}.dump.tcl")
 
