@@ -112,7 +112,12 @@ def setup(chip, mode="batch"):
 
     # Adding requirements
     if is_show or is_screenshot:
-        chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filepath']))
+        if chip.valid('tool', tool, 'var', step, index, 'show_filepath'):
+            chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filepath']))
+        else:
+            incoming_ext = find_incoming_ext(chip)
+            chip.set('tool', tool, 'var', step, index, 'show_filetype', incoming_ext)
+            chip.add('tool', tool, 'input', step, index, f'{design}.{incoming_ext}')
         chip.set('tool', tool, 'var', step, index, 'show_exit', 'true' if is_screenshot else 'false', clobber=False)
         if is_screenshot:
             chip.add('tool', tool, 'output', step, index, design + '.png')
@@ -158,9 +163,27 @@ def pre_process(chip):
     index = chip.get('arg','index')
 
     if (step == "show" or step == "screenshot"):
-        src = chip.get('tool', tool, 'var', step, index, 'show_filepath')[0]
-        dst = "inputs/"+os.path.basename(src)
-        shutil.copy2(src, dst)
+        if chip.valid('tool', tool, 'var', step, index, 'show_filepath'):
+            src = chip.get('tool', tool, 'var', step, index, 'show_filepath')[0]
+            dst = "inputs/"+os.path.basename(src)
+            shutil.copy2(src, dst)
+
+def find_incoming_ext(chip):
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    flow = chip.get('option', 'flow')
+
+    supported_ext = ('gds', 'oas', 'def')
+
+    for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
+        for ext in supported_ext:
+            show_file = chip.find_result(ext, step=input_step, index=input_index)
+            if show_file:
+                return ext
+
+    # Nothing found, just add last one
+    return supported_ext[-1]
 
 ##################################################
 if __name__ == "__main__":

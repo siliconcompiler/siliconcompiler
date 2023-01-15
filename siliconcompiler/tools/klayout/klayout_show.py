@@ -12,7 +12,11 @@ with open('sc_manifest.json', 'r') as f:
 sc_design = sc_cfg["design"]["value"]
 sc_step = sc_cfg['arg']['step']['value']
 sc_index = sc_cfg['arg']['index']['value']
-sc_filename = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filepath']['value'][0]
+if 'show_filepath' in sc_cfg['tool']['klayout']['var'][sc_step][sc_index]:
+    sc_filename = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filepath']['value'][0]
+else:
+    sc_fileext = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filetype']['value'][0]
+    sc_filename = f"inputs/{sc_design}.{sc_fileext}"
 sc_pdk = sc_cfg['option']['pdk']['value']
 sc_stackup = sc_cfg['asic']['stackup']['value']
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
