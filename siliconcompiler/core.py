@@ -291,7 +291,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 in this list.
             input_map (dict of str): Dictionary mapping file extensions to input
                 filetypes. This is used to automatically assign positional
-                source arguments to ['input', ...] keypaths based on their file
+                source arguments to ['input', 'fileset', ...] keypaths based on their file
                 extension. If None, the CLI will not accept positional source
                 arguments.
 
@@ -299,8 +299,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.create_cmdline(progname='sc-show',switchlist=['-input','-cfg'])
             Creates a command line interface for 'sc-show' app.
 
-            >>> chip.create_cmdline(progname='sc', input_map={'v': 'verilog'})
-            All sources ending in .v will be stored in ['input', 'verilog']
+            >>> chip.create_cmdline(progname='sc', input_map={'v': ('rtl', 'verilog')})
+            All sources ending in .v will be stored in ['input', 'rtl', verilog']
         """
 
         # Argparse
@@ -416,15 +416,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Map sources to ['input'] keypath.
         if 'source' in cmdargs:
             for source in cmdargs['source']:
-                _, ext = os.path.splitext(source)
-                ext = ext.lstrip('.')
+                ext = utils.get_file_ext(source)
                 if ext in input_map:
-                    filetype = input_map[ext]
-                    if self.valid('input', filetype):
-                        self.add('input', filetype, source)
+                    fileset, filetype = input_map[ext]
+                    if self.valid('input', fileset, filetype):
+                        self.add('input', fileset, filetype, source)
                     else:
-                        self.set('input', filetype, source)
-                    self.logger.info(f'Source {source} inferred as {filetype}')
+                        self.set('input', fileset, filetype, source)
+                    self.logger.info(f'Source {source} inferred as {fileset}/{filetype}')
                 else:
                     self.logger.warning('Unable to infer input type for '
                         f'{source} based on file extension, ignoring. Use the '
@@ -960,23 +959,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         .. code:: none
 
-            filetype  | fileset   | suffix (case insensitive)
-            ----------|-----------|---------------------------------------------
-            c         | hll       | c,cc,cpp,c++,cp,cxx,hpp
-            bsv       | hll       | bsv
-            scala     | hll       | scala
-            python    | hll       | py
-            verilog   | rtl       | v,vg,sv,verilog
-            vhdl      | rtl       | vhd, vhdl
-            liberty   | timing    | lib, ccs
-            def       | layout    | def
-            lef       | layout    | lef
-            gds       | layout    | gds, gds2, gdsII
-            gerber    | layout    | gbr, gerber
-            cdl       | netlist   | cdl
-            spice     | netlist   | sp
-            vcd       | waveform  | vcd
-            sdc       | constraint| sdc
+            {iotable}
 
         Args:
             fileset (str): File grouping
@@ -984,17 +967,55 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        #TODO: make util function for suffix (same for input/output)
-        #TODO implement suffix lookup
-
-        self.add('input', fileset, filetype, filename)
+        self._add_input_output('input', filename, fileset, filetype)
+    # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
+    input.__doc__= input.__doc__.replace("{iotable}",
+                                         utils.format_fileset_type_table(_metadata.default_iomap))
 
     ###########################################################################
     def output(self, filename, fileset=None, filetype=None):
-        ''' Same as input'''
+        '''Same as input'''
 
+        self._add_input_output('output', filename, fileset, filetype)
+    # Copy input functions __doc__ and replace 'input' with 'output' to make constant
+    output.__doc__ = input.__doc__.replace("input", "output")
 
-        self.add('output', fileset, filetype, filename)
+    ###########################################################################
+    def _add_input_output(self, category, filename, fileset, filetype):
+        '''
+        Adds file to input or output groups.
+        Performs a lookup in the default io map for the fileset and filetype
+        and will use those if they are not provided in the arguments
+        '''
+
+        ext = utils.get_file_ext(filename)
+
+        default_fileset = None
+        default_filetype = None
+        if ext in _metadata.default_iomap:
+            default_fileset, default_filetype = _metadata.default_iomap[ext]
+
+        if not fileset:
+            use_fileset = default_fileset
+        else:
+            use_fileset = fileset
+
+        if not filetype:
+            use_filetype = default_filetype
+        else:
+            use_filetype = filetype
+
+        if not use_fileset or not use_filetype:
+            self.logger.error(f'Unable to infer {category} fileset and/or filetype for '
+                              f'{filename} based on file extension.')
+        elif not fileset and not filetype:
+            self.logger.info(f'{filename} inferred as {use_fileset}/{use_filetype}')
+        elif not filetype:
+            self.logger.info(f'{filename} inferred as filetype {use_filetype}')
+        elif not fileset:
+            self.logger.info(f'{filename} inferred as fileset {use_fileset}')
+
+        self.add(category, use_fileset, use_filetype, filename)
 
     ###########################################################################
     def _find_sc_file(self, filename, missing_ok=False):

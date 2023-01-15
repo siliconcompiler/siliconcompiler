@@ -205,3 +205,24 @@ def get_file_ext(filename):
         filename = os.path.splitext(filename)[0]
     filetype = os.path.splitext(filename)[1].lower().lstrip('.')
     return filetype
+
+def format_fileset_type_table(iomap, indent=12):
+    '''
+    Generate a table to use in the __doc__ of the input function which auto
+    updates based on the iomap
+    '''
+    table  = "filetype  | fileset   | suffix (case insensitive)\n"
+    indent = " " * indent
+    table += f"{indent}----------|-----------|---------------------------------------------\n"
+
+    iobytype = {}
+    for ext, settype in iomap.items():
+        fileset, filetype = settype
+        iobytype.setdefault((fileset, filetype), []).append(ext)
+
+    for settype, exts in iobytype.items():
+        fileset, filetype = settype
+        ext = ",".join(exts)
+        table += f"{indent}{filetype:<10}| {fileset:<10}| {ext}\n"
+
+    return table

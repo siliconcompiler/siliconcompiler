@@ -2,6 +2,7 @@
 import sys
 import os
 import siliconcompiler
+from siliconcompiler._metadata import default_iomap
 
 def main():
     progname = "sc-show"
@@ -30,10 +31,12 @@ def main():
     # Create a base chip class.
     chip = siliconcompiler.Chip(UNSET_DESIGN)
 
-    input_map = {
-        'def': 'def',
-        'gds': 'gds',
-    }
+    # Fill input map with default mapping only for showable files
+    input_map = {}
+    for ext in ('gds', 'def'):
+        if ext in default_iomap:
+            input_map[ext] = default_iomap[ext]
+
     chip.create_cmdline(progname,
                         switchlist=['-design', '-input', '-loglevel', '-cfg'],
                         description=description,
