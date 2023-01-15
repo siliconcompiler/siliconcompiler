@@ -177,7 +177,7 @@ def schema_cfg():
     cfg = schema_asic(cfg)
     cfg = schema_pdk(cfg)
 
-    # Flows
+    # Tool flows
     cfg = schema_tool(cfg)
     cfg = schema_task(cfg)
     cfg = schema_flowgraph(cfg)
@@ -1062,9 +1062,19 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             example=[
                 "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                 "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"],
-            schelp="""Name of the tool name used for task execution. Builtin tool names
-            associated bound to core API functions include: minimum, maximum, join,
-            verify, mux.""")
+            schelp="""Name of the tool name used for task execution. The 'tool' parameter
+            is ignored for builtin tasks.""")
+
+    # task (belonging to tool)
+    scparam(cfg,['flowgraph', flow, step, index, 'task'],
+            sctype='str',
+            shorthelp="Flowgraph: task selection",
+            switch="-flowgraph_task 'flow step <str>'",
+            example=[
+                "cli: -flowgraph_task 'asicflow myplace 0 place'",
+                "api: chip.set('flowgraph','asicflow','myplace','0','task','place')"],
+            schelp="""Name of the tool associated task used for step execution. Builtin
+            task names include: minimum, maximum, join, verify, mux. """)
 
     # flowgraph arguments
     scparam(cfg,['flowgraph', flow, step, index, 'args'],
