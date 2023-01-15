@@ -67,16 +67,16 @@ if { 0 } {
   # Automatic Pin Placement
   ###########################
 
-  if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_h]} {
-    set h_mult [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_h] 0]
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h]} {
+    set h_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h] 0]
     set_pin_thick_multiplier -hor_multiplier $h_mult
   }
-  if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_v]} {
-    set v_mult [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_v] 0]
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v]} {
+    set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v] 0]
     set_pin_thick_multiplier -ver_multiplier $v_mult
   }
-  if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index ppl_constraints]} {
-    foreach pin_constraint [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index ppl_constraints] {
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints]} {
+    foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints] {
       source $pin_constraint
     }
   }
@@ -161,16 +161,16 @@ foreach sc_tie_port [dict get $sc_cfg library $sc_mainlib asic cells tie] {
 # Tap Cells
 ###########################
 
-if { [dict exists $sc_cfg tool $sc_tool {var} $sc_step $sc_index ifp_tapcell] } {
-  source [lindex [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index ifp_tapcell] 0]
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ifp_tapcell] } {
+  source [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ifp_tapcell] 0]
 }
 
 ###########################
 # Global Connections
 ###########################
 
-if { [dict exists $sc_cfg tool $sc_tool {var} $sc_step $sc_index global_connect] } {
-  foreach global_connect [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index global_connect] {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index global_connect] } {
+  foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index global_connect] {
     source $global_connect
   }
 }
@@ -180,8 +180,8 @@ if { [dict exists $sc_cfg tool $sc_tool {var} $sc_step $sc_index global_connect]
 ###########################
 
 if {$openroad_pdn_enable == "True" && \
-    [dict exists $sc_cfg tool $sc_tool {var} $sc_step $sc_index pdn_config]} {
-  foreach pdnconfig [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index pdn_config] {
+    [dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index pdn_config]} {
+  foreach pdnconfig [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index pdn_config] {
     source $pdnconfig
   }
   pdngen -failed_via_report "reports/${sc_design}_pdngen_failed_vias.rpt"
