@@ -87,17 +87,17 @@ def setup(chip, flowname='asicflow'):
     tools = {
         'import' : ['surelog', 'import'],
         'syn' : ['yosys','syn'],
-        'synmin' : ['builtin','minimum'],
+        'synmin' : ['minimum', 'synmin'],
         'floorplan' : ['openroad','floorplan'],
-        'floorplanmin' : ['builtin','minimum'],
+        'floorplanmin' : ['minimum','floorplanmin'],
         'physyn' : ['openroad','physyn'],
-        'physynmin' : ['builtin','minimum'],
+        'physynmin' : ['minimum','physynmin'],
         'place' : ['openroad','place'],
-        'placemin' : ['builtin','minimum'],
+        'placemin' : ['minimum','placemin'],
         'cts' : ['openroad','cts'],
-        'ctsmin' : ['builtin','minimum'],
+        'ctsmin' : ['minimum','ctsmin'],
         'route' : ['openroad','route'],
-        'routemin' : ['builtin','minimum'],
+        'routemin' : ['minimum','routemin'],
         'dfm' : ['openroad','dfm'],
         'export' : ['klayout', 'export']
     }
@@ -109,7 +109,7 @@ def setup(chip, flowname='asicflow'):
     #Remove built in steps where appropriate
     flowpipe = []
     for step in longpipe:
-        if tools[step][0] == 'builtin':
+        if re.search(r'join|maximum|minimum|verify', tools[step][0]):
             if bool(prevstep + "_np" in chip.getkeys('arg','flow')):
                 flowpipe.append(step)
         else:
