@@ -29,5 +29,9 @@
   },
   "klayout": {
     "version": "0.28.3-1"
+  },
+  "sv2v": {
+    "git-url": "https://github.com/zachjs/sv2v.git",
+    "git-commit": "c822d2e8c6806eab28a5c54cdab9f3aa4d7660bd"
   }
 }
