@@ -17,7 +17,6 @@ sc -design gcd \
    -asic_corearea "(10.07,11.2)" \
    -asic_corearea "(90.25,91)" \
    -loglevel "INFO" \
-   -skipcheck \
    -novercheck \
    -quiet \
    -relax \

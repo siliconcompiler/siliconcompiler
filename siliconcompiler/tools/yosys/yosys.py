@@ -302,9 +302,9 @@ def create_vpr_lib(chip):
 def prepare_synthesis_libraries(chip):
 
     tool = 'yosys'
-    task = 'syn'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = step
     delaymodel = chip.get('asic', 'delaymodel')
 
     corner = chip.get('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner')[0]
@@ -360,9 +360,9 @@ def prepare_synthesis_libraries(chip):
 def create_abc_synthesis_constraints(chip):
 
     tool = 'yosys'
-    task = 'syn'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = step
 
     abc_driver = None
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver'):
@@ -392,9 +392,9 @@ def create_abc_synthesis_constraints(chip):
 def get_synthesis_corner(chip):
 
     tool = 'yosys'
-    task = 'syn'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = step
 
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner'):
         return chip.get('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner')[0]
@@ -419,9 +419,9 @@ def get_synthesis_corner(chip):
 def get_dff_liberty_file(chip):
 
     tool = 'yosys'
-    task = 'syn'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = step
 
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'dff_liberty'):
         return chip.get('tool', tool, 'task', task, 'var', step, index, 'dff_liberty')[0]
@@ -446,9 +446,9 @@ def get_dff_liberty_file(chip):
 def get_abc_period(chip):
 
     tool = 'yosys'
-    task = 'syn'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = step
 
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_clock_period'):
         abc_clock_period = chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_clock_period')
@@ -509,9 +509,9 @@ def get_abc_period(chip):
 def get_abc_driver(chip):
 
     tool = 'yosys'
-    task = 'syn'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = step
 
     abc_driver = None
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver'):
