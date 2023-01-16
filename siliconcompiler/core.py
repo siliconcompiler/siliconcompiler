@@ -474,7 +474,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.set(*args, val, clobber=True)
 
     #########################################################################
-    def find_function(self, modulename, funcname, moduletype=None):
+    def find_function(self, modulename, funcname, moduletype=None, modulestep=None):
         '''
         Returns a function attribute from a module on disk.
 
@@ -514,40 +514,42 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
+        # Ensure that SC built-ins are on the $PYTHONPATH (only necessary for local installs)
+        if not self.scroot in sys.path:
+            sys.path.append(self.scroot)
+
         # module search path depends on modtype
+        module = None
         if moduletype is None:
             for item in ('targets', 'flows', 'tools', 'pdks', 'libs', 'checklists'):
-                fullpath = self.find_function(modulename, funcname, module_type=item)
-                if fullpath:
+                try:
+                    module = importlib.import_module(f'{item}.{modulename}')
                     break
+                except ModuleNotFoundError:
+                    pass
         elif moduletype in ('targets','flows', 'pdks', 'libs'):
-            fullpath = self._find_sc_file(f"{moduletype}/{modulename}.py", missing_ok=True)
+            try:
+                module = importlib.import_module(f'{moduletype}.{modulename}')
+            except ModuleNotFoundError:
+                pass
         elif moduletype in ('tools', 'checklists'):
-            fullpath = self._find_sc_file(f"{moduletype}/{modulename}/{modulename}.py", missing_ok=True)
+            modulefile = modulestep if modulestep is not None else modulename
+            try:
+                module = importlib.import_module(f'{moduletype}.{modulename}.{modulefile}')
+            except ModuleNotFoundError:
+                pass
         else:
             self.error(f"Illegal module type '{moduletype}'.")
             return None
 
-        if not fullpath:
+        if not module:
             self.error(f'Could not find module {modulename}')
             return None
 
         # try loading module if found
         self.logger.debug(f"Loading function '{funcname}' from module '{modulename}'")
 
-        try:
-            spec = importlib.util.spec_from_file_location(modulename, fullpath)
-            imported = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(imported)
-
-            if hasattr(imported, funcname):
-                function = getattr(imported, funcname)
-            else:
-                function = None
-            return function
-        except Exception:
-            traceback.print_exc()
-            self.error(f"Module setup failed for '{modulename}'")
+        return getattr(module, funcname, None)
 
     ##########################################################################
     def load_target(self, name):
@@ -3774,23 +3776,24 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg','step', step)
         self.set('arg','index', index)
 
-        # Ensure that SC built-ins are on the $PYTHONPATH (only necessary for local installs)
-        if not self.scroot in sys.path:
-            sys.path.append(self.scroot)
-
         # Generic tool setup.
-        tool_module = importlib.import_module(f'tools.{tool}.{tool}')
-        setup_tool = getattr(tool_module, 'setup', None)
+        setup_tool = self.find_function(tool, 'setup', 'tools')
         if setup_tool:
-            tool_module.setup(self)
+            setup_tool(self)
         else:
             # TODO: Should we update this to 'self.error(..., fatal=True)'?
             self.logger.error(f'setup() not found for tool {tool}')
             sys.exit(1)
+
         # Step/task setup.
-        setup_step = getattr(tool_module, f'setup_{step}', None)
+        try:
+            setup_step = self.find_function(tool, 'setup', 'tools', step)
+        except SiliconCompilerError:
+            setup_step = None
         if setup_step:
             setup_step(self)
+        else:
+            self.logger.warning(f'No setup function in module: tools.{tool}.{step}')
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.

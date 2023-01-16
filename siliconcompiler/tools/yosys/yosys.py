@@ -160,52 +160,6 @@ def setup_fpga(chip):
     # Require that a partname is set for FPGA scripts.
     chip.add('tool', tool, 'require', step, index, ",".join(['fpga', 'partname']))
 
-def setup_syn(chip):
-    ''' Helper method for configs specific to synthesis steps.
-    '''
-
-    tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    design = chip.top()
-
-    # Set yosys script path.
-    chip.set('tool', tool, 'script', step, index, 'sc_syn.tcl', clobber=False)
-
-    # Input/output requirements.
-    chip.set('tool', tool, 'input', step, index, design + '.v')
-    chip.set('tool', tool, 'output', step, index, design + '.vg')
-    chip.add('tool', tool, 'output', step, index, design + '_netlist.json')
-    chip.add('tool', tool, 'output', step, index, design + '.blif')
-
-def setup_syn_vpr(chip):
-    ''' Helper method for configs specific to VPR synthesis steps.
-    '''
-
-    # Currently, VPR synthesis uses the same args as normal ASIC/FPGA synthesis.
-    setup_syn(chip)
-
-def setup_lec(chip):
-    ''' Helper method for configuring LEC steps.
-    '''
-
-    tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    design = chip.top()
-
-    # Set yosys script path.
-    chip.set('tool', tool, 'script', step, index, 'sc_lec.tcl', clobber=False)
-
-    # Input/output requirements.
-    if (not chip.valid('input', 'netlist') or
-        not chip.get('input', 'netlist')):
-        chip.set('tool', tool, 'input', step, index, design + '.vg')
-    if not chip.get('input', 'verilog'):
-        # TODO: Not sure this logic makes sense? Seems like reverse of
-        # what's in TCL
-        chip.set('tool', tool, 'input', step, index, design + '.v')
-
 #############################################
 # Runtime pre processing
 #############################################
