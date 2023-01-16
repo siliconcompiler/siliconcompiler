@@ -41,9 +41,9 @@ def test_flowstatus(scroot, steplist):
     chip.edge(flow, 'import', 'place', head_index='1')
 
     # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
     # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'var', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
 
     # Perform minimum
     chip.node(flow, 'placemin', 'minimum')
@@ -98,9 +98,9 @@ def test_long_branch(scroot):
     chip.edge(flow, 'import', 'place', head_index='1')
 
     # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
     # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'var', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
 
     chip.node(flow, 'cts', 'openroad', index='0')
     chip.node(flow, 'cts', 'openroad', index='1')
@@ -141,9 +141,9 @@ def test_remote(scroot):
 
     chip.set('arg', 'flow', 'place_np', '2')
     # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
     # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'var', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
 
     chip.load_target('freepdk45_demo')
     flow = chip.get('option', 'flow')
