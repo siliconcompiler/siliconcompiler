@@ -2988,7 +2988,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Creates a flowgraph node by binding a step to a tool specific task.
         A tool can be an external executable or one of the built in functions
         in the SiliconCompiler framework). Built in functions include: minimum,
-        maximum, join, mux, verify.
+        maximum, join, mux, verify. The task is set to 'step' if unspecified.
 
         The method modifies the following schema parameters:
 
@@ -3013,10 +3013,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         tasks = self.getkeys('tool', tool, 'task')
 
         if task is None:
-            if len(tasks>1):
-                self.error(f'Unable to resolve task name from {tasks}.')
-            else:
-                task = tasks[0]
+            task = step
 
         self.set('flowgraph', flow, step, str(index), 'task', task)
 
