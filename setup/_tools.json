@@ -18,5 +18,9 @@
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
     "git-commit": "d10b226f3d1dc302d7a95b9c2d77beaece3d3634"
+  },
+  "magic": {
+    "git-url": "https://github.com/RTimothyEdwards/magic.git",
+    "git-commit": "597ef4857a02f1d0748475dcff118801e91b0e88"
   }
 }
