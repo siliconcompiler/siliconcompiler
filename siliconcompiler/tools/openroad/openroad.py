@@ -108,11 +108,9 @@ def setup(chip, mode='batch'):
             chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filepath']))
         else:
             incoming_ext = find_incoming_ext(chip)
-            chip.set('tool', tool, 'var', step, index, 'show_filetype', 'str', field="type")
             chip.set('tool', tool, 'var', step, index, 'show_filetype', incoming_ext)
             chip.add('tool', tool, 'input', step, index, f'{design}.{incoming_ext}')
-        chip.set('tool', tool, 'var', step, index, 'show_exit', 'bool', field="type")
-        chip.set('tool', tool, 'var', step, index, 'show_exit', is_screenshot, clobber=False)
+        chip.set('tool', tool, 'var', step, index, 'show_exit', "true" if is_screenshot else "false", clobber=False)
         if is_screenshot:
             chip.add('tool', tool, 'output', step, index, design + '.png')
             chip.set('tool', tool, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
@@ -470,11 +468,11 @@ def copy_show_files(chip):
     index = chip.get('arg', 'index')
 
     if chip.valid('tool', tool, 'var', step, index, 'show_filepath'):
-        show_file = chip.get('tool', tool, 'var', step, index, 'show_filepath')
-        show_type = chip.get('tool', tool, 'var', step, index, 'show_filetype')
-        show_job = chip.get('tool', tool, 'var', step, index, 'show_job')
-        show_step = chip.get('tool', tool, 'var', step, index, 'show_step')
-        show_index = chip.get('tool', tool, 'var', step, index, 'show_index')
+        show_file = chip.get('tool', tool, 'var', step, index, 'show_filepath')[0]
+        show_type = chip.get('tool', tool, 'var', step, index, 'show_filetype')[0]
+        show_job = chip.get('tool', tool, 'var', step, index, 'show_job')[0]
+        show_step = chip.get('tool', tool, 'var', step, index, 'show_step')[0]
+        show_index = chip.get('tool', tool, 'var', step, index, 'show_index')[0]
 
         # copy source in to keep sc_apr.tcl simple
         dst_file = "inputs/"+chip.top()+"."+show_type

@@ -4261,45 +4261,32 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error(f"Invalid filepath {filepath}.")
             return False
 
-        saved_config = self.schema.copy()
-
         filetype = utils.get_file_ext(filepath)
 
         if filetype not in self.getkeys('option', 'showtool'):
             self.logger.error(f"Filetype '{filetype}' not set up in 'showtool' parameter.")
             return False
 
-        # Setup new show/screenshot flow
-        flow = 'showflow'
-        self.node(flow, 'import', 'nop')
+        saved_config = self.schema.copy()
 
-        show_tool = self.get('option', 'showtool', filetype)
+        # Setup flow parameters
+        self.set('arg', 'flow', 'show_filetype', filetype)
+        self.set('arg', 'flow', 'show_filepath', filepath)
+        self.set('arg', 'flow', 'show_step', sc_step)
+        self.set('arg', 'flow', 'show_index', sc_index)
+        self.set('arg', 'flow', 'show_job', sc_job)
+        self.set('arg', 'flow', 'show_screenshot', "true" if screenshot else "false")
 
         stepname = 'show'
         if screenshot:
             stepname = 'screenshot'
 
-        self.node(flow, stepname, show_tool)
-
-        # remove all old keys
-        for key in ('input', 'output', 'var'):
-            for index in self.getkeys('flowgraph', flow, stepname):
-                if self.valid('tool', show_tool, key, stepname, index):
-                    del self.schema.cfg['tool'][show_tool][key][stepname][index]
-
-        # copy in step/index variables
-        for index in self.getkeys('flowgraph', flow, stepname):
-            self.set('tool', show_tool, 'var', stepname, index, 'show_filetype', 'str', field="type")
-            self.set('tool', show_tool, 'var', stepname, index, 'show_filepath', 'str', field="type")
-            self.set('tool', show_tool, 'var', stepname, index, 'show_step', 'str', field="type")
-            self.set('tool', show_tool, 'var', stepname, index, 'show_index', 'str', field="type")
-            self.set('tool', show_tool, 'var', stepname, index, 'show_job', 'str', field="type")
-
-            self.set('tool', show_tool, 'var', stepname, index, 'show_filetype', filetype)
-            self.set('tool', show_tool, 'var', stepname, index, 'show_filepath', filepath)
-            self.set('tool', show_tool, 'var', stepname, index, 'show_step', sc_step)
-            self.set('tool', show_tool, 'var', stepname, index, 'show_index', sc_index)
-            self.set('tool', show_tool, 'var', stepname, index, 'show_job', sc_job)
+        try:
+            self.load_flow('showflow')
+        except:
+            # restore environment
+            self.schema = saved_config
+            return False
 
         # Override enviroment
         self.set('option', 'flow', 'showflow', clobber=True)
@@ -4308,7 +4295,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         # build new job name
-        sc_job = self.get('option', 'jobname')
         self.set('option', 'jobname', f'_{stepname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
 
         # run show flow

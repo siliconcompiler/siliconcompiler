@@ -13,16 +13,16 @@ sc_design = sc_cfg["design"]["value"]
 sc_step = sc_cfg['arg']['step']['value']
 sc_index = sc_cfg['arg']['index']['value']
 if 'show_filepath' in sc_cfg['tool']['klayout']['var'][sc_step][sc_index]:
-    sc_filename = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filepath']['value']
+    sc_filename = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filepath']['value'][0]
 else:
-    sc_fileext = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filetype']['value']
+    sc_fileext = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filetype']['value'][0]
     sc_filename = f"inputs/{sc_design}.{sc_fileext}"
 sc_pdk = sc_cfg['option']['pdk']['value']
 sc_stackup = sc_cfg['asic']['stackup']['value']
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
 sc_libtype = list(sc_cfg['library'][sc_mainlib]['asic']['footprint'].keys())[0]
 
-sc_exit = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_exit']['value'] == "true"
+sc_exit = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_exit']['value'][0] == "true"
 
 try:
     tech_file = sc_cfg['pdk'][sc_pdk]['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
@@ -103,16 +103,12 @@ if lyp_path:
     layout_view.load_layer_props(lyp_path, True)
 
 # If 'screenshot' mode is set, save image and exit.
-try:
-    if sc_step == 'screenshot':
-        # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
-        horizontal_resolution = int(sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_horizontal_resolution']['value'][0])
-        vertical_resolution = int(sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_vertical_resolution']['value'][0])
-        gds_img = layout_view.get_image(horizontal_resolution, vertical_resolution)
-        gds_img.save(f'outputs/{sc_design}.png', 'PNG')
-except Exception:
-    # 'screenshot' var may not be defined.
-    pass
+if sc_step == 'screenshot':
+    # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
+    horizontal_resolution = int(sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_horizontal_resolution']['value'][0])
+    vertical_resolution = int(sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_vertical_resolution']['value'][0])
+    gds_img = layout_view.get_image(horizontal_resolution, vertical_resolution)
+    gds_img.save(f'outputs/{sc_design}.png', 'PNG')
 
 if sc_exit:
     app.exit(0)
