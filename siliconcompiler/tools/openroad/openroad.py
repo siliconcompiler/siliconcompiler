@@ -112,6 +112,7 @@ def setup(chip, mode='batch'):
             chip.set('tool', tool, 'var', step, index, 'show_filetype', incoming_ext)
             chip.add('tool', tool, 'input', step, index, f'{design}.{incoming_ext}')
         chip.set('tool', tool, 'var', step, index, 'show_exit', 'bool', field="type")
+        chip.set('tool', tool, 'var', step, index, 'show_exit', is_screenshot, clobber=False)
         if is_screenshot:
             chip.add('tool', tool, 'output', step, index, design + '.png')
             chip.set('tool', tool, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
