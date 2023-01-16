@@ -10,7 +10,11 @@ source ./sc_manifest.tcl
 ##############################
 
 set sc_design     [sc_top]
-set sc_constraint [dict get $sc_cfg input fpga xdc]
+if {[dict exists $sc_cfg input fpga xdc]} {
+    set sc_constraint [dict get $sc_cfg input fpga xdc]
+} else {
+    set sc_constraint ""
+}
 set sc_partname   [dict get $sc_cfg fpga partname]
 set sc_step       [dict get $sc_cfg arg step]
 set sc_index      [dict get $sc_cfg arg index]
@@ -34,11 +38,13 @@ if {$sc_step == "syn"} {
     set_property top $sc_design [current_fileset]
 
     # add constraints
-    if {[string equal [get_filesets -quiet constrs_1] ""]} {
-	create_fileset -constrset constrs_1
-    }
-    foreach item $sc_constraint {
-	add_files -norecurse -fileset [current_fileset] $item
+    if {$sc_constraint != ""} {
+        if {[string equal [get_filesets -quiet constrs_1] ""]} {
+            create_fileset -constrset constrs_1
+        }
+        foreach item $sc_constraint {
+            add_files -norecurse -fileset [current_fileset] $item
+        }
     }
 
     # run synthesis
@@ -57,7 +63,11 @@ if {$sc_step == "syn"} {
 	power_opt_design
 	route_design
     } elseif {$sc_step == "bitstream"} {
-	write_bitstream -force -file "outputs/${sc_design}.bit"
+        if {$sc_constraint != ""} {
+            write_bitstream -force -file "outputs/${sc_design}.bit"
+        } else {
+            puts "WARNING: unable to write bitstream without supplying constraints"
+        }
     } else {
 	puts "ERROR: step not supported"
     }
