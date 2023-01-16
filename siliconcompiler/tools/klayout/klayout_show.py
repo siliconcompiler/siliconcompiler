@@ -13,19 +13,16 @@ sc_design = sc_cfg["design"]["value"]
 sc_step = sc_cfg['arg']['step']['value']
 sc_index = sc_cfg['arg']['index']['value']
 if 'show_filepath' in sc_cfg['tool']['klayout']['var'][sc_step][sc_index]:
-    sc_filename = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filepath']['value'][0]
+    sc_filename = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filepath']['value']
 else:
-    sc_fileext = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filetype']['value'][0]
+    sc_fileext = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filetype']['value']
     sc_filename = f"inputs/{sc_design}.{sc_fileext}"
 sc_pdk = sc_cfg['option']['pdk']['value']
 sc_stackup = sc_cfg['asic']['stackup']['value']
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
 sc_libtype = list(sc_cfg['library'][sc_mainlib]['asic']['footprint'].keys())[0]
 
-sc_exit = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_exit']['value'][0] == "true"
-
-# correct file path
-sc_filename = "inputs/"+os.path.basename(sc_filename)
+sc_exit = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_exit']['value'] == "true"
 
 try:
     tech_file = sc_cfg['pdk'][sc_pdk]['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]

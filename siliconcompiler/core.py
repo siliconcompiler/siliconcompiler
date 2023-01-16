@@ -4233,20 +4233,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         sc_index = self.get('arg', 'index')
         if not sc_index:
             sc_index = "0"
+        sc_job = self.get('option', 'jobname')
 
         # Finding last layout if no argument specified
         if filename is None:
             self.logger.info('Searching build directory for layout to show.')
-            design = self.top()
-            # TODO: keeping the below logic for backwards compatibility. Once
-            # all flows/examples register their outputs in ['output', ...], we
-            # can fully switch over to the generic logic.
-            lastdir = self._getworkdir(step=sc_step, index=sc_index)
 
             for ext in self.getkeys('option', 'showtool'):
-                filepath = f"{lastdir}/outputs/{design}.{ext}"
-                if os.path.isfile(filepath):
-                    filename = filepath
+                filename = self.find_result(ext, step=sc_step, index=sc_index, jobname=sc_job)
+                if filename:
                     break
             if not filename:
                 # Generic logic
@@ -4268,18 +4263,43 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         saved_config = self.schema.copy()
 
-        self.set('arg', 'flow', 'show_filepath', filepath, clobber=True)
-        self.set('arg', 'flow', 'show_screenshot', str(screenshot).lower(), clobber=True)
+        filetype = utils.get_file_ext(filepath)
+
+        if filetype not in self.getkeys('option', 'showtool'):
+            self.logger.error(f"Filetype '{filetype}' not set up in 'showtool' parameter.")
+            return False
+
+        # Setup new show/screenshot flow
+        flow = 'showflow'
+        self.node(flow, 'import', 'nop')
+
+        show_tool = self.get('option', 'showtool', filetype)
+
+        stepname = 'show'
         if screenshot:
             stepname = 'screenshot'
-        else:
-            stepname = 'show'
-        try:
-            self.load_flow('showflow')
-        except:
-            # restore environment
-            self.schema = saved_config
-            return False
+
+        self.node(flow, stepname, show_tool)
+
+        # remove all old keys
+        for key in ('input', 'output', 'var'):
+            for index in self.getkeys('flowgraph', flow, stepname):
+                if self.valid('tool', show_tool, key, stepname, index):
+                    del self.schema.cfg['tool'][show_tool][key][stepname][index]
+
+        # copy in step/index variables
+        for index in self.getkeys('flowgraph', flow, stepname):
+            self.set('tool', show_tool, 'var', stepname, index, 'show_filetype', 'str', field="type")
+            self.set('tool', show_tool, 'var', stepname, index, 'show_filepath', 'str', field="type")
+            self.set('tool', show_tool, 'var', stepname, index, 'show_step', 'str', field="type")
+            self.set('tool', show_tool, 'var', stepname, index, 'show_index', 'str', field="type")
+            self.set('tool', show_tool, 'var', stepname, index, 'show_job', 'str', field="type")
+
+            self.set('tool', show_tool, 'var', stepname, index, 'show_filetype', filetype)
+            self.set('tool', show_tool, 'var', stepname, index, 'show_filepath', filepath)
+            self.set('tool', show_tool, 'var', stepname, index, 'show_step', sc_step)
+            self.set('tool', show_tool, 'var', stepname, index, 'show_index', sc_index)
+            self.set('tool', show_tool, 'var', stepname, index, 'show_job', sc_job)
 
         # Override enviroment
         self.set('option', 'flow', 'showflow', clobber=True)

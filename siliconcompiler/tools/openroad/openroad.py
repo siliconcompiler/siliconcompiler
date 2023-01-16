@@ -108,13 +108,13 @@ def setup(chip, mode='batch'):
             chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filepath']))
         else:
             incoming_ext = find_incoming_ext(chip)
+            chip.set('tool', tool, 'var', step, index, 'show_filetype', 'str', field="type")
             chip.set('tool', tool, 'var', step, index, 'show_filetype', incoming_ext)
             chip.add('tool', tool, 'input', step, index, f'{design}.{incoming_ext}')
-        chip.set('tool', tool, 'var', step, index, 'show_exit', 'true' if is_screenshot else 'false', clobber=False)
+        chip.set('tool', tool, 'var', step, index, 'show_exit', 'bool', field="type")
         if is_screenshot:
             chip.add('tool', tool, 'output', step, index, design + '.png')
             chip.set('tool', tool, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
-
     if chip.get('option', 'nodisplay'):
         # Tells QT to use the offscreen platform if nodisplay is used
         chip.set('tool', tool, 'env', step, index, 'QT_QPA_PLATFORM', 'offscreen')
@@ -469,12 +469,17 @@ def copy_show_files(chip):
     index = chip.get('arg', 'index')
 
     if chip.valid('tool', tool, 'var', step, index, 'show_filepath'):
-        show_file = chip.get('tool', tool, 'var', step, index, 'show_filepath')[0]
-        show_type = chip.get('tool', tool, 'var', step, index, 'show_filetype')[0]
+        show_file = chip.get('tool', tool, 'var', step, index, 'show_filepath')
+        show_type = chip.get('tool', tool, 'var', step, index, 'show_filetype')
+        show_job = chip.get('tool', tool, 'var', step, index, 'show_job')
+        show_step = chip.get('tool', tool, 'var', step, index, 'show_step')
+        show_index = chip.get('tool', tool, 'var', step, index, 'show_index')
+
+        # copy source in to keep sc_apr.tcl simple
         dst_file = "inputs/"+chip.top()+"."+show_type
         shutil.copy2(show_file, dst_file)
-        sdc_file = os.path.dirname(show_file)+"/"+chip.top()+".sdc"
-        if os.path.exists(sdc_file):
+        sdc_file = chip.find_result('sdc', show_step, jobname=show_job, index=show_index)
+        if sdc_file and os.path.exists(sdc_file):
             shutil.copy2(sdc_file, "inputs/"+chip.top()+".sdc")
 
 def find_incoming_ext(chip):

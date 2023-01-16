@@ -116,9 +116,12 @@ def setup(chip, mode="batch"):
             chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filepath']))
         else:
             incoming_ext = find_incoming_ext(chip)
+            chip.set('tool', tool, 'var', step, index, 'show_filetype', 'str', field="type")
+            chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filetype']))
             chip.set('tool', tool, 'var', step, index, 'show_filetype', incoming_ext)
             chip.add('tool', tool, 'input', step, index, f'{design}.{incoming_ext}')
-        chip.set('tool', tool, 'var', step, index, 'show_exit', 'true' if is_screenshot else 'false', clobber=False)
+        chip.set('tool', tool, 'var', step, index, 'show_exit', 'bool', field="type")
+        chip.set('tool', tool, 'var', step, index, 'show_exit', is_screenshot)
         if is_screenshot:
             chip.add('tool', tool, 'output', step, index, design + '.png')
             chip.set('tool', tool, 'var', step, index, 'show_horizontal_resolution', '1024', clobber=False)
@@ -151,22 +154,6 @@ def setup(chip, mode="batch"):
 def parse_version(stdout):
     # KLayout 0.26.11
     return stdout.split()[1]
-
-################################
-# Pre process
-################################
-
-def pre_process(chip):
-
-    tool = 'klayout'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    if (step == "show" or step == "screenshot"):
-        if chip.valid('tool', tool, 'var', step, index, 'show_filepath'):
-            src = chip.get('tool', tool, 'var', step, index, 'show_filepath')[0]
-            dst = "inputs/"+os.path.basename(src)
-            shutil.copy2(src, dst)
 
 def find_incoming_ext(chip):
 
