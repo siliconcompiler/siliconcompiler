@@ -15,7 +15,6 @@ def adjust_exe_options(chip, headless):
     for step in ('show', 'screenshot'):
         # adjust options to ensure programs exit
         for tool in ('klayout', 'openroad'):
-            chip.set('tool', tool, 'var', step, '0', 'show_exit', 'bool', field="type")
             chip.set('tool', tool, 'var', step, '0', 'show_exit', 'true')
 
 @pytest.fixture
