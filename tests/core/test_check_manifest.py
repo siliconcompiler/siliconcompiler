@@ -86,8 +86,8 @@ def test_check_missing_file_param():
     setup_tool = chip.find_function('yosys', 'setup', 'tools')
     setup_tool(chip)
 
-    chip.set('tool', 'yosys', 'input', 'syn', '0', [])
-    chip.set('tool', 'yosys', 'output', 'syn', '0',[])
+    chip.set('tool', 'yosys', 'task', 'syn', 'input', 'syn', '0', [])
+    chip.set('tool', 'yosys', 'task', 'syn', 'output', 'syn', '0',[])
 
     # not real file, will cause error
     libname = 'nangate45'
@@ -117,13 +117,13 @@ def merge_flow_chip():
     chip.set('tool', 'bar', 'exe', 'foo')
     chip.set('tool', 'baz', 'exe', 'baz')
 
-    chip.set('tool', 'baz', 'input', 'export', '0', ['foo.out', 'bar.out'])
+    chip.set('tool', 'baz', 'task', 'export', 'input', 'export', '0', ['foo.out', 'bar.out'])
 
     return chip
 
 def test_merged_graph_good(merge_flow_chip):
-    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'bar.out')
-    merge_flow_chip.set('tool', 'bar', 'output', 'parallel2', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'parallel1', '0', 'bar.out')
+    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'parallel2', '0', 'foo.out')
 
     assert merge_flow_chip.check_manifest()
 
@@ -150,14 +150,14 @@ def test_merged_graph_good_steplist():
 
 def test_merged_graph_bad_same(merge_flow_chip):
     # Two merged steps can't output the same thing
-    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'foo.out')
-    merge_flow_chip.set('tool', 'bar', 'output', 'parallel2', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'parallel1', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'parallel2', '0', 'foo.out')
 
     assert not merge_flow_chip.check_manifest()
 
 def test_merged_graph_bad_missing(merge_flow_chip):
     # bar doesn't provide necessary output
-    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'parallel1', '0', 'foo.out')
 
     assert not merge_flow_chip.check_manifest()
 
