@@ -2163,6 +2163,23 @@
                         "type": "str",
                         "value": null
                     },
+                    "task": {
+                        "defvalue": null,
+                        "example": [
+                            "cli: -flowgraph_task 'asicflow myplace 0 place'",
+                            "api: chip.set('flowgraph','asicflow','myplace','0','task','place')"
+                        ],
+                        "help": "Name of the tool associated task used for step execution. Builtin\ntask names include: minimum, maximum, join, verify, mux.",
+                        "lock": "false",
+                        "notes": null,
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: task selection",
+                        "signature": null,
+                        "switch": "-flowgraph_task 'flow step <str>'",
+                        "type": "str",
+                        "value": null
+                    },
                     "timeout": {
                         "defvalue": null,
                         "example": [
@@ -2187,7 +2204,7 @@
                             "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                             "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"
                         ],
-                        "help": "Name of the tool name used for task execution. Builtin tool names\nassociated bound to core API functions include: minimum, maximum, join,\nverify, mux.",
+                        "help": "Name of the tool name used for task execution. The 'tool' parameter\nis ignored for builtin tasks.",
                         "lock": "false",
                         "notes": null,
                         "require": null,
@@ -6001,8 +6018,8 @@
                             "default": {
                                 "defvalue": "false",
                                 "example": [
-                                    "cli: -tool_task_continue 'verilator lint true'",
-                                    "api: chip.set('tool','task','verilator','lint','lint','0','continue', true)"
+                                    "cli: -tool_task_continue 'verilator lint lint 0 true'",
+                                    "api: chip.set('tool','verilator','task','lint','continue','lint','0', true)"
                                 ],
                                 "help": "Directs flow to continue even if errors are encountered during task. The default\nbehavior is for SC to exit on error.",
                                 "lock": "false",
@@ -6023,8 +6040,8 @@
                                 "default": {
                                     "defvalue": null,
                                     "example": [
-                                        "cli: -tool_task_env 'openroad cts 0 MYVAR 42'",
-                                        "api: chip.set('tool','task','openroad','env','cts','0','MYVAR','42')"
+                                        "cli: -tool_task_env 'openroad cts cts 0 MYVAR 42'",
+                                        "api: chip.set('tool','openroad','task','cts','env','cts','0','MYVAR','42')"
                                     ],
                                     "help": "Environment variables to set for individual tasks. Keys and values\nshould be set in accordance with the task's documentation. Most\ntasks do not require extra environment variables to function.",
                                     "lock": "false",
@@ -6049,8 +6066,8 @@
                                     "date": [],
                                     "defvalue": [],
                                     "example": [
-                                        "cli: -tool_task_file 'openroad floorplan 0 macroplace macroplace.tcl'",
-                                        "api: chip.set('tool','task','openroad','file','floorplan','0','macroplace','macroplace.tcl')"
+                                        "cli: -tool_task_file 'openroad floorplan floorplan 0 macroplace macroplace.tcl'",
+                                        "api: chip.set('tool','openroad','task','floorplan','file','floorplan','0','macroplace', 'macroplace.tcl')"
                                     ],
                                     "filehash": [],
                                     "hashalgo": "sha256",
@@ -6076,8 +6093,8 @@
                                 "date": [],
                                 "defvalue": [],
                                 "example": [
-                                    "cli: -tool_task_input 'openroad place 0 oh_add.def'",
-                                    "api: chip.set('tool','task','openroad','input','place','0','oh_add.def')"
+                                    "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
+                                    "api: chip.set('tool','openroad','task','place','input','place','0','oh_add.def')"
                                 ],
                                 "filehash": [],
                                 "hashalgo": "sha256",
@@ -6099,8 +6116,8 @@
                             "default": {
                                 "defvalue": [],
                                 "example": [
-                                    "cli: -tool_task_keep 'surelog import 0 slp_all'",
-                                    "api: chip.set('tool','task','surelog','script','import','0','slpp_all')"
+                                    "cli: -tool_task_keep 'surelog import import 0 slp_all'",
+                                    "api: chip.set('tool','surelog','task','import','script','import','0','slpp_all')"
                                 ],
                                 "help": "Names of additional files and directories in the work directory that\nshould be kept when :keypath:`option, clean` is true.",
                                 "lock": "false",
@@ -6120,8 +6137,8 @@
                             "default": {
                                 "defvalue": [],
                                 "example": [
-                                    "cli: -tool_task_option 'openroad cts 0 -no_init'",
-                                    "api: chip.set('task','openroad','option','cts','0','-no_init')"
+                                    "cli: -tool_task_option 'openroad cts cts 0 -no_init'",
+                                    "api: chip.set('tool','openroad','task','cts','option','cts','0','-no_init')"
                                 ],
                                 "help": "List of command line options for the task executable, specified on\na per task and per step basis. Options must not include spaces.\nFor multiple argument options, each option is a separate list element.",
                                 "lock": "false",
@@ -6144,8 +6161,8 @@
                                 "date": [],
                                 "defvalue": [],
                                 "example": [
-                                    "cli: -tool_task_output 'openroad place 0 oh_add.def'",
-                                    "api: chip.set('tool','task','openroad','output','place','0','oh_add.def')"
+                                    "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
+                                    "api: chip.set('tool','openroad','task','place','output','place','0','oh_add.def')"
                                 ],
                                 "filehash": [],
                                 "hashalgo": "sha256",
@@ -6170,8 +6187,8 @@
                                 "date": [],
                                 "defvalue": [],
                                 "example": [
-                                    "cli: -tool_task_postscript 'yosys syn 0 syn_post.tcl'",
-                                    "api: chip.set('tool','task','yosys','postscript','syn','0','syn_post.tcl')"
+                                    "cli: -tool_task_postscript 'yosys syn syn 0 syn_post.tcl'",
+                                    "api: chip.set('tool','yosys','task','syn','postscript','syn','0','syn_post.tcl')"
                                 ],
                                 "filehash": [],
                                 "hashalgo": "sha256",
@@ -6196,8 +6213,8 @@
                                 "date": [],
                                 "defvalue": [],
                                 "example": [
-                                    "cli: -tool_task_prescript 'yosys syn 0 syn_pre.tcl'",
-                                    "api: chip.set('tool','task','yosys','prescript','syn','0','syn_pre.tcl')"
+                                    "cli: -tool_task_prescript 'yosys syn syn 0 syn_pre.tcl'",
+                                    "api: chip.set('tool','yosys','task','syn','prescript','syn','0','syn_pre.tcl')"
                                 ],
                                 "filehash": [],
                                 "hashalgo": "sha256",
@@ -6219,8 +6236,8 @@
                             "default": {
                                 "defvalue": [],
                                 "example": [
-                                    "cli: -tool_task_refdir 'yosys syn 0 ./myref'",
-                                    "api:  chip.set('tool','task','yosys','refdir','syn','0','./myref')"
+                                    "cli: -tool_task_refdir 'yosys syn syn 0 ./myref'",
+                                    "api:  chip.set('tool','yosys','task','syn','refdir','syn','0','./myref')"
                                 ],
                                 "help": "Path to directories containing reference flow scripts, specified\non a per step and index basis.",
                                 "lock": "false",
@@ -6241,8 +6258,8 @@
                                 "default": {
                                     "defvalue": [],
                                     "example": [
-                                        "cli: -tool_task_regex 'openroad place 0 errors -v ERROR'",
-                                        "api: chip.set('tool','task','openroad','regex','place','0','errors','-v ERROR')"
+                                        "cli: -tool_task_regex 'openroad place place 0 errors -v ERROR'",
+                                        "api: chip.set('tool','openroad','task','place','regex','errors','place','0','-v ERROR')"
                                     ],
                                     "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('task', 'openroad', 'regex', 'place', '0', 'warnings', [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`task, <task>,\nreport` parameter for those metrics, if not already present.",
                                     "lock": "false",
@@ -6267,8 +6284,8 @@
                                     "date": [],
                                     "defvalue": [],
                                     "example": [
-                                        "cli: -tool_task_report 'openroad place 0 holdtns place.log'",
-                                        "api: chip.set('tool','task','openroad','report','syn','0','holdtns','place.log')"
+                                        "cli: -tool_task_report 'openroad place place 0 holdtns place.log'",
+                                        "api: chip.set('tool','openroad','task','place','report','place','0','holdtns','place.log')"
                                     ],
                                     "filehash": [],
                                     "hashalgo": "sha256",
@@ -6291,8 +6308,8 @@
                             "default": {
                                 "defvalue": [],
                                 "example": [
-                                    "cli: -tool_task_require 'openroad cts 0 design'",
-                                    "api: chip.set('tool','task','openroad','require','cts','0','design')"
+                                    "cli: -tool_task_require 'openroad cts cts 0 design'",
+                                    "api: chip.set('tool','openroad', 'task','cts','require','cts','0','design')"
                                 ],
                                 "help": "List of keypaths to required task parameters. The list is used\nby check() to verify that all parameters have been set up before\nstep execution begins.",
                                 "lock": "false",
@@ -6315,8 +6332,8 @@
                                 "date": [],
                                 "defvalue": [],
                                 "example": [
-                                    "cli: -tool_task_script 'yosys syn 0 syn.tcl'",
-                                    "api: chip.set('tool','task','yosys','script','syn','0','syn.tcl')"
+                                    "cli: -tool_task_script 'yosys syn syn 0 syn.tcl'",
+                                    "api: chip.set('tool','yosys','task','syn','script','syn','0','syn.tcl')"
                                 ],
                                 "filehash": [],
                                 "hashalgo": "sha256",
@@ -6339,8 +6356,8 @@
                                 "destination": {
                                     "defvalue": "log",
                                     "example": [
-                                        "cli: -tool_task_stderr_destination 'ghdl import 0 log'",
-                                        "api: chip.set('tool','task','ghdl','stderr','import','0','destination','log')"
+                                        "cli: -tool_task_stderr_destination 'ghdl import import 0 log'",
+                                        "api: chip.set('tool',ghdl','task','import','stderr','import','0','destination','log')"
                                     ],
                                     "help": "Defines where to direct the output generated over stderr.\nSupported options are:\nnone: the stream generated to STDERR is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display output: the generated stream is\nstored in outputs/<design>.<suffix>",
                                     "lock": "false",
@@ -6356,8 +6373,8 @@
                                 "suffix": {
                                     "defvalue": "log",
                                     "example": [
-                                        "cli: -tool_task_stderr_suffix 'ghdl import 0 log'",
-                                        "api: chip.set('tool','task','ghdl','stderr','import','0','suffix','log')"
+                                        "cli: -tool_task_stderr_suffix 'ghdl import import 0 log'",
+                                        "api: chip.set('tool','ghdl','task','import','stderr','import','0','suffix','log')"
                                     ],
                                     "help": "Specifies the file extension for the content redirected from stderr.",
                                     "lock": "false",
@@ -6379,8 +6396,8 @@
                                 "destination": {
                                     "defvalue": "log",
                                     "example": [
-                                        "cli: -tool_task_stdout_destination 'ghdl import 0 log'",
-                                        "api: chip.set('tool','task','ghdl','stdout','import','0','destination','log')"
+                                        "cli: -tool_task_stdout_destination 'ghdl import import 0 log'",
+                                        "api: chip.set('tool','ghdl','task','import','stdout','import','0','destination','log')"
                                     ],
                                     "help": "Defines where to direct the output generated over stdout.\nSupported options are:\nnone: the stream generated to STDOUT is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display output: the generated stream is stored\nin outputs/<design>.<suffix>",
                                     "lock": "false",
@@ -6396,8 +6413,8 @@
                                 "suffix": {
                                     "defvalue": "log",
                                     "example": [
-                                        "cli: -tool_task_stdout_suffix 'ghdl import 0 log'",
-                                        "api: chip.set('tool','task','ghdl','stdout','import','0','suffix','log')"
+                                        "cli: -tool_task_stdout_suffix 'ghdl import import 0 log'",
+                                        "api: chip.set('tool',ghdl','task','import','stdout','import','0','suffix','log')"
                                     ],
                                     "help": "Specifies the file extension for the content redirected from stdout.",
                                     "lock": "false",
@@ -6418,8 +6435,8 @@
                             "default": {
                                 "defvalue": null,
                                 "example": [
-                                    "cli: -tool_task_threads 'magic drc 0 64'",
-                                    "api: chip.set('tool','task','magic','threads','drc','0','64')"
+                                    "cli: -tool_task_threads 'magic drc drc 0 64'",
+                                    "api: chip.set('tool','magic','task', 'drc','threads','drc','0','64')"
                                 ],
                                 "help": "Thread parallelism to use for execution specified on a per task and per\nstep basis. If not specified, SC queries the operating system and sets\nthe threads based on the maximum thread count supported by the\nhardware.",
                                 "lock": "false",
@@ -6440,8 +6457,8 @@
                                 "default": {
                                     "defvalue": [],
                                     "example": [
-                                        "cli: -tool_task_variable 'openroad cts 0 myvar 42'",
-                                        "api: chip.set('tool','task','openroad','var','cts','0','myvar','42')"
+                                        "cli: -tool_task_variable 'openroad cts cts 0 myvar 42'",
+                                        "api: chip.set('tool','openroad','task','cts','var','cts','0','myvar','42')"
                                     ],
                                     "help": "Task script variables specified as key value pairs. Variable\nnames and value types must match the name and type of task and reference\nscript consuming the variable.",
                                     "lock": "false",
@@ -6462,8 +6479,8 @@
                             "default": {
                                 "defvalue": [],
                                 "example": [
-                                    "cli: -tool_task_warningoff 'verilator lint COMBDLY'",
-                                    "api: chip.set('tool','task','verilator','lint','lint','0','warningoff','COMBDLY')"
+                                    "cli: -tool_task_warningoff 'verilator lint lint 0 COMBDLY'",
+                                    "api: chip.set('tool','verilator','task','lint','warningoff','lint','0','COMBDLY')"
                                 ],
                                 "help": "A list of tool warnings for which printing should be suppressed.\nGenerally this is done on a per design basis after review has\ndetermined that warning can be safely ignored The code for turning\noff warnings can be found in the specific task reference manual.",
                                 "lock": "false",
