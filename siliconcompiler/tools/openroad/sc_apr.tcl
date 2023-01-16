@@ -168,8 +168,6 @@ if {[dict exists $sc_cfg tool $sc_tool {var} $sc_step $sc_index dont_touch]} {
   set openroad_dont_touch [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index dont_touch]
 }
 
-set sc_batch [expr ![string match "show*" $sc_step]]
-
 ###############################
 # Optional
 ###############################
@@ -227,8 +225,6 @@ if {[file exists "inputs/$sc_design.odb"]} {
       # Floorplan initialize handled separately in sc_floorplan.tcl
       set sc_def [lindex [dict get $sc_cfg input layout def] 0]
       read_def $sc_def
-    } elseif {$sc_step == "showdef"} {
-      read_def $env(SC_FILENAME)
     }
   }
 }
@@ -290,7 +286,16 @@ if {$sc_step != "floorplan"} {
   set_routing_layers -clock "${openroad_grt_clock_min_layer}-${openroad_grt_clock_max_layer}"
 }
 
-if {$sc_batch} {
+if { $sc_step == "show" || $sc_step == "screenshot" } {
+  if { $sc_step == "screenshot" } {
+    source "$sc_refdir/sc_screenshot.tcl"
+  }
+
+  set show_exit [lindex [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index show_exit] 0]
+  if { $show_exit == "true" } {
+    exit
+  }
+} else {
   ###############################
   # Source Step Script
   ###############################

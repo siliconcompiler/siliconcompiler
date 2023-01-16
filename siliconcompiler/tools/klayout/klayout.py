@@ -78,7 +78,9 @@ def setup(chip, mode="batch"):
     else:
         klayout_exe = 'klayout'
 
-    if mode == 'show':
+    is_show = mode == 'show' or step == 'show'
+    is_screenshot = mode == 'screenshot' or step == 'screenshot'
+    if is_show or is_screenshot:
         clobber = False
         script = 'klayout_show.py'
         option = ['-nc', '-rm']
@@ -109,7 +111,20 @@ def setup(chip, mode="batch"):
         chip.add('tool', tool, 'output', step, index, design + '.gds')
 
     # Adding requirements
-    if mode != 'show':
+    if is_show or is_screenshot:
+        if chip.valid('tool', tool, 'var', step, index, 'show_filepath'):
+            chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filepath']))
+        else:
+            incoming_ext = find_incoming_ext(chip)
+            chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filetype']))
+            chip.set('tool', tool, 'var', step, index, 'show_filetype', incoming_ext)
+            chip.add('tool', tool, 'input', step, index, f'{design}.{incoming_ext}')
+        chip.set('tool', tool, 'var', step, index, 'show_exit', "true" if is_screenshot else "false", clobber=False)
+        if is_screenshot:
+            chip.add('tool', tool, 'output', step, index, design + '.png')
+            chip.set('tool', tool, 'var', step, index, 'show_horizontal_resolution', '1024', clobber=False)
+            chip.set('tool', tool, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
+    else:
         targetlibs = chip.get('asic', 'logiclib')
         stackup = chip.get('asic', 'stackup')
         pdk = chip.get('option', 'pdk')
@@ -131,16 +146,6 @@ def setup(chip, mode="batch"):
     chip.set('tool', tool, 'regex', step, index, 'errors', r'ERROR', clobber=False)
 
 ################################
-#  Custom runtime options
-################################
-
-def runtime_options(chip):
-    '''
-    Custom runtime options, returns list of command line options.
-    '''
-    return []
-
-################################
 # Version Check
 ################################
 
@@ -148,6 +153,22 @@ def parse_version(stdout):
     # KLayout 0.26.11
     return stdout.split()[1]
 
+def find_incoming_ext(chip):
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    flow = chip.get('option', 'flow')
+
+    supported_ext = ('gds', 'oas', 'def')
+
+    for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
+        for ext in supported_ext:
+            show_file = chip.find_result(ext, step=input_step, index=input_index)
+            if show_file:
+                return ext
+
+    # Nothing found, just add last one
+    return supported_ext[-1]
 
 ##################################################
 if __name__ == "__main__":

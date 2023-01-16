@@ -1189,7 +1189,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         <dir>/<design>/<jobname>/<step>/<index>/outputs/<design>.filetype
 
         Args:
-            filetype (str): File extension (.v, .def, etc)
+            filetype (str): File extension (v, def, etc)
             step (str): Task step name ('syn', 'place', etc)
             jobname (str): Jobid directory name
             index (str): Task index
@@ -1198,7 +1198,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Returns absolute path to file.
 
         Examples:
-            >>> manifest_filepath = chip.find_result('.vg', 'syn')
+            >>> manifest_filepath = chip.find_result('vg', 'syn')
            Returns the absolute path to the manifest.
         """
         if jobname is None:
@@ -2851,12 +2851,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             img_data = None
             # Need to be able to search for something showable by KLayout,
             # otherwise the extra_options don't make sense.
-            filename = self._find_showable_output('klayout')
-            if filename and not self.get('option', 'nodisplay'):
-                success = self.show(filename, ['-rd', 'screenshot=1', '-rd', 'scr_w=1024', '-rd', 'scr_h=1024', '-z'])
-                result_file = os.path.join(web_dir, f'{design}.png')
+            if not self.get('option', 'nodisplay'):
+                result_file = self.show(filename=None, screenshot=True)
                 # Result might not exist if there is no display
-                if success and os.path.isfile(result_file):
+                if result_file and os.path.isfile(result_file):
                     with open(result_file, 'rb') as img_file:
                         img_data = base64.b64encode(img_file.read()).decode('utf-8')
 
@@ -3429,6 +3427,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         os.makedirs(workdir, exist_ok=True)
 
         os.chdir(workdir)
+        os.makedirs('inputs', exist_ok=True)
         os.makedirs('outputs', exist_ok=True)
         os.makedirs('reports', exist_ok=True)
 
@@ -3443,14 +3442,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self._read_manifest(cfgfile, clobber=False, partial=True)
-
-        ##################
-        # Write manifest prior to step running into inputs
-
-        self.set('arg', 'step', None, clobber=True)
-        self.set('arg', 'index', None, clobber=True)
-        os.makedirs('inputs', exist_ok=True)
-        #self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
         # Select inputs
@@ -3781,8 +3772,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Save a successful manifest
         self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
-        self.set('arg', 'step', None, clobber=True)
-        self.set('arg', 'index', None, clobber=True)
 
         self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
 
@@ -4239,7 +4228,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return None
 
     ###########################################################################
-    def show(self, filename=None, extra_options=None):
+    def show(self, filename=None, screenshot=False):
         '''
         Opens a graphical viewer for the filename provided.
 
@@ -4249,10 +4238,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         automated dynamic loading of tool setup functions. Display settings and
         technology settings for viewing the file are read from the in-memory
         chip object schema settings. All temporary render and display files are
-        saved in the <build_dir>/_show directory.
-
-        Filenames with .gz extensions are automatically unpacked before being
-        displayed.
+        saved in the <build_dir>/_show_<jobname> directory.
 
         Args:
             filename: Name of file to display
@@ -4262,26 +4248,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Displays gds file with a viewer assigned by 'showtool'
         '''
 
-        if extra_options is None:
-            extra_options = []
+        sc_step = self.get('arg', 'step')
+        if not sc_step:
+            sc_step = "export"
+        sc_index = self.get('arg', 'index')
+        if not sc_index:
+            sc_index = "0"
+        sc_job = self.get('option', 'jobname')
 
         # Finding last layout if no argument specified
         if filename is None:
             self.logger.info('Searching build directory for layout to show.')
-            design = self.top()
-            # TODO: keeping the below logic for backwards compatibility. Once
-            # all flows/examples register their outputs in ['output', ...], we
-            # can fully switch over to the generic logic.
-            laststep = 'export'
-            lastindex = '0'
-            lastdir = self._getworkdir(step=laststep, index=lastindex)
-            gds_file= f"{lastdir}/outputs/{design}.gds"
-            def_file = f"{lastdir}/outputs/{design}.def"
-            if os.path.isfile(gds_file):
-                filename = gds_file
-            elif os.path.isfile(def_file):
-                filename = def_file
-            else:
+
+            for ext in self.getkeys('option', 'showtool'):
+                filename = self.find_result(ext, step=sc_step, index=sc_index, jobname=sc_job)
+                if filename:
+                    break
+            if not filename:
                 # Generic logic
                 filename = self._find_showable_output()
 
@@ -4290,66 +4273,64 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error('Try passing in a full path to show() instead.')
             return False
 
-        self.logger.info('Showing file %s', filename)
+        self.logger.info(f'Showing file {filename}')
 
-        # Parsing filepath
         filepath = os.path.abspath(filename)
-        filetype = utils.get_file_ext(filepath)
-        localfile = os.path.basename(filepath)
-        if localfile.endswith('.gz'):
-            localfile = os.path.splitext(localfile)[0]
 
         #Check that file exists
         if not os.path.isfile(filepath):
             self.logger.error(f"Invalid filepath {filepath}.")
             return False
 
-        # Opening file from temp directory
-        cwd = os.getcwd()
-        showdir = self.get('option','builddir') + "/_show"
-        os.makedirs(showdir, exist_ok=True)
-        os.chdir(showdir)
+        filetype = utils.get_file_ext(filepath)
 
-        # Uncompress file if necessary
-        if os.path.splitext(filepath)[1].lower() == ".gz":
-            with gzip.open(filepath, 'rb') as f_in:
-                with open(localfile, 'wb') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
-        else:
-            shutil.copy(filepath, localfile)
-
-        #Figure out which tool to use for opening data
-        if filetype in self.getkeys('option','showtool'):
-            # Using env variable and manifest to pass arguments
-            os.environ['SC_FILENAME'] = localfile
-            # Setting up tool
-            tool = self.get('option','showtool', filetype)
-            step = 'show'+filetype
-            index = "0"
-            self.set('arg', 'step', step)
-            self.set('arg', 'index', index)
-            setup_tool = self.find_function(tool, 'setup', 'tools')
-            setup_tool(self, mode='show')
-            self.write_manifest("sc_manifest.tcl", abspath=True)
-            self.write_manifest("sc_manifest.json", abspath=True)
-            self.set('arg', 'step', None)
-            self.set('arg', 'index', None)
-
-            exe = self._getexe(tool)
-            if shutil.which(exe) is None:
-                self.logger.error(f'Executable {exe} not found.')
-                success = False
-            else:
-                # Running command
-                cmdlist = self._makecmd(tool, step, index, extra_options=extra_options)
-                proc = subprocess.run(cmdlist)
-                success = proc.returncode == 0
-        else:
+        if filetype not in self.getkeys('option', 'showtool'):
             self.logger.error(f"Filetype '{filetype}' not set up in 'showtool' parameter.")
+            return False
+
+        saved_config = self.schema.copy()
+
+        # Setup flow parameters
+        self.set('arg', 'flow', 'show_filetype', filetype)
+        self.set('arg', 'flow', 'show_filepath', filepath)
+        self.set('arg', 'flow', 'show_step', sc_step)
+        self.set('arg', 'flow', 'show_index', sc_index)
+        self.set('arg', 'flow', 'show_job', sc_job)
+        self.set('arg', 'flow', 'show_screenshot', "true" if screenshot else "false")
+
+        stepname = 'show'
+        if screenshot:
+            stepname = 'screenshot'
+
+        try:
+            self.load_flow('showflow')
+        except:
+            # restore environment
+            self.schema = saved_config
+            return False
+
+        # Override enviroment
+        self.set('option', 'flow', 'showflow', clobber=True)
+        self.set('option', 'track', False, clobber=True)
+        self.set('option', 'flowcontinue', True, clobber=True)
+        self.set('arg', 'step', None, clobber=True)
+        self.set('arg', 'index', None, clobber=True)
+        # build new job name
+        self.set('option', 'jobname', f'_{stepname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
+
+        # run show flow
+        try:
+            self.run()
+            if screenshot:
+                success = self.find_result('png', stepname)
+            else:
+                success = True
+        except:
             success = False
 
-        # Returning to original directory
-        os.chdir(cwd)
+        # restore environment
+        self.schema = saved_config
+
         return success
 
     def read_lef(self, path, pdkname, stackup):

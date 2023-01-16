@@ -3,18 +3,26 @@ import pya
 import json
 import os
 
-filename = os.environ['SC_FILENAME']
-
 # We read the manifest using the json library since KLayout bundles its own
 # Python interpreter, and it's difficult to include third-party libraries.
 with open('sc_manifest.json', 'r') as f:
     sc_cfg = json.load(f)
 
 # Extract info from manifest
+sc_design = sc_cfg["design"]["value"]
+sc_step = sc_cfg['arg']['step']['value']
+sc_index = sc_cfg['arg']['index']['value']
+if 'show_filepath' in sc_cfg['tool']['klayout']['var'][sc_step][sc_index]:
+    sc_filename = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filepath']['value'][0]
+else:
+    sc_fileext = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_filetype']['value'][0]
+    sc_filename = f"inputs/{sc_design}.{sc_fileext}"
 sc_pdk = sc_cfg['option']['pdk']['value']
 sc_stackup = sc_cfg['asic']['stackup']['value']
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
 sc_libtype = list(sc_cfg['library'][sc_mainlib]['asic']['footprint'].keys())[0]
+
+sc_exit = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_exit']['value'][0] == "true"
 
 try:
     tech_file = sc_cfg['pdk'][sc_pdk]['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
@@ -86,7 +94,7 @@ app.set_config('text-visible', 'false')
 app.set_config('background-color', '#212121')
 
 # Display the file!
-cell_view = pya.MainWindow.instance().load_layout(filename, layoutOptions, 0)
+cell_view = pya.MainWindow.instance().load_layout(sc_filename, layoutOptions, 0)
 layout_view = cell_view.view()
 
 if lyp_path:
@@ -95,15 +103,12 @@ if lyp_path:
     layout_view.load_layer_props(lyp_path, True)
 
 # If 'screenshot' mode is set, save image and exit.
-try:
-    if screenshot:
-        # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
-        gds_img = layout_view.get_image(int(scr_w), int(scr_h))
-        design = sc_cfg["design"]["value"]
-        jobname = sc_cfg["option"]["jobname"]["value"]
-        gds_img.save(f'../{design}/{jobname}/{design}.png', 'PNG')
-        # Done, exit.
-        app.exit(0)
-except Exception:
-    # 'screenshot' var may not be defined.
-    pass
+if sc_step == 'screenshot':
+    # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
+    horizontal_resolution = int(sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_horizontal_resolution']['value'][0])
+    vertical_resolution = int(sc_cfg['tool']['klayout']['var'][sc_step][sc_index]['show_vertical_resolution']['value'][0])
+    gds_img = layout_view.get_image(horizontal_resolution, vertical_resolution)
+    gds_img.save(f'outputs/{sc_design}.png', 'PNG')
+
+if sc_exit:
+    app.exit(0)

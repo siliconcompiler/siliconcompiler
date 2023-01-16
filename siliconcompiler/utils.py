@@ -232,6 +232,7 @@ def get_default_iomap():
     layout_gds = ('gds', 'gds2', 'gdsii')
     layout_oas = ('oas', 'oasis')
     layout_gerber = ('gbr', 'gerber')
+    layout_odb = ('odb',)
 
     # Netlist
     netlist_cdl = ('cdl',)
@@ -264,6 +265,7 @@ def get_default_iomap():
     default_iomap.update({ext: ('layout', 'gds') for ext in layout_gds})
     default_iomap.update({ext: ('layout', 'oas') for ext in layout_oas})
     default_iomap.update({ext: ('layout', 'gerber') for ext in layout_gerber})
+    default_iomap.update({ext: ('layout', 'odb') for ext in layout_odb})
 
     default_iomap.update({ext: ('netlist', 'cdl') for ext in netlist_cdl})
     default_iomap.update({ext: ('netlist', 'sp') for ext in netlist_sp})
