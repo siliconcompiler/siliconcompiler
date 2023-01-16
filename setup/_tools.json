@@ -14,5 +14,9 @@
   "netgen": {
     "git-url": "https://github.com/RTimothyEdwards/netgen.git",
     "git-commit": "fb7876c7a6f9d58a3d88a49e302e682c1d12e00d"
+  },
+  "ghdl": {
+    "git-url": "https://github.com/ghdl/ghdl.git",
+    "git-commit": "d10b226f3d1dc302d7a95b9c2d77beaece3d3634"
   }
 }
