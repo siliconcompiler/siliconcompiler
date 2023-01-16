@@ -56,6 +56,9 @@ def setup(chip):
     for metric in ('luts', 'registers', 'bram', 'uram'):
         chip.set('tool', tool, 'report', step, index, metric, 'reports/total_utilization.rpt')
 
+    chip.set('tool', tool, 'regex', step, index, 'errors', r'^ERROR:', clobber=False)
+    chip.set('tool', tool, 'regex', step, index, 'warnings', r'^(CRITICAL )?WARNING:', clobber=False)
+
 def parse_version(stdout):
     # Vivado v2021.2 (64-bit)
     return stdout.split()[1]
