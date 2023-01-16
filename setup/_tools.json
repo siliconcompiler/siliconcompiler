@@ -22,5 +22,9 @@
   "magic": {
     "git-url": "https://github.com/RTimothyEdwards/magic.git",
     "git-commit": "597ef4857a02f1d0748475dcff118801e91b0e88"
+  },
+  "bsc": {
+    "git-url": "https://github.com/B-Lang-org/bsc.git",
+    "git-commit": "4cac6ebae076e8b8378597aba1d2119aa29ec419"
   }
 }
