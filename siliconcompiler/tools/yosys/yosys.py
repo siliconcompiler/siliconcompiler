@@ -76,9 +76,9 @@ def setup(chip):
             if (not chip.valid('input', 'netlist', 'verilog') or
                 not chip.get('input', 'netlist', 'verilog')):
                 chip.set('tool', tool, 'task', task, 'input', step, index, design + '.vg')
-            if not chip.get('input', 'rtl', 'verilog'):
+            #if not chip.get('input', 'rtl', 'verilog'):
                 # TODO: Not sure this logic makes sense? Seems like reverse of tcl
-                chip.set('tool', tool, 'task', task, 'input', step, index, design + '.v')
+                #chip.set('tool', tool, 'task', task, 'input', step, index, design + '.v')
         elif task == 'syn':
             #TODO: refactor, remove asic/fpga indirection (put in own module/method)
             chip.set('tool', tool, 'task', task, 'script', step, index, 'sc_syn.tcl', clobber=False)
@@ -87,11 +87,11 @@ def setup(chip):
             chip.add('tool', tool, 'task', task, 'output', step, index, design + '_netlist.json')
             chip.add('tool', tool, 'task', task, 'output', step, index, design + '.blif')
 
+        if chip.get('option', 'mode') == 'asic':
             chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'logiclib']))
 
             delaymodel = chip.get('asic', 'delaymodel')
             syn_corner = get_synthesis_corner(chip)
-            mainlib = chip.get('asic', 'logiclib')[0]
 
             if syn_corner is None:
                 chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'synthesis_corner']))
@@ -101,7 +101,7 @@ def setup(chip):
             if syn_corner is not None:
             # add timing library requirements
                 for lib in chip.get('asic', 'logiclib'):
-                # mandatory for logiclibs
+                    # mandatory for logiclibs
                     chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', lib, 'output', syn_corner, delaymodel]))
 
                 for lib in chip.get('asic', 'macrolib'):
@@ -113,6 +113,7 @@ def setup(chip):
 
 
             # set default control knobs
+            mainlib = chip.get('asic', 'logiclib')[0]
             for option, value, additional_require in [('flatten', "True", None),
                                                       ('autoname', "True", None),
                                                       ('map_adders', "False", ['library', mainlib, 'asic', 'file', tool, 'addermap'])]:
