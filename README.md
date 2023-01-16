@@ -92,7 +92,6 @@ To install the project from source (recommended for developers only).
 ```bash
 git clone https://github.com/siliconcompiler/siliconcompiler
 cd siliconcompiler
-git submodule update --init --recursive third_party/tools/openroad
 pip install -r requirements.txt
 python -m pip install -e .
 ```
@@ -101,7 +100,7 @@ python -m pip install -e .
 
 Installation instructions for all external tools can be found in the
 [Tools](https://docs.siliconcompiler.com/en/latest/reference_manual/tools.html) section
-of the reference manual. We have included shell setup scripts (Ubuntu) for most of the supported tools. See the [./setup](./setup) directory for a complete set of scripts.
+of the reference manual. We have included shell setup scripts (Ubuntu) for most of the supported tools. See the [./setup](./setup) directory for a complete set of scripts and [./setup/_tools.json](./setup/_tools.json) for the currently recommended tool versions.
 
 # Contributing
 
