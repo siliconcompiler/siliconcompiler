@@ -970,7 +970,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._add_input_output('input', filename, fileset, filetype)
     # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
     input.__doc__= input.__doc__.replace("{iotable}",
-                                         utils.format_fileset_type_table(_metadata.default_iomap))
+                                         utils.format_fileset_type_table())
 
     ###########################################################################
     def output(self, filename, fileset=None, filetype=None):

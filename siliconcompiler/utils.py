@@ -206,23 +206,88 @@ def get_file_ext(filename):
     filetype = os.path.splitext(filename)[1].lower().lstrip('.')
     return filetype
 
-def format_fileset_type_table(iomap, indent=12):
+def get_default_iomap():
+    """
+    Default input file map for SC with filesets and extensions
+    """
+
+    # Record extensions:
+
+    # High level languages
+    hll_c = ('c', 'cc', 'cpp', 'c++', 'cp', 'cxx', 'hpp')
+    hll_bvs = ('bvs',)
+    hll_scala = ('scala',)
+    hll_python = ('py',)
+
+    # Register transfer languages
+    rtl_verilog = ('v', 'vg', 'sv', 'verilog')
+    rtl_vhdl = ('vhd', 'vhdl')
+
+    # Timing libraries
+    timing_liberty = ('lib', 'ccs')
+
+    # Layout
+    layout_def = ('def',)
+    layout_lef = ('lef',)
+    layout_gds = ('gds', 'gds2', 'gdsii')
+    layout_oas = ('oas', 'oasis')
+    layout_gerber = ('gbr', 'gerber')
+
+    # Netlist
+    netlist_cdl = ('cdl',)
+    netlist_sp = ('sp', 'spice')
+
+    # Waveform
+    waveform_vcd = ('vcd',)
+
+    # Constraint
+    constraint_sdc = ('sdc', )
+
+    # Build default map with fileset and type
+    default_iomap = {}
+    default_iomap.update({ext: ('hll', 'c') for ext in hll_c})
+    default_iomap.update({ext: ('hll', 'bvs') for ext in hll_bvs})
+    default_iomap.update({ext: ('hll', 'scala') for ext in hll_scala})
+    default_iomap.update({ext: ('hll', 'python') for ext in hll_python})
+
+    default_iomap.update({ext: ('rtl', 'verilog') for ext in rtl_verilog})
+    default_iomap.update({ext: ('rtl', 'vhdl') for ext in rtl_vhdl})
+
+    default_iomap.update({ext: ('timing', 'liberty') for ext in timing_liberty})
+
+    default_iomap.update({ext: ('layout', 'def') for ext in layout_def})
+    default_iomap.update({ext: ('layout', 'lef') for ext in layout_lef})
+    default_iomap.update({ext: ('layout', 'gds') for ext in layout_gds})
+    default_iomap.update({ext: ('layout', 'oas') for ext in layout_oas})
+    default_iomap.update({ext: ('layout', 'gerber') for ext in layout_gerber})
+
+    default_iomap.update({ext: ('netlist', 'cdl') for ext in netlist_cdl})
+    default_iomap.update({ext: ('netlist', 'sp') for ext in netlist_sp})
+
+    default_iomap.update({ext: ('waveform', 'vcd') for ext in waveform_vcd})
+
+    default_iomap.update({ext: ('constraint', 'sdc') for ext in constraint_sdc})
+
+    return default_iomap
+
+
+def format_fileset_type_table(indent=12):
     '''
     Generate a table to use in the __doc__ of the input function which auto
     updates based on the iomap
     '''
-    table  = "filetype  | fileset   | suffix (case insensitive)\n"
+    table  = "filetype  | fileset    | suffix (case insensitive)\n"
     indent = " " * indent
-    table += f"{indent}----------|-----------|---------------------------------------------\n"
+    table += f"{indent}----------|------------|---------------------------------------------\n"
 
     iobytype = {}
-    for ext, settype in iomap.items():
+    for ext, settype in get_default_iomap().items():
         fileset, filetype = settype
         iobytype.setdefault((fileset, filetype), []).append(ext)
 
     for settype, exts in iobytype.items():
         fileset, filetype = settype
         ext = ",".join(exts)
-        table += f"{indent}{filetype:<10}| {fileset:<10}| {ext}\n"
+        table += f"{indent}{filetype:<10}| {fileset:<11}| {ext}\n"
 
     return table

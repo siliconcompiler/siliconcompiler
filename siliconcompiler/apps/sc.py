@@ -5,7 +5,7 @@ import os
 import sys
 
 import siliconcompiler
-from siliconcompiler._metadata import default_iomap
+from siliconcompiler.utils import get_default_iomap
 
 ###########################
 def main():
@@ -39,7 +39,7 @@ def main():
     # Read command-line inputs and generate Chip objects to run the flow on.
     chip.create_cmdline(progname,
                         description=description,
-                        input_map=default_iomap)
+                        input_map=get_default_iomap())
 
     # Set design if none specified
     if chip.get('design') == UNSET_DESIGN:
