@@ -10,5 +10,9 @@
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
     "git-commit": "ad83eedc7de32ec15a3f7b4e271c6b45ddf547eb"
+  },
+  "netgen": {
+    "git-url": "https://github.com/RTimothyEdwards/netgen.git",
+    "git-commit": "fb7876c7a6f9d58a3d88a49e302e682c1d12e00d"
   }
 }
