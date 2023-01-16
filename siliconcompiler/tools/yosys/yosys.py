@@ -68,9 +68,10 @@ def setup(chip):
         chip.set('tool', tool, 'report', step, index, metric, f"{step}.log")
 
     # Generic ASIC / FPGA mode setup.
-    if chip.get('option', 'mode') == 'fpga':
+    mode = chip.get('option', 'mode')
+    if mode == 'fpga':
         setup_fpga(chip)
-    else:
+    elif mode == 'asic':
         setup_asic(chip)
 
 def setup_asic(chip):
