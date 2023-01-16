@@ -66,7 +66,30 @@ def setup(chip):
 
     if 'sdc' in chip.getkeys('input'):
         options.append(f"--sdc_file {chip.get('input', 'sdc')}")
+    else :
+        options.append(f"--timing_analysis off")
 
+    #***NOTE:  Eventually, I think we want this:
+    #for rr_graph in chip.get('fpga','rr_graph'):
+    #    options.append(f"--read_rr_graph "+rr_graph)
+    #
+    #But for now, implement this to avoid schema changes
+    rr_graph_files = chip.get('tool', 'vpr', 'var', 'apr', '0', 'rr_graph')
+    if (len(rr_graph_files) == 1) :
+        options.append(f"--read_rr_graph "+rr_graph_files[0])
+
+    #***NOTE:  For real FPGA chips you need to specify the routing channel
+    #          width explicitly.  VPR requires an explicit routing channel
+    #          with when --read_rr_graph is used (typically the case for
+    #          real chips).  Otherwise VPR performs a binary search for
+    #          the minimum routing channel width that the circuit fits in.
+    #          -PG 1/13/2023
+    #Given the above, it may be appropriate to couple these variables somehow,
+    #but --route_chan_width CAN be used by itself.
+    num_routing_channels = chip.get('tool', 'vpr', 'var', 'apr', '0', 'route_chan_width')
+    if (len(num_routing_channels) == 1) :
+        options.append(f"--route_chan_width "+num_routing_channels[0])
+    
     threads = chip.get('tool', tool, 'threads', step, index)
     options.append(f"--num_workers {threads}")
 
