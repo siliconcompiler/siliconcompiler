@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Get directory of script
+src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
+
 sudo apt-get install -y autoconf autoconf-archive automake libtool g++ \
     gcc-7 g++-7 gcc-8 g++-8 gcc-7-plugin-dev  gcc-8-plugin-dev gcc-7-multilib \
     gcc-8-multilib g++-7-multilib g++-8-multilib gfortran-7 gfortran-7-multilib \
@@ -10,8 +13,10 @@ sudo apt-get install -y autoconf autoconf-archive automake libtool g++ \
 
 mkdir -p deps
 cd deps
-git clone https://github.com/ferrandi/PandA-bambu.git
-cd PandA-bambu
+
+git clone $(python3 ${src_path}/_tools.py --tool bambu --field git-url) bambu
+cd bambu
+git checkout $(python3 ${src_path}/_tools.py --tool bambu --field git-commit)
 
 sudo mkdir -p /opt/panda
 sudo chown $USER:$USER /opt/panda
@@ -23,8 +28,8 @@ cd obj
 
 ../configure --enable-flopoco --enable-release --prefix=/opt/panda
 make
-sudo make install
+make install
 
-cd ../../../
+cd -
 
 echo "Please add \"export PATH="/opt/panda/bin:\$PATH"\" to your .bashrc"
