@@ -514,7 +514,8 @@ def get_abc_driver(chip):
     task = step
 
     abc_driver = None
-    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver'):
+    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver') and \
+       chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver'):
         abc_driver = chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver')[0]
 
     if abc_driver is None:
