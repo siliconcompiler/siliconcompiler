@@ -44,7 +44,7 @@ def setup(chip, mode='batch'):
     # default tool settings, note, not additive!
 
     tool = 'openroad'
-    tasks = ('floorplan', 'physyn', 'place', 'cts', 'route', 'dfm', 'show')
+    tasks = ('floorplan', 'physyn', 'place', 'cts', 'route', 'dfm', 'show', 'screenshot')
     script = 'sc_apr.tcl'
     refdir = 'tools/'+tool
 
@@ -111,15 +111,10 @@ def setup(chip, mode='batch'):
             if (not chip.valid('input', 'netlist', 'verilog') or
                 not chip.get('input', 'netlist', 'verilog')):
                 chip.add('tool', tool, 'task', task, 'input', step, index, design +'.vg')
-        else:
-            if (not chip.valid('input', 'layout', 'def') or
-                not chip.get('input', 'layout', 'def')):
-                chip.add('tool', tool, 'task', task, 'input', step, index, design +'.def')
-
-        if is_show_screenshot:
+        elif is_show_screenshot:
             chip.set('tool', tool, 'task', task, 'var', step, index, 'show_exit', "true" if is_screenshot else "false", clobber=False)
             if chip.valid('tool', tool, 'task', task, 'var', step, index, 'show_filepath'):
-                chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filepath']))
+                chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'show_filepath']))
             else:
                 incoming_ext = find_incoming_ext(chip)
                 chip.set('tool', tool, 'task', task, 'var', step, index, 'show_filetype', incoming_ext)
@@ -127,6 +122,10 @@ def setup(chip, mode='batch'):
             if is_screenshot:
                 chip.add('tool', tool, 'task', task, 'output', step, index, design + '.png')
                 chip.set('tool', tool, 'task', task, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
+        else:
+            if (not chip.valid('input', 'layout', 'def') or
+                not chip.get('input', 'layout', 'def')):
+                chip.add('tool', tool, 'task', task, 'input', step, index, design +'.def')
 
         if chip.get('option', 'nodisplay'):
             # Tells QT to use the offscreen platform if nodisplay is used

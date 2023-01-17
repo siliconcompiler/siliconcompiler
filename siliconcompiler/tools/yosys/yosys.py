@@ -44,7 +44,7 @@ def setup(chip):
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'yosys'
-    tasks = ('syn', 'lec')
+    tasks = ('syn', 'lec', 'syn_vpr')
 
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
@@ -80,6 +80,13 @@ def setup(chip):
                 # TODO: Not sure this logic makes sense? Seems like reverse of tcl
                 #chip.set('tool', tool, 'task', task, 'input', step, index, design + '.v')
         elif task == 'syn':
+            #TODO: refactor, remove asic/fpga indirection (put in own module/method)
+            chip.set('tool', tool, 'task', task, 'script', step, index, 'sc_syn.tcl', clobber=False)
+            chip.set('tool', tool, 'task', task, 'input', step, index, design + '.v')
+            chip.set('tool', tool, 'task', task, 'output', step, index, design + '.vg')
+            chip.add('tool', tool, 'task', task, 'output', step, index, design + '_netlist.json')
+            chip.add('tool', tool, 'task', task, 'output', step, index, design + '.blif')
+        elif task == 'syn_vpr':
             #TODO: refactor, remove asic/fpga indirection (put in own module/method)
             chip.set('tool', tool, 'task', task, 'script', step, index, 'sc_syn.tcl', clobber=False)
             chip.set('tool', tool, 'task', task, 'input', step, index, design + '.v')
@@ -514,7 +521,8 @@ def get_abc_driver(chip):
     task = step
 
     abc_driver = None
-    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver'):
+    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver') and \
+       chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver'):
         abc_driver = chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver')[0]
 
     if abc_driver is None:
