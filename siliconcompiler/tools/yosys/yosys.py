@@ -86,6 +86,13 @@ def setup(chip):
             chip.set('tool', tool, 'task', task, 'output', step, index, design + '.vg')
             chip.add('tool', tool, 'task', task, 'output', step, index, design + '_netlist.json')
             chip.add('tool', tool, 'task', task, 'output', step, index, design + '.blif')
+        elif task == 'syn_vpr':
+            #TODO: refactor, remove asic/fpga indirection (put in own module/method)
+            chip.set('tool', tool, 'task', task, 'script', step, index, 'sc_syn.tcl', clobber=False)
+            chip.set('tool', tool, 'task', task, 'input', step, index, design + '.v')
+            chip.set('tool', tool, 'task', task, 'output', step, index, design + '.vg')
+            chip.add('tool', tool, 'task', task, 'output', step, index, design + '_netlist.json')
+            chip.add('tool', tool, 'task', task, 'output', step, index, design + '.blif')
 
         if chip.get('option', 'mode') == 'asic':
             chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'logiclib']))
