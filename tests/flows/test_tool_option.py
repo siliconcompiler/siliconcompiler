@@ -71,6 +71,7 @@ def chip(scroot):
 
     # no-op import since we're not preprocessing source files
     chip.set('flowgraph', flow, 'import', '0', 'tool', 'join')
+    chip.set('flowgraph', flow, 'import', '0', 'task', 'join')
 
     chip.set('flowgraph', flow, 'place', '0', 'tool', 'openroad')
     chip.set('flowgraph', flow, 'place', '0', 'task', 'place')
@@ -84,7 +85,6 @@ def chip(scroot):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip("Until OpenROAD is updated and corrected with metric_float")
 def test_failed_branch_min(chip):
     '''Test that a minimum will allow failed inputs, as long as at least
     one passes.'''
