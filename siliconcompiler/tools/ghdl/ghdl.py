@@ -72,6 +72,7 @@ def runtime_options(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = step
 
     options = []
 
