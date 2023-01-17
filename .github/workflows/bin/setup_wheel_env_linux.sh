@@ -13,8 +13,10 @@ rpm -i klayout-0.27.5-0.x86_64.rpm
 pip3 install orderedmultidict
 
 # Build surelog (install prefix defined outside file)
-git submodule update --init --recursive third_party/tools/surelog
-cd third_party/tools/surelog
+git clone $(python3 setup/_tools.py --tool surelog --field git-url) surelog
+cd surelog
+git checkout $(python3 setup/_tools.py --tool surelog --field git-commit)
+git submodule update --init --recursive
 
 export LDFLAGS="-lrt"
 make

@@ -1,6 +1,6 @@
 import math
 import os
-import re
+import shutil
 import json
 from jinja2 import Template
 
@@ -44,7 +44,7 @@ def setup(chip, mode='batch'):
     # default tool settings, note, not additive!
 
     tool = 'openroad'
-    tasks = ('floorplan', 'physyn', 'place', 'cts', 'route', 'dfm')
+    tasks = ('floorplan', 'physyn', 'place', 'cts', 'route', 'dfm', 'show')
     script = 'sc_apr.tcl'
     refdir = 'tools/'+tool
 
@@ -61,7 +61,11 @@ def setup(chip, mode='batch'):
     delaymodel = chip.get('asic', 'delaymodel')
     libtype = chip.get('library', mainlib, 'asic', 'libarch')
 
-    if mode == 'show':
+    is_screenshot = mode == 'screenshot' or step == 'screenshot'
+    is_show_screenshot = mode == 'show' or step == 'show' or is_screenshot
+
+    if is_show_screenshot:
+        mode = 'show'
         clobber = True
         option = "-no_init -gui"
     else:
@@ -69,7 +73,7 @@ def setup(chip, mode='batch'):
         option = "-no_init"
 
     # exit automatically in batch mode and not bkpt
-    if (mode=='batch') and (step not in chip.get('option', 'bkpt')):
+    if (mode=='batch' or is_screenshot) and (step not in chip.get('option', 'bkpt')):
         option += " -exit"
 
     option += " -metrics reports/metrics.json"
@@ -77,8 +81,10 @@ def setup(chip, mode='batch'):
     # Fixed for tool
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-6417', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-6445', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
+
+    design = chip.top()
 
     # normalizing thread count based on parallelism and local
     threads = os.cpu_count()
@@ -87,6 +93,7 @@ def setup(chip, mode='batch'):
         threads = int(math.ceil(os.cpu_count()/np))
 
     # Input/Output requirements for default asicflow steps
+
     # TODO
     for task in tasks:
         chip.set('tool', tool, 'task', task, 'option',  step, index, option, clobber=clobber)
@@ -109,7 +116,21 @@ def setup(chip, mode='batch'):
                 not chip.get('input', 'layout', 'def')):
                 chip.add('tool', tool, 'task', task, 'input', step, index, design +'.def')
 
-        # openroad makes use of these parameters
+        if is_show_screenshot:
+            chip.set('tool', tool, 'task', task, 'var', step, index, 'show_exit', "true" if is_screenshot else "false", clobber=False)
+            if chip.valid('tool', tool, 'task', task, 'var', step, index, 'show_filepath'):
+                chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filepath']))
+            else:
+                incoming_ext = find_incoming_ext(chip)
+                chip.set('tool', tool, 'task', task, 'var', step, index, 'show_filetype', incoming_ext)
+                chip.add('tool', tool, 'task', task, 'input', step, index, f'{design}.{incoming_ext}')
+            if is_screenshot:
+                chip.add('tool', tool, 'task', task, 'output', step, index, design + '.png')
+                chip.set('tool', tool, 'task', task, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
+
+        if chip.get('option', 'nodisplay'):
+            # Tells QT to use the offscreen platform if nodisplay is used
+            chip.set('tool', tool, 'task', task, 'env', step, index, 'QT_QPA_PLATFORM', 'offscreen')
 
         if delaymodel != 'nldm':
             chip.logger.error(f'{delaymodel} delay model is not supported by {tool}, only nldm')
@@ -276,6 +297,10 @@ def normalize_version(version):
 ################################
 
 def pre_process(chip):
+
+    step = chip.get('arg', 'step')
+    if (step == "show" or step == "screenshot"):
+        copy_show_files(chip)
 
     # Build estimate PEX
     build_pex_corners(chip)
@@ -444,6 +469,43 @@ def build_pex_corners(chip):
 
                 f.write("\n")
                 f.write("{0}\n\n".format(64 * "#"))
+
+def copy_show_files(chip):
+
+    tool = 'openroad'
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    if chip.valid('tool', tool, 'var', step, index, 'show_filepath'):
+        show_file = chip.get('tool', tool, 'var', step, index, 'show_filepath')[0]
+        show_type = chip.get('tool', tool, 'var', step, index, 'show_filetype')[0]
+        show_job = chip.get('tool', tool, 'var', step, index, 'show_job')[0]
+        show_step = chip.get('tool', tool, 'var', step, index, 'show_step')[0]
+        show_index = chip.get('tool', tool, 'var', step, index, 'show_index')[0]
+
+        # copy source in to keep sc_apr.tcl simple
+        dst_file = "inputs/"+chip.top()+"."+show_type
+        shutil.copy2(show_file, dst_file)
+        sdc_file = chip.find_result('sdc', show_step, jobname=show_job, index=show_index)
+        if sdc_file and os.path.exists(sdc_file):
+            shutil.copy2(sdc_file, "inputs/"+chip.top()+".sdc")
+
+def find_incoming_ext(chip):
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    flow = chip.get('option', 'flow')
+
+    supported_ext = ('odb', 'def')
+
+    for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
+        for ext in supported_ext:
+            show_file = chip.find_result(ext, step=input_step, index=input_index)
+            if show_file:
+                return ext
+
+    # Nothing found, just add last one
+    return supported_ext[-1]
 
 ##################################################
 if __name__ == "__main__":
