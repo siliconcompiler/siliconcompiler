@@ -3004,7 +3004,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('datasheet', design, 'pin', pin, 'tjitter', 'global', jitter_range)
 
     ###########################################################################
-    def node(self, flow, step, tool, task=None, index=0):
+    def node(self, flow, step, tool, task, index=0):
         '''
         Creates a flowgraph node.
 
@@ -3016,6 +3016,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         The method modifies the following schema parameters:
 
         ['flowgraph', flow, step, index, 'tool', tool]
+        ['flowgraph', flow, step, index, 'task', task]
         ['flowgraph', flow, step, index, 'weight', metric]
 
         Args:
@@ -3032,12 +3033,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # bind tool to node
         self.set('flowgraph', flow, step, str(index), 'tool', tool)
-
-        tasks = self.getkeys('tool', tool, 'task')
-
-        if task is None:
-            task = step
-
         self.set('flowgraph', flow, step, str(index), 'task', task)
 
         # set default weights
