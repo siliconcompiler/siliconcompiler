@@ -1137,7 +1137,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
             step = keypath[5]
             index = keypath[6]
-            if keypath[5] == 'report':
+            if keypath[4] == 'report':
                 io = ""
             else:
                 io = keypath[4] + 's'
@@ -1890,9 +1890,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                     criteria_str = f'{metric}{op}{goal}'
                     if not criteria_ok and waivers:
-                        self.logger.warning(f'{item} criteria {criteria_str} unmet by task {task} step {step}{index}, but found waivers.')
+                        self.logger.warning(f'{item} criteria {criteria_str} unmet by step {step}{index} with task {task}, but found waivers.')
                     elif not criteria_ok:
-                        self.logger.error(f'{item} criteria {criteria_str} unmet by task {task} step {step}{index}.')
+                        self.logger.error(f'{item} criteria {criteria_str} unmet by step {step}{index} with task {task}.')
                         error = True
 
                     if (step in self.getkeys('tool', tool, 'task', task, 'report', job=job) and
@@ -1900,10 +1900,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         metric in self.getkeys('tool', tool, 'task', task, 'report', step, index, job=job)):
                         eda_reports = self.find_files('tool', tool, 'task', task, 'report', step, index, metric, job=job)
                     else:
-                        eda_reports = None
+                        eda_reports = []
 
                     if not eda_reports:
-                        self.logger.error(f'No EDA reports generated for metric {metric} in task {task} step {step}{index}')
+                        self.logger.error(f'No EDA reports generated for metric {metric} in step {step}{index} with task {task}')
                         error = True
 
                     for report in eda_reports:
