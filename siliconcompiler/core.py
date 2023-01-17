@@ -1410,18 +1410,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             all_required = self.get('tool', tool, 'task', task, 'require', step, index)
             for item in all_required:
                 keypath = item.split(',')
-                paramtype = self.get(*keypath, field='type')
-                if ('file' in paramtype) or ('dir' in paramtype):
-                    abspath = self.find_files(*keypath, missing_ok=True)
-                    unresolved_paths = self.get(*keypath)
-                    if not isinstance(abspath, list):
-                        abspath = [abspath]
-                        unresolved_paths = [unresolved_paths]
-                    for i, path in enumerate(abspath):
-                        if path is None:
-                            unresolved_path = unresolved_paths[i]
-                            self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
-                            error = True
+                if not self.valid(*keypath):
+                    self.logger.error(f'Cannot resolve required keypath {keypath}.')
+                    error = True
+                else:
+                    paramtype = self.get(*keypath, field='type')
+                    if ('file' in paramtype) or ('dir' in paramtype):
+                        abspath = self.find_files(*keypath, missing_ok=True)
+                        unresolved_paths = self.get(*keypath)
+                        if not isinstance(abspath, list):
+                            abspath = [abspath]
+                            unresolved_paths = [unresolved_paths]
+                        for i, path in enumerate(abspath):
+                            if path is None:
+                                unresolved_path = unresolved_paths[i]
+                                self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
+                                error = True
 
         # Need to run this check here since file resolution can change in
         # _runtask().
@@ -1886,9 +1890,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                     criteria_str = f'{metric}{op}{goal}'
                     if not criteria_ok and waivers:
-                        self.logger.warning(f'{item} criteria {criteria_str} unmet by task {step}{index}, but found waivers.')
+                        self.logger.warning(f'{item} criteria {criteria_str} unmet by task {task} step {step}{index}, but found waivers.')
                     elif not criteria_ok:
-                        self.logger.error(f'{item} criteria {criteria_str} unmet by task {step}{index}.')
+                        self.logger.error(f'{item} criteria {criteria_str} unmet by task {task} step {step}{index}.')
                         error = True
 
                     if (step in self.getkeys('tool', tool, 'task', task, 'report', job=job) and
@@ -1899,7 +1903,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         eda_reports = None
 
                     if not eda_reports:
-                        self.logger.error(f'No EDA reports generated for metric {metric} in task {step}{index}')
+                        self.logger.error(f'No EDA reports generated for metric {metric} in task {task} step {step}{index}')
                         error = True
 
                     for report in eda_reports:
