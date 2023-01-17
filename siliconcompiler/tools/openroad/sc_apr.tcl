@@ -294,7 +294,7 @@ if { $sc_step == "show" || $sc_step == "screenshot" } {
     source "$sc_refdir/sc_screenshot.tcl"
   }
 
-  set show_exit [lindex [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index show_exit] 0]
+  set show_exit [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index show_exit] 0]
   if { $show_exit == "true" } {
     exit
   }
