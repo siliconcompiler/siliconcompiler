@@ -28,6 +28,7 @@ def make_docs():
 
     chip = siliconcompiler.Chip('<topmodule>')
     chip.set('option', 'flow', 'dvflow')
+    chip.set('arg', 'flow', 'np', '5')
     setup(chip)
 
     return chip
@@ -53,13 +54,13 @@ def setup(chip, flow='dflow'):
                 'signoff']
 
     tools = {
-        'import': 'verilator',
-        'compile': 'verilator',
-        'testgen': 'verilator',
-        'refsim': 'verilator',
-        'sim': 'verilator',
-        'compare': 'verilator',
-        'signoff': 'verify'
+        'import': ('verilator', 'import'),
+        'compile': ('verilator', 'compile'),
+        'testgen': ('verilator', 'testgen'),
+        'refsim': ('verilator', 'refsim'),
+        'sim': ('verilator', 'sim'),
+        'compare': ('verilator', 'compare'),
+        'signoff': ('verify', 'signoff')
     }
 
 
@@ -74,27 +75,28 @@ def setup(chip, flow='dflow'):
 
     # Flow setup
     for step in flowpipe:
+        tool, task = tools[step]
         #start
         if step == 'import':
-            chip.set('flowgraph', flow, step, '0', 'tool', tools[step])
+            chip.node(flow, step, tool, task)
         #serial
         elif step == 'compile':
-            chip.set('flowgraph', flow, step, '0', 'tool', tools[step])
-            chip.set('flowgraph', flow, step, '0', 'input', ('import', '0'))
+            chip.node(flow, step, tool, task)
+            chip.edge(flow, prevstep, step)
         #fork
         elif step == 'testgen':
             for index in range(np):
-                chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
-                chip.set('flowgraph', flow, step, str(index), 'input', ('compile', '0'))
+                chip.node(flow, step, tool, task, index=index)
+                chip.edge(flow, prevstep, step, head_index=index)
         #join
         elif step == 'signoff':
-            chip.set('flowgraph', flow, step, '0', 'tool', tools[step])
+            chip.node(flow, step, tool, task)
             for index in range(np):
-                chip.add('flowgraph', flow, step, '0', 'input', (prevstep, str(index)))
+                chip.edge(flow, prevstep, step, tail_index=index)
         else:
             for index in range(np):
-                chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
-                chip.set('flowgraph', flow, step, str(index), 'input', (prevstep, str(index)))
+                chip.node(flow, step, tool, task, index=index)
+                chip.edge(flow, prevstep, step, head_index=index, tail_index=index)
 
         prevstep = step
 

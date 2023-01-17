@@ -86,7 +86,7 @@ def setup(chip, flowname='showflow'):
     if flowname in chip.getkeys('flowgraph'):
         del chip.schema.cfg['flowgraph'][flowname]
 
-    chip.node(flowname, 'import', 'nop')
+    chip.node(flowname, 'import', 'nop', 'nop')
 
     show_tool = chip.get('option', 'showtool', filetype)
 
@@ -99,7 +99,7 @@ def setup(chip, flowname='showflow'):
         np = int(chip.get('arg', 'flow', 'show_np')[0])
 
     for idx in range(np):
-        chip.node(flowname, stepname, show_tool, index=idx)
+        chip.node(flowname, stepname, show_tool, stepname, index=idx)
         chip.edge(flowname, 'import', stepname, head_index=idx, tail_index=0)
 
     # remove all old keys
