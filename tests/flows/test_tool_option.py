@@ -97,6 +97,7 @@ def test_failed_branch_min(chip):
 
     # Perform minimum
     chip.set('flowgraph', flow, 'placemin', '0', 'tool', 'minimum')
+    chip.set('flowgraph', flow, 'placemin', '0', 'task', 'minimum')
     chip.set('flowgraph', flow, 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     chip.run()
@@ -126,6 +127,7 @@ def test_all_failed_min(chip):
 
     # Perform minimum
     chip.set('flowgraph', flow, 'placemin', '0', 'tool', 'minimum')
+    chip.set('flowgraph', flow, 'placemin', '0', 'task', 'minimum')
     chip.set('flowgraph', flow, 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early
@@ -149,6 +151,7 @@ def test_branch_failed_join(chip):
 
     # Perform join
     chip.set('flowgraph', flow, 'placemin', '0', 'tool', 'join')
+    chip.set('flowgraph', flow, 'placemin', '0', 'task', 'join')
     chip.set('flowgraph', flow, 'placemin', '0', 'input', [('place','0'), ('place','1')])
 
     # Expect that command exits early
