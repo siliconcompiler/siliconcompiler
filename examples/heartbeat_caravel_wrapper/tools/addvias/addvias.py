@@ -7,7 +7,7 @@ def make_docs():
 
 def setup(chip):
     tool = 'addvias'
-    design = chip.get('design')x
+    design = chip.get('design')
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     #TODO fix
