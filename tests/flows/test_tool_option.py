@@ -70,16 +70,13 @@ def chip(scroot):
     flow = chip.get('option', 'flow')
 
     # no-op import since we're not preprocessing source files
-    chip.set('flowgraph', flow, 'import', '0', 'tool', 'join')
-    chip.set('flowgraph', flow, 'import', '0', 'task', 'join')
+    chip.node(flow, 'import', 'join', 'join')
 
-    chip.set('flowgraph', flow, 'place', '0', 'tool', 'openroad')
-    chip.set('flowgraph', flow, 'place', '0', 'task', 'place')
-    chip.set('flowgraph', flow, 'place', '0', 'input', ('import','0'))
+    chip.node(flow, 'place', 'openroad', 'place', index=0)
+    chip.edge(flow, 'import', 'place', head_index=0)
 
-    chip.set('flowgraph', flow, 'place', '1', 'tool', 'openroad')
-    chip.set('flowgraph', flow, 'place', '1', 'task', 'place')
-    chip.set('flowgraph', flow, 'place', '1', 'input', ('import','0'))
+    chip.node(flow, 'place', 'openroad', 'place', index=1)
+    chip.edge(flow, 'import', 'place', head_index=1)
 
     return chip
 
@@ -97,9 +94,9 @@ def test_failed_branch_min(chip):
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
 
     # Perform minimum
-    chip.set('flowgraph', flow, 'placemin', '0', 'tool', 'minimum')
-    chip.set('flowgraph', flow, 'placemin', '0', 'task', 'minimum')
-    chip.set('flowgraph', flow, 'placemin', '0', 'input', [('place','0'), ('place','1')])
+    chip.node(flow, 'placemin', 'minimum', 'minimum')
+    chip.edge(flow, 'place', 'placemin', tail_index=0)
+    chip.edge(flow, 'place', 'placemin', tail_index=1)
 
     chip.run()
 
@@ -127,9 +124,9 @@ def test_all_failed_min(chip):
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', 'asdf')
 
     # Perform minimum
-    chip.set('flowgraph', flow, 'placemin', '0', 'tool', 'minimum')
-    chip.set('flowgraph', flow, 'placemin', '0', 'task', 'minimum')
-    chip.set('flowgraph', flow, 'placemin', '0', 'input', [('place','0'), ('place','1')])
+    chip.node(flow, 'placemin', 'minimum', 'minimum')
+    chip.edge(flow, 'place', 'placemin', tail_index=0)
+    chip.edge(flow, 'place', 'placemin', tail_index=1)
 
     # Expect that command exits early
     with pytest.raises(siliconcompiler.SiliconCompilerError):
@@ -151,9 +148,9 @@ def test_branch_failed_join(chip):
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
 
     # Perform join
-    chip.set('flowgraph', flow, 'placemin', '0', 'tool', 'join')
-    chip.set('flowgraph', flow, 'placemin', '0', 'task', 'join')
-    chip.set('flowgraph', flow, 'placemin', '0', 'input', [('place','0'), ('place','1')])
+    chip.node(flow, 'placemin', 'join', 'join')
+    chip.edge(flow, 'place', 'placemin', tail_index=0)
+    chip.edge(flow, 'place', 'placemin', tail_index=1)
 
     # Expect that command exits early
     with pytest.raises(siliconcompiler.SiliconCompilerError):
