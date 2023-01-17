@@ -84,6 +84,7 @@ def chip(scroot):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip("Until OpenROAD is updated and corrected with metric_float")
 def test_failed_branch_min(chip):
     '''Test that a minimum will allow failed inputs, as long as at least
     one passes.'''
