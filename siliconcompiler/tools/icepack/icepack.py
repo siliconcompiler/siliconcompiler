@@ -34,13 +34,17 @@ def setup(chip):
     tool = 'icepack'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    clobber = False
-    chip.set('tool', tool, 'exe', tool)
-    chip.set('tool', tool, 'option', step, index, "", clobber=clobber)
+    #TODO: fix below
+    task = step
 
+    clobber = False
     design = chip.top()
-    chip.set('tool', tool, 'input', step, index, f'{design}.asc')
-    chip.set('tool', tool, 'output', step, index, f'{design}.bit')
+
+    chip.set('tool', tool, 'exe', tool)
+
+    chip.set('tool', tool, 'task', task, 'option', step, index, "", clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'input', step, index, f'{design}.asc')
+    chip.set('tool', tool, 'task', task, 'output', step, index, f'{design}.bit')
 
 ################################
 #  Custom runtime options

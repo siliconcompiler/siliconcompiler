@@ -40,6 +40,8 @@ def setup(chip):
     tool = 'openfpgaloader'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    #TODO: fix below
+    task = step
 
     # tool setup
     chip.set('tool', tool, 'exe', tool)

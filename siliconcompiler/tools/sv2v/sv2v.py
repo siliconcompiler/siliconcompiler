@@ -42,11 +42,14 @@ def setup(chip):
     tool = 'sv2v'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    #TODO: fix below
+    task = step
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '--numeric-version')
     chip.set('tool', tool, 'version', '>=0.0.9', clobber=False)
-    chip.set('tool', tool, 'threads', step, index,  4, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'threads', step, index,  4, clobber=False)
 
     # Since we run sv2v after the import/preprocess step, there should be no
     # need for specifying include dirs/defines. However we don't want to pass
@@ -58,12 +61,12 @@ def setup(chip):
     # set and we can read the pickled Verilog without accessing the original
     # sources
     topmodule = chip.top()
-    chip.set('tool', tool, 'option', step, index,  [])
-    chip.add('tool', tool, 'option', step, index,  "inputs/" + topmodule + ".v")
-    chip.add('tool', tool, 'option', step, index,  "--write=outputs/" + topmodule + ".v")
+    chip.set('tool', tool, 'task', task, 'option', step, index,  [])
+    chip.add('tool', tool, 'task', task, 'option', step, index,  "inputs/" + topmodule + ".v")
+    chip.add('tool', tool, 'task', task, 'option', step, index,  "--write=outputs/" + topmodule + ".v")
 
-    chip.set('tool', tool, 'input', step, index, f'{topmodule}.v')
-    chip.set('tool', tool, 'output', step, index, f'{topmodule}.v')
+    chip.set('tool', tool, 'task', task, 'input', step, index, f'{topmodule}.v')
+    chip.set('tool', tool, 'task', task, 'output', step, index, f'{topmodule}.v')
 
 def parse_version(stdout):
     # 0.0.7-130-g1aa30ea
