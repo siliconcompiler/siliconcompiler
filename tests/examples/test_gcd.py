@@ -24,7 +24,7 @@ def test_py(setup_example_test):
     chip = siliconcompiler.Chip('gcd')
     chip.read_manifest(manifest)
 
-    assert chip.get('tool', 'yosys', 'report', 'syn', '0', 'cellarea') == ['syn.log']
+    assert chip.get('tool', 'yosys', 'task', 'syn', 'report', 'syn', '0', 'cellarea') == ['syn.log']
 
     # "No timescale set..."
     assert chip.get('metric', 'import', '0', 'warnings') == 10

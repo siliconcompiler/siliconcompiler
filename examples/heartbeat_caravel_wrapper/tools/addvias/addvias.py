@@ -7,12 +7,14 @@ def make_docs():
 
 def setup(chip):
     tool = 'addvias'
-    design = chip.get('design')
+    design = chip.get('design')x
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    #TODO fix
+    task = step
 
-    chip.set('tool', tool, 'input', step, index, f'{design}.vg')
-    chip.set('tool', tool, 'output', step, index, f'{design}.vg')
+    chip.set('tool', tool, 'task', task, 'input', step, index, f'{design}.vg')
+    chip.set('tool', tool, 'task', task,  'output', step, index, f'{design}.vg')
 
 def run(chip):
     design = chip.get('design')
