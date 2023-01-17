@@ -18,14 +18,14 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Get Surelog version
       id: get-surelog
       run: |
         echo "version=$(python3 setup/_tools.py --tool surelog --field git-commit)" >> $GITHUB_OUTPUT
 
-    - uses: actions/cache@v2
+    - uses: actions/cache@v3
       id: surelog-cache
       if: matrix.os != 'ubuntu-latest'
       with:
@@ -43,7 +43,7 @@ jobs:
         java-package: jre
         architecture: x64
     - name: Setup Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: 3.8
         architecture: x64
@@ -101,7 +101,7 @@ jobs:
           pytest --import-mode=append {package}/tests/flows/test_show.py
 
     - name: Upload wheels
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         path: wheelhouse/*.whl
 

@@ -8,7 +8,7 @@ jobs:
     runs-on: self-hosted
     name: 'Tool-based tests'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: |
           python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
           source $GITHUB_WORKSPACE/clean_env/bin/activate
@@ -30,7 +30,7 @@ jobs:
           - {python: "3.9", os: "ubuntu-latest"}
           - {python: "3.10", os: "ubuntu-latest"}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install Dependencies
         run: |
@@ -38,7 +38,7 @@ jobs:
           sudo apt-get install graphviz
 
       - name: Set up Python ${{ matrix.version.python }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.version.python }}
 
