@@ -3125,8 +3125,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         for item in plan:
             step = list(item.keys())[0]
-            tool = list(item.values())[0]
-            self.node(flow, step, tool)
+            tool, task = list(item.values())[0]
+            self.node(flow, step, tool, task)
             if step != 'import':
                 self.edge(flow, prevstep, step)
             prevstep = step

@@ -13,8 +13,8 @@ def test_yosys_lec(datadir):
     chip.set('option', 'mode', 'asic')
 
     flow = 'lec'
-    chip.node(flow, 'import', 'nop')
-    chip.node(flow, 'lec', 'yosys')
+    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'lec', 'yosys', 'lec')
     chip.edge(flow, 'import', 'lec')
     chip.set('option', 'flow', flow)
 
@@ -38,8 +38,8 @@ def test_yosys_lec_broken(datadir):
     chip.set('option', 'mode', 'asic')
 
     flow = 'lec'
-    chip.node(flow, 'import', 'nop')
-    chip.node(flow, 'lec', 'yosys')
+    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'lec', 'yosys', 'lec')
     chip.edge(flow, 'import', 'lec')
     chip.set('option','flow', flow)
 

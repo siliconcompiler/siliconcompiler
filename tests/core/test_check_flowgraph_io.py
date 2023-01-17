@@ -5,8 +5,8 @@ def test_check_flowgraph():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'import', 'surelog')
-    chip.node(flow, 'syn', 'yosys')
+    chip.node(flow, 'import', 'surelog', 'import')
+    chip.node(flow, 'syn', 'yosys', 'syn')
     chip.edge(flow, 'import', 'syn')
 
     for step in chip.getkeys('flowgraph', flow):
@@ -33,10 +33,10 @@ def test_check_flowgraph_join():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'prejoin1', 'fake_out')
-    chip.node(flow, 'prejoin2', 'fake_out')
-    chip.node(flow, 'dojoin', 'join')
-    chip.node(flow, 'postjoin', 'fake_in')
+    chip.node(flow, 'prejoin1', 'fake_out', 'prejoin1')
+    chip.node(flow, 'prejoin2', 'fake_out', 'prejoin2')
+    chip.node(flow, 'dojoin', 'join', 'dojoin')
+    chip.node(flow, 'postjoin', 'fake_in', 'postjoin')
 
     chip.edge(flow, 'prejoin1', 'dojoin')
     chip.edge(flow, 'prejoin2', 'dojoin')
@@ -54,10 +54,10 @@ def test_check_flowgraph_min():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'premin', 'fake_out', index=0)
-    chip.node(flow, 'premin', 'fake_out', index=1)
-    chip.node(flow, 'domin', 'minimum')
-    chip.node(flow, 'postmin', 'fake_in')
+    chip.node(flow, 'premin', 'fake_out', 'premin', index=0)
+    chip.node(flow, 'premin', 'fake_out', 'premin', index=1)
+    chip.node(flow, 'domin', 'minimum', 'domin')
+    chip.node(flow, 'postmin', 'fake_in', 'postmin')
 
     chip.edge(flow, 'premin', 'domin', tail_index=0)
     chip.edge(flow, 'premin', 'domin', tail_index=1)
@@ -75,10 +75,10 @@ def test_check_flowgraph_min_fail():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'premin', 'fake_out', index=0)
-    chip.node(flow, 'premin', 'fake_out', index=1)
-    chip.node(flow, 'domin', 'minimum')
-    chip.node(flow, 'postmin', 'fake_in')
+    chip.node(flow, 'premin', 'fake_out', 'premin', index=0)
+    chip.node(flow, 'premin', 'fake_out', 'premin', index=1)
+    chip.node(flow, 'domin', 'minimum', 'domin')
+    chip.node(flow, 'postmin', 'fake_in', 'postmin')
 
     chip.edge(flow, 'premin', 'domin', tail_index=0)
     chip.edge(flow, 'premin', 'domin', tail_index=1)
