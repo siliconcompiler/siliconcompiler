@@ -4439,8 +4439,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         fullexe = self._getexe(tool)
 
-        self.write_manifest(f"{step}.dump.tcl")
-
         options = []
         is_posix = (sys.platform != 'win32')
 
