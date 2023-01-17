@@ -50,4 +50,4 @@ def setup(chip):
 
     options = []
     options.append("inputs" + chip.top() + ".bit")
-    chip.add('tool', tool, 'option', step, index,  options)
+    chip.add('tool', tool, 'task', task, 'option', step, index,  options)

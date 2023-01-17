@@ -105,7 +105,9 @@ def post_process(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    for file in chip.get('tool', 'vpr', 'output', step, index):
+    task = step
+
+    for file in chip.get('tool', 'vpr', 'task', task, 'output', step, index):
         shutil.copy(file, 'outputs')
     design = chip.top()
     shutil.copy(f'inputs/{design}.blif', 'outputs')

@@ -475,13 +475,15 @@ def copy_show_files(chip):
     tool = 'openroad'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    #TODO: Fix
+    task = step
 
-    if chip.valid('tool', tool, 'var', step, index, 'show_filepath'):
-        show_file = chip.get('tool', tool, 'var', step, index, 'show_filepath')[0]
-        show_type = chip.get('tool', tool, 'var', step, index, 'show_filetype')[0]
-        show_job = chip.get('tool', tool, 'var', step, index, 'show_job')[0]
-        show_step = chip.get('tool', tool, 'var', step, index, 'show_step')[0]
-        show_index = chip.get('tool', tool, 'var', step, index, 'show_index')[0]
+    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'show_filepath'):
+        show_file = chip.get('tool', tool, 'task', task, 'var', step, index, 'show_filepath')[0]
+        show_type = chip.get('tool', tool, 'task', task, 'var', step, index, 'show_filetype')[0]
+        show_job = chip.get('tool', tool, 'task', task, 'var', step, index, 'show_job')[0]
+        show_step = chip.get('tool', tool, 'task', task, 'var', step, index, 'show_step')[0]
+        show_index = chip.get('tool', tool, 'task', task, 'var', step, index, 'show_index')[0]
 
         # copy source in to keep sc_apr.tcl simple
         dst_file = "inputs/"+chip.top()+"."+show_type
