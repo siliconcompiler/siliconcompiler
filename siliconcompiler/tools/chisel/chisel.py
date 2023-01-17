@@ -100,7 +100,8 @@ def pre_process(chip):
     tool = 'chisel'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    refdir = chip.find_files('tool', tool, 'refdir', step, index)[0]
+    task = step
+    refdir = chip.find_files('tool', tool, 'task', task, 'refdir', step, index)[0]
 
     for filename in ('build.sbt', 'SCDriver.scala'):
         src = os.path.join(refdir, filename)
