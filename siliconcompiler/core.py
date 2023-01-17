@@ -1544,7 +1544,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             for index in self.getkeys('flowgraph', flow, step):
                 tool = self.get('flowgraph', flow, step, index, 'tool')
-                tool = self.get('flowgraph', flow, step, index, 'task')
+                task = self.get('flowgraph', flow, step, index, 'task')
                 if (tool not in self.builtin) and (tool in self.getkeys('tool')):
                     # checking that requirements are set
                     if self.valid('tool', tool, 'task', task, 'require', step, index):
