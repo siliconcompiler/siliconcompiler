@@ -1235,29 +1235,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return schema
 
     ###########################################################################
-    def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
-        """
-        Merges an external manifest with the current compilation manifest.
-
-        All value fields in the provided schema dictionary are merged into the
-        current chip object. Dictionaries with non-existent keypath produces a
-        logger error message and raises the Chip object error flag.
-
-        Args:
-            job (str): Specifies non-default job to merge into
-            clear (bool): If True, disables append operations for list type
-            clobber (bool): If True, overwrites existing parameter value
-            check (bool): If True, checks the validity of each key
-            partial (bool): If True, perform a partial merge, only merging
-                keypaths that may have been updated during run().
-
-        Examples:
-            >>> chip.merge_manifest('my.pkg.json')
-           Merges all parameters in my.pk.json into the Chip object
-
-        """
-        self._merge_manifest(cfg, job, clobber, clear, check)
-
     def _key_may_be_updated(self, keypath):
         '''Helper that returns whether `keypath` can be updated mid-run.'''
         # TODO: cleaner way to manage this?
