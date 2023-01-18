@@ -2,6 +2,7 @@ source ./sc_manifest.tcl
 
 set sc_step    [dict get $sc_cfg arg step]
 set sc_index   [dict get $sc_cfg arg index]
+set sc_task    $sc_step
 
 set sc_design  [sc_top]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
@@ -9,8 +10,8 @@ set sc_stackup [dict get $sc_cfg asic stackup]
 set sc_pdk [dict get $sc_cfg option pdk]
 set sc_runset [dict get $sc_cfg pdk $sc_pdk lvs runset netgen $sc_stackup basic]
 
-if {[dict exists $sc_cfg tool netgen var $sc_step $sc_index exclude]} {
-    set sc_exclude  [dict get $sc_cfg tool netgen var $sc_step $sc_index exclude]
+if {[dict exists $sc_cfg tool netgen task $sc_task var $sc_step $sc_index exclude]} {
+    set sc_exclude  [dict get $sc_cfg tool netgen task $sc_task var $sc_step $sc_index exclude]
 } else {
     set sc_exclude [list]
 }

@@ -1,6 +1,6 @@
 gui::save_display_controls
 
-set sc_resolution [lindex [dict get $sc_cfg tool $sc_tool {var} $sc_step $sc_index show_vertical_resolution] 0]
+set sc_resolution [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index show_vertical_resolution] 0]
 
 set height [[[ord::get_db_block] getBBox] getDY]
 set height [ord::dbu_to_microns $height]

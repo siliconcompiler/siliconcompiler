@@ -37,6 +37,7 @@ def setup(chip):
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'icarus'
+    task = 'compile'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
     design = chip.top()
@@ -45,17 +46,11 @@ def setup(chip):
     chip.set('tool', tool, 'exe', 'iverilog')
     chip.set('tool', tool, 'vswitch', '-V')
     chip.set('tool', tool, 'version', '>=10.3', clobber=False)
-    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
 
-    if step == 'compile':
-        chip.set('tool', tool, 'option', step, index,'-o outputs/'+design+'.vvp')
-    elif step == 'run':
-        chip.set('tool', tool, 'option', step, index, '')
-    else:
-        chip.logger.error(f"Step '{step}' not supported in Icarus tool")
-
-    # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input,rtl,verilog')
+    # Only one task (compile)
+    chip.add('tool', tool, 'task', task, 'require', step, index, 'input,rtl,verilog')
+    chip.set('tool', tool, 'task', task, 'option', step, index,'-o outputs/'+design+'.vvp')
+    chip.set('tool', tool, 'task', task, 'threads', step, index, os.cpu_count(), clobber=False)
 
 ################################
 #  Custom runtime options

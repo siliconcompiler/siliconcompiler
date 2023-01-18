@@ -18,13 +18,13 @@ global_connect
 # Setup detailed route options
 ######################
 
-if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index drt_default_via]} {
-  foreach via [dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index drt_default_via] {
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index drt_default_via]} {
+  foreach via [dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index drt_default_via] {
     detailed_route_set_default_via $via
   }
 }
-if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index drt_unidirectional_layer]} {
-  foreach layer [dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index drt_unidirectional_layer] {
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index drt_unidirectional_layer]} {
+  foreach layer [dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index drt_unidirectional_layer] {
     detailed_route_set_unidirectional_layer $via
   }
 }

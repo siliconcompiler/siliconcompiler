@@ -43,6 +43,8 @@ def setup(chip, mode="batch"):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    #TODO: Fix below
+    task = step
 
     if platform.system() == 'Windows':
         klayout_exe = 'klayout_app.exe'
@@ -94,12 +96,13 @@ def setup(chip, mode="batch"):
     # Versions < 0.27.6 may be bundled with an incompatible version of Python.
     chip.set('tool', tool, 'version', '>=0.27.6', clobber=clobber)
     chip.set('tool', tool, 'format', 'json', clobber=clobber)
-    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=clobber)
-    chip.set('tool', tool, 'script', step, index, script, clobber=clobber)
-    chip.set('tool', tool, 'option', step, index, option, clobber=clobber)
+
+    chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'script', step, index, script, clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'option', step, index, option, clobber=clobber)
 
     # Export GDS with timestamps by default.
-    chip.set('tool', tool, 'var', step, index, 'timestamps', 'true', clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'timestamps', 'true', clobber=False)
 
     design = chip.top()
 
@@ -107,23 +110,23 @@ def setup(chip, mode="batch"):
     if step in ['export']:
         if (not chip.valid('input', 'layout', 'def') or
             not chip.get('input', 'layout', 'def')):
-            chip.add('tool', tool, 'input', step, index, design + '.def')
-        chip.add('tool', tool, 'output', step, index, design + '.gds')
+            chip.add('tool', tool, 'task', task, 'input', step, index, design + '.def')
+        chip.add('tool', tool, 'task', task, 'output', step, index, design + '.gds')
 
     # Adding requirements
     if is_show or is_screenshot:
-        if chip.valid('tool', tool, 'var', step, index, 'show_filepath'):
-            chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filepath']))
+        if chip.valid('tool', tool, 'task', task, 'var', step, index, 'show_filepath'):
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'show_filepath']))
         else:
             incoming_ext = find_incoming_ext(chip)
-            chip.add('tool', tool, 'require', step, index, ",".join(['tool', tool, 'var', step, index, 'show_filetype']))
-            chip.set('tool', tool, 'var', step, index, 'show_filetype', incoming_ext)
-            chip.add('tool', tool, 'input', step, index, f'{design}.{incoming_ext}')
-        chip.set('tool', tool, 'var', step, index, 'show_exit', "true" if is_screenshot else "false", clobber=False)
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'show_filetype']))
+            chip.set('tool', tool, 'task', task, 'var', step, index, 'show_filetype', incoming_ext)
+            chip.add('tool', tool, 'task', task, 'input', step, index, f'{design}.{incoming_ext}')
+        chip.set('tool', tool, 'task', task, 'var', step, index, 'show_exit', "true" if is_screenshot else "false", clobber=False)
         if is_screenshot:
-            chip.add('tool', tool, 'output', step, index, design + '.png')
-            chip.set('tool', tool, 'var', step, index, 'show_horizontal_resolution', '1024', clobber=False)
-            chip.set('tool', tool, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
+            chip.add('tool', tool, 'task', task, 'output', step, index, design + '.png')
+            chip.set('tool', tool, 'task', task, 'var', step, index, 'show_horizontal_resolution', '1024', clobber=False)
+            chip.set('tool', tool, 'task', task, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
     else:
         targetlibs = chip.get('asic', 'logiclib')
         stackup = chip.get('asic', 'stackup')
@@ -131,19 +134,19 @@ def setup(chip, mode="batch"):
         if bool(stackup) & bool(targetlibs):
             macrolibs = chip.get('asic', 'macrolib')
 
-            chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
-            chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'stackup']))
-            chip.add('tool', tool, 'require', step, index,  ",".join(['pdk', pdk, 'layermap', 'klayout', 'def','gds', stackup]))
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'logiclib']))
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'stackup']))
+            chip.add('tool', tool, 'task', task, 'require', step, index,  ",".join(['pdk', pdk, 'layermap', 'klayout', 'def','gds', stackup]))
 
             for lib in (targetlibs + macrolibs):
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'gds']))
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'lef']))
+                chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'gds']))
+                chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'lef']))
         else:
             chip.error(f'Stackup and targetlib paremeters required for Klayout.')
 
     # Log file parsing
-    chip.set('tool', tool, 'regex', step, index, 'warnings', r'(WARNING|warning)', clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', r'ERROR', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'(WARNING|warning)', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'ERROR', clobber=False)
 
 ################################
 # Version Check

@@ -86,7 +86,7 @@ def setup(chip, flowname='showflow'):
     if flowname in chip.getkeys('flowgraph'):
         del chip.schema.cfg['flowgraph'][flowname]
 
-    chip.node(flowname, 'import', 'nop')
+    chip.node(flowname, 'import', 'nop', 'nop')
 
     show_tool = chip.get('option', 'showtool', filetype)
 
@@ -99,7 +99,7 @@ def setup(chip, flowname='showflow'):
         np = int(chip.get('arg', 'flow', 'show_np')[0])
 
     for idx in range(np):
-        chip.node(flowname, stepname, show_tool, index=idx)
+        chip.node(flowname, stepname, show_tool, stepname, index=idx)
         chip.edge(flowname, 'import', stepname, head_index=idx, tail_index=0)
 
     # remove all old keys
@@ -110,11 +110,11 @@ def setup(chip, flowname='showflow'):
 
     # copy in step/index variables
     for index in chip.getkeys('flowgraph', flowname, stepname):
-        chip.set('tool', show_tool, 'var', stepname, index, 'show_filetype', filetype)
-        chip.set('tool', show_tool, 'var', stepname, index, 'show_filepath', filepath)
-        chip.set('tool', show_tool, 'var', stepname, index, 'show_step', step)
-        chip.set('tool', show_tool, 'var', stepname, index, 'show_index', index)
-        chip.set('tool', show_tool, 'var', stepname, index, 'show_job', job)
+        chip.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_filetype', filetype)
+        chip.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_filepath', filepath)
+        chip.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_step', step)
+        chip.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_index', index)
+        chip.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_job', job)
 
 ##################################################
 if __name__ == "__main__":

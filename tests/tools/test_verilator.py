@@ -18,7 +18,7 @@ def test_verilator(oh_dir):
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
     chip.set('option', 'mode', 'sim')
-    chip.node('verilator', step, 'verilator')
+    chip.node('verilator', step, 'verilator', step)
     chip.load_target('freepdk45_demo')
     chip.set('option', 'flow', 'verilator')
     chip.run()

@@ -2,9 +2,9 @@
 # DESIGNER's CHOICE
 ####################
 
-set sc_libraries        [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index synthesis_libraries]
-if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index synthesis_libraries_macros]} {
-    set sc_macro_libraries [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index synthesis_libraries_macros]
+set sc_libraries        [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index synthesis_libraries]
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index synthesis_libraries_macros]} {
+    set sc_macro_libraries [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index synthesis_libraries_macros]
 } else {
     set sc_macro_libraries []
 }
@@ -12,8 +12,8 @@ set sc_mainlib          [lindex [dict get $sc_cfg asic logiclib] 0]
 set sc_tie              [dict get $sc_cfg library $sc_mainlib asic cells tie]
 set sc_buf              [dict get $sc_cfg library $sc_mainlib asic cells buf]
 
-set sc_dff_library      [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index dff_liberty_file] 0]
-set sc_abc_constraints  [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index abc_constraint_file] 0]
+set sc_dff_library      [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index dff_liberty_file] 0]
+set sc_abc_constraints  [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index abc_constraint_file] 0]
 
 ########################################################
 # Read Libraries
@@ -38,8 +38,8 @@ foreach lib_file "$sc_libraries $sc_macro_libraries" {
 yosys hierarchy -top $sc_design
 
 # Mark modules to keep from getting removed in flattening
-if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index preserve_modules]} {
-    foreach module [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index preserve_modules] {
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index preserve_modules]} {
+    foreach module [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index preserve_modules] {
         yosys select -module $module
         yosys setattr -mod -set keep_hierarchy 1
         yosys select -clear
@@ -47,7 +47,7 @@ if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index preserve_modules]}
 }
 
 set synth_args []
-if {[dict get $sc_cfg tool $sc_tool var $sc_step $sc_index flatten] == "True"} {
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index flatten] == "True"} {
     lappend synth_args "-flatten"
 }
 yosys synth {*}$synth_args -top $sc_design
@@ -63,7 +63,7 @@ proc post_techmap { { opt_args "" } } {
     # Quick optimization
     yosys opt {*}$opt_args -purge
 }
-if {[dict get $sc_cfg tool $sc_tool var $sc_step $sc_index map_adders] != "False"} {
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index map_adders] != "False"} {
     set sc_adder_techmap [lindex [dict get $sc_cfg library $sc_mainlib asic "file" $sc_tool addermap] 0]
     # extract the full adders
     yosys extract_fa
@@ -72,14 +72,14 @@ if {[dict get $sc_cfg tool $sc_tool var $sc_step $sc_index map_adders] != "False
     post_techmap -fast
 }
 
-if [dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index techmap] {
-    foreach mapfile [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index techmap] {
+if [dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index techmap] {
+    foreach mapfile [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index techmap] {
         yosys techmap -map $mapfile
         post_techmap -fast
     }
 }
 
-if {[dict get $sc_cfg tool $sc_tool var $sc_step $sc_index autoname] == "True"} {
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index autoname] == "True"} {
     # use autoname to preserve some design naming
     # by doing it before dfflibmap the names will be slightly shorter since they will
     # only contain the $DFF_P names vs. the full library name of the associated flip-flop
@@ -94,8 +94,8 @@ post_techmap
 source "$sc_refdir/syn_strategies.tcl"
 
 set script ""
-if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index strategy]} {
-    set sc_strategy [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index strategy]
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index strategy]} {
+    set sc_strategy [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index strategy]
     if { [dict exists $syn_strategies $sc_strategy] } {
         set script [dict get $syn_strategies $sc_strategy]
     } elseif { [string match "+*" $sc_strategy] } {
@@ -113,8 +113,8 @@ if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index strategy]} {
 #   user-provided constraint)
 
 set abc_args []
-if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index abc_clock_period]} {
-    set abc_clock_period [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index abc_clock_period]
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index abc_clock_period]} {
+    set abc_clock_period [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index abc_clock_period]
     if { [llength $abc_clock_period] != 0 } {
         # assumes units are ps
         lappend abc_args "-D" $abc_clock_period

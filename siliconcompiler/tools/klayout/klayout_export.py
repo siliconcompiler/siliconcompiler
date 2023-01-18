@@ -258,7 +258,10 @@ if 'macrolib' in sc_cfg['asic']:
 sc_step = sc_cfg['arg']['step']['value']
 sc_index = sc_cfg['arg']['index']['value']
 
-sc_klayout_vars = sc_cfg['tool']['klayout']['var'][sc_step][sc_index]
+#TODO: fix properly
+sc_task = sc_step
+
+sc_klayout_vars = sc_cfg['tool']['klayout']['task'][sc_step]['var'][sc_step][sc_index]
 if 'timestamps' in sc_klayout_vars:
   sc_timestamps = sc_klayout_vars['timestamps']['value'] == ['true']
 else:

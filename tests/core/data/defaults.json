@@ -2163,6 +2163,23 @@
                         "type": "str",
                         "value": null
                     },
+                    "task": {
+                        "defvalue": null,
+                        "example": [
+                            "cli: -flowgraph_task 'asicflow myplace 0 place'",
+                            "api: chip.set('flowgraph','asicflow','myplace','0','task','place')"
+                        ],
+                        "help": "Name of the tool associated task used for step execution. Builtin\ntask names include: minimum, maximum, join, verify, mux.",
+                        "lock": "false",
+                        "notes": null,
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: task selection",
+                        "signature": null,
+                        "switch": "-flowgraph_task 'flow step <str>'",
+                        "type": "str",
+                        "value": null
+                    },
                     "timeout": {
                         "defvalue": null,
                         "example": [
@@ -2187,7 +2204,7 @@
                             "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                             "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"
                         ],
-                        "help": "Name of the tool name used for task execution. Builtin tool names\nassociated bound to core API functions include: minimum, maximum, join,\nverify, mux.",
+                        "help": "Name of the tool name used for task execution. The 'tool' parameter\nis ignored for builtin tasks.",
                         "lock": "false",
                         "notes": null,
                         "require": null,
@@ -5907,7 +5924,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.10.0",
+        "defvalue": "0.11.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -5920,50 +5937,10 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.10.0"
+        "value": "0.11.0"
     },
     "tool": {
         "default": {
-            "continue": {
-                "defvalue": "false",
-                "example": [
-                    "cli: -tool_continue 'verilator true'",
-                    "api: chip.set('tool','verilator','continue', true)"
-                ],
-                "help": "Directs tool to continue operating even if errors are\nencountered.",
-                "lock": "false",
-                "notes": null,
-                "require": "all",
-                "scope": "job",
-                "shorthelp": "Tool: continue-on-error option",
-                "signature": null,
-                "switch": "-tool_continue 'tool <bool>'",
-                "type": "bool",
-                "value": "false"
-            },
-            "env": {
-                "default": {
-                    "default": {
-                        "default": {
-                            "defvalue": null,
-                            "example": [
-                                "cli: -tool_env 'openroad cts 0 MYVAR 42'",
-                                "api: chip.set('tool','openroad','env','cts','0','MYVAR','42')"
-                            ],
-                            "help": "Environment variables to set for individual tasks. Keys and values\nshould be set in accordance with the tool's documentation. Most\ntools do not require extra environment variables to function.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "job",
-                            "shorthelp": "Tool: environment variables",
-                            "signature": null,
-                            "switch": "-tool_env 'tool step index name <str>'",
-                            "type": "str",
-                            "value": null
-                        }
-                    }
-                }
-            },
             "exe": {
                 "defvalue": null,
                 "example": [
@@ -5981,34 +5958,6 @@
                 "type": "str",
                 "value": null
             },
-            "file": {
-                "default": {
-                    "default": {
-                        "default": {
-                            "author": [],
-                            "copy": "false",
-                            "date": [],
-                            "defvalue": [],
-                            "example": [
-                                "cli: -tool_file 'openroad floorplan 0 macroplace macroplace.tcl'",
-                                "api: chip.set('tool','openroad','file','floorplan','0','macroplace','macroplace.tcl')"
-                            ],
-                            "filehash": [],
-                            "hashalgo": "sha256",
-                            "help": "Paths to user supplied files mapped to keys. Keys and filetypes must\nmatch what's expected by the tool/reference script consuming the\nfile.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "job",
-                            "shorthelp": "Tool: user file",
-                            "signature": [],
-                            "switch": "-tool_file 'tool step index key <file>'",
-                            "type": "[file]",
-                            "value": []
-                        }
-                    }
-                }
-            },
             "format": {
                 "defvalue": null,
                 "example": [
@@ -6020,65 +5969,18 @@
                 "notes": null,
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Tool: manifest file format",
+                "shorthelp": "Tool: file format",
                 "signature": null,
                 "switch": "-tool_format 'tool <file>'",
                 "type": "str",
                 "value": null
             },
-            "input": {
-                "default": {
-                    "default": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "example": [
-                            "cli: -tool_input 'openroad place 0 oh_add.def'",
-                            "api: chip.set('tool','openroad','input','place','0','oh_add.def')"
-                        ],
-                        "filehash": [],
-                        "hashalgo": "sha256",
-                        "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key ['flowgraph', step, index, 'input'].\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
-                        "lock": "false",
-                        "notes": null,
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Tool: input files",
-                        "signature": [],
-                        "switch": "-tool_input 'tool step index <str>'",
-                        "type": "[file]",
-                        "value": []
-                    }
-                }
-            },
-            "keep": {
-                "default": {
-                    "default": {
-                        "defvalue": [],
-                        "example": [
-                            "cli: -tool_keep 'surelog import 0 slp_all'",
-                            "api: chip.set('tool','surelog','script','import','0','slpp_all')"
-                        ],
-                        "help": "Names of additional files and directories in the work directory that\nshould be kept when :keypath:`option, clean` is true.",
-                        "lock": "false",
-                        "notes": null,
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Tool: files to keep",
-                        "signature": [],
-                        "switch": "-tool_keep 'tool step index <str>'",
-                        "type": "[str]",
-                        "value": []
-                    }
-                }
-            },
             "licenseserver": {
                 "default": {
                     "defvalue": [],
                     "example": [
-                        "cli: -tool_licenseserver 'atool ACME_LICENSE 1700@server'",
-                        "api: chip.set('tool','atool','licenseserver','ACME_LICENSE','1700@server')"
+                        "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
+                        "api: chip.set('tool','acme','licenseserver','ACME_LICENSE','1700@server')"
                     ],
                     "help": "Defines a set of tool specific environment variables used by the executables\nthat depend on license key servers to control access. For multiple servers,\nseparate each server by a 'colon'. The named license variable are read at\nruntime (run()) and the environment variables are set.",
                     "lock": "false",
@@ -6090,53 +5992,6 @@
                     "switch": "-tool_licenseserver 'name key <str>'",
                     "type": "[str]",
                     "value": []
-                }
-            },
-            "option": {
-                "default": {
-                    "default": {
-                        "defvalue": [],
-                        "example": [
-                            "cli: -tool_option 'openroad cts 0 -no_init'",
-                            "api: chip.set('tool','openroad','option','cts','0','-no_init')"
-                        ],
-                        "help": "List of command line options for the tool executable, specified on\na per tool and per step basis. Options must not include spaces.\nFor multiple argument options, each option is a separate list element.",
-                        "lock": "false",
-                        "notes": null,
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Tool: executable options",
-                        "signature": [],
-                        "switch": "-tool_option 'tool step index <str>'",
-                        "type": "[str]",
-                        "value": []
-                    }
-                }
-            },
-            "output": {
-                "default": {
-                    "default": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "example": [
-                            "cli: -tool_output 'openroad place 0 oh_add.def'",
-                            "api: chip.set('tool','openroad','output','place','0','oh_add.def')"
-                        ],
-                        "filehash": [],
-                        "hashalgo": "sha256",
-                        "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key ['flowgraph', step, index, 'output'].\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
-                        "lock": "false",
-                        "notes": null,
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Tool: output files",
-                        "signature": [],
-                        "switch": "-tool_output 'tool step index <str>'",
-                        "type": "[file]",
-                        "value": []
-                    }
                 }
             },
             "path": {
@@ -6156,297 +6011,488 @@
                 "type": "dir",
                 "value": null
             },
-            "postscript": {
+            "task": {
                 "default": {
-                    "default": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "example": [
-                            "cli: -tool_postscript 'yosys syn 0 syn_post.tcl'",
-                            "api: chip.set('tool','yosys','postscript','syn','0','syn_post.tcl')"
-                        ],
-                        "filehash": [],
-                        "hashalgo": "sha256",
-                        "help": "Path to a user supplied script to execute after the main execution\nstage of the step but before the design is saved.\nExact entry point depends on the step and main script being\nexecuted. An example of a postscript entry point would be immediately\nafter global placement.",
-                        "lock": "false",
-                        "notes": null,
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Tool: post-step script",
-                        "signature": [],
-                        "switch": "-tool_postscript 'tool step index <file>'",
-                        "type": "[file]",
-                        "value": []
-                    }
-                }
-            },
-            "prescript": {
-                "default": {
-                    "default": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "example": [
-                            "cli: -tool_prescript 'yosys syn 0 syn_pre.tcl'",
-                            "api: chip.set('tool','yosys','prescript','syn','0','syn_pre.tcl')"
-                        ],
-                        "filehash": [],
-                        "hashalgo": "sha256",
-                        "help": "Path to a user supplied script to execute after reading in the design\nbut before the main execution stage of the step. Exact entry point\ndepends on the step and main script being executed. An example\nof a prescript entry point would be immediately before global\nplacement.",
-                        "lock": "false",
-                        "notes": null,
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Tool: pre-step script",
-                        "signature": [],
-                        "switch": "-tool_prescript 'tool step index <file>'",
-                        "type": "[file]",
-                        "value": []
-                    }
-                }
-            },
-            "refdir": {
-                "default": {
-                    "default": {
-                        "defvalue": [],
-                        "example": [
-                            "cli: -tool_refdir 'yosys syn 0 ./myref'",
-                            "api:  chip.set('tool','yosys','refdir','syn','0','./myref')"
-                        ],
-                        "help": "Path to directories containing reference flow scripts, specified\non a per step and index basis.",
-                        "lock": "false",
-                        "notes": null,
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Tool: script directory",
-                        "signature": [],
-                        "switch": "-tool_refdir 'tool step index <dir>'",
-                        "type": "[dir]",
-                        "value": []
-                    }
-                }
-            },
-            "regex": {
-                "default": {
-                    "default": {
+                    "continue": {
                         "default": {
-                            "defvalue": [],
-                            "example": [
-                                "cli: -tool_regex 'openroad place 0 errors -v ERROR'",
-                                "api: chip.set('tool','openroad','regex','place','0','errors','-v ERROR')"
-                            ],
-                            "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('tool', 'openroad', 'regex', 'place', '0', 'warnings', [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`tool, <tool>,\nreport` parameter for those metrics, if not already present.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "job",
-                            "shorthelp": "Tool: regex filter",
-                            "signature": [],
-                            "switch": "-tool_regex 'tool step index suffix <str>'",
-                            "type": "[str]",
-                            "value": []
+                            "default": {
+                                "defvalue": "false",
+                                "example": [
+                                    "cli: -tool_task_continue 'verilator lint lint 0 true'",
+                                    "api: chip.set('tool','verilator','task','lint','continue','lint','0', true)"
+                                ],
+                                "help": "Directs flow to continue even if errors are encountered during task. The default\nbehavior is for SC to exit on error.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": "all",
+                                "scope": "job",
+                                "shorthelp": "Task: continue option",
+                                "signature": null,
+                                "switch": "-tool_task_continue 'tool task step index <bool>'",
+                                "type": "bool",
+                                "value": "false"
+                            }
                         }
-                    }
-                }
-            },
-            "report": {
-                "default": {
-                    "default": {
+                    },
+                    "env": {
                         "default": {
-                            "author": [],
-                            "copy": "false",
-                            "date": [],
-                            "defvalue": [],
-                            "example": [
-                                "cli: -tool_report 'openroad place 0 holdtns place.log'",
-                                "api: chip.set('tool','openroad','report','syn','0','holdtns','place.log')"
-                            ],
-                            "filehash": [],
-                            "hashalgo": "sha256",
-                            "help": "List of report files associated with a specific 'metric'. The file path\nspecified is relative to the run directory of the current task.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "job",
-                            "shorthelp": "Tool: report files",
-                            "signature": [],
-                            "switch": "-tool_report 'tool step index metric <str>'",
-                            "type": "[file]",
-                            "value": []
+                            "default": {
+                                "default": {
+                                    "defvalue": null,
+                                    "example": [
+                                        "cli: -tool_task_env 'openroad cts cts 0 MYVAR 42'",
+                                        "api: chip.set('tool','openroad','task','cts','env','cts','0','MYVAR','42')"
+                                    ],
+                                    "help": "Environment variables to set for individual tasks. Keys and values\nshould be set in accordance with the task's documentation. Most\ntasks do not require extra environment variables to function.",
+                                    "lock": "false",
+                                    "notes": null,
+                                    "require": null,
+                                    "scope": "job",
+                                    "shorthelp": "Task: environment variables",
+                                    "signature": null,
+                                    "switch": "-tool_task_env 'tool task step index name <str>'",
+                                    "type": "str",
+                                    "value": null
+                                }
+                            }
                         }
-                    }
-                }
-            },
-            "require": {
-                "default": {
-                    "default": {
-                        "defvalue": [],
-                        "example": [
-                            "cli: -tool_require 'openroad cts 0 design'",
-                            "api: chip.set('tool','openroad','require','cts','0','design')"
-                        ],
-                        "help": "List of keypaths to required tool parameters. The list is used\nby check() to verify that all parameters have been set up before\nstep execution begins.",
-                        "lock": "false",
-                        "notes": null,
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Tool: parameter requirements",
-                        "signature": [],
-                        "switch": "-tool_require 'tool step index <str>'",
-                        "type": "[str]",
-                        "value": []
-                    }
-                }
-            },
-            "script": {
-                "default": {
-                    "default": {
-                        "author": [],
-                        "copy": "false",
-                        "date": [],
-                        "defvalue": [],
-                        "example": [
-                            "cli: -tool_script 'yosys syn 0 syn.tcl'",
-                            "api: chip.set('tool','yosys','script','syn','0','syn.tcl')"
-                        ],
-                        "filehash": [],
-                        "hashalgo": "sha256",
-                        "help": "Path to the entry script called by the executable specified\non a per tool and per step basis.",
-                        "lock": "false",
-                        "notes": null,
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Tool: entry script",
-                        "signature": [],
-                        "switch": "-tool_script 'tool step index <file>'",
-                        "type": "[file]",
-                        "value": []
-                    }
-                }
-            },
-            "stderr": {
-                "default": {
-                    "default": {
-                        "destination": {
-                            "defvalue": "log",
-                            "example": [
-                                "cli: -tool_stderr_destination 'ghdl import 0 log'",
-                                "api: chip.set('tool','ghdl','stderr','import','0','destination','log')"
-                            ],
-                            "help": "Defines where to direct the output generated over stderr.\nSupported options are:\nnone: the stream generated to STDERR is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display output: the generated stream is\nstored in outputs/<design>.<suffix>",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "job",
-                            "shorthelp": "Tool: Destination for stderr",
-                            "signature": null,
-                            "switch": "-tool_stderr_destination 'tool step index [log|output|none]'",
-                            "type": "str",
-                            "value": "log"
-                        },
-                        "suffix": {
-                            "defvalue": "log",
-                            "example": [
-                                "cli: -tool_stderr_suffix 'ghdl import 0 log'",
-                                "api: chip.set('tool','ghdl','stderr','import','0','suffix','log')"
-                            ],
-                            "help": "Specifies the file extension for the content redirected from stderr.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "job",
-                            "shorthelp": "Tool: File suffix for redirected stderr",
-                            "signature": null,
-                            "switch": "-tool_stderr_suffix 'tool step index <str>'",
-                            "type": "str",
-                            "value": "log"
-                        }
-                    }
-                }
-            },
-            "stdout": {
-                "default": {
-                    "default": {
-                        "destination": {
-                            "defvalue": "log",
-                            "example": [
-                                "cli: -tool_stdout_destination 'ghdl import 0 log'",
-                                "api: chip.set('tool','ghdl','stdout','import','0','destination','log')"
-                            ],
-                            "help": "Defines where to direct the output generated over stdout.\nSupported options are:\nnone: the stream generated to STDOUT is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display output: the generated stream is stored\nin outputs/<design>.<suffix>",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "job",
-                            "shorthelp": "Tool: Destination for stdout",
-                            "signature": null,
-                            "switch": "-tool_stdout_destination 'tool step index [log|output|none]'",
-                            "type": "str",
-                            "value": "log"
-                        },
-                        "suffix": {
-                            "defvalue": "log",
-                            "example": [
-                                "cli: -tool_stdout_suffix 'ghdl import 0 log'",
-                                "api: chip.set('tool','ghdl','stdout','import','0','suffix','log')"
-                            ],
-                            "help": "Specifies the file extension for the content redirected from stdout.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "job",
-                            "shorthelp": "Tool: File suffix for redirected stdout",
-                            "signature": null,
-                            "switch": "-tool_stdout_suffix 'tool step index <str>'",
-                            "type": "str",
-                            "value": "log"
-                        }
-                    }
-                }
-            },
-            "threads": {
-                "default": {
-                    "default": {
-                        "defvalue": null,
-                        "example": [
-                            "cli: -tool_threads 'magic drc 0 64'",
-                            "api: chip.set('tool','magic','threads','drc','0','64')"
-                        ],
-                        "help": "Thread parallelism to use for execution specified on a per tool and per\nstep basis. If not specified, SC queries the operating system and sets\nthe threads based on the maximum thread count supported by the\nhardware.",
-                        "lock": "false",
-                        "notes": null,
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Tool: thread parallelism",
-                        "signature": null,
-                        "switch": "-tool_threads 'tool step index <int>'",
-                        "type": "int",
-                        "value": null
-                    }
-                }
-            },
-            "var": {
-                "default": {
-                    "default": {
+                    },
+                    "file": {
                         "default": {
-                            "defvalue": [],
-                            "example": [
-                                "cli: -tool_variable 'openroad cts 0 myvar 42'",
-                                "api: chip.set('tool','openroad','var','cts','0','myvar','42')"
-                            ],
-                            "help": "Tool script variables specified as key value pairs. Variable\nnames and value types must match the name and type of tool and reference\nscript consuming the variable.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "job",
-                            "shorthelp": "Tool: script variables",
-                            "signature": [],
-                            "switch": "-tool_variable 'tool step index key <str>'",
-                            "type": "[str]",
-                            "value": []
+                            "default": {
+                                "default": {
+                                    "author": [],
+                                    "copy": "false",
+                                    "date": [],
+                                    "defvalue": [],
+                                    "example": [
+                                        "cli: -tool_task_file 'openroad floorplan floorplan 0 macroplace macroplace.tcl'",
+                                        "api: chip.set('tool','openroad','task','floorplan','file','floorplan','0','macroplace', 'macroplace.tcl')"
+                                    ],
+                                    "filehash": [],
+                                    "hashalgo": "sha256",
+                                    "help": "Paths to user supplied files mapped to keys. Keys and filetypes must\nmatch what's expected by the task/reference script consuming the\nfile.",
+                                    "lock": "false",
+                                    "notes": null,
+                                    "require": null,
+                                    "scope": "job",
+                                    "shorthelp": "Task: setup files",
+                                    "signature": [],
+                                    "switch": "-tool_task_file 'tool task step index key <file>'",
+                                    "type": "[file]",
+                                    "value": []
+                                }
+                            }
+                        }
+                    },
+                    "input": {
+                        "default": {
+                            "default": {
+                                "author": [],
+                                "copy": "false",
+                                "date": [],
+                                "defvalue": [],
+                                "example": [
+                                    "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
+                                    "api: chip.set('tool','openroad','task','place','input','place','0','oh_add.def')"
+                                ],
+                                "filehash": [],
+                                "hashalgo": "sha256",
+                                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key ['flowgraph', step, index, 'input'].\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Task: inputs",
+                                "signature": [],
+                                "switch": "-tool_task_input 'task step index <str>'",
+                                "type": "[file]",
+                                "value": []
+                            }
+                        }
+                    },
+                    "keep": {
+                        "default": {
+                            "default": {
+                                "defvalue": [],
+                                "example": [
+                                    "cli: -tool_task_keep 'surelog import import 0 slp_all'",
+                                    "api: chip.set('tool','surelog','task','import','script','import','0','slpp_all')"
+                                ],
+                                "help": "Names of additional files and directories in the work directory that\nshould be kept when :keypath:`option, clean` is true.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Task: files to keep",
+                                "signature": [],
+                                "switch": "-tool_task_keep 'task step index <str>'",
+                                "type": "[str]",
+                                "value": []
+                            }
+                        }
+                    },
+                    "option": {
+                        "default": {
+                            "default": {
+                                "defvalue": [],
+                                "example": [
+                                    "cli: -tool_task_option 'openroad cts cts 0 -no_init'",
+                                    "api: chip.set('tool','openroad','task','cts','option','cts','0','-no_init')"
+                                ],
+                                "help": "List of command line options for the task executable, specified on\na per task and per step basis. Options must not include spaces.\nFor multiple argument options, each option is a separate list element.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Task: executable options",
+                                "signature": [],
+                                "switch": "-tool_task_option 'tool task step index <str>'",
+                                "type": "[str]",
+                                "value": []
+                            }
+                        }
+                    },
+                    "output": {
+                        "default": {
+                            "default": {
+                                "author": [],
+                                "copy": "false",
+                                "date": [],
+                                "defvalue": [],
+                                "example": [
+                                    "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
+                                    "api: chip.set('tool','openroad','task','place','output','place','0','oh_add.def')"
+                                ],
+                                "filehash": [],
+                                "hashalgo": "sha256",
+                                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key ['flowgraph', step, index, 'output'].\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Task: outputs",
+                                "signature": [],
+                                "switch": "-tool_task_output 'task step index <str>'",
+                                "type": "[file]",
+                                "value": []
+                            }
+                        }
+                    },
+                    "postscript": {
+                        "default": {
+                            "default": {
+                                "author": [],
+                                "copy": "false",
+                                "date": [],
+                                "defvalue": [],
+                                "example": [
+                                    "cli: -tool_task_postscript 'yosys syn syn 0 syn_post.tcl'",
+                                    "api: chip.set('tool','yosys','task','syn','postscript','syn','0','syn_post.tcl')"
+                                ],
+                                "filehash": [],
+                                "hashalgo": "sha256",
+                                "help": "Path to a user supplied script to execute after the main execution\nstage of the step but before the design is saved.\nExact entry point depends on the step and main script being\nexecuted. An example of a postscript entry point would be immediately\nafter global placement.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Task: post-step script",
+                                "signature": [],
+                                "switch": "-tool_task_postscript 'task step index <file>'",
+                                "type": "[file]",
+                                "value": []
+                            }
+                        }
+                    },
+                    "prescript": {
+                        "default": {
+                            "default": {
+                                "author": [],
+                                "copy": "false",
+                                "date": [],
+                                "defvalue": [],
+                                "example": [
+                                    "cli: -tool_task_prescript 'yosys syn syn 0 syn_pre.tcl'",
+                                    "api: chip.set('tool','yosys','task','syn','prescript','syn','0','syn_pre.tcl')"
+                                ],
+                                "filehash": [],
+                                "hashalgo": "sha256",
+                                "help": "Path to a user supplied script to execute after reading in the design\nbut before the main execution stage of the step. Exact entry point\ndepends on the step and main script being executed. An example\nof a prescript entry point would be immediately before global\nplacement.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Task: pre-step script",
+                                "signature": [],
+                                "switch": "-tool_task_prescript 'task step index <file>'",
+                                "type": "[file]",
+                                "value": []
+                            }
+                        }
+                    },
+                    "refdir": {
+                        "default": {
+                            "default": {
+                                "defvalue": [],
+                                "example": [
+                                    "cli: -tool_task_refdir 'yosys syn syn 0 ./myref'",
+                                    "api:  chip.set('tool','yosys','task','syn','refdir','syn','0','./myref')"
+                                ],
+                                "help": "Path to directories containing reference flow scripts, specified\non a per step and index basis.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Task: script directory",
+                                "signature": [],
+                                "switch": "-tool_task_refdir 'task step index <dir>'",
+                                "type": "[dir]",
+                                "value": []
+                            }
+                        }
+                    },
+                    "regex": {
+                        "default": {
+                            "default": {
+                                "default": {
+                                    "defvalue": [],
+                                    "example": [
+                                        "cli: -tool_task_regex 'openroad place place 0 errors -v ERROR'",
+                                        "api: chip.set('tool','openroad','task','place','regex','errors','place','0','-v ERROR')"
+                                    ],
+                                    "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('task', 'openroad', 'regex', 'place', '0', 'warnings', [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`task, <task>,\nreport` parameter for those metrics, if not already present.",
+                                    "lock": "false",
+                                    "notes": null,
+                                    "require": null,
+                                    "scope": "job",
+                                    "shorthelp": "Task: regex filter",
+                                    "signature": [],
+                                    "switch": "-tool_task_regex 'tool task step index suffix <str>'",
+                                    "type": "[str]",
+                                    "value": []
+                                }
+                            }
+                        }
+                    },
+                    "report": {
+                        "default": {
+                            "default": {
+                                "default": {
+                                    "author": [],
+                                    "copy": "false",
+                                    "date": [],
+                                    "defvalue": [],
+                                    "example": [
+                                        "cli: -tool_task_report 'openroad place place 0 holdtns place.log'",
+                                        "api: chip.set('tool','openroad','task','place','report','place','0','holdtns','place.log')"
+                                    ],
+                                    "filehash": [],
+                                    "hashalgo": "sha256",
+                                    "help": "List of report files associated with a specific 'metric'. The file path\nspecified is relative to the run directory of the current task.",
+                                    "lock": "false",
+                                    "notes": null,
+                                    "require": null,
+                                    "scope": "job",
+                                    "shorthelp": "Task: reports",
+                                    "signature": [],
+                                    "switch": "-tool_task_report 'task step index metric <str>'",
+                                    "type": "[file]",
+                                    "value": []
+                                }
+                            }
+                        }
+                    },
+                    "require": {
+                        "default": {
+                            "default": {
+                                "defvalue": [],
+                                "example": [
+                                    "cli: -tool_task_require 'openroad cts cts 0 design'",
+                                    "api: chip.set('tool','openroad', 'task','cts','require','cts','0','design')"
+                                ],
+                                "help": "List of keypaths to required task parameters. The list is used\nby check() to verify that all parameters have been set up before\nstep execution begins.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Task: parameter requirements",
+                                "signature": [],
+                                "switch": "-tool_task_require 'task step index <str>'",
+                                "type": "[str]",
+                                "value": []
+                            }
+                        }
+                    },
+                    "script": {
+                        "default": {
+                            "default": {
+                                "author": [],
+                                "copy": "false",
+                                "date": [],
+                                "defvalue": [],
+                                "example": [
+                                    "cli: -tool_task_script 'yosys syn syn 0 syn.tcl'",
+                                    "api: chip.set('tool','yosys','task','syn','script','syn','0','syn.tcl')"
+                                ],
+                                "filehash": [],
+                                "hashalgo": "sha256",
+                                "help": "Path to the entry script called by the executable specified\non a per task and per step basis.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Task: entry script",
+                                "signature": [],
+                                "switch": "-tool_task_script 'task step index <file>'",
+                                "type": "[file]",
+                                "value": []
+                            }
+                        }
+                    },
+                    "stderr": {
+                        "default": {
+                            "default": {
+                                "destination": {
+                                    "defvalue": "log",
+                                    "example": [
+                                        "cli: -tool_task_stderr_destination 'ghdl import import 0 log'",
+                                        "api: chip.set('tool',ghdl','task','import','stderr','import','0','destination','log')"
+                                    ],
+                                    "help": "Defines where to direct the output generated over stderr.\nSupported options are:\nnone: the stream generated to STDERR is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display output: the generated stream is\nstored in outputs/<design>.<suffix>",
+                                    "lock": "false",
+                                    "notes": null,
+                                    "require": null,
+                                    "scope": "job",
+                                    "shorthelp": "Task: Destination for stderr",
+                                    "signature": null,
+                                    "switch": "-tool_task_stderr_destination 'task step index [log|output|none]'",
+                                    "type": "str",
+                                    "value": "log"
+                                },
+                                "suffix": {
+                                    "defvalue": "log",
+                                    "example": [
+                                        "cli: -tool_task_stderr_suffix 'ghdl import import 0 log'",
+                                        "api: chip.set('tool','ghdl','task','import','stderr','import','0','suffix','log')"
+                                    ],
+                                    "help": "Specifies the file extension for the content redirected from stderr.",
+                                    "lock": "false",
+                                    "notes": null,
+                                    "require": null,
+                                    "scope": "job",
+                                    "shorthelp": "Task: File suffix for redirected stderr",
+                                    "signature": null,
+                                    "switch": "-tool_task_stderr_suffix 'task step index <str>'",
+                                    "type": "str",
+                                    "value": "log"
+                                }
+                            }
+                        }
+                    },
+                    "stdout": {
+                        "default": {
+                            "default": {
+                                "destination": {
+                                    "defvalue": "log",
+                                    "example": [
+                                        "cli: -tool_task_stdout_destination 'ghdl import import 0 log'",
+                                        "api: chip.set('tool','ghdl','task','import','stdout','import','0','destination','log')"
+                                    ],
+                                    "help": "Defines where to direct the output generated over stdout.\nSupported options are:\nnone: the stream generated to STDOUT is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display output: the generated stream is stored\nin outputs/<design>.<suffix>",
+                                    "lock": "false",
+                                    "notes": null,
+                                    "require": null,
+                                    "scope": "job",
+                                    "shorthelp": "Task: Destination for stdout",
+                                    "signature": null,
+                                    "switch": "-tool_task_stdout_destination 'task step index [log|output|none]'",
+                                    "type": "str",
+                                    "value": "log"
+                                },
+                                "suffix": {
+                                    "defvalue": "log",
+                                    "example": [
+                                        "cli: -tool_task_stdout_suffix 'ghdl import import 0 log'",
+                                        "api: chip.set('tool',ghdl','task','import','stdout','import','0','suffix','log')"
+                                    ],
+                                    "help": "Specifies the file extension for the content redirected from stdout.",
+                                    "lock": "false",
+                                    "notes": null,
+                                    "require": null,
+                                    "scope": "job",
+                                    "shorthelp": "Task: File suffix for redirected stdout",
+                                    "signature": null,
+                                    "switch": "-tool_task_stdout_suffix 'task step index <str>'",
+                                    "type": "str",
+                                    "value": "log"
+                                }
+                            }
+                        }
+                    },
+                    "threads": {
+                        "default": {
+                            "default": {
+                                "defvalue": null,
+                                "example": [
+                                    "cli: -tool_task_threads 'magic drc drc 0 64'",
+                                    "api: chip.set('tool','magic','task', 'drc','threads','drc','0','64')"
+                                ],
+                                "help": "Thread parallelism to use for execution specified on a per task and per\nstep basis. If not specified, SC queries the operating system and sets\nthe threads based on the maximum thread count supported by the\nhardware.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Task: thread parallelism",
+                                "signature": null,
+                                "switch": "-tool_task_threads 'task step index <int>'",
+                                "type": "int",
+                                "value": null
+                            }
+                        }
+                    },
+                    "var": {
+                        "default": {
+                            "default": {
+                                "default": {
+                                    "defvalue": [],
+                                    "example": [
+                                        "cli: -tool_task_variable 'openroad cts cts 0 myvar 42'",
+                                        "api: chip.set('tool','openroad','task','cts','var','cts','0','myvar','42')"
+                                    ],
+                                    "help": "Task script variables specified as key value pairs. Variable\nnames and value types must match the name and type of task and reference\nscript consuming the variable.",
+                                    "lock": "false",
+                                    "notes": null,
+                                    "require": null,
+                                    "scope": "job",
+                                    "shorthelp": "Task: script variables",
+                                    "signature": [],
+                                    "switch": "-tool_task_variable 'tool task step index key <str>'",
+                                    "type": "[str]",
+                                    "value": []
+                                }
+                            }
+                        }
+                    },
+                    "warningoff": {
+                        "default": {
+                            "default": {
+                                "defvalue": [],
+                                "example": [
+                                    "cli: -tool_task_warningoff 'verilator lint lint 0 COMBDLY'",
+                                    "api: chip.set('tool','verilator','task','lint','warningoff','lint','0','COMBDLY')"
+                                ],
+                                "help": "A list of tool warnings for which printing should be suppressed.\nGenerally this is done on a per design basis after review has\ndetermined that warning can be safely ignored The code for turning\noff warnings can be found in the specific task reference manual.",
+                                "lock": "false",
+                                "notes": null,
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Task: warning filter",
+                                "signature": [],
+                                "switch": "-tool_task_warningoff 'tool task step index <str>'",
+                                "type": "[str]",
+                                "value": []
+                            }
                         }
                     }
                 }
@@ -6499,23 +6545,6 @@
                 "shorthelp": "Tool: executable version switch",
                 "signature": [],
                 "switch": "-tool_vswitch 'tool <str>'",
-                "type": "[str]",
-                "value": []
-            },
-            "warningoff": {
-                "defvalue": [],
-                "example": [
-                    "cli: -tool_warningoff 'verilator COMBDLY'",
-                    "api: chip.set('tool','verilator','warningoff','COMBDLY')"
-                ],
-                "help": "A list of EDA warnings for which printing should be suppressed.\nGenerally this is done on a per design basis after review has\ndetermined that warning can be safely ignored The code for turning\noff warnings can be found in the specific tool reference manual.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Tool: warning filter",
-                "signature": [],
-                "switch": "-tool_warningoff 'tool <str>'",
                 "type": "[str]",
                 "value": []
             }

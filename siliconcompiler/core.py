@@ -1133,24 +1133,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # TODO: it may be cleaner to have a file resolution scope flag in schema
         # (e.g. 'scpath', 'workdir', 'refdir'), rather than hardcoding special
         # cases.
-        if keypath[0] == 'tool' and keypath[2] in ('input', 'output', 'report'):
-            step = keypath[3]
-            index = keypath[4]
-            if keypath[2] == 'report':
+
+        if keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
+            step = keypath[5]
+            index = keypath[6]
+            if keypath[4] == 'report':
                 io = ""
             else:
-                io = keypath[2] + 's'
+                io = keypath[4] + 's'
             iodir = os.path.join(self._getworkdir(jobname=job, step=step, index=index), io)
             for path in paths:
                 abspath = os.path.join(iodir, path)
                 if os.path.isfile(abspath):
                     result.append(abspath)
             return result
-        elif keypath[0] == 'tool' and keypath[2] == 'script':
+        elif keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
-            step = keypath[3]
-            index = keypath[4]
-            refdirs = self.find_files('tool', tool, 'refdir', step, index)
+            task = keypath[3]
+            step = keypath[5]
+            index = keypath[6]
+            refdirs = self.find_files('tool', tool, 'task', task, 'refdir', step, index)
             for path in paths:
                 for refdir in refdirs:
                     abspath = os.path.join(refdir, path)
@@ -1391,8 +1393,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
-        if self.valid('tool', tool, 'input', step, index):
-            required_inputs = self.get('tool', tool, 'input', step, index)
+        task = self.get('flowgraph', flow, step, index, 'task')
+
+        if self.valid('tool', tool, 'task', task, 'input', step, index):
+            required_inputs = self.get('tool', tool, 'task', task, 'input', step, index)
         else:
             required_inputs = []
         input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
@@ -1402,22 +1406,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'Required input {filename} not received for {step}{index}.')
                 error = True
 
-        if (not tool in self.builtin) and self.valid('tool', tool, 'require', step, index):
-            all_required = self.get('tool', tool, 'require', step, index)
+        if (not tool in self.builtin) and self.valid('tool', tool,'task', task,  'require', step, index):
+            all_required = self.get('tool', tool, 'task', task, 'require', step, index)
             for item in all_required:
                 keypath = item.split(',')
-                paramtype = self.get(*keypath, field='type')
-                if ('file' in paramtype) or ('dir' in paramtype):
-                    abspath = self.find_files(*keypath, missing_ok=True)
-                    unresolved_paths = self.get(*keypath)
-                    if not isinstance(abspath, list):
-                        abspath = [abspath]
-                        unresolved_paths = [unresolved_paths]
-                    for i, path in enumerate(abspath):
-                        if path is None:
-                            unresolved_path = unresolved_paths[i]
-                            self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
-                            error = True
+                if not self.valid(*keypath):
+                    self.logger.error(f'Cannot resolve required keypath {keypath}.')
+                    error = True
+                else:
+                    paramtype = self.get(*keypath, field='type')
+                    if ('file' in paramtype) or ('dir' in paramtype):
+                        abspath = self.find_files(*keypath, missing_ok=True)
+                        unresolved_paths = self.get(*keypath)
+                        if not isinstance(abspath, list):
+                            abspath = [abspath]
+                            unresolved_paths = [unresolved_paths]
+                        for i, path in enumerate(abspath):
+                            if path is None:
+                                unresolved_path = unresolved_paths[i]
+                                self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
+                                error = True
 
         # Need to run this check here since file resolution can change in
         # _runtask().
@@ -1533,12 +1541,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         #4. Check per tool parameter requirements (when tool exists)
         for step in steplist:
+
             for index in self.getkeys('flowgraph', flow, step):
                 tool = self.get('flowgraph', flow, step, index, 'tool')
+                task = self.get('flowgraph', flow, step, index, 'task')
                 if (tool not in self.builtin) and (tool in self.getkeys('tool')):
                     # checking that requirements are set
-                    if self.valid('tool', tool, 'require', step, index):
-                        all_required = self.get('tool', tool, 'require', step, index)
+                    if self.valid('tool', tool, 'task', task, 'require', step, index):
+                        all_required = self.get('tool', tool, 'task', task, 'require', step, index)
                         for item in all_required:
                             keypath = item.split(',')
                             if self.schema._keypath_empty(keypath):
@@ -1566,6 +1576,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
+        task = self.get('flowgraph', flow, step, index, 'task')
 
         outputs = set()
         if tool in self.builtin:
@@ -1583,8 +1594,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'Builtin {tool} not yet implemented')
         else:
             # Not builtin tool
-            if self.valid('tool', tool, 'output', step, index):
-                outputs = set(self.get('tool', tool, 'output', step, index))
+            if self.valid('tool', tool,  'task', task, 'output', step, index):
+                outputs = set(self.get('tool', tool, 'task', task, 'output', step, index))
             else:
                 outputs = set()
 
@@ -1611,6 +1622,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for index in self.getkeys('flowgraph', flow, step):
                 # For each task, check input requirements.
                 tool = self.get('flowgraph', flow, step, index, 'tool')
+                task = self.get('flowgraph', flow, step, index, 'task')
+
                 if tool in self.builtin:
                     # We can skip builtins since they don't have any particular
                     # input requirements -- they just pass through what they
@@ -1649,8 +1662,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             return False
                         all_inputs.add(inp)
 
-                if self.valid('tool', tool, 'input', step, index):
-                    requirements = self.get('tool', tool, 'input', step, index)
+                if self.valid('tool', tool, 'task', task, 'input', step, index):
+                    requirements = self.get('tool', tool, 'task', task, 'input', step, index)
                 else:
                     requirements = []
                 for requirement in requirements:
@@ -1844,6 +1857,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         flow = self.get('option', 'flow')
 
+
+
         for item in items:
             all_criteria = self.get('checklist', standard, item, 'criteria')
             for criteria in all_criteria:
@@ -1864,6 +1879,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # Automated checks
                     flow = self.get('option', 'flow', job=job)
                     tool = self.get('flowgraph', flow, step, index, 'tool', job=job)
+                    task = self.get('flowgraph', flow, step, index, 'task', job=job)
 
                     value = self.get('metric', step, index, metric,  job=job)
                     criteria_ok = self._safecompare(value, op, goal)
@@ -1874,20 +1890,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                     criteria_str = f'{metric}{op}{goal}'
                     if not criteria_ok and waivers:
-                        self.logger.warning(f'{item} criteria {criteria_str} unmet by task {step}{index}, but found waivers.')
+                        self.logger.warning(f'{item} criteria {criteria_str} unmet by step {step}{index} with task {task}, but found waivers.')
                     elif not criteria_ok:
-                        self.logger.error(f'{item} criteria {criteria_str} unmet by task {step}{index}.')
+                        self.logger.error(f'{item} criteria {criteria_str} unmet by step {step}{index} with task {task}.')
                         error = True
 
-                    if (step in self.getkeys('tool', tool, 'report', job=job) and
-                        index in self.getkeys('tool', tool, 'report', step, job=job) and
-                        metric in self.getkeys('tool', tool, 'report', step, index, job=job)):
-                        eda_reports = self.find_files('tool', tool, 'report', step, index, metric, job=job)
+                    if (step in self.getkeys('tool', tool, 'task', task, 'report', job=job) and
+                        index in self.getkeys('tool', tool, 'task', task, 'report', step, job=job) and
+                        metric in self.getkeys('tool', tool, 'task', task, 'report', step, index, job=job)):
+                        eda_reports = self.find_files('tool', tool, 'task', task, 'report', step, index, metric, job=job)
                     else:
-                        eda_reports = None
+                        eda_reports = []
 
                     if not eda_reports:
-                        self.logger.error(f'No EDA reports generated for metric {metric} in task {step}{index}')
+                        self.logger.error(f'No EDA reports generated for metric {metric} in step {step}{index} with task {task}')
                         error = True
 
                     for report in eda_reports:
@@ -2626,18 +2642,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                    f'{step}.log')
 
         tool = self.get('flowgraph', flow, step, index, 'tool')
+        task = self.get('flowgraph', flow, step, index, 'task')
 
         # Creating local dictionary (for speed)
         # self.get is slow
         checks = {}
         matches = {}
         regex_list = []
-        if self.valid('tool', tool, 'regex', step, index, 'default'):
-            regex_list = self.getkeys('tool', tool, 'regex', step, index)
+        if self.valid('tool', tool, 'task', task, 'regex', step, index, 'default'):
+            regex_list = self.getkeys('tool', tool, 'task', task, 'regex', step, index)
         for suffix in regex_list:
             checks[suffix] = {}
             checks[suffix]['report'] = open(f"{step}.{suffix}", "w")
-            checks[suffix]['args'] = self.get('tool', tool, 'regex', step, index, suffix)
+            checks[suffix]['args'] = self.get('tool', tool, 'task', task, 'regex', step, index, suffix)
             matches[suffix] = 0
 
         # Looping through patterns for each line
@@ -2987,26 +3004,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('datasheet', design, 'pin', pin, 'tjitter', 'global', jitter_range)
 
     ###########################################################################
-    def node(self, flow, step, tool, index=0):
+    def node(self, flow, step, tool, task, index=0):
         '''
         Creates a flowgraph node.
 
-        Creates a flowgraph node by binding a tool to a task. A task is defined
-        as the combination of a step and index. A tool can be an external
-        executable or one of the built in functions in the SiliconCompiler
-        framework). Built in functions include: minimum, maximum, join, mux,
-        verify.
+        Creates a flowgraph node by binding a step to a tool specific task.
+        A tool can be an external executable or one of the built in functions
+        in the SiliconCompiler framework). Built in functions include: minimum,
+        maximum, join, mux, verify. The task is set to 'step' if unspecified.
 
         The method modifies the following schema parameters:
 
         ['flowgraph', flow, step, index, 'tool', tool]
+        ['flowgraph', flow, step, index, 'task', task]
         ['flowgraph', flow, step, index, 'weight', metric]
 
         Args:
             flow (str): Flow name
-            step (str): Task step name
-            tool (str): Tool (or builtin function) to associate with task.
-            index (int): Task index
+            step (str): Step name
+            task (str): Task name, built in or tool specific
+            tool (str): Tool to associate with task.
+            index (int): Step index
 
         Examples:
             >>> chip.node('asicflow', 'place', 'openroad', index=0)
@@ -3015,6 +3033,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # bind tool to node
         self.set('flowgraph', flow, step, str(index), 'tool', tool)
+        self.set('flowgraph', flow, step, str(index), 'task', task)
+
         # set default weights
         for metric in self.getkeys('metric', 'default', 'default'):
             self.set('flowgraph', flow, step, str(index), 'weight', metric, 0)
@@ -3105,8 +3125,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         for item in plan:
             step = list(item.keys())[0]
-            tool = list(item.values())[0]
-            self.node(flow, step, tool)
+            tool, task = list(item.values())[0]
+            self.node(flow, step, tool, task)
             if step != 'import':
                 self.edge(flow, prevstep, step)
             prevstep = step
@@ -3397,6 +3417,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         top = self.top()
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
+        task = self.get('flowgraph', flow, step, index, 'task')
+
         quiet = self.get('option', 'quiet') and (step not in self.get('option', 'bkpt'))
 
         ##################
@@ -3530,10 +3552,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 os.environ[item] = ':'.join(license_file)
 
         # Tool-specific environment variables for this task.
-        if (step in self.getkeys('tool', tool, 'env')) and \
-           (index in self.getkeys('tool', tool, 'env', step)):
-            for item in self.getkeys('tool', tool, 'env', step, index):
-                os.environ[item] = self.get('tool', tool, 'env', step, index, item)
+        if (step in self.getkeys('tool', tool, 'task', task, 'env')) and \
+           (index in self.getkeys('tool', tool, 'task', task, 'env', step)):
+            for item in self.getkeys('tool', tool, 'task', task, 'env', step, index):
+                os.environ[item] = self.get('tool', tool, 'task', task, 'env', step, index, item)
 
         run_func = None
         if tool not in self.builtin:
@@ -3594,7 +3616,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             logfile = None
             retcode = run_func(self)
         elif not self.get('option', 'skipall'):
-            cmdlist = self._makecmd(tool, step, index)
+            cmdlist = self._makecmd(tool, task, step, index)
             exe_base = os.path.basename(cmdlist[0])
             cmdstr = ' '.join([exe_base] + cmdlist[1:])
             self.logger.info('Running in %s', workdir)
@@ -3619,27 +3641,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     retcode = pty.spawn(cmdlist, read)
             else:
                 stdout_file = ''
-                stdout_suffix = self.get('tool', tool, 'stdout', step, index, 'suffix')
-                if self.get('tool', tool, 'stdout', step, index, 'destination') == 'log':
+                stdout_suffix = self.get('tool', tool, 'task', task, 'stdout', step, index, 'suffix')
+                if self.get('tool', tool, 'task', task,  'stdout', step, index, 'destination') == 'log':
                     stdout_file = step + "." + stdout_suffix
-                elif self.get('tool', tool, 'stdout', step, index, 'destination') == 'output':
+                elif self.get('tool', tool, 'task', task, 'stdout', step, index, 'destination') == 'output':
                     stdout_file =  os.path.join('outputs', top + "." + stdout_suffix)
-                elif self.get('tool', tool, 'stdout', step, index, 'destination') == 'none':
+                elif self.get('tool', tool, 'task', task, 'stdout', step, index, 'destination') == 'none':
                     stdout_file =  os.devnull
                 else:
-                    destination = self.get('tool', tool, 'stdout', step, index, 'destination')
+                    destination = self.get('tool', tool, 'task', task, 'stdout', step, index, 'destination')
                     self.logger.error(f'stdout/destination has no support for {destination}. Use [log|output|none].')
                     self._haltstep(step, index)
                 stderr_file = ''
-                stderr_suffix = self.get('tool', tool, 'stderr', step, index, 'suffix')
-                if self.get('tool', tool, 'stderr', step, index, 'destination') == 'log':
+                stderr_suffix = self.get('tool', tool, 'task', task, 'stderr', step, index, 'suffix')
+                if self.get('tool', tool, 'task', task, 'stderr', step, index, 'destination') == 'log':
                     stderr_file = step + "." + stderr_suffix
-                elif self.get('tool', tool, 'stderr', step, index, 'destination') == 'output':
+                elif self.get('tool', tool, 'task', task, 'stderr', step, index, 'destination') == 'output':
                     stderr_file =  os.path.join('outputs', top + "." + stderr_suffix)
-                elif self.get('tool', tool, 'stderr', step, index, 'destination') == 'none':
+                elif self.get('tool', tool, 'task', task, 'stderr', step, index, 'destination') == 'none':
                     stderr_file =  os.devnull
                 else:
-                    destination = self.get('tool', tool, 'stderr', step, index, 'destination')
+                    destination = self.get('tool', tool, 'task', task, 'stderr', step, index, 'destination')
                     self.logger.error(f'stderr/destination has no support for {destination}. Use [log|output|none].')
                     self._haltstep(step, index)
 
@@ -3650,8 +3672,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # Use separate reader/writer file objects as hack to display
                     # live output in non-blocking way, so we can monitor the
                     # timeout. Based on https://stackoverflow.com/a/18422264.
-                    is_stdout_log = self.get('tool', tool, 'stdout', step, index, 'destination') == 'log'
-                    is_stderr_log = self.get('tool', tool, 'stderr', step, index, 'destination') == 'log' and stderr_file != stdout_file
+                    is_stdout_log = self.get('tool', tool, 'task', task, 'stdout', step, index, 'destination') == 'log'
+                    is_stderr_log = self.get('tool', tool, 'task', task, 'stderr', step, index, 'destination') == 'log' and stderr_file != stdout_file
                     # if STDOUT and STDERR are to be redirected to the same file,
                     # use a single writer
                     if stderr_file == stdout_file:
@@ -3749,10 +3771,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Hash files
         if self.get('option', 'hash') and (tool not in self.builtin):
             # hash all outputs
-            self.hash_files('tool', tool, 'output', step, index)
+            self.hash_files('tool', tool, 'task', task, 'output', step, index)
             # hash all requirements
-            if self.valid('tool', tool, 'require', step, index):
-                for item in self.get('tool', tool, 'require', step, index):
+            if self.valid('tool', tool, 'task', task, 'require', step, index):
+                for item in self.get('tool', tool, 'task', task, 'require', step, index):
                     args = item.split(',')
                     if 'file' in self.get(*args, field='type'):
                         self.hash_files(*args)
@@ -3786,7 +3808,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Clean up non-essential files
         if self.get('option', 'clean'):
-            self._eda_clean(tool, step, index)
+            self._eda_clean(tool, task, step, index)
 
         ##################
         # return to original directory
@@ -3799,7 +3821,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         sys.exit(1)
 
     ###########################################################################
-    def _eda_clean(self, tool, step, index):
+    def _eda_clean(self, tool, task, step, index):
         '''Cleans up work directory of unecessary files.
 
         Assumes our cwd is the workdir for step and index.
@@ -3811,13 +3833,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if manifest_format:
             keep.append(f'sc_manifest.{manifest_format}')
 
-        if self.valid('tool', tool, 'regex', step, index, 'default'):
-            for suffix in self.getkeys('tool', tool, 'regex', step, index):
+        if self.valid('tool', tool, 'task', task, 'regex', step, index, 'default'):
+            for suffix in self.getkeys('tool', tool, 'task', task,  'regex', step, index):
                 keep.append(f'{step}.{suffix}')
 
         # Tool-specific keep files
-        if self.valid('tool', tool, 'keep', step, index):
-            keep.extend(self.get('tool', tool, 'keep', step, index))
+        if self.valid('tool', tool, 'task', task, 'keep', step, index):
+            keep.extend(self.get('tool', tool, 'task', task, 'keep', step, index))
 
         for path in os.listdir():
             if path in keep:
@@ -3828,7 +3850,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 os.remove(path)
 
     ###########################################################################
-    def _setup_tool(self, tool, step, index):
+    def _setup_tool(self, tool, task, step, index):
+
         self.set('arg','step', step)
         self.set('arg','index', index)
 
@@ -3840,22 +3863,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.
-        if self.valid('tool', tool, 'regex', step, index, 'default'):
-            re_keys = self.getkeys('tool', tool, 'regex', step, index)
+        if self.valid('tool', tool, 'task', task, 'regex', step, index, 'default'):
+            re_keys = self.getkeys('tool', tool, 'task', task, 'regex', step, index)
             logfile = f'{step}.log'
             if (
                 'errors' in re_keys and
-                (not self.valid('tool', tool, 'report', step, index, 'errors') or
-                 logfile not in self.get('tool', tool, 'report', step, index, 'errors'))
+                (not self.valid('tool', tool, 'task', task, 'report', step, index, 'errors') or
+                 logfile not in self.get('tool', tool, 'task', task, 'report', step, index, 'errors'))
             ):
-                self.add('tool', tool, 'report', step, index, 'errors', logfile)
+                self.add('tool', tool, 'task', task, 'report', step, index, 'errors', logfile)
 
             if (
                 'warnings' in re_keys and
-                (not self.valid('tool', tool, 'report', step, index, 'warnings') or
-                 logfile not in self.get('tool', tool, 'report', step, index, 'warnings'))
+                (not self.valid('tool', tool, 'task', task, 'report', step, index, 'warnings') or
+                 logfile not in self.get('tool', tool, 'task', task, 'report', step, index, 'warnings'))
             ):
-                self.add('tool', tool, 'report', step, index, 'warnings', logfile)
+                self.add('tool', tool, 'task', task, 'report', step, index, 'warnings', logfile)
 
         # Need to clear index, otherwise we will skip setting up other indices.
         # Clear step for good measure.
@@ -4065,8 +4088,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for index in indexlist[step]:
                     # Setting up tool is optional
                     tool = self.get('flowgraph', flow, step, index, 'tool')
+                    task = self.get('flowgraph', flow, step, index, 'task')
                     if tool not in self.builtin:
-                        self._setup_tool(tool, step, index)
+                        self._setup_tool(tool, task, step, index)
 
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
@@ -4407,7 +4431,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return fullexe
 
     #######################################
-    def _makecmd(self, tool, step, index, extra_options=None):
+    def _makecmd(self, tool, task, step, index, extra_options=None):
         '''
         Constructs a subprocess run command based on eda tool setup.
         Creates a replay script in current directory.
@@ -4418,12 +4442,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         options = []
         is_posix = (sys.platform != 'win32')
 
-        for option in self.get('tool', tool, 'option', step, index):
+        for option in self.get('tool', tool, 'task', task, 'option', step, index):
             options.extend(shlex.split(option, posix=is_posix))
 
         # Add scripts files
-        if self.valid('tool', tool, 'script', step, index):
-            scripts = self.find_files('tool', tool, 'script', step, index)
+        if self.valid('tool', tool, 'task', task, 'script', step, index):
+            scripts = self.find_files('tool', tool, 'task', task, 'script', step, index)
         else:
             scripts = []
 
@@ -4448,10 +4472,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             envvars['PATH'] = self.get('tool', tool, 'path') + os.pathsep + os.environ['PATH']
         else:
             envvars['PATH'] = os.environ['PATH']
-        if (step in self.getkeys('tool', tool, 'env') and
-            index in self.getkeys('tool', tool, 'env', step)):
-            for key in self.getkeys('tool', tool, 'env', step, index):
-                envvars[key] = self.get('tool', tool, 'env', step, index, key)
+        if (step in self.getkeys('tool', tool, 'task', task, 'env') and
+            index in self.getkeys('tool', tool, 'task', task, 'env', step)):
+            for key in self.getkeys('tool', tool, 'task', task, 'env', step, index):
+                envvars[key] = self.get('tool', tool, 'task', task, 'env', step, index, key)
 
         #create replay file
         script_name = 'replay.sh'

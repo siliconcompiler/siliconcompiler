@@ -82,21 +82,24 @@ def setup(chip, flowname='asicflow'):
                 'dfm',
                 'export']
 
+
+    #step -->(tool, task)
     tools = {
-        'syn' : 'yosys',
-        'synmin' : 'minimum',
-        'floorplan' : 'openroad',
-        'floorplanmin' : 'minimum',
-        'physyn' : 'openroad',
-        'physynmin' : 'minimum',
-        'place' : 'openroad',
-        'placemin' : 'minimum',
-        'cts' : 'openroad',
-        'ctsmin' : 'minimum',
-        'route' : 'openroad',
-        'routemin' : 'minimum',
-        'dfm' : 'openroad',
-        'export' : 'klayout',
+        'import' : ['surelog', 'import'],
+        'syn' : ['yosys','syn'],
+        'synmin' : ['minimum', 'synmin'],
+        'floorplan' : ['openroad','floorplan'],
+        'floorplanmin' : ['minimum','floorplanmin'],
+        'physyn' : ['openroad','physyn'],
+        'physynmin' : ['minimum','physynmin'],
+        'place' : ['openroad','place'],
+        'placemin' : ['minimum','placemin'],
+        'cts' : ['openroad','cts'],
+        'ctsmin' : ['minimum','ctsmin'],
+        'route' : ['openroad','route'],
+        'routemin' : ['minimum','routemin'],
+        'dfm' : ['openroad','dfm'],
+        'export' : ['klayout', 'export']
     }
 
     # Clear old flowgraph if it exists
@@ -106,7 +109,7 @@ def setup(chip, flowname='asicflow'):
     #Remove built in steps where appropriate
     flowpipe = []
     for step in longpipe:
-        if re.search(r'join|maximum|minimum|verify', tools[step]):
+        if re.search(r'join|maximum|minimum|verify', tools[step][0]):
             if bool(prevstep + "_np" in chip.getkeys('arg','flow')):
                 flowpipe.append(step)
         else:
@@ -122,10 +125,11 @@ def setup(chip, flowname='asicflow'):
 
     flowtools = setup_frontend(chip)
     for step in flowpipe:
-        flowtools.append((step, tools[step]))
+        flowtools.append((step, tools[step][0], tools[step][1]))
 
     # Programatically build linear portion of flowgraph and fanin/fanout args
-    for step, tool in flowtools:
+    for step,tool,task in flowtools:
+        #TODO: Fix
         param = step + "_np"
         fanout = 1
         if param in chip.getkeys('arg', 'flow'):
@@ -133,7 +137,7 @@ def setup(chip, flowname='asicflow'):
         # create nodes
         for index in range(fanout):
             # nodes
-            chip.node(flowname, step, tool, index=index)
+            chip.node(flowname, step, tool, task, index=index)
             # edges
             if re.search(r'join|maximum|minimum|verify', tool):
                 prevparam = prevstep + "_np"

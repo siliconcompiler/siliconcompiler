@@ -40,21 +40,26 @@ def setup(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    #TODO: fix below
+    task = step
 
     chip.set('tool', tool, 'exe', 'ghdl')
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=2.0.0-dev', clobber=clobber)
-    chip.set('tool', tool, 'threads', step, index, '4', clobber=clobber)
-    chip.set('tool', tool, 'option', step, index, '', clobber=clobber)
-    chip.set('tool', tool, 'stdout', step, index, 'destination', 'output')
-    chip.set('tool', tool, 'stdout', step, index, 'suffix', 'v')
+
+
+
+    chip.set('tool', tool, 'task', task, 'threads', step, index, '4', clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'option', step, index, '', clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'stdout', step, index, 'destination', 'output')
+    chip.set('tool', tool, 'task', task, 'stdout', step, index, 'suffix', 'v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input,rtl,vhdl')
+    chip.add('tool', tool, 'task', task, 'require', step, index, 'input,rtl,vhdl')
 
     design = chip.top()
 
-    chip.set('tool', tool, 'output', step, index, f'{design}.v')
+    chip.set('tool', tool, 'task', task, 'output', step, index, f'{design}.v')
 
 ################################
 #  Custom runtime options
@@ -67,6 +72,7 @@ def runtime_options(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = step
 
     options = []
 
@@ -79,8 +85,8 @@ def runtime_options(chip):
     # currently only -fsynopsys and --latches supported
     valid_extraopts = ['-fsynopsys', '--latches']
 
-    if chip.valid('tool', 'ghdl', 'var', step, index, 'extraopts'):
-        extra_opts = chip.get('tool', 'ghdl', 'var', step, index, 'extraopts')
+    if chip.valid('tool', 'ghdl', 'task', task, 'var', step, index, 'extraopts'):
+        extra_opts = chip.get('tool', 'ghdl', 'task', task, 'var', step, index, 'extraopts')
         for opt in extra_opts:
             if opt in valid_extraopts:
                 options.append(opt)

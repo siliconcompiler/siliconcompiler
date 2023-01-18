@@ -25,8 +25,8 @@ def test_openroad(scroot):
 
     # set up tool for floorplan
     flow = 'floorplan'
-    chip.node(flow, 'import', 'nop')
-    chip.node(flow, 'floorplan', 'openroad')
+    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'floorplan', 'openroad', 'floorplan')
     chip.edge(flow, 'import', 'floorplan')
     chip.set('option', 'flow', flow)
 

@@ -44,6 +44,8 @@ def setup(chip):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    #TODO: fix below
+    task = step
 
     # magic used for drc and lvs
     #if step not in ('drc', 'extspice'):
@@ -54,30 +56,31 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=8.3.196', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
-    chip.set('tool', tool, 'threads', step, index,  4, clobber=False)
-    chip.set('tool', tool, 'refdir', step, index,  refdir, clobber=False)
-    chip.set('tool', tool, 'script', step, index,  script, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'threads', step, index,  4, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', step, index,  refdir, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', step, index,  script, clobber=False)
 
     # set options
     options = []
     options.append('-noc')
     options.append('-dnull')
-    chip.set('tool', tool, 'option', step, index,  options, clobber=False)
+    chip.set('tool', tool, 'task', task, 'option', step, index,  options, clobber=False)
 
     design = chip.top()
     if chip.valid('input', 'layout', 'gds'):
-        chip.add('tool', tool, 'require', step, index, ','.join(['input', 'layout', 'gds']))
+        chip.add('tool', tool, 'task', task, 'require', step, index, ','.join(['input', 'layout', 'gds']))
     else:
-        chip.add('tool', tool, 'input', step, index, f'{design}.gds')
+        chip.add('tool', tool, 'task', task, 'input', step, index, f'{design}.gds')
     if step == 'extspice':
-        chip.add('tool', tool, 'output', step, index, f'{design}.spice')
+        chip.add('tool', tool, 'task', task, 'output', step, index, f'{design}.spice')
 
-    chip.set('tool', tool, 'regex', step, index, 'errors', r'^Error', clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'warnings', r'warning', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'^Error', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'warning', clobber=False)
 
     if step == 'drc':
         report_path = f'reports/{design}.drc'
-        chip.set('tool', tool, 'report', step, index, 'drvs', report_path)
+        chip.set('tool', tool, 'task', task, 'report', step, index, 'drvs', report_path)
 
 ################################
 # Version Check

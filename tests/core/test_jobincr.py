@@ -6,7 +6,7 @@ def test_jobincr():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
     chip.set('option', 'flow', 'test')
-    chip.node(flow, 'import', 'echo')
+    chip.node(flow, 'import', 'echo', 'import')
 
     chip.set('option', 'jobincr', True)
 

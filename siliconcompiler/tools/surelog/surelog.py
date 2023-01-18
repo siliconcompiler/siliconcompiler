@@ -36,10 +36,11 @@ def setup(chip):
     '''
 
     tool = 'surelog'
+    task = 'import'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-
     exe = tool
+
     # Although Windows will find the binary even if the .exe suffix is omitted,
     # Surelog won't find the relative builtin.sv file unless we add it.
     if sys.platform.startswith('win32'):
@@ -49,7 +50,8 @@ def setup(chip):
     chip.set('tool', tool, 'exe', exe)
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=1.13', clobber=False)
-    chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
 
     # -parse is slow but ensures the SV code is valid
     # we might want an option to control when to enable this
@@ -67,14 +69,14 @@ def setup(chip):
     options.append('-nouhdm')
 
     # Wite back options to cfg
-    chip.add('tool', tool, 'option', step, index, options)
+    chip.add('tool', tool, 'task', task, 'option', step, index, options)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
+    chip.add('tool', tool, 'task', task, 'output', step, index, chip.top() + '.v')
 
     # Schema requirements
     # TODO: what filesets are used by surelog, RTL only?
-    #chip.add('tool', tool, 'require', step, index, ",".join(['input', 'rtl', 'verilog']))
+    #chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['input', 'rtl', 'verilog']))
 
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
@@ -84,12 +86,12 @@ def setup(chip):
         chip.set('tool', tool, 'path', surelog_path, clobber=False)
 
     # Log file parsing
-    chip.set('tool', tool, 'regex', step, index, 'warnings', r'^\[WRN:', clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', r'^\[(ERR|FTL|SNT):', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'^\[WRN:', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'^\[(ERR|FTL|SNT):', clobber=False)
 
-    warnings_off = chip.get('tool', tool, 'warningoff')
-    for warning in warnings_off:
-        chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}')
+    #warnings_off = chip.get('tool', tool, 'warningoff')
+    #for warning in warnings_off:
+    #    chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}')
 
 def parse_version(stdout):
     # Surelog --version output looks like:
