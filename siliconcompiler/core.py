@@ -310,7 +310,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                          description=description)
 
         # Get all keys from global dictionary or override at command line
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
 
         # Iterate over all keys to add parser arguments
         for keypath in allkeys:
@@ -837,8 +837,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Examples:
             >>> keylist = chip.getkeys('pdk')
             Returns all keys for the 'pdk' keypath.
-            >>> keylist = chip.getkeys()
-            Returns all list of all keypaths in the schema.
         """
         if len(keypath) > 0:
             self.logger.debug(f'Getting schema parameter keys for {keypath}')
@@ -850,6 +848,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except (ValueError, TypeError) as e:
             self.error(str(e))
             return None
+
+    ###########################################################################
+    def allkeys(self, *keypath_prefix):
+        '''Returns all keypaths in the schema as a list of lists.
+
+        Arg:
+            keypath_prefix (list str): Keypath prefix to search under. The
+                returned keypaths do not include the prefix.
+        '''
+        return self.schema.allkeys(*keypath_prefix)
 
     ###########################################################################
     def getdict(self, *keypath):
@@ -1224,7 +1232,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         relative paths resolved where required.
         '''
         schema = self.schema.copy()
-        for keypath in self.getkeys():
+        for keypath in self.allkeys():
             paramtype = self.get(*keypath, field='type')
             value = self.get(*keypath)
             if value:
@@ -1269,7 +1277,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             dest = self.schema
 
-        for keylist in src.getkeys():
+        for keylist in src.allkeys():
             if partial and not self._key_may_be_updated(keylist):
                 continue
             if keylist[0] in ('history', 'library'):
@@ -1303,7 +1311,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         allowed_paths = [os.path.join(self.cwd, self.get('option', 'builddir'))]
         allowed_paths.extend(os.environ['SC_VALID_PATHS'].split(os.pathsep))
 
-        for keypath in self.getkeys():
+        for keypath in self.allkeys():
             if 'default' in keypath:
                 continue
 
@@ -1345,7 +1353,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             True if all file paths are valid, otherwise False.
         '''
 
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
         for keypath in allkeys:
             allpaths = []
             paramtype = self.get(*keypath, field='type')
@@ -1510,7 +1518,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f"Target library {item} not found.")
 
         #3. Check requirements list
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key and 'history' not in key and 'library' not in key:
@@ -1693,7 +1701,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._merge_manifest(schema, job=job, clear=clear, clobber=clobber, partial=partial)
 
         # Read history, if we're not already reading into a job
-        if 'history' in schema.getdict().keys() and not partial and not job:
+        if 'history' in schema.getkeys() and not partial and not job:
             for historic_job in schema.getkeys('history'):
                 self._merge_manifest(schema.get_history(historic_job),
                                      job=historic_job,
@@ -1702,7 +1710,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                      partial=False)
 
         # TODO: better way to handle this?
-        if 'library' in schema.getdict().keys() and not partial:
+        if 'library' in schema.getkeys() and not partial:
             for libname in schema.getkeys('library'):
                 self._import_library(libname, schema.getdict('library', libname), job=job, clobber=clobber)
 
@@ -2162,7 +2170,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         paths = []
 
         copyall = self.get('option', 'copyall')
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
         for key in allkeys:
             if key[0] == 'history':
                 continue

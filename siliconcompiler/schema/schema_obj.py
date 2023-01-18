@@ -116,10 +116,12 @@ class Schema:
 
         if len(keypath) > 0:
             keys = list(self._search(cfg, str(keypath), *keypath, mode='getkeys'))
-            if 'default' in keys:
-                keys.remove('default')
         else:
-            keys = list(self._allkeys())
+            # TODO: make it so _search() can handle this case
+            keys = list(cfg.keys())
+
+        if 'default' in keys:
+            keys.remove('default')
 
         return keys
 
@@ -153,7 +155,7 @@ class Schema:
             default = None
 
         if valid_keypaths is None:
-            valid_keypaths = self.getkeys()
+            valid_keypaths = self.allkeys()
 
         # Look for a full match with default playing wild card
         for valid_keypath in valid_keypaths:
@@ -182,7 +184,7 @@ class Schema:
         self.cfg['history'][jobname] = {}
 
         # copy in all empty values of scope job
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
         for key in allkeys:
             # ignore history in case of cumulative history
             if key[0] != 'history':
@@ -392,10 +394,19 @@ class Schema:
             return self._search(cfg[param], keypath, *all_args, field=field, mode=mode, clobber=clobber)
 
     ###########################################################################
+    def allkeys(self, *keypath_prefix):
+        '''
+        Returns all keypaths in the schema as a list of lists.
+
+        See :meth:`~siliconcompiler.core.Chip.allkeys` for detailed documentation.
+        '''
+        if len(keypath_prefix) > 0:
+            return self._allkeys(self.getdict(*keypath_prefix))
+        else:
+            return self._allkeys()
+
+    ###########################################################################
     def _allkeys(self, cfg=None, keys=None, keylist=None):
-        '''
-        Returns list of all keypaths in the schema.
-        '''
         if cfg is None:
             cfg = self.cfg
 
@@ -513,7 +524,7 @@ class Schema:
             fout.write(f.read())
         fout.write('\n')
 
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
 
         for key in allkeys:
             typestr = self.get(*key, field='type')
@@ -544,7 +555,7 @@ class Schema:
         csvwriter = csv.writer(fout)
         csvwriter.writerow(['Keypath', 'Value'])
 
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
         for key in allkeys:
             keypath = ','.join(key)
             value = self.get(*key)

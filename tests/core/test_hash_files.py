@@ -7,7 +7,7 @@ def test_hash_files():
 
     chip.load_target("freepdk45_demo")
     chip.write_manifest("raw.json")
-    allkeys = chip.getkeys()
+    allkeys = chip.allkeys()
     for keypath in allkeys:
         if 'file' in chip.get(*keypath, field='type'):
             chip.hash_files(*keypath)

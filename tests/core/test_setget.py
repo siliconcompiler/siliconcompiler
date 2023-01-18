@@ -35,7 +35,7 @@ def test_setget():
     chip = siliconcompiler.Chip('test')
     error = 0
 
-    allkeys = chip.getkeys()
+    allkeys = chip.allkeys()
     for key in allkeys:
         sctype = chip.get(*key, field='type')
         examples = chip.get(*key, field='example')
