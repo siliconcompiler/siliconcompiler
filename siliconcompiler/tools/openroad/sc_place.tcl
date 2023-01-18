@@ -20,16 +20,16 @@ global_placement {*}$openroad_gpl_args \
 # Refine Automatic Pin Placement
 ###########################
 
-if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_h]} {
-  set h_mult [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_h] 0]
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h]} {
+  set h_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h] 0]
   set_pin_thick_multiplier -hor_multiplier $h_mult
 }
-if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_v]} {
-  set v_mult [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_v] 0]
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v]} {
+  set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v] 0]
   set_pin_thick_multiplier -ver_multiplier $v_mult
 }
-if {[dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index ppl_constraints]} {
-  foreach pin_constraint [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index ppl_constraints] {
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints]} {
+  foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints] {
     source $pin_constraint
   }
 }

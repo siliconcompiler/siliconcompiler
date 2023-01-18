@@ -43,17 +43,20 @@ def setup(chip):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    #TODO: fix below
+    task = step
 
     chip.set('tool', tool, 'exe', tool, clobber=False)
     chip.set('tool', tool, 'version', '0.0', clobber=False)
-    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'threads', step, index, os.cpu_count(), clobber=False)
 
     #TO-DO: PRIOROTIZE the post-routing packing results?
     design = chip.top()
-    chip.set('tool', tool, 'output', step, index, design + '.net')
-    chip.add('tool', tool, 'output', step, index, design + '.place')
-    chip.add('tool', tool, 'output', step, index, design + '.route')
-    chip.add('tool', tool, 'output', step, index, 'vpr_stdout.log')
+    chip.set('tool', tool, 'task', task, 'output', step, index, design + '.net')
+    chip.add('tool', tool, 'task', task, 'output', step, index, design + '.place')
+    chip.add('tool', tool, 'task', task, 'output', step, index, design + '.route')
+    chip.add('tool', tool, 'task', task, 'output', step, index, 'vpr_stdout.log')
 
     topmodule = chip.top()
     blif = "inputs/" + topmodule + ".blif"
@@ -67,12 +70,10 @@ def setup(chip):
     if 'sdc' in chip.getkeys('input'):
         options.append(f"--sdc_file {chip.get('input', 'fpga', 'sdc')}")
 
-    threads = chip.get('tool', tool, 'threads', step, index)
+    threads = chip.get('tool', tool, 'task', task, 'threads', step, index)
     options.append(f"--num_workers {threads}")
 
-    chip.add('tool', tool, 'option', step, index,  options)
-
-
+    chip.add('tool', tool, 'task', task, 'option', step, index,  options)
 
 #############################################
 # Runtime pre processing
@@ -104,7 +105,9 @@ def post_process(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    for file in chip.get('tool', 'vpr', 'output', step, index):
+    task = step
+
+    for file in chip.get('tool', 'vpr', 'task', task, 'output', step, index):
         shutil.copy(file, 'outputs')
     design = chip.top()
     shutil.copy(f'inputs/{design}.blif', 'outputs')

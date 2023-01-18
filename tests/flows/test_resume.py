@@ -6,7 +6,7 @@ import os
 @pytest.mark.eda
 def test_resume(gcd_chip):
     # Set a value that will cause place to break
-    gcd_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', 'asdf')
+    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
@@ -20,7 +20,7 @@ def test_resume(gcd_chip):
     assert gcd_chip.find_result('gds', step='export') is None
 
     # Fix place step and re-run
-    gcd_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', '0.15')
+    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', '0.15')
     gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 

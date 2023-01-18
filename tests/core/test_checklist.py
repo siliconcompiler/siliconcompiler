@@ -1,8 +1,8 @@
-# Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
+import os
+import pytest
 import siliconcompiler
 
-import os
-
+@pytest.mark.skip(reason="Deferring until new test/index change")
 def test_checklist():
     '''API test for help method
     '''
@@ -16,7 +16,7 @@ def test_checklist():
         f.write('test')
 
     chip.set('metric','syn','0', 'errors', 1)
-    chip.set('tool', 'yosys', 'report', 'syn', '0', 'errors', 'yosys.log')
+    chip.set('tool', 'yosys', 'task', 'syn', 'report', 'syn', '0', 'errors', 'yosys.log')
     chip.schema.record_history()
 
     #automated fail

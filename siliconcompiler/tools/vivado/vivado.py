@@ -37,6 +37,8 @@ def setup(chip):
     script = 'compile.tcl'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    #TODO: fix below
+    task = step
 
     option = "-nolog -nojournal -mode batch -source"
 
@@ -45,16 +47,20 @@ def setup(chip):
     chip.set('tool', tool, 'vendor', vendor)
     chip.set('tool', tool, 'vswitch', '-version', clobber=False)
     chip.set('tool', tool, 'format', 'tcl', clobber=False)
-    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=False)
-    chip.set('tool', tool, 'script', step, index, script, clobber=False)
-    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
-    chip.set('tool', tool, 'option', step, index, option, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', step, index, script, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', step, index, os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'task', task, 'option', step, index, option, clobber=False)
 
     for metric in ('setupwns', 'setuptns', 'holdwns', 'holdtns'):
-        chip.set('tool', tool, 'report', step, index, metric, 'reports/timing_summary.rpt')
+        chip.set('tool', tool, 'task', task, 'report', step, index, metric, 'reports/timing_summary.rpt')
 
     for metric in ('luts', 'registers', 'bram', 'uram'):
-        chip.set('tool', tool, 'report', step, index, metric, 'reports/total_utilization.rpt')
+        chip.set('tool', tool, 'task', task, 'report', step, index, metric, 'reports/total_utilization.rpt')
+
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'^ERROR:', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'^(CRITICAL )?WARNING:', clobber=False)
 
 def parse_version(stdout):
     # Vivado v2021.2 (64-bit)

@@ -18,8 +18,8 @@ def test_icarus(oh_dir):
     chip.set('option', 'mode', 'sim')
 
     flow = 'sim'
-    chip.node(flow, 'import', 'nop')
-    chip.node(flow, 'compile', 'icarus')
+    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'compile', 'icarus', 'compile')
     chip.edge(flow, 'import', 'compile')
     chip.set('option', 'flow', flow)
 

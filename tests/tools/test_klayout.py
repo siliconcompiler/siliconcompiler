@@ -24,12 +24,12 @@ def test_klayout(datadir):
     chip.set('library', 'heartbeat', 'gds', '10M', library_gds)
 
     flow = 'export'
-    chip.node(flow, 'import', 'nop')
-    chip.node(flow, 'export', 'klayout')
+    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'export', 'klayout', 'export')
     chip.edge(flow, 'import', 'export')
     chip.set('option', 'flow', flow)
 
-    chip.set('tool', 'klayout', 'var', 'export', '0', 'timestamps', 'false')
+    chip.set('tool', 'klayout', 'task', 'export', 'var', 'export', '0', 'timestamps', 'false')
 
     chip.run()
 

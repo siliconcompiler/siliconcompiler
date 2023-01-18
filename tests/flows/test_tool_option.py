@@ -24,8 +24,8 @@ def test_tool_option(scroot):
     chip.set('arg', 'flow', 'place_np', ['2'])
     chip.load_target('freepdk45_demo')
 
-    chip.set('tool', 'openroad', 'var', 'place', '0',  'place_density', '0.15')
-    chip.set('tool', 'openroad', 'var', 'place', '1',  'place_density', '0.3')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0',  'place_density', '0.15')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1',  'place_density', '0.3')
 
     # No need to run beyond place, we just want to check that setting place_density
     # doesn't break anything.
@@ -70,31 +70,33 @@ def chip(scroot):
     flow = chip.get('option', 'flow')
 
     # no-op import since we're not preprocessing source files
-    chip.set('flowgraph', flow, 'import', '0', 'tool', 'join')
+    chip.node(flow, 'import', 'join', 'join')
 
-    chip.set('flowgraph', flow, 'place', '0', 'tool', 'openroad')
-    chip.set('flowgraph', flow, 'place', '0', 'input', ('import','0'))
+    chip.node(flow, 'place', 'openroad', 'place', index=0)
+    chip.edge(flow, 'import', 'place', head_index=0)
 
-    chip.set('flowgraph', flow, 'place', '1', 'tool', 'openroad')
-    chip.set('flowgraph', flow, 'place', '1', 'input', ('import','0'))
+    chip.node(flow, 'place', 'openroad', 'place', index=1)
+    chip.edge(flow, 'import', 'place', head_index=1)
 
     return chip
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip("Until OpenROAD is updated and corrected with metric_float")
 def test_failed_branch_min(chip):
     '''Test that a minimum will allow failed inputs, as long as at least
     one passes.'''
     flow = chip.get('option', 'flow')
 
     # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
     # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'var', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
 
     # Perform minimum
-    chip.set('flowgraph', flow, 'placemin', '0', 'tool', 'minimum')
-    chip.set('flowgraph', flow, 'placemin', '0', 'input', [('place','0'), ('place','1')])
+    chip.node(flow, 'placemin', 'minimum', 'minimum')
+    chip.edge(flow, 'place', 'placemin', tail_index=0)
+    chip.edge(flow, 'place', 'placemin', tail_index=1)
 
     chip.run()
 
@@ -118,12 +120,13 @@ def test_all_failed_min(chip):
     flow = chip.get('option', 'flow')
 
     # Illegal values, so both branches should fail
-    chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', 'asdf')
-    chip.set('tool', 'openroad', 'var', 'place', '1', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', 'asdf')
 
     # Perform minimum
-    chip.set('flowgraph', flow, 'placemin', '0', 'tool', 'minimum')
-    chip.set('flowgraph', flow, 'placemin', '0', 'input', [('place','0'), ('place','1')])
+    chip.node(flow, 'placemin', 'minimum', 'minimum')
+    chip.edge(flow, 'place', 'placemin', tail_index=0)
+    chip.edge(flow, 'place', 'placemin', tail_index=1)
 
     # Expect that command exits early
     with pytest.raises(siliconcompiler.SiliconCompilerError):
@@ -140,13 +143,14 @@ def test_branch_failed_join(chip):
     flow = chip.get('option','flow')
 
     # Illegal values, so branch should fail
-    chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
     # Legal value, so branch should succeed
-    chip.set('tool', 'openroad', 'var', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
 
     # Perform join
-    chip.set('flowgraph', flow, 'placemin', '0', 'tool', 'join')
-    chip.set('flowgraph', flow, 'placemin', '0', 'input', [('place','0'), ('place','1')])
+    chip.node(flow, 'placemin', 'join', 'join')
+    chip.edge(flow, 'place', 'placemin', tail_index=0)
+    chip.edge(flow, 'place', 'placemin', tail_index=1)
 
     # Expect that command exits early
     with pytest.raises(siliconcompiler.SiliconCompilerError):

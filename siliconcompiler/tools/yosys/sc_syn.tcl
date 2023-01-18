@@ -12,8 +12,11 @@ yosys echo on
 
 set sc_tool   yosys
 set sc_step   [dict get $sc_cfg arg step]
+#TODO: fix properly
+set sc_task   $sc_step
+
 set sc_index  [dict get $sc_cfg arg index]
-set sc_refdir [dict get $sc_cfg tool $sc_tool refdir $sc_step $sc_index]
+set sc_refdir [dict get $sc_cfg tool $sc_tool task $sc_task refdir $sc_step $sc_index]
 
 ####################
 # DESIGNER's CHOICE

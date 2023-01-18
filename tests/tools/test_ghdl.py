@@ -14,7 +14,7 @@ def test_ghdl(datadir):
     chip.set('input', 'rtl', 'vhdl', design_src)
     chip.set('option', 'mode', 'sim')
 
-    chip.node('ghdl', 'import', 'ghdl')
+    chip.node('ghdl', 'import', 'ghdl', 'import')
     chip.set('option', 'flow', 'ghdl')
 
     chip.run()

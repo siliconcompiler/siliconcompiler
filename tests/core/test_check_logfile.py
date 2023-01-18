@@ -10,8 +10,8 @@ def test_check_logfile(datadir):
     chip.read_manifest(manifest)
 
     # add regex
-    chip.add('tool', 'openroad', 'regex', 'place', '0', 'warnings', "WARNING")
-    chip.add('tool', 'openroad', 'regex', 'place', '0', 'warnings', "-v DPL")
+    chip.add('tool', 'openroad', 'task', 'place', 'regex', 'place', '0', 'warnings', "WARNING")
+    chip.add('tool', 'openroad', 'task', 'place', 'regex', 'place', '0', 'warnings', "-v DPL")
 
     # check log
     logfile = os.path.join(datadir, 'place.log')

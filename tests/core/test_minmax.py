@@ -37,8 +37,8 @@ def chip():
             elif step == 'import':
                 chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
             else:
-                chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
-                chip.set('flowgraph', flow, step, str(index), 'input', (flowpipe[i-1],'0'))
+                chip.node(flow, step, tools[step], step, index=index)
+                chip.edge(flow, flowpipe[i-1], step, tail_index=0, head_index=index)
             #weight
             chip.set('flowgraph', flow, step, str(index), 'weight', 'cellarea', 1.0)
             #goal
@@ -48,7 +48,8 @@ def chip():
     # creating fake syn results
     for index in range(N):
         for metric in chip.getkeys('flowgraph', flow, 'syn', str(index), 'weight'):
-            chip.set('metric', 'syn', str(index), metric, 1000-index*1 + 42.0)
+            if metric != 'setupwns':
+                chip.set('metric', 'syn', str(index), metric, 1000-index*1 + 42.0)
 
     return chip
 
@@ -140,3 +141,6 @@ def test_winner_fails_goal_positive(chip):
 
     # winner should be second-best, not syn9
     assert winner == ('syn', '8')
+
+if __name__ == "__main__":
+    test_minimum(chip())

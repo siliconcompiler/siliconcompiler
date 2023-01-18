@@ -7,26 +7,26 @@ def test_graph():
     chip = siliconcompiler.Chip('test')
 
     #RTL
-    chip.pipe('rtl', [{'import' : 'surelog'},
-                      {'syn' : 'yosys'},
-                      {'export' : 'nop'},])
+    chip.pipe('rtl', [{'import' : ('surelog', 'import')},
+                      {'syn' : ('yosys', 'syn')},
+                      {'export' : ('nop', 'nop')},])
 
     #APR
-    chip.pipe('apr', [{'import' : 'nop'},
-                      {'floorplan' : 'openroad'},
-                      {'physyn' : 'openroad'},
-                      {'place' : 'openroad'},
-                      {'cts' : 'openroad'},
-                      {'route' : 'openroad'},
-                      {'dfm' : 'openroad'},
-                      {'export' : 'klayout'}])
+    chip.pipe('apr', [{'import' : ('nop', 'import')},
+                      {'floorplan' : ('openroad', 'floorplan')},
+                      {'physyn' : ('openroad', 'physyn')},
+                      {'place' : ('openroad', 'place')},
+                      {'cts' : ('openroad', 'cts')},
+                      {'route' : ('openroad', 'route')},
+                      {'dfm' : ('openroad', 'dfm')},
+                      {'export' : ('klayout', 'export')}])
 
     #SIGNOFF
-    chip.node('signoff', 'import', 'nop')
-    chip.node('signoff', 'extspice', 'magic')
-    chip.node('signoff', 'drc', 'magic')
-    chip.node('signoff', 'lvs', 'netgen')
-    chip.node('signoff', 'export', 'join')
+    chip.node('signoff', 'import', 'nop', 'import')
+    chip.node('signoff', 'extspice', 'magic', 'extspice')
+    chip.node('signoff', 'drc', 'magic', 'drc')
+    chip.node('signoff', 'lvs', 'netgen', 'lvs')
+    chip.node('signoff', 'export', 'join', 'export')
 
     chip.edge('signoff', 'import', 'drc')
     chip.edge('signoff', 'import', 'extspice')
