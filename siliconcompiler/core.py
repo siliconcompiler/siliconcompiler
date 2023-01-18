@@ -4365,7 +4365,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 success = self.find_result('png', stepname)
             else:
                 success = True
-        except:
+        except SiliconCompilerError:
             success = False
 
         # restore environment

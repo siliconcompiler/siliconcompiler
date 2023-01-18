@@ -6,11 +6,12 @@ def setup(chip):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    design = chip.top()
     task = 'screenshot'
     clobber = False
 
     script = 'klayout_show.py'
-    option = ['-nc', '-rm']
+    option = ['-nc', '-z', '-rm']
     chip.set('tool', tool, 'task', task, 'script', step, index, script, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'option', step, index, option, clobber=clobber)
 

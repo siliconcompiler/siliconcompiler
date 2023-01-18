@@ -32,8 +32,7 @@ def setup(chip):
 
     # Input/Output requirements for default flow
     design = chip.top()
-    if step in ['export']:
-        if (not chip.valid('input', 'layout', 'def') or
-            not chip.get('input', 'layout', 'def')):
-            chip.add('tool', tool, 'task', task, 'input', step, index, design + '.def')
-        chip.add('tool', tool, 'task', task, 'output', step, index, design + '.gds')
+    if (not chip.valid('input', 'layout', 'def') or
+        not chip.get('input', 'layout', 'def')):
+        chip.add('tool', tool, 'task', task, 'input', step, index, design + '.def')
+    chip.add('tool', tool, 'task', task, 'output', step, index, design + '.gds')
