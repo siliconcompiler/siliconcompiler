@@ -14,7 +14,7 @@ def test_openroad(scroot):
 
     chip = siliconcompiler.Chip(design)
 
-    chip.set('input', 'netlist', netlist)
+    chip.set('input', 'netlist', 'verilog', netlist)
     chip.set('option', 'quiet', True)
     chip.set('option', 'novercheck', True)
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
@@ -25,8 +25,8 @@ def test_openroad(scroot):
 
     # set up tool for floorplan
     flow = 'floorplan'
-    chip.node(flow, 'import', 'nop')
-    chip.node(flow, 'floorplan', 'openroad')
+    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'floorplan', 'openroad', 'floorplan')
     chip.edge(flow, 'import', 'floorplan')
     chip.set('option', 'flow', flow)
 

@@ -14,10 +14,10 @@ def make_docs():
 
 def setup(chip):
     flow = 'asictopflow'
-    chip.node(flow, 'import', 'surelog')
-    chip.node(flow, 'syn', 'yosys')
-    chip.node(flow, 'export', 'klayout')
-    chip.node(flow, 'merge', 'join')
+    chip.node(flow, 'import', 'surelog', 'import')
+    chip.node(flow, 'syn', 'yosys', 'syn')
+    chip.node(flow, 'export', 'klayout', 'export')
+    chip.node(flow, 'merge', 'join', 'merge')
 
     chip.edge(flow, 'import', 'export')
     chip.edge(flow, 'import', 'syn')

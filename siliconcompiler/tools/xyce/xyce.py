@@ -39,11 +39,13 @@ def setup(chip):
      tool = 'xyce'
      step = chip.get('arg','step')
      index = chip.get('arg','index')
+     task = step
+
      clobber = False
 
      chip.set('tool', tool, 'exe', tool)
      chip.set('tool', tool, 'version', '0.0', clobber=clobber)
-     chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=clobber)
+     chip.set('tool', tool, 'task', task, 'threads', step, index, os.cpu_count(), clobber=clobber)
 
 ##################################################
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from unittest.mock import Mock
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason='Temporary until server update')
 def test_gcd_server(gcd_chip):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.

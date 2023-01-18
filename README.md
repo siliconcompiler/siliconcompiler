@@ -21,7 +21,7 @@ A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silic
 
 * **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/latest/user_guide/programming_model.html)
 * **Portability:** Powerful dynamic JSON [schema](https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html) supports ASIC and FPGA design and simulation
-* **Speed:** Flowgraph [compilation model](https://docs.siliconcompiler.com/en/latest/user_guide/execution_model.html) enables cloud scale execution.
+* **Speed:** Flowgraph [execution model](https://docs.siliconcompiler.com/en/latest/user_guide/execution_model.html) enables cloud scale execution.
 * **Friction-less:** [Remote execution model](https://docs.siliconcompiler.com/en/latest/user_guide/remote_processing.html) enables "zero install" compilation
 * **Modularity:** [Tool abstraction layer](architecture) makes it easy to add/port new tools to the project.
 * **Provenance:** [Comilation manifests](https://docs.siliconcompiler.com/en/latest/user_guide/data_model.html) created automatically during execution.
@@ -38,8 +38,8 @@ A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silic
 |**ASIC APR**| OpenRoad, Synopsys, Cadence
 |**FPGA APR**| VPR, nextpnr, Vivado
 |**Layout Viewer**| Klayout, Cadence, Synopsys
-|**DRC/LVS**| Magic, Mentor, Synopsys
-|**PDKs**| sky130, asap7, freepdk45
+|**DRC/LVS**| Magic, Synopsys, Siemens
+|**PDKs**| sky130, asap7, freepdk45, gf12lp, intel16
 
 # Getting Started
 
@@ -54,15 +54,15 @@ python -m pip upgrade siliconcompiler
 Converting RTL into DRC clean GDS takes less than 10 lines of simple Python code.
 
 ```python
-import siliconcompiler                      # import python package
-chip = siliconcompiler.Chip('heartbeat')    # create chip object
-chip.load_target('freepdk45_demo')          # load a pre-defined target
-chip.set('input', 'verilog', 'heartbeat.v') # set input sources
-chip.set('input', 'sdc', 'heartbeat.sdc')   # set constraints
-#chip.set('option','remote', True)          # enable remote execution
-chip.run()                                  # run compilation
-chip.summary()                              # print summary
-chip.show()                                 # show layout
+import siliconcompiler                             # import python package
+chip = siliconcompiler.Chip('heartbeat')           # create chip object
+chip.load_target('freepdk45_demo')                 # load a pre-defined target
+chip.set('input', 'rtl', 'verilog', 'heartbeat.v') # set input sources
+chip.set('input', 'asic', 'sdc', 'heartbeat.sdc')  # set constraints
+#chip.set('option','remote', True)                 # enable remote execution
+chip.run()                                         # run compilation
+chip.summary()                                     # print summary
+chip.show()                                        # show layout
 ```
 
 To reduce the pain of tool installation, the project supports free remote compilation at [siliconcompiler.com](siliconcompiler.com).
@@ -75,7 +75,7 @@ To reduce the pain of tool installation, the project supports free remote compil
 Simple designs can be compiled using the built in command line 'sc' app:
 
 ```sh
-sc -remote -input "verilog heartbeat.v" -design heartbeat -target "freepdk45_demo"
+sc -remote -input "rtl verilog heartbeat.v" -design heartbeat -target "freepdk45_demo"
 ```
 
 # Documentation
@@ -92,7 +92,6 @@ To install the project from source (recommended for developers only).
 ```bash
 git clone https://github.com/siliconcompiler/siliconcompiler
 cd siliconcompiler
-git submodule update --init --recursive third_party/tools/openroad
 pip install -r requirements.txt
 python -m pip install -e .
 ```
@@ -101,7 +100,7 @@ python -m pip install -e .
 
 Installation instructions for all external tools can be found in the
 [Tools](https://docs.siliconcompiler.com/en/latest/reference_manual/tools.html) section
-of the reference manual. We have included shell setup scripts (Ubuntu) for most of the supported tools. See the [./setup](./setup) directory for a complete set of scripts.
+of the reference manual. We have included shell setup scripts (Ubuntu) for most of the supported tools. See the [./setup](./setup) directory for a complete set of scripts and [./setup/_tools.json](./setup/_tools.json) for the currently recommended tool versions.
 
 # Contributing
 

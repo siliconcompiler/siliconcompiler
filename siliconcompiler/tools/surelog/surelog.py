@@ -36,12 +36,13 @@ def setup(chip):
     '''
 
     tool = 'surelog'
+    task = 'import'
     # Nothing in this method should rely on the value of 'step' or 'index', but they are used
     # as schema keys in some important places, so we still need to fetch them.
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-
     exe = tool
+
     # Although Windows will find the binary even if the .exe suffix is omitted,
     # Surelog won't find the relative builtin.sv file unless we add it.
     if sys.platform.startswith('win32'):
@@ -61,7 +62,7 @@ def setup(chip):
     options.append('-nocache')
 
     # Wite back options to cfg
-    chip.add('tool', tool, 'option', step, index, options)
+    chip.add('tool', tool, 'task', task, 'option', step, index, options)
 
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
@@ -71,12 +72,12 @@ def setup(chip):
         chip.set('tool', tool, 'path', surelog_path, clobber=False)
 
     # Log file parsing
-    chip.set('tool', tool, 'regex', step, index, 'warnings', r'^\[WRN:', clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', r'^\[(ERR|FTL|SNT):', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'^\[WRN:', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'^\[(ERR|FTL|SNT):', clobber=False)
 
-    warnings_off = chip.get('tool', tool, 'warningoff')
-    for warning in warnings_off:
-        chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}')
+    #warnings_off = chip.get('tool', tool, 'warningoff')
+    #for warning in warnings_off:
+    #    chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}')
 
 def parse_version(stdout):
     # Surelog --version output looks like:
@@ -171,7 +172,7 @@ def runtime_options(chip):
     # Sources
     #######################
 
-    src_files = chip.find_files('input', 'verilog')
+    src_files = chip.find_files('input', 'rtl', 'verilog')
 
     # TODO: add back later
     #for item in chip.getkeys('library'):

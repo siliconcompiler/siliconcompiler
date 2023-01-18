@@ -76,74 +76,55 @@ def setup(chip):
     index = chip.get('arg','index')
     design = chip.top()
 
-    # Standard Setup
+    # Basic Tool Setup
     chip.set('tool', tool, 'exe', 'verilator')
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=4.028', clobber=False)
-    chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
 
-    # Basic warning and error grep check on logfile
-    chip.set('tool', tool, 'regex', step, index, 'warnings', r"^\%Warning", clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', r"^\%Error", clobber=False)
 
-    if step not in ('import', 'lint', 'compile'):
-        # If not using one of the pre-packaged steps, return early
-        # TODO: should we do this or error out? This allows the user to drive
-        # Verilator by filling in the tool options outside this driver.
-        return
+    tasks = ('import', 'lint', 'compile')
 
-    # Generic CLI options (for all steps)
-    chip.set('tool', tool, 'option', step, index,  '-sv')
-    chip.add('tool', tool, 'option', step, index, f'--top-module {design}')
 
-    if chip.get('option', 'relax'):
+    # Common to all tasks
+    for task in tasks:
+
+        # Max threads
+        chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
+
+        # Basic warning and error grep check on logfile
+        chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r"^\%Warning", clobber=False)
+        chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r"^\%Error", clobber=False)
+
+        # Generic CLI options (for all steps)
+        chip.set('tool', tool, 'task', task, 'option', step, index,  '-sv')
+        chip.add('tool', tool, 'task', task, 'option', step, index, f'--top-module {design}')
+
         # Make warnings non-fatal in relaxed mode
-        chip.add('tool', tool, 'option', step, index, ['-Wno-fatal', '-Wno-UNOPTFLAT'])
+        if chip.get('option', 'relax'):
+            chip.add('tool', tool, 'task', task, 'option', step, index, ['-Wno-fatal', '-Wno-UNOPTFLAT'])
 
-    for warning in chip.get('tool', tool, 'warningoff'):
-        chip.add('tool', tool, 'option', step, index, f'-Wno-{warning}')
+        # Converting user setting to verilator specific filter
+        #for warning in chip.get('tool', tool, 'task', task, step, index, 'warningoff'):
+        #    chip.add('tool', tool, 'task', task, 'option', step, index, f'-Wno-{warning}')
 
-    # Step-based CLI options
-    if step == 'import':
-        chip.add('tool', tool, 'option', step, index,  ['--lint-only', '--debug'])
-        for value in chip.get('option', 'define'):
-            chip.add('tool', tool, 'option', step, index, '-D' + value)
-        # File-based arguments added in runtime_options()
-    elif step == 'lint':
-        chip.add('tool', tool, 'option', step, index,  ['--lint-only'])
-        chip.add('tool', tool, 'option', step, index, f'inputs/{design}.v')
-    elif step == 'compile':
-        chip.add('tool', tool, 'option', step, index,  ['--cc', '--exe'])
-        chip.add('tool', tool, 'option', step, index, f'inputs/{design}.v')
-        chip.add('tool', tool, 'option', step, index, f'-o ../outputs/{design}.vexe')
-
+        # User runtime option
         if chip.get('option', 'trace'):
-            chip.add('tool', tool, 'option', step, index, '--trace')
+            chip.add('tool', tool, 'task', task, 'task', task, 'option', step, index, '--trace')
 
-        if chip.valid('tool', tool, 'var', step, index, 'cflags'):
-            cflags_list = chip.get('tool', tool, 'var', step, index, 'cflags')
-            cflags_str = '"' + ' '.join(cflags_list) + '"'
-            chip.add('tool', tool, 'option', step, index, '-CFLAGS')
-            chip.add('tool', tool, 'option', step, index, cflags_str)
-
-        if chip.valid('tool', tool, 'var', step, index, 'ldflags'):
-            ldflags_list = chip.get('tool', tool, 'var', step, index, 'ldflags')
-            ldflags_str = '"' + ' '.join(ldflags_list) + '"'
-            chip.add('tool', tool, 'option', step, index, '-LDFLAGS')
-            chip.add('tool', tool, 'option', step, index, ldflags_str)
-
-        # File-based arguments added in runtime_options()
-
-   # I/O requirements
-    if step == 'import':
-        chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
-        chip.set('tool', tool, 'output', step, index, f'{design}.v')
-    elif step == 'lint':
-        chip.set('tool', tool, 'input', step, index, f'{design}.v')
-    elif step == 'compile':
-        chip.add('tool', tool, 'require', step, index, ",".join(['input', 'c']))
-        chip.set('tool', tool, 'input', step, index, f'{design}.v')
-        chip.set('tool', tool, 'output', step, index, f'{design}.vexe')
+        if task == 'import':
+            chip.add('tool', tool, 'task', task, 'option', step, index,  ['--lint-only', '--debug'])
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['input', 'rtl', 'verilog']))
+            chip.set('tool', tool, 'task', task, 'output', step, index, f'{design}.v')
+            for value in chip.get('option', 'define'):
+                chip.add('tool', tool, 'task', task, 'option', step, index, '-D' + value)
+        elif task == 'lint':
+            chip.add('tool', tool, 'task', task, 'option', step, index,  ['--lint-only', '--debug'])
+            chip.set('tool', tool, 'task', task, 'input', step, index, f'inputs/{design}.v')
+        elif task == 'compile':
+            chip.add('tool', tool, 'task', task, 'option', step, index,  ['--cc', '--exe'])
+            chip.add('tool', tool, 'task', task, 'input', step, index, f'inputs/{design}.v')
+            chip.add('tool', tool, 'task', task, 'option', step, index, f'-o ../outputs/{design}.vexe')
+            chip.set('tool', tool, 'task', task, 'input', step, index, f'{design}.v')
 
 ################################
 #  Custom runtime options
@@ -166,10 +147,10 @@ def runtime_options(chip):
             cmdlist.append('-I' + value)
         for value in chip.find_files('option', 'cmdfile'):
             cmdlist.append('-f ' + value)
-        for value in chip.find_files('input', 'verilog'):
+        for value in chip.find_files('input', 'rtl', 'verilog'):
             cmdlist.append(value)
     elif step == 'compile':
-        for value in chip.find_files('input', 'c'):
+        for value in chip.find_files('input', 'hll', 'c'):
             cmdlist.append(value)
 
     return cmdlist
@@ -216,4 +197,4 @@ def post_process(chip):
 if __name__ == "__main__":
 
     chip = make_docs()
-    chip.write_manifest("verilator.json")
+    chip.write_manifest("verilator.csv")

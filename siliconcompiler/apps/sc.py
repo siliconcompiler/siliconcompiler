@@ -5,6 +5,7 @@ import os
 import sys
 
 import siliconcompiler
+from siliconcompiler.utils import get_default_iomap
 
 ###########################
 def main():
@@ -35,37 +36,23 @@ def main():
     # Create a base chip class.
     chip = siliconcompiler.Chip(UNSET_DESIGN)
 
-    input_map = {
-        # HDL
-        'v': 'verilog',
-        'sv': 'verilog',
-        'vhdl': 'vhdl',
-        'c': 'c',
-        'bsv': 'bsv',
-        'scala': 'scala',
-
-        # ASIC "side files"
-        'sdc': 'sdc',
-        'def': 'floorplan.def',
-
-        # FPGA "side files"
-        'pcf': 'pcf'
-    }
-
     # Read command-line inputs and generate Chip objects to run the flow on.
     chip.create_cmdline(progname,
                         description=description,
-                        input_map=input_map)
+                        input_map=get_default_iomap())
 
     # Set design if none specified
     if chip.get('design') == UNSET_DESIGN:
         topfile = None
-        for sourcetype in ('verilog', 'vhdl', 'c', 'bsv', 'scala'):
-            if chip.valid('input', sourcetype):
-                sources = chip.get('input', sourcetype)
-                if sources:
-                    topfile = sources[0]
-                    break
+        for sourceset in ('rtl', 'hll'):
+            if chip.valid('input', sourceset):
+                for filetype in chip.getkeys('input', sourceset):
+                    sources = chip.get('input', sourceset, filetype)
+                    if sources:
+                        topfile = sources[0]
+                        break
+            if topfile:
+                break
 
         if not topfile:
             chip.logger.error('Invalid arguments: either specify -design or provide sources.')

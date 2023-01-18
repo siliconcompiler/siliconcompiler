@@ -41,6 +41,8 @@ def setup(chip):
     tool = 'bluespec'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    #TODO: fix below
+    task = step
 
     # Standard Setup
     refdir = 'tools/'+tool
@@ -49,15 +51,16 @@ def setup(chip):
     # us the version and exit cleanly, so we'll use it here.
     chip.set('tool', tool, 'vswitch', '-v')
     chip.set('tool', tool, 'version', '>=2021.07', clobber=False)
-    chip.set('tool', tool, 'refdir', step, index,  refdir, clobber=False)
-    chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
-    chip.set('tool', tool, 'option', step, index,  [], clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'refdir', step, index,  refdir, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'task', task, 'option', step, index,  [], clobber=False)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
+    chip.add('tool', tool, 'task', task,'output', step, index, chip.top() + '.v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input,bsv')
+    chip.add('tool', tool, 'task', task,'require', step, index, 'input,hll,bsv')
 
 def parse_version(stdout):
     # Examples:
@@ -89,7 +92,7 @@ def runtime_options(chip):
     for value in chip.get('option', 'define'):
         cmdlist.append('-D ' + value)
 
-    sources = chip.find_files('input', 'bsv')
+    sources = chip.find_files('input', 'hll', 'bsv')
     if len(sources) != 1:
         raise ValueError('Bluespec frontend only supports one source file!')
     cmdlist.append(sources[0])

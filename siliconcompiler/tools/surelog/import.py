@@ -9,11 +9,12 @@ def setup(chip):
     '''
 
     tool = 'surelog'
+    task = 'import'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
     # Runtime parameters.
-    chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
 
     # Command-line options.
     options = []
@@ -25,10 +26,10 @@ def setup(chip):
     # very big and takes a while to write out.
     options.append('-nouhdm')
     # Wite back options to cfg
-    chip.add('tool', tool, 'option', step, index, options)
+    chip.add('tool', tool, 'task', task, 'option', step, index, options)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
+    chip.add('tool', tool, 'task', task, 'output', step, index, chip.top() + '.v')
 
     # Schema requirements
-    chip.add('tool', tool, 'require', step, index, ",".join(['input', 'verilog']))
+    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['input', 'rtl', 'verilog']))

@@ -9,7 +9,10 @@ yosys echo on
 set sc_step   [dict get $sc_cfg arg step]
 set sc_index  [dict get $sc_cfg arg index]
 
-set sc_refdir [dict get $sc_cfg tool $sc_tool refdir $sc_step $sc_index ]
+#TODO: fix properly
+set sc_task   $sc_step
+
+set sc_refdir [dict get $sc_cfg tool $sc_tool task $sc_task refdir $sc_step $sc_index ]
 
 set sc_mode        [dict get $sc_cfg option mode]
 set sc_design      [sc_top]
@@ -20,10 +23,10 @@ set lib [lindex $sc_targetlibs 0]
 set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
 set sc_scenarios   [dict keys [dict get $sc_cfg constraint timing]]
 set sc_libcorner [dict get $sc_cfg constraint timing [lindex $sc_scenarios 0] libcorner]
-set sc_liberty [dict get $sc_cfg library $lib model timing $sc_delaymodel $sc_libcorner]
+set sc_liberty [dict get $sc_cfg library $lib output $sc_libcorner $sc_delaymodel]
 
-if {[dict exists $sc_cfg tool $sc_tool "variable" $sc_step $sc_index induction_steps]} {
-    set sc_induction_steps [lindex [dict get $sc_cfg tool $sc_tool "variable" $sc_step $sc_index induction_steps] 0]
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task "variable" $sc_step $sc_index induction_steps]} {
+    set sc_induction_steps [lindex [dict get $sc_cfg tool $sc_tool task $sc_task "variable" $sc_step $sc_index induction_steps] 0]
 } else {
     # Yosys default
     set sc_induction_steps 4
@@ -34,7 +37,7 @@ yosys read_liberty -ignore_miss_func $sc_liberty
 if {[file exists "inputs/$sc_design.v"]} {
     set source "inputs/$sc_design.v"
 } else {
-    set source [lindex [dict get $sc_cfg input verilog] 0]
+    set source [lindex [dict get $sc_cfg input rtl verilog] 0]
 }
 yosys read_verilog $source
 
@@ -51,8 +54,8 @@ yosys design -stash gold
 
 # Gate netlist
 yosys read_liberty -ignore_miss_func $sc_liberty
-if {[dict exists $sc_cfg input netlist]} {
-    set netlist [lindex [dict get $sc_cfg input netlist] 0]
+if {[dict exists $sc_cfg input netlist verilog]} {
+    set netlist [lindex [dict get $sc_cfg input netlist verilog] 0]
 } else {
     set netlist "inputs/$sc_design.vg"
 }

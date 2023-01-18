@@ -12,8 +12,8 @@ def test_sv(datadir):
 
     chip = siliconcompiler.Chip(design)
 
-    chip.add('input', 'verilog', os.path.join(datadir, 'sv', 'prim_util_pkg.sv'))
-    chip.add('input', 'verilog', os.path.join(datadir, 'sv', f'{design}.sv'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(datadir, 'sv', 'prim_util_pkg.sv'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(datadir, 'sv', f'{design}.sv'))
     chip.add('option', 'idir', os.path.join(datadir, 'sv', 'inc/'))
     chip.add('option', 'define', 'SYNTHESIS')
 

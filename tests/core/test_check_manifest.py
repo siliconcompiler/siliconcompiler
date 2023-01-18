@@ -9,7 +9,7 @@ def test_check_manifest():
 
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
-    chip.set('input', 'verilog', 'examples/gcd/gcd.v')
+    chip.set('input', 'rtl', 'verilog', 'examples/gcd/gcd.v')
     flow = chip.get('option', 'flow')
     index = "0"
     steps = ['import', 'syn']
@@ -32,7 +32,7 @@ def test_check_manifest():
 def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip = siliconcompiler.Chip('gcd')
 
-    chip.set('input', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
+    chip.set('input', 'rtl', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.load_target("freepdk45_demo")
 
     # collect input files
@@ -56,9 +56,9 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
 def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip = siliconcompiler.Chip('gcd')
 
-    chip.set('input', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
-    chip.set('input', 'sdc', '/random/abs/path/to/file.sdc')
-    chip.set('input', 'sdc', False, field='copy')
+    chip.set('input', 'rtl', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
+    chip.set('input', 'asic', 'sdc', '/random/abs/path/to/file.sdc')
+    chip.set('input', 'asic', 'sdc', False, field='copy')
     chip.load_target("freepdk45_demo")
 
     # collect input files
@@ -86,14 +86,14 @@ def test_check_missing_file_param():
     chip.set('arg', 'step', 'syn')
     chip.set('arg', 'index', '0')
 
-    chip.set('tool', 'yosys', 'input', 'syn', '0', [])
-    chip.set('tool', 'yosys', 'output', 'syn', '0',[])
+    chip.set('tool', 'yosys', 'task', 'syn', 'input', 'syn', '0', [])
+    chip.set('tool', 'yosys', 'task', 'syn', 'output', 'syn', '0',[])
 
     # not real file, will cause error
     libname = 'nangate45'
     corner = 'typical'
-    chip.add('library', libname, 'model', 'timing',
-             'nldm', corner, '/fake/timing/file.lib')
+    chip.add('library', libname, 'output', corner, 'nldm',
+             '/fake/timing/file.lib')
 
     assert not chip.check_manifest()
 
@@ -102,13 +102,13 @@ def merge_flow_chip():
     chip = siliconcompiler.Chip('test')
 
     flow = 'test'
-    chip.node(flow, 'import', 'nop')
-    chip.node(flow, 'parallel1', 'foo')
-    chip.node(flow, 'parallel2', 'bar')
+    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'parallel1', 'foo', 'parallel1')
+    chip.node(flow, 'parallel2', 'bar', 'parallel2')
     chip.edge(flow, 'import', 'parallel1')
     chip.edge(flow, 'import', 'parallel2')
 
-    chip.node(flow, 'export', 'baz')
+    chip.node(flow, 'export', 'baz', 'export')
     chip.edge(flow, 'parallel1', 'export')
     chip.edge(flow, 'parallel2', 'export')
     chip.set('option', 'flow', flow)
@@ -117,24 +117,24 @@ def merge_flow_chip():
     chip.set('tool', 'bar', 'exe', 'foo')
     chip.set('tool', 'baz', 'exe', 'baz')
 
-    chip.set('tool', 'baz', 'input', 'export', '0', ['foo.out', 'bar.out'])
+    chip.set('tool', 'baz', 'task', 'export', 'input', 'export', '0', ['foo.out', 'bar.out'])
 
     return chip
 
 def test_merged_graph_good(merge_flow_chip):
-    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'bar.out')
-    merge_flow_chip.set('tool', 'bar', 'output', 'parallel2', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'parallel1', '0', 'bar.out')
+    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'parallel2', '0', 'foo.out')
 
     assert merge_flow_chip.check_manifest()
 
 def test_merged_graph_good_steplist():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
-    chip.node(flow, 'import', 'nop')
-    chip.node(flow, 'parallel1', 'echo')
-    chip.node(flow, 'parallel2', 'echo')
-    chip.node(flow, 'merge', 'echo')
-    chip.node(flow, 'export', 'echo')
+    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'parallel1', 'echo', 'parallel1')
+    chip.node(flow, 'parallel2', 'echo', 'parallel2')
+    chip.node(flow, 'merge', 'echo', 'merge')
+    chip.node(flow, 'export', 'echo', 'export')
     chip.edge(flow, 'import', 'parallel1')
     chip.edge(flow, 'import', 'parallel2')
     chip.edge(flow, 'parallel1', 'merge')
@@ -150,14 +150,14 @@ def test_merged_graph_good_steplist():
 
 def test_merged_graph_bad_same(merge_flow_chip):
     # Two merged steps can't output the same thing
-    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'foo.out')
-    merge_flow_chip.set('tool', 'bar', 'output', 'parallel2', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'parallel1', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'parallel2', '0', 'foo.out')
 
     assert not merge_flow_chip.check_manifest()
 
 def test_merged_graph_bad_missing(merge_flow_chip):
     # bar doesn't provide necessary output
-    merge_flow_chip.set('tool', 'foo', 'output', 'parallel1', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'parallel1', '0', 'foo.out')
 
     assert not merge_flow_chip.check_manifest()
 

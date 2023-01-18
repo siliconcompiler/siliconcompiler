@@ -68,8 +68,8 @@ def setup(chip, flowname='fpgaflow'):
 
     # Set FPGA mode if not set
     chip.set('option', 'mode', 'fpga')
-    
-    # Partname lookup for flows other than vpr   
+
+    # Partname lookup for flows other than vpr
     if flow != 'vpr':
         (vendor, flow) = flow_lookup(partname)
         chip.set('fpga', 'vendor', vendor)
@@ -86,13 +86,13 @@ def setup(chip, flowname='fpgaflow'):
 
     flowtools = setup_frontend(chip)
     for step in flowpipe:
-        flowtools.append((step, tool_lookup(flow, step)))
+        flowtools.append((step, tool_lookup(flow, step), step))
 
     # Minimal setup
     index = '0'
-    for step, tool in flowtools:
+    for step,tool,task in flowtools:
         # Flow
-        chip.node(flowname, step, tool)
+        chip.node(flowname, step, tool,task)
         if step != 'import':
             chip.edge(flowname, prevstep, step)
         # Hard goals
@@ -126,7 +126,7 @@ def flow_lookup(partname):
     artixultra = bool(re.match('^au', partname))
     kintex7 = bool(re.match('^xc7k', partname))
     kintexultra = bool(re.match('^xcku', partname))
-    zynq = bool(re.match('^z\-7', partname))
+    zynq = bool(re.match(r'^z\-7', partname))
     zynqultra = bool(re.match('^zu', partname))
     virtex7 = bool(re.match('^xc7v', partname))
     virtexultra = bool(re.match('^xcvu', partname))

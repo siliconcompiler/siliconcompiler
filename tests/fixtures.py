@@ -6,8 +6,8 @@ def gcd_chip():
 
     chip = siliconcompiler.Chip('gcd')
     chip.load_target('freepdk45_demo')
-    chip.add('input', 'verilog', os.path.join(gcd_ex_dir, 'gcd.v'))
-    chip.add('input', 'sdc', os.path.join(gcd_ex_dir, 'gcd.sdc'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(gcd_ex_dir, 'gcd.v'))
+    chip.add('input', 'asic', 'sdc', os.path.join(gcd_ex_dir, 'gcd.sdc'))
     chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
     chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
     chip.set('option', 'novercheck', 'true')

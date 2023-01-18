@@ -31,15 +31,13 @@ def _setup_lib(libname, suffix):
     lib.set('asic', 'pdk', 'asap7')
 
     # timing
-    lib.add('model', 'timing', 'nldm', corner,
-            libdir+'/nldm/'+libname+'_ff.lib')
+    lib.add('output', corner, 'nldm', libdir+'/nldm/'+libname+'_ff.lib')
 
     # lef
-    lib.add('model', 'layout', 'lef', stackup,
-                libdir+'/lef/'+libname+'.lef')
+    lib.add('output', stackup, 'lef', libdir+'/lef/'+libname+'.lef')
+
     # gds
-    lib.add('model', 'layout', 'gds', stackup,
-                libdir+'/gds/'+libname+'.gds')
+    lib.add('output', stackup, 'gds', libdir+'/gds/'+libname+'.gds')
 
     # site name
     lib.set('asic', 'footprint', 'asap7sc7p5t', 'symmetry', 'Y')
@@ -56,7 +54,7 @@ def _setup_lib(libname, suffix):
 
     # tie cells
     lib.add('asic', 'cells', 'tie', [f"TIEHIx1_ASAP7_75t_{suffix}/H",
-                                        f"TIELOx1_ASAP7_75t_{suffix}/L"])
+                                     f"TIELOx1_ASAP7_75t_{suffix}/L"])
 
     # buffer
     # TODO: Need to fix this syntax!, not needed by modern tools!
@@ -82,11 +80,24 @@ def _setup_lib(libname, suffix):
     # Endcap
     lib.add('asic', 'cells','endcap', f"DECAPx1_ASAP7_75t_{suffix}")
 
-    # Techmap
+    # Yosys techmap
     if libname.endswith('rvt'):
         # TODO: write map files for other groups
         lib.add('asic', 'file', 'yosys', 'techmap',
                     libdir + '/techmap/yosys/cells_latch.v')
+
+    # Defaults for OpenROAD tool variables
+    lib.set('asic', 'var', 'openroad', 'place_density', ['0.77'])
+    lib.set('asic', 'var', 'openroad', 'pad_global_place', ['2'])
+    lib.set('asic', 'var', 'openroad', 'pad_detail_place', ['1'])
+    lib.set('asic', 'var', 'openroad', 'macro_place_halo', ['22.4', '15.12'])
+    lib.set('asic', 'var', 'openroad', 'macro_place_channel', ['18.8', '19.95'])
+
+    # Openroad APR setup files
+    lib.set('asic', 'file', 'openroad', 'tracks', libdir + '/apr/openroad/tracks.tcl')
+    lib.set('asic', 'file', 'openroad', 'tapcells', libdir + '/apr/openroad/tapcells.tcl')
+    lib.set('asic', 'file', 'openroad', 'pdngen', libdir + '/apr/openroad/pdngen.tcl')
+    lib.set('asic', 'file', 'openroad', 'global_connect', libdir + '/apr/openroad/global_connect.tcl')
 
     return lib
 

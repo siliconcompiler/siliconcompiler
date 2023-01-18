@@ -17,10 +17,10 @@ def test_surelog(scroot, clean):
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
 
-    chip.add('input', 'verilog', gcd_src)
+    chip.add('input', 'rtl', 'verilog', gcd_src)
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'clean', clean)
-    chip.node('surelog', step, 'surelog')
+    chip.node('surelog', step, 'surelog', step)
     chip.set('option', 'flow', 'surelog')
 
     chip.run()
@@ -44,12 +44,12 @@ def test_surelog_duplicate_inputs(scroot):
     chip.load_target('freepdk45_demo')
 
     # Set duplicate input files.
-    chip.add('input', 'verilog', gcd_src)
-    chip.add('input', 'verilog', gcd_src)
+    chip.add('input', 'rtl', 'verilog', gcd_src)
+    chip.add('input', 'rtl', 'verilog', gcd_src)
 
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'clean', True)
-    chip.node('surelog', step, 'surelog')
+    chip.node('surelog', step, 'surelog', step)
     chip.set('option', 'flow', 'surelog')
 
     chip.run()
@@ -74,8 +74,8 @@ def test_surelog_preproc_regression(datadir):
 
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
-    chip.node('surelog', step, 'surelog')
-    chip.add('input', 'verilog', src)
+    chip.node('surelog', step, 'surelog', step)
+    chip.add('input', 'rtl', 'verilog', src)
     chip.add('option', 'define', 'MEM_ROOT=test')
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'flow', 'surelog')
@@ -100,13 +100,13 @@ def test_replay(scroot):
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
 
-    chip.add('input', 'verilog', src)
+    chip.add('input', 'rtl', 'verilog', src)
     chip.set('option', 'mode', 'sim')
-    chip.node('surelog', step, 'surelog')
+    chip.node('surelog', step, 'surelog', step)
     chip.set('option', 'flow', 'surelog')
     chip.set('option', 'quiet', True)
     chip.set('option', 'clean', True) # replay should work even with clean=True
-    chip.set('tool', 'surelog', 'env', step, '0', 'SLOG_ENV', 'SUCCESS')
+    chip.set('tool', 'surelog', 'task', step, 'env', step, '0', 'SLOG_ENV', 'SUCCESS')
 
     chip.run()
 

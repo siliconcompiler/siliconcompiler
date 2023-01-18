@@ -9,7 +9,7 @@ def chip(datadir):
     chip = siliconcompiler.Chip('bad', loglevel='NOTSET')
 
     # Inserting value into configuration
-    chip.add('input', 'verilog', os.path.join(datadir, 'bad.v'))
+    chip.add('input', 'rtl', 'verilog', os.path.join(datadir, 'bad.v'))
     chip.set('design', 'bad')
     chip.set('asic', 'diearea', [(0, 0), (10, 10)])
     chip.set('asic', 'corearea', [(1, 1), (9, 9)])
