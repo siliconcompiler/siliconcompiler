@@ -59,7 +59,6 @@ def setup(chip):
 
     # Task Setup
     for task in tasks:
-
         # common to all
         chip.set('tool', tool, 'task', task, 'option', step, index, '-c', clobber=False)
         chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=False)

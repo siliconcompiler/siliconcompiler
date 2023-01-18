@@ -5,7 +5,7 @@ import shutil
 import siliconcompiler
 
 def setup(chip):
-    ''' Helper method for configs specific to synthesis steps.
+    ''' Helper method for configs specific to synthesis tasks.
     '''
 
     tool = 'yosys'
