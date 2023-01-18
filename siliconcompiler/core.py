@@ -3868,7 +3868,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Step/task setup.
         try:
-            setup_step = self.find_function(tool, 'setup', 'tools', step)
+            task = self.get('flowgraph', self.get('option', 'flow'), step, index, 'task')
+            setup_step = self.find_function(tool, 'setup', 'tools', task)
         except SiliconCompilerError:
             setup_step = None
         if setup_step:

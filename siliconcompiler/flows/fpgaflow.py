@@ -86,7 +86,10 @@ def setup(chip, flowname='fpgaflow'):
 
     flowtools = setup_frontend(chip)
     for step in flowpipe:
-        flowtools.append((step, tool_lookup(flow, step), step))
+        task = step
+        if (step == 'syn_vpr') and (flow == 'vpr'):
+            task = 'syn'
+        flowtools.append((step, tool_lookup(flow, step), task))
 
     # Minimal setup
     index = '0'
