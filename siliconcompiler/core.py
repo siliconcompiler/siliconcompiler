@@ -1247,18 +1247,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return False
 
     ###########################################################################
-    def _merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False, partial=False):
+    def _merge_manifest(self, src, job=None, clobber=True, clear=True, check=False, partial=False):
         """
-        Internal merge_manifest() implementation with `partial` arg.
+        Merges a given manifest with the current compilation manifest.
 
-        partial (bool): If True, perform a partial merge, only merging keypaths
-        that may have been updated during run().
+        All value fields in the provided schema dictionary are merged into the
+        current chip object. Dictionaries with non-existent keypath produces a
+        logger error message and raises the Chip object error flag.
+
+        Args:
+            src (Schema): Schema object to merge
+            job (str): Specifies non-default job to merge into
+            clear (bool): If True, disables append operations for list type
+            clobber (bool): If True, overwrites existing parameter value
+            check (bool): If True, checks the validity of each key
+            partial (bool): If True, perform a partial merge, only merging
+                keypaths that may have been updated during run().
         """
-        src = Schema(cfg)
         if job is not None:
-            # TODO: do we really want to overwrite any existing job schema
-            # values?
-            dest = Schema()
+            dest = self.schema.get_history(job)
         else:
             dest = self.schema
 
@@ -1277,7 +1284,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # update value, handling scalars vs. lists
                 typestr = src.get(*keylist, field='type')
                 val = src.get(*keylist)
-                if bool(re.match(r'\[', typestr)) & bool(not clear):
+                if re.match(r'\[', typestr) and not clear:
                     dest.add(*keylist, val)
                 else:
                     dest.set(*keylist, val, clobber=clobber)
@@ -1679,50 +1686,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         partial (bool): If True, perform a partial merge, only merging keypaths
         that may have been updated during run().
         """
+        # Read from file into new schema object
+        schema = Schema.from_manifest(filename)
 
-        filepath = os.path.abspath(filename)
-        self.logger.debug(f"Reading manifest {filepath}")
-        if not os.path.isfile(filepath):
-            self.error(f"Manifest file not found {filepath}", fatal=True)
+        # Merge data in schema with Chip configuration
+        self._merge_manifest(schema, job=job, clear=clear, clobber=clobber, partial=partial)
 
-        #Read arguments from file based on file type
-
-        if filepath.endswith('.gz'):
-            fin = gzip.open(filepath, 'r')
-        else:
-            fin = open(filepath, 'r')
-
-        try:
-            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
-                localcfg = json.load(fin)
-            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
-                localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
-            else:
-                self.error('File format not recognized %s', filepath)
-        finally:
-            fin.close()
-
-        if self.get('schemaversion') != localcfg['schemaversion']['value']:
-            self.logger.warning('Attempting to read manifest with incompatible '
-            'schema version into current chip object. Skipping...')
-            return
-
-        # Merging arguments with the Chip configuration
-        self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
-
-        # Read history
-        if 'history' in localcfg and not partial:
-            for historic_job in localcfg['history'].keys():
-                self._merge_manifest(localcfg['history'][historic_job],
+        # Read history, if we're not already reading into a job
+        if 'history' in schema.getdict().keys() and not partial and not job:
+            for historic_job in schema.getkeys('history'):
+                self._merge_manifest(schema.get_history(historic_job),
                                      job=historic_job,
                                      clear=clear,
                                      clobber=clobber,
                                      partial=False)
 
         # TODO: better way to handle this?
-        if 'library' in localcfg and not partial:
-            for libname in localcfg['library'].keys():
-                self._import_library(libname, localcfg['library'][libname], job=job, clobber=clobber)
+        if 'library' in schema.getdict().keys() and not partial:
+            for libname in schema.getkeys('library'):
+                self._import_library(libname, schema.getdict('library', libname), job=job, clobber=clobber)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False):
@@ -2029,18 +2011,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # look through dependency package files
             package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
-            if not os.path.isfile(package):
-                self.error("Package missing. Try 'autoinstall' or install manually.")
-            with gzip.open(package, 'r') as f:
-                localcfg = json.load(f)
+            schema = Schema.from_manifest(package)
 
             # done if no more dependencies
-            if 'dependency' in localcfg['package']:
+            if 'dependency' in schema.getkeys('package'):
                 subdeps = {}
-                subdesign = localcfg['design']['value']
+                subdesign = schema.get('design')
                 depgraph[subdesign] = []
-                for item in localcfg['package']['dependency'].keys():
-                    subver = localcfg['package']['dependency'][item]['value']
+                for item in schema.getkeys('package', 'dependency'):
+                    subver = schema.get('package', 'dependency', item)
                     if (item in upstream) and (upstream[item] == subver):
                         # Circular imports are not supported.
                         self.error(f'Cannot process circular import: {dep}-{ver} <---> {item}-{subver}.', fatal=True)

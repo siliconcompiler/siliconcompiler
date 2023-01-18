@@ -59,6 +59,27 @@ def test_read_defaults(datadir):
 
     assert actual == expected
 
+def test_read_history():
+    '''Make sure that history gets included in manifest read.'''
+    chip = siliconcompiler.Chip('foo')
+    chip.add('input', 'rtl', 'verilog', 'foo.v')
+    chip.schema.record_history()
+    chip.write_manifest('tmp.json')
+
+    chip2 = siliconcompiler.Chip('foo')
+    chip2.read_manifest('tmp.json')
+    assert chip.get('input', 'rtl', 'verilog', job='job0') == ['foo.v']
+
+def test_read_job():
+    '''Make sure that we can read a manifest into a non-default job'''
+    chip = siliconcompiler.Chip('foo')
+    chip.add('input', 'rtl', 'verilog', 'foo.v')
+    chip.write_manifest('tmp.json')
+
+    chip2 = siliconcompiler.Chip('foo')
+    chip2.read_manifest('tmp.json', job='job1')
+    assert chip2.get('input', 'rtl', 'verilog', job='job1') == ['foo.v']
+
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir

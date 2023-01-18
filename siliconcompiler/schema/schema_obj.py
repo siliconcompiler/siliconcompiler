@@ -2,6 +2,7 @@
 
 import copy
 import csv
+import gzip
 import json
 import os
 import re
@@ -30,6 +31,40 @@ class Schema:
             self.cfg = schema_cfg()
         else:
             self.cfg = copy.deepcopy(cfg)
+
+    ###########################################################################
+    @classmethod
+    def from_manifest(cls, filepath):
+        '''
+        Creates a Schema object from a manifest file.
+
+        The file format is automatically determined by the filename suffix.
+
+        Args:
+            filepath (str): Path to a manifest file.
+        '''
+        if not os.path.isfile(filepath):
+            raise ValueError(f'Manifest file not found {filepath}')
+
+        if filepath.endswith('.gz'):
+            fin = gzip.open(filepath, 'r')
+        else:
+            fin = open(filepath, 'r')
+
+        try:
+            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
+                localcfg = json.load(fin)
+            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
+                localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
+            else:
+                raise ValueError(f'File format not recognized {filepath}')
+        finally:
+            fin.close()
+
+        if Schema().get('schemaversion') != localcfg['schemaversion']['value']:
+            raise ValueError('Attempting to read manifest with incompatible schema version')
+
+        return cls(localcfg)
 
     ###########################################################################
     def get(self, *keypath, field='value', job=None):
@@ -98,7 +133,8 @@ class Schema:
         """
         if len(keypath) > 0:
             localcfg = self._search(self.cfg, str(keypath), *keypath, mode='getcfg')
-        # TODO: error condition?
+        else:
+            localcfg = self.cfg
 
         return copy.deepcopy(localcfg)
 
@@ -590,6 +626,26 @@ class Schema:
         value_empty = (defvalue in emptylist) and (value in emptylist)
 
         return value_empty
+
+    ###########################################################################
+    def get_history(self, job):
+        '''
+        Returns a *mutable* reference to ['history', job] as a Schema object.
+
+        If job doesn't currently exist in history, create it with default
+        values.
+
+        Args:
+            job (str): Name of historical job to return.
+        '''
+        if job not in self.cfg['history']:
+            self.cfg['history'][job] = schema_cfg()
+
+        # Can't initialize Schema() by passing in cfg since it performs a deep
+        # copy.
+        schema = Schema()
+        schema.cfg = self.cfg['history'][job]
+        return schema
 
 class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
