@@ -3055,31 +3055,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.graph('asicflow')
             Instantiates Creates a directed edge from place to cts.
         '''
-        # TODO: can we refactor this to not rely on config hacks
-        if flow not in self.getkeys('flowgraph'):
-            self.schema.cfg['flowgraph'][flow] ={}
-
-        # uniquify each step
-        for step in self.getkeys('flowgraph',subflow):
+        for step in self.getkeys('flowgraph', subflow):
+            # uniquify each step
             if name is None:
                 newstep = step
             else:
                 newstep = name + "." + step
-            if newstep not in self.getkeys('flowgraph', flow):
-                self.schema.cfg['flowgraph'][flow][newstep] ={}
-            # recursive copy
-            for key in self.schema._allkeys(self.schema.cfg['flowgraph'][subflow][step]):
-                self.schema._copyparam(self.schema.cfg['flowgraph'][subflow][step],
-                                       self.schema.cfg['flowgraph'][flow][newstep],
-                                       key)
-            # update step names
+
+            for keys in self.allkeys('flowgraph', subflow, step):
+                val = self.get('flowgraph', subflow, step, *keys)
+                self.set('flowgraph', flow, newstep, *keys, val)
+
+            if name is None:
+                continue
+
             for index in self.getkeys('flowgraph', flow, newstep):
-                all_inputs = self.get('flowgraph', flow, newstep, index,'input')
-                self.set('flowgraph', flow, newstep, index,'input',[])
+                # rename inputs
+                all_inputs = self.get('flowgraph', flow, newstep, index, 'input')
+                self.set('flowgraph', flow, newstep, index, 'input', [])
                 for in_step, in_index in all_inputs:
                     newin = name + "." + in_step
-                    self.add('flowgraph', flow, newstep, index,'input',(newin,in_index))
-
+                    self.add('flowgraph', flow, newstep, index, 'input', (newin, in_index))
 
     ###########################################################################
     def pipe(self, flow, plan):
