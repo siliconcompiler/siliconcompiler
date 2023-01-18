@@ -16,7 +16,7 @@ def test_check_flowgraph():
             tool = chip.get('flowgraph', flow, step, index, 'tool')
             task = chip.get('flowgraph', flow, step, index, 'task')
             if task not in chip.builtin:
-                chip._setup_tool(tool, step, index)
+                chip._setup_tool(tool, task, step, index)
 
     assert chip._check_flowgraph_io()
 
