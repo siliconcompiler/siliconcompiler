@@ -43,7 +43,7 @@ def setup(chip, mode="batch"):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    tasks = ('export', 'show', 'screenshot')
+    task = chip.get_task(step, index)
     clobber = False
 
     if platform.system() == 'Windows':
@@ -80,22 +80,21 @@ def setup(chip, mode="batch"):
     else:
         klayout_exe = 'klayout'
 
-    for task in tasks:
-        # common to all
-        chip.set('tool', tool, 'exe', klayout_exe)
-        chip.set('tool', tool, 'vswitch', ['-zz', '-v'])
-        # Versions < 0.27.6 may be bundled with an incompatible version of Python.
-        chip.set('tool', tool, 'version', '>=0.27.6', clobber=clobber)
-        chip.set('tool', tool, 'format', 'json', clobber=clobber)
+    # common to all
+    chip.set('tool', tool, 'exe', klayout_exe)
+    chip.set('tool', tool, 'vswitch', ['-zz', '-v'])
+    # Versions < 0.27.6 may be bundled with an incompatible version of Python.
+    chip.set('tool', tool, 'version', '>=0.27.6', clobber=clobber)
+    chip.set('tool', tool, 'format', 'json', clobber=clobber)
 
-        chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=clobber)
 
-        # Export GDS with timestamps by default.
-        chip.set('tool', tool, 'task', task, 'var', step, index, 'timestamps', 'true', clobber=False)
+    # Export GDS with timestamps by default.
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'timestamps', 'true', clobber=False)
 
-        # Log file parsing
-        chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'(WARNING|warning)', clobber=False)
-        chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'ERROR', clobber=False)
+    # Log file parsing
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'(WARNING|warning)', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'ERROR', clobber=False)
 
 ################################
 # Version Check

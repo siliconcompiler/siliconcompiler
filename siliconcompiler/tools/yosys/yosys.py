@@ -44,11 +44,10 @@ def setup(chip):
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'yosys'
-    tasks = ('syn', 'lec', 'syn_vpr')
-
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = chip.get_task(step, index)
     design = chip.top()
 
     # Standard Setup
@@ -58,24 +57,23 @@ def setup(chip):
     chip.set('tool', tool, 'format', 'tcl', clobber=False)
 
     # Task Setup
-    for task in tasks:
-        # common to all
-        chip.set('tool', tool, 'task', task, 'option', step, index, '-c', clobber=False)
-        chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=False)
-        chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', "Warning:", clobber=False)
-        chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', "^ERROR", clobber=False)
-        for metric in ('cells', 'nets', 'pins'):
-            chip.set('tool', tool, 'task', task, 'report', step, index, metric, "reports/stat.json")
-            for metric in ('cellarea', 'errors', 'warnings', 'cellarea', 'drvs', 'coverage', 'security',
-                           'luts', 'dsps', 'brams', 'registers', 'buffers'):
-                chip.set('tool', tool, 'task', task, 'report', step, index, metric, f"{step}.log")
+    # common to all
+    chip.set('tool', tool, 'task', task, 'option', step, index, '-c', clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', "Warning:", clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', "^ERROR", clobber=False)
+    for metric in ('cells', 'nets', 'pins'):
+        chip.set('tool', tool, 'task', task, 'report', step, index, metric, "reports/stat.json")
+    for metric in ('cellarea', 'errors', 'warnings', 'cellarea', 'drvs', 'coverage', 'security',
+                   'luts', 'dsps', 'brams', 'registers', 'buffers'):
+        chip.set('tool', tool, 'task', task, 'report', step, index, metric, f"{step}.log")
 
-        # Generic ASIC / FPGA mode setup.
-        mode = chip.get('option', 'mode')
-        if mode == 'asic':
-            setup_asic(chip, task)
-        elif mode == 'fpga':
-            setup_fpga(chip, task)
+    # Generic ASIC / FPGA mode setup.
+    mode = chip.get('option', 'mode')
+    if mode == 'asic':
+        setup_asic(chip, task)
+    elif mode == 'fpga':
+        setup_fpga(chip, task)
 
 def setup_asic(chip, task):
     ''' Helper method for configs specific to ASIC steps (both syn and lec).

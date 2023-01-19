@@ -163,6 +163,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return entrypoint
 
     ###########################################################################
+    def get_task(self, step, index='0'):
+        '''
+        Helper function to get the name of the task associated with a given step/index.
+        The flowgraph step name may be descriptive for disambiguation pruposes, while the
+        task name defines how the associated tool should be configured and run.
+
+        TODO: Is this sort of schema shortcut worth adding?
+              If so should we also add 'get_tool'?
+              Should it be called 'get_step_task'?
+        '''
+        return self.get('flowgraph', self.get('option', 'flow'), step, index, 'task')
+
+
+    ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
 
         self.logger = logging.getLogger(uuid.uuid4().hex)
