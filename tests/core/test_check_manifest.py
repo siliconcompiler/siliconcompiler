@@ -140,7 +140,12 @@ def test_merged_graph_good_steplist():
     chip.edge(flow, 'parallel1', 'merge')
     chip.edge(flow, 'parallel2', 'merge')
     chip.edge(flow, 'merge', 'export')
-    chip.set('option', 'flow', 'test')
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, 'import', '0', 'task', 'echo')
+    chip.set('flowgraph', flow, 'merge', '0', 'task', 'echo')
+    chip.set('flowgraph', flow, 'export', '0', 'task', 'echo')
+    chip.set('flowgraph', flow, 'parallel1', '0', 'task', 'echo')
+    chip.set('flowgraph', flow, 'parallel2', '0', 'task', 'echo')
 
     chip.run()
 
