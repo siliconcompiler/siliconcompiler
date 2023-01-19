@@ -46,7 +46,7 @@ class Schema:
         if not os.path.isfile(filepath):
             raise ValueError(f'Manifest file not found {filepath}')
 
-        if os.path.splitext(filepath).lower() == '.gz':
+        if os.path.splitext(filepath)[1].lower() == '.gz':
             fin = gzip.open(filepath, 'r')
         else:
             fin = open(filepath, 'r')
