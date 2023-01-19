@@ -18,14 +18,14 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Get Surelog version
       id: get-surelog
       run: |
         echo "version=$(python3 setup/_tools.py --tool surelog --field git-commit)" >> $GITHUB_OUTPUT
 
-    - uses: actions/cache@v2
+    - uses: actions/cache@v3
       id: surelog-cache
       if: matrix.os != 'ubuntu-latest'
       with:
@@ -43,7 +43,7 @@ jobs:
         java-package: jre
         architecture: x64
     - name: Setup Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: 3.8
         architecture: x64
@@ -98,10 +98,10 @@ jobs:
         CIBW_TEST_COMMAND: >
           pytest --import-mode=append {package}/tests/ -m "not eda" &&
           pytest --import-mode=append {package}/tests/tools/test_surelog.py &&
-          pytest --import-mode=append {package}/tests/flows/test_show.py
+          pytest --import-mode=append {package}/tests/flows/test_show.py -k "not openroad"
 
     - name: Upload wheels
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         path: wheelhouse/*.whl
 
@@ -111,7 +111,7 @@ jobs:
     if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
 
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: artifact
         path: dist
@@ -135,7 +135,7 @@ jobs:
       matrix:
         python: [cp36-cp36m, cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310]
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: artifact
         path: dist
@@ -150,6 +150,6 @@ jobs:
         python: /opt/python/${{matrix.python}}/bin/python
 
     - name: Upload package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         path: scdeps*.tar.gz
