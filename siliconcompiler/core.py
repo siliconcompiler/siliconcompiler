@@ -3544,6 +3544,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Set environment variables
+        # Save current environment
+        environment = copy.deepcopy(os.environ)
 
         # License file configuration.
         for item in self.getkeys('tool', tool, 'licenseserver'):
@@ -3727,6 +3729,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         if is_stderr_log:
                             sys.stdout.write(stderr_reader.read())
                     retcode = proc.returncode
+
+        # Restore enviroment
+        os.environ = environment
 
         if retcode != 0:
             msg = f'Command failed with code {retcode}.'
