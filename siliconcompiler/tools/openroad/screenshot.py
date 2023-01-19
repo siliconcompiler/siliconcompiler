@@ -23,3 +23,8 @@ def setup(chip):
         incoming_ext = find_incoming_ext(chip)
         chip.set('tool', tool, 'task', task, 'var', step, index, 'show_filetype', incoming_ext)
         chip.add('tool', tool, 'task', task, 'input', step, index, f'{design}.{incoming_ext}')
+
+    # Add to option string.
+    cur_options = ' '.join(chip.get('tool', tool, 'task', task, 'option',  step, index))
+    new_options = f'{cur_options} {option}'
+    chip.set('tool', tool, 'task', task, 'option',  step, index, new_options, clobber=True)
