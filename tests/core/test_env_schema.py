@@ -23,7 +23,7 @@ def test_env(monkeypatch):
         chip._init_logger(step, index, in_run=True)
 
         # Ensure env variable is propagated to tasks
-        assert os.environ['TEST'] == 'hello'
+        assert os.getenv('TEST') == 'hello'
 
         # Logic to make sure chip.run() registers task as success
 
@@ -36,4 +36,4 @@ def test_env(monkeypatch):
     chip.run()
 
     # Ensure env variable is set in current process
-    assert os.environ['TEST'] == 'hello'
+    assert 'TEST' not in os.environ
