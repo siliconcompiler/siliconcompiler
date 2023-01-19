@@ -46,15 +46,15 @@ class Schema:
         if not os.path.isfile(filepath):
             raise ValueError(f'Manifest file not found {filepath}')
 
-        if filepath.endswith('.gz'):
+        if os.path.splitext(filepath).lower() == '.gz':
             fin = gzip.open(filepath, 'r')
         else:
             fin = open(filepath, 'r')
 
         try:
-            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
+            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath, flags=re.IGNORECASE):
                 localcfg = json.load(fin)
-            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
+            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath, flags=re.IGNORECASE):
                 localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
             else:
                 raise ValueError(f'File format not recognized {filepath}')
