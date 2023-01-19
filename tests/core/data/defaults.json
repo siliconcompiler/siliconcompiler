@@ -1323,6 +1323,23 @@
                     "value": null
                 }
             },
+            "footprint": {
+                "defvalue": [],
+                "example": [
+                    "cli: -datasheet_footprint 'mydsp bga169'",
+                    "api: chip.set('datasheet','mydsp', 'footprint','bga169')"
+                ],
+                "help": "List of available physical footprints for the named\ndevice specified as strings. Strings can either be official\nstandard footprint names or a custom naming methodology used in\nconjunction with 'fileset' names in the output parameter.",
+                "lock": "false",
+                "notes": null,
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: device footprint",
+                "signature": [],
+                "switch": "-datasheet_footprint 'design <str>'",
+                "type": "[str]",
+                "value": []
+            },
             "limits": {
                 "junctiontemp": {
                     "defvalue": null,
@@ -5924,7 +5941,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.11.0",
+        "defvalue": "0.12.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -5937,7 +5954,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.11.0"
+        "value": "0.12.0"
     },
     "tool": {
         "default": {

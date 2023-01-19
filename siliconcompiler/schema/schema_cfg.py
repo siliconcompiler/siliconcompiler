@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.11.0'
+SCHEMA_VERSION = '0.12.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -837,6 +837,19 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 f"api: chip.set('datasheet','mydevice','feature','ram', 1e9)"],
             schelp=f"""Quantity of a specified feature. The 'unit'
             field should be used to specify the units used when unclear.""")
+
+    # Device Footprint
+    scparam(cfg, ['datasheet', design, 'footprint'],
+            sctype='[str]',
+            shorthelp=f"Datasheet: device footprint",
+            switch=f"-datasheet_footprint 'design <str>'",
+            example=[
+                f"cli: -datasheet_footprint 'mydsp bga169'",
+                f"api: chip.set('datasheet','mydsp', 'footprint','bga169')"],
+            schelp=f"""List of available physical footprints for the named
+            device specified as strings. Strings can either be official
+            standard footprint names or a custom naming methodology used in
+            conjunction with 'fileset' names in the output parameter.""")
 
     # Absolute max voltage
     scparam(cfg, ['datasheet', design, 'limits', 'voltage', name],
