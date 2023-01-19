@@ -53,6 +53,7 @@ def setup(chip, mode='batch'):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     flow = chip.get('option', 'flow')
+    task = chip.get('flowgraph', flow, step, index, 'task')
     pdkname = chip.get('option', 'pdk')
     targetlibs = chip.get('asic', 'logiclib')
     mainlib = targetlibs[0]
@@ -61,18 +62,17 @@ def setup(chip, mode='batch'):
     delaymodel = chip.get('asic', 'delaymodel')
     libtype = chip.get('library', mainlib, 'asic', 'libarch')
 
-    is_screenshot = mode == 'screenshot' or step == 'screenshot'
-    is_show_screenshot = mode == 'show' or step == 'show' or is_screenshot
+    is_screenshot = mode == 'screenshot' or task == 'screenshot'
+    is_show_screenshot = mode == 'show' or task == 'show' or is_screenshot
 
     if is_show_screenshot:
         mode = 'show'
         clobber = True
-        option = "-no_init -gui"
     else:
         clobber = False
-        option = "-no_init"
 
     # exit automatically in batch mode and not bkpt
+    option = ''
     if (mode=='batch' or is_screenshot) and (step not in chip.get('option', 'bkpt')):
         option += " -exit"
 
@@ -83,8 +83,6 @@ def setup(chip, mode='batch'):
     chip.set('tool', tool, 'vswitch', '-version')
     chip.set('tool', tool, 'version', '>=v2.0-6445', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
-
-    design = chip.top()
 
     # normalizing thread count based on parallelism and local
     threads = os.cpu_count()
@@ -106,26 +104,6 @@ def setup(chip, mode='batch'):
         chip.add('tool', tool, 'task', task, 'output', step, index, design + '.def')
         chip.add('tool', tool, 'task', task, 'output', step, index, design + '.odb')
         chip.add('tool', tool, 'task', task, 'output', step, index, design + '.lef')
-
-        if task == 'floorplan':
-            if (not chip.valid('input', 'netlist', 'verilog') or
-                not chip.get('input', 'netlist', 'verilog')):
-                chip.add('tool', tool, 'task', task, 'input', step, index, design +'.vg')
-        elif is_show_screenshot:
-            chip.set('tool', tool, 'task', task, 'var', step, index, 'show_exit', "true" if is_screenshot else "false", clobber=False)
-            if chip.valid('tool', tool, 'task', task, 'var', step, index, 'show_filepath'):
-                chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'show_filepath']))
-            else:
-                incoming_ext = find_incoming_ext(chip)
-                chip.set('tool', tool, 'task', task, 'var', step, index, 'show_filetype', incoming_ext)
-                chip.add('tool', tool, 'task', task, 'input', step, index, f'{design}.{incoming_ext}')
-            if is_screenshot:
-                chip.add('tool', tool, 'task', task, 'output', step, index, design + '.png')
-                chip.set('tool', tool, 'task', task, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
-        else:
-            if (not chip.valid('input', 'layout', 'def') or
-                not chip.get('input', 'layout', 'def')):
-                chip.add('tool', tool, 'task', task, 'input', step, index, design +'.def')
 
         if chip.get('option', 'nodisplay'):
             # Tells QT to use the offscreen platform if nodisplay is used
