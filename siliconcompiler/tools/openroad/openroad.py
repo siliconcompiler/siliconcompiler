@@ -26,11 +26,14 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg', 'step', '<step>')
-    chip.set('arg', 'index', '<index>')
+    step = '<step>'
+    index = '<index>'
+    chip.set('arg', 'step', step)
+    chip.set('arg', 'index', index)
     # TODO: how to make it clear in docs that certain settings are
     # target-dependent?
     chip.load_target('freepdk45_demo')
+    chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'task', '<task>')
     setup(chip)
 
     return chip

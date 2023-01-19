@@ -24,8 +24,11 @@ def make_docs():
 
     chip = siliconcompiler.Chip('<design>')
     chip.load_target('freepdk45_demo')
-    chip.set('arg','step','export')
-    chip.set('arg','index','<index>')
+    step = 'export'
+    index = '<index>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'task', '<task>')
     setup(chip)
 
     return chip

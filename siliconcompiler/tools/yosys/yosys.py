@@ -29,8 +29,13 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step', 'syn')
-    chip.set('arg','index', '<index>')
+    step = 'syn'
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','step', step)
+    chip.set('arg','index', index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
     setup(chip)
     return chip
 
