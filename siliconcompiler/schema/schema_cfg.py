@@ -1969,6 +1969,18 @@ def schema_option(cfg):
             must be located in shared storage which can be accessed by all hosts
             in the cluster.""")
 
+    scparam(cfg, ['option', 'nice'],
+            sctype='int',
+            scope='job',
+            shorthelp="Tool execution scheduling priority",
+            switch="-nice <str>",
+            example=[
+                "cli: -nice 5",
+                "api: chip.set('option','nice',5)"],
+            schelp="""
+            Sets the type of execution priority of each individual flowgraph steps.
+            If the parameter is undefined, nice will not be used.""")
+
     # Compilation
     scparam(cfg, ['option', 'mode'],
             sctype='str',
