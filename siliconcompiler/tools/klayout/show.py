@@ -1,6 +1,12 @@
+
+from .klayout import setup as setup_tool
+
 def setup(chip):
     ''' Helper method for configs specific to show tasks.
     '''
+
+    # Generic tool setup.
+    setup_tool(chip)
 
     tool = 'klayout'
     refdir = 'tools/'+tool

@@ -1,12 +1,13 @@
 import os
-import sys
-import shutil
 
-import siliconcompiler
+from .surelog import setup as setup_tool
 
 def setup(chip):
     ''' Configure Surelog settings particular to the 'import' step.
     '''
+
+    # Generic tool setup.
+    setup_tool(chip)
 
     tool = 'surelog'
     task = 'import'

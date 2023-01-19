@@ -1,7 +1,12 @@
 
+from .openroad import setup as setup_tool
+
 def setup(chip):
     ''' Helper method for configs specific to cts tasks.
     '''
+
+    # Generic tool setup.
+    setup_tool(chip)
 
     tool = 'openroad'
     task = 'cts'

@@ -3871,16 +3871,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg','step', step)
         self.set('arg','index', index)
 
-        # Generic tool setup.
-        setup_tool = self.find_function(tool, 'setup', 'tools')
-        if setup_tool:
-            setup_tool(self)
-        else:
-            # TODO: Should we update this to 'self.error(..., fatal=True)'?
-            self.logger.error(f'setup() not found for tool {tool}')
-            sys.exit(1)
-
-        # Step/task setup.
+        # Run task setup.
         try:
             task = self.get('flowgraph', self.get('option', 'flow'), step, index, 'task')
             setup_step = self.find_function(tool, 'setup', 'tools', task)
@@ -3889,7 +3880,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if setup_step:
             setup_step(self)
         else:
-            self.logger.warning(f'No setup function in module: tools.{tool}.{step}')
+            # TODO: Should we update this to 'self.error(..., fatal=True)'?
+            self.logger.error(f'setup() not found for tool {tool}')
+            sys.exit(1)
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.

@@ -1,12 +1,12 @@
-import importlib
-import os
-import shutil
 
-import siliconcompiler
+from .yosys import setup as setup_tool
 
 def setup(chip):
     ''' Helper method for configs specific to synthesis tasks.
     '''
+
+    # Generic tool setup.
+    setup_tool(chip)
 
     tool = 'yosys'
     task = 'syn'

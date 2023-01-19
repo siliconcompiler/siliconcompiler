@@ -1,12 +1,12 @@
-import importlib
-import os
-import shutil
 
-import siliconcompiler
+from .yosys import setup as setup_tool
 
 def setup(chip):
     ''' Helper method for configuring LEC steps.
     '''
+
+    # Generic tool setup.
+    setup_tool(chip)
 
     tool = 'yosys'
     task = 'lec'
