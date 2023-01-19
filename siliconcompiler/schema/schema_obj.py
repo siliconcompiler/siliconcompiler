@@ -639,7 +639,7 @@ class Schema:
         return value_empty
 
     ###########################################################################
-    def get_history(self, job):
+    def history(self, job):
         '''
         Returns a *mutable* reference to ['history', job] as a Schema object.
 

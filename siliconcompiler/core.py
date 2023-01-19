@@ -1273,7 +1273,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 keypaths that may have been updated during run().
         """
         if job is not None:
-            dest = self.schema.get_history(job)
+            dest = self.schema.history(job)
         else:
             dest = self.schema
 
@@ -1703,7 +1703,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Read history, if we're not already reading into a job
         if 'history' in schema.getkeys() and not partial and not job:
             for historic_job in schema.getkeys('history'):
-                self._merge_manifest(schema.get_history(historic_job),
+                self._merge_manifest(schema.history(historic_job),
                                      job=historic_job,
                                      clear=clear,
                                      clobber=clobber,
