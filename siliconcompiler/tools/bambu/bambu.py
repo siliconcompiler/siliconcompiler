@@ -16,36 +16,6 @@ def make_docs():
     setup(chip)
     return chip
 
-################################
-# Setup Tool (pre executable)
-################################
-
-def setup(chip):
-    ''' Sets up default settings on a per step basis
-    '''
-
-    tool = 'bambu'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    #TODO: fix below
-    task = step
-
-    # Standard Setup
-    refdir = 'tools/'+tool
-    chip.set('tool', tool, 'exe', 'bambu')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=0.9.6', clobber=False)
-
-    chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', step, index, os.cpu_count(), clobber=False)
-    chip.set('tool', tool, 'task', task, 'option', step, index, [])
-
-    # Input/Output requirements
-    chip.add('tool', tool, 'task', task, 'output', step, index, chip.top() + '.v')
-
-    # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', step, index, 'input,hll,c')
-
 def parse_version(stdout):
     # Long multiline output, but second-to-last line looks like:
     # Version: PandA 0.9.6 - Revision 5e5e306b86383a7d85274d64977a3d71fdcff4fe-main
