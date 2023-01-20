@@ -20,29 +20,29 @@ class Schema:
     for schema manipulation tasks that don't require the additional context of a
     Chip object.
 
+    The two arguments to this class are mutually exclusive. If neither are
+    provided, the object is initialized to default values for all parameters.
+
     Args:
         cfg (dict): Initial configuration dictionary. This may be a subtree of
-            the schema. If not provided, the object is initialized to default
-            values for all parameters.
+            the schema.
+        manifest (str): Initial manifest.
     """
 
-    def __init__(self, cfg=None):
-        if cfg is None:
-            self.cfg = schema_cfg()
-        else:
+    def __init__(self, cfg=None, manifest=None):
+        if cfg is not None and manifest is not None:
+            raise ValueError('You may not specify both cfg and manifest')
+
+        if cfg is not None:
             self.cfg = copy.deepcopy(cfg)
+        elif manifest is not None:
+            self.cfg = Schema._read_manifest(manifest)
+        else:
+            self.cfg = schema_cfg()
 
     ###########################################################################
-    @classmethod
-    def from_manifest(cls, filepath):
-        '''
-        Creates a Schema object from a manifest file.
-
-        The file format is automatically determined by the filename suffix.
-
-        Args:
-            filepath (str): Path to a manifest file.
-        '''
+    @staticmethod
+    def _read_manifest(filepath):
         if not os.path.isfile(filepath):
             raise ValueError(f'Manifest file not found {filepath}')
 
@@ -64,7 +64,7 @@ class Schema:
         if Schema().get('schemaversion') != localcfg['schemaversion']['value']:
             raise ValueError('Attempting to read manifest with incompatible schema version')
 
-        return cls(localcfg)
+        return localcfg
 
     ###########################################################################
     def get(self, *keypath, field='value', job=None):
@@ -568,7 +568,7 @@ class Schema:
     ###########################################################################
     def copy(self):
         '''Returns deep copy of Schema object.'''
-        return Schema(self.cfg)
+        return Schema(cfg=self.cfg)
 
     ###########################################################################
     def prune(self, keeplists=False):

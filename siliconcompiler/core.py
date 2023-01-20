@@ -1695,7 +1695,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         that may have been updated during run().
         """
         # Read from file into new schema object
-        schema = Schema.from_manifest(filename)
+        schema = Schema(manifest=filename)
 
         # Merge data in schema with Chip configuration
         self._merge_manifest(schema, job=job, clear=clear, clobber=clobber, partial=partial)
@@ -2019,7 +2019,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # look through dependency package files
             package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
-            schema = Schema.from_manifest(package)
+            schema = Schema(manifest=package)
 
             # done if no more dependencies
             if 'dependency' in schema.getkeys('package'):
