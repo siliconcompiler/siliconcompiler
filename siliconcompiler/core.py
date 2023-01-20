@@ -4004,6 +4004,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             self.set('record', step, index, record, None)
 
         # Set env variables
+        # Save current environment
+        environment = copy.deepcopy(os.environ)
+
         for envvar in self.getkeys('option', 'env'):
             val = self.get('option', 'env', envvar)
             os.environ[envvar] = val
@@ -4216,6 +4219,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self._read_manifest(lastcfg, clobber=False, partial=True)
                 else:
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
+
+        # Restore enviroment
+        os.environ.clear()
+        os.environ.update(environment)
 
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
