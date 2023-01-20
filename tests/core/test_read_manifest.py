@@ -32,32 +32,23 @@ def test_read_sup():
     chip2.read_manifest('tmp.sup.gz')
     assert chip2.get('input', 'rtl', 'verilog') == ['foo.v']
 
-def test_read_defaults(datadir):
-    '''Make sure read/write operaton doesn't modify manifest'''
+def test_modified_schema(datadir):
+    '''Make sure schema has not been modified without updating defaults.json'''
 
-    DEBUG = False
-
-    # gets defaul from schema
+    # gets default from schema
     chip = siliconcompiler.Chip('test')
 
-    # check that read/write doesn't modify
-    chip.write_manifest("actual.json", prune=False)
-    chip.read_manifest("actual.json")
-
-    # independent dump of schema
-    with open("actual.json", 'w') as f:
-        print(json.dumps(chip.schema.cfg, indent=4, sort_keys=True), file=f)
-    with open("actual.json", 'r') as f:
-        actual = json.load(f)
-
     # expected
-    expected_chip = siliconcompiler.Chip('test')
-    expected = expected_chip.schema.cfg
+    with open(os.path.join(datadir, 'defaults.json'), 'r') as f:
+        expected = json.load(f)
 
-    assert actual == expected
+    # special case (initialized in constructor)
+    expected['design']['value'] = 'test'
+
+    assert chip.schema.cfg == expected
 
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir
-    test_read_defaults(datadir(__file__))
+    test_modified_schema(datadir(__file__))
     test_read_sup()
