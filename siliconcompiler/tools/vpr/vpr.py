@@ -1,3 +1,4 @@
+import importlib
 import os
 
 import siliconcompiler
@@ -29,8 +30,14 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step', 'apr')
-    chip.set('arg','index', '<index>')
+    step = 'apr'
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    setup = getattr(importlib.import_module('tools.vpr.pack-place-route'), 'setup')
     setup(chip)
     return chip
 

@@ -1,3 +1,4 @@
+import importlib
 import os
 
 import siliconcompiler
@@ -22,8 +23,14 @@ def make_docs():
 
     chip = siliconcompiler.Chip('<design>')
     chip.load_pdk('skywater130')
-    chip.set('arg','index','<index>')
-    chip.set('arg','step', 'lvs')
+    step = 'lvs'
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    from tools.netgen.lvs import setup
     setup(chip)
 
     return chip

@@ -20,14 +20,21 @@ def make_docs():
 
     chip = siliconcompiler.Chip('<design>')
     chip.load_pdk('skywater130')
-    chip.set('arg','index','<index>')
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
 
     # check drc
-    chip.set('arg','step','drc')
-    setup(chip)
+    from tools.magic.drc import setup as setup_drc
+    chip.set('arg','step', 'drc')
+    chip.set('flowgraph', flow, 'drc', index, 'task', 'drc')
+    setup_drc(chip)
 
     # check lvs
+    from tools.magic.extspice import setup as setup_extspice
     chip.set('arg','step', 'extspice')
+    chip.set('flowgraph', flow, 'extspice', index, 'task', 'extspice')
     setup(chip)
 
     return chip

@@ -1,3 +1,4 @@
+import importlib
 import os
 import subprocess
 
@@ -58,8 +59,14 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','import')
-    chip.set('arg','index','<index>')
+    step = 'import'
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    setup = getattr(importlib.import_module('tools.verilator.import'), 'setup')
     setup(chip)
     return chip
 
