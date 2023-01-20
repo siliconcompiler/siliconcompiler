@@ -51,11 +51,8 @@ def test_read_defaults(datadir):
         actual = json.load(f)
 
     # expected
-    with open(os.path.join(datadir, 'defaults.json'), 'r') as f:
-        expected = json.load(f)
-
-    # special case (initialized in constructor)
-    expected['design']['value'] = 'test'
+    expected_chip = siliconcompiler.Chip('test')
+    expected = expected_chip.schema.cfg
 
     assert actual == expected
 
