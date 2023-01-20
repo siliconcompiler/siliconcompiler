@@ -63,17 +63,15 @@ def make_docs():
     setup(chip)
     return chip
 
-################################
-# Setup Tool (pre executable)
-################################
-
 def setup(chip):
     ''' Per tool function that returns a dynamic options string based on
     the dictionary settings. Static setings only.
     '''
+
     tool = 'verilator'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = chip.get_task(step, index)
     design = chip.top()
 
     # Basic Tool Setup
@@ -81,50 +79,29 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=4.028', clobber=False)
 
-
-    tasks = ('import', 'lint', 'compile')
-
-
     # Common to all tasks
-    for task in tasks:
+    # Max threads
+    chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
 
-        # Max threads
-        chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
+    # Basic warning and error grep check on logfile
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r"^\%Warning", clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r"^\%Error", clobber=False)
 
-        # Basic warning and error grep check on logfile
-        chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r"^\%Warning", clobber=False)
-        chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r"^\%Error", clobber=False)
+    # Generic CLI options (for all steps)
+    chip.set('tool', tool, 'task', task, 'option', step, index,  '-sv')
+    chip.add('tool', tool, 'task', task, 'option', step, index, f'--top-module {design}')
 
-        # Generic CLI options (for all steps)
-        chip.set('tool', tool, 'task', task, 'option', step, index,  '-sv')
-        chip.add('tool', tool, 'task', task, 'option', step, index, f'--top-module {design}')
+    # Make warnings non-fatal in relaxed mode
+    if chip.get('option', 'relax'):
+        chip.add('tool', tool, 'task', task, 'option', step, index, ['-Wno-fatal', '-Wno-UNOPTFLAT'])
 
-        # Make warnings non-fatal in relaxed mode
-        if chip.get('option', 'relax'):
-            chip.add('tool', tool, 'task', task, 'option', step, index, ['-Wno-fatal', '-Wno-UNOPTFLAT'])
+    # Converting user setting to verilator specific filter
+    #for warning in chip.get('tool', tool, 'task', task, step, index, 'warningoff'):
+    #    chip.add('tool', tool, 'task', task, 'option', step, index, f'-Wno-{warning}')
 
-        # Converting user setting to verilator specific filter
-        #for warning in chip.get('tool', tool, 'task', task, step, index, 'warningoff'):
-        #    chip.add('tool', tool, 'task', task, 'option', step, index, f'-Wno-{warning}')
-
-        # User runtime option
-        if chip.get('option', 'trace'):
-            chip.add('tool', tool, 'task', task, 'task', task, 'option', step, index, '--trace')
-
-        if task == 'import':
-            chip.add('tool', tool, 'task', task, 'option', step, index,  ['--lint-only', '--debug'])
-            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['input', 'rtl', 'verilog']))
-            chip.set('tool', tool, 'task', task, 'output', step, index, f'{design}.v')
-            for value in chip.get('option', 'define'):
-                chip.add('tool', tool, 'task', task, 'option', step, index, '-D' + value)
-        elif task == 'lint':
-            chip.add('tool', tool, 'task', task, 'option', step, index,  ['--lint-only', '--debug'])
-            chip.set('tool', tool, 'task', task, 'input', step, index, f'inputs/{design}.v')
-        elif task == 'compile':
-            chip.add('tool', tool, 'task', task, 'option', step, index,  ['--cc', '--exe'])
-            chip.add('tool', tool, 'task', task, 'input', step, index, f'inputs/{design}.v')
-            chip.add('tool', tool, 'task', task, 'option', step, index, f'-o ../outputs/{design}.vexe')
-            chip.set('tool', tool, 'task', task, 'input', step, index, f'{design}.v')
+    # User runtime option
+    if chip.get('option', 'trace'):
+        chip.add('tool', tool, 'task', task, 'task', task, 'option', step, index, '--trace')
 
 ################################
 #  Custom runtime options
