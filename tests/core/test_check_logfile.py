@@ -4,8 +4,6 @@ import siliconcompiler
 def test_check_logfile(datadir):
 
     chip = siliconcompiler.Chip('gcd')
-
-    # mandatory to have manifest loaded
     chip.load_target('freepdk45_demo')
 
     # add regex
