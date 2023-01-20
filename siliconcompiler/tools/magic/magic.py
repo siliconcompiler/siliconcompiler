@@ -44,8 +44,7 @@ def setup(chip):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    #TODO: fix below
-    task = step
+    task = chip.get_task(step, index)
 
     # magic used for drc and lvs
     #if step not in ('drc', 'extspice'):
@@ -72,15 +71,9 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'require', step, index, ','.join(['input', 'layout', 'gds']))
     else:
         chip.add('tool', tool, 'task', task, 'input', step, index, f'{design}.gds')
-    if step == 'extspice':
-        chip.add('tool', tool, 'task', task, 'output', step, index, f'{design}.spice')
 
     chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'^Error', clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'warning', clobber=False)
-
-    if step == 'drc':
-        report_path = f'reports/{design}.drc'
-        chip.set('tool', tool, 'task', task, 'report', step, index, 'drvs', report_path)
 
 ################################
 # Version Check
