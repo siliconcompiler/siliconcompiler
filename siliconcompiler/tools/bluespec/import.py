@@ -1,3 +1,4 @@
+import os
 
 def setup(chip):
     ''' Sets up default settings on a per step basis
@@ -6,8 +7,7 @@ def setup(chip):
     tool = 'bluespec'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    #TODO: fix below
-    task = step
+    task = chip.get_task(step, index)
 
     # Standard Setup
     refdir = 'tools/'+tool
