@@ -136,7 +136,11 @@ def runtime_options(chip):
     we're running on a different machine than client).
     '''
     cmdlist = []
+    tool = 'verilator'
     step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    # TODO: fix
+    task = step
 
     if step == 'import':
         for value in chip.find_files('option', 'ydir'):
@@ -151,6 +155,8 @@ def runtime_options(chip):
             cmdlist.append(value)
     elif step == 'compile':
         for value in chip.find_files('input', 'hll', 'c'):
+            cmdlist.append(value)
+        for value in chip.find_files('tool', tool, 'task', task, 'input', step, index):
             cmdlist.append(value)
 
     return cmdlist
