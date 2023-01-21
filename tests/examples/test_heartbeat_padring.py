@@ -4,6 +4,7 @@ import sys
 import pytest
 
 @pytest.mark.eda
+@pytest.mark.skip(reason='Floorplan module has not been updated for 2023 schema changes')
 def test_heartbeat_padring_with_floorplan(setup_example_test, oh_dir):
     setup_example_test('heartbeat_padring')
 
@@ -16,7 +17,6 @@ def test_heartbeat_padring_with_floorplan(setup_example_test, oh_dir):
     assert os.path.isfile('build/heartbeat_top/job0/export/0/outputs/heartbeat_top.gds')
 
 @pytest.mark.eda
-@pytest.mark.skip(reason='Floorplan module has not been updated for 2023 schema changes')
 def test_heartbeat_padring_without_floorplan(setup_example_test, oh_dir):
     setup_example_test('heartbeat_padring')
 
