@@ -2106,12 +2106,12 @@
         "notes": null,
         "require": "all",
         "scope": "global",
-        "set": true,
+        "set": false,
         "shorthelp": "Design top module name",
         "signature": null,
         "switch": "-design <str>",
         "type": "str",
-        "value": "test"
+        "value": null
     },
     "flowgraph": {
         "default": {
@@ -3745,6 +3745,24 @@
             "switch": "-msgevent <str>",
             "type": "[str]",
             "value": []
+        },
+        "nice": {
+            "defvalue": null,
+            "example": [
+                "cli: -nice 5",
+                "api: chip.set('option','nice',5)"
+            ],
+            "help": "Sets the type of execution priority of each individual flowgraph steps.\nIf the parameter is undefined, nice will not be used.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Tool execution scheduling priority",
+            "signature": null,
+            "switch": "-nice <str>",
+            "type": "int",
+            "value": null
         },
         "nodisplay": {
             "defvalue": false,
@@ -6062,7 +6080,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.16.0",
+        "defvalue": "0.16.1",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6076,7 +6094,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.16.0"
+        "value": "0.16.1"
     },
     "tool": {
         "default": {
