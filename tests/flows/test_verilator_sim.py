@@ -22,8 +22,6 @@ def test_basic(scroot, datadir):
     chip.node(flow, 'compile', 'verilator', 'compile')
     chip.edge(flow, 'import', 'compile')
     chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, 'import', '0', 'tool', 'surelog')
-    chip.set('flowgraph', flow, 'compile', '0', 'tool', 'verilator')
 
     chip.run()
 
