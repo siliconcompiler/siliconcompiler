@@ -18,10 +18,12 @@ def test_basic(scroot, datadir):
 
     # Basic Verilator compilation flow
     flow = 'verilator_compile'
-    chip.node(flow, 'import', 'surelog')
-    chip.node(flow, 'compile', 'verilator')
+    chip.node(flow, 'import', 'surelog', 'import')
+    chip.node(flow, 'compile', 'verilator', 'compile')
     chip.edge(flow, 'import', 'compile')
     chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, 'import', '0', 'tool', 'surelog')
+    chip.set('flowgraph', flow, 'compile', '0', 'tool', 'verilator')
 
     chip.run()
 
