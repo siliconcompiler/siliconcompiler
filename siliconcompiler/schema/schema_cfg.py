@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.16.0'
+SCHEMA_VERSION = '0.16.1'
 
 #############################################################################
 # PARAM DEFINITION

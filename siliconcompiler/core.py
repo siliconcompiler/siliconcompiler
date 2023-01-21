@@ -3622,7 +3622,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             logfile = None
             retcode = run_func(self)
         elif not self.get('option', 'skipall'):
-            cmdlist, printable_cmd = self._makecmd(tool, task, step, index)
+            cmdlist, printable_cmd, _, cmd_args = self._makecmd(tool, task, step, index)
             self.logger.info('Running in %s', workdir)
             self.logger.info('%s', printable_cmd)
             timeout = self.get('flowgraph', flow, step, index, 'timeout')
@@ -3793,7 +3793,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Make a record if tracking is enabled
         if self.get('option', 'track'):
-            self._make_record(step, index, wall_start, wall_end, version, toolpath, cmdlist[1:])
+            self._make_record(step, index, wall_start, wall_end, version, toolpath, cmd_args)
 
         ##################
         # Save a successful manifest
@@ -4400,6 +4400,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         Constructs a subprocess run command based on eda tool setup.
         Creates a replay script in current directory.
+
+        Returns:
+            runnable command (list)
+            printable command (str)
+            command name (str)
+            command arguments (list)
         '''
 
         fullexe = self._getexe(tool)
@@ -4451,7 +4457,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if nice:
             nice_cmdlist = ['nice', '-n', str(nice)]
         # Seperate variables to be able to display nice name of executable
-        replay_cmdlist = [*nice_cmdlist, os.path.basename(cmdlist[0]), *cmdlist[1:]]
+        cmd = os.path.basename(cmdlist[0])
+        cmd_args = cmdlist[1:]
+        replay_cmdlist = [*nice_cmdlist, cmd, *cmd_args]
         cmdlist = [*nice_cmdlist, *cmdlist]
 
         #create replay file
@@ -4466,7 +4474,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in replay_cmdlist), file=f)
         os.chmod(script_name, 0o755)
 
-        return cmdlist, ' '.join(replay_cmdlist)
+        return cmdlist, ' '.join(replay_cmdlist), cmd, cmd_args
 
     #######################################
     def _get_cloud_region(self):
