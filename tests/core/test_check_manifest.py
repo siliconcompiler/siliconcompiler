@@ -57,8 +57,8 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip = siliconcompiler.Chip('gcd')
 
     chip.set('input', 'rtl', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
-    chip.set('input', 'asic', 'sdc', '/random/abs/path/to/file.sdc')
-    chip.set('input', 'asic', 'sdc', False, field='copy')
+    chip.set('input', 'constraint', 'sdc', '/random/abs/path/to/file.sdc')
+    chip.set('input', 'constraint', 'sdc', False, field='copy')
     chip.load_target("freepdk45_demo")
 
     # collect input files
