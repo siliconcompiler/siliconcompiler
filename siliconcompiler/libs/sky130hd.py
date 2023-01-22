@@ -44,9 +44,6 @@ def setup(chip):
     lib.add('output', stackup, 'lef', libdir+'/lef/sky130_fd_sc_hd_merged.lef')
     lib.add('output', stackup, 'gds', libdir+'/gds/sky130_fd_sc_hd.gds')
 
-    # Power grid specifier
-    lib.set('asic', 'pgmetal', 'm1')
-
     # clock buffers
     lib.add('asic', 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
 

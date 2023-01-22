@@ -59,9 +59,6 @@ def setup(chip):
     lib.add('output', stackup, 'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
 
-    lib.set('asic', 'pgmetal', 'm1')
-
-
     # driver
     lib.add('asic', 'cells','driver', "BUF_X4")
 
