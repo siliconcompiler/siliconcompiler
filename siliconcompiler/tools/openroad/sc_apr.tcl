@@ -58,7 +58,7 @@ set sc_scenarios   [dict keys [dict get $sc_cfg constraint timing]]
 # Library
 set sc_libtype      [dict get $sc_cfg library $sc_mainlib asic libarch]
 # TODO: handle multiple sites properly
-set sc_site         [lindex [dict keys [dict get $sc_cfg library $sc_mainlib asic site $sc_libtype]] 0]
+set sc_site         [lindex [dict get $sc_cfg library $sc_mainlib asic site $sc_libtype] 0]
 set sc_filler       [dict get $sc_cfg library $sc_mainlib asic cells filler]
 set sc_dontuse      [dict get $sc_cfg library $sc_mainlib asic cells ignore]
 set sc_clkbuf       [dict get $sc_cfg library $sc_mainlib asic cells clkbuf]
@@ -273,7 +273,7 @@ if {$sc_step != "floorplan"} {
   ## Setup global routing
 
   # Adjust routing track density
-  for layer [[ord::get_db_tech] getLayers] {
+  foreach layer [[ord::get_db_tech] getLayers] {
     if { [ $layer getRoutingLevel ] == 0 } {
       continue
     }
