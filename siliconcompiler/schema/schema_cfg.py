@@ -318,8 +318,8 @@ def schema_pdk(cfg, stackup='default'):
             require="asic",
             shorthelp="PDK: Lambda value",
             switch="-pdk_lambda 'pdkname <float>",
-            example=["cli: -pdk_lambda 'asap7 1e-06",
-                    "api: chip.set('unit', 'asap7', 'lambda', 1e-06)"],
+            example=["cli: -pdk_lambda 'asap7 1e-06'",
+                     "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"],
             schelp="""Elementary distance unit used for scaling all
             schema physical parameters (layout constraints, size, outline,
             area, margin etc).""")

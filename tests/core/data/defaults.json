@@ -693,23 +693,6 @@
                 "value": null
             }
         },
-        "pdk": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_pdk freepdk45",
-                "api: chip.set('asic','pdk','freepdk45')"
-            ],
-            "help": "Target ASIC PDK to use in the design.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC PDK target",
-            "signature": null,
-            "switch": "-asic_pdk <str>",
-            "type": "str",
-            "value": null
-        },
         "pgmetal": {
             "defvalue": null,
             "example": [
@@ -745,23 +728,6 @@
                 "type": "str",
                 "value": null
             }
-        },
-        "stackup": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_stackup 2MA4MB2MC",
-                "api: chip.set('asic','stackup','2MA4MB2MC')"
-            ],
-            "help": "Target ASIC stackup to use in the design. The stackup is required\nparameter for PDKs with multiple metal stackups.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC Stackup target",
-            "signature": null,
-            "switch": "-asic_stackup <str>",
-            "type": "str",
-            "value": null
         },
         "var": {
             "default": {
@@ -3621,17 +3587,17 @@
         "pdk": {
             "defvalue": null,
             "example": [
-                "cli: -pdk asap7",
-                "api: chip.set('option','pdk','asap7')"
+                "cli: -option_pdk freepdk45",
+                "api: chip.set('option','pdk','freepdk45')"
             ],
-            "help": "Sets the pdk for the current run. The pdk name\nmust match up with a 'pdk' loaded with load_pdk.",
+            "help": "Target PDK used during compilation.",
             "lock": "false",
             "notes": null,
             "require": null,
             "scope": "job",
             "shorthelp": "PDK target",
             "signature": null,
-            "switch": "-pdk <str>",
+            "switch": "-option_pdk <str>",
             "type": "str",
             "value": null
         },
@@ -3823,6 +3789,23 @@
             "switch": "-skipstep <str>",
             "type": "[str]",
             "value": []
+        },
+        "stackup": {
+            "defvalue": null,
+            "example": [
+                "cli: -option_stackup 2MA4MB2MC",
+                "api: chip.set('option','stackup','2MA4MB2MC')"
+            ],
+            "help": "Target stackup used during compilation. The stackup is required\nparameter for PDKs with multiple metal stackups.",
+            "lock": "false",
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Stackup target",
+            "signature": null,
+            "switch": "-option_stackup <str>",
+            "type": "str",
+            "value": null
         },
         "steplist": {
             "defvalue": [],
@@ -5273,6 +5256,23 @@
                 "unit": "mm",
                 "value": null
             },
+            "lambda": {
+                "defvalue": "1e-06",
+                "example": [
+                    "cli: -pdk_lambda 'asap7 1e-06'",
+                    "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"
+                ],
+                "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
+                "lock": "false",
+                "notes": null,
+                "require": "asic",
+                "scope": "global",
+                "shorthelp": "PDK: Lambda value",
+                "signature": null,
+                "switch": "-pdk_lambda 'pdkname <float>",
+                "type": "float",
+                "value": "1e-06"
+            },
             "layermap": {
                 "default": {
                     "default": {
@@ -5853,7 +5853,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.12.0",
+        "defvalue": "0.13.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -5866,7 +5866,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.12.0"
+        "value": "0.13.0"
     },
     "tool": {
         "default": {
@@ -6547,23 +6547,6 @@
             "switch": "-unit_inductance '<str>'",
             "type": "str",
             "value": "nh"
-        },
-        "lambda": {
-            "defvalue": "1e-06",
-            "example": [
-                "cli: -unit_lambda 1e-06",
-                "api: chip.set('unit', 'lambda', 1e-06)"
-            ],
-            "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "global",
-            "shorthelp": "Unit: Lambda value",
-            "signature": null,
-            "switch": "-unit_lambda <float>",
-            "type": "float",
-            "value": "1e-06"
         },
         "length": {
             "defvalue": "um",
