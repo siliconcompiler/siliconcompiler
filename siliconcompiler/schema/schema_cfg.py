@@ -2001,7 +2001,7 @@ def schema_unit(cfg):
 
     scparam(cfg,['unit', 'lambda'],
             sctype='float',
-            defvalue='1.0',
+            defvalue='0.000001',
             scope='global',
             shorthelp="Unit: Lambda value",
             switch="-unit_lambda <float>",
@@ -3123,51 +3123,6 @@ def schema_asic(cfg):
             with ambiguous starting routing layers, exact strings should be used.
             """)
 
-    scparam(cfg, ['asic', 'maxfanout'],
-            sctype='int',
-            scope='job',
-            shorthelp="ASIC: maximum fanout",
-            switch="-asic_maxfanout <int>",
-            example= ["cli: -asic_maxfanout 64",
-                    "api: chip.set('asic', 'maxfanout', '64')"],
-            schelp="""
-             Maximum driver fanout allowed during automated place and route.
-            The parameter directs the APR tool to break up any net with fanout
-            larger than maxfanout into sub nets and buffer.""")
-
-    scparam(cfg, ['asic', 'maxlength'],
-            sctype='float',
-            unit='um',
-            scope='job',
-            shorthelp="ASIC: maximum wire length",
-            switch="-asic_maxlength <float>",
-            example= ["cli: -asic_maxlength 1000",
-                    "api: chip.set('asic', 'maxlength', '1000')"],
-            schelp="""
-            Maximum total wire length allowed in design during APR. Any
-            net that is longer than maxlength is broken up into segments by
-            the tool.""")
-
-    scparam(cfg, ['asic', 'maxcap'],
-            sctype='float',
-            unit='F',
-            scope='job',
-            shorthelp="ASIC: maximum net capacitance",
-            switch="-asic_maxcap <float>",
-            example= ["cli: -asic_maxcap '0.25e-12'",
-                      "api: chip.set('asic', 'maxcap', '0.25e-12')"],
-            schelp="""Maximum allowed capacitance per net.""")
-
-    scparam(cfg, ['asic', 'maxslew'],
-            sctype='float',
-            unit='s',
-            scope='job',
-            shorthelp="ASIC: maximum slew",
-            switch="-asic_maxslew <float>",
-            example= ["cli: -asic_maxslew '0.25e-9'",
-                    "api: chip.set('asic', 'maxslew', '0.25e-9')"],
-            schelp="""Maximum allowed transition time per net.""")
-
     sigtype='default'
     scparam(cfg, ['asic', 'rclayer', sigtype],
             sctype='str',
@@ -3237,6 +3192,7 @@ def schema_asic(cfg):
 
     scparam(cfg, ['asic', 'aspectratio'],
             sctype='float',
+            defvalue='1.0',
             scope='job',
             shorthelp="ASIC: block aspect ratio",
             switch="-asic_aspectratio <float>",
@@ -3319,7 +3275,6 @@ def schema_asic(cfg):
     # TODO: Expand on the exact definitions of these types of cells.
     # minimize typing
     names = ['driver',
-             'load',
              'buf',
              'decap',
              'delay',
@@ -3331,7 +3286,7 @@ def schema_asic(cfg):
              'clkgate',
              'clkicg',
              'clklogic',
-             'ignore',
+             'dontuse',
              'filler',
              'tap',
              'endcap',
