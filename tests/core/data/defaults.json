@@ -75,7 +75,7 @@
     },
     "asic": {
         "aspectratio": {
-            "defvalue": null,
+            "defvalue": "1.0",
             "example": [
                 "cli: -asic_aspectratio 2.0",
                 "api: chip.set('asic', 'aspectratio', '2.0')"
@@ -89,7 +89,7 @@
             "signature": null,
             "switch": "-asic_aspectratio <float>",
             "type": "float",
-            "value": null
+            "value": "1.0"
         },
         "cells": {
             "antenna": {
@@ -262,6 +262,23 @@
                 "type": "[str]",
                 "value": []
             },
+            "dontuse": {
+                "defvalue": [],
+                "example": [
+                    "cli: -asic_cells_dontuse '*eco*'",
+                    "api: chip.set('asic','cells',dontuse,'*eco*')"
+                ],
+                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+                "lock": "false",
+                "notes": null,
+                "require": null,
+                "scope": "job",
+                "shorthelp": "ASIC: dontuse cell list",
+                "signature": [],
+                "switch": "-asic_cells_dontuse '<str>'",
+                "type": "[str]",
+                "value": []
+            },
             "driver": {
                 "defvalue": [],
                 "example": [
@@ -327,40 +344,6 @@
                 "shorthelp": "ASIC: hold cell list",
                 "signature": [],
                 "switch": "-asic_cells_hold '<str>'",
-                "type": "[str]",
-                "value": []
-            },
-            "ignore": {
-                "defvalue": [],
-                "example": [
-                    "cli: -asic_cells_ignore '*eco*'",
-                    "api: chip.set('asic','cells',ignore,'*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: ignore cell list",
-                "signature": [],
-                "switch": "-asic_cells_ignore '<str>'",
-                "type": "[str]",
-                "value": []
-            },
-            "load": {
-                "defvalue": [],
-                "example": [
-                    "cli: -asic_cells_load '*eco*'",
-                    "api: chip.set('asic','cells',load,'*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: load cell list",
-                "signature": [],
-                "switch": "-asic_cells_load '<str>'",
                 "type": "[str]",
                 "value": []
             },
@@ -657,41 +640,6 @@
             "type": "[str]",
             "value": []
         },
-        "maxcap": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_maxcap '0.25e-12'",
-                "api: chip.set('asic', 'maxcap', '0.25e-12')"
-            ],
-            "help": "Maximum allowed capacitance per net.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC: maximum net capacitance",
-            "signature": null,
-            "switch": "-asic_maxcap <float>",
-            "type": "float",
-            "unit": "F",
-            "value": null
-        },
-        "maxfanout": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_maxfanout 64",
-                "api: chip.set('asic', 'maxfanout', '64')"
-            ],
-            "help": " Maximum driver fanout allowed during automated place and route.\nThe parameter directs the APR tool to break up any net with fanout\nlarger than maxfanout into sub nets and buffer.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC: maximum fanout",
-            "signature": null,
-            "switch": "-asic_maxfanout <int>",
-            "type": "int",
-            "value": null
-        },
         "maxlayer": {
             "defvalue": null,
             "example": [
@@ -707,42 +655,6 @@
             "signature": null,
             "switch": "-asic_maxlayer <str>",
             "type": "str",
-            "value": null
-        },
-        "maxlength": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_maxlength 1000",
-                "api: chip.set('asic', 'maxlength', '1000')"
-            ],
-            "help": "Maximum total wire length allowed in design during APR. Any\nnet that is longer than maxlength is broken up into segments by\nthe tool.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC: maximum wire length",
-            "signature": null,
-            "switch": "-asic_maxlength <float>",
-            "type": "float",
-            "unit": "um",
-            "value": null
-        },
-        "maxslew": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_maxslew '0.25e-9'",
-                "api: chip.set('asic', 'maxslew', '0.25e-9')"
-            ],
-            "help": "Maximum allowed transition time per net.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC: maximum slew",
-            "signature": null,
-            "switch": "-asic_maxslew <float>",
-            "type": "float",
-            "unit": "s",
             "value": null
         },
         "minlayer": {
@@ -6620,10 +6532,10 @@
             "value": "nh"
         },
         "lambda": {
-            "defvalue": "1.0",
+            "defvalue": "1e-06",
             "example": [
-                "cli: -unit_lambda 1e-6",
-                "api: chip.set('unit', 'lambda', 1e-6)"
+                "cli: -unit_lambda 1e-06",
+                "api: chip.set('unit', 'lambda', 1e-06)"
             ],
             "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
             "lock": "false",
@@ -6634,7 +6546,7 @@
             "signature": null,
             "switch": "-unit_lambda <float>",
             "type": "float",
-            "value": "1.0"
+            "value": "1e-06"
         },
         "length": {
             "defvalue": "um",

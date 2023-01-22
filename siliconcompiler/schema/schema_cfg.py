@@ -2001,12 +2001,12 @@ def schema_unit(cfg):
 
     scparam(cfg,['unit', 'lambda'],
             sctype='float',
-            defvalue='0.000001',
+            defvalue='1e-06',
             scope='global',
             shorthelp="Unit: Lambda value",
             switch="-unit_lambda <float>",
-            example=["cli: -unit_lambda 1e-6",
-                    "api: chip.set('unit', 'lambda', 1e-6)"],
+            example=["cli: -unit_lambda 1e-06",
+                    "api: chip.set('unit', 'lambda', 1e-06)"],
             schelp="""Elementary distance unit used for scaling all
             schema physical parameters (layout constraints, size, outline,
             area, margin etc).""")
