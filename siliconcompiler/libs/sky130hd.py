@@ -25,12 +25,6 @@ def setup(chip):
     # version
     lib.set('package', 'version', version)
 
-    # list of stackups supported
-    lib.set('asic', 'stackup', stackup)
-
-    # list of pdks supported
-    lib.set('asic', 'pdk', process)
-
     # footprint/type/sites
     lib.set('asic', 'libarch', libtype)
     lib.set('asic', 'site', libtype, 'unithd')
@@ -59,7 +53,7 @@ def setup(chip):
     # Endcap
     lib.add('asic', 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')
 
-    lib.add('asic', 'cells', 'ignore', [
+    lib.add('asic', 'cells', 'dontuse', [
         'sky130_fd_sc_hd__probe_p_8',
         'sky130_fd_sc_hd__probec_p_8',
         'sky130_fd_sc_hd__lpflow_bleeder_1',

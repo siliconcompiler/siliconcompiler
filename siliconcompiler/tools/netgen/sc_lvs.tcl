@@ -6,7 +6,7 @@ set sc_task    $sc_step
 
 set sc_design  [sc_top]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
-set sc_stackup [dict get $sc_cfg asic stackup]
+set sc_stackup [dict get $sc_cfg option stackup]
 set sc_pdk [dict get $sc_cfg option pdk]
 set sc_runset [dict get $sc_cfg pdk $sc_pdk lvs runset netgen $sc_stackup basic]
 

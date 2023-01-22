@@ -268,8 +268,8 @@ It is the responsibility of the tool reference flow developer to bind the standa
 
    # APR Parameters
    set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
+   set sc_stackup     [dict get $sc_cfg option stackup]
    set sc_targetlibs  [dict get $sc_cfg asic logiclib]
-   set sc_stackup     [dict get $sc_cfg asic stackup]
    set sc_density     [dict get $sc_cfg asic density]
    set sc_hpinlayer   [dict get $sc_cfg asic hpinlayer]
    set sc_vpinlayer   [dict get $sc_cfg asic vpinlayer]

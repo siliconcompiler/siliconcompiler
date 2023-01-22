@@ -76,7 +76,7 @@ def _wire_to_rect(wire):
     return (left, bottom, right, top)
 
 def _get_tech_lef_data(chip, tool):
-    stackup = chip.get('asic', 'stackup')
+    stackup = chip.get('option', 'stackup')
     pdkname = chip.get('option', 'pdk')
     # TODO: This?
     libname = chip.get('asic', 'logiclib')[0]
@@ -163,7 +163,7 @@ class Floorplan:
         # Used by Jinja LEF/DEF templates
         self.design = chip.top()
 
-        self.stackup = chip.get('asic', 'stackup')
+        self.stackup = chip.get('option', 'stackup')
         self.diearea = None
         self.corearea = None
         self.pins = {}

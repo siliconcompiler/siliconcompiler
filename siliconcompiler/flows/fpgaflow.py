@@ -77,18 +77,18 @@ def setup(chip, flowname='fpgaflow'):
     #Setting up pipeline
     #TODO: Going forward we want to standardize steps
     if  flow in ('vivado', 'quartus'):
-        flowpipe = ['syn', 'place', 'route', 'bitstream']
+        flowpipe = ['syn_fpga', 'place', 'route', 'bitstream']
     elif flow =='vpr':
         flowpipe = ['syn_vpr', 'apr', 'bitstream']
         # flowpipe = ['syn_vpr', 'apr']
     else:
-        flowpipe = ['syn', 'apr', 'bitstream']
+        flowpipe = ['syn_fpga', 'apr', 'bitstream']
 
     flowtools = setup_frontend(chip)
     for step in flowpipe:
         task = step
         if (step == 'syn_vpr') and (flow == 'vpr'):
-            task = 'syn'
+            task = 'syn_fpga'
         flowtools.append((step, tool_lookup(flow, step), task))
 
     # Minimal setup
@@ -188,7 +188,7 @@ def tool_lookup(flow, step):
 
     # open source ice40 flow
     if flow == "yosys-nextpnr":
-        if step == "syn":
+        if step == "syn_fpga":
             tool = "yosys"
         elif step == "apr":
             tool = "nextpnr"

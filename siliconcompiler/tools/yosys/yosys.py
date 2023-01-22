@@ -29,7 +29,8 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    step = 'syn'
+    # TODO: docs split by task
+    step = 'syn_asic'
     index = '<index>'
     flow = '<flow>'
     chip.set('arg','step', step)
@@ -73,20 +74,14 @@ def setup(chip):
                    'luts', 'dsps', 'brams', 'registers', 'buffers'):
         chip.set('tool', tool, 'task', task, 'report', step, index, metric, f"{step}.log")
 
-    # Generic ASIC / FPGA mode setup.
-    mode = chip.get('option', 'mode')
-    if mode == 'asic':
-        setup_asic(chip, task)
-    elif mode == 'fpga':
-        setup_fpga(chip, task)
-
-def setup_asic(chip, task):
+def setup_asic(chip):
     ''' Helper method for configs specific to ASIC steps (both syn and lec).
     '''
 
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = chip._get_task(step, index)
 
     chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'logiclib']))
 
@@ -159,13 +154,14 @@ def setup_asic(chip, task):
     chip.set('tool', tool, 'task', task, 'var', step, index, 'abc_clock_period', 'Clock period to use for synthesis in ps, if more than one clock is specified, the smallest period is used.', field='help')
     chip.set('tool', tool, 'task', task, 'var', step, index, 'abc_clock_derating', 'Used to derate the clock period to further constrain the clock, values between 0 and 1', field='help')
 
-def setup_fpga(chip, task):
+def setup_fpga(chip):
     ''' Helper method for configs specific to FPGA steps (both syn and lec).
     '''
 
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = chip._get_task(step, index)
 
     # Require that a partname is set for FPGA scripts.
     chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['fpga', 'partname']))
@@ -304,7 +300,7 @@ def prepare_synthesis_libraries(chip):
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = step
+    task = chip._get_task(step, index)
     delaymodel = chip.get('asic', 'delaymodel')
 
     corner = chip.get('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner')[0]
@@ -314,13 +310,13 @@ def prepare_synthesis_libraries(chip):
     dff_liberty_file = chip.get('tool', tool, 'task', task, 'var', step, index, 'dff_liberty')[0]
     dff_dont_use = []
     for lib in chip.get('asic', 'logiclib'):
-        ignore = chip.get('library', lib, 'asic', 'cells', 'ignore')
+        dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse')
         if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel):
-            # if we have the exact library, use those ignores, otherwise continue to build full list
-            dff_dont_use = ignore
+            # if we have the exact library, use those dontuses, otherwise continue to build full list
+            dff_dont_use = dontuse
             break
 
-        dff_dont_use.extend(ignore)
+        dff_dont_use.extend(dontuse)
 
     markDontUse.processLibertyFile(dff_liberty_file, chip.get('tool', tool, 'task', task, 'var', step, index, 'dff_liberty_file')[0], dff_dont_use, chip.get('option', 'quiet'))
 
@@ -352,7 +348,7 @@ def prepare_synthesis_libraries(chip):
 
     for libtype in ('logiclib', 'macrolib'):
         for lib in chip.get('asic', libtype):
-            dont_use = chip.get('library', lib, 'asic', 'cells', 'ignore')
+            dont_use = chip.get('library', lib, 'asic', 'cells', 'dontuse')
 
             for lib_file in get_synthesis_libraries(lib):
                 process_lib_file(libtype, lib, lib_file, dont_use)
@@ -362,7 +358,7 @@ def create_abc_synthesis_constraints(chip):
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = step
+    task = chip._get_task(step, index)
 
     abc_driver = None
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver'):
@@ -394,7 +390,7 @@ def get_synthesis_corner(chip):
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = step
+    task = chip._get_task(step, index)
 
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner'):
         return chip.get('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner')[0]
@@ -421,7 +417,7 @@ def get_dff_liberty_file(chip):
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = step
+    task = chip._get_task(step, index)
 
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'dff_liberty'):
         return chip.get('tool', tool, 'task', task, 'var', step, index, 'dff_liberty')[0]
@@ -448,7 +444,7 @@ def get_abc_period(chip):
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = step
+    task = chip._get_task(step, index)
 
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_clock_period'):
         abc_clock_period = chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_clock_period')
@@ -511,7 +507,7 @@ def get_abc_driver(chip):
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = step
+    task = chip._get_task(step, index)
 
     abc_driver = None
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver') and \
