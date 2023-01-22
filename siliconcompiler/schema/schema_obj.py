@@ -2,6 +2,7 @@
 
 import copy
 import csv
+import gzip
 import json
 import os
 import re
@@ -19,17 +20,51 @@ class Schema:
     for schema manipulation tasks that don't require the additional context of a
     Chip object.
 
+    The two arguments to this class are mutually exclusive. If neither are
+    provided, the object is initialized to default values for all parameters.
+
     Args:
         cfg (dict): Initial configuration dictionary. This may be a subtree of
-            the schema. If not provided, the object is initialized to default
-            values for all parameters.
+            the schema.
+        manifest (str): Initial manifest.
     """
 
-    def __init__(self, cfg=None):
-        if cfg is None:
-            self.cfg = schema_cfg()
-        else:
+    def __init__(self, cfg=None, manifest=None):
+        if cfg is not None and manifest is not None:
+            raise ValueError('You may not specify both cfg and manifest')
+
+        if cfg is not None:
             self.cfg = copy.deepcopy(cfg)
+        elif manifest is not None:
+            self.cfg = Schema._read_manifest(manifest)
+        else:
+            self.cfg = schema_cfg()
+
+    ###########################################################################
+    @staticmethod
+    def _read_manifest(filepath):
+        if not os.path.isfile(filepath):
+            raise ValueError(f'Manifest file not found {filepath}')
+
+        if os.path.splitext(filepath)[1].lower() == '.gz':
+            fin = gzip.open(filepath, 'r')
+        else:
+            fin = open(filepath, 'r')
+
+        try:
+            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath, flags=re.IGNORECASE):
+                localcfg = json.load(fin)
+            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath, flags=re.IGNORECASE):
+                localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
+            else:
+                raise ValueError(f'File format not recognized {filepath}')
+        finally:
+            fin.close()
+
+        if Schema().get('schemaversion') != localcfg['schemaversion']['value']:
+            raise ValueError('Attempting to read manifest with incompatible schema version')
+
+        return localcfg
 
     ###########################################################################
     def get(self, *keypath, field='value', job=None):
@@ -81,10 +116,12 @@ class Schema:
 
         if len(keypath) > 0:
             keys = list(self._search(cfg, str(keypath), *keypath, mode='getkeys'))
-            if 'default' in keys:
-                keys.remove('default')
         else:
-            keys = list(self._allkeys())
+            # TODO: make it so _search() can handle this case
+            keys = list(cfg.keys())
+
+        if 'default' in keys:
+            keys.remove('default')
 
         return keys
 
@@ -98,7 +135,8 @@ class Schema:
         """
         if len(keypath) > 0:
             localcfg = self._search(self.cfg, str(keypath), *keypath, mode='getcfg')
-        # TODO: error condition?
+        else:
+            localcfg = self.cfg
 
         return copy.deepcopy(localcfg)
 
@@ -117,7 +155,7 @@ class Schema:
             default = None
 
         if valid_keypaths is None:
-            valid_keypaths = self.getkeys()
+            valid_keypaths = self.allkeys()
 
         # Look for a full match with default playing wild card
         for valid_keypath in valid_keypaths:
@@ -146,7 +184,7 @@ class Schema:
         self.cfg['history'][jobname] = {}
 
         # copy in all empty values of scope job
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
         for key in allkeys:
             # ignore history in case of cumulative history
             if key[0] != 'history':
@@ -356,10 +394,19 @@ class Schema:
             return self._search(cfg[param], keypath, *all_args, field=field, mode=mode, clobber=clobber)
 
     ###########################################################################
+    def allkeys(self, *keypath_prefix):
+        '''
+        Returns all keypaths in the schema as a list of lists.
+
+        See :meth:`~siliconcompiler.core.Chip.allkeys` for detailed documentation.
+        '''
+        if len(keypath_prefix) > 0:
+            return self._allkeys(self.getdict(*keypath_prefix))
+        else:
+            return self._allkeys()
+
+    ###########################################################################
     def _allkeys(self, cfg=None, keys=None, keylist=None):
-        '''
-        Returns list of all keypaths in the schema.
-        '''
         if cfg is None:
             cfg = self.cfg
 
@@ -477,7 +524,7 @@ class Schema:
             fout.write(f.read())
         fout.write('\n')
 
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
 
         for key in allkeys:
             typestr = self.get(*key, field='type')
@@ -508,7 +555,7 @@ class Schema:
         csvwriter = csv.writer(fout)
         csvwriter.writerow(['Keypath', 'Value'])
 
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
         for key in allkeys:
             keypath = ','.join(key)
             value = self.get(*key)
@@ -521,7 +568,7 @@ class Schema:
     ###########################################################################
     def copy(self):
         '''Returns deep copy of Schema object.'''
-        return Schema(self.cfg)
+        return Schema(cfg=self.cfg)
 
     ###########################################################################
     def prune(self, keeplists=False):
@@ -590,6 +637,26 @@ class Schema:
         value_empty = (defvalue in emptylist) and (value in emptylist)
 
         return value_empty
+
+    ###########################################################################
+    def history(self, job):
+        '''
+        Returns a *mutable* reference to ['history', job] as a Schema object.
+
+        If job doesn't currently exist in history, create it with default
+        values.
+
+        Args:
+            job (str): Name of historical job to return.
+        '''
+        if job not in self.cfg['history']:
+            self.cfg['history'][job] = schema_cfg()
+
+        # Can't initialize Schema() by passing in cfg since it performs a deep
+        # copy.
+        schema = Schema()
+        schema.cfg = self.cfg['history'][job]
+        return schema
 
 class YamlIndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
