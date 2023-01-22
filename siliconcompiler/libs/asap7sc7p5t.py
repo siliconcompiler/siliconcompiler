@@ -28,7 +28,8 @@ def _setup_lib(libname, suffix):
     # rev
     lib.set('package', 'version',rev)
 
-    lib.set('asic', 'pdk', 'asap7')
+    # todo: remove later
+    lib.set('option', 'pdk', 'asap7')
 
     # timing
     lib.add('output', corner, 'nldm', libdir+'/nldm/'+libname+'_ff.lib')
