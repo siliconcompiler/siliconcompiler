@@ -39,12 +39,11 @@ def _setup_lib(libname, suffix):
     # gds
     lib.add('output', stackup, 'gds', libdir+'/gds/'+libname+'.gds')
 
-    # site name
-    lib.set('asic', 'footprint', 'asap7sc7p5t', 'symmetry', 'Y')
-    lib.set('asic', 'footprint', 'asap7sc7p5t', 'size', (0.054,0.270))
-
     # lib arch
     lib.set('asic', 'libarch', libtype)
+
+    # site name
+    lib.set('asic', 'site', libtype, 'asap7sc7p5t')
 
     #default input driver
     lib.add('asic', 'cells', 'driver', f"BUFx2_ASAP7_75t_{suffix}")

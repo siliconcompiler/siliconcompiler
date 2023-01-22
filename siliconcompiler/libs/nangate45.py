@@ -44,8 +44,7 @@ def setup(chip):
 
     # footprint/type/sites
     lib.set('asic', 'libarch', libtype)
-    lib.set('asic', 'footprint', 'FreePDK45_38x28_10R_NP_162NW_34O', 'symmetry', 'Y')
-    lib.set('asic', 'footprint', 'FreePDK45_38x28_10R_NP_162NW_34O', 'size', (0.19,1.4))
+    lib.set('asic', 'site', libtype, 'FreePDK45_38x28_10R_NP_162NW_34O')
 
     # timing
     lib.add('output', corner, 'nldm',

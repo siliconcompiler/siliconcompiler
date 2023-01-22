@@ -33,11 +33,8 @@ def setup(chip):
 
     # footprint/type/sites
     lib.set('asic', 'libarch', libtype)
-    lib.set('asic', 'footprint', 'unithd', 'symmetry', 'Y')
-    lib.set('asic', 'footprint', 'unithd', 'size', (0.46,2.72))
-
-    lib.set('asic', 'footprint', 'unithddbl', 'symmetry', 'Y')
-    lib.set('asic', 'footprint', 'unithddbl', 'size', (0.46,5.44))
+    lib.set('asic', 'site', libtype, 'unithd')
+    lib.add('asic', 'site', libtype, 'unithddbl')
 
     # model files
     lib.add('output', corner, 'nldm', libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
