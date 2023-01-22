@@ -3217,18 +3217,6 @@ def schema_asic(cfg):
                 all cells containing the string 'eco' could be marked as dont use
                 for the tool.""")
 
-    # Place and route parameters (optional)
-    scparam(cfg, ['asic', 'pgmetal'],
-            sctype='str',
-            shorthelp="ASIC: powergrid layer",
-            switch="-asic_pgmetal '<str>'",
-            example=["cli: -asic_pgmetal m1",
-                    "api: chip.set('asic','pgmetal','m1')"],
-            schelp="""
-            Top metal layer used for power and ground routing within the
-            library. The parameter can be used to guide cell power grid
-            hookup by APR tools.""")
-
     scparam(cfg,['asic', 'libarch'],
             sctype='str',
             shorthelp="ASIC: library architecture",
