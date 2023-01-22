@@ -321,13 +321,13 @@ def prepare_synthesis_libraries(chip):
     dff_liberty_file = chip.get('tool', tool, 'task', task, 'var', step, index, 'dff_liberty')[0]
     dff_dont_use = []
     for lib in chip.get('asic', 'logiclib'):
-        ignore = chip.get('library', lib, 'asic', 'cells', 'ignore')
+        dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse')
         if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel):
-            # if we have the exact library, use those ignores, otherwise continue to build full list
-            dff_dont_use = ignore
+            # if we have the exact library, use those dontuses, otherwise continue to build full list
+            dff_dont_use = dontuse
             break
 
-        dff_dont_use.extend(ignore)
+        dff_dont_use.extend(dontuse)
 
     markDontUse.processLibertyFile(dff_liberty_file, chip.get('tool', tool, 'task', task, 'var', step, index, 'dff_liberty_file')[0], dff_dont_use, chip.get('option', 'quiet'))
 
@@ -359,7 +359,7 @@ def prepare_synthesis_libraries(chip):
 
     for libtype in ('logiclib', 'macrolib'):
         for lib in chip.get('asic', libtype):
-            dont_use = chip.get('library', lib, 'asic', 'cells', 'ignore')
+            dont_use = chip.get('library', lib, 'asic', 'cells', 'dontuse')
 
             for lib_file in get_synthesis_libraries(lib):
                 process_lib_file(libtype, lib, lib_file, dont_use)

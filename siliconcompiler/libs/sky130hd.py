@@ -65,7 +65,7 @@ def setup(chip):
     # Endcap
     lib.add('asic', 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')
 
-    lib.add('asic', 'cells', 'ignore', [
+    lib.add('asic', 'cells', 'dontuse', [
         'sky130_fd_sc_hd__probe_p_8',
         'sky130_fd_sc_hd__probec_p_8',
         'sky130_fd_sc_hd__lpflow_bleeder_1',
@@ -105,9 +105,7 @@ def setup(chip):
         'sky130_fd_sc_hd__buf_16'
     ])
 
-    # TODO: should probably fill these in, but they're currently unused by
-    # OpenROAD flow
-    #driver
+    # driver cell (why empty?)
     lib.add('asic', 'cells', 'driver', '')
 
     # buffer cell

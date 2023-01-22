@@ -67,12 +67,12 @@ def _setup_lib(libname, suffix):
     lib.add('asic', 'cells', 'filler', [f"FILLER_ASAP7_75t_{suffix}"])
 
     # Stupid small cells
-    lib.add('asic', 'cells', 'ignore', ["*x1_ASAP7*",
-                                        "*x1p*_ASAP7*",
-                                        "*xp*_ASAP7*",
-                                        "SDF*",
-                                        "ICG*",
-                                        "DFFH*"])
+    lib.add('asic', 'cells', 'dontuse', ["*x1_ASAP7*",
+                                         "*x1p*_ASAP7*",
+                                         "*xp*_ASAP7*",
+                                         "SDF*",
+                                         "ICG*",
+                                         "DFFH*"])
 
     # Tapcell
     lib.add('asic', 'cells', 'tap', f"TAPCELL_ASAP7_75t_{suffix}")
