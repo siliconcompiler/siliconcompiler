@@ -116,8 +116,7 @@ def setup(chip, mode='batch'):
         #Note: only one footprint supported in mainlib
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'logiclib']))
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'stackup',]))
-        # chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
-        # chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'site', libtype]))
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
         if chip.valid('input', 'layout', 'floorplan.def'):
             chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['input', 'layout', 'floorplan.def']))
