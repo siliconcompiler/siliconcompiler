@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.12.0'
+SCHEMA_VERSION = '0.13.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -310,6 +310,19 @@ def schema_pdk(cfg, stackup='default'):
             leverage the value to drive technology dependent synthesis and APR
             optimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,
             10, 7, 5, 3.""")
+
+    scparam(cfg,['pdk', pdkname, 'lambda'],
+            sctype='float',
+            defvalue='1e-06',
+            scope='global',
+            require="asic",
+            shorthelp="PDK: Lambda value",
+            switch="-pdk_lambda 'pdkname <float>",
+            example=["cli: -pdk_lambda 'asap7 1e-06",
+                    "api: chip.set('unit', 'asap7', 'lambda', 1e-06)"],
+            schelp="""Elementary distance unit used for scaling all
+            schema physical parameters (layout constraints, size, outline,
+            area, margin etc).""")
 
     scparam(cfg, ['pdk', pdkname, 'version'],
             sctype='str',
@@ -2012,18 +2025,6 @@ def schema_unit(cfg):
                 schelp=f"""
                 Units used for {item} when not explicitly specified.""")
 
-    scparam(cfg,['unit', 'lambda'],
-            sctype='float',
-            defvalue='1e-06',
-            scope='global',
-            shorthelp="Unit: Lambda value",
-            switch="-unit_lambda <float>",
-            example=["cli: -unit_lambda 1e-06",
-                    "api: chip.set('unit', 'lambda', 1e-06)"],
-            schelp="""Elementary distance unit used for scaling all
-            schema physical parameters (layout constraints, size, outline,
-            area, margin etc).""")
-
     return cfg
 
 ###########################################################################
@@ -2033,6 +2034,9 @@ def schema_unit(cfg):
 def schema_option(cfg):
     ''' Technology agnostic run time options
     '''
+
+
+
 
     scparam(cfg, ['option', 'remote'],
             sctype='bool',
@@ -2112,6 +2116,27 @@ def schema_option(cfg):
             may load multiple flows and libraries.
             """)
 
+    scparam(cfg, ['option','pdk'],
+            sctype='str',
+            scope='job',
+            shorthelp="PDK target",
+            switch="-option_pdk <str>",
+            example=["cli: -option_pdk freepdk45",
+                     "api: chip.set('option','pdk','freepdk45')"],
+            schelp="""
+            Target PDK used during compilation.""")
+
+    scparam(cfg, ['option', 'stackup'],
+            sctype='str',
+            scope='job',
+            shorthelp="Stackup target",
+            switch="-option_stackup <str>",
+            example=["cli: -option_stackup 2MA4MB2MC",
+                     "api: chip.set('option','stackup','2MA4MB2MC')"],
+            schelp="""
+            Target stackup used during compilation. The stackup is required
+            parameter for PDKs with multiple metal stackups.""")
+
     scparam(cfg, ['option','flow'],
             sctype='str',
             scope='job',
@@ -2122,17 +2147,6 @@ def schema_option(cfg):
             schelp="""
             Sets the flow for the current run. The flow name
             must match up with a 'flow' in the flowgraph""")
-
-    scparam(cfg, ['option','pdk'],
-            sctype='str',
-            scope='job',
-            shorthelp="PDK target",
-            switch="-pdk <str>",
-            example=["cli: -pdk asap7",
-                     "api: chip.set('option','pdk','asap7')"],
-            schelp="""
-            Sets the pdk for the current run. The pdk name
-            must match up with a 'pdk' loaded with load_pdk.""")
 
     scparam(cfg, ['option','optmode'],
             sctype='str',
@@ -3038,26 +3052,7 @@ def schema_asic(cfg):
     step = 'default'
     index = 'default'
 
-    scparam(cfg, ['asic', 'stackup'],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC Stackup target",
-            switch="-asic_stackup <str>",
-            example=["cli: -asic_stackup 2MA4MB2MC",
-                     "api: chip.set('asic','stackup','2MA4MB2MC')"],
-            schelp="""
-            Target ASIC stackup to use in the design. The stackup is required
-            parameter for PDKs with multiple metal stackups.""")
 
-    scparam(cfg, ['asic', 'pdk'],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC PDK target",
-            switch="-asic_pdk <str>",
-            example=["cli: -asic_pdk freepdk45",
-                     "api: chip.set('asic','pdk','freepdk45')"],
-            schelp="""
-            Target ASIC PDK to use in the design.""")
 
     scparam(cfg, ['asic', 'logiclib'],
             sctype='[str]',
