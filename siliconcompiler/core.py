@@ -114,6 +114,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._init_logger()
 
+        # Ensure that SC built-ins are on the $PYTHONPATH
+        if not self.scroot in sys.path:
+            sys.path.append(self.scroot)
+
         self._loaded_modules = {
             'flows': [],
             'pdks': [],
@@ -163,7 +167,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return entrypoint
 
     ###########################################################################
-    def get_task(self, step, index='0'):
+    def _get_task(self, step, index='0', flow=None):
         '''
         Helper function to get the name of the task associated with a given step/index.
         The flowgraph step name may be descriptive for disambiguation pruposes, while the
@@ -173,7 +177,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
               If so should we also add 'get_tool'?
               Should it be called 'get_step_task'?
         '''
-        return self.get('flowgraph', self.get('option', 'flow'), step, index, 'task')
+        if not flow:
+            flow = self.get('option', 'flow')
+        return self.get('flowgraph', flow, step, index, 'task')
 
 
     ###########################################################################
@@ -487,7 +493,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.set(*args, val, clobber=True)
 
     #########################################################################
-    def find_function(self, modulename, funcname, moduletype=None, modulestep=None):
+    def find_function(self, modulename, funcname, moduletype=None, moduletask=None):
         '''
         Returns a function attribute from a module on disk.
 
@@ -527,10 +533,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        # Ensure that SC built-ins are on the $PYTHONPATH (only necessary for local installs)
-        if not self.scroot in sys.path:
-            sys.path.append(self.scroot)
-
         # module search path depends on modtype
         module = None
         if moduletype is None:
@@ -546,7 +548,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             except ModuleNotFoundError:
                 pass
         elif moduletype in ('tools', 'checklists'):
-            modulefile = modulestep if modulestep is not None else modulename
+            modulefile = moduletask if moduletask is not None else modulename
             try:
                 module = importlib.import_module(f'{moduletype}.{modulename}.{modulefile}')
             except ModuleNotFoundError:

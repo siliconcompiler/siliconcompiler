@@ -11,7 +11,7 @@ def setup(chip):
     tool = 'magic'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = chip.get_task(step, index)
+    task = 'drc'
     design = chip.top()
 
     report_path = f'reports/{design}.drc'

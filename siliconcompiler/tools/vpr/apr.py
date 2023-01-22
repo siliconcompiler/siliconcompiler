@@ -6,7 +6,7 @@ def setup(chip):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = chip.get_task(step, index)
+    task = 'apr'
 
     chip.set('tool', tool, 'exe', tool, clobber=False)
     chip.set('tool', tool, 'version', '0.0', clobber=False)

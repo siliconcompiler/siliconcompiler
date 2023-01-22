@@ -55,7 +55,7 @@ def setup(chip, mode='batch'):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     flow = chip.get('option', 'flow')
-    task = chip.get_task(step, index)
+    task = chip._get_task(step, index)
     pdkname = chip.get('option', 'pdk')
     targetlibs = chip.get('asic', 'logiclib')
     mainlib = targetlibs[0]
@@ -393,7 +393,7 @@ def build_pex_corners(chip):
     index = chip.get('arg', 'index')
     tool = 'openroad'
 
-    task = chip.get_task(step, index)
+    task = chip._get_task(step, index)
 
     pdkname = chip.get('option', 'pdk')
     stackup = chip.get('asic', 'stackup')
@@ -451,7 +451,7 @@ def copy_show_files(chip):
     tool = 'openroad'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip.get_task(step, index)
+    task = chip._get_task(step, index)
 
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'show_filepath'):
         show_file = chip.get('tool', tool, 'task', task, 'var', step, index, 'show_filepath')[0]

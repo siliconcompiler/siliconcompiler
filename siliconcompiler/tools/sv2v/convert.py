@@ -9,7 +9,7 @@ def setup(chip):
     tool = 'sv2v'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = chip.get_task(step, index)
+    task = 'convert'
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '--numeric-version')

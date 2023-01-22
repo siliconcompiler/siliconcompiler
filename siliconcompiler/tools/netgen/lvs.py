@@ -7,7 +7,7 @@ def setup(chip):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = chip.get_task(step, index)
+    task = 'lvs'
 
     # magic used for drc and lvs
     script = 'sc_lvs.tcl'

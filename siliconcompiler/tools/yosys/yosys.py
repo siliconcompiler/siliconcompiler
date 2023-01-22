@@ -52,7 +52,7 @@ def setup(chip):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = chip.get_task(step, index)
+    task = chip._get_task(step, index)
     design = chip.top()
 
     # Standard Setup

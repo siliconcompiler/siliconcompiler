@@ -37,7 +37,7 @@ def make_docs():
     chip.set('arg','index',index)
     chip.set('option', 'flow', flow)
     chip.set('flowgraph', flow, step, index, 'task', '<task>')
-    setup = getattr(importlib.import_module('tools.vpr.pack-place-route'), 'setup')
+    from tools.vpr.apr import setup
     setup(chip)
     return chip
 

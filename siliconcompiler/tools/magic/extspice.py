@@ -11,7 +11,7 @@ def setup(chip):
     tool = 'magic'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = chip.get_task(step, index)
+    task = 'extspice'
     design = chip.top()
 
     chip.add('tool', tool, 'task', task, 'output', step, index, f'{design}.spice')

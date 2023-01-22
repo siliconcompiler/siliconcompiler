@@ -11,7 +11,7 @@ def setup(chip):
     tool = 'verilator'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = chip.get_task(step, index)
+    task = 'lint'
     design = chip.top()
 
     chip.add('tool', tool, 'task', task, 'option', step, index,  ['--lint-only', '--debug'])
