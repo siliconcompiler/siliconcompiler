@@ -37,10 +37,10 @@ def setup(chip):
     lib.set('package', 'version', version)
 
     # list of stackups supported
-    lib.set('asic', 'stackup', stackup)
+    lib.set('option', 'stackup', stackup)
 
     # list of pdks supported
-    lib.set('asic', 'pdk', process)
+    lib.set('option', 'pdk', process)
 
     # footprint/type/sites
     lib.set('asic', 'libarch', libtype)

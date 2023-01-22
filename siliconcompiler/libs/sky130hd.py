@@ -25,12 +25,6 @@ def setup(chip):
     # version
     lib.set('package', 'version', version)
 
-    # list of stackups supported
-    lib.set('asic', 'stackup', stackup)
-
-    # list of pdks supported
-    lib.set('asic', 'pdk', process)
-
     # footprint/type/sites
     lib.set('asic', 'libarch', libtype)
     lib.set('asic', 'footprint', 'unithd', 'symmetry', 'Y')

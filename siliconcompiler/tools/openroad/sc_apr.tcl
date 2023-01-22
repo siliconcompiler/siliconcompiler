@@ -22,6 +22,7 @@ set sc_design     [sc_top]
 set sc_optmode    [dict get $sc_cfg option optmode]
 set sc_flow       [dict get $sc_cfg option flow]
 set sc_pdk        [dict get $sc_cfg option pdk]
+set sc_stackup    [dict get $sc_cfg option stackup]
 
 proc convert_sc_layer_name { name } {
   upvar sc_cfg sc_cfg
@@ -42,7 +43,6 @@ proc convert_sc_layer_name { name } {
 set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
 set sc_targetlibs  [dict get $sc_cfg asic logiclib]
 set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
-set sc_stackup     [dict get $sc_cfg asic stackup]
 set sc_density     [dict get $sc_cfg asic density]
 set sc_hpinmetal   [dict get $sc_cfg asic hpinlayer]
 set sc_vpinmetal   [dict get $sc_cfg asic vpinlayer]

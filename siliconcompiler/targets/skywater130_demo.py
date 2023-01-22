@@ -42,13 +42,14 @@ def setup(chip):
     #3. Set default targets
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'skywater130')
+    chip.set('option', 'stackup', '5M1LI')
 
     #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
 
     #5. et project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('asic', 'stackup', '5M1LI')
+
     # TODO: how does LI get taken into account?
     chip.set('asic', 'minlayer', "m1")
     chip.set('asic', 'maxlayer', "m5")

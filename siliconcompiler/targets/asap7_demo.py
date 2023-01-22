@@ -27,13 +27,13 @@ def setup(chip):
     #3. Select default flow/PDK
     chip.set('option', 'flow', 'asicflow')
     chip.set('option', 'pdk', 'asap7')
+    chip.set('option', 'stackup', '10M')
 
     #4. Select libraries
     chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt')
 
     #5. Project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('asic', 'stackup', '10M')
     chip.set('asic', 'minlayer', "m2")
     chip.set('asic', 'maxlayer', "m7")
     chip.set('asic', 'rclayer', 'clk', "m5")

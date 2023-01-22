@@ -129,13 +129,13 @@ def setup(chip, mode="batch"):
             chip.set('tool', tool, 'task', task, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
     else:
         targetlibs = chip.get('asic', 'logiclib')
-        stackup = chip.get('asic', 'stackup')
+        stackup = chip.get('option', 'stackup')
         pdk = chip.get('option', 'pdk')
         if bool(stackup) & bool(targetlibs):
             macrolibs = chip.get('asic', 'macrolib')
 
             chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'logiclib']))
-            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'stackup']))
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['option', 'stackup']))
             chip.add('tool', tool, 'task', task, 'require', step, index,  ",".join(['pdk', pdk, 'layermap', 'klayout', 'def','gds', stackup]))
 
             for lib in (targetlibs + macrolibs):
