@@ -3184,8 +3184,7 @@ def schema_asic(cfg):
 
     # TODO: Expand on the exact definitions of these types of cells.
     # minimize typing
-    names = ['driver',
-             'load',
+    names = ['load',
              'buf',
              'decap',
              'delay',
