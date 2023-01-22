@@ -14,4 +14,6 @@ def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    chip.add('tool', tool, 'task', task, 'input', step, index, design +'.def')
+    if (not chip.valid('input', 'layout', 'def') or
+        not chip.get('input', 'layout', 'def')):
+        chip.add('tool', tool, 'task', task, 'input', step, index, design +'.def')
