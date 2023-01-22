@@ -58,18 +58,15 @@ def setup(chip):
     lib.add('output', stackup, 'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
 
-    # driver
-    lib.add('asic', 'cells','driver', "BUF_X4")
-
     # clock buffers
     lib.add('asic', 'cells','clkbuf', "BUF_X4")
 
     # tie cells
-    lib.add('asic', 'cells','tie', ["LOGIC1_X1/Z",
-                                    "LOGIC0_X1/Z"])
+    lib.add('asic', 'cells','tie', ["LOGIC1_X1",
+                                    "LOGIC0_X1"])
 
     # buffer cell
-    lib.add('asic', 'cells', 'buf', ['BUF_X1/A/Z'])
+    lib.add('asic', 'cells', 'buf', ['BUF_X1'])
 
     # hold cells
     lib.add('asic', 'cells', 'hold', "BUF_X1")
@@ -106,6 +103,16 @@ def setup(chip):
     lib.set('asic', 'file', 'openroad', 'tapcells', libdir + '/apr/openroad/tapcell.tcl')
     lib.set('asic', 'file', 'openroad', 'pdngen', libdir + '/apr/openroad/pdngen.tcl')
     lib.set('asic', 'file', 'openroad', 'global_connect', libdir + '/apr/openroad/global_connect.tcl')
+
+    lib.set('asic', 'var', 'yosys', 'driver_cell', "BUF_X4")
+    lib.set('asic', 'var', 'yosys', 'buffer_cell', "BUF_X1")
+    lib.set('asic', 'var', 'yosys', 'buffer_input', "A")
+    lib.set('asic', 'var', 'yosys', 'buffer_output', "Z")
+    for tool in ('yosys', 'openroad'):
+        lib.set('asic', 'var', tool, 'tiehigh_cell', "LOGIC1_X1")
+        lib.set('asic', 'var', tool, 'tiehigh_port', "Z")
+        lib.set('asic', 'var', tool, 'tielow_cell', "LOGIC0_X1")
+        lib.set('asic', 'var', tool, 'tielow_port', "Z")
 
     chip.import_library(lib)
 

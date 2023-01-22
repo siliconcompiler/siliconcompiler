@@ -45,15 +45,12 @@ def _setup_lib(libname, suffix):
     # site name
     lib.set('asic', 'site', libtype, 'asap7sc7p5t')
 
-    #default input driver
-    lib.add('asic', 'cells', 'driver', f"BUFx2_ASAP7_75t_{suffix}")
-
     # clock buffers
     lib.add('asic', 'cells', 'clkbuf', f"BUFx2_ASAP7_75t_{suffix}")
 
     # tie cells
-    lib.add('asic', 'cells', 'tie', [f"TIEHIx1_ASAP7_75t_{suffix}/H",
-                                     f"TIELOx1_ASAP7_75t_{suffix}/L"])
+    lib.add('asic', 'cells', 'tie', [f"TIEHIx1_ASAP7_75t_{suffix}",
+                                     f"TIELOx1_ASAP7_75t_{suffix}"])
 
     # buffer
     # TODO: Need to fix this syntax!, not needed by modern tools!
@@ -91,6 +88,16 @@ def _setup_lib(libname, suffix):
     lib.set('asic', 'var', 'openroad', 'pad_detail_place', ['1'])
     lib.set('asic', 'var', 'openroad', 'macro_place_halo', ['22.4', '15.12'])
     lib.set('asic', 'var', 'openroad', 'macro_place_channel', ['18.8', '19.95'])
+
+    lib.set('asic', 'var', 'yosys', 'driver_cell', f"BUFx2_ASAP7_75t_{suffix}")
+    lib.set('asic', 'var', 'yosys', 'buffer_cell', f"BUFx2_ASAP7_75t_{suffix}")
+    lib.set('asic', 'var', 'yosys', 'buffer_input', "A")
+    lib.set('asic', 'var', 'yosys', 'buffer_output', "Y")
+    for tool in ('yosys', 'openroad'):
+        lib.set('asic', 'var', tool, 'tiehigh_cell', f"TIEHIx1_ASAP7_75t_{suffix}")
+        lib.set('asic', 'var', tool, 'tiehigh_port', "H")
+        lib.set('asic', 'var', tool, 'tielow_cell', f"TIELOx1_ASAP7_75t_{suffix}")
+        lib.set('asic', 'var', tool, 'tielow_port', "L")
 
     # Openroad APR setup files
     lib.set('asic', 'file', 'openroad', 'tracks', libdir + '/apr/openroad/tracks.tcl')
