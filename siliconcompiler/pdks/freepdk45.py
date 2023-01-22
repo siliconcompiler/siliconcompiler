@@ -90,70 +90,21 @@ def setup(chip):
     chip.set('pdk', process, 'display', 'klayout', stackup,
             pdkdir + '/setup/klayout/freepdk45.lyp')
 
-    # Routing Grid Definitions
-    for layer, sc_name in [('metal1', 'm1')]:
-        chip.set('pdk', process,'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.19)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.14)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     1.0)
-        chip.set('pdk', process, 'grid', stackup, layer, 'dir',    'horizontal')
-
-    for layer, sc_name in [('metal2', 'm2')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.19)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.14)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.8)
-        chip.set('pdk', process, 'grid', stackup, layer, 'dir',    'vertical')
-
-    for layer, sc_name in [('metal3', 'm3')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.19)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.14)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.7)
-        chip.set('pdk', process, 'grid', stackup, layer, 'dir',    'horizontal')
-
-    for layer, sc_name in [('metal4', 'm4'), ('metal5', 'm5'), ('metal6', 'm6')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.28)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.28)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-        if layer in ('metal4', 'metal6'):
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'vertical')
-        else:
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'horizontal')
-
-    for layer, sc_name in [('metal7', 'm7'), ('metal8', 'm8')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.8)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.8)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-        if layer in ('metal8'):
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'vertical')
-        else:
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'horizontal')
-
-
-    for layer, sc_name in [('metal9', 'm9'), ('metal10', 'm10')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  1.6)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  1.6)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-        if layer in ('metal10'):
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'vertical')
-        else:
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'horizontal')
+    # Openroad global routing grid derating
+    openroad_layer_adjustments = {
+        'metal1': 1.0,
+        'metal2': 0.8,
+        'metal3': 0.7,
+        'metal4': 0.4,
+        'metal5': 0.4,
+        'metal6': 0.4,
+        'metal7': 0.4,
+        'metal8': 0.4,
+        'metal9': 0.4,
+        'metal10': 0.4
+    }
+    for layer, adj in openroad_layer_adjustments.items():
+        chip.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
     # PEX
     chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical', 

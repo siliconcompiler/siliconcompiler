@@ -90,50 +90,17 @@ def setup(chip):
     chip.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup, pdkdir+'/setup/klayout/skywater130.lyt')
     chip.set('pdk', process, 'display', 'klayout', stackup, pdkdir+'/setup/klayout/sky130A.lyp')
 
-    # Routing Grid Definitions
-
-    # TODO: what should the SC-internal name of the LI layer be?
-    chip.set('pdk', process, 'grid', stackup, 'li1', 'name', 'li1')
-    chip.set('pdk', process, 'grid', stackup, 'li1', 'xoffset', 0.23)
-    chip.set('pdk', process, 'grid', stackup, 'li1', 'xpitch',  0.46)
-    chip.set('pdk', process, 'grid', stackup, 'li1', 'yoffset', 0.17)
-    chip.set('pdk', process, 'grid', stackup, 'li1', 'ypitch',  0.34)
-    chip.set('pdk', process, 'grid', stackup, 'li1', 'adj', 1.0)
-
-    chip.set('pdk', process, 'grid', stackup, 'met1', 'name', 'm1')
-    chip.set('pdk', process, 'grid', stackup, 'met1', 'xoffset', 0.17)
-    chip.set('pdk', process, 'grid', stackup, 'met1', 'xpitch',  0.34)
-    chip.set('pdk', process, 'grid', stackup, 'met1', 'yoffset', 0.17)
-    chip.set('pdk', process, 'grid', stackup, 'met1', 'ypitch',  0.34)
-    chip.set('pdk', process, 'grid', stackup, 'met1', 'adj', 0.5)
-
-    chip.set('pdk', process, 'grid', stackup, 'met2', 'name', 'm2')
-    chip.set('pdk', process, 'grid', stackup, 'met2', 'xoffset', 0.23)
-    chip.set('pdk', process, 'grid', stackup, 'met2', 'xpitch',  0.46)
-    chip.set('pdk', process, 'grid', stackup, 'met2', 'yoffset', 0.23)
-    chip.set('pdk', process, 'grid', stackup, 'met2', 'ypitch',  0.46)
-    chip.set('pdk', process, 'grid', stackup, 'met2', 'adj', 0.5)
-
-    chip.set('pdk', process, 'grid', stackup, 'met3', 'name', 'm3')
-    chip.set('pdk', process, 'grid', stackup, 'met3', 'xoffset', 0.34)
-    chip.set('pdk', process, 'grid', stackup, 'met3', 'xpitch',  0.68)
-    chip.set('pdk', process, 'grid', stackup, 'met3', 'yoffset', 0.34)
-    chip.set('pdk', process, 'grid', stackup, 'met3', 'ypitch',  0.68)
-    chip.set('pdk', process, 'grid', stackup, 'met3', 'adj', 0.5)
-
-    chip.set('pdk', process, 'grid', stackup, 'met4', 'name', 'm4')
-    chip.set('pdk', process, 'grid', stackup, 'met4', 'xoffset', 0.46)
-    chip.set('pdk', process, 'grid', stackup, 'met4', 'xpitch',  0.92)
-    chip.set('pdk', process, 'grid', stackup, 'met4', 'yoffset', 0.46)
-    chip.set('pdk', process, 'grid', stackup, 'met4', 'ypitch',  0.92)
-    chip.set('pdk', process, 'grid', stackup, 'met4', 'adj', 0.5)
-
-    chip.set('pdk', process, 'grid', stackup, 'met5', 'name', 'm5')
-    chip.set('pdk', process, 'grid', stackup, 'met5', 'xoffset', 1.7)
-    chip.set('pdk', process, 'grid', stackup, 'met5', 'xpitch',  3.4)
-    chip.set('pdk', process, 'grid', stackup, 'met5', 'yoffset', 1.7)
-    chip.set('pdk', process, 'grid', stackup, 'met5', 'ypitch',  3.4)
-    chip.set('pdk', process, 'grid', stackup, 'met5', 'adj', 0.5)
+    # Openroad global routing grid derating
+    openroad_layer_adjustments = {
+        'li1': 1.0,
+        'met1': 0.5,
+        'met2': 0.5,
+        'met3': 0.5,
+        'met4': 0.5,
+        'met5': 0.5,
+    }
+    for layer, adj in openroad_layer_adjustments.items():
+        chip.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
     # PEX
     chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical', 
