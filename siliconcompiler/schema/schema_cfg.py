@@ -3229,43 +3229,16 @@ def schema_asic(cfg):
             design. For example a PDK with support for 9 and 12 track libraries
             might have 'libarchs' called 9t and 12t.""")
 
-    # footprint
-    key = 'default'
-    scparam(cfg,['asic', 'footprint', key, 'alias'],
+    libarch = 'default'
+    scparam(cfg,['asic', 'site', libarch],
             sctype='[str]',
-            shorthelp="ASIC: Footprint name aliases",
-            switch="-asic_footprint_alias 'key <str>'",
+            shorthelp="ASIC: Library sites",
+            switch="-asic_site 'libarch <str>'",
             example=[
-                "cli: -asic_footprint_alias '12track FreeCell'",
-                "api: chip.set('asic','footprint','12track','alias','FreeCell')"],
+                "cli: -asic_site '12track Site_12T'",
+                "api: chip.set('asic','site','12track','Site_12T')"],
             schelp="""
-            Alias for the footprint key that is sometimes needed when the footprint can
-            be referenced by multiple names. The key is the 'official' footprint.""")
-
-    scparam(cfg, ['asic', 'footprint', key, 'symmetry'],
-            sctype='str',
-            shorthelp="ASIC: Footprint symmetry",
-            switch="-asic_footprint_symmetry 'key <str>'",
-            example=[
-                "cli: -asic_footprint_symmetry 'core X Y'",
-                "api: chip.set('asic','footprint','core','symmetry','X Y')"],
-            schelp="""
-            Footprint symmetry based on LEF standard definition. 'X' implies
-            symmetric about the x axis, 'Y' implies symmetry about the y axis, and
-            'X Y' implies symmetry about the x and y axis.""")
-
-
-    scparam(cfg, ['asic', 'footprint', key, 'size'],
-            sctype='(float,float)',
-            shorthelp="ASIC: Footprint size",
-            switch="-asic_footprint_size 'key <str>'",
-            example=[
-                "cli: -asic_footprint_size 'core (1.0,1.0)'",
-                "api: chip.set('asic','footprint','core','size',(1.0,1.0))"],
-            schelp="""
-            Size of the footprint described as a (width, height) tuple in
-            microns.""")
-
+            Site names for a given library architecture.""")
 
     return cfg
 
