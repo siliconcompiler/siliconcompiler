@@ -4349,61 +4349,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         return success
 
-    def read_lef(self, path, pdkname, stackup):
-        '''Reads tech LEF and imports data into schema.
-
-        This function reads layer information from a provided tech LEF and uses
-        it to fill out the 'pdk', <pdkname>, 'grid' keypaths of the current chip
-        object.
-
-        Args:
-            path (str): Path to LEF file.
-            pdkname (str): Name of PDK associated with LEF file.
-            stackup (str): Stackup associated with LEF file.
-        '''
-        data = leflib.parse(path)
-        layer_index = 1
-        for name, layer in data['layers'].items():
-            if layer['type'] != 'ROUTING':
-                # Skip non-routing layers
-                continue
-
-            sc_name = f'm{layer_index}'
-            layer_index += 1
-            self.set('pdk', pdkname, 'grid', stackup, name, 'name', sc_name)
-
-            direction = None
-            if 'direction' in layer:
-                direction = layer['direction'].lower()
-                self.set('pdk', pdkname, 'grid', stackup, name, 'dir', direction)
-
-            if 'offset' in layer:
-                offset = layer['offset']
-                if isinstance(offset, float):
-                    # Per LEF spec, a single offset value applies to the
-                    # preferred routing direction. If one doesn't exist, we'll
-                    # just ignore.
-                    if direction == 'vertical':
-                        self.set('pdk', pdkname, 'grid', stackup, name, 'xoffset', offset)
-                    elif direction == 'horizontal':
-                        self.set('pdk', pdkname, 'grid', stackup, name, 'yoffset', offset)
-                else:
-                    xoffset, yoffset = offset
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'xoffset', xoffset)
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'yoffset', yoffset)
-
-            if 'pitch' in layer:
-                pitch = layer['pitch']
-                if isinstance(pitch, float):
-                    # Per LEF spec, a single pitch value applies to both
-                    # directions.
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'xpitch', pitch)
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'ypitch', pitch)
-                else:
-                    xpitch, ypitch = pitch
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'xpitch', xpitch)
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'ypitch', ypitch)
-
     ############################################################################
     # Chip helper Functions
     ############################################################################
