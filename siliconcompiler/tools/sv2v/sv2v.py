@@ -1,3 +1,5 @@
+import importlib
+
 import siliconcompiler
 
 ####################################################################
@@ -22,51 +24,17 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step', '<step>')
-    chip.set('arg','index', '<index>')
+    step = '<step>'
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    from tools.sv2v.convert import setup
+    setup = getattr(importlib.import_module('tools.sv2v.convert'), 'setup')
     setup(chip)
     return chip
-
-
-################################
-# Setup Tool (pre executable)
-################################
-
-def setup(chip):
-    ''' Per tool function that returns a dynamic options string based on
-    the dictionary settings.
-    '''
-
-    chip.logger.debug("Setting up sv2v")
-
-    tool = 'sv2v'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    #TODO: fix below
-    task = step
-
-    chip.set('tool', tool, 'exe', tool)
-    chip.set('tool', tool, 'vswitch', '--numeric-version')
-    chip.set('tool', tool, 'version', '>=0.0.9', clobber=False)
-
-    chip.set('tool', tool, 'task', task, 'threads', step, index,  4, clobber=False)
-
-    # Since we run sv2v after the import/preprocess step, there should be no
-    # need for specifying include dirs/defines. However we don't want to pass
-    # --skip-preprocessor because there may still be unused preprocessor
-    # directives not removed by the importer and passing the --skip-preprocessor
-    # flag would cause sv2v to error.
-
-    # since this step should run after import, the top design module should be
-    # set and we can read the pickled Verilog without accessing the original
-    # sources
-    topmodule = chip.top()
-    chip.set('tool', tool, 'task', task, 'option', step, index,  [])
-    chip.add('tool', tool, 'task', task, 'option', step, index,  "inputs/" + topmodule + ".v")
-    chip.add('tool', tool, 'task', task, 'option', step, index,  "--write=outputs/" + topmodule + ".v")
-
-    chip.set('tool', tool, 'task', task, 'input', step, index, f'{topmodule}.v')
-    chip.set('tool', tool, 'task', task, 'output', step, index, f'{topmodule}.v')
 
 def parse_version(stdout):
     # 0.0.7-130-g1aa30ea

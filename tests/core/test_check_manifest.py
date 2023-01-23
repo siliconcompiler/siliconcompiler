@@ -81,10 +81,10 @@ def test_check_missing_file_param():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
 
+    chip._setup_tool('yosys', 'syn', 'syn', '0')
+
     chip.set('arg', 'step', 'syn')
     chip.set('arg', 'index', '0')
-    setup_tool = chip.find_function('yosys', 'setup', 'tools')
-    setup_tool(chip)
 
     chip.set('tool', 'yosys', 'task', 'syn', 'input', 'syn', '0', [])
     chip.set('tool', 'yosys', 'task', 'syn', 'output', 'syn', '0',[])
@@ -140,7 +140,12 @@ def test_merged_graph_good_steplist():
     chip.edge(flow, 'parallel1', 'merge')
     chip.edge(flow, 'parallel2', 'merge')
     chip.edge(flow, 'merge', 'export')
-    chip.set('option', 'flow', 'test')
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, 'import', '0', 'task', 'echo')
+    chip.set('flowgraph', flow, 'merge', '0', 'task', 'echo')
+    chip.set('flowgraph', flow, 'export', '0', 'task', 'echo')
+    chip.set('flowgraph', flow, 'parallel1', '0', 'task', 'echo')
+    chip.set('flowgraph', flow, 'parallel2', '0', 'task', 'echo')
 
     chip.run()
 
