@@ -34,8 +34,8 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
     chip.set('package', 'description', desc)
 
     # Test tuples
-    chip.add('asic', 'diearea', (0, 0))
-    chip.add('asic', 'diearea', (30, 40))
+    chip.add('constraint', 'outline', (0, 0))
+    chip.add('constraint', 'outline', (30, 40))
 
     # Test bools
     chip.set('option', 'quiet', True)
@@ -61,7 +61,7 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
     expected_desc = '{' + desc + '}'
     assert tcl_eval('[dict get $sc_cfg package description]') == expected_desc
 
-    assert tcl_eval('[lindex [lindex [dict get $sc_cfg asic diearea] 1] 0]') == '30.0'
+    assert tcl_eval('[lindex [lindex [dict get $sc_cfg constraint outline] 1] 0]') == '30.0'
     assert tcl_eval('[dict get $sc_cfg option quiet]') == 'true'
     assert tcl_eval('[dict get $sc_cfg input rtl verilog]') == 'rtl/design.v'
 
