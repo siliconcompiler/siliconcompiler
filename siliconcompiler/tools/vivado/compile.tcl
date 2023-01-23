@@ -58,13 +58,13 @@ if {$sc_task == "syn_fpga"} {
     # open checkpoint from previous step
     open_checkpoint "inputs/${sc_design}_checkpoint.dcp"
 
-    if {$sc_step == "place"} {
+    if {$sc_task == "place"} {
 	place_design
-    } elseif {$sc_step == "route"} {
+    } elseif {$sc_task == "route"} {
 	phys_opt_design
 	power_opt_design
 	route_design
-    } elseif {$sc_step == "bitstream"} {
+    } elseif {$sc_task == "bitstream"} {
         if {$sc_constraint != ""} {
             write_bitstream -force -file "outputs/${sc_design}.bit"
         } else {
