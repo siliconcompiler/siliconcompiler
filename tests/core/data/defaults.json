@@ -6205,7 +6205,7 @@
                                 "defvalue": [],
                                 "example": [
                                     "cli: -tool_task_postscript 'yosys syn syn 0 syn_post.tcl'",
-                                    "api: chip.set('tool','yosys','task','syn','postscript','syn','0','syn_post.tcl')"
+                                    "api: chip.set('tool','yosys','task','syn_asic','postscript','syn_asic','0','syn_post.tcl')"
                                 ],
                                 "filehash": [],
                                 "hashalgo": "sha256",
@@ -6231,7 +6231,7 @@
                                 "defvalue": [],
                                 "example": [
                                     "cli: -tool_task_prescript 'yosys syn syn 0 syn_pre.tcl'",
-                                    "api: chip.set('tool','yosys','task','syn','prescript','syn','0','syn_pre.tcl')"
+                                    "api: chip.set('tool','yosys','task','syn_asic','prescript','syn_asic','0','syn_pre.tcl')"
                                 ],
                                 "filehash": [],
                                 "hashalgo": "sha256",
@@ -6254,7 +6254,7 @@
                                 "defvalue": [],
                                 "example": [
                                     "cli: -tool_task_refdir 'yosys syn syn 0 ./myref'",
-                                    "api:  chip.set('tool','yosys','task','syn','refdir','syn','0','./myref')"
+                                    "api:  chip.set('tool','yosys','task','syn_asic','refdir','syn_asic','0','./myref')"
                                 ],
                                 "help": "Path to directories containing reference flow scripts, specified\non a per step and index basis.",
                                 "lock": "false",
@@ -6350,7 +6350,7 @@
                                 "defvalue": [],
                                 "example": [
                                     "cli: -tool_task_script 'yosys syn syn 0 syn.tcl'",
-                                    "api: chip.set('tool','yosys','task','syn','script','syn','0','syn.tcl')"
+                                    "api: chip.set('tool','yosys','task','syn_asic','script','syn_asic','0','syn.tcl')"
                                 ],
                                 "filehash": [],
                                 "hashalgo": "sha256",

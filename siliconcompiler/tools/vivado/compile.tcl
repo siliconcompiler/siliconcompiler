@@ -18,12 +18,14 @@ if {[dict exists $sc_cfg input fpga xdc]} {
 set sc_partname   [dict get $sc_cfg fpga partname]
 set sc_step       [dict get $sc_cfg arg step]
 set sc_index      [dict get $sc_cfg arg index]
+set sc_flow       [dict get $sc_cfg option flow]
+set sc_task       [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index task]
 
 ##############################
 # Flow control
 ##############################
 
-if {$sc_step == "syn"} {
+if {$sc_task == "syn_fpga"} {
 
     # set up project
     create_project $sc_design -force

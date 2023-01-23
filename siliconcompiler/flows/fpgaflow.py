@@ -188,7 +188,7 @@ def tool_lookup(flow, step):
 
     # open source ice40 flow
     if flow == "yosys-nextpnr":
-        if step == "syn":
+        if step == "syn_fpga":
             tool = "yosys"
         elif step == "apr":
             tool = "nextpnr"
