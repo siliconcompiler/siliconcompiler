@@ -12,9 +12,9 @@ def setup(chip):
     # Generic ASIC / FPGA mode setup.
     mode = chip.get('option', 'mode')
     if mode == 'asic':
-        setup_asic(chip, task)
+        setup_asic(chip)
     elif mode == 'fpga':
-        setup_fpga(chip, task)
+        setup_fpga(chip)
 
     tool = 'yosys'
     task = 'lec'
