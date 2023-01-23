@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.13.0'
+SCHEMA_VERSION = '0.14.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -3052,8 +3052,6 @@ def schema_asic(cfg):
     step = 'default'
     index = 'default'
 
-
-
     scparam(cfg, ['asic', 'logiclib'],
             sctype='[str]',
             scope='job',
@@ -3087,49 +3085,6 @@ def schema_asic(cfg):
             schelp="""
             Delay model to use for the target libs. Supported values
             are nldm and ccs.""")
-
-    net = 'default'
-    scparam(cfg, ['asic', 'ndr', net],
-            sctype='(float,float)',
-            scope='job',
-            shorthelp="ASIC: non-default routing rule",
-            switch="-asic_ndr 'netname <(float,float)>",
-            example= ["cli: -asic_ndr 'clk (0.2,0.2)'",
-                    "api: chip.set('asic','ndr','clk', (0.2,0.2))"],
-            schelp="""
-            Definitions of non-default routing rule specified on a per
-            net basis. Constraints are entered as a (width,space) tuples
-            specified in microns.""")
-
-    scparam(cfg, ['asic', 'minlayer'],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC: minimum routing layer",
-            switch="-asic_minlayer <str>",
-            example= ["cli: -asic_minlayer m2",
-                    "api: chip.set('asic', 'minlayer', 'm2')"],
-            schelp="""
-            Minimum SC metal layer name to be used for automated place and route .
-            Alternatively the layer can be a string that matches a layer hard coded
-            in the pdk_aprtech file. Designers wishing to use the same setup across
-            multiple process nodes should use the integer approach. For processes
-            with ambiguous starting routing layers, exact strings should be used.
-            """)
-
-    scparam(cfg, ['asic', 'maxlayer'],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC: maximum routing layer",
-            switch="-asic_maxlayer <str>",
-            example= ["cli: -asic_maxlayer m2",
-                    "api: chip.set('asic', 'maxlayer', 'm2')"],
-            schelp="""
-            Maximum SC metal layer name to be used for automated place and route .
-            Alternatively the layer can be a string that matches a layer hard coded
-            in the pdk_aprtech file. Designers wishing to use the same setup across
-            multiple process nodes should use the integer approach. For processes
-            with ambiguous starting routing layers, exact strings should be used.
-            """)
 
     sigtype='default'
     scparam(cfg, ['asic', 'rclayer', sigtype],
@@ -3171,75 +3126,6 @@ def schema_asic(cfg):
             during APR.  The metal layers can be specified as technology
             agnostic SC layers starting with m1 or as hard PDK specific
             layer names.""")
-
-    scparam(cfg, ['asic', 'density'],
-            sctype='float',
-            scope='job',
-            shorthelp="ASIC: target core density",
-            switch="-asic_density <float>",
-            example= ["cli: -asic_density 30",
-                      "api: chip.set('asic', 'density', '30')"],
-            schelp="""
-            Target density based on the total design cell area reported
-            after synthesis. This number is used when no diearea or floorplan is
-            supplied. Any number between 1 and 100 is legal, but values above 50
-            may fail due to area/congestion issues during apr.""")
-
-    scparam(cfg, ['asic', 'coremargin'],
-            sctype='float',
-            unit='um',
-            scope='job',
-            shorthelp="ASIC: block core margin",
-            switch="-asic_coremargin <float>",
-            example= ["cli: -asic_coremargin 1",
-                      "api: chip.set('asic', 'coremargin', '1')"],
-            schelp="""
-            Halo/margin between the die boundary and core placement for
-            automated floorplanning when no diearea or floorplan is
-            supplied.""")
-
-    scparam(cfg, ['asic', 'aspectratio'],
-            sctype='float',
-            defvalue='1.0',
-            scope='job',
-            shorthelp="ASIC: block aspect ratio",
-            switch="-asic_aspectratio <float>",
-            example= ["cli: -asic_aspectratio 2.0",
-                    "api: chip.set('asic', 'aspectratio', '2.0')"],
-            schelp="""
-            Height to width ratio of the block for automated floor-planning.
-            Values below 0.1 and above 10 should be avoided as they will likely fail
-            to converge during placement and routing. The ideal aspect ratio for
-            most designs is 1. This value is only used when no diearea or floorplan
-            is supplied.""")
-
-    scparam(cfg, ['asic', 'diearea'],
-            sctype='[(float,float)]',
-            unit='um',
-            scope='job',
-            shorthelp="ASIC: die area outline",
-            switch="-asic_diearea <[(float,float)]>",
-            example= ["cli: -asic_diearea '(0,0)'",
-                      "api: chip.set('asic', 'diearea', (0,0))"],
-            schelp="""
-            List of (x,y) points that define the outline of the die area for the
-            physical design. Simple rectangle areas can be defined with two points,
-            one for the lower left corner and one for the upper right corner. All
-            values are specified in microns.""")
-
-    scparam(cfg, ['asic', 'corearea'],
-            sctype='[(float,float)]',
-            unit='um',
-            scope='job',
-            shorthelp="ASIC: core area outline",
-            switch="-asic_corearea <[(float,float)]>",
-            example= ["cli: -asic_corearea '(0,0)'",
-                    "api: chip.set('asic', 'corearea', (0,0))"],
-            schelp="""
-            List of (x,y) points that define the outline of the core area for the
-            physical design. Simple rectangle areas can be defined with two points,
-            one for the lower left corner and one for the upper right corner. All
-            values are specified in microns.""")
 
     tool = 'default'
     key = 'default'
@@ -3363,7 +3249,6 @@ def schema_asic(cfg):
             symmetric about the x axis, 'Y' implies symmetry about the y axis, and
             'X Y' implies symmetry about the x and y axis.""")
 
-
     scparam(cfg, ['asic', 'footprint', key, 'size'],
             sctype='(float,float)',
             shorthelp="ASIC: Footprint size",
@@ -3383,8 +3268,6 @@ def schema_asic(cfg):
 ############################################
 
 def schema_constraint(cfg, scenario='default', name = 'default'):
-
-
 
     # TIMING
     scparam(cfg,['constraint', 'timing', scenario, 'voltage'],
@@ -3559,6 +3442,129 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             starting with m1 as the lowest routing layer and ending
             with m<n> as the highest routing layer.""")
 
+    # NETS
+    scparam(cfg, ['constraint', 'net', name, 'maxlength'],
+            sctype='float',
+            shorthelp="Constraint: Net max length",
+            switch="-constraint_net_maxlength 'name <float>'",
+            example=[
+                "cli: -constraint_net_maxlength 'nreset 1000'",
+                "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"],
+            schelp="""
+            Maximum total length of a net.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'ndr'],
+            sctype='(float,float)',
+            shorthelp="Constraint: Non-default routing rule",
+            switch="-constraint_net_ndr 'name <(float,float)>'",
+            example=[
+                "cli: -constraint_net_ndr 'nreset (0.4,0.4)'",
+                "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4,0.4))"],
+            schelp="""
+            Definitions of non-default routing rule specified on a per
+            net basis. Constraints are entered as a (width,space) tuples
+            specified in microns.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'minlayer'],
+            sctype='str',
+            shorthelp="Constraint: Net minimum routing layer",
+            switch="-constraint_net_minlayer 'name <str>'",
+            example=[
+                "cli: -constraint_net_minlayer 'nreset m1'",
+                "api: chip.set('constraint', 'net', 'nreset', 'minlayer', 'm1')"],
+            schelp="""
+            Minimum metal layer to be used for automated place and route
+            specified on a per net basis. Metal names should either be the PDK
+            specific metal stack name or an integer with '1' being the lowest
+            routing layer.Wildcards ('*') can be used for net names.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'maxlayer'],
+            sctype='str',
+            shorthelp="Constraint: Net maximum routing layer",
+            switch="-constraint_net_maxlayer 'name <str>'",
+            example=[
+                "cli: -constraint_net_maxlayer 'nreset m1'",
+                "api: chip.set('constraint', 'net', 'nreset', 'maxlayer', 'm1')"],
+            schelp="""
+            Maximum metal layer to be used for automated place and route
+            specified on a per net basis. Metal names should either be the PDK
+            specific metal stack name or an integer with '1' being the lowest
+            routing layer.Wildcards ('*') can be used for net names.""")
+
+
+    # AREA
+    scparam(cfg, ['constraint', 'outline'],
+            sctype='[(float,float)]',
+            unit='um',
+            scope='job',
+            shorthelp="Constraint: Layout outline",
+            switch="-constraint_outline <[(float,float)]>",
+            example= ["cli: -constraint_outline '(0,0)'",
+                      "api: chip.set('constraint', 'outline', (0,0))"],
+            schelp="""
+            List of (x,y) points that define the outline physical layout
+            physical design. Simple rectangle areas can be defined with two points,
+            one for the lower left corner and one for the upper right corner. All
+            values are specified in microns.""")
+
+    scparam(cfg, ['constraint', 'corearea'],
+            sctype='[(float,float)]',
+            unit='um',
+            scope='job',
+            shorthelp="Constraint: Layout core area",
+            switch="-constraint_corearea <[(float,float)]>",
+            example= ["cli: -constraint_corearea '(0,0)'",
+                      "api: chip.set('constraint', 'corearea', (0,0))"],
+            schelp="""
+            List of (x,y) points that define the outline of the core area for the
+            physical design. Simple rectangle areas can be defined with two points,
+            one for the lower left corner and one for the upper right corner. All
+            values are specified in microns.""")
+
+    scparam(cfg, ['constraint', 'coremargin'],
+            sctype='float',
+            unit='um',
+            scope='job',
+            shorthelp="Constraint: Layout core margin",
+            switch="-constraint_coremargin <float>",
+            example= ["cli: -constraint_coremargin 1",
+                      "api: chip.set('constraint', 'coremargin', '1')"],
+            schelp="""
+            Halo/margin between the outline and core area for fully
+            automated layout sizing and floorplanning.
+            Corearea outline length = outline length * coremargin,
+            where coremaging is a number between 1 (no halo) and 0
+            (no core area). This number is ignored if corearea is
+            supplied.""")
+
+    scparam(cfg, ['constraint', 'density'],
+            sctype='float',
+            scope='job',
+            shorthelp="Constraint: Layout density",
+            switch="-constraint_density <float>",
+            example= ["cli: -constraint_density 30",
+                      "api: chip.set('constraint', 'density', '30')"],
+            schelp="""
+            Target density based on the total design cells area reported
+            after synthesis/elaboration. This number is used when no outline
+            or floorplan is supplied. Any number between 1 and 100 is legal,
+            but values above 50 may fail due to area/congestion issues during
+            apr.""")
+
+    scparam(cfg, ['constraint', 'aspectratio'],
+            sctype='float',
+            defvalue='1.0',
+            scope='job',
+            shorthelp="Constraint: Layout aspect ratio",
+            switch="-constraint_aspectratio <float>",
+            example= ["cli: -constraint_aspectratio 2.0",
+                    "api: chip.set('constraint', 'aspectratio', '2.0')"],
+            schelp="""
+            Height to width ratio of the block for automated floorplanning.
+            Values below 0.1 and above 10 should be avoided as they will likely fail
+            to converge during placement and routing. The ideal aspect ratio for
+            most designs is 1. This value is only used when no diearea or floorplan
+            is supplied.""")
 
     return cfg
 
