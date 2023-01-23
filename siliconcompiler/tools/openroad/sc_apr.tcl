@@ -43,14 +43,16 @@ proc convert_sc_layer_name { name } {
 set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
 set sc_targetlibs  [dict get $sc_cfg asic logiclib]
 set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
-set sc_density     [dict get $sc_cfg asic density]
+
 set sc_hpinmetal   [dict get $sc_cfg asic hpinlayer]
 set sc_vpinmetal   [dict get $sc_cfg asic vpinlayer]
 set sc_rcmetal     [dict get $sc_cfg asic rclayer data]
 set sc_clkmetal    [dict get $sc_cfg asic rclayer clk]
-set sc_aspectratio [dict get $sc_cfg asic aspectratio]
-set sc_minmetal    [dict get $sc_cfg asic minlayer]
-set sc_maxmetal    [dict get $sc_cfg asic maxlayer]
+
+set sc_aspectratio [dict get $sc_cfg constraint aspectratio]
+set sc_minmetal    [dict get $sc_cfg constraint net {*} minlayer]
+set sc_maxmetal    [dict get $sc_cfg constraint net {*} maxlayer]
+set sc_density     [dict get $sc_cfg constraint density]
 set sc_scenarios   [dict keys [dict get $sc_cfg constraint timing]]
 
 # Sweep parameters

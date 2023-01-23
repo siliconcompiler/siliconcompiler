@@ -33,15 +33,16 @@ def setup(chip):
     chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt')
 
     #5. Project specific design choices
+    chip.set('constraint', 'net', '*', 'minlayer', 'm2')
+    chip.set('constraint', 'net', '*', 'maxlayer', 'm7')
+    chip.set('constraint', 'density', 10)
+    chip.set('constraint', 'coremargin', 0.270)
+
     chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('asic', 'minlayer', "m2")
-    chip.set('asic', 'maxlayer', "m7")
     chip.set('asic', 'rclayer', 'clk', "m5")
     chip.set('asic', 'rclayer', 'data',"m3")
     chip.set('asic', 'hpinlayer', "m4")
     chip.set('asic', 'vpinlayer', "m5")
-    chip.set('asic', 'density', 10)
-    chip.set('asic', 'coremargin', 0.270)
 
     #5. Timing corners
     corner = 'typical'

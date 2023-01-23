@@ -51,14 +51,15 @@ def setup(chip):
     chip.set('asic', 'delaymodel', 'nldm')
 
     # TODO: how does LI get taken into account?
-    chip.set('asic', 'minlayer', "m1")
-    chip.set('asic', 'maxlayer', "m5")
+    chip.set('constraint', 'net', '*', 'minlayer', 'm1')
+    chip.set('constraint', 'net', '*', 'maxlayer', 'm5')
+    chip.set('constraint', 'density', 10)
+    chip.set('constraint', 'coremargin', 4.6)
+
     chip.set('asic', 'rclayer', 'clk', 'm5')
     chip.set('asic', 'rclayer', 'data', 'm3')
     chip.set('asic', 'hpinlayer', "m3")
     chip.set('asic', 'vpinlayer', "m2")
-    chip.set('asic', 'density', 10)
-    chip.set('asic', 'coremargin', 4.6)
 
     #5. Timing corners
     corner = 'typical'
