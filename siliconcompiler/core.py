@@ -1218,7 +1218,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             filetype (str): File extension (v, def, etc)
-            step (str): Task step name ('syn', 'place', etc)
+            step (str): Task step name ('syn_asic', 'place', etc)
             jobname (str): Jobid directory name
             index (str): Task index
 
@@ -1226,7 +1226,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Returns absolute path to file.
 
         Examples:
-            >>> manifest_filepath = chip.find_result('vg', 'syn')
+            >>> manifest_filepath = chip.find_result('vg', 'syn_asic')
            Returns the absolute path to the manifest.
         """
         if jobname is None:
@@ -2591,7 +2591,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             jobname (str): Job directory name. If None, :keypath:`option, jobname` is used.
-            step (str): Task step name ('syn', 'place', etc). If None, :keypath:`arg, step` is used.
+            step (str): Task step name ('syn_asic', 'place', etc). If None, :keypath:`arg, step` is used.
             index (str): Task index. Default value is 0. If None, :keypath:`arg, index` is used.
             logfile (str): Path to logfile. If None, the default task logfile is used.
             display (bool): If True, logs matches.

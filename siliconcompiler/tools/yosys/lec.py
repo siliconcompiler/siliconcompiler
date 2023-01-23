@@ -1,5 +1,6 @@
 
 from .yosys import setup as setup_tool
+from .yosys import setup_asic, setup_fpga
 
 def setup(chip):
     ''' Helper method for configuring LEC steps.
@@ -7,6 +8,13 @@ def setup(chip):
 
     # Generic tool setup.
     setup_tool(chip)
+
+    # Generic ASIC / FPGA mode setup.
+    mode = chip.get('option', 'mode')
+    if mode == 'asic':
+        setup_asic(chip, task)
+    elif mode == 'fpga':
+        setup_fpga(chip, task)
 
     tool = 'yosys'
     task = 'lec'

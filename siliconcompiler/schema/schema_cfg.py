@@ -1480,7 +1480,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_refdir 'task step index <dir>'",
             example=[
                 "cli: -tool_task_refdir 'yosys syn syn 0 ./myref'",
-                "api:  chip.set('tool','yosys','task','syn','refdir','syn','0','./myref')"],
+                "api:  chip.set('tool','yosys','task','syn_asic','refdir','syn_asic','0','./myref')"],
             schelp="""
             Path to directories containing reference flow scripts, specified
             on a per step and index basis.""")
@@ -1491,7 +1491,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_script 'task step index <file>'",
             example=[
                 "cli: -tool_task_script 'yosys syn syn 0 syn.tcl'",
-                "api: chip.set('tool','yosys','task','syn','script','syn','0','syn.tcl')"],
+                "api: chip.set('tool','yosys','task','syn_asic','script','syn_asic','0','syn.tcl')"],
             schelp="""
             Path to the entry script called by the executable specified
             on a per task and per step basis.""")
@@ -1502,7 +1502,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_prescript 'task step index <file>'",
             example=[
                 "cli: -tool_task_prescript 'yosys syn syn 0 syn_pre.tcl'",
-                "api: chip.set('tool','yosys','task','syn','prescript','syn','0','syn_pre.tcl')"],
+                "api: chip.set('tool','yosys','task','syn_asic','prescript','syn_asic','0','syn_pre.tcl')"],
             schelp="""
             Path to a user supplied script to execute after reading in the design
             but before the main execution stage of the step. Exact entry point
@@ -1516,7 +1516,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_postscript 'task step index <file>'",
             example=[
                 "cli: -tool_task_postscript 'yosys syn syn 0 syn_post.tcl'",
-                "api: chip.set('tool','yosys','task','syn','postscript','syn','0','syn_post.tcl')"],
+                "api: chip.set('tool','yosys','task','syn_asic','postscript','syn_asic','0','syn_post.tcl')"],
             schelp="""
             Path to a user supplied script to execute after the main execution
             stage of the step but before the design is saved.
