@@ -27,25 +27,20 @@ def setup(chip):
     #3. Select default flow/PDK
     chip.set('option', 'flow', 'asicflow')
     chip.set('option', 'pdk', 'asap7')
+    chip.set('option', 'stackup', '10M')
 
     #4. Select libraries
     chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt')
 
     #5. Project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('asic', 'stackup', '10M')
     chip.set('asic', 'minlayer', "m2")
     chip.set('asic', 'maxlayer', "m7")
-    chip.set('asic', 'maxfanout', 64)
-    chip.set('asic', 'maxlength', 1000)
-    chip.set('asic', 'maxslew', 0.2e-9)
-    chip.set('asic', 'maxcap', 0.2e-12)
     chip.set('asic', 'rclayer', 'clk', "m5")
     chip.set('asic', 'rclayer', 'data',"m3")
     chip.set('asic', 'hpinlayer', "m4")
     chip.set('asic', 'vpinlayer', "m5")
     chip.set('asic', 'density', 10)
-    chip.set('asic', 'aspectratio', 1)
     chip.set('asic', 'coremargin', 0.270)
 
     #5. Timing corners
