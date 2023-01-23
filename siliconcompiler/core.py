@@ -114,6 +114,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._init_logger()
 
+        # Ensure that SC built-ins are on the $PYTHONPATH
+        if not self.scroot in sys.path:
+            sys.path.append(self.scroot)
+
         self._loaded_modules = {
             'flows': [],
             'pdks': [],
@@ -161,6 +165,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not entrypoint:
             return self.design
         return entrypoint
+
+    ###########################################################################
+    def _get_task(self, step, index='0', flow=None):
+        '''
+        Helper function to get the name of the task associated with a given step/index.
+        The flowgraph step name may be descriptive for disambiguation pruposes, while the
+        task name defines how the associated tool should be configured and run.
+
+        TODO: Is this sort of schema shortcut worth adding?
+              If so should we also add 'get_tool'?
+              Should it be called 'get_step_task'?
+        '''
+        if not flow:
+            flow = self.get('option', 'flow')
+        return self.get('flowgraph', flow, step, index, 'task')
+
 
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
@@ -473,7 +493,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.set(*args, val, clobber=True)
 
     #########################################################################
-    def find_function(self, modulename, funcname, moduletype=None):
+    def find_function(self, modulename, funcname, moduletype=None, moduletask=None):
         '''
         Returns a function attribute from a module on disk.
 
@@ -514,39 +534,37 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         # module search path depends on modtype
+        module = None
         if moduletype is None:
             for item in ('targets', 'flows', 'tools', 'pdks', 'libs', 'checklists'):
-                fullpath = self.find_function(modulename, funcname, module_type=item)
-                if fullpath:
+                try:
+                    module = importlib.import_module(f'{item}.{modulename}')
                     break
+                except ModuleNotFoundError:
+                    pass
         elif moduletype in ('targets','flows', 'pdks', 'libs'):
-            fullpath = self._find_sc_file(f"{moduletype}/{modulename}.py", missing_ok=True)
+            try:
+                module = importlib.import_module(f'{moduletype}.{modulename}')
+            except ModuleNotFoundError:
+                pass
         elif moduletype in ('tools', 'checklists'):
-            fullpath = self._find_sc_file(f"{moduletype}/{modulename}/{modulename}.py", missing_ok=True)
+            modulefile = moduletask if moduletask is not None else modulename
+            try:
+                module = importlib.import_module(f'{moduletype}.{modulename}.{modulefile}')
+            except ModuleNotFoundError:
+                pass
         else:
             self.error(f"Illegal module type '{moduletype}'.")
             return None
 
-        if not fullpath:
+        if not module:
             self.error(f'Could not find module {modulename}')
             return None
 
         # try loading module if found
         self.logger.debug(f"Loading function '{funcname}' from module '{modulename}'")
 
-        try:
-            spec = importlib.util.spec_from_file_location(modulename, fullpath)
-            imported = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(imported)
-
-            if hasattr(imported, funcname):
-                function = getattr(imported, funcname)
-            else:
-                function = None
-            return function
-        except Exception:
-            traceback.print_exc()
-            self.error(f"Module setup failed for '{modulename}'")
+        return getattr(module, funcname, None)
 
     ##########################################################################
     def load_target(self, name):
@@ -3815,11 +3833,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg','step', step)
         self.set('arg','index', index)
 
-        func = self.find_function(tool, 'setup', 'tools')
-        if func is None:
-            self.logger.error(f'setup() not found for tool {tool}')
+        # Run task setup.
+        try:
+            task = self.get('flowgraph', self.get('option', 'flow'), step, index, 'task')
+            setup_step = self.find_function(tool, 'setup', 'tools', task)
+        except SiliconCompilerError:
+            setup_step = None
+        if setup_step:
+            setup_step(self)
+        else:
+            # TODO: Should we update this to 'self.error(..., fatal=True)'?
+            self.logger.error(f'setup() not found for tool {tool}, task {task}')
             sys.exit(1)
-        func(self)
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.
@@ -4316,7 +4341,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 success = self.find_result('png', stepname)
             else:
                 success = True
-        except:
+        except SiliconCompilerError:
             success = False
 
         # restore environment

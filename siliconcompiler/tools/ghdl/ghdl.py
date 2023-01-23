@@ -1,3 +1,5 @@
+import importlib
+
 import siliconcompiler
 
 #####################################################################
@@ -20,46 +22,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','import')
-    chip.set('arg','index','<index>')
+    step = 'import'
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    setup = getattr(importlib.import_module('tools.ghdl.import'), 'setup')
     setup(chip)
     return chip
-
-################################
-# Setup Tool (pre executable)
-################################
-
-def setup(chip):
-    ''' Per tool function that returns a dynamic options string based on
-    the dictionary settings.
-    '''
-
-    # Standard Setup
-    tool = 'ghdl'
-    clobber = False
-
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    #TODO: fix below
-    task = step
-
-    chip.set('tool', tool, 'exe', 'ghdl')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=2.0.0-dev', clobber=clobber)
-
-
-
-    chip.set('tool', tool, 'task', task, 'threads', step, index, '4', clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'option', step, index, '', clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'stdout', step, index, 'destination', 'output')
-    chip.set('tool', tool, 'task', task, 'stdout', step, index, 'suffix', 'v')
-
-    # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', step, index, 'input,rtl,vhdl')
-
-    design = chip.top()
-
-    chip.set('tool', tool, 'task', task, 'output', step, index, f'{design}.v')
 
 ################################
 #  Custom runtime options

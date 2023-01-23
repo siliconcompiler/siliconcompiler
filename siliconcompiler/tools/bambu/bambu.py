@@ -1,3 +1,4 @@
+import importlib
 import os
 import shutil
 
@@ -11,40 +12,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','import')
-    chip.set('arg','index','0')
+    step = 'import'
+    index = '0'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    setup = getattr(importlib.import_module('tools.bambu.import'), 'setup')
     setup(chip)
     return chip
-
-################################
-# Setup Tool (pre executable)
-################################
-
-def setup(chip):
-    ''' Sets up default settings on a per step basis
-    '''
-
-    tool = 'bambu'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    #TODO: fix below
-    task = step
-
-    # Standard Setup
-    refdir = 'tools/'+tool
-    chip.set('tool', tool, 'exe', 'bambu')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=0.9.6', clobber=False)
-
-    chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', step, index, os.cpu_count(), clobber=False)
-    chip.set('tool', tool, 'task', task, 'option', step, index, [])
-
-    # Input/Output requirements
-    chip.add('tool', tool, 'task', task, 'output', step, index, chip.top() + '.v')
-
-    # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', step, index, 'input,hll,c')
 
 def parse_version(stdout):
     # Long multiline output, but second-to-last line looks like:

@@ -8,10 +8,8 @@ yosys echo on
 #Handling remote/local script execution
 set sc_step   [dict get $sc_cfg arg step]
 set sc_index  [dict get $sc_cfg arg index]
-
-#TODO: fix properly
-set sc_task   $sc_step
-
+set sc_flow   [dict get $sc_cfg option flow]
+set sc_task   [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index task]
 set sc_refdir [dict get $sc_cfg tool $sc_tool task $sc_task refdir $sc_step $sc_index ]
 
 set sc_mode        [dict get $sc_cfg option mode]
