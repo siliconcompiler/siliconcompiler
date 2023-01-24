@@ -127,6 +127,17 @@ def test_set_add_field_list():
     chip.add('input', 'doc', 'txt', 'Ben Bitdiddle', field='author')
     assert chip.get('input', 'doc', 'txt', field='author') == ['Alyssa P. Hacker', 'Ben Bitdiddle']
 
+def test_no_clobber_false():
+    '''Regression test that clobber=False won't overwrite booleans that have
+    been explictly set to False.
+    https://github.com/siliconcompiler/siliconcompiler/issues/1146
+    '''
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'remote', False)
+    chip.set('option', 'remote', True, clobber=False)
+
+    assert chip.get('option', 'remote') == False
+
 #########################
 if __name__ == "__main__":
     test_setget()
