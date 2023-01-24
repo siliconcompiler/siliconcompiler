@@ -275,16 +275,17 @@ class Schema:
         if sc_type.startswith('['):
             if not isinstance(value, list):
                 value = [value]
-            base_type = sc_type.strip('[]')
+            base_type = sc_type[1:-1]
             return [Schema._normalize_value(v, base_type) for v in value]
 
         if sc_type.startswith('('):
+            # TODO: make parsing more robust to support tuples-of-tuples
             if isinstance(value, str):
-                value = value.strip('()').split(',')
+                value = value[1:-1].split(',')
             elif not (isinstance(value, tuple) or isinstance(value, list)):
                 raise TypeError
 
-            base_types = sc_type.strip('()').split(',')
+            base_types = sc_type[1:-1].split(',')
             if len(value) != len(base_types):
                 raise TypeError
             return tuple(Schema._normalize_value(v, base_type) for v, base_type in zip(value, base_types))
