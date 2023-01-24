@@ -138,6 +138,19 @@ def test_no_clobber_false():
 
     assert chip.get('option', 'remote') == False
 
+def test_get_no_side_effect():
+    '''Test that get() of keypaths that don't exist yet doesn't create them.'''
+    chip = siliconcompiler.Chip('test')
+
+    # Surelog not set up yet
+    assert chip.getkeys('tool', 'surelog', 'task') == []
+
+    # Able to recover default value
+    assert chip.get('tool', 'surelog', 'task', 'import', 'stdout', 'import', '0', 'suffix') == 'log'
+
+    # Recovering default does not affect cfg
+    assert chip.getkeys('tool', 'surelog', 'task') == []
+
 #########################
 if __name__ == "__main__":
     test_setget()
