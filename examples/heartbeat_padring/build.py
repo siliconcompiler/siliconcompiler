@@ -64,7 +64,7 @@ def build_top():
 
     # Configure inputs for the top-level design.
     libname = 'heartbeat'
-    stackup = chip.get('asic', 'stackup')
+    stackup = chip.get('option', 'stackup')
     chip.add('asic', 'macrolib', libname)
     lib = Chip(libname)
     lib.set('output', stackup, 'lef', 'floorplan/heartbeat.lef')
