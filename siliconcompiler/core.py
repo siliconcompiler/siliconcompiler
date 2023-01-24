@@ -1267,7 +1267,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 #only do something if type is file or dir
                 if 'file' in paramtype or 'dir' in paramtype:
                     abspaths = self.find_files(*keypath, missing_ok=True)
-                    schema.set(*keypath, abspaths)
+                    if isinstance(abspaths, list) and None in abspaths:
+                        # Lists may not contain None
+                        schema.set(*keypath, [])
+                    else:
+                        schema.set(*keypath, abspaths)
         return schema
 
     ###########################################################################
