@@ -558,7 +558,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return None
 
         if not module:
-            self.error(f'Could not find module {modulename}', fatal=False)
+            self.error(f'Could not find module {modulename}')
             return None
 
         # try loading module if found
