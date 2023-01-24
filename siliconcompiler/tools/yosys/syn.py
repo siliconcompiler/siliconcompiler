@@ -3,11 +3,6 @@ import re
 
 from .yosys import setup as setup_tool
 
-# TODO: Move to 'syn_asic'
-from .yosys import prepare_synthesis_libraries, create_abc_synthesis_constraints
-# TODO: Move to 'syn_fpga'
-from .yosys import create_vpr_lib
-
 def setup(chip):
     ''' Helper method for configs specific to synthesis tasks.
     '''
@@ -29,27 +24,6 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'output', step, index, design + '.vg')
     chip.add('tool', tool, 'task', task, 'output', step, index, design + '_netlist.json')
     chip.add('tool', tool, 'task', task, 'output', step, index, design + '.blif')
-
-##################################################
-def pre_process(chip):
-    ''' Tool specific function to run before step execution
-    '''
-
-    tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    # TODO: Move to 'syn_fpga'
-    # copy the VPR library to the yosys input directory and render the placeholders
-    if chip.get('fpga', 'arch'):
-        create_vpr_lib(chip)
-        return
-
-    # TODO: Move to 'syn_asic'
-    if chip.get('option', 'mode') == 'asic':
-        prepare_synthesis_libraries(chip)
-        create_abc_synthesis_constraints(chip)
-        return
 
 ##################################################
 def post_process(chip):
