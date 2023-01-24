@@ -358,6 +358,32 @@ def schema_pdk(cfg, stackup='default'):
             parasitic models specified in the pdk_pexmodel and pdk_aprtech
             parameters.""")
 
+    scparam(cfg, ['pdk', pdkname, 'minlayer', stackup],
+            sctype='str',
+            scope='global',
+            require='asic',
+            shorthelp="PDK: minimum routing layer",
+            switch="-pdk_minlayer 'pdk stackup <str>'",
+            example=[
+                "cli: -pdk_minlayer 'asap7 2MA4MB2MC M2'",
+                "api: chip.set('pdk', 'asap7', 'minlayer', '2MA4MB2MC', 'M2')"],
+            schelp="""
+            Minimum metal layer to be used for automated place and route
+            specified on a per stackup basis.""")
+
+    scparam(cfg, ['pdk', pdkname, 'maxlayer', stackup],
+            sctype='str',
+            scope='global',
+            require='asic',
+            shorthelp="PDK: maximum routing layer",
+            switch="-pdk_maxlayer 'pdk stackup <str>'",
+            example=[
+                "cli: -pdk_maxlayer 'asap7 2MA4MB2MC M8'",
+                "api: chip.set('pdk', 'asap7', 'maxlayer', 'MA4MB2MC', 'M8')"],
+            schelp="""
+            Maximum metal layer to be used for automated place and route
+            specified on a per stackup basis.""")
+
     scparam(cfg, ['pdk', pdkname, 'thickness', stackup],
             sctype='float',
             scope='global',

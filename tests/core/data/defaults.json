@@ -5550,6 +5550,44 @@
                     }
                 }
             },
+            "maxlayer": {
+                "default": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -pdk_maxlayer 'asap7 2MA4MB2MC M8'",
+                        "api: chip.set('pdk', 'asap7', 'maxlayer', 'MA4MB2MC', 'M8')"
+                    ],
+                    "help": "Maximum metal layer to be used for automated place and route\nspecified on a per stackup basis.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": "asic",
+                    "scope": "global",
+                    "shorthelp": "PDK: maximum routing layer",
+                    "signature": null,
+                    "switch": "-pdk_maxlayer 'pdk stackup <str>'",
+                    "type": "str",
+                    "value": null
+                }
+            },
+            "minlayer": {
+                "default": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -pdk_minlayer 'asap7 2MA4MB2MC M2'",
+                        "api: chip.set('pdk', 'asap7', 'minlayer', '2MA4MB2MC', 'M2')"
+                    ],
+                    "help": "Minimum metal layer to be used for automated place and route\nspecified on a per stackup basis.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": "asic",
+                    "scope": "global",
+                    "shorthelp": "PDK: minimum routing layer",
+                    "signature": null,
+                    "switch": "-pdk_minlayer 'pdk stackup <str>'",
+                    "type": "str",
+                    "value": null
+                }
+            },
             "node": {
                 "defvalue": null,
                 "example": [
