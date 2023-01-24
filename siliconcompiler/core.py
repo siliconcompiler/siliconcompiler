@@ -939,7 +939,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.setLevel(value)
 
         try:
-            self.schema.set(*keypath, value, field=field, clobber=clobber)
+            if not self.schema.set(*keypath, value, field=field, clobber=clobber):
+                # TODO: this warning should be pushed down into Schema.set()
+                # once we have a static logger.
+                self.logger.warning(f'Failed to set value for {keypath}: '
+                    'parameter may be locked or clobber may be False')
         except (ValueError, TypeError) as e:
             self.error(e)
 
@@ -967,10 +971,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.add('source', 'hello.v')
             Adds the file 'hello.v' to the list of sources.
         '''
-        self.logger.debug(f'Appending value {args[-1]} to {args[:-1]}')
+        keypath = args[:-1]
+        value = args[-1]
+        self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            self.schema.add(*args, field=field)
+            if not self.schema.add(*args, field=field):
+                # TODO: this warning should be pushed down into Schema.add()
+                # once we have a static logger.
+                self.logger.warning(f'Failed to add value for {keypath}: '
+                    'parameter may be locked')
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
