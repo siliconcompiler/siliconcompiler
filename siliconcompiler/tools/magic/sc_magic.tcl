@@ -1,6 +1,6 @@
 source ./sc_manifest.tcl
 
-set sc_stackup [dict get $sc_cfg asic stackup]
+set sc_stackup [dict get $sc_cfg option stackup]
 set sc_pdk [dict get $sc_cfg option pdk]
 set sc_runset [dict get $sc_cfg pdk $sc_pdk drc runset magic $sc_stackup basic]
 

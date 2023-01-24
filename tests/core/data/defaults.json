@@ -75,7 +75,7 @@
     },
     "asic": {
         "aspectratio": {
-            "defvalue": null,
+            "defvalue": "1.0",
             "example": [
                 "cli: -asic_aspectratio 2.0",
                 "api: chip.set('asic', 'aspectratio', '2.0')"
@@ -89,7 +89,7 @@
             "signature": null,
             "switch": "-asic_aspectratio <float>",
             "type": "float",
-            "value": null
+            "value": "1.0"
         },
         "cells": {
             "antenna": {
@@ -262,6 +262,23 @@
                 "type": "[str]",
                 "value": []
             },
+            "dontuse": {
+                "defvalue": [],
+                "example": [
+                    "cli: -asic_cells_dontuse '*eco*'",
+                    "api: chip.set('asic','cells',dontuse,'*eco*')"
+                ],
+                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+                "lock": "false",
+                "notes": null,
+                "require": null,
+                "scope": "job",
+                "shorthelp": "ASIC: dontuse cell list",
+                "signature": [],
+                "switch": "-asic_cells_dontuse '<str>'",
+                "type": "[str]",
+                "value": []
+            },
             "driver": {
                 "defvalue": [],
                 "example": [
@@ -327,40 +344,6 @@
                 "shorthelp": "ASIC: hold cell list",
                 "signature": [],
                 "switch": "-asic_cells_hold '<str>'",
-                "type": "[str]",
-                "value": []
-            },
-            "ignore": {
-                "defvalue": [],
-                "example": [
-                    "cli: -asic_cells_ignore '*eco*'",
-                    "api: chip.set('asic','cells',ignore,'*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: ignore cell list",
-                "signature": [],
-                "switch": "-asic_cells_ignore '<str>'",
-                "type": "[str]",
-                "value": []
-            },
-            "load": {
-                "defvalue": [],
-                "example": [
-                    "cli: -asic_cells_load '*eco*'",
-                    "api: chip.set('asic','cells',load,'*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: load cell list",
-                "signature": [],
-                "switch": "-asic_cells_load '<str>'",
                 "type": "[str]",
                 "value": []
             },
@@ -657,41 +640,6 @@
             "type": "[str]",
             "value": []
         },
-        "maxcap": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_maxcap '0.25e-12'",
-                "api: chip.set('asic', 'maxcap', '0.25e-12')"
-            ],
-            "help": "Maximum allowed capacitance per net.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC: maximum net capacitance",
-            "signature": null,
-            "switch": "-asic_maxcap <float>",
-            "type": "float",
-            "unit": "F",
-            "value": null
-        },
-        "maxfanout": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_maxfanout 64",
-                "api: chip.set('asic', 'maxfanout', '64')"
-            ],
-            "help": " Maximum driver fanout allowed during automated place and route.\nThe parameter directs the APR tool to break up any net with fanout\nlarger than maxfanout into sub nets and buffer.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC: maximum fanout",
-            "signature": null,
-            "switch": "-asic_maxfanout <int>",
-            "type": "int",
-            "value": null
-        },
         "maxlayer": {
             "defvalue": null,
             "example": [
@@ -707,42 +655,6 @@
             "signature": null,
             "switch": "-asic_maxlayer <str>",
             "type": "str",
-            "value": null
-        },
-        "maxlength": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_maxlength 1000",
-                "api: chip.set('asic', 'maxlength', '1000')"
-            ],
-            "help": "Maximum total wire length allowed in design during APR. Any\nnet that is longer than maxlength is broken up into segments by\nthe tool.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC: maximum wire length",
-            "signature": null,
-            "switch": "-asic_maxlength <float>",
-            "type": "float",
-            "unit": "um",
-            "value": null
-        },
-        "maxslew": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_maxslew '0.25e-9'",
-                "api: chip.set('asic', 'maxslew', '0.25e-9')"
-            ],
-            "help": "Maximum allowed transition time per net.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC: maximum slew",
-            "signature": null,
-            "switch": "-asic_maxslew <float>",
-            "type": "float",
-            "unit": "s",
             "value": null
         },
         "minlayer": {
@@ -781,23 +693,6 @@
                 "value": null
             }
         },
-        "pdk": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_pdk freepdk45",
-                "api: chip.set('asic','pdk','freepdk45')"
-            ],
-            "help": "Target ASIC PDK to use in the design.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC PDK target",
-            "signature": null,
-            "switch": "-asic_pdk <str>",
-            "type": "str",
-            "value": null
-        },
         "pgmetal": {
             "defvalue": null,
             "example": [
@@ -833,23 +728,6 @@
                 "type": "str",
                 "value": null
             }
-        },
-        "stackup": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_stackup 2MA4MB2MC",
-                "api: chip.set('asic','stackup','2MA4MB2MC')"
-            ],
-            "help": "Target ASIC stackup to use in the design. The stackup is required\nparameter for PDKs with multiple metal stackups.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC Stackup target",
-            "signature": null,
-            "switch": "-asic_stackup <str>",
-            "type": "str",
-            "value": null
         },
         "var": {
             "default": {
@@ -3709,10 +3587,10 @@
         "pdk": {
             "defvalue": null,
             "example": [
-                "cli: -pdk asap7",
-                "api: chip.set('option','pdk','asap7')"
+                "cli: -pdk freepdk45",
+                "api: chip.set('option','pdk','freepdk45')"
             ],
-            "help": "Sets the pdk for the current run. The pdk name\nmust match up with a 'pdk' loaded with load_pdk.",
+            "help": "Target PDK used during compilation.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -3911,6 +3789,23 @@
             "switch": "-skipstep <str>",
             "type": "[str]",
             "value": []
+        },
+        "stackup": {
+            "defvalue": null,
+            "example": [
+                "cli: -stackup 2MA4MB2MC",
+                "api: chip.set('option','stackup','2MA4MB2MC')"
+            ],
+            "help": "Target stackup used during compilation. The stackup is required\nparameter for PDKs with multiple metal stackups.",
+            "lock": "false",
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Stackup target",
+            "signature": null,
+            "switch": "-stackup <str>",
+            "type": "str",
+            "value": null
         },
         "steplist": {
             "defvalue": [],
@@ -5361,6 +5256,23 @@
                 "unit": "mm",
                 "value": null
             },
+            "lambda": {
+                "defvalue": "1e-06",
+                "example": [
+                    "cli: -pdk_lambda 'asap7 1e-06'",
+                    "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"
+                ],
+                "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
+                "lock": "false",
+                "notes": null,
+                "require": "asic",
+                "scope": "global",
+                "shorthelp": "PDK: Lambda value",
+                "signature": null,
+                "switch": "-pdk_lambda 'pdkname <float>",
+                "type": "float",
+                "value": "1e-06"
+            },
             "layermap": {
                 "default": {
                     "default": {
@@ -5941,7 +5853,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.12.0",
+        "defvalue": "0.13.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -5954,7 +5866,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.12.0"
+        "value": "0.13.0"
     },
     "tool": {
         "default": {
@@ -6205,7 +6117,7 @@
                                 "defvalue": [],
                                 "example": [
                                     "cli: -tool_task_postscript 'yosys syn syn 0 syn_post.tcl'",
-                                    "api: chip.set('tool','yosys','task','syn','postscript','syn','0','syn_post.tcl')"
+                                    "api: chip.set('tool','yosys','task','syn_asic','postscript','syn','0','syn_post.tcl')"
                                 ],
                                 "filehash": [],
                                 "hashalgo": "sha256",
@@ -6231,7 +6143,7 @@
                                 "defvalue": [],
                                 "example": [
                                     "cli: -tool_task_prescript 'yosys syn syn 0 syn_pre.tcl'",
-                                    "api: chip.set('tool','yosys','task','syn','prescript','syn','0','syn_pre.tcl')"
+                                    "api: chip.set('tool','yosys','task','syn_asic','prescript','syn','0','syn_pre.tcl')"
                                 ],
                                 "filehash": [],
                                 "hashalgo": "sha256",
@@ -6254,7 +6166,7 @@
                                 "defvalue": [],
                                 "example": [
                                     "cli: -tool_task_refdir 'yosys syn syn 0 ./myref'",
-                                    "api:  chip.set('tool','yosys','task','syn','refdir','syn','0','./myref')"
+                                    "api:  chip.set('tool','yosys','task','syn_asic','refdir','syn','0','./myref')"
                                 ],
                                 "help": "Path to directories containing reference flow scripts, specified\non a per step and index basis.",
                                 "lock": "false",
@@ -6350,7 +6262,7 @@
                                 "defvalue": [],
                                 "example": [
                                     "cli: -tool_task_script 'yosys syn syn 0 syn.tcl'",
-                                    "api: chip.set('tool','yosys','task','syn','script','syn','0','syn.tcl')"
+                                    "api: chip.set('tool','yosys','task','syn_asic','script','syn','0','syn.tcl')"
                                 ],
                                 "filehash": [],
                                 "hashalgo": "sha256",
@@ -6635,23 +6547,6 @@
             "switch": "-unit_inductance '<str>'",
             "type": "str",
             "value": "nh"
-        },
-        "lambda": {
-            "defvalue": "1.0",
-            "example": [
-                "cli: -unit_lambda 1e-6",
-                "api: chip.set('unit', 'lambda', 1e-6)"
-            ],
-            "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "global",
-            "shorthelp": "Unit: Lambda value",
-            "signature": null,
-            "switch": "-unit_lambda <float>",
-            "type": "float",
-            "value": "1.0"
         },
         "length": {
             "defvalue": "um",

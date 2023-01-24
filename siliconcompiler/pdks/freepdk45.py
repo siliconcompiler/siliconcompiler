@@ -62,10 +62,6 @@ def setup(chip):
 
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
-    # If you got here,  you are in asic mode
-    chip.set('option', 'mode', 'asic', clobber=True)
-    chip.set('asic', 'pdk', process, clobber=True)
-
     # process name
     chip.set('pdk', process, 'foundry', foundry)
     chip.set('pdk', process, 'node', node)
@@ -156,7 +152,7 @@ def setup(chip):
             chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'horizontal')
 
     # PEX
-    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical', 
+    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
 
 #########################

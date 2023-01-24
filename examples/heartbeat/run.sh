@@ -2,5 +2,5 @@
 
 sc -design heartbeat \
    -input "rtl verilog heartbeat.v" \
-   -input "asic sdc heartbeat.sdc" \
+   -input "constraint sdc heartbeat.sdc" \
    -target "freepdk45_demo"

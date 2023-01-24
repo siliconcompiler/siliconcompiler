@@ -21,13 +21,13 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'option', step, index, option, clobber=clobber)
 
     targetlibs = chip.get('asic', 'logiclib')
-    stackup = chip.get('asic', 'stackup')
+    stackup = chip.get('option', 'stackup')
     pdk = chip.get('option', 'pdk')
     if bool(stackup) & bool(targetlibs):
         macrolibs = chip.get('asic', 'macrolib')
 
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'logiclib']))
-        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'stackup']))
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['option', 'stackup']))
         chip.add('tool', tool, 'task', task, 'require', step, index,  ",".join(['pdk', pdk, 'layermap', 'klayout', 'def','gds', stackup]))
 
         for lib in (targetlibs + macrolibs):

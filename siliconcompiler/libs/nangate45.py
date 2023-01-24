@@ -37,10 +37,10 @@ def setup(chip):
     lib.set('package', 'version', version)
 
     # list of stackups supported
-    lib.set('asic', 'stackup', stackup)
+    lib.set('option', 'stackup', stackup)
 
     # list of pdks supported
-    lib.set('asic', 'pdk', process)
+    lib.set('option', 'pdk', process)
 
     # footprint/type/sites
     lib.set('asic', 'libarch', libtype)
@@ -61,8 +61,7 @@ def setup(chip):
 
     lib.set('asic', 'pgmetal', 'm1')
 
-
-    # driver
+    # driver cell
     lib.add('asic', 'cells','driver', "BUF_X4")
 
     # clock buffers
@@ -87,8 +86,8 @@ def setup(chip):
                                         "FILLCELL_X32"])
 
     # Stupid small cells
-    lib.add('asic', 'cells', 'ignore', ["AOI211_X1",
-                                        "OAI211_X1"])
+    lib.add('asic', 'cells', 'dontuse', ["AOI211_X1",
+                                         "OAI211_X1"])
 
     # Tapcell
     lib.add('asic', 'cells','tap', "FILLCELL_X1")

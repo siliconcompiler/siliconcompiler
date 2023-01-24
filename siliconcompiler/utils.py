@@ -215,7 +215,7 @@ def get_default_iomap():
 
     # High level languages
     hll_c = ('c', 'cc', 'cpp', 'c++', 'cp', 'cxx', 'hpp')
-    hll_bvs = ('bvs',)
+    hll_bsv = ('bsv',)
     hll_scala = ('scala',)
     hll_python = ('py',)
 
@@ -251,7 +251,7 @@ def get_default_iomap():
     # Build default map with fileset and type
     default_iomap = {}
     default_iomap.update({ext: ('hll', 'c') for ext in hll_c})
-    default_iomap.update({ext: ('hll', 'bvs') for ext in hll_bvs})
+    default_iomap.update({ext: ('hll', 'bvs') for ext in hll_bsv})
     default_iomap.update({ext: ('hll', 'scala') for ext in hll_scala})
     default_iomap.update({ext: ('hll', 'python') for ext in hll_python})
 

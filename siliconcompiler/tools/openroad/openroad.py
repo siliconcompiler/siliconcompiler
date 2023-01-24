@@ -60,7 +60,7 @@ def setup(chip, mode='batch'):
     targetlibs = chip.get('asic', 'logiclib')
     mainlib = targetlibs[0]
     macrolibs = chip.get('asic', 'macrolib')
-    stackup = chip.get('asic', 'stackup')
+    stackup = chip.get('option', 'stackup')
     delaymodel = chip.get('asic', 'delaymodel')
     libtype = chip.get('library', mainlib, 'asic', 'libarch')
 
@@ -115,7 +115,7 @@ def setup(chip, mode='batch'):
     if stackup and targetlibs:
         #Note: only one footprint supported in mainlib
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'logiclib']))
-        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'stackup',]))
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['option', 'stackup',]))
         # chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
         # chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
@@ -383,7 +383,7 @@ def build_pex_corners(chip):
     task = chip._get_task(step, index)
 
     pdkname = chip.get('option', 'pdk')
-    stackup = chip.get('asic', 'stackup')
+    stackup = chip.get('option', 'stackup')
 
     corners = {}
     for constraint in chip.getkeys('constraint', 'timing'):
