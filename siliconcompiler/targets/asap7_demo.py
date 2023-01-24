@@ -36,8 +36,6 @@ def setup(chip):
     chip.set('asic', 'delaymodel', 'nldm')
     chip.set('asic', 'minlayer', "2")
     chip.set('asic', 'maxlayer', "7")
-    chip.set('asic', 'hpinlayer', "4")
-    chip.set('asic', 'vpinlayer', "5")
     chip.set('asic', 'density', 10)
     chip.set('asic', 'coremargin', 0.270)
 

@@ -95,6 +95,9 @@ def setup(chip):
     chip.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'M3')
     chip.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'M5')
 
+    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'M5')
+    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'M4')
+
     # PEX
     chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical', 
         pdkdir + '/pex/openroad/typical.tcl')

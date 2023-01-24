@@ -2982,32 +2982,6 @@ def schema_asic(cfg):
             with ambiguous starting routing layers, exact strings should be used.
             """)
 
-    scparam(cfg, ['asic', 'vpinlayer'],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC: vertical pin layer",
-            switch="-asic_vpinlayer <str>",
-            example= ["cli: -asic_vpinlayer m3",
-                    "api: chip.set('asic', 'vpinlayer', 'm3')"],
-            schelp="""
-            Metal layer to use for automated vertical pin placement
-            during APR.  The metal layers can be specified as technology
-            agnostic SC layers starting with m1 or as hard PDK specific
-            layer names.""")
-
-    scparam(cfg, ['asic', 'hpinlayer'],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC: vertical pin layer",
-            switch="-asic_hpinlayer <str>",
-            example= ["cli: -asic_hpinlayer m4",
-                    "api: chip.set('asic', 'hpinlayer', 'm4')"],
-            schelp="""
-            Metal layer to use for automated horizontal pin placement
-            during APR.  The metal layers can be specified as technology
-            agnostic SC layers starting with m1 or as hard PDK specific
-            layer names.""")
-
     scparam(cfg, ['asic', 'density'],
             sctype='float',
             scope='job',
