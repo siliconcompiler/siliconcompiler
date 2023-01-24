@@ -64,8 +64,8 @@ set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
 set sc_density     [dict get $sc_cfg asic density]
 set sc_hpinmetal   [dict get $sc_cfg asic hpinlayer]
 set sc_vpinmetal   [dict get $sc_cfg asic vpinlayer]
-set sc_rcmetal     [dict get $sc_cfg asic rclayer data]
-set sc_clkmetal    [dict get $sc_cfg asic rclayer clk]
+set sc_rc_signal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool rclayer_clock $sc_stackup] 0]
+set sc_rc_clk      [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool rclayer_clock $sc_stackup] 0]
 set sc_aspectratio [dict get $sc_cfg asic aspectratio]
 set sc_minmetal    [dict get $sc_cfg asic minlayer]
 set sc_maxmetal    [dict get $sc_cfg asic maxlayer]
@@ -252,8 +252,8 @@ set sc_minmetal [sc_get_layer_name $sc_minmetal]
 set sc_maxmetal [sc_get_layer_name $sc_maxmetal]
 set sc_hpinmetal [sc_get_layer_name $sc_hpinmetal]
 set sc_vpinmetal [sc_get_layer_name $sc_vpinmetal]
-set sc_rcmetal [sc_get_layer_name $sc_rcmetal]
-set sc_clkmetal [sc_get_layer_name $sc_clkmetal]
+set sc_rc_clk [sc_get_layer_name $sc_rc_clk]
+set sc_rc_signal [sc_get_layer_name $sc_rc_signal]
 set openroad_grt_signal_min_layer [sc_get_layer_name $openroad_grt_signal_min_layer]
 set openroad_grt_signal_max_layer [sc_get_layer_name $openroad_grt_signal_max_layer]
 set openroad_grt_clock_min_layer [sc_get_layer_name $openroad_grt_clock_min_layer]
@@ -278,8 +278,8 @@ set_dont_use $sc_dontuse
 
 set sc_parasitics [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index parasitics] 0]
 source $sc_parasitics
-set_wire_rc -clock  -layer $sc_clkmetal
-set_wire_rc -signal -layer $sc_rcmetal
+set_wire_rc -clock  -layer $sc_rc_clk
+set_wire_rc -signal -layer $sc_rc_signal
 
 set_thread_count $sc_threads
 

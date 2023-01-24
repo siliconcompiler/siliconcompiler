@@ -102,6 +102,9 @@ def setup(chip):
     for layer, adj in openroad_layer_adjustments.items():
         chip.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
+    chip.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'metal3')
+    chip.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'metal5')
+
     # PEX
     chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')

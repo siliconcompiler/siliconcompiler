@@ -2982,21 +2982,6 @@ def schema_asic(cfg):
             with ambiguous starting routing layers, exact strings should be used.
             """)
 
-    sigtype='default'
-    scparam(cfg, ['asic', 'rclayer', sigtype],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC: parasitics layer",
-            switch="-asic_rclayer 'sigtype <str>'",
-            example= ["cli: -asic_rclayer 'clk m3'",
-                    "api: chip.set('asic', 'rclayer', 'clk', 'm3')"],
-            schelp="""
-            Technology agnostic metal layer to be used for parasitic
-            extraction estimation during APR for the wire type specified
-            Current the supported wire types are: clk, data. The metal
-            layers can be specified as technology agnostic SC layers
-            starting with m1 or as hard PDK specific layer names.""")
-
     scparam(cfg, ['asic', 'vpinlayer'],
             sctype='str',
             scope='job',

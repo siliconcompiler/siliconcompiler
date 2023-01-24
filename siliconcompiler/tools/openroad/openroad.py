@@ -155,6 +155,9 @@ def setup(chip, mode='batch'):
         if chip.valid(*key1):
             chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key0))
 
+    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdkname, 'var', 'openroad', 'rclayer_signal', stackup]))
+    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdkname, 'var', 'openroad', 'rclayer_clock', stackup]))
+
     variables = (
         'place_density',
         'pad_global_place',

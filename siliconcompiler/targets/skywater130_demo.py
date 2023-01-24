@@ -47,14 +47,11 @@ def setup(chip):
     #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
 
-    #5. et project specific design choices
+    #5. get project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
 
-    # TODO: how does LI get taken into account?
     chip.set('asic', 'minlayer', "2")
     chip.set('asic', 'maxlayer', "5")
-    chip.set('asic', 'rclayer', 'clk', '5')
-    chip.set('asic', 'rclayer', 'data', '3')
     chip.set('asic', 'hpinlayer', "3")
     chip.set('asic', 'vpinlayer', "2")
     chip.set('asic', 'density', 10)
