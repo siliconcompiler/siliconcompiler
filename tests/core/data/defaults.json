@@ -850,6 +850,7 @@
                     "signature": null,
                     "switch": "-constraint_component_halo 'inst <(float,float)>'",
                     "type": "(float,float)",
+                    "unit": "um",
                     "value": null
                 },
                 "partname": {
@@ -884,6 +885,7 @@
                     "signature": null,
                     "switch": "-constraint_component_placement 'inst <(float,float, float)>'",
                     "type": "(float,float,float)",
+                    "unit": "um",
                     "value": null
                 },
                 "rotation": {
@@ -911,7 +913,7 @@
                 "cli: -constraint_corearea '(0,0)'",
                 "api: chip.set('constraint', 'corearea', (0,0))"
             ],
-            "help": "List of (x,y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
+            "help": "List of (x,y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -977,11 +979,11 @@
                     "type": "str",
                     "value": null
                 },
-                "matched": {
+                "match": {
                     "defvalue": [],
                     "example": [
-                        "cli: -constraint_net_matched 'clk1 clk2'",
-                        "api: chip.set('constraint', 'net', 'clk1', 'matched', 'clk2')"
+                        "cli: -constraint_net_match 'clk1 clk2'",
+                        "api: chip.set('constraint', 'net', 'clk1', 'match', 'clk2')"
                     ],
                     "help": "List of nets whose routing should closely matched the named\nnet in terms of length, layer, width, etc. Wildcards ('*') can\nbe used for net names.",
                     "lock": "false",
@@ -990,7 +992,7 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Net matched routing",
                     "signature": [],
-                    "switch": "-constraint_net_matched 'name <str>'",
+                    "switch": "-constraint_net_match 'name <str>'",
                     "type": "[str]",
                     "value": []
                 },
@@ -1017,7 +1019,7 @@
                         "cli: -constraint_net_maxlength 'nreset 1000'",
                         "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"
                     ],
-                    "help": "Maximum total length of a net. Wildcards ('*') can be used for net names.",
+                    "help": "Maximum total length of a net, specified in microns or lambda units.\nWildcards ('*') can be used for net names.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -1026,6 +1028,7 @@
                     "signature": null,
                     "switch": "-constraint_net_maxlength 'name <float>'",
                     "type": "float",
+                    "unit": "um",
                     "value": null
                 },
                 "maxresistance": {
@@ -1043,6 +1046,7 @@
                     "signature": null,
                     "switch": "-constraint_net_maxresistance 'name <float>'",
                     "type": "float",
+                    "unit": "ohm",
                     "value": null
                 },
                 "minlayer": {
@@ -1068,7 +1072,7 @@
                         "cli: -constraint_net_ndr 'nreset (0.4,0.4)'",
                         "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4,0.4))"
                     ],
-                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width,space) tuples\nspecified in microns. Wildcards ('*') can be used for net names.",
+                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width,space) tuples\nspecified in microns or lambda units. Wildcards ('*') can be used\nfor net names.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -1077,30 +1081,31 @@
                     "signature": null,
                     "switch": "-constraint_net_ndr 'name <(float,float)>'",
                     "type": "(float,float)",
+                    "unit": "um",
                     "value": null
                 },
-                "shielding": {
-                    "defvalue": "false",
+                "shield": {
+                    "defvalue": null,
                     "example": [
-                        "cli: -constraint_net_shielding 'clk true'",
-                        "api: chip.set('constraint', 'net', 'clk', 'shielding', True)"
+                        "cli: -constraint_net_shield 'clk vss'",
+                        "api: chip.set('constraint', 'net', 'clk', 'shield', 'vss')"
                     ],
-                    "help": "Specifies that the named net should be shieled with ground on both\nsides. Wildcards ('*') can be used for net names.",
+                    "help": "Specifies that the named net should be shielded by the given\nsignal on both sides of the net.",
                     "lock": "false",
                     "notes": null,
-                    "require": "all",
+                    "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net shielding",
                     "signature": null,
                     "switch": "-constraint_net_shielding 'name <str>'",
-                    "type": "bool",
-                    "value": "false"
+                    "type": "str",
+                    "value": null
                 },
                 "sympair": {
                     "defvalue": null,
                     "example": [
-                        "cli: -constraint_net_sympair 'diffn diffp'",
-                        "api: chip.set('constraint', 'net', 'diffn', 'sympair', 'diffp')"
+                        "cli: -constraint_net_sympair 'netA netB'",
+                        "api: chip.set('constraint', 'net', 'netA', 'sympair', 'netB')"
                     ],
                     "help": "Symmetrical pair signal to the named net. The two nets should be routed\nas reflections around the vertical or horizontal axis to minimize on-chip\nvariability.",
                     "lock": "false",
@@ -1121,7 +1126,7 @@
                 "cli: -constraint_outline '(0,0)'",
                 "api: chip.set('constraint', 'outline', (0,0))"
             ],
-            "help": "List of (x,y) points that define the outline physical layout\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
+            "help": "List of (x,y) points that define the outline physical layout\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -1158,7 +1163,7 @@
                         "cli: -constraint_pin_order 'nreset 1'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'order', 1)"
                     ],
-                    "help": "The relative position of the named pin in a vector of pins\non the side specified by the 'side' option. Pin order counting\nis done clockwise.",
+                    "help": "The relative position of the named pin in a vector of pins\non the side specified by the 'side' option. Pin order counting\nis done clockwise. If multiple pins on the same side have the\nsame order number, the actual order is at the discretion of the\ntool.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -1175,7 +1180,7 @@
                         "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0)"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on to and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates.",
+                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on to and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates. Values are specified based\non",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -1184,6 +1189,7 @@
                     "signature": null,
                     "switch": "-constraint_pin_placement 'name <(float,float, float)>'",
                     "type": "(float,float,float)",
+                    "unit": "um",
                     "value": null
                 },
                 "side": {
@@ -1329,6 +1335,7 @@
                     "signature": null,
                     "switch": "-constraint_timing_temperature 'scenario <float>'",
                     "type": "float",
+                    "unit": "C",
                     "value": null
                 },
                 "voltage": {
@@ -5451,7 +5458,7 @@
                     "cli: -pdk_lambda 'asap7 1e-06'",
                     "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"
                 ],
-                "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
+                "help": "Elementary distance unit used for scaling user\nspecified physical schema parameters such as layout\nconstraints.",
                 "lock": "false",
                 "notes": null,
                 "require": "asic",
@@ -5675,7 +5682,7 @@
                         "cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
                         "api:  chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"
                     ],
-                    "help": "Thickness of a manufactured unit specified on a per stackup basis.",
+                    "help": "Thickness of a manufactured unit specified on a per stackup.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -5770,7 +5777,7 @@
                     "cli: -pdk_wafersize 'asap7 300'",
                     "api:  chip.set('pdk', 'asap7', 'wafersize', 300)"
                 ],
-                "help": "Wafer diameter used in wafer based manufacturing process. The standard diameter\nfor leading edge manufacturing is 300mm. For older process technologies\nand specialty fabs, smaller diameters such as 200, 100, 125, 100 are common.\nThe value is used to calculate dies per wafer and full factory chip costs.",
+                "help": "Wafer diameter used in wafer based manufacturing process.\nThe standard diameter for leading edge manufacturing is 300mm. For\nolder process technologies and specialty fabs, smaller diameters\nsuch as 200, 100, 125, 100 are common. The value is used to\ncalculate dies per wafer and full factory chip costs.",
                 "lock": "false",
                 "notes": null,
                 "require": "asic",
@@ -6713,7 +6720,7 @@
                 "cli: -unit_capacitance 'pf'",
                 "api: chip.set('unit','capacitance',pf)"
             ],
-            "help": "Units used for capacitance when not explicitly specified.",
+            "help": "Units used for capacitance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -6725,12 +6732,12 @@
             "value": "pf"
         },
         "current": {
-            "defvalue": "ma",
+            "defvalue": "mA",
             "example": [
-                "cli: -unit_current 'ma'",
-                "api: chip.set('unit','current',ma)"
+                "cli: -unit_current 'mA'",
+                "api: chip.set('unit','current',mA)"
             ],
-            "help": "Units used for current when not explicitly specified.",
+            "help": "Units used for current when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -6739,7 +6746,7 @@
             "signature": null,
             "switch": "-unit_current '<str>'",
             "type": "str",
-            "value": "ma"
+            "value": "mA"
         },
         "energy": {
             "defvalue": "pj",
@@ -6747,7 +6754,7 @@
                 "cli: -unit_energy 'pj'",
                 "api: chip.set('unit','energy',pj)"
             ],
-            "help": "Units used for energy when not explicitly specified.",
+            "help": "Units used for energy when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -6764,7 +6771,7 @@
                 "cli: -unit_inductance 'nh'",
                 "api: chip.set('unit','inductance',nh)"
             ],
-            "help": "Units used for inductance when not explicitly specified.",
+            "help": "Units used for inductance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -6781,7 +6788,7 @@
                 "cli: -unit_length 'um'",
                 "api: chip.set('unit','length',um)"
             ],
-            "help": "Units used for length when not explicitly specified.",
+            "help": "Units used for length when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -6798,7 +6805,7 @@
                 "cli: -unit_mass 'g'",
                 "api: chip.set('unit','mass',g)"
             ],
-            "help": "Units used for mass when not explicitly specified.",
+            "help": "Units used for mass when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -6815,7 +6822,7 @@
                 "cli: -unit_power 'mw'",
                 "api: chip.set('unit','power',mw)"
             ],
-            "help": "Units used for power when not explicitly specified.",
+            "help": "Units used for power when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -6832,7 +6839,7 @@
                 "cli: -unit_resistance 'ohm'",
                 "api: chip.set('unit','resistance',ohm)"
             ],
-            "help": "Units used for resistance when not explicitly specified.",
+            "help": "Units used for resistance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -6843,13 +6850,30 @@
             "type": "str",
             "value": "ohm"
         },
+        "temperature": {
+            "defvalue": "C",
+            "example": [
+                "cli: -unit_temperature 'C'",
+                "api: chip.set('unit','temperature',C)"
+            ],
+            "help": "Units used for temperature when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
+            "lock": "false",
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Unit: temperature",
+            "signature": null,
+            "switch": "-unit_temperature '<str>'",
+            "type": "str",
+            "value": "C"
+        },
         "time": {
             "defvalue": "ns",
             "example": [
                 "cli: -unit_time 'ns'",
                 "api: chip.set('unit','time',ns)"
             ],
-            "help": "Units used for time when not explicitly specified.",
+            "help": "Units used for time when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -6866,7 +6890,7 @@
                 "cli: -unit_voltage 'mv'",
                 "api: chip.set('unit','voltage',mv)"
             ],
-            "help": "Units used for voltage when not explicitly specified.",
+            "help": "Units used for voltage when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": "false",
             "notes": null,
             "require": null,

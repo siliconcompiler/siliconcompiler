@@ -320,9 +320,9 @@ def schema_pdk(cfg, stackup='default'):
             switch="-pdk_lambda 'pdkname <float>",
             example=["cli: -pdk_lambda 'asap7 1e-06'",
                      "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"],
-            schelp="""Elementary distance unit used for scaling all
-            schema physical parameters (layout constraints, size, outline,
-            area, margin etc).""")
+            schelp="""Elementary distance unit used for scaling user
+            specified physical schema parameters such as layout
+            constraints.""")
 
     scparam(cfg, ['pdk', pdkname, 'version'],
             sctype='str',
@@ -393,7 +393,7 @@ def schema_pdk(cfg, stackup='default'):
             example=["cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
                     "api:  chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"],
             schelp="""
-            Thickness of a manufactured unit specified on a per stackup basis.""")
+            Thickness of a manufactured unit specified on a per stackup.""")
 
     scparam(cfg, ['pdk', pdkname, 'wafersize'],
             sctype='float',
@@ -405,10 +405,11 @@ def schema_pdk(cfg, stackup='default'):
             example=["cli: -pdk_wafersize 'asap7 300'",
                     "api:  chip.set('pdk', 'asap7', 'wafersize', 300)"],
             schelp="""
-            Wafer diameter used in wafer based manufacturing process. The standard diameter
-            for leading edge manufacturing is 300mm. For older process technologies
-            and specialty fabs, smaller diameters such as 200, 100, 125, 100 are common.
-            The value is used to calculate dies per wafer and full factory chip costs.""")
+            Wafer diameter used in wafer based manufacturing process.
+            The standard diameter for leading edge manufacturing is 300mm. For
+            older process technologies and specialty fabs, smaller diameters
+            such as 200, 100, 125, 100 are common. The value is used to
+            calculate dies per wafer and full factory chip costs.""")
 
     scparam(cfg, ['pdk', pdkname, 'panelsize'],
             sctype='[(float,float)]',
@@ -416,8 +417,9 @@ def schema_pdk(cfg, stackup='default'):
             unit='mm',
             shorthelp="PDK: panel size",
             switch="-pdk_panelsize 'pdkname <float>'",
-            example=["cli: -pdk_panelsize 'asap7 (45.72,60.96)'",
-                    "api:  chip.set('pdk', 'asap7', 'panelsize', (45.72,60.96))"],
+            example=[
+                "cli: -pdk_panelsize 'asap7 (45.72,60.96)'",
+                "api:  chip.set('pdk', 'asap7', 'panelsize', (45.72,60.96))"],
             schelp="""
             List of panel sizes supported in the manufacturing process.
             """)
@@ -2030,11 +2032,12 @@ def schema_unit(cfg):
         'time' : 'ns',
         'length' : 'um',
         'mass' : 'g',
+        'temperature' : 'C',
         'capacitance' : 'pf',
         'resistance' : 'ohm',
         'inductance' : 'nh',
         'voltage' : 'mv',
-        'current' : 'ma',
+        'current' : 'mA',
         'power' : 'mw',
         'energy' : 'pj'
     }
@@ -2049,7 +2052,8 @@ def schema_unit(cfg):
                     f"cli: -unit_{item} '{val}'",
                     f"api: chip.set('unit','{item}',{val})"],
                 schelp=f"""
-                Units used for {item} when not explicitly specified.""")
+                Units used for {item} when not explicitly specified. Units
+                are case insensitive (ie. pF == pf).""")
 
     return cfg
 
@@ -3321,6 +3325,7 @@ def schema_constraint(cfg):
 
     scparam(cfg,['constraint', 'timing', scenario, 'temperature'],
             sctype='float',
+            unit='C',
             scope='job',
             shorthelp="Constraint: temperature",
             switch="-constraint_timing_temperature 'scenario <float>'",
@@ -3405,6 +3410,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'component', inst, 'placement'],
             sctype='(float,float,float)',
+            unit='um',
             shorthelp="Constraint: Component placement",
             switch="-constraint_component_placement 'inst <(float,float, float)>'",
             example=[
@@ -3438,6 +3444,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'component', inst, 'halo'],
             sctype='(float,float)',
+            unit='um',
             shorthelp="Constraint: Component halo",
             switch="-constraint_component_halo 'inst <(float,float)>'",
             example=[
@@ -3482,6 +3489,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'pin', name, 'placement'],
             sctype='(float,float,float)',
+            unit='um',
             shorthelp="Constraint: Pin placement",
             switch="-constraint_pin_placement 'name <(float,float, float)>'",
             example=[
@@ -3496,7 +3504,8 @@ def schema_constraint(cfg):
             guidelines. The 'z' coordinate shall be set to 0 for planar components
             with only (x,y) coordinates. Discretized systems like 3D chips with
             pins on to and bottom may choose to discretize the top and bottom
-            layer as 0,1 or use absolute coordinates.""")
+            layer as 0,1 or use absolute coordinates. Values are specified based
+            on """)
 
     scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',
@@ -3534,21 +3543,26 @@ def schema_constraint(cfg):
             schelp="""
             The relative position of the named pin in a vector of pins
             on the side specified by the 'side' option. Pin order counting
-            is done clockwise.""")
+            is done clockwise. If multiple pins on the same side have the
+            same order number, the actual order is at the discretion of the
+            tool.""")
 
     # NETS
     scparam(cfg, ['constraint', 'net', name, 'maxlength'],
             sctype='float',
+            unit='um',
             shorthelp="Constraint: Net max length",
             switch="-constraint_net_maxlength 'name <float>'",
             example=[
                 "cli: -constraint_net_maxlength 'nreset 1000'",
                 "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"],
             schelp="""
-            Maximum total length of a net. Wildcards ('*') can be used for net names.""")
+            Maximum total length of a net, specified in microns or lambda units.
+            Wildcards ('*') can be used for net names.""")
 
     scparam(cfg, ['constraint', 'net', name, 'maxresistance'],
             sctype='float',
+            unit='ohm',
             shorthelp="Constraint: Net max resistasnce",
             switch="-constraint_net_maxresistance 'name <float>'",
             example=[
@@ -3560,6 +3574,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'net', name, 'ndr'],
             sctype='(float,float)',
+            unit='um',
             shorthelp="Constraint: Net routing rule",
             switch="-constraint_net_ndr 'name <(float,float)>'",
             example=[
@@ -3568,7 +3583,8 @@ def schema_constraint(cfg):
             schelp="""
             Definitions of non-default routing rule specified on a per
             net basis. Constraints are entered as a (width,space) tuples
-            specified in microns. Wildcards ('*') can be used for net names.""")
+            specified in microns or lambda units. Wildcards ('*') can be used
+            for net names.""")
 
     scparam(cfg, ['constraint', 'net', name, 'minlayer'],
             sctype='str',
@@ -3597,24 +3613,24 @@ def schema_constraint(cfg):
             routing layer. Wildcards ('*') can be used for net names.""")
 
 
-    scparam(cfg, ['constraint', 'net', name, 'shielding'],
-            sctype='bool',
+    scparam(cfg, ['constraint', 'net', name, 'shield'],
+            sctype='str',
             shorthelp="Constraint: Net shielding",
             switch="-constraint_net_shielding 'name <str>'",
             example=[
-                "cli: -constraint_net_shielding 'clk true'",
-                "api: chip.set('constraint', 'net', 'clk', 'shielding', True)"],
+                "cli: -constraint_net_shield 'clk vss'",
+                "api: chip.set('constraint', 'net', 'clk', 'shield', 'vss')"],
             schelp="""
-            Specifies that the named net should be shieled with ground on both
-            sides. Wildcards ('*') can be used for net names.""")
+            Specifies that the named net should be shielded by the given
+            signal on both sides of the net.""")
 
-    scparam(cfg, ['constraint', 'net', name, 'matched'],
+    scparam(cfg, ['constraint', 'net', name, 'match'],
             sctype='[str]',
             shorthelp="Constraint: Net matched routing",
-            switch="-constraint_net_matched 'name <str>'",
+            switch="-constraint_net_match 'name <str>'",
             example=[
-                "cli: -constraint_net_matched 'clk1 clk2'",
-                "api: chip.set('constraint', 'net', 'clk1', 'matched', 'clk2')"],
+                "cli: -constraint_net_match 'clk1 clk2'",
+                "api: chip.set('constraint', 'net', 'clk1', 'match', 'clk2')"],
             schelp="""
             List of nets whose routing should closely matched the named
             net in terms of length, layer, width, etc. Wildcards ('*') can
@@ -3636,8 +3652,8 @@ def schema_constraint(cfg):
             shorthelp="Constraint: Net sympair",
             switch="-constraint_net_sympair 'name <str>'",
             example=[
-                "cli: -constraint_net_sympair 'diffn diffp'",
-                "api: chip.set('constraint', 'net', 'diffn', 'sympair', 'diffp')"],
+                "cli: -constraint_net_sympair 'netA netB'",
+                "api: chip.set('constraint', 'net', 'netA', 'sympair', 'netB')"],
             schelp="""
             Symmetrical pair signal to the named net. The two nets should be routed
             as reflections around the vertical or horizontal axis to minimize on-chip
@@ -3656,7 +3672,7 @@ def schema_constraint(cfg):
             List of (x,y) points that define the outline physical layout
             physical design. Simple rectangle areas can be defined with two points,
             one for the lower left corner and one for the upper right corner. All
-            values are specified in microns.""")
+            values are specified in microns or lambda units.""")
 
     scparam(cfg, ['constraint', 'corearea'],
             sctype='[(float,float)]',
@@ -3670,7 +3686,7 @@ def schema_constraint(cfg):
             List of (x,y) points that define the outline of the core area for the
             physical design. Simple rectangle areas can be defined with two points,
             one for the lower left corner and one for the upper right corner. All
-            values are specified in microns.""")
+            values are specified in microns or lambda units.""")
 
     scparam(cfg, ['constraint', 'coremargin'],
             sctype='float',
