@@ -5,7 +5,7 @@
 source ./sc_manifest.tcl  > /dev/null
 
 ##############################
-# Helper functions
+# Schema Helper functions
 ###############################
 
 proc sc_get_layer_name { name } {
@@ -17,6 +17,26 @@ proc sc_get_layer_name { name } {
     return [$layer getName]
   }
   return $name
+}
+
+proc has_tie_cell { type } {
+    upvar sc_cfg sc_cfg
+    upvar sc_mainlib sc_mainlib
+    upvar sc_tool sc_tool
+
+    return [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_cell] && \
+           [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_port]
+}
+
+proc get_tie_cell { type } {
+    upvar sc_cfg sc_cfg
+    upvar sc_mainlib sc_mainlib
+    upvar sc_tool sc_tool
+
+    set cell [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_cell] 0]
+    set port [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_port] 0]
+
+    return "$cell/$port"
 }
 
 ##############################
@@ -59,7 +79,6 @@ set sc_filler       [dict get $sc_cfg library $sc_mainlib asic cells filler]
 set sc_dontuse      [dict get $sc_cfg library $sc_mainlib asic cells dontuse]
 set sc_clkbuf       [dict get $sc_cfg library $sc_mainlib asic cells clkbuf]
 set sc_filler       [dict get $sc_cfg library $sc_mainlib asic cells filler]
-set sc_tie          [dict get $sc_cfg library $sc_mainlib asic cells tie]
 set sc_tap          [dict get $sc_cfg library $sc_mainlib asic cells tap]
 set sc_endcap       [dict get $sc_cfg library $sc_mainlib asic cells endcap]
 set sc_corners      [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index timing_corners]

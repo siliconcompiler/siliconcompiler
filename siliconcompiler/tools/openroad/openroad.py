@@ -147,6 +147,14 @@ def setup(chip, mode='batch'):
     chip.set('tool', tool, 'task', task, 'var', step, index, 'power_corner', get_power_corner(chip), clobber=False)
     chip.set('tool', tool, 'task', task, 'var', step, index, 'parasitics', "inputs/sc_parasitics.tcl", clobber=True)
 
+    for var0, var1 in [('tiehigh_cell', 'tiehigh_port'), ('tiehigh_cell', 'tiehigh_port')]:
+        key0 = ['library', mainlib, 'asic', 'var', tool, var0]
+        key1 = ['library', mainlib, 'asic', 'var', tool, var1]
+        if chip.valid(*key0):
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key1))
+        if chip.valid(*key1):
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key0))
+
     variables = (
         'place_density',
         'pad_global_place',

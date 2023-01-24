@@ -153,8 +153,10 @@ if { [design_has_unplaced_macros] } {
 # Insert tie cells
 ###########################
 
-foreach sc_tie_port [dict get $sc_cfg library $sc_mainlib asic cells tie] {
-  insert_tiecells $sc_tie_port
+foreach tie_type "high low" {
+  if {[has_tie_cell $tie_type]} {
+    insert_tiecells [get_tie_cell $tie_type]
+  }
 }
 
 ###########################
