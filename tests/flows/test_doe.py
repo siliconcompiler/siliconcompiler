@@ -8,7 +8,7 @@ def run_design(datadir, design, N, job):
 
     chip = siliconcompiler.Chip(loglevel='INFO')
     chip.set('design', design)
-    chip.add('source', os.path.join(datadir, f'{design}.v'))
+    chip.input(os.path.join(datadir, f'{design}.v'))
     chip.set('param', 'N', str(N))
     chip.set('jobname', job)
     chip.set('relax', True)

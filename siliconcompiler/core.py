@@ -953,7 +953,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             field (str): Parameter field to set.
 
         Examples:
-            >>> chip.add('source', 'hello.v')
+            >>> chip.add('input', 'rtl', 'verilog', 'hello.v')
             Adds the file 'hello.v' to the list of sources.
         '''
         self.logger.debug(f'Appending value {args[-1]} to {args[:-1]}')
