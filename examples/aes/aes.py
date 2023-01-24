@@ -29,8 +29,8 @@ def rtl2gds(design='aes',
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 
-    chip.set('asic', 'diearea', [(0,0), (width,height)])
-    chip.set('asic', 'corearea', [(10,10), (width-10,height-10)])
+    chip.set('constraint', 'outline', [(0,0), (width,height)])
+    chip.set('constraint', 'corearea', [(10,10), (width-10,height-10)])
 
     # RUN
     chip.run()

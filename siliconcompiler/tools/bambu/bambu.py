@@ -47,13 +47,3 @@ def runtime_options(chip):
     cmdlist.append('--top-fname=' + chip.top())
 
     return cmdlist
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    design = chip.top()
-    shutil.copy(f'{design}.v', os.path.join('outputs', f'{design}.v'))

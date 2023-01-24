@@ -12,10 +12,10 @@ sc -design gcd \
    -package_description "GCD test package" \
    -package_license "MIT" \
    -target "freepdk45_demo" \
-   -asic_diearea "(0,0)" \
-   -asic_diearea "(100.13,100.8)" \
-   -asic_corearea "(10.07,11.2)" \
-   -asic_corearea "(90.25,91)" \
+   -constraint_outline "(0,0)" \
+   -constraint_outline "(100.13,100.8)" \
+   -constraint_corearea "(10.07,11.2)" \
+   -constraint_corearea "(90.25,91)" \
    -loglevel "INFO" \
    -novercheck \
    -quiet \

@@ -1,4 +1,5 @@
 import os
+import shutil
 
 def setup(chip):
     ''' Sets up default settings on a per step basis
@@ -24,3 +25,13 @@ def setup(chip):
 
     # Schema requirements
     chip.add('tool', tool, 'task', task, 'require', step, index, 'input,hll,c')
+
+################################
+# Post_process (post executable)
+################################
+
+def post_process(chip):
+    ''' Tool specific function to run after step execution
+    '''
+    design = chip.top()
+    shutil.copy(f'{design}.v', os.path.join('outputs', f'{design}.v'))

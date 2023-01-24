@@ -166,26 +166,6 @@ def setup_fpga(chip):
     # Require that a partname is set for FPGA scripts.
     chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['fpga', 'partname']))
 
-#############################################
-# Runtime pre processing
-#############################################
-
-def pre_process(chip):
-
-    tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    # copy the VPR library to the yosys input directory and render the placeholders
-    if chip.get('fpga', 'arch'):
-        create_vpr_lib(chip)
-        return
-
-    if chip.get('option', 'mode') == 'asic':
-        prepare_synthesis_libraries(chip)
-        create_abc_synthesis_constraints(chip)
-        return
-
 ################################
 # Version Check
 ################################
@@ -198,57 +178,6 @@ def normalize_version(version):
     # Replace '+', which represents a "local version label", with '-', which is
     # an "implicit post release number".
     return version.replace('+', '-')
-
-################################
-# Post_process (post executable)
-################################
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-
-    tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    # Extracting
-    if step.startswith('syn'):
-        #TODO: looks like Yosys exits on error, so no need to check metric
-        chip.set('metric', step, index, 'errors', 0, clobber=True)
-        with open("reports/stat.json", 'r') as f:
-            metrics = json.load(f)
-            if "design" in metrics:
-                metrics = metrics["design"]
-
-            if "area" in metrics:
-                chip.set('metric', step, index, 'cellarea', float(metrics["area"]), clobber=True)
-            if "num_cells" in metrics:
-                chip.set('metric', step, index, 'cells', int(metrics["num_cells"]), clobber=True)
-
-        registers = None
-        with open(f"{step}.log", 'r') as f:
-            for line in f:
-                area_metric = re.findall(r"^SC_METRIC: area: ([0-9.]+)", line)
-                if area_metric:
-                    chip.set('metric', step, index, 'cellarea', float(area_metric[0]), clobber=True)
-                line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
-                if line_registers:
-                    if registers is None:
-                        registers = 0
-                    registers += int(line_registers[0])
-        if registers is not None:
-            chip.set('metric', step, index, 'registers', registers, clobber=True)
-    elif step == 'lec':
-        with open(step + ".log") as f:
-            for line in f:
-                if line.endswith('Equivalence successfully proven!\n'):
-                    chip.set('metric', step, index, 'drvs', 0, clobber=True)
-                    continue
-
-                errors = re.search(r'Found a total of (\d+) unproven \$equiv cells.', line)
-                if errors is not None:
-                    num_errors = int(errors.group(1))
-                    chip.set('metric', step, index, 'drvs', num_errors, clobber=True)
-
 
 ################################
 # copy and render the VPR library
