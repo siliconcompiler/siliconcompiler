@@ -252,7 +252,7 @@ def get_default_iomap():
     # Build default map with fileset and type
     default_iomap = {}
     default_iomap.update({ext: ('hll', 'c') for ext in hll_c})
-    default_iomap.update({ext: ('hll', 'bvs') for ext in hll_bsv})
+    default_iomap.update({ext: ('hll', 'bsv') for ext in hll_bsv})
     default_iomap.update({ext: ('hll', 'scala') for ext in hll_scala})
     default_iomap.update({ext: ('hll', 'python') for ext in hll_python})
 
