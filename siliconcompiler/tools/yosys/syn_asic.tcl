@@ -9,11 +9,55 @@ if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index synt
     set sc_macro_libraries []
 }
 set sc_mainlib          [lindex [dict get $sc_cfg asic logiclib] 0]
-set sc_tie              [dict get $sc_cfg library $sc_mainlib asic cells tie]
-set sc_buf              [dict get $sc_cfg library $sc_mainlib asic cells buf]
 
 set sc_dff_library      [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index dff_liberty_file] 0]
 set sc_abc_constraints  [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index abc_constraint_file] 0]
+
+#########################
+# Schema helper functions
+#########################
+
+proc has_tie_cell { type } {
+    upvar sc_cfg sc_cfg
+    upvar sc_mainlib sc_mainlib
+    upvar sc_tool sc_tool
+
+    return [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_cell] && \
+           [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_port]
+}
+
+proc get_tie_cell { type } {
+    upvar sc_cfg sc_cfg
+    upvar sc_mainlib sc_mainlib
+    upvar sc_tool sc_tool
+
+    set cell [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_cell] 0]
+    set port [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_port] 0]
+
+    return "$cell $port"
+}
+
+proc has_buffer_cell { } {
+    upvar sc_cfg sc_cfg
+    upvar sc_mainlib sc_mainlib
+    upvar sc_tool sc_tool
+
+    return [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_cell] && \
+           [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_input] && \
+           [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_output]
+}
+
+proc get_buffer_cell { } {
+    upvar sc_cfg sc_cfg
+    upvar sc_mainlib sc_mainlib
+    upvar sc_tool sc_tool
+
+    set cell [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_cell] 0]
+    set in [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_input] 0]
+    set out [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_output] 0]
+
+    return "$cell $in $out"
+}
 
 ########################################################
 # Read Libraries
@@ -142,16 +186,19 @@ yosys splitnets
 
 yosys clean -purge
 
-if {[llength $sc_tie] == 2} {
-    set sc_tiehi [split [lindex $sc_tie 0] /]
-    set sc_tielo [split [lindex $sc_tie 1] /]
-
-    yosys hilomap -singleton -hicell {*}$sc_tiehi -locell {*}$sc_tielo
+set yosys_hilomap_args []
+if { [has_tie_cell low]} {
+    lappend yosys_hilomap_args -locell {*}[get_tie_cell low]
+}
+if { [has_tie_cell high]} {
+    lappend yosys_hilomap_args -hicell {*}[get_tie_cell high]
+}
+if {[llength $yosys_hilomap_args] != 0} {
+    yosys hilomap -singleton {*}$yosys_hilomap_args
 }
 
-if {[llength $sc_buf] == 1} {
-    set sc_buf_split [split $sc_buf /]
-    yosys insbuf -buf {*}$sc_buf_split
+if {[has_buffer_cell]} {
+    yosys insbuf -buf {*}[get_buffer_cell]
 }
 
 yosys clean -purge
