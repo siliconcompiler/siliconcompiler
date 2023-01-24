@@ -141,8 +141,8 @@ def schema_cfg():
             chip objects.""")
 
     # input/output
-    io = {'input': ['Input',True],
-          'output': ['Output',False]
+    io = {'input': ['Input', True],
+          'output': ['Output', False]
     }
 
     filetype = 'default'
@@ -151,7 +151,7 @@ def schema_cfg():
     for item, val in io.items():
         scparam(cfg,[item, fileset, filetype],
                 sctype='[file]',
-                copy=f"{val[1]}",
+                copy=val[1],
                 shorthelp=f"{val[0]}: files",
                 switch=f"-{item} 'fileset filetype <file>'",
                 example=[
