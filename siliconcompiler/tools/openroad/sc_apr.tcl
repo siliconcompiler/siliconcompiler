@@ -232,8 +232,8 @@ if {[file exists "inputs/$sc_design.odb"]} {
 if {[file exists "inputs/$sc_design.sdc"]} {
   # get from previous step
   read_sdc "inputs/$sc_design.sdc"
-} elseif {[dict exists $sc_cfg input asic sdc]} {
-  foreach sdc [dict get $sc_cfg input asic sdc] {
+} elseif {[dict exists $sc_cfg input constraint sdc]} {
+  foreach sdc [dict get $sc_cfg input constraint sdc] {
     # read step constraint if exists
     read_sdc $sdc
   }

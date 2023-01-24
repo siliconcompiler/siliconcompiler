@@ -8,7 +8,7 @@ import siliconcompiler
 def test_write_manifest():
 
     chip = siliconcompiler.Chip('top')
-    chip.add('input', 'asic', 'sdc','top.sdc')
+    chip.add('input', 'constraint', 'sdc','top.sdc')
     chip.add('input', 'rtl', 'verilog', 'top.v')
     chip.add('input', 'rtl', 'verilog', 'a.v')
     chip.add('input', 'rtl', 'verilog', 'b.v')
