@@ -940,9 +940,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         try:
             if not self.schema.set(*keypath, value, field=field, clobber=clobber):
-                # TODO: this warning should be pushed down into Schema.set()
+                # TODO: this message should be pushed down into Schema.set()
                 # once we have a static logger.
-                self.logger.warning(f'Failed to set value for {keypath}: '
+                self.logger.debug(f'Failed to set value for {keypath}: '
                     'parameter may be locked or clobber may be False')
         except (ValueError, TypeError) as e:
             self.error(e)
@@ -977,9 +977,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         try:
             if not self.schema.add(*args, field=field):
-                # TODO: this warning should be pushed down into Schema.add()
+                # TODO: this message should be pushed down into Schema.add()
                 # once we have a static logger.
-                self.logger.warning(f'Failed to add value for {keypath}: '
+                self.logger.debug(f'Failed to add value for {keypath}: '
                     'parameter may be locked')
         except (ValueError, TypeError) as e:
             self.error(str(e))

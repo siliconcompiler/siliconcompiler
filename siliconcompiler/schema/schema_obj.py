@@ -104,11 +104,11 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: set() must be called on a leaf')
 
         if cfg['lock']:
-            # TODO: log warning here
+            # TODO: log here
             return False
 
         if not Schema._is_empty(cfg) and not clobber:
-            # TODO: log warning here
+            # TODO: log here
             return False
 
         value = Schema._check_and_normalize(value, cfg['type'], field)
@@ -138,7 +138,7 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: add() must be called on a list')
 
         if cfg['lock']:
-            # TODO: log warning here
+            # TODO: log here
             return False
 
         value = Schema._check_and_normalize(value, cfg['type'], field)
