@@ -134,7 +134,7 @@ class Schema:
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: add() must be called on a leaf')
 
-        if not (Schema._is_list(field, cfg['type'])):
+        if not Schema._is_list(field, cfg['type']):
             raise ValueError(f'Invalid keypath {keypath}: add() must be called on a list')
 
         if cfg['lock']:
