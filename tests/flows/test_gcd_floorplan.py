@@ -39,7 +39,7 @@ def test_gcd_floorplan(gcd_chip):
     fp = Floorplan(gcd_chip)
     setup_floorplan(fp)
     fp.write_def(def_file)
-    gcd_chip.set('input', 'floorplan.def', def_file)
+    gcd_chip.set('input', 'asic', 'floorplan.def', def_file)
 
     gcd_chip.run()
 

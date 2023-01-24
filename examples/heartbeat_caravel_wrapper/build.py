@@ -119,7 +119,7 @@ def build_top():
     chip.import_library(heartbeat_lib)
 
     # Use pre-defined floorplan for the wrapper..
-    chip.set('input', 'floorplan.def', f'{CARAVEL_ROOT}/def/user_project_wrapper.def')
+    chip.set('input', 'asic', 'floorplan.def', f'{CARAVEL_ROOT}/def/user_project_wrapper.def')
 
     # (No?) filler cells in the top-level wrapper.
     #chip.set('library', 'sky130hd', 'cells', 'filler', [])

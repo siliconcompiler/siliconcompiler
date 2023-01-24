@@ -511,7 +511,7 @@ def build_core():
     core_fp.write_lef('heartbeat.lef')
 
     # Configure the Chip object for a full build.
-    core_chip.set('input', 'layout', 'floorplan.def', 'heartbeat.def', clobber=True)
+    core_chip.set('input', 'asic', 'floorplan.def', 'heartbeat.def', clobber=True)
     core_chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'floorplan', '0', 'pdn_enable', 'False', clobber=True)
     core_chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'place', '0', 'place_density', '0.1', clobber=True)
     core_chip.input('heartbeat.v')
