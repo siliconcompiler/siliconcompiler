@@ -114,7 +114,8 @@ class Schema:
         value = Schema._check_and_normalize(value, cfg['type'], field)
 
         cfg[field] = value
-        cfg['set'] = True
+        if field == 'value':
+            cfg['set'] = True
 
         return True
 
@@ -143,7 +144,8 @@ class Schema:
         value = Schema._check_and_normalize(value, cfg['type'], field)
 
         cfg[field].extend(value)
-        cfg['set'] = True
+        if field == 'value':
+            cfg['set'] = True
 
         return True
 
@@ -312,10 +314,6 @@ class Schema:
                 value = [value]
             if not all(isinstance(v, str) for v in value):
                 raise TypeError(f'Invalid value {value} for {field}: expected str')
-            return value
-
-        if value is None:
-            # None is always acceptable for scalars
             return value
 
         if field == 'scope':
