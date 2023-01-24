@@ -3277,9 +3277,12 @@ def schema_asic(cfg):
 # Constraints
 ############################################
 
-def schema_constraint(cfg, scenario='default', name = 'default'):
+def schema_constraint(cfg):
 
     # TIMING
+
+    scenario = 'default'
+
     scparam(cfg,['constraint', 'timing', scenario, 'voltage'],
             sctype='float',
             unit='V',
@@ -3371,15 +3374,18 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             noise, reliability.""")
 
     # COMPONENTS
-    scparam(cfg, ['constraint', 'component', name, 'placement'],
+
+    inst = 'default'
+
+    scparam(cfg, ['constraint', 'component', inst, 'placement'],
             sctype='(float,float,float)',
             shorthelp="Constraint: Component placement",
-            switch="-constraint_component_placement 'name <(float,float, float)>'",
+            switch="-constraint_component_placement 'inst <(float,float, float)>'",
             example=[
                 "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
                 "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"],
             schelp="""
-            Placement location of a named component, specified as a (x,y,z) tuple of
+            Placement location of a named instance, specified as a (x,y,z) tuple of
             floats. The location refers to the placement of the center/centroid of the
             component. The 'placement' parameter is a goal/intent, not an exact specification.
             The compiler and layout system may adjust coordinates to meet competing
@@ -3392,10 +3398,22 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             layout system the component is being placed in (ASIC, SIP, PCB) but
             should not need to know exact manufacturing specifications.""")
 
-    scparam(cfg, ['constraint', 'component',  name, 'halo'],
+    scparam(cfg, ['constraint', 'component', inst, 'partname'],
+            sctype='str',
+            shorthelp="Constraint: Component part name",
+            switch="-constraint_component_partname 'inst <str>'",
+            example=[
+                "cli: -constraint_component_partname 'i0 filler_x1'",
+                "api: chip.set('constraint', 'component', 'i0', 'partname', 'filler_x1')"],
+            schelp="""
+            Part name of a named instance. The parameter is required for instances
+            that are not contained within the design netlist (ie. physical only cells).
+            """)
+
+    scparam(cfg, ['constraint', 'component', inst, 'halo'],
             sctype='(float,float)',
             shorthelp="Constraint: Component halo",
-            switch="-constraint_component_halo 'name <(float,float)>'",
+            switch="-constraint_component_halo 'inst <(float,float)>'",
             example=[
                 "cli: -constraint_component_halo 'i0 (1,1)'",
                 "api: chip.set('constraint', 'component', 'i0', 'halo', (1,1))"],
@@ -3404,10 +3422,10 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             (horizontal, vertical) tuple represented in micros on lambda units.
             """)
 
-    scparam(cfg, ['constraint', 'component',  name, 'rotation'],
+    scparam(cfg, ['constraint', 'component', inst, 'rotation'],
             sctype='float',
             shorthelp="Constraint: Component rotation",
-            switch="-constraint_component_rotation 'name <float>'",
+            switch="-constraint_component_rotation 'inst <float>'",
             example=[
                 "cli: -constraint_component_rotation 'i0 90'",
                 "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"],
@@ -3419,10 +3437,10 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             layout systems (like ASICs) only allow a finite number of rotation
             values (0,90,180,270).""")
 
-    scparam(cfg, ['constraint', 'component', name, 'flip'],
+    scparam(cfg, ['constraint', 'component', inst, 'flip'],
             sctype='bool',
             shorthelp="Constraint: Component flip option",
-            switch="-constraint_component_flip 'name <bool>'",
+            switch="-constraint_component_flip 'inst <bool>'",
             example=[
                 "cli: -constraint_component_flip 'i0 true'",
                 "api: chip.set('constraint', 'component', 'i0', 'flip', 'true')"],
@@ -3434,6 +3452,8 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             WCSP).""")
 
     # PINS
+    name = 'default'
+
     scparam(cfg, ['constraint', 'pin', name, 'placement'],
             sctype='(float,float,float)',
             shorthelp="Constraint: Pin placement",
@@ -3514,7 +3534,7 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
 
     scparam(cfg, ['constraint', 'net', name, 'ndr'],
             sctype='(float,float)',
-            shorthelp="Constraint: Non-default routing rule",
+            shorthelp="Constraint: Net routing rule",
             switch="-constraint_net_ndr 'name <(float,float)>'",
             example=[
                 "cli: -constraint_net_ndr 'nreset (0.4,0.4)'",

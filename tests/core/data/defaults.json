@@ -831,7 +831,7 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Component flip option",
                     "signature": null,
-                    "switch": "-constraint_component_flip 'name <bool>'",
+                    "switch": "-constraint_component_flip 'inst <bool>'",
                     "type": "bool",
                     "value": "false"
                 },
@@ -848,8 +848,25 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Component halo",
                     "signature": null,
-                    "switch": "-constraint_component_halo 'name <(float,float)>'",
+                    "switch": "-constraint_component_halo 'inst <(float,float)>'",
                     "type": "(float,float)",
+                    "value": null
+                },
+                "partname": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_component_partname 'i0 filler_x1'",
+                        "api: chip.set('constraint', 'component', 'i0', 'partname', 'filler_x1')"
+                    ],
+                    "help": "Part name of a named instance. The parameter is required for instances\nthat are not contained within the design netlist (ie. physical only cells).",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Component part name",
+                    "signature": null,
+                    "switch": "-constraint_component_partname 'inst <str>'",
+                    "type": "str",
                     "value": null
                 },
                 "placement": {
@@ -858,14 +875,14 @@
                         "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
                         "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"
                     ],
-                    "help": "Placement location of a named component, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
+                    "help": "Placement location of a named instance, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Component placement",
                     "signature": null,
-                    "switch": "-constraint_component_placement 'name <(float,float, float)>'",
+                    "switch": "-constraint_component_placement 'inst <(float,float, float)>'",
                     "type": "(float,float,float)",
                     "value": null
                 },
@@ -882,7 +899,7 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Component rotation",
                     "signature": null,
-                    "switch": "-constraint_component_rotation 'name <float>'",
+                    "switch": "-constraint_component_rotation 'inst <float>'",
                     "type": "float",
                     "value": null
                 }
@@ -1056,7 +1073,7 @@
                     "notes": null,
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Constraint: Non-default routing rule",
+                    "shorthelp": "Constraint: Net routing rule",
                     "signature": null,
                     "switch": "-constraint_net_ndr 'name <(float,float)>'",
                     "type": "(float,float)",
