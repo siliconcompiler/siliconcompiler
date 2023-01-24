@@ -1,3 +1,4 @@
+import subprocess
 
 from .verilator import setup as setup_tool
 

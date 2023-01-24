@@ -1,3 +1,6 @@
+import os
+
+from siliconcompiler.tools.netgen import count_lvs
 
 def setup(chip):
     ''' Setup function for 'magic' tool

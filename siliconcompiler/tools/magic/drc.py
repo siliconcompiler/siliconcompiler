@@ -1,3 +1,4 @@
+import re
 
 from .magic import setup as setup_tool
 

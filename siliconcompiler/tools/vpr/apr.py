@@ -48,7 +48,7 @@ def post_process(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = step
+    task = chip._get_task(step, index)
 
     for file in chip.get('tool', 'vpr', 'task', task, 'output', step, index):
         shutil.copy(file, 'outputs')

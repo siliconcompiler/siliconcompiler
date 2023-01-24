@@ -2,7 +2,6 @@ import importlib
 import os
 
 import siliconcompiler
-from siliconcompiler.tools.netgen import count_lvs
 
 ####################################################################
 # Make Docs

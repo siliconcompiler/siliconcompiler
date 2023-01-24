@@ -1,6 +1,9 @@
 import os
 import shutil
 
+# Directory inside step/index dir to store bsc intermediate results.
+VLOG_DIR = 'verilog'
+
 def setup(chip):
     ''' Sets up default settings on a per step basis
     '''
