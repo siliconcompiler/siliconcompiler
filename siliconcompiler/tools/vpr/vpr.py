@@ -41,29 +41,8 @@ def make_docs():
     setup(chip)
     return chip
 
-#############################################
-# Runtime pre processing
-#############################################
-def pre_process(chip):
-
-    #have to rename the net connected to unhooked pins from $undef to unconn
-    # as VPR uses unconn keywords to identify unconnected pins
-
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    design = chip.top()
-    blif_file = f"{chip._getworkdir()}/{step}/{index}/inputs/{design}.blif"
-    print(blif_file)
-    with open(blif_file,'r+') as f:
-        netlist = f.read()
-        f.seek(0)
-        netlist = re.sub(r'\$undef', 'unconn', netlist)
-        f.write(netlist)
-        f.truncate()
-
 ##################################################
 if __name__ == "__main__":
-
 
     chip = make_docs()
     chip.write_manifest("vpr.json")
