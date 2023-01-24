@@ -2124,6 +2124,17 @@ def schema_option(cfg):
             schelp="""
             Target PDK used during compilation.""")
 
+    scparam(cfg, ['option','uselambda'],
+            sctype='bool',
+            scope='job',
+            shorthelp="Use lambda scaling",
+            switch="-uselambda <bool>",
+            example=["cli: -uselambda true",
+                     "api: chip.set('option','uselambda', True)"],
+            schelp="""
+            Turns on lambda scaling of all dimensionsional constraints.
+            (new value = value * ['pdk', 'lambda']).""")
+
     scparam(cfg, ['option', 'stackup'],
             sctype='str',
             scope='job',

@@ -3796,12 +3796,12 @@
                 "cli: -relax",
                 "api: chip.set('option','relax',True)"
             ],
-            "help": "Specifies that tools should be lenient and suppress some\nwarnings that may or may not indicate design issues.",
+            "help": "Global option specifying that tools should be lenient and\nsuppress warnings that may or may not indicate real design\nissues. Extent of leniency is tool/task specific.",
             "lock": "false",
             "notes": null,
             "require": "all",
             "scope": "job",
-            "shorthelp": "Relax RTL linting",
+            "shorthelp": "Relax design checking",
             "signature": null,
             "switch": "-relax <bool>",
             "type": "bool",
@@ -4027,6 +4027,23 @@
             "shorthelp": "Enable provenance tracking",
             "signature": null,
             "switch": "-track <bool>",
+            "type": "bool",
+            "value": "false"
+        },
+        "uselambda": {
+            "defvalue": "false",
+            "example": [
+                "cli: -uselambda true",
+                "api: chip.set('option','uselambda', True)"
+            ],
+            "help": "Turns on lambda scaling of all dimensionsional constraints.\n(new value = value * ['pdk', 'lambda']).",
+            "lock": "false",
+            "notes": null,
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Use lambda scaling",
+            "signature": null,
+            "switch": "-uselambda <bool>",
             "type": "bool",
             "value": "false"
         },
