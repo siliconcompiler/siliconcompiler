@@ -1,6 +1,6 @@
 
 from .openroad import setup as setup_tool
-from .openroad import copy_show_files, post_process
+from .openroad import build_pex_corners, copy_show_files, post_process
 
 def setup(chip):
     ''' Helper method for configs specific to screenshot tasks.
@@ -37,3 +37,4 @@ def setup(chip):
 
 def pre_process(chip):
     copy_show_files(chip)
+    build_pex_corners(chip)
