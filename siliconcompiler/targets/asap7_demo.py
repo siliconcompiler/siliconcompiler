@@ -33,8 +33,6 @@ def setup(chip):
     chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt')
 
     #5. Project specific design choices
-    chip.set('constraint', 'net', '*', 'minlayer', 'm2')
-    chip.set('constraint', 'net', '*', 'maxlayer', 'm7')
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 0.270)
 

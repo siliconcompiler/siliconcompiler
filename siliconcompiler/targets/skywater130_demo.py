@@ -51,8 +51,6 @@ def setup(chip):
     chip.set('asic', 'delaymodel', 'nldm')
 
     # TODO: how does LI get taken into account?
-    chip.set('constraint', 'net', '*', 'minlayer', 'm1')
-    chip.set('constraint', 'net', '*', 'maxlayer', 'm5')
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 4.6)
 

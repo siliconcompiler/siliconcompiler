@@ -48,8 +48,8 @@ set sc_rcmetal     [dict get $sc_cfg asic rclayer data]
 set sc_clkmetal    [dict get $sc_cfg asic rclayer clk]
 
 set sc_aspectratio [dict get $sc_cfg constraint aspectratio]
-set sc_minmetal    [dict get $sc_cfg constraint net {*} minlayer]
-set sc_maxmetal    [dict get $sc_cfg constraint net {*} maxlayer]
+set sc_minmetal    [dict get $sc_cfg pdk $sc_pdk minlayer $sc_stackup]
+set sc_maxmetal    [dict get $sc_cfg pdk $sc_pdk maxlayer $sc_stackup]
 set sc_density     [dict get $sc_cfg constraint density]
 set sc_scenarios   [dict keys [dict get $sc_cfg constraint timing]]
 

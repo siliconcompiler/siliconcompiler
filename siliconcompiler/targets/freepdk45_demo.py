@@ -46,8 +46,6 @@ def setup(chip):
     chip.set('asic', 'logiclib', 'nangate45')
 
     #5. Set project specific design choices
-    chip.set('constraint', 'net', '*', 'minlayer', "m1")
-    chip.set('constraint', 'net', '*', 'maxlayer', "m10")
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 1.9)
 
