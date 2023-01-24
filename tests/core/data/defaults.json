@@ -835,6 +835,23 @@
                     "type": "bool",
                     "value": "false"
                 },
+                "halo": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_component_halo 'i0 (1,1)'",
+                        "api: chip.set('constraint', 'component', 'i0', 'halo', (1,1))"
+                    ],
+                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple represented in micros on lambda units.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Component halo",
+                    "signature": null,
+                    "switch": "-constraint_component_halo 'name <(float,float)>'",
+                    "type": "(float,float)",
+                    "value": null
+                },
                 "placement": {
                     "defvalue": null,
                     "example": [
@@ -895,7 +912,7 @@
                 "cli: -constraint_coremargin 1",
                 "api: chip.set('constraint', 'coremargin', '1')"
             ],
-            "help": "Halo/margin between the outline and core area for fully\nautomated layout sizing and floorplanning.\nCorearea outline length = outline length * coremargin,\nwhere coremaging is a number between 1 (no halo) and 0\n(no core area). This number is ignored if corearea is\nsupplied.",
+            "help": "Halo/margin between the outline and core area for fully\nautomated layout sizing and floorplanning, specified in\nmicrons or lambda units.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -913,7 +930,7 @@
                 "cli: -constraint_density 30",
                 "api: chip.set('constraint', 'density', '30')"
             ],
-            "help": "Target density based on the total design cells area reported\nafter synthesis/elaboration. This number is used when no outline\nor floorplan is supplied. Any number between 1 and 100 is legal,\nbut values above 50 may fail due to area/congestion issues during\napr.",
+            "help": "Target density based on the total design cells area reported\nafter synthesis/elaboration. This number is used when no outline\nor floorplan is supplied. Any number between 1 and 100 is legal,\nbut values above 50 may fail due to area/congestion issues during\nautomated place and route.",
             "lock": "false",
             "notes": null,
             "require": null,
@@ -926,13 +943,47 @@
         },
         "net": {
             "default": {
+                "diffpair": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_net_diffpair 'clkn clkp'",
+                        "api: chip.set('constraint', 'net', 'clkn', 'diffpair', 'clkp')"
+                    ],
+                    "help": "Differential pair signal of the named net (only used for actual\ndifferential paris.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Net diffpair",
+                    "signature": null,
+                    "switch": "-constraint_net_diffpair 'name <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "matched": {
+                    "defvalue": [],
+                    "example": [
+                        "cli: -constraint_net_matched 'clk1 clk2'",
+                        "api: chip.set('constraint', 'net', 'clk1', 'matched', 'clk2')"
+                    ],
+                    "help": "List of nets whose routing should closely matched the named\nnet in terms of length, layer, width, etc. Wildcards ('*') can\nbe used for net names.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Net matched routing",
+                    "signature": [],
+                    "switch": "-constraint_net_matched 'name <str>'",
+                    "type": "[str]",
+                    "value": []
+                },
                 "maxlayer": {
                     "defvalue": null,
                     "example": [
                         "cli: -constraint_net_maxlayer 'nreset m1'",
                         "api: chip.set('constraint', 'net', 'nreset', 'maxlayer', 'm1')"
                     ],
-                    "help": "Maximum metal layer to be used for automated place and route\nspecified on a per net basis. Metal names should either be the PDK\nspecific metal stack name or an integer with '1' being the lowest\nrouting layer.Wildcards ('*') can be used for net names.",
+                    "help": "Maximum metal layer to be used for automated place and route\nspecified on a per net basis. Metal names should either be the PDK\nspecific metal stack name or an integer with '1' being the lowest\nrouting layer. Wildcards ('*') can be used for net names.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -949,7 +1000,7 @@
                         "cli: -constraint_net_maxlength 'nreset 1000'",
                         "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"
                     ],
-                    "help": "Maximum total length of a net.",
+                    "help": "Maximum total length of a net. Wildcards ('*') can be used for net names.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -960,13 +1011,30 @@
                     "type": "float",
                     "value": null
                 },
+                "maxresistance": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_net_maxresistance 'nreset 1'",
+                        "api: chip.set('constraint', 'net', 'nreset', 'maxresistance', '1')"
+                    ],
+                    "help": "Maximum resistance of named net between driver and receiver\nspecified in ohms. Wildcards ('*') can be used for net names.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Net max resistasnce",
+                    "signature": null,
+                    "switch": "-constraint_net_maxresistance 'name <float>'",
+                    "type": "float",
+                    "value": null
+                },
                 "minlayer": {
                     "defvalue": null,
                     "example": [
                         "cli: -constraint_net_minlayer 'nreset m1'",
                         "api: chip.set('constraint', 'net', 'nreset', 'minlayer', 'm1')"
                     ],
-                    "help": "Minimum metal layer to be used for automated place and route\nspecified on a per net basis. Metal names should either be the PDK\nspecific metal stack name or an integer with '1' being the lowest\nrouting layer.Wildcards ('*') can be used for net names.",
+                    "help": "Minimum metal layer to be used for automated place and route\nspecified on a per net basis. Metal names should either be the PDK\nspecific metal stack name or an integer with '1' being the lowest\nrouting layer. Wildcards ('*') can be used for net names.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -983,7 +1051,7 @@
                         "cli: -constraint_net_ndr 'nreset (0.4,0.4)'",
                         "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4,0.4))"
                     ],
-                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width,space) tuples\nspecified in microns.",
+                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width,space) tuples\nspecified in microns. Wildcards ('*') can be used for net names.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -992,6 +1060,40 @@
                     "signature": null,
                     "switch": "-constraint_net_ndr 'name <(float,float)>'",
                     "type": "(float,float)",
+                    "value": null
+                },
+                "shielding": {
+                    "defvalue": "false",
+                    "example": [
+                        "cli: -constraint_net_shielding 'clk true'",
+                        "api: chip.set('constraint', 'net', 'clk', 'shielding', True)"
+                    ],
+                    "help": "Specifies that the named net should be shieled with ground on both\nsides. Wildcards ('*') can be used for net names.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": "all",
+                    "scope": "job",
+                    "shorthelp": "Constraint: Net shielding",
+                    "signature": null,
+                    "switch": "-constraint_net_shielding 'name <str>'",
+                    "type": "bool",
+                    "value": "false"
+                },
+                "sympair": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_net_sympair 'diffn diffp'",
+                        "api: chip.set('constraint', 'net', 'diffn', 'sympair', 'diffp')"
+                    ],
+                    "help": "Symmetrical pair signal to the named net. The two nets should be routed\nas reflections around the vertical or horizontal axis to minimize on-chip\nvariability.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Net sympair",
+                    "signature": null,
+                    "switch": "-constraint_net_sympair 'name <str>'",
+                    "type": "str",
                     "value": null
                 }
             }
@@ -1033,6 +1135,23 @@
                     "type": "str",
                     "value": null
                 },
+                "order": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_pin_order 'nreset 1'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'order', 1)"
+                    ],
+                    "help": "The relative position of the named pin in a vector of pins\non the side specified by the 'side' option. Pin order counting\nis done clockwise.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Pin order",
+                    "signature": null,
+                    "switch": "-constraint_pin_order 'name <int>'",
+                    "type": "int",
+                    "value": null
+                },
                 "placement": {
                     "defvalue": null,
                     "example": [
@@ -1048,6 +1167,23 @@
                     "signature": null,
                     "switch": "-constraint_pin_placement 'name <(float,float, float)>'",
                     "type": "(float,float,float)",
+                    "value": null
+                },
+                "side": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_pin_side 'nreset 1'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'side', 1)"
+                    ],
+                    "help": "Side of block where the named pin should be placed. Sides are\nenumerated as an integers with '1' being the lower left side,\nand incrementing the side with every turn in a clock wise\nfashion. The side option and order option are orthogonal to\nthe placement option.",
+                    "lock": "false",
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Constraint: Pin side",
+                    "signature": null,
+                    "switch": "-constraint_pin_side 'name <int>'",
+                    "type": "int",
                     "value": null
                 }
             }

@@ -3452,6 +3452,32 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             starting with m1 as the lowest routing layer and ending
             with m<n> as the highest routing layer.""")
 
+    scparam(cfg, ['constraint', 'pin', name, 'side'],
+            sctype='int',
+            shorthelp="Constraint: Pin side",
+            switch="-constraint_pin_side 'name <int>'",
+            example=[
+                "cli: -constraint_pin_side 'nreset 1'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'side', 1)"],
+            schelp="""
+            Side of block where the named pin should be placed. Sides are
+            enumerated as an integers with '1' being the lower left side,
+            and incrementing the side with every turn in a clock wise
+            fashion. The side option and order option are orthogonal to
+            the placement option.""")
+
+    scparam(cfg, ['constraint', 'pin', name, 'order'],
+            sctype='int',
+            shorthelp="Constraint: Pin order",
+            switch="-constraint_pin_order 'name <int>'",
+            example=[
+                "cli: -constraint_pin_order 'nreset 1'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'order', 1)"],
+            schelp="""
+            The relative position of the named pin in a vector of pins
+            on the side specified by the 'side' option. Pin order counting
+            is done clockwise.""")
+
     # NETS
     scparam(cfg, ['constraint', 'net', name, 'maxlength'],
             sctype='float',
@@ -3461,7 +3487,18 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
                 "cli: -constraint_net_maxlength 'nreset 1000'",
                 "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"],
             schelp="""
-            Maximum total length of a net.""")
+            Maximum total length of a net. Wildcards ('*') can be used for net names.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'maxresistance'],
+            sctype='float',
+            shorthelp="Constraint: Net max resistasnce",
+            switch="-constraint_net_maxresistance 'name <float>'",
+            example=[
+                "cli: -constraint_net_maxresistance 'nreset 1'",
+                "api: chip.set('constraint', 'net', 'nreset', 'maxresistance', '1')"],
+            schelp="""
+            Maximum resistance of named net between driver and receiver
+            specified in ohms. Wildcards ('*') can be used for net names.""")
 
     scparam(cfg, ['constraint', 'net', name, 'ndr'],
             sctype='(float,float)',
@@ -3473,7 +3510,7 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             schelp="""
             Definitions of non-default routing rule specified on a per
             net basis. Constraints are entered as a (width,space) tuples
-            specified in microns.""")
+            specified in microns. Wildcards ('*') can be used for net names.""")
 
     scparam(cfg, ['constraint', 'net', name, 'minlayer'],
             sctype='str',
@@ -3486,7 +3523,7 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             Minimum metal layer to be used for automated place and route
             specified on a per net basis. Metal names should either be the PDK
             specific metal stack name or an integer with '1' being the lowest
-            routing layer.Wildcards ('*') can be used for net names.""")
+            routing layer. Wildcards ('*') can be used for net names.""")
 
     scparam(cfg, ['constraint', 'net', name, 'maxlayer'],
             sctype='str',
@@ -3499,8 +3536,54 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             Maximum metal layer to be used for automated place and route
             specified on a per net basis. Metal names should either be the PDK
             specific metal stack name or an integer with '1' being the lowest
-            routing layer.Wildcards ('*') can be used for net names.""")
+            routing layer. Wildcards ('*') can be used for net names.""")
 
+
+    scparam(cfg, ['constraint', 'net', name, 'shielding'],
+            sctype='bool',
+            shorthelp="Constraint: Net shielding",
+            switch="-constraint_net_shielding 'name <str>'",
+            example=[
+                "cli: -constraint_net_shielding 'clk true'",
+                "api: chip.set('constraint', 'net', 'clk', 'shielding', True)"],
+            schelp="""
+            Specifies that the named net should be shieled with ground on both
+            sides. Wildcards ('*') can be used for net names.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'matched'],
+            sctype='[str]',
+            shorthelp="Constraint: Net matched routing",
+            switch="-constraint_net_matched 'name <str>'",
+            example=[
+                "cli: -constraint_net_matched 'clk1 clk2'",
+                "api: chip.set('constraint', 'net', 'clk1', 'matched', 'clk2')"],
+            schelp="""
+            List of nets whose routing should closely matched the named
+            net in terms of length, layer, width, etc. Wildcards ('*') can
+            be used for net names.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'diffpair'],
+            sctype='str',
+            shorthelp="Constraint: Net diffpair",
+            switch="-constraint_net_diffpair 'name <str>'",
+            example=[
+                "cli: -constraint_net_diffpair 'clkn clkp'",
+                "api: chip.set('constraint', 'net', 'clkn', 'diffpair', 'clkp')"],
+            schelp="""
+            Differential pair signal of the named net (only used for actual
+            differential paris.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'sympair'],
+            sctype='str',
+            shorthelp="Constraint: Net sympair",
+            switch="-constraint_net_sympair 'name <str>'",
+            example=[
+                "cli: -constraint_net_sympair 'diffn diffp'",
+                "api: chip.set('constraint', 'net', 'diffn', 'sympair', 'diffp')"],
+            schelp="""
+            Symmetrical pair signal to the named net. The two nets should be routed
+            as reflections around the vertical or horizontal axis to minimize on-chip
+            variability.""")
 
     # AREA
     scparam(cfg, ['constraint', 'outline'],
@@ -3556,7 +3639,7 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             after synthesis/elaboration. This number is used when no outline
             or floorplan is supplied. Any number between 1 and 100 is legal,
             but values above 50 may fail due to area/congestion issues during
-            apr.""")
+            automated place and route.""")
 
     scparam(cfg, ['constraint', 'aspectratio'],
             sctype='float',
