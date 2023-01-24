@@ -51,7 +51,7 @@ def build_core():
     # We can skip a detailed floorplan and let the router connect top-level I/O signals.
     core_chip = configure_chip('heartbeat')
     design = core_chip.get('design')
-    core_chip.set('input', 'verilog', 'heartbeat.v')
+    core_chip.input('heartbeat.v')
     core_chip.set('tool', 'openroad', 'var', 'floorplan', '0', 'pin_thickness_h', ['2'])
     core_chip.set('tool', 'openroad', 'var', 'floorplan', '0', 'pin_thickness_v', ['2'])
     core_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
@@ -94,9 +94,9 @@ def build_top():
     chip.clock('user_clock2', period=20)
 
     # Set top-level source files.
-    chip.set('input', 'verilog', f'{CARAVEL_ROOT}/verilog/rtl/defines.v')
-    chip.add('input', 'verilog', 'heartbeat.bb.v')
-    chip.add('input', 'verilog', 'user_project_wrapper.v')
+    chip.input(f'{CARAVEL_ROOT}/verilog/rtl/defines.v')
+    chip.input('heartbeat.bb.v')
+    chip.input('user_project_wrapper.v')
 
     # Set top-level die/core area.
     chip.set('asic', 'diearea', (0, 0))
