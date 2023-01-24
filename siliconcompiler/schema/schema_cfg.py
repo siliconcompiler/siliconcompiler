@@ -3530,8 +3530,9 @@ def schema_constraint(cfg):
             Side of block where the named pin should be placed. Sides are
             enumerated as an integers with '1' being the lower left side,
             and incrementing the side with every turn in a clock wise
-            fashion. The side option and order option are orthogonal to
-            the placement option.""")
+            fashion. In case of conflict between 'lower' and and 'left',
+            'left' has precedence. 'The side option and order option are
+            orthogonal to the placement option.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'order'],
             sctype='int',
@@ -3645,7 +3646,7 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'net', 'clkn', 'diffpair', 'clkp')"],
             schelp="""
             Differential pair signal of the named net (only used for actual
-            differential paris.""")
+            differential paris).""")
 
     scparam(cfg, ['constraint', 'net', name, 'sympair'],
             sctype='str',
