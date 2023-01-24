@@ -254,6 +254,11 @@ class Schema:
           - tuples: accepts comma-separated values surrounded by parens
         '''
 
+        if value is None and not Schema._is_list(field, sc_type):
+            # None is legal for all scalars, but not within collection types
+            # TODO: could consider normalizing "None" for lists to empty list?
+            return value
+
         if field in ('value', 'defvalue'):
             try:
                 return Schema._normalize_value(value, sc_type)
@@ -281,10 +286,6 @@ class Schema:
             if len(value) != len(base_types):
                 raise TypeError
             return tuple(Schema._normalize_value(v, base_type) for v, base_type in zip(value, base_types))
-
-        if value is None:
-            # Legal for all scalars
-            return value
 
         if sc_type == 'bool':
             if value == 'true': return True
