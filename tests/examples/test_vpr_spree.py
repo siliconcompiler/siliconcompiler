@@ -12,7 +12,7 @@ def test_spree(scroot):
 
     chip = siliconcompiler.Chip('spree')
 
-    chip.add('input', 'rtl', 'verilog', source)
+    chip.input(source)
     chip.set('fpga', 'arch', arch)
     chip.set('fpga', 'partname', 'dummy')
     chip.load_flow('fpgaflow')

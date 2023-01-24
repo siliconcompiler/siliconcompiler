@@ -8,11 +8,11 @@ import siliconcompiler
 def test_write_manifest():
 
     chip = siliconcompiler.Chip('top')
-    chip.add('input', 'constraint', 'sdc','top.sdc')
-    chip.add('input', 'rtl', 'verilog', 'top.v')
-    chip.add('input', 'rtl', 'verilog', 'a.v')
-    chip.add('input', 'rtl', 'verilog', 'b.v')
-    chip.add('input', 'rtl', 'verilog', 'c.v')
+    chip.input('top.sdc')
+    chip.input('top.v')
+    chip.input('a.v')
+    chip.input('b.v')
+    chip.input('c.v')
 
     chip.write_manifest('top.pkg.json')
     chip.write_manifest('top.csv')
@@ -41,7 +41,7 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
     chip.set('option', 'quiet', True)
 
     # Test envvars
-    chip.set('input', 'rtl', 'verilog', 'rtl/$TOPMOD.v')
+    chip.input('rtl/$TOPMOD.v')
 
     chip.write_manifest('top.tcl')
 
@@ -67,7 +67,7 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
 
 def test_csv():
     chip = siliconcompiler.Chip('test')
-    chip.set('input', 'rtl', 'verilog', 'source.v')
+    chip.input('source.v')
 
     chip.write_manifest('test.csv')
 
