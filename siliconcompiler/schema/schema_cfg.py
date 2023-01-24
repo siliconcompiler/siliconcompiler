@@ -3133,8 +3133,7 @@ def schema_asic(cfg):
 
     # TODO: Expand on the exact definitions of these types of cells.
     # minimize typing
-    names = ['buf',
-             'decap',
+    names = ['decap',
              'delay',
              'tie',
              'hold',

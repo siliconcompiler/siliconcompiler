@@ -93,9 +93,6 @@ def setup(chip):
         'sky130_fd_sc_hd__buf_16'
     ])
 
-    # buffer cell
-    lib.add('asic', 'cells', 'buf', ['sky130_fd_sc_hd__buf_4'])
-
     # tie cells
     lib.add('asic', 'cells', 'tie', ['sky130_fd_sc_hd__conb_1'])
 

@@ -53,10 +53,6 @@ def _setup_lib(libname, suffix):
     lib.add('asic', 'cells', 'tie', [f"TIEHIx1_ASAP7_75t_{suffix}",
                                      f"TIELOx1_ASAP7_75t_{suffix}"])
 
-    # buffer
-    # TODO: Need to fix this syntax!, not needed by modern tools!
-    lib.add('asic', 'cells', 'buf', [f"BUFx2_ASAP7_75t_{suffix}/A/Y"])
-
     # hold cells
     lib.add('asic', 'cells', 'hold', f"BUFx2_ASAP7_75t_{suffix}")
 

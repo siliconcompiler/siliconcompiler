@@ -65,9 +65,6 @@ def setup(chip):
     lib.add('asic', 'cells','tie', ["LOGIC1_X1",
                                     "LOGIC0_X1"])
 
-    # buffer cell
-    lib.add('asic', 'cells', 'buf', ['BUF_X1'])
-
     # hold cells
     lib.add('asic', 'cells', 'hold', "BUF_X1")
 
