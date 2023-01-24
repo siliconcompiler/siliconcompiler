@@ -3606,7 +3606,7 @@
         "pdk": {
             "defvalue": null,
             "example": [
-                "cli: -option_pdk freepdk45",
+                "cli: -pdk freepdk45",
                 "api: chip.set('option','pdk','freepdk45')"
             ],
             "help": "Target PDK used during compilation.",
@@ -3616,7 +3616,7 @@
             "scope": "job",
             "shorthelp": "PDK target",
             "signature": null,
-            "switch": "-option_pdk <str>",
+            "switch": "-pdk <str>",
             "type": "str",
             "value": null
         },
@@ -3812,7 +3812,7 @@
         "stackup": {
             "defvalue": null,
             "example": [
-                "cli: -option_stackup 2MA4MB2MC",
+                "cli: -stackup 2MA4MB2MC",
                 "api: chip.set('option','stackup','2MA4MB2MC')"
             ],
             "help": "Target stackup used during compilation. The stackup is required\nparameter for PDKs with multiple metal stackups.",
@@ -3822,7 +3822,7 @@
             "scope": "job",
             "shorthelp": "Stackup target",
             "signature": null,
-            "switch": "-option_stackup <str>",
+            "switch": "-stackup <str>",
             "type": "str",
             "value": null
         },

@@ -10,17 +10,15 @@ source ./sc_manifest.tcl  > /dev/null
 
 set sc_tool   openroad
 set sc_step   [dict get $sc_cfg arg step]
-#TODO: fix properly
-set sc_task   $sc_step
-
 set sc_index  [dict get $sc_cfg arg index]
+set sc_flow       [dict get $sc_cfg option flow]
+set sc_task   [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index task]
 
 set sc_refdir [dict get $sc_cfg tool $sc_tool task $sc_task refdir $sc_step $sc_index ]
 
 # Design
 set sc_design     [sc_top]
 set sc_optmode    [dict get $sc_cfg option optmode]
-set sc_flow       [dict get $sc_cfg option flow]
 set sc_pdk        [dict get $sc_cfg option pdk]
 set sc_stackup    [dict get $sc_cfg option stackup]
 

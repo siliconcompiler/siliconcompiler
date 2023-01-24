@@ -1,3 +1,4 @@
+import importlib
 import os
 import shutil
 
@@ -24,42 +25,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','import')
-    chip.set('arg','index','0')
+    step = 'import'
+    index = '0'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    setup = getattr(importlib.import_module('tools.chisel.import'), 'setup')
     setup(chip)
     return chip
-
-################################
-# Setup Tool (pre executable)
-################################
-
-def setup(chip):
-    ''' Sets up default settings on a per step basis
-    '''
-
-    tool = 'chisel'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    #TODO: fix below
-    task = step
-
-    # Standard Setup
-    refdir = 'tools/'+tool
-    chip.set('tool', tool, 'exe', 'sbt')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=1.5.5', clobber=False)
-
-    chip.set('tool', tool, 'task', task, 'refdir', step, index,  refdir, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
-
-    design = chip.top()
-    option = f'"runMain SCDriver --module {design} -o ../outputs/{design}.v"'
-    chip.set('tool', tool, 'task', task, 'option', step, index,  option)
-
-    # Input/Output requirements
-    chip.add('tool', tool, 'task', task, 'output', step, index, chip.top() + '.v')
-
-    chip.set('tool', tool, 'task', task, 'keep', step, index, ['build.sbt', 'SCDriver.scala'])
 
 def parse_version(stdout):
     # sbt version in this project: 1.5.5

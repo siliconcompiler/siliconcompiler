@@ -2036,8 +2036,6 @@ def schema_option(cfg):
     '''
 
 
-
-
     scparam(cfg, ['option', 'remote'],
             sctype='bool',
             scope='job',
@@ -2120,8 +2118,8 @@ def schema_option(cfg):
             sctype='str',
             scope='job',
             shorthelp="PDK target",
-            switch="-option_pdk <str>",
-            example=["cli: -option_pdk freepdk45",
+            switch="-pdk <str>",
+            example=["cli: -pdk freepdk45",
                      "api: chip.set('option','pdk','freepdk45')"],
             schelp="""
             Target PDK used during compilation.""")
@@ -2130,8 +2128,8 @@ def schema_option(cfg):
             sctype='str',
             scope='job',
             shorthelp="Stackup target",
-            switch="-option_stackup <str>",
-            example=["cli: -option_stackup 2MA4MB2MC",
+            switch="-stackup <str>",
+            example=["cli: -stackup 2MA4MB2MC",
                      "api: chip.set('option','stackup','2MA4MB2MC')"],
             schelp="""
             Target stackup used during compilation. The stackup is required

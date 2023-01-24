@@ -1,3 +1,4 @@
+import importlib
 import os
 import shutil
 
@@ -22,8 +23,14 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','import')
-    chip.set('arg','index','0')
+    step = 'import'
+    index = '0'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    setup = getattr(importlib.import_module('tools.bluespec.import'), 'setup')
     setup(chip)
     return chip
 
@@ -33,34 +40,6 @@ VLOG_DIR = 'verilog'
 ################################
 # Setup Tool (pre executable)
 ################################
-
-def setup(chip):
-    ''' Sets up default settings on a per step basis
-    '''
-
-    tool = 'bluespec'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    #TODO: fix below
-    task = step
-
-    # Standard Setup
-    refdir = 'tools/'+tool
-    chip.set('tool', tool, 'exe', 'bsc')
-    # This is technically the 'verbose' flag, but used alone it happens to give
-    # us the version and exit cleanly, so we'll use it here.
-    chip.set('tool', tool, 'vswitch', '-v')
-    chip.set('tool', tool, 'version', '>=2021.07', clobber=False)
-
-    chip.set('tool', tool, 'task', task, 'refdir', step, index,  refdir, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
-    chip.set('tool', tool, 'task', task, 'option', step, index,  [], clobber=False)
-
-    # Input/Output requirements
-    chip.add('tool', tool, 'task', task,'output', step, index, chip.top() + '.v')
-
-    # Schema requirements
-    chip.add('tool', tool, 'task', task,'require', step, index, 'input,hll,bsv')
 
 def parse_version(stdout):
     # Examples:
