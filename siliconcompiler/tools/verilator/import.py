@@ -19,3 +19,18 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', step, index, f'{design}.v')
     for value in chip.get('option', 'define'):
         chip.add('tool', tool, 'task', task, 'option', step, index, '-D' + value)
+
+def post_process(chip):
+    ''' Tool specific function to run after step execution
+    '''
+
+    design = chip.top()
+    step = chip.get('arg','step')
+
+    # Post-process hack to collect vpp files
+    # Creating single file "pickle' synthesis handoff
+    subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',
+                   shell=True)
+
+    # Moving pickled file to outputs
+    os.rename("verilator.v", f"outputs/{design}.v")

@@ -1,4 +1,5 @@
 import os
+import shutil
 
 def setup(chip):
     ''' Sets up default settings on a per step basis
@@ -26,3 +27,29 @@ def setup(chip):
 
     # Schema requirements
     chip.add('tool', tool, 'task', task,'require', step, index, 'input,hll,bsv')
+
+################################
+# Pre-process
+################################
+
+def pre_process(chip):
+    # bsc requires its output directory exists before being called.
+    if os.path.isdir(VLOG_DIR):
+        shutil.rmtree(VLOG_DIR)
+    os.makedirs(VLOG_DIR)
+
+################################
+# Post-process (post executable)
+################################
+
+def post_process(chip):
+    ''' Tool specific function to run after step execution
+    '''
+
+    # bsc outputs each compiled module to its own Verilog file, so we
+    # concatenate them all to create a pickled output we can pass along.
+    design = chip.top()
+    with open(os.path.join('outputs', f'{design}.v'), 'w') as pickled_vlog:
+        for src in os.listdir(VLOG_DIR):
+            with open(os.path.join(VLOG_DIR, src), 'r') as vlog_mod:
+                pickled_vlog.write(vlog_mod.read())

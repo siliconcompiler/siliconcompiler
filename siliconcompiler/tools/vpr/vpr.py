@@ -61,25 +61,6 @@ def pre_process(chip):
         f.write(netlist)
         f.truncate()
 
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    task = step
-
-    for file in chip.get('tool', 'vpr', 'task', task, 'output', step, index):
-        shutil.copy(file, 'outputs')
-    design = chip.top()
-    shutil.copy(f'inputs/{design}.blif', 'outputs')
-    #TODO: return error code
-    return 0
-
 ##################################################
 if __name__ == "__main__":
 

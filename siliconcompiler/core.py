@@ -558,7 +558,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return None
 
         if not module:
-            self.error(f'Could not find module {modulename}')
+            self.error(f'Could not find module {modulename}', fatal=False)
             return None
 
         # try loading module if found
@@ -3395,7 +3395,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         top = self.top()
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
+        task = self._get_task(step, index, flow)
 
         quiet = self.get('option', 'quiet') and (step not in self.get('option', 'bkpt'))
 
@@ -3513,7 +3513,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Run preprocess step for tool
         if tool not in self.builtin:
-            func = self.find_function(tool, "pre_process", 'tools')
+            func = self.find_function(tool, "pre_process", 'tools', task)
             if func:
                 func(self)
                 if self._error:
@@ -3724,7 +3724,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Post process
         if (tool not in self.builtin) and (not self.get('option', 'skipall')) :
-            func = self.find_function(tool, 'post_process', 'tools')
+            func = self.find_function(tool, 'post_process', 'tools', task)
             if func:
                 func(self)
 
