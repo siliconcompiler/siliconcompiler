@@ -3380,6 +3380,18 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             layout system the component is being placed in (ASIC, SIP, PCB) but
             should not need to know exact manufacturing specifications.""")
 
+    scparam(cfg, ['constraint', 'component',  name, 'halo'],
+            sctype='(float,float)',
+            shorthelp="Constraint: Component halo",
+            switch="-constraint_component_halo 'name <(float,float)>'",
+            example=[
+                "cli: -constraint_component_halo 'i0 (1,1)'",
+                "api: chip.set('constraint', 'component', 'i0', 'halo', (1,1))"],
+            schelp="""
+            Placement keepout halo around the named component, specified as a
+            (horizontal, vertical) tuple represented in micros on lambda units.
+            """)
+
     scparam(cfg, ['constraint', 'component',  name, 'rotation'],
             sctype='float',
             shorthelp="Constraint: Component rotation",
@@ -3529,11 +3541,8 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
                       "api: chip.set('constraint', 'coremargin', '1')"],
             schelp="""
             Halo/margin between the outline and core area for fully
-            automated layout sizing and floorplanning.
-            Corearea outline length = outline length * coremargin,
-            where coremaging is a number between 1 (no halo) and 0
-            (no core area). This number is ignored if corearea is
-            supplied.""")
+            automated layout sizing and floorplanning, specified in
+            microns or lambda units.""")
 
     scparam(cfg, ['constraint', 'density'],
             sctype='float',
