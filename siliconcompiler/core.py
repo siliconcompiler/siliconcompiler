@@ -942,8 +942,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if not self.schema.set(*keypath, value, field=field, clobber=clobber):
                 # TODO: this message should be pushed down into Schema.set()
                 # once we have a static logger.
-                self.logger.debug(f'Failed to set value for {keypath}: '
-                    'parameter may be locked or clobber may be False')
+                if clobber:
+                    self.logger.debug(f'Failed to set value for {keypath}: '
+                        'parameter is locked')
+                else:
+                    self.logger.debug(f'Failed to set value for {keypath}: '
+                        'clobber is False and parameter may be locked')
         except (ValueError, TypeError) as e:
             self.error(e)
 

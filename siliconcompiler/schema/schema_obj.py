@@ -76,7 +76,7 @@ class Schema:
         cfg = self._search(*keypath, job=job)
 
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: get() must be called on a leaf')
+            raise ValueError(f'Invalid keypath {keypath}: get() must be called on a complete keypath')
 
         if field == 'value':
             if not Schema._is_empty(cfg):
@@ -101,7 +101,7 @@ class Schema:
         cfg = self._search(*keypath, insert_defaults=True)
 
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: set() must be called on a leaf')
+            raise ValueError(f'Invalid keypath {keypath}: set() must be called on a complete keypath')
 
         if cfg['lock']:
             # TODO: log here
@@ -111,7 +111,7 @@ class Schema:
             # TODO: log here
             return False
 
-        value = Schema._check_and_normalize(value, cfg['type'], field)
+        value = Schema._check_and_normalize(value, cfg['type'], field, keypath)
 
         cfg[field] = value
         if field == 'value':
@@ -132,16 +132,16 @@ class Schema:
         cfg = self._search(*keypath, insert_defaults=True)
 
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: add() must be called on a leaf')
+            raise ValueError(f'Invalid keypath {keypath}: add() must be called on a complete keypath')
 
         if not Schema._is_list(field, cfg['type']):
-            raise ValueError(f'Invalid keypath {keypath}: add() must be called on a list')
+            raise ValueError(f'Invalid keypath {keypath}: add() must be called on a complete keypath')
 
         if cfg['lock']:
             # TODO: log here
             return False
 
-        value = Schema._check_and_normalize(value, cfg['type'], field)
+        value = Schema._check_and_normalize(value, cfg['type'], field, keypath)
 
         cfg[field].extend(value)
         if field == 'value':
@@ -251,7 +251,7 @@ class Schema:
                                     key)
 
     @staticmethod
-    def _check_and_normalize(value, sc_type, field):
+    def _check_and_normalize(value, sc_type, field, keypath):
         '''
         This method validates that user-provided values match the expected type,
         and returns a normalized version of the value.
@@ -283,66 +283,69 @@ class Schema:
             return value
 
         if field in ('value', 'defvalue'):
-            try:
-                return Schema._normalize_value(value, sc_type)
-            except TypeError:
-                # Re-raise exception with a consistent message
-                raise TypeError(f'Invalid value {value}: expected {sc_type}') from None
+            return Schema._normalize_value(value, sc_type, keypath)
         else:
-            return Schema._normalize_field(value, sc_type, field)
+            return Schema._normalize_field(value, sc_type, field, keypath)
 
     @staticmethod
-    def _normalize_value(value, sc_type):
+    def _normalize_value(value, sc_type, keypath):
+        error_msg = f'Invalid value {value} for keypath {keypath}: expected type {sc_type}'
+
         if sc_type.startswith('['):
             if not isinstance(value, list):
                 value = [value]
             base_type = sc_type[1:-1]
-            return [Schema._normalize_value(v, base_type) for v in value]
+            return [Schema._normalize_value(v, base_type, keypath) for v in value]
 
         if sc_type.startswith('('):
             # TODO: make parsing more robust to support tuples-of-tuples
             if isinstance(value, str):
                 value = value[1:-1].split(',')
             elif not (isinstance(value, tuple) or isinstance(value, list)):
-                raise TypeError
+                raise TypeError(error_msg)
 
             base_types = sc_type[1:-1].split(',')
             if len(value) != len(base_types):
-                raise TypeError
-            return tuple(Schema._normalize_value(v, base_type) for v, base_type in zip(value, base_types))
+                raise TypeError(error_msg)
+            return tuple(Schema._normalize_value(v, base_type, keypath) for v, base_type in zip(value, base_types))
 
         if sc_type == 'bool':
             if value == 'true': return True
             if value == 'false': return False
             if isinstance(value, bool): return value
-            raise TypeError
+            raise TypeError(error_msg)
 
-        if sc_type == 'int':
-            return int(value)
+        try:
+            if sc_type == 'int':
+                return int(value)
 
-        if sc_type == 'float':
-            return float(value)
+            if sc_type == 'float':
+                return float(value)
+        except TypeError:
+            raise TypeError(error_msg) from None
 
         if sc_type in ('str', 'file', 'dir'):
             if isinstance(value, str): return value
-            else: raise TypeError
+            else: raise TypeError(error_msg)
 
         raise ValueError(f'Invalid type specifier: {sc_type}')
 
     @staticmethod
-    def _normalize_field(value, sc_type, field):
+    def _normalize_field(value, sc_type, field, keypath):
+        def error_msg(t):
+            return f'Invalid value {value} for field {field} of keypath {keypath}: expected {t}'
+
         if Schema._is_list(field, sc_type):
             if not isinstance(value, list):
                 value = [value]
             if not all(isinstance(v, str) for v in value):
-                raise TypeError(f'Invalid value {value} for {field}: expected str')
+                raise TypeError(error_msg('str'))
             return value
 
         if field == 'scope':
             # Restricted allowed values
             if not (isinstance(value, str) and value in ('global', 'job', 'scratch')):
-                raise TypeError(f'Invalid value {value} for field {field}: '
-                    'expected one of "global", "job", or "scratch"')
+                raise TypeError(error_msg('one of "global", "job", or "scratch"'))
             return value
 
         if field in (
@@ -350,16 +353,16 @@ class Schema:
             'signature'
         ):
             if not isinstance(value, str):
-                raise TypeError(f'Invalid value {value} for field {field}: expected str')
+                raise TypeError(error_msg('str'))
             return value
 
         if field in ('require', 'lock', 'copy', 'set'):
             if value == 'true': return True
             if value == 'false': return False
             if isinstance(value, bool): return value
-            else: raise TypeError(f'Invalid value {value} for field {field}: expected bool')
+            else: raise TypeError(error_msg('bool'))
 
-        raise ValueError(f'Invalid field: {field}')
+        raise ValueError(f'Invalid field {field} for keypath {keypath}')
 
     @staticmethod
     def _is_empty(cfg):
@@ -367,6 +370,8 @@ class Schema:
 
     @staticmethod
     def _is_leaf(cfg):
+        # 'shorthelp' chosen arbitrarily: any mandatory field with a consistent
+        # type would work.
         return 'shorthelp' in cfg and isinstance(cfg['shorthelp'], str)
 
     @staticmethod
