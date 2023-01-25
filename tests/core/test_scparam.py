@@ -48,13 +48,14 @@ def test_scparam():
     cfg_golden['metric'][step][index]['warnings'][group] = {
         'switch': "-metric_warnings 'step index group <int>'",
         'type': 'int',
-        'lock': 'false',
+        'lock': False,
         'scope': 'job',
         'require': 'all',
         'signature': None,
         'defvalue': None,
         'value': None,
         'notes': None,
+        'set': False,
         'shorthelp': 'Metric total warnings',
         'example': [
             "cli: -metric_warnings 'dfm 0 goal 0'",
@@ -67,13 +68,14 @@ def test_scparam():
     cfg_golden['metric'][step][index]['cells'][group] = {
         'switch': "-metric_cells 'step index group <int>'",
         'type': 'int',
-        'lock': 'false',
+        'lock': False,
         'scope': 'job',
         'require': 'asic',
         'signature': None,
         'defvalue': None,
         'value': None,
         'notes': None,
+        'set': False,
         'shorthelp': 'Metric instance count',
         'example': [
             "cli: -metric_cells 'place 0 goal 100'",

@@ -928,9 +928,34 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.setLevel(value)
 
         try:
-            self.schema.set(*keypath, value, field=field, clobber=clobber)
+            if not self.schema.set(*keypath, value, field=field, clobber=clobber):
+                # TODO: this message should be pushed down into Schema.set()
+                # once we have a static logger.
+                if clobber:
+                    self.logger.debug(f'Failed to set value for {keypath}: '
+                        'parameter is locked')
+                else:
+                    self.logger.debug(f'Failed to set value for {keypath}: '
+                        'clobber is False and parameter may be locked')
         except (ValueError, TypeError) as e:
             self.error(e)
+
+    ###########################################################################
+    def clear(self, *keypath):
+        '''
+        Clears a schema parameter.
+
+        Clearing a schema parameter causes the parameter to revert to its
+        default value. A call to ``set()`` with ``clobber=False`` will once
+        again be able to modify the value.
+
+        Args:
+            keypath (list): Parameter keypath to clear.
+        '''
+        self.logger.debug(f'Clearing {keypath}')
+
+        if not self.schema.clear(*keypath):
+            self.logger.debug(f'Failed to clear value for {keypath}: parameter is locked')
 
     ###########################################################################
     def add(self, *args, field='value'):
@@ -956,10 +981,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.add('input', 'rtl', 'verilog', 'hello.v')
             Adds the file 'hello.v' to the list of sources.
         '''
-        self.logger.debug(f'Appending value {args[-1]} to {args[:-1]}')
+        keypath = args[:-1]
+        value = args[-1]
+        self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            self.schema.add(*args, field=field)
+            if not self.schema.add(*args, field=field):
+                # TODO: this message should be pushed down into Schema.add()
+                # once we have a static logger.
+                self.logger.debug(f'Failed to add value for {keypath}: '
+                    'parameter may be locked')
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
@@ -1250,7 +1281,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 #only do something if type is file or dir
                 if 'file' in paramtype or 'dir' in paramtype:
                     abspaths = self.find_files(*keypath, missing_ok=True)
-                    schema.set(*keypath, abspaths)
+                    if isinstance(abspaths, list) and None in abspaths:
+                        # Lists may not contain None
+                        schema.set(*keypath, [])
+                    else:
+                        schema.set(*keypath, abspaths)
         return schema
 
     ###########################################################################
@@ -3960,10 +3995,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # we're not running with -resume, we also re-run anything
                     # in the steplist.
                     self.set('flowgraph', flow, step, index, 'status', None)
+
+                    # Reset metrics and records
                     for metric in self.getkeys('metric', 'default', 'default'):
-                        self.set('metric', step, index, metric, None)
+                        self.clear('metric', step, index, metric)
                     for record in self.getkeys('record', 'default', 'default'):
-                        self.set('record', step, index, record, None)
+                        self.clear('record', step, index, record)
                 elif os.path.isfile(cfg):
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
                     all_indices_failed = False
