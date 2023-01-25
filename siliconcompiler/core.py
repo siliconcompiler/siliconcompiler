@@ -1212,15 +1212,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             return result
 
+        import_steps = self._get_steps_by_task()['import']
         for path in paths:
             if (copyall or copy) and ('file' in paramtype):
                 name = self._get_imported_filename(path)
-                abspath = os.path.join(self._getworkdir(jobname=job, step='import'), 'inputs', name)
-                if os.path.isfile(abspath):
-                    # if copy is True and file is found in import inputs,
-                    # continue. Otherwise, fall through to _find_sc_file (the
-                    # file may not have been gathered in imports yet)
-                    result.append(abspath)
+                found = False
+                for step, index in import_steps:
+                    abspath = os.path.join(self._getworkdir(jobname=job, step=step, index=index), 'inputs', name)
+                    if os.path.isfile(abspath):
+                        # if copy is True and file is found in import inputs,
+                        # continue. Otherwise, fall through to _find_sc_file (the
+                        # file may not have been gathered in imports yet)
+                        result.append(abspath)
+                        found = True
+                        break
+                if found:
                     continue
             result.append(self._find_sc_file(path, missing_ok=missing_ok))
         # Convert back to scalar if that was original type
@@ -1444,7 +1450,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'Required input {filename} not received for {step}{index}.')
                 error = True
 
-        if (not tool in self.builtin) and self.valid('tool', tool,'task', task,  'require', step, index):
+        if (not task in self.builtin) and self.valid('tool', tool,'task', task,  'require', step, index):
             all_required = self.get('tool', tool, 'task', task, 'require', step, index)
             for item in all_required:
                 keypath = item.split(',')
@@ -1522,9 +1528,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error(f"flowgraph {flow} not defined.")
         legal_steps = self.getkeys('flowgraph',flow)
 
-        if 'import' not in legal_steps:
+        if 'import' not in self._get_steps_by_task(flow):
             error = True
-            self.logger.error("Flowgraph doesn't contain import step.")
+            self.logger.error("Flowgraph doesn't contain import task.")
 
         indexlist = {}
         #TODO: refactor
@@ -1579,11 +1585,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         #4. Check per tool parameter requirements (when tool exists)
         for step in steplist:
-
             for index in self.getkeys('flowgraph', flow, step):
                 tool = self.get('flowgraph', flow, step, index, 'tool')
                 task = self.get('flowgraph', flow, step, index, 'task')
-                if (tool not in self.builtin) and (tool in self.getkeys('tool')):
+                if (task not in self.builtin) and (tool in self.getkeys('tool')):
                     # checking that requirements are set
                     if self.valid('tool', tool, 'task', task, 'require', step, index):
                         all_required = self.get('tool', tool, 'task', task, 'require', step, index)
@@ -1617,7 +1622,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         task = self.get('flowgraph', flow, step, index, 'task')
 
         outputs = set()
-        if tool in self.builtin:
+        if task in self.builtin:
             in_tasks = self.get('flowgraph', flow, step, index, 'input')
             in_task_outputs = [self._gather_outputs(*task) for task in in_tasks]
 
@@ -1637,7 +1642,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 outputs = set()
 
-        if step == 'import' and self.get('option', 'remote'):
+        if task == 'import' and self.get('option', 'remote'):
             imports = {self._get_imported_filename(p) for p in self._collect_paths()}
             outputs.update(imports)
 
@@ -1662,7 +1667,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 tool = self.get('flowgraph', flow, step, index, 'tool')
                 task = self.get('flowgraph', flow, step, index, 'task')
 
-                if tool in self.builtin:
+                if task in self.builtin:
                     # We can skip builtins since they don't have any particular
                     # input requirements -- they just pass through what they
                     # receive.
@@ -2188,8 +2193,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 index = str(i)
                 node = step+index
                 # create step node
-                tool =  self.get('flowgraph', flow, step, index, 'tool')
-                if tool in self.builtin:
+                tool = self.get('flowgraph', flow, step, index, 'tool')
+                task = self._get_task(step, index, flow=flow)
+                if task in self.builtin:
                     labelname = step
                 elif tool is not None:
                     labelname = f"{step}{index}\n({tool})"
@@ -2762,7 +2768,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # only report tool based steps functions
         for step in steplist.copy():
-            if self.get('flowgraph',flow, step,'0','tool') in self.builtin:
+            if self._get_task(step, '0', flow=flow) in self.builtin:
                 index = steplist.index(step)
                 del steplist[index]
 
@@ -3133,7 +3139,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             step = list(item.keys())[0]
             tool, task = list(item.values())[0]
             self.node(flow, step, tool, task)
-            if step != 'import':
+            if task != 'import':
                 self.edge(flow, prevstep, step)
             prevstep = step
 
@@ -3480,7 +3486,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         sel_inputs = []
         score = 0
 
-        if tool in self.builtin:
+        if task in self.builtin:
             self.logger.info(f"Running built in task '{tool}'")
             # Figure out which inputs to select
             if tool == 'minimum':
@@ -3492,7 +3498,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif tool == "join":
                 sel_inputs = self.join(*inputs)
             elif tool == "verify":
-                if not self.verify(*inputs, assertion=args):
+                if not self.verify(*input, assertion=args):
                     self._haltstep(step, index)
         else:
             sel_inputs = self.get('flowgraph', flow, step, index, 'input')
@@ -3506,7 +3512,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Copy (link) output data from previous steps
 
-        if step == 'import' and self.get('option', 'remote'):
+        if task == 'import' and self.get('option', 'remote'):
             # Collect inputs into import directory only for remote runs, since
             # we need to send inputs up to the server. Otherwise, it's simpler
             # for debugging to leave inputs in place.
@@ -3540,7 +3546,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Run preprocess step for tool
-        if tool not in self.builtin:
+        if task not in self.builtin:
             func = self.find_function(tool, "pre_process", 'tools', task)
             if func:
                 func(self)
@@ -3564,7 +3570,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 os.environ[item] = self.get('tool', tool, 'task', task, 'env', step, index, item)
 
         run_func = None
-        if tool not in self.builtin:
+        if task not in self.builtin:
             run_func = self.find_function(tool, 'run', 'tools')
 
         ##################
@@ -3592,7 +3598,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self._haltstep(step, index)
             else:
                 self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
-        elif tool not in self.builtin and run_func is None:
+        elif task not in self.builtin and run_func is None:
             exe_base = self.get('tool', tool, 'exe')
             self.logger.error(f'Executable {exe_base} not found')
             self._haltstep(step, index)
@@ -3616,7 +3622,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         max_mem_bytes = 0
 
         retcode = 0
-        if tool in self.builtin:
+        if task in self.builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
         elif run_func and not self.get('option', 'skipall'):
             logfile = None
@@ -3751,14 +3757,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Post process
-        if (tool not in self.builtin) and (not self.get('option', 'skipall')) :
+        if (task not in self.builtin) and (not self.get('option', 'skipall')) :
             func = self.find_function(tool, 'post_process', 'tools', task)
             if func:
                 func(self)
 
         ##################
         # Check log file (must be after post-process)
-        if (tool not in self.builtin) and (not self.get('option', 'skipall')) and (run_func is None):
+        if (task not in self.builtin) and (not self.get('option', 'skipall')) and (run_func is None):
             matches = self.check_logfile(step=step, index=index, display=not quiet)
             if 'errors' in matches:
                 errors = self.get('metric', step, index, 'errors')
@@ -3775,7 +3781,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Hash files
-        if self.get('option', 'hash') and (tool not in self.builtin):
+        if (task not in self.builtin) and self.get('option', 'hash'):
             # hash all outputs
             self.hash_files('tool', tool, 'task', task, 'output', step, index)
             # hash all requirements
@@ -4106,8 +4112,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for index in indexlist[step]:
                     # Setting up tool is optional
                     tool = self.get('flowgraph', flow, step, index, 'tool')
-                    task = self.get('flowgraph', flow, step, index, 'task')
-                    if tool not in self.builtin:
+                    task = self._get_task(step, index, flow=flow)
+                    if task not in self.builtin:
                         self._setup_tool(tool, task, step, index)
 
             # Check validity of setup
@@ -4294,12 +4300,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Displays gds file with a viewer assigned by 'showtool'
         '''
 
+        export_step = "export"
+        export_index = "0"
+
+        tasks = self._get_steps_by_task()
+        if 'export' in tasks:
+            export_step, export_index = tasks['export'][0]
         sc_step = self.get('arg', 'step')
         if not sc_step:
-            sc_step = "export"
+            sc_step = export_step
         sc_index = self.get('arg', 'index')
         if not sc_index:
-            sc_index = "0"
+            sc_index = export_index
         sc_job = self.get('option', 'jobname')
 
         # Finding last layout if no argument specified
@@ -4555,6 +4567,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             self.error(f"Illegal comparison operation {op}")
 
+    #######################################
+    def _get_steps_by_task(self, flow=None):
+        '''
+        Collect all steps and indicies and organize by tasks
+        Returns dict(task, [(step, index)])
+        '''
+        if not flow:
+            flow = self.get('option', 'flow')
+
+        tasks = {}
+        for step in self.getkeys('flowgraph', flow):
+            for index in self.getkeys('flowgraph', flow, step):
+                tasks.setdefault(self._get_task(step, index, flow=flow), []).append((step, index))
+        return tasks
 
     #######################################
     def _getworkdir(self, jobname=None, step=None, index='0'):
