@@ -948,6 +948,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(e)
 
     ###########################################################################
+    def clear(self, *keypath):
+        '''
+        Clears a schema parameter.
+
+        Clearing a schema parameter causes the parameter to revert to its
+        default value. A call to ``set()`` with ``clobber=False`` will once
+        again be able to modify the value.
+
+        Args:
+            keypath (list): Parameter keypath to clear.
+        '''
+        self.logger.debug(f'Clearing {keypath}')
+
+        if not self.schema.clear(*keypath):
+            self.logger.debug(f'Failed to clear value for {keypath}: parameter is locked')
+
+    ###########################################################################
     def add(self, *args, field='value'):
         '''
         Adds item(s) to a schema parameter list.
@@ -3983,17 +4000,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.set('flowgraph', flow, step, index, 'status', None)
 
                     # Reset metrics and records
-                    # We need to clear the 'set' flag to allow new metric values
-                    # to be merged in (since we merge manifests from each node
-                    # with clobber=False).
-                    # TODO: should there be a more formal way to do this? Or
-                    # should writing None do it implicitly?
                     for metric in self.getkeys('metric', 'default', 'default'):
-                        self.set('metric', step, index, metric, None)
-                        self.set('metric', step, index, metric, False, field='set')
+                        self.clear('metric', step, index, metric)
                     for record in self.getkeys('record', 'default', 'default'):
-                        self.set('record', step, index, record, None)
-                        self.set('record', step, index, record, False, field='set')
+                        self.clear('record', step, index, record)
                 elif os.path.isfile(cfg):
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
                     all_indices_failed = False

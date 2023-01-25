@@ -150,6 +150,27 @@ class Schema:
         return True
 
     ###########################################################################
+    def clear(self, *keypath):
+        '''
+        Clears a schema parameter field.
+
+        See :meth:`~siliconcompiler.core.Chip.clear` for detailed documentation.
+        '''
+        cfg = self._search(*keypath)
+
+        if not Schema._is_leaf(cfg):
+            raise ValueError(f'Invalid keypath {keypath}: clear() must be called on a complete keypath')
+
+        if cfg['lock']:
+            # TODO: log here
+            return False
+
+        cfg['value'] = cfg['defvalue']
+        cfg['set'] = False
+
+        return True
+
+    ###########################################################################
     def getkeys(self, *keypath, job=None):
         """
         Returns a list of schema dictionary keys.
