@@ -17,12 +17,12 @@ def setup(chip):
     flow = 'signoffflow'
 
     # nop import since we don't need to pull in any sources
-    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'import', 'builtin', 'import')
 
     chip.node(flow, 'extspice', 'magic', 'extspice')
     chip.node(flow, 'drc', 'magic', 'drc')
     chip.node(flow, 'lvs', 'netgen', 'lvs')
-    chip.node(flow, 'signoff', 'join', 'signoff')
+    chip.node(flow, 'signoff', 'builtin', 'join')
 
     chip.edge(flow, 'import', 'drc')
     chip.edge(flow, 'import', 'extspice')

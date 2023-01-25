@@ -86,7 +86,7 @@ def setup(chip, flowname='showflow'):
     if flowname in chip.getkeys('flowgraph'):
         del chip.schema.cfg['flowgraph'][flowname]
 
-    chip.node(flowname, 'import', 'nop', 'nop')
+    chip.node(flowname, 'import', 'builtin', 'import')
 
     show_tool = chip.get('option', 'showtool', filetype)
 

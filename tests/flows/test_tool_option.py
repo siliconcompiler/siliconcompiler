@@ -70,7 +70,7 @@ def chip(scroot):
     flow = chip.get('option', 'flow')
 
     # no-op import since we're not preprocessing source files
-    chip.node(flow, 'import', 'join', 'join')
+    chip.node(flow, 'import', 'builtin', 'import')
 
     chip.node(flow, 'place', 'openroad', 'place', index=0)
     chip.edge(flow, 'import', 'place', head_index=0)
@@ -94,7 +94,7 @@ def test_failed_branch_min(chip):
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
 
     # Perform minimum
-    chip.node(flow, 'placemin', 'minimum', 'minimum')
+    chip.node(flow, 'placemin', 'builtin', 'minimum')
     chip.edge(flow, 'place', 'placemin', tail_index=0)
     chip.edge(flow, 'place', 'placemin', tail_index=1)
 
@@ -124,7 +124,7 @@ def test_all_failed_min(chip):
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', 'asdf')
 
     # Perform minimum
-    chip.node(flow, 'placemin', 'minimum', 'minimum')
+    chip.node(flow, 'placemin', 'builtin', 'minimum')
     chip.edge(flow, 'place', 'placemin', tail_index=0)
     chip.edge(flow, 'place', 'placemin', tail_index=1)
 
@@ -148,7 +148,7 @@ def test_branch_failed_join(chip):
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
 
     # Perform join
-    chip.node(flow, 'placemin', 'join', 'join')
+    chip.node(flow, 'placemin', 'builtin', 'join')
     chip.edge(flow, 'place', 'placemin', tail_index=0)
     chip.edge(flow, 'place', 'placemin', tail_index=1)
 
