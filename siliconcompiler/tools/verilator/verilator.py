@@ -153,36 +153,6 @@ def parse_version(stdout):
     # Verilator 4.104 2020-11-14 rev v4.104
     return stdout.split()[1]
 
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-
-    design = chip.top()
-    step = chip.get('arg','step')
-
-    if step == 'import':
-        # Post-process hack to collect vpp files
-        # Creating single file "pickle' synthesis handoff
-        subprocess.run('egrep -h -v "\\`begin_keywords" obj_dir/*.vpp > verilator.v',
-                       shell=True)
-
-        # Moving pickled file to outputs
-        os.rename("verilator.v", f"outputs/{design}.v")
-    elif step == 'compile':
-        # Run make to compile Verilated design into executable.
-        # If we upgrade our minimum supported Verilog, we can remove this and
-        # use the --build flag instead.
-        proc = subprocess.run(['make', '-C', 'obj_dir', '-f', f'V{design}.mk'])
-        if proc.returncode > 0:
-            chip.error(
-                f'Make returned error code {proc.returncode} when compiling '
-                'Verilated design', fatal=True
-            )
-
 ##################################################
 if __name__ == "__main__":
 

@@ -270,19 +270,6 @@ def normalize_version(version):
         return '0'
 
 ################################
-# Pre_process (pre executable)
-################################
-
-def pre_process(chip):
-
-    step = chip.get('arg', 'step')
-    if (step == "show" or step == "screenshot"):
-        copy_show_files(chip)
-
-    # Build estimate PEX
-    build_pex_corners(chip)
-
-################################
 # Post_process (post executable)
 ################################
 

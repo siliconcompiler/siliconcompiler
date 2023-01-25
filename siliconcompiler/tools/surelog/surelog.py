@@ -208,32 +208,6 @@ def runtime_options(chip):
 
     return cmdlist
 
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    step = chip.get('arg', 'step')
-
-    if step != 'import':
-        return 0
-
-    # Look in slpp_all/file_elab.lst for list of Verilog files included in
-    # design, read these and concatenate them into one pickled output file.
-    with open('slpp_all/file_elab.lst', 'r') as filelist, \
-            open(f'outputs/{chip.top()}.v', 'w') as outfile:
-        for path in filelist.read().split('\n'):
-            path = path.strip('"')
-            if not path:
-                # skip empty lines
-                continue
-            with open(path, 'r') as infile:
-                outfile.write(infile.read())
-            # in case end of file is missing a newline
-            outfile.write('\n')
-
 ##################################################
 if __name__ == "__main__":
 
