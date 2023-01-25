@@ -3491,17 +3491,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         score = 0
 
         if is_builtin:
-            self.logger.info(f"Running built in task '{tool}'")
+            self.logger.info(f"Running builtin task '{task}'")
             # Figure out which inputs to select
-            if tool == 'minimum':
+            if task == 'minimum':
                 (score, sel_inputs) = self.minimum(*inputs)
-            elif tool == "maximum":
+            elif task == "maximum":
                 (score, sel_inputs) = self.maximum(*inputs)
-            elif tool == "mux":
+            elif task == "mux":
                 (score, sel_inputs) = self.mux(*inputs, selector=args)
-            elif tool == "join":
+            elif task == "join":
                 sel_inputs = self.join(*inputs)
-            elif tool == "verify":
+            elif task == "verify":
                 if not self.verify(*input, assertion=args):
                     self._haltstep(step, index)
         else:
