@@ -119,8 +119,6 @@ def setup(chip, mode='batch'):
         # chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
         # chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
-        if chip.valid('input', 'layout', 'floorplan.def'):
-            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['input', 'layout', 'floorplan.def']))
 
         # set tapcell file
         tapfile = None

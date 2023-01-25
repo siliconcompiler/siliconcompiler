@@ -8,7 +8,7 @@ def test_archive(oh_dir):
 
     chip = siliconcompiler.Chip()
     chip.set('design', 'oh_add')
-    chip.set('source', os.path.join(srcdir,'oh_add.v'))
+    chip.input(os.path.join(srcdir,'oh_add.v'))
     chip.set('steplist','import')
     chip.target('asicflow_freepdk45')
     chip.run()

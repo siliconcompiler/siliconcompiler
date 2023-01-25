@@ -22,9 +22,9 @@ def rtl2gds(design='aes',
     # FLOW OVERLOAD
     rootdir = os.path.dirname(__file__)
     if rtl is None:
-        chip.add('input', 'verilog', os.path.join(rootdir, f"{design}.v"))
+        chip.input(os.path.join(rootdir, f"{design}.v"))
     if sdc is None:
-        chip.add('input', 'sdc', os.path.join(rootdir, f"{design}.sdc"))
+        chip.input(os.path.join(rootdir, f"{design}.sdc"))
 
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)

@@ -12,7 +12,7 @@ def test_read_manifest_fields():
 
     chip = siliconcompiler.Chip('foo')
     chip.set('input', 'rtl', 'verilog', False, field='copy')
-    chip.add('input', 'rtl', 'verilog', 'foo.v')
+    chip.input('foo.v')
     chip.write_manifest('tmp.json')
 
     # fresh chip, so we don't retain anything from `chip` in-memory
@@ -25,7 +25,7 @@ def test_read_sup():
     '''Test compressed read/write'''
 
     chip = siliconcompiler.Chip('foo')
-    chip.add('input', 'rtl', 'verilog', 'foo.v')
+    chip.input('foo.v')
     chip.write_manifest('tmp.sup.gz')
 
     chip2 = siliconcompiler.Chip('foo')
@@ -50,7 +50,7 @@ def test_modified_schema(datadir):
 def test_read_history():
     '''Make sure that history gets included in manifest read.'''
     chip = siliconcompiler.Chip('foo')
-    chip.add('input', 'rtl', 'verilog', 'foo.v')
+    chip.input('foo.v')
     chip.schema.record_history()
     chip.write_manifest('tmp.json')
 
@@ -61,7 +61,7 @@ def test_read_history():
 def test_read_job():
     '''Make sure that we can read a manifest into a non-default job'''
     chip = siliconcompiler.Chip('foo')
-    chip.add('input', 'rtl', 'verilog', 'foo.v')
+    chip.input('foo.v')
     chip.write_manifest('tmp.json')
 
     chip2 = siliconcompiler.Chip('foo')

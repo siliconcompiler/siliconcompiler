@@ -14,7 +14,7 @@ def test_openroad(scroot):
 
     chip = siliconcompiler.Chip(design)
 
-    chip.set('input', 'netlist', 'verilog', netlist)
+    chip.input(netlist)
     chip.set('option', 'quiet', True)
     chip.set('option', 'novercheck', True)
     chip.set('constraint', 'outline', [(0,0), (100.13,100.8)])
