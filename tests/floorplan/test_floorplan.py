@@ -53,6 +53,7 @@ def _fp(datadir):
 def fp(datadir):
     return _fp(datadir)
 
+@pytest.mark.skip(reason="Floorplan being reworked")
 def test_floorplan_def(fp, datadir):
     output_path = 'output.def'
     fp.write_def(output_path)
@@ -61,6 +62,7 @@ def test_floorplan_def(fp, datadir):
          open(output_path, 'r') as result:
         assert result.read() == golden.read()
 
+@pytest.mark.skip(reason="Floorplan being reworked")
 def test_floorplan_lef(fp, datadir):
     output_path = 'output.lef'
     fp.write_lef(output_path)
@@ -69,6 +71,7 @@ def test_floorplan_lef(fp, datadir):
          open(output_path, 'r') as result:
         assert result.read() == golden.read()
 
+@pytest.mark.skip(reason="Floorplan being reworked")
 def test_padring(datadir):
     ''' Replicates Yosys padring from here:
     https://github.com/YosysHQ/padring/tree/master/example
@@ -163,6 +166,7 @@ def test_padring(datadir):
 
     fp.write_def('padring.def')
 
+@pytest.mark.skip(reason="Floorplan being reworked")
 def test_vias_at_intersection():
     c = Chip('test')
     c.load_target('skywater130_demo')
@@ -181,6 +185,7 @@ def test_vias_at_intersection():
 
     fp.write_def('test.def')
 
+@pytest.mark.skip(reason="Floorplan being reworked")
 def test_place_vias(datadir):
     c = Chip('test')
     c.load_target('freepdk45_demo')

@@ -46,14 +46,9 @@ def setup(chip):
     chip.set('asic', 'logiclib', 'nangate45')
 
     #5. Set project specific design choices
+    chip.set('asic', 'delaymodel', 'nldm')
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 1.9)
-
-    chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('asic', 'rclayer', 'clk', "m5")
-    chip.set('asic', 'rclayer', 'data',"m3")
-    chip.set('asic', 'hpinlayer', "m3")
-    chip.set('asic', 'vpinlayer', "m2")
 
     #6. Timing corners
     corner = 'typical'

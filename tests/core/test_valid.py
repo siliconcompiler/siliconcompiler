@@ -13,13 +13,13 @@ def test_valid():
     valid = chip.valid('pdk', 'freepdk45', 'foundry')
     assert valid
     #dynamic valid
-    valid = chip.valid('pdk', 'freepdk45', 'grid', '10M', 'metal1', 'name')
+    valid = chip.valid('pdk', 'freepdk45', 'aprtech', 'openroad', '10M', '10t', 'lef')
     assert valid
-    #valid b/c of default (valid for set)
-    valid = chip.valid('pdk', 'freepdk45', 'grid', 'M10', 'metal1', 'name', default_valid=True)
+    #valid b/c of default (valid for set), changed metal stack to something not yet loaded
+    valid = chip.valid('pdk', 'freepdk45', 'aprtech', 'openroad', 'M10', '10t', 'lef', default_valid=True)
     assert valid
     #dynamic with default fields
-    valid = chip.valid('pdk', 'freepdk45', 'grid', 'default', 'default', 'name')
+    valid = chip.valid('constraint', 'timing', 'default', 'voltage')
     assert  valid
     #not working
     valid = chip.valid('blah')

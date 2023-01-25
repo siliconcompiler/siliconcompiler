@@ -116,8 +116,7 @@ def setup(chip, mode='batch'):
         #Note: only one footprint supported in mainlib
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'logiclib']))
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['option', 'stackup',]))
-        # chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'symmetry']))
-        # chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'footprint', libtype, 'size']))
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'site', libtype]))
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
 
         # set tapcell file
@@ -145,6 +144,19 @@ def setup(chip, mode='batch'):
     chip.set('tool', tool, 'task', task, 'var', step, index, 'timing_corners', get_corners(chip), clobber=False)
     chip.set('tool', tool, 'task', task, 'var', step, index, 'power_corner', get_power_corner(chip), clobber=False)
     chip.set('tool', tool, 'task', task, 'var', step, index, 'parasitics', "inputs/sc_parasitics.tcl", clobber=True)
+
+    for var0, var1 in [('tiehigh_cell', 'tiehigh_port'), ('tiehigh_cell', 'tiehigh_port')]:
+        key0 = ['library', mainlib, 'asic', 'var', tool, var0]
+        key1 = ['library', mainlib, 'asic', 'var', tool, var1]
+        if chip.valid(*key0):
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key1))
+        if chip.valid(*key1):
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key0))
+
+    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdkname, 'var', 'openroad', 'rclayer_signal', stackup]))
+    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdkname, 'var', 'openroad', 'rclayer_clock', stackup]))
+    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdkname, 'var', 'openroad', 'pin_layer_horizontal', stackup]))
+    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdkname, 'var', 'openroad', 'pin_layer_vertical', stackup]))
 
     variables = (
         'place_density',

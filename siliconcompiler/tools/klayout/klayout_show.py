@@ -22,7 +22,7 @@ else:
 sc_pdk = sc_cfg['option']['pdk']['value']
 sc_stackup = sc_cfg['option']['stackup']['value']
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
-sc_libtype = list(sc_cfg['library'][sc_mainlib]['asic']['footprint'].keys())[0]
+sc_libtype = sc_cfg['library'][sc_mainlib]['asic']['libarch']['value']
 
 sc_exit = sc_cfg['tool']['klayout']['task'][sc_task]['var'][sc_step][sc_index]['show_exit']['value'][0] == "true"
 

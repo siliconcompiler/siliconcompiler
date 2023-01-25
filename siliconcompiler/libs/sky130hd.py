@@ -27,19 +27,13 @@ def setup(chip):
 
     # footprint/type/sites
     lib.set('asic', 'libarch', libtype)
-    lib.set('asic', 'footprint', 'unithd', 'symmetry', 'Y')
-    lib.set('asic', 'footprint', 'unithd', 'size', (0.46,2.72))
-
-    lib.set('asic', 'footprint', 'unithddbl', 'symmetry', 'Y')
-    lib.set('asic', 'footprint', 'unithddbl', 'size', (0.46,5.44))
+    lib.set('asic', 'site', libtype, 'unithd')
+    lib.add('asic', 'site', libtype, 'unithddbl')
 
     # model files
     lib.add('output', corner, 'nldm', libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
     lib.add('output', stackup, 'lef', libdir+'/lef/sky130_fd_sc_hd_merged.lef')
     lib.add('output', stackup, 'gds', libdir+'/gds/sky130_fd_sc_hd.gds')
-
-    # Power grid specifier
-    lib.set('asic', 'pgmetal', 'm1')
 
     # clock buffers
     lib.add('asic', 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
@@ -99,15 +93,8 @@ def setup(chip):
         'sky130_fd_sc_hd__buf_16'
     ])
 
-    # driver cell (why empty?)
-    lib.add('asic', 'cells', 'driver', '')
-
-    # buffer cell
-    lib.add('asic', 'cells', 'buf', ['sky130_fd_sc_hd__buf_4/A/X'])
-
     # tie cells
-    lib.add('asic', 'cells', 'tie', ['sky130_fd_sc_hd__conb_1/HI',
-                                      'sky130_fd_sc_hd__conb_1/LO'])
+    lib.add('asic', 'cells', 'tie', ['sky130_fd_sc_hd__conb_1'])
 
     # Defaults for OpenROAD tool variables
     lib.set('asic', 'var', 'openroad', 'place_density', ['0.6'])
@@ -124,6 +111,16 @@ def setup(chip):
     lib.set('asic', 'file', 'openroad', 'pdngen', libdir+'/apr/openroad/pdngen.tcl')
     lib.set('asic', 'file', 'openroad', 'global_connect', libdir+'/apr/openroad/global_connect.tcl')
     lib.set('asic', 'file', 'openroad', 'tapcells', libdir+'/apr/openroad/tapcell.tcl')
+
+    lib.set('asic', 'var', 'yosys', 'driver_cell', "sky130_fd_sc_hd__buf_4")
+    lib.set('asic', 'var', 'yosys', 'buffer_cell', "sky130_fd_sc_hd__buf_4")
+    lib.set('asic', 'var', 'yosys', 'buffer_input', "A")
+    lib.set('asic', 'var', 'yosys', 'buffer_output', "X")
+    for tool in ('yosys', 'openroad'):
+        lib.set('asic', 'var', tool, 'tiehigh_cell', "sky130_fd_sc_hd__conb_1")
+        lib.set('asic', 'var', tool, 'tiehigh_port', "HI")
+        lib.set('asic', 'var', tool, 'tielow_cell', "sky130_fd_sc_hd__conb_1")
+        lib.set('asic', 'var', tool, 'tielow_port', "LO")
 
     chip.import_library(lib)
 

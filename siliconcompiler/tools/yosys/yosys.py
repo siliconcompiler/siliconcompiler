@@ -125,6 +125,19 @@ def setup_asic(chip):
                 continue
             chip.add('tool', tool, 'task', task, 'var', step, index, 'techmap', techmap)
 
+    # Add conditionally required mainlib variables
+    if chip.valid('library', mainlib, 'asic', 'var', tool, 'buffer_cell'):
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'var', tool, 'buffer_input']))
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'var', tool, 'buffer_output']))
+
+    for var0, var1 in [('tiehigh_cell', 'tiehigh_port'), ('tiehigh_cell', 'tiehigh_port')]:
+        key0 = ['library', mainlib, 'asic', 'var', tool, var0]
+        key1 = ['library', mainlib, 'asic', 'var', tool, var1]
+        if chip.valid(*key0):
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key1))
+        if chip.valid(*key1):
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key0))
+
     chip.set('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner', get_synthesis_corner(chip), clobber=False)
     chip.set('tool', tool, 'task', task, 'var', step, index, 'dff_liberty', get_dff_liberty_file(chip), clobber=False)
     chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'synthesis_corner']))
@@ -446,8 +459,8 @@ def get_abc_driver(chip):
     if abc_driver is None:
         # get the first driver defined in the logic lib
         for lib in chip.get('asic', 'logiclib'):
-            if chip.valid('library', lib, 'asic', 'cells', 'driver') and not abc_driver:
-                abc_driver = chip.get('library', lib, 'asic', 'cells', 'driver')[0]
+            if chip.valid('library', lib, 'asic', 'var', tool, 'driver_cell') and not abc_driver:
+                abc_driver = chip.get('library', lib, 'asic', 'var', tool, 'driver_cell')[0]
 
     return abc_driver
 

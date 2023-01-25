@@ -47,17 +47,10 @@ def setup(chip):
     #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
 
-    #5. et project specific design choices
+    #5. get project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
-
-    # TODO: how does LI get taken into account?
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 4.6)
-
-    chip.set('asic', 'rclayer', 'clk', 'm5')
-    chip.set('asic', 'rclayer', 'data', 'm3')
-    chip.set('asic', 'hpinlayer', "m3")
-    chip.set('asic', 'vpinlayer', "m2")
 
     #5. Timing corners
     corner = 'typical'

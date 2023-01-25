@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.15.0'
+SCHEMA_VERSION = '0.16.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -634,153 +634,6 @@ def schema_pdk(cfg, stackup='default'):
                     f"cli: -pdk_{item}_waiver 'asap7 magic M10 basic $PDK/{item}.txt'",
                     f"api: chip.set('pdk', 'asap7','{item}','waiver','magic','M10','basic','$PDK/{item}.txt')"],
                 schelp=f"""Waiver files for {item.upper()} task.""")
-
-    ################
-    # Routing grid
-    ################
-
-    layer = 'default'
-    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'name'],
-            sctype='str',
-            scope='global',
-            shorthelp="PDK: routing grid name map",
-            switch="-pdk_grid_name 'pdkname stackup layer <str>'",
-            example=[
-                "cli: -pdk_grid_name 'asap7 M10 metal1 m1'",
-                "api: chip.set('pdk','asap7','grid','M10','metal1','name','m1')"],
-            schelp="""
-            Maps PDK metal names to the SC standardized layer stack
-            starting with m1 as the lowest routing layer and ending
-            with m<n> as the highest routing layer. The map is
-            specified on a per metal stack basis.""")
-
-    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'dir'],
-            sctype='str',
-            scope='global',
-            shorthelp="PDK: routing grid preferred direction",
-            switch="-pdk_grid_dir 'pdkname stackup layer <str>'",
-            example=[
-                "cli: -pdk_grid_dir 'asap7 M10 m1 horizontal'",
-                "api: chip.set('pdk','asap7','grid','M10','m1','dir','horizontal')"],
-            schelp="""
-            Preferred routing direction specified on a per stackup
-            and per metal basis. Valid routing directions are horizontal
-            and vertical.""")
-
-    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'xpitch'],
-            sctype='float',
-            scope='global',
-            unit='um',
-            shorthelp="PDK: routing grid vertical wire pitch",
-            switch="-pdk_grid_xpitch 'pdkname stackup layer <float>'",
-            example= [
-                "cli: -pdk_grid_xpitch 'asap7 M10 m1 0.5'",
-                "api: chip.set('pdk', 'asap7','grid','M10','m1','xpitch','0.5')"],
-            schelp="""
-            Defines the routing pitch for vertical wires on a per stackup and
-            per metal basis.""")
-
-    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'ypitch'],
-            sctype='float',
-            scope='global',
-            unit='um',
-            shorthelp="PDK: routing grid horizontal wire pitch",
-            switch="-pdk_grid_ypitch 'pdkname stackup layer <float>'",
-            example= [
-                "cli: -pdk_grid_ypitch 'asap7 M10 m1 0.5'",
-                "api: chip.set('pdk','asap7','grid','M10','m1','ypitch','0.5')"],
-            schelp="""
-            Defines the routing pitch for horizontal wires on a per stackup and
-            per metal basis.""")
-
-    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'xoffset'],
-            sctype='float',
-            scope='global',
-            unit='um',
-            shorthelp="PDK: routing grid vertical wire offset",
-            switch="-pdk_grid_xoffset 'pdkname stackup layer <float>'",
-            example= [
-                "cli: -pdk_grid_xoffset 'asap7 M10 m2 0.5'",
-                "api: chip.set('pdk','asap7','grid','M10','m2','xoffset','0.5')"],
-            schelp="""
-            Defines the grid offset of a vertical metal layer specified on a per
-            stackup and per metal basis.""")
-
-    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'yoffset'],
-            sctype='float',
-            scope='global',
-            unit='um',
-            shorthelp="PDK: routing grid horizontal wire offset",
-            switch="-pdk_grid_yoffset 'pdkname stackup layer <float>'",
-            example= [
-                "cli: -pdk_grid_yoffset 'asap7 M10 m2 0.5'",
-                "api: chip.set('pdk', 'asap7','grid','M10','m2','yoffset','0.5')"],
-            schelp="""
-            Defines the grid offset of a horizontal metal layer specified on a per
-            stackup and per metal basis.""")
-
-    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'adj'],
-            sctype='float',
-            scope='global',
-            shorthelp="PDK: routing grid resource adjustment",
-            switch="-pdk_grid_adj 'pdkname stackup layer <float>'",
-            example= [
-                "cli: -pdk_grid_adj 'asap7 M10 m2 0.5'",
-                "api: chip.set('pdk','asap7','grid','M10','m2','adj','0.5')"],
-            schelp="""
-            Defines the routing resources adjustments for the design on a per layer
-            basis. The value is expressed as a fraction from 0 to 1. A value of
-            0.5 reduces the routing resources by 50%. If not defined, 100%
-            routing resource utilization is permitted.""")
-
-    corner='default'
-    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'cap', corner],
-            sctype='float',
-            scope='global',
-            unit='ff/um',
-            shorthelp="PDK: routing grid unit capacitance",
-            switch="-pdk_grid_cap 'pdkname stackup layer corner <float>''",
-            example= [
-                "cli: -pdk_grid_cap 'asap7 M10 m2 fast 0.2'",
-                "api: chip.set('pdk','asap7','grid','M10','m2','cap','fast','0.2')"],
-            schelp="""
-            Unit capacitance of a wire defined by the grid width and spacing values
-            in the 'grid' structure specified on a per
-            stackup, metal, and corner basis. As a rough rule of thumb, this value
-            tends to stay around 0.2ff/um. This number should only be used for
-            reality confirmation. Accurate analysis should use the PEX models.""")
-
-    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'res', corner],
-            sctype='float',
-            scope='global',
-            unit='ohm/um',
-            shorthelp="PDK: routing grid unit resistance",
-            switch="-pdk_grid_res 'pdkname stackup layer corner <float>''",
-            example= [
-                "cli: -pdk_grid_res 'asap7 M10 m2 fast 0.2'",
-                "api: chip.set('pdk','asap7','grid','M10','m2','res','fast','0.2')"],
-            schelp="""
-            Resistance of a wire defined by the grid width and spacing values
-            in the 'grid' structure specified as ohms/um on a per
-            stackup, metal, and corner basis. The parameter is only meant to be
-            used as a sanity check and for coarse design planning. Accurate
-            analysis should use the TCAD PEX models.""")
-
-    scparam(cfg, ['pdk', pdkname, 'grid', stackup, layer, 'tcr', corner],
-            sctype='float',
-            scope='global',
-            unit='%/degree(T)',
-            shorthelp="PDK: routing grid temperature coefficient",
-            switch="-pdk_grid_tcr 'pdkname stackup layer corner <float>'",
-            example= [
-                "cli: -pdk_grid_tcr 'asap7 M10 m2 fast 0.2'",
-                "api: chip.set('pdk','asap7','grid','M10','m2','tcr','fast','0.2')"],
-            schelp="""
-            Temperature coefficient of resistance of the wire defined by the grid
-            width and spacing values in the 'grid' structure on a per stackup,
-            layer, and corner basis. The number is only meant to be used as a
-            sanity check and for coarse design planning. Accurate analysis
-            should use the PEX models.""")
 
     ###############
     # EDA vars
@@ -3127,47 +2980,6 @@ def schema_asic(cfg):
             Delay model to use for the target libs. Supported values
             are nldm and ccs.""")
 
-    sigtype='default'
-    scparam(cfg, ['asic', 'rclayer', sigtype],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC: parasitics layer",
-            switch="-asic_rclayer 'sigtype <str>'",
-            example= ["cli: -asic_rclayer 'clk m3'",
-                    "api: chip.set('asic', 'rclayer', 'clk', 'm3')"],
-            schelp="""
-            Technology agnostic metal layer to be used for parasitic
-            extraction estimation during APR for the wire type specified
-            Current the supported wire types are: clk, data. The metal
-            layers can be specified as technology agnostic SC layers
-            starting with m1 or as hard PDK specific layer names.""")
-
-    scparam(cfg, ['asic', 'vpinlayer'],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC: vertical pin layer",
-            switch="-asic_vpinlayer <str>",
-            example= ["cli: -asic_vpinlayer m3",
-                    "api: chip.set('asic', 'vpinlayer', 'm3')"],
-            schelp="""
-            Metal layer to use for automated vertical pin placement
-            during APR.  The metal layers can be specified as technology
-            agnostic SC layers starting with m1 or as hard PDK specific
-            layer names.""")
-
-    scparam(cfg, ['asic', 'hpinlayer'],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC: vertical pin layer",
-            switch="-asic_hpinlayer <str>",
-            example= ["cli: -asic_hpinlayer m4",
-                    "api: chip.set('asic', 'hpinlayer', 'm4')"],
-            schelp="""
-            Metal layer to use for automated horizontal pin placement
-            during APR.  The metal layers can be specified as technology
-            agnostic SC layers starting with m1 or as hard PDK specific
-            layer names.""")
-
     tool = 'default'
     key = 'default'
     scparam(cfg, ['asic', 'file', tool, key],
@@ -3209,9 +3021,7 @@ def schema_asic(cfg):
 
     # TODO: Expand on the exact definitions of these types of cells.
     # minimize typing
-    names = ['driver',
-             'buf',
-             'decap',
+    names = ['decap',
              'delay',
              'tie',
              'hold',
@@ -3241,18 +3051,6 @@ def schema_asic(cfg):
                 all cells containing the string 'eco' could be marked as dont use
                 for the tool.""")
 
-    # Place and route parameters (optional)
-    scparam(cfg, ['asic', 'pgmetal'],
-            sctype='str',
-            shorthelp="ASIC: powergrid layer",
-            switch="-asic_pgmetal '<str>'",
-            example=["cli: -asic_pgmetal m1",
-                    "api: chip.set('asic','pgmetal','m1')"],
-            schelp="""
-            Top metal layer used for power and ground routing within the
-            library. The parameter can be used to guide cell power grid
-            hookup by APR tools.""")
-
     scparam(cfg,['asic', 'libarch'],
             sctype='str',
             shorthelp="ASIC: library architecture",
@@ -3265,42 +3063,16 @@ def schema_asic(cfg):
             design. For example a PDK with support for 9 and 12 track libraries
             might have 'libarchs' called 9t and 12t.""")
 
-    # footprint
-    key = 'default'
-    scparam(cfg,['asic', 'footprint', key, 'alias'],
+    libarch = 'default'
+    scparam(cfg,['asic', 'site', libarch],
             sctype='[str]',
-            shorthelp="ASIC: Footprint name aliases",
-            switch="-asic_footprint_alias 'key <str>'",
+            shorthelp="ASIC: Library sites",
+            switch="-asic_site 'libarch <str>'",
             example=[
-                "cli: -asic_footprint_alias '12track FreeCell'",
-                "api: chip.set('asic','footprint','12track','alias','FreeCell')"],
+                "cli: -asic_site '12track Site_12T'",
+                "api: chip.set('asic','site','12track','Site_12T')"],
             schelp="""
-            Alias for the footprint key that is sometimes needed when the footprint can
-            be referenced by multiple names. The key is the 'official' footprint.""")
-
-    scparam(cfg, ['asic', 'footprint', key, 'symmetry'],
-            sctype='str',
-            shorthelp="ASIC: Footprint symmetry",
-            switch="-asic_footprint_symmetry 'key <str>'",
-            example=[
-                "cli: -asic_footprint_symmetry 'core X Y'",
-                "api: chip.set('asic','footprint','core','symmetry','X Y')"],
-            schelp="""
-            Footprint symmetry based on LEF standard definition. 'X' implies
-            symmetric about the x axis, 'Y' implies symmetry about the y axis, and
-            'X Y' implies symmetry about the x and y axis.""")
-
-    scparam(cfg, ['asic', 'footprint', key, 'size'],
-            sctype='(float,float)',
-            shorthelp="ASIC: Footprint size",
-            switch="-asic_footprint_size 'key <str>'",
-            example=[
-                "cli: -asic_footprint_size 'core (1.0,1.0)'",
-                "api: chip.set('asic','footprint','core','size',(1.0,1.0))"],
-            schelp="""
-            Size of the footprint described as a (width, height) tuple in
-            microns.""")
-
+            Site names for a given library architecture.""")
 
     return cfg
 
