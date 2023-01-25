@@ -28,7 +28,8 @@ def scparam(cfg,
             switch=None,
             example=None,
             schelp=None,
-            enum=None):
+            enum=None,
+            pernode='none'):
 
     # 1. decend keypath until done
     # 2. create key if missing
@@ -84,6 +85,9 @@ def scparam(cfg,
         cfg['help'] = schelp
         cfg['signature'] = signature
         cfg['notes'] = notes
+        # none, optional, mandatory
+        cfg['pernode'] = pernode
+        cfg['pernode_value'] = {}
         cfg['set'] = False
 
         if enum is not None:

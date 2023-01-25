@@ -67,7 +67,7 @@ class Schema:
         return localcfg
 
     ###########################################################################
-    def get(self, *keypath, field='value', job=None):
+    def get(self, *keypath, field='value', job=None, step=None, index=None):
         """
         Returns a schema parameter field.
 
@@ -75,11 +75,27 @@ class Schema:
         """
         cfg = self._search(*keypath, job=job)
 
+        if cfg['pernode'] == 'none' and (step is not None or index is not None):
+            raise ValueError(f'step and index are not valid for keypath {keypath}')
+
+        if cfg['pernode'] == 'mandatory' and (step is None or index is None):
+            raise ValueError(f'step and index must be provided for keypath {keypath}')
+
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: get() must be called on a complete keypath')
 
         if field == 'value':
-            if not Schema._is_empty(cfg):
+            if cfg['pernode'] == 'mandatory':
+                try:
+                    return cfg['pernode_value'][step][index]
+                except KeyError:
+                    raise ValueError(f'No value for keypath {keypath} for node {step}{index}')
+
+            if step in cfg['pernode_value'] and index in cfg['pernode_value'][step]:
+                return cfg['pernode_value'][step][index]
+            elif step in cfg['pernode_value']:
+                return cfg['pernode_value'][step]['default']
+            elif not Schema._is_empty(cfg):
                 return cfg['value']
             else:
                 return cfg['defvalue']
@@ -89,7 +105,7 @@ class Schema:
             raise ValueError(f'Invalid field {field}')
 
     ###########################################################################
-    def set(self, *args, field='value', clobber=True):
+    def set(self, *args, field='value', clobber=True, step=None, index=None):
         '''
         Sets a schema parameter field.
 
@@ -99,6 +115,12 @@ class Schema:
         value = args[-1]
 
         cfg = self._search(*keypath, insert_defaults=True)
+
+        if cfg['pernode'] == 'none' and (step is not None or index is not None):
+            raise ValueError(f'step and index are not valid for keypath {keypath}')
+
+        if cfg['pernode'] == 'mandatory' and (step is None or index is None):
+            raise ValueError(f'step and index must be provided for keypath {keypath}')
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: set() must be called on a complete keypath')
@@ -117,14 +139,25 @@ class Schema:
 
         value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
-        cfg[field] = value
         if field == 'value':
+            if step is not None and index is not None:
+                if step not in cfg['pernode_value']:
+                    cfg['pernode_value'][step] = {}
+                cfg['pernode_value'][step][index] = value
+            elif step is not None:
+                if step not in cfg['pernode_value']:
+                    cfg['pernode_value'][step] = {}
+                cfg['pernode_value'][step]['default'] = value
+            else:
+                cfg['value'] = value
             cfg['set'] = True
+        else:
+            cfg[field] = value
 
         return True
 
     ###########################################################################
-    def add(self, *args, field='value'):
+    def add(self, *args, field='value', step=None, index=None):
         '''
         Adds item(s) to a schema parameter list.
 
@@ -134,6 +167,12 @@ class Schema:
         value = args[-1]
 
         cfg = self._search(*keypath, insert_defaults=True)
+
+        if cfg['pernode'] == 'none' and (step is not None or index is not None):
+            raise ValueError(f'step and index are not valid for keypath {keypath}')
+
+        if cfg['pernode'] == 'mandatory' and (step is None or index is None):
+            raise ValueError(f'step and index must be provided for keypath {keypath}')
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: add() must be called on a complete keypath')
@@ -151,9 +190,24 @@ class Schema:
 
         value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
-        cfg[field].extend(value)
         if field == 'value':
-            cfg['set'] = True
+            if step is not None and index is not None:
+                if step not in cfg['pernode_value']:
+                    cfg['pernode_value'][step] = {}
+                if index not in cfg['pernode_value'][step]:
+                    cfg['pernode_value'][step][index] = []
+                cfg['pernode_value'][step][index].extend(value)
+            elif step is not None:
+                if step not in cfg['pernode_value']:
+                    cfg['pernode_value'][step] = {}
+                if 'default' not in cfg['pernode_value'][step]:
+                    cfg['pernode_value'][step]['default'] = []
+                cfg['pernode_value'][step]['default'].extend(value)
+            else:
+                cfg['value'].extend(value)
+                cfg['set'] = True
+        else:
+            cfg[field].extend(value)
 
         return True
 
@@ -365,6 +419,13 @@ class Schema:
                 raise TypeError(error_msg('one of "global", "job", or "scratch"'))
             return value
 
+        if field == 'pernode':
+            # Restricted allowed values
+            if not (isinstance(value, str) and value in ('none', 'optional', 'mandatory')):
+                raise TypeError(f'Invalid value {value} for field {field}: '
+                    'expected one of "none", "optional", or "mandatory"')
+            return value
+
         if field in (
             'type', 'switch', 'shorthelp', 'help', 'unit', 'hashalgo', 'notes',
             'signature'
@@ -378,6 +439,10 @@ class Schema:
             if value == 'false': return False
             if isinstance(value, bool): return value
             else: raise TypeError(error_msg('bool'))
+
+        if field in ('pernode_value',):
+            if isinstance(value, dict): return value
+            else: raise TypeError(f'Invalid value {value} for field {field}: expected dict')
 
         raise ValueError(f'Invalid field {field} for keypath {keypath}')
 
