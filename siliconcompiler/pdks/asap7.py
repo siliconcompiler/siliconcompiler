@@ -68,10 +68,12 @@ def setup(chip):
     chip.set('pdk', process, 'stackup', stackup)
 
     # APR tech file
-    # TODO: remove libtype
     for tool in ('openroad', 'klayout', 'magic'):
         chip.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
                  pdkdir+'/apr/asap7_tech.lef')
+
+    chip.set('pdk', process, 'minlayer', stackup, 'M2')
+    chip.set('pdk', process, 'maxlayer', stackup, 'M7')
 
     # Klayout setup file
     chip.set('pdk', process, 'layermap','klayout','def','gds',stackup,
@@ -99,7 +101,7 @@ def setup(chip):
     chip.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'M4')
 
     # PEX
-    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical', 
+    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
 
 #########################

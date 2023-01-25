@@ -75,10 +75,14 @@ def setup(chip):
     chip.set('pdk', process, 'hscribe', hscribe)
     chip.set('pdk', process, 'vscribe', vscribe)
 
+    # APR Setup
     # TODO: remove libtype
     for tool in ('openroad', 'klayout', 'magic'):
         chip.set('pdk', process,'aprtech',tool,stackup, libtype,'lef',
                  pdkdir+'/apr/sky130_fd_sc_hd.tlef')
+
+    chip.set('pdk', process, 'minlayer', stackup, 'met1')
+    chip.set('pdk', process, 'maxlayer', stackup, 'met5')
 
     # DRC Runsets
     chip.set('pdk', process,'drc', 'runset', 'magic', stackup, 'basic', pdkdir+'/setup/magic/sky130A.tech')
@@ -109,7 +113,7 @@ def setup(chip):
     chip.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'met3')
 
     # PEX
-    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical', 
+    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
 
 #########################

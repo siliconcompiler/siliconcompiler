@@ -13,7 +13,7 @@ def main():
     # Create instance of Chip class
     chip = siliconcompiler.Chip("gcd")
 
-    chip.add('input', 'rtl', 'verilog', 'gcd.v')
+    chip.input('gcd.v')
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 
@@ -28,7 +28,7 @@ def main():
 
     # Disabled due to segfault in sky130
     #def_path = make_floorplan(chip)
-    #chip.set('input', 'layout', 'floorplan.def', def_path)
+    #chip.set('input', 'asic', 'floorplan.def', def_path)
 
     chip.set('option', 'jobname', 'rtl2gds')
     chip.run()
@@ -42,8 +42,8 @@ def main():
     chip.set('option', 'jobname', 'signoff')
     chip.set('option', 'flow', 'signoffflow')
 
-    chip.set('input', 'layout', 'gds', gds_path)
-    chip.set('input', 'netlist', 'verilog', vg_path)
+    chip.input(gds_path)
+    chip.input(vg_path)
 
     chip.run()
     chip.summary()

@@ -12,7 +12,7 @@ def run_design(rootdir, design, N, job):
 
     chip = siliconcompiler.Chip(design)
     chip.set('design', design)
-    chip.add('source', 'verilog', rootdir+'/stdlib/hdl/'+design+'.v')
+    chip.input(rootdir+'/stdlib/hdl/'+design+'.v')
     chip.set('option', 'param', 'N', str(N))
     chip.set('option', 'jobname', job)
     chip.set('option', 'relax', True)

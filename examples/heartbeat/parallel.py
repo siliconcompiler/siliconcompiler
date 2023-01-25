@@ -10,7 +10,7 @@ import time
 def run_design(design, M, job):
 
     chip = siliconcompiler.Chip(design, loglevel='INFO')
-    chip.add('input', 'rtl', 'verilog', design+'.v')
+    chip.input('verilog', design+'.v')
     chip.set('option', 'jobname', job)
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)

@@ -17,7 +17,7 @@ def test_surelog(scroot, clean):
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
 
-    chip.add('input', 'rtl', 'verilog', gcd_src)
+    chip.input(gcd_src)
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'clean', clean)
     chip.node('surelog', step, 'surelog', step)
@@ -44,8 +44,8 @@ def test_surelog_duplicate_inputs(scroot):
     chip.load_target('freepdk45_demo')
 
     # Set duplicate input files.
-    chip.add('input', 'rtl', 'verilog', gcd_src)
-    chip.add('input', 'rtl', 'verilog', gcd_src)
+    chip.input(gcd_src)
+    chip.input(gcd_src)
 
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'clean', True)
@@ -75,7 +75,7 @@ def test_surelog_preproc_regression(datadir):
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
     chip.node('surelog', step, 'surelog', step)
-    chip.add('input', 'rtl', 'verilog', src)
+    chip.input(src)
     chip.add('option', 'define', 'MEM_ROOT=test')
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'flow', 'surelog')
@@ -100,7 +100,7 @@ def test_replay(scroot):
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
 
-    chip.add('input', 'rtl', 'verilog', src)
+    chip.input(src)
     chip.set('option', 'mode', 'sim')
     chip.node('surelog', step, 'surelog', step)
     chip.set('option', 'flow', 'surelog')

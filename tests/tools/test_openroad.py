@@ -14,11 +14,11 @@ def test_openroad(scroot):
 
     chip = siliconcompiler.Chip(design)
 
-    chip.set('input', 'netlist', 'verilog', netlist)
+    chip.input(netlist)
     chip.set('option', 'quiet', True)
     chip.set('option', 'novercheck', True)
-    chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
-    chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
+    chip.set('constraint', 'outline', [(0,0), (100.13,100.8)])
+    chip.set('constraint', 'corearea', [(10.07,11.2), (90.25,91)])
 
     # load tech
     chip.load_target("freepdk45_demo")

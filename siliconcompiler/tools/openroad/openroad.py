@@ -118,8 +118,6 @@ def setup(chip, mode='batch'):
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['option', 'stackup',]))
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'site', libtype]))
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']))
-        if chip.valid('input', 'layout', 'floorplan.def'):
-            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['input', 'layout', 'floorplan.def']))
 
         # set tapcell file
         tapfile = None
@@ -208,10 +206,10 @@ def setup(chip, mode='batch'):
                             ('grt_macro_extension', '2'),
                             ('grt_allow_congestion', 'False'),
                             ('grt_allow_overflow', 'False'),
-                            ('grt_signal_min_layer', chip.get('asic', 'minlayer')),
-                            ('grt_signal_max_layer', chip.get('asic', 'maxlayer')),
-                            ('grt_clock_min_layer', chip.get('asic', 'minlayer')),
-                            ('grt_clock_max_layer', chip.get('asic', 'maxlayer')),
+                            ('grt_signal_min_layer', chip.get('pdk', pdkname, 'minlayer', stackup)),
+                            ('grt_signal_max_layer', chip.get('pdk', pdkname, 'maxlayer', stackup)),
+                            ('grt_clock_min_layer', chip.get('pdk', pdkname, 'minlayer', stackup)),
+                            ('grt_clock_max_layer', chip.get('pdk', pdkname, 'maxlayer', stackup)),
                             ('drt_disable_via_gen', 'False'),
                             ('drt_process_node', 'False'),
                             ('drt_via_in_pin_bottom_layer', 'False'),
@@ -280,19 +278,6 @@ def normalize_version(version):
         return version.lstrip('v')
     else:
         return '0'
-
-################################
-# Pre_process (pre executable)
-################################
-
-def pre_process(chip):
-
-    step = chip.get('arg', 'step')
-    if (step == "show" or step == "screenshot"):
-        copy_show_files(chip)
-
-    # Build estimate PEX
-    build_pex_corners(chip)
 
 ################################
 # Post_process (post executable)

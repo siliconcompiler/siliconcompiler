@@ -22,8 +22,8 @@ def test_flowstatus(scroot, steplist):
     design = "oh_fifo_sync"
 
     chip = siliconcompiler.Chip(design)
-    chip.set('input', 'netlist', 'verilog', netlist)
-    chip.set('input', 'layout', 'def', def_file)
+    chip.input(netlist)
+    chip.input(def_file)
     chip.set('option', 'mode', 'asic')
     chip.set('option', 'quiet', True)
     chip.set('option', 'jobname', jobname)
@@ -79,8 +79,8 @@ def test_long_branch(scroot):
     design = "oh_fifo_sync"
 
     chip = siliconcompiler.Chip(design)
-    chip.set('input', 'netlist', 'verilog', netlist)
-    chip.set('input', 'layout', 'def', def_file)
+    chip.input(netlist)
+    chip.input(def_file)
     chip.set('option', 'mode', 'asic')
     chip.set('option', 'quiet', True)
     chip.set('option', 'jobname', jobname)
@@ -137,7 +137,7 @@ def test_remote(scroot):
 
     src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
 
-    chip.set('input', 'rtl', 'verilog', src)
+    chip.input(src)
 
     chip.set('arg', 'flow', 'place_np', '2')
     # Illegal value, so this branch will fail!

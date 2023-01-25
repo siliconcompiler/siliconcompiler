@@ -49,11 +49,8 @@ def setup(chip):
 
     #5. get project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
-
-    chip.set('asic', 'minlayer', "2")
-    chip.set('asic', 'maxlayer', "5")
-    chip.set('asic', 'density', 10)
-    chip.set('asic', 'coremargin', 4.6)
+    chip.set('constraint', 'density', 10)
+    chip.set('constraint', 'coremargin', 4.6)
 
     #5. Timing corners
     corner = 'typical'

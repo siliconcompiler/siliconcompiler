@@ -58,17 +58,17 @@ set sc_pdk        [dict get $sc_cfg option pdk]
 set sc_stackup    [dict get $sc_cfg option stackup]
 
 # APR Parameters
-set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
 set sc_targetlibs  [dict get $sc_cfg asic logiclib]
+set sc_mainlib     [lindex $sc_targetlibs 0]
 set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
-set sc_density     [dict get $sc_cfg asic density]
 set sc_hpinmetal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup] 0]
 set sc_vpinmetal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup] 0]
 set sc_rc_signal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool rclayer_clock $sc_stackup] 0]
 set sc_rc_clk      [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool rclayer_clock $sc_stackup] 0]
-set sc_aspectratio [dict get $sc_cfg asic aspectratio]
-set sc_minmetal    [dict get $sc_cfg asic minlayer]
-set sc_maxmetal    [dict get $sc_cfg asic maxlayer]
+set sc_minmetal    [dict get $sc_cfg pdk $sc_pdk minlayer $sc_stackup]
+set sc_maxmetal    [dict get $sc_cfg pdk $sc_pdk maxlayer $sc_stackup]
+set sc_aspectratio [dict get $sc_cfg constraint aspectratio]
+set sc_density     [dict get $sc_cfg constraint density]
 set sc_scenarios   [dict keys [dict get $sc_cfg constraint timing]]
 
 # Library

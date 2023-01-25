@@ -40,17 +40,15 @@ def setup(chip):
     #3. Set flow and pdk
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'freepdk45')
+    chip.set('option', 'stackup', '10M')
 
     #4. Select libraries
     chip.set('asic', 'logiclib', 'nangate45')
 
     #5. Set project specific design choices
-    chip.set('option', 'stackup', '10M')
     chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('asic', 'minlayer', "1")
-    chip.set('asic', 'maxlayer', "10")
-    chip.set('asic', 'density', 10)
-    chip.set('asic', 'coremargin', 1.9)
+    chip.set('constraint', 'density', 10)
+    chip.set('constraint', 'coremargin', 1.9)
 
     #6. Timing corners
     corner = 'typical'

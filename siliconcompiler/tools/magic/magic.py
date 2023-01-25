@@ -89,31 +89,6 @@ def setup(chip):
 def parse_version(stdout):
     return stdout.strip('\n')
 
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-
-    Reads error count from output and fills in appropriate entry in metrics
-    '''
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    design = chip.top()
-
-    if step == 'drc':
-        report_path = f'reports/{design}.drc'
-        with open(report_path, 'r') as f:
-            for line in f:
-                errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
-
-                if errors:
-                    chip.set('metric', step, index, 'drvs', errors.group(1))
-
-    #TODO: return error code
-    return 0
-
 ##################################################
 if __name__ == "__main__":
 
