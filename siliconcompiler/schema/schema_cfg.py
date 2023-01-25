@@ -3452,7 +3452,7 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'component', 'i0', 'halo', (1,1))"],
             schelp="""
             Placement keepout halo around the named component, specified as a
-            (horizontal, vertical) tuple represented in micros on lambda units.
+            (horizontal, vertical) tuple represented in microns or lambda units.
             """)
 
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
@@ -3503,9 +3503,9 @@ def schema_constraint(cfg):
             goals such as manufacturing design  rules and grid placement
             guidelines. The 'z' coordinate shall be set to 0 for planar components
             with only (x,y) coordinates. Discretized systems like 3D chips with
-            pins on to and bottom may choose to discretize the top and bottom
-            layer as 0,1 or use absolute coordinates. Values are specified based
-            on """)
+            pins on top and bottom may choose to discretize the top and bottom
+            layer as 0,1 or use absolute coordinates. Values are specified
+            in microns or lambda units.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',
@@ -3528,10 +3528,10 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'pin', 'nreset', 'side', 1)"],
             schelp="""
             Side of block where the named pin should be placed. Sides are
-            enumerated as an integers with '1' being the lower left side,
-            and incrementing the side with every turn in a clock wise
-            fashion. In case of conflict between 'lower' and and 'left',
-            'left' has precedence. 'The side option and order option are
+            enumerated as integers with '1' being the lower left side,
+            with the side index incremented on right turn in a clock wise
+            fashion. In case of conflict between 'lower' and 'left',
+            'left' has precedence. The side option and order option are
             orthogonal to the placement option.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'order'],

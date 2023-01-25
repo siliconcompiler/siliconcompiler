@@ -841,7 +841,7 @@
                         "cli: -constraint_component_halo 'i0 (1,1)'",
                         "api: chip.set('constraint', 'component', 'i0', 'halo', (1,1))"
                     ],
-                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple represented in micros on lambda units.",
+                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple represented in microns or lambda units.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -1180,7 +1180,7 @@
                         "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0)"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on to and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates. Values are specified based\non",
+                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates. Values are specified\nin microns or lambda units.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
@@ -1198,7 +1198,7 @@
                         "cli: -constraint_pin_side 'nreset 1'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'side', 1)"
                     ],
-                    "help": "Side of block where the named pin should be placed. Sides are\nenumerated as an integers with '1' being the lower left side,\nand incrementing the side with every turn in a clock wise\nfashion. In case of conflict between 'lower' and and 'left',\n'left' has precedence. 'The side option and order option are\northogonal to the placement option.",
+                    "help": "Side of block where the named pin should be placed. Sides are\nenumerated as integers with '1' being the lower left side,\nwith the side index incremented on right turn in a clock wise\nfashion. In case of conflict between 'lower' and 'left',\n'left' has precedence. The side option and order option are\northogonal to the placement option.",
                     "lock": "false",
                     "notes": null,
                     "require": null,
