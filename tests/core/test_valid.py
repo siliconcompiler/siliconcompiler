@@ -10,7 +10,7 @@ def test_valid():
     valid =  chip.valid('design')
     assert valid
     #nest
-    valid = chip.valid('asic','minlayer')
+    valid = chip.valid('pdk', 'freepdk45', 'foundry')
     assert valid
     #dynamic valid
     valid = chip.valid('pdk', 'freepdk45', 'grid', '10M', 'metal1', 'name')
