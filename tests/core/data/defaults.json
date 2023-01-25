@@ -92,23 +92,6 @@
                 "type": "[str]",
                 "value": []
             },
-            "buf": {
-                "defvalue": [],
-                "example": [
-                    "cli: -asic_cells_buf '*eco*'",
-                    "api: chip.set('asic','cells',buf,'*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: buf cell list",
-                "signature": [],
-                "switch": "-asic_cells_buf '<str>'",
-                "type": "[str]",
-                "value": []
-            },
             "clkbuf": {
                 "defvalue": [],
                 "example": [
@@ -262,23 +245,6 @@
                 "type": "[str]",
                 "value": []
             },
-            "driver": {
-                "defvalue": [],
-                "example": [
-                    "cli: -asic_cells_driver '*eco*'",
-                    "api: chip.set('asic','cells',driver,'*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": "false",
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: driver cell list",
-                "signature": [],
-                "switch": "-asic_cells_driver '<str>'",
-                "type": "[str]",
-                "value": []
-            },
             "endcap": {
                 "defvalue": [],
                 "example": [
@@ -429,78 +395,6 @@
                 }
             }
         },
-        "footprint": {
-            "default": {
-                "alias": {
-                    "defvalue": [],
-                    "example": [
-                        "cli: -asic_footprint_alias '12track FreeCell'",
-                        "api: chip.set('asic','footprint','12track','alias','FreeCell')"
-                    ],
-                    "help": "Alias for the footprint key that is sometimes needed when the footprint can\nbe referenced by multiple names. The key is the 'official' footprint.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "ASIC: Footprint name aliases",
-                    "signature": [],
-                    "switch": "-asic_footprint_alias 'key <str>'",
-                    "type": "[str]",
-                    "value": []
-                },
-                "size": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -asic_footprint_size 'core (1.0,1.0)'",
-                        "api: chip.set('asic','footprint','core','size',(1.0,1.0))"
-                    ],
-                    "help": "Size of the footprint described as a (width, height) tuple in\nmicrons.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "ASIC: Footprint size",
-                    "signature": null,
-                    "switch": "-asic_footprint_size 'key <str>'",
-                    "type": "(float,float)",
-                    "value": null
-                },
-                "symmetry": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -asic_footprint_symmetry 'core X Y'",
-                        "api: chip.set('asic','footprint','core','symmetry','X Y')"
-                    ],
-                    "help": "Footprint symmetry based on LEF standard definition. 'X' implies\nsymmetric about the x axis, 'Y' implies symmetry about the y axis, and\n'X Y' implies symmetry about the x and y axis.",
-                    "lock": "false",
-                    "notes": null,
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "ASIC: Footprint symmetry",
-                    "signature": null,
-                    "switch": "-asic_footprint_symmetry 'key <str>'",
-                    "type": "str",
-                    "value": null
-                }
-            }
-        },
-        "hpinlayer": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_hpinlayer m4",
-                "api: chip.set('asic', 'hpinlayer', 'm4')"
-            ],
-            "help": "Metal layer to use for automated horizontal pin placement\nduring APR.  The metal layers can be specified as technology\nagnostic SC layers starting with m1 or as hard PDK specific\nlayer names.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC: vertical pin layer",
-            "signature": null,
-            "switch": "-asic_hpinlayer <str>",
-            "type": "str",
-            "value": null
-        },
         "libarch": {
             "defvalue": null,
             "example": [
@@ -552,40 +446,23 @@
             "type": "[str]",
             "value": []
         },
-        "pgmetal": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_pgmetal m1",
-                "api: chip.set('asic','pgmetal','m1')"
-            ],
-            "help": "Top metal layer used for power and ground routing within the\nlibrary. The parameter can be used to guide cell power grid\nhookup by APR tools.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC: powergrid layer",
-            "signature": null,
-            "switch": "-asic_pgmetal '<str>'",
-            "type": "str",
-            "value": null
-        },
-        "rclayer": {
+        "site": {
             "default": {
-                "defvalue": null,
+                "defvalue": [],
                 "example": [
-                    "cli: -asic_rclayer 'clk m3'",
-                    "api: chip.set('asic', 'rclayer', 'clk', 'm3')"
+                    "cli: -asic_site '12track Site_12T'",
+                    "api: chip.set('asic','site','12track','Site_12T')"
                 ],
-                "help": "Technology agnostic metal layer to be used for parasitic\nextraction estimation during APR for the wire type specified\nCurrent the supported wire types are: clk, data. The metal\nlayers can be specified as technology agnostic SC layers\nstarting with m1 or as hard PDK specific layer names.",
+                "help": "Site names for a given library architecture.",
                 "lock": "false",
                 "notes": null,
                 "require": null,
                 "scope": "job",
-                "shorthelp": "ASIC: parasitics layer",
-                "signature": null,
-                "switch": "-asic_rclayer 'sigtype <str>'",
-                "type": "str",
-                "value": null
+                "shorthelp": "ASIC: Library sites",
+                "signature": [],
+                "switch": "-asic_site 'libarch <str>'",
+                "type": "[str]",
+                "value": []
             }
         },
         "var": {
@@ -608,23 +485,6 @@
                     "value": []
                 }
             }
-        },
-        "vpinlayer": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_vpinlayer m3",
-                "api: chip.set('asic', 'vpinlayer', 'm3')"
-            ],
-            "help": "Metal layer to use for automated vertical pin placement\nduring APR.  The metal layers can be specified as technology\nagnostic SC layers starting with m1 or as hard PDK specific\nlayer names.",
-            "lock": "false",
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "shorthelp": "ASIC: vertical pin layer",
-            "signature": null,
-            "switch": "-asic_vpinlayer <str>",
-            "type": "str",
-            "value": null
         }
     },
     "checklist": {
@@ -5245,195 +5105,6 @@
                 "type": "str",
                 "value": null
             },
-            "grid": {
-                "default": {
-                    "default": {
-                        "adj": {
-                            "defvalue": null,
-                            "example": [
-                                "cli: -pdk_grid_adj 'asap7 M10 m2 0.5'",
-                                "api: chip.set('pdk','asap7','grid','M10','m2','adj','0.5')"
-                            ],
-                            "help": "Defines the routing resources adjustments for the design on a per layer\nbasis. The value is expressed as a fraction from 0 to 1. A value of\n0.5 reduces the routing resources by 50%. If not defined, 100%\nrouting resource utilization is permitted.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "global",
-                            "shorthelp": "PDK: routing grid resource adjustment",
-                            "signature": null,
-                            "switch": "-pdk_grid_adj 'pdkname stackup layer <float>'",
-                            "type": "float",
-                            "value": null
-                        },
-                        "cap": {
-                            "default": {
-                                "defvalue": null,
-                                "example": [
-                                    "cli: -pdk_grid_cap 'asap7 M10 m2 fast 0.2'",
-                                    "api: chip.set('pdk','asap7','grid','M10','m2','cap','fast','0.2')"
-                                ],
-                                "help": "Unit capacitance of a wire defined by the grid width and spacing values\nin the 'grid' structure specified on a per\nstackup, metal, and corner basis. As a rough rule of thumb, this value\ntends to stay around 0.2ff/um. This number should only be used for\nreality confirmation. Accurate analysis should use the PEX models.",
-                                "lock": "false",
-                                "notes": null,
-                                "require": null,
-                                "scope": "global",
-                                "shorthelp": "PDK: routing grid unit capacitance",
-                                "signature": null,
-                                "switch": "-pdk_grid_cap 'pdkname stackup layer corner <float>''",
-                                "type": "float",
-                                "unit": "ff/um",
-                                "value": null
-                            }
-                        },
-                        "dir": {
-                            "defvalue": null,
-                            "example": [
-                                "cli: -pdk_grid_dir 'asap7 M10 m1 horizontal'",
-                                "api: chip.set('pdk','asap7','grid','M10','m1','dir','horizontal')"
-                            ],
-                            "help": "Preferred routing direction specified on a per stackup\nand per metal basis. Valid routing directions are horizontal\nand vertical.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "global",
-                            "shorthelp": "PDK: routing grid preferred direction",
-                            "signature": null,
-                            "switch": "-pdk_grid_dir 'pdkname stackup layer <str>'",
-                            "type": "str",
-                            "value": null
-                        },
-                        "name": {
-                            "defvalue": null,
-                            "example": [
-                                "cli: -pdk_grid_name 'asap7 M10 metal1 m1'",
-                                "api: chip.set('pdk','asap7','grid','M10','metal1','name','m1')"
-                            ],
-                            "help": "Maps PDK metal names to the SC standardized layer stack\nstarting with m1 as the lowest routing layer and ending\nwith m<n> as the highest routing layer. The map is\nspecified on a per metal stack basis.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "global",
-                            "shorthelp": "PDK: routing grid name map",
-                            "signature": null,
-                            "switch": "-pdk_grid_name 'pdkname stackup layer <str>'",
-                            "type": "str",
-                            "value": null
-                        },
-                        "res": {
-                            "default": {
-                                "defvalue": null,
-                                "example": [
-                                    "cli: -pdk_grid_res 'asap7 M10 m2 fast 0.2'",
-                                    "api: chip.set('pdk','asap7','grid','M10','m2','res','fast','0.2')"
-                                ],
-                                "help": "Resistance of a wire defined by the grid width and spacing values\nin the 'grid' structure specified as ohms/um on a per\nstackup, metal, and corner basis. The parameter is only meant to be\nused as a sanity check and for coarse design planning. Accurate\nanalysis should use the TCAD PEX models.",
-                                "lock": "false",
-                                "notes": null,
-                                "require": null,
-                                "scope": "global",
-                                "shorthelp": "PDK: routing grid unit resistance",
-                                "signature": null,
-                                "switch": "-pdk_grid_res 'pdkname stackup layer corner <float>''",
-                                "type": "float",
-                                "unit": "ohm/um",
-                                "value": null
-                            }
-                        },
-                        "tcr": {
-                            "default": {
-                                "defvalue": null,
-                                "example": [
-                                    "cli: -pdk_grid_tcr 'asap7 M10 m2 fast 0.2'",
-                                    "api: chip.set('pdk','asap7','grid','M10','m2','tcr','fast','0.2')"
-                                ],
-                                "help": "Temperature coefficient of resistance of the wire defined by the grid\nwidth and spacing values in the 'grid' structure on a per stackup,\nlayer, and corner basis. The number is only meant to be used as a\nsanity check and for coarse design planning. Accurate analysis\nshould use the PEX models.",
-                                "lock": "false",
-                                "notes": null,
-                                "require": null,
-                                "scope": "global",
-                                "shorthelp": "PDK: routing grid temperature coefficient",
-                                "signature": null,
-                                "switch": "-pdk_grid_tcr 'pdkname stackup layer corner <float>'",
-                                "type": "float",
-                                "unit": "%/degree(T)",
-                                "value": null
-                            }
-                        },
-                        "xoffset": {
-                            "defvalue": null,
-                            "example": [
-                                "cli: -pdk_grid_xoffset 'asap7 M10 m2 0.5'",
-                                "api: chip.set('pdk','asap7','grid','M10','m2','xoffset','0.5')"
-                            ],
-                            "help": "Defines the grid offset of a vertical metal layer specified on a per\nstackup and per metal basis.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "global",
-                            "shorthelp": "PDK: routing grid vertical wire offset",
-                            "signature": null,
-                            "switch": "-pdk_grid_xoffset 'pdkname stackup layer <float>'",
-                            "type": "float",
-                            "unit": "um",
-                            "value": null
-                        },
-                        "xpitch": {
-                            "defvalue": null,
-                            "example": [
-                                "cli: -pdk_grid_xpitch 'asap7 M10 m1 0.5'",
-                                "api: chip.set('pdk', 'asap7','grid','M10','m1','xpitch','0.5')"
-                            ],
-                            "help": "Defines the routing pitch for vertical wires on a per stackup and\nper metal basis.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "global",
-                            "shorthelp": "PDK: routing grid vertical wire pitch",
-                            "signature": null,
-                            "switch": "-pdk_grid_xpitch 'pdkname stackup layer <float>'",
-                            "type": "float",
-                            "unit": "um",
-                            "value": null
-                        },
-                        "yoffset": {
-                            "defvalue": null,
-                            "example": [
-                                "cli: -pdk_grid_yoffset 'asap7 M10 m2 0.5'",
-                                "api: chip.set('pdk', 'asap7','grid','M10','m2','yoffset','0.5')"
-                            ],
-                            "help": "Defines the grid offset of a horizontal metal layer specified on a per\nstackup and per metal basis.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "global",
-                            "shorthelp": "PDK: routing grid horizontal wire offset",
-                            "signature": null,
-                            "switch": "-pdk_grid_yoffset 'pdkname stackup layer <float>'",
-                            "type": "float",
-                            "unit": "um",
-                            "value": null
-                        },
-                        "ypitch": {
-                            "defvalue": null,
-                            "example": [
-                                "cli: -pdk_grid_ypitch 'asap7 M10 m1 0.5'",
-                                "api: chip.set('pdk','asap7','grid','M10','m1','ypitch','0.5')"
-                            ],
-                            "help": "Defines the routing pitch for horizontal wires on a per stackup and\nper metal basis.",
-                            "lock": "false",
-                            "notes": null,
-                            "require": null,
-                            "scope": "global",
-                            "shorthelp": "PDK: routing grid horizontal wire pitch",
-                            "signature": null,
-                            "switch": "-pdk_grid_ypitch 'pdkname stackup layer <float>'",
-                            "type": "float",
-                            "unit": "um",
-                            "value": null
-                        }
-                    }
-                }
-            },
             "hscribe": {
                 "defvalue": null,
                 "example": [
@@ -6087,7 +5758,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.14.0",
+        "defvalue": "0.15.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6100,7 +5771,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.14.0"
+        "value": "0.15.0"
     },
     "tool": {
         "default": {
