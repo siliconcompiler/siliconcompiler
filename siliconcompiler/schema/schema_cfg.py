@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.15.0'
+SCHEMA_VERSION = '0.16.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -18,8 +18,8 @@ def scparam(cfg,
             require=None,
             defvalue=None,
             scope='job',
-            copy='false',
-            lock='false',
+            copy=False,
+            lock=False,
             hashalgo='sha256',
             signature=None,
             notes=None,
@@ -63,7 +63,7 @@ def scparam(cfg,
         if re.match(r'bool',sctype):
             require = 'all'
             if defvalue is None:
-                defvalue = 'false'
+                defvalue = False
         if re.match(r'\[',sctype) and signature is None:
             signature = []
         if re.match(r'\[',sctype) and defvalue is None:
@@ -82,6 +82,7 @@ def scparam(cfg,
         cfg['help'] = schelp
         cfg['signature'] = signature
         cfg['notes'] = notes
+        cfg['set'] = False
 
         # unit for floats/ints
         if unit is not None:
@@ -122,7 +123,7 @@ def schema_cfg():
             defvalue=SCHEMA_VERSION,
             require='all',
             shorthelp="Schema version number",
-            lock='true',
+            lock=True,
             switch="-schemaversion <str>",
             example=["api: chip.get('schemaversion')"],
             schelp="""SiliconCompiler schema version number.""")
@@ -140,8 +141,8 @@ def schema_cfg():
             chip objects.""")
 
     # input/output
-    io = {'input': ['Input','true'],
-          'output': ['Output','false']
+    io = {'input': ['Input', True],
+          'output': ['Output', False]
     }
 
     filetype = 'default'
@@ -150,7 +151,7 @@ def schema_cfg():
     for item, val in io.items():
         scparam(cfg,[item, fileset, filetype],
                 sctype='[file]',
-                copy=f"{val[1]}",
+                copy=val[1],
                 shorthelp=f"{val[0]}: files",
                 switch=f"-{item} 'fileset filetype <file>'",
                 example=[
@@ -205,7 +206,7 @@ def schema_fpga(cfg):
 
     scparam(cfg,['fpga', 'arch'],
             sctype='[file]',
-            copy='true',
+            copy=True,
             shorthelp="FPGA: architecture file",
             switch="-fpga_arch <file>",
             example=["cli: -fpga_arch myfpga.xml",
@@ -1457,7 +1458,7 @@ def schema_arg(cfg):
             switch="-arg_pdk 'key <str>",
             example=[
                 "cli: -arg_pdk 'mimcap true'",
-                "api: chip.set('arg','pdk','mimcap','true')"],
+                "api: chip.set('arg','pdk','mimcap',True)"],
             schelp="""
             Parameter passed in as key/value pair to the technology target
             referenced in the load_pdk() API call. See the target technology
@@ -2343,7 +2344,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'novercheck'],
             sctype='bool',
-            defvalue='false',
+            defvalue=False,
             scope='job',
             shorthelp="Disable version checking",
             switch="-novercheck <bool>",
@@ -3150,7 +3151,7 @@ def schema_constraint(cfg):
     scparam(cfg,['constraint', 'timing', scenario, 'file'],
             sctype='[file]',
             scope='job',
-            copy='true',
+            copy=True,
             shorthelp="Constraint: SDC files",
             switch="-constraint_timing_file 'scenario <file>'",
             example=[
@@ -3248,7 +3249,7 @@ def schema_constraint(cfg):
             switch="-constraint_component_flip 'inst <bool>'",
             example=[
                 "cli: -constraint_component_flip 'i0 true'",
-                "api: chip.set('constraint', 'component', 'i0', 'flip', 'true')"],
+                "api: chip.set('constraint', 'component', 'i0', 'flip', True)"],
             schelp="""
             Boolean parameter specifying that the instanced library component should be flipped
             around the vertical axis before being placed on the substrate. The need to
