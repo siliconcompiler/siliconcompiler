@@ -11,7 +11,7 @@ from siliconcompiler.sphinx_ext.utils import *
 class SchemaGen(SphinxDirective):
 
     def run(self):
-        self.env.note_dependency('../siliconcompiler/schema.py')
+        self.env.note_dependency('../siliconcompiler/schema_cfg.py')
 
         schema = Schema().cfg
 
@@ -20,9 +20,14 @@ class SchemaGen(SphinxDirective):
     def process_schema(self, schema, parents=[]):
         if 'help' in schema:
             entries = [[strong('Description'),   para(schema['shorthelp'])],
-                       [strong('Type'),          para(schema['type'])],
-                       [strong('Default Value'), para(schema['defvalue'])],
-                       [strong('CLI Switch'),    code(schema['switch'])]]
+                       [strong('Type'),          para(schema['type'])]]
+
+            if schema['type'] == 'enum':
+                entries.append([strong('Allowed Values'), code(", ".join([f'"{val}"' for val in schema['enum']]))])
+
+            entries.extend([[strong('Default Value'), para(schema['defvalue'])],
+                            [strong('CLI Switch'),    code(schema['switch'])]])
+
             for example in schema['example']:
                 name, ex = example.split(':', 1)
                 entries.append([strong(f'Example ({name.upper()})'), code(ex.strip())])

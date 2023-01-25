@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.16.0'
+SCHEMA_VERSION = '0.17.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -27,7 +27,8 @@ def scparam(cfg,
             shorthelp=None,
             switch=None,
             example=None,
-            schelp=None):
+            schelp=None,
+            enum=None):
 
     # 1. decend keypath until done
     # 2. create key if missing
@@ -52,7 +53,8 @@ def scparam(cfg,
                 shorthelp=shorthelp,
                 switch=switch,
                 example=example,
-                schelp=schelp)
+                schelp=schelp,
+                enum=enum)
     else:
 
         # removing leading spaces as if schelp were a docstring
@@ -83,6 +85,9 @@ def scparam(cfg,
         cfg['signature'] = signature
         cfg['notes'] = notes
         cfg['set'] = False
+
+        if enum is not None:
+            cfg['enum'] = enum
 
         # unit for floats/ints
         if unit is not None:
@@ -1027,7 +1032,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
     # flowgraph status
     scparam(cfg,['flowgraph', flow, step, index, 'status'],
-            sctype='str',
+            sctype='enum',
             shorthelp="Flowgraph: task status",
             switch="-flowgraph_status 'flow step index <str>'",
             example=[
@@ -1038,7 +1043,8 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             * "success": task ran successfully
             * "error": task failed with an error
 
-            An empty value indicates the task has not yet been completed.""")
+            An empty value indicates the task has not yet been completed.""",
+            enum=["pending", "success", "error"])
 
     # flowgraph select
     scparam(cfg,['flowgraph', flow, step, index, 'select'],
@@ -1971,7 +1977,7 @@ def schema_option(cfg):
 
     # Compilation
     scparam(cfg, ['option', 'mode'],
-            sctype='str',
+            sctype='enum',
             scope='job',
             shorthelp="Compilation mode",
             switch="-mode <str>",
@@ -1983,7 +1989,8 @@ def schema_option(cfg):
             asic: RTL to GDS ASIC compilation
             fpga: RTL to bitstream FPGA compilation
             sim: simulation to verify design and compilation
-            """)
+            """,
+            enum=["asic", "fpga", "sim"])
 
     scparam(cfg, ['option','target'],
             sctype='str',
@@ -2117,7 +2124,7 @@ def schema_option(cfg):
             Specifies python modules paths for target import.""")
 
     scparam(cfg, ['option', 'loglevel'],
-            sctype='str',
+            sctype='enum',
             scope='job',
             defvalue='INFO',
             shorthelp="Logging level",
@@ -2127,7 +2134,8 @@ def schema_option(cfg):
                 "api: chip.set('option', 'loglevel', 'INFO')"],
             schelp="""
             Provides explicit control over the level of debug logging printed.
-            Valid entries include INFO, DEBUG, WARNING, ERROR.""")
+            Valid entries include INFO, DEBUG, WARNING, ERROR.""",
+            enum=["INFO", "DEBUG", "WARNING", "ERROR"])
 
     scparam(cfg, ['option', 'builddir'],
             sctype='dir',
