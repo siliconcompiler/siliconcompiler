@@ -24,7 +24,7 @@ def test_tool_option(scroot):
     chip.set('arg', 'flow', 'place_np', ['2'])
     chip.load_target('freepdk45_demo')
 
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0',  'place_density', '0.15')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0',  'place_density', '0.4')
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1',  'place_density', '0.3')
 
     # No need to run beyond place, we just want to check that setting place_density
