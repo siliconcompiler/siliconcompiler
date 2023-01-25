@@ -283,19 +283,19 @@ class Schema:
             return value
 
         if field in ('value', 'defvalue'):
-            return Schema._normalize_value(value, sc_type, keypath)
+            # Push down error_msg from the top since arguments get modified in recursive call
+            error_msg = f'Invalid value {value} for keypath {keypath}: expected type {sc_type}'
+            return Schema._normalize_value(value, sc_type, error_msg)
         else:
             return Schema._normalize_field(value, sc_type, field, keypath)
 
     @staticmethod
-    def _normalize_value(value, sc_type, keypath):
-        error_msg = f'Invalid value {value} for keypath {keypath}: expected type {sc_type}'
-
+    def _normalize_value(value, sc_type, error_msg):
         if sc_type.startswith('['):
             if not isinstance(value, list):
                 value = [value]
             base_type = sc_type[1:-1]
-            return [Schema._normalize_value(v, base_type, keypath) for v in value]
+            return [Schema._normalize_value(v, base_type, error_msg) for v in value]
 
         if sc_type.startswith('('):
             # TODO: make parsing more robust to support tuples-of-tuples
@@ -307,7 +307,7 @@ class Schema:
             base_types = sc_type[1:-1].split(',')
             if len(value) != len(base_types):
                 raise TypeError(error_msg)
-            return tuple(Schema._normalize_value(v, base_type, keypath) for v, base_type in zip(value, base_types))
+            return tuple(Schema._normalize_value(v, base_type, error_msg) for v, base_type in zip(value, base_types))
 
         if sc_type == 'bool':
             if value == 'true': return True
