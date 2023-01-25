@@ -6,7 +6,7 @@ def test_check_flowgraph():
     flow = 'test'
     chip.set('option', 'flow', flow)
     chip.node(flow, 'import', 'surelog', 'import')
-    chip.node(flow, 'syn', 'yosys', 'syn')
+    chip.node(flow, 'syn', 'yosys', 'syn_asic')
     chip.edge(flow, 'import', 'syn')
     chip.set('asic', 'logiclib', 'dummylib')
 
