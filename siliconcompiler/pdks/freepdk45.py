@@ -73,11 +73,13 @@ def setup(chip):
     chip.set('pdk', process, 'vscribe', vscribe)
     chip.set('pdk', process, 'd0', d0)
 
-    # APR tech file
-    # TODO: remove libtype
+    # APR Setup
     for tool in ('openroad', 'klayout', 'magic'):
         chip.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
                  pdkdir+'/apr/freepdk45.tech.lef')
+
+    chip.set('pdk', process, 'minlayer', stackup, 'm1')
+    chip.set('pdk', process, 'maxlayer', stackup, 'm10')
 
     # Klayout setup file
     chip.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup,

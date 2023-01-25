@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.13.0'
+SCHEMA_VERSION = '0.14.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -321,9 +321,9 @@ def schema_pdk(cfg, stackup='default'):
             switch="-pdk_lambda 'pdkname <float>",
             example=["cli: -pdk_lambda 'asap7 1e-06'",
                      "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"],
-            schelp="""Elementary distance unit used for scaling all
-            schema physical parameters (layout constraints, size, outline,
-            area, margin etc).""")
+            schelp="""Elementary distance unit used for scaling user
+            specified physical schema parameters such as layout
+            constraints.""")
 
     scparam(cfg, ['pdk', pdkname, 'version'],
             sctype='str',
@@ -359,6 +359,32 @@ def schema_pdk(cfg, stackup='default'):
             parasitic models specified in the pdk_pexmodel and pdk_aprtech
             parameters.""")
 
+    scparam(cfg, ['pdk', pdkname, 'minlayer', stackup],
+            sctype='str',
+            scope='global',
+            require='asic',
+            shorthelp="PDK: minimum routing layer",
+            switch="-pdk_minlayer 'pdk stackup <str>'",
+            example=[
+                "cli: -pdk_minlayer 'asap7 2MA4MB2MC M2'",
+                "api: chip.set('pdk', 'asap7', 'minlayer', '2MA4MB2MC', 'M2')"],
+            schelp="""
+            Minimum metal layer to be used for automated place and route
+            specified on a per stackup basis.""")
+
+    scparam(cfg, ['pdk', pdkname, 'maxlayer', stackup],
+            sctype='str',
+            scope='global',
+            require='asic',
+            shorthelp="PDK: maximum routing layer",
+            switch="-pdk_maxlayer 'pdk stackup <str>'",
+            example=[
+                "cli: -pdk_maxlayer 'asap7 2MA4MB2MC M8'",
+                "api: chip.set('pdk', 'asap7', 'maxlayer', 'MA4MB2MC', 'M8')"],
+            schelp="""
+            Maximum metal layer to be used for automated place and route
+            specified on a per stackup basis.""")
+
     scparam(cfg, ['pdk', pdkname, 'thickness', stackup],
             sctype='float',
             scope='global',
@@ -368,7 +394,7 @@ def schema_pdk(cfg, stackup='default'):
             example=["cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
                     "api:  chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"],
             schelp="""
-            Thickness of a manufactured unit specified on a per stackup basis.""")
+            Thickness of a manufactured unit specified on a per stackup.""")
 
     scparam(cfg, ['pdk', pdkname, 'wafersize'],
             sctype='float',
@@ -380,10 +406,11 @@ def schema_pdk(cfg, stackup='default'):
             example=["cli: -pdk_wafersize 'asap7 300'",
                     "api:  chip.set('pdk', 'asap7', 'wafersize', 300)"],
             schelp="""
-            Wafer diameter used in wafer based manufacturing process. The standard diameter
-            for leading edge manufacturing is 300mm. For older process technologies
-            and specialty fabs, smaller diameters such as 200, 100, 125, 100 are common.
-            The value is used to calculate dies per wafer and full factory chip costs.""")
+            Wafer diameter used in wafer based manufacturing process.
+            The standard diameter for leading edge manufacturing is 300mm. For
+            older process technologies and specialty fabs, smaller diameters
+            such as 200, 100, 125, 100 are common. The value is used to
+            calculate dies per wafer and full factory chip costs.""")
 
     scparam(cfg, ['pdk', pdkname, 'panelsize'],
             sctype='[(float,float)]',
@@ -391,8 +418,9 @@ def schema_pdk(cfg, stackup='default'):
             unit='mm',
             shorthelp="PDK: panel size",
             switch="-pdk_panelsize 'pdkname <float>'",
-            example=["cli: -pdk_panelsize 'asap7 (45.72,60.96)'",
-                    "api:  chip.set('pdk', 'asap7', 'panelsize', (45.72,60.96))"],
+            example=[
+                "cli: -pdk_panelsize 'asap7 (45.72,60.96)'",
+                "api:  chip.set('pdk', 'asap7', 'panelsize', (45.72,60.96))"],
             schelp="""
             List of panel sizes supported in the manufacturing process.
             """)
@@ -2005,11 +2033,12 @@ def schema_unit(cfg):
         'time' : 'ns',
         'length' : 'um',
         'mass' : 'g',
+        'temperature' : 'C',
         'capacitance' : 'pf',
         'resistance' : 'ohm',
         'inductance' : 'nh',
         'voltage' : 'mv',
-        'current' : 'ma',
+        'current' : 'mA',
         'power' : 'mw',
         'energy' : 'pj'
     }
@@ -2024,7 +2053,8 @@ def schema_unit(cfg):
                     f"cli: -unit_{item} '{val}'",
                     f"api: chip.set('unit','{item}',{val})"],
                 schelp=f"""
-                Units used for {item} when not explicitly specified.""")
+                Units used for {item} when not explicitly specified. Units
+                are case insensitive (ie. pF == pf).""")
 
     return cfg
 
@@ -2124,6 +2154,17 @@ def schema_option(cfg):
                      "api: chip.set('option','pdk','freepdk45')"],
             schelp="""
             Target PDK used during compilation.""")
+
+    scparam(cfg, ['option','uselambda'],
+            sctype='bool',
+            scope='job',
+            shorthelp="Use lambda scaling",
+            switch="-uselambda <bool>",
+            example=["cli: -uselambda true",
+                     "api: chip.set('option','uselambda', True)"],
+            schelp="""
+            Turns on lambda scaling of all dimensionsional constraints.
+            (new value = value * ['pdk', 'lambda']).""")
 
     scparam(cfg, ['option', 'stackup'],
             sctype='str',
@@ -2464,13 +2505,14 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'relax'],
             sctype='bool',
             scope='job',
-            shorthelp="Relax RTL linting",
+            shorthelp="Relax design checking",
             switch="-relax <bool>",
             example=["cli: -relax",
                     "api: chip.set('option','relax',True)"],
             schelp="""
-            Specifies that tools should be lenient and suppress some
-            warnings that may or may not indicate design issues.""")
+            Global option specifying that tools should be lenient and
+            suppress warnings that may or may not indicate real design
+            issues. Extent of leniency is tool/task specific.""")
 
     scparam(cfg, ['option', 'resume'],
             sctype='bool',
@@ -3051,8 +3093,6 @@ def schema_asic(cfg):
     step = 'default'
     index = 'default'
 
-
-
     scparam(cfg, ['asic', 'logiclib'],
             sctype='[str]',
             scope='job',
@@ -3086,49 +3126,6 @@ def schema_asic(cfg):
             schelp="""
             Delay model to use for the target libs. Supported values
             are nldm and ccs.""")
-
-    net = 'default'
-    scparam(cfg, ['asic', 'ndr', net],
-            sctype='(float,float)',
-            scope='job',
-            shorthelp="ASIC: non-default routing rule",
-            switch="-asic_ndr 'netname <(float,float)>",
-            example= ["cli: -asic_ndr 'clk (0.2,0.2)'",
-                    "api: chip.set('asic','ndr','clk', (0.2,0.2))"],
-            schelp="""
-            Definitions of non-default routing rule specified on a per
-            net basis. Constraints are entered as a (width,space) tuples
-            specified in microns.""")
-
-    scparam(cfg, ['asic', 'minlayer'],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC: minimum routing layer",
-            switch="-asic_minlayer <str>",
-            example= ["cli: -asic_minlayer m2",
-                    "api: chip.set('asic', 'minlayer', 'm2')"],
-            schelp="""
-            Minimum SC metal layer name to be used for automated place and route .
-            Alternatively the layer can be a string that matches a layer hard coded
-            in the pdk_aprtech file. Designers wishing to use the same setup across
-            multiple process nodes should use the integer approach. For processes
-            with ambiguous starting routing layers, exact strings should be used.
-            """)
-
-    scparam(cfg, ['asic', 'maxlayer'],
-            sctype='str',
-            scope='job',
-            shorthelp="ASIC: maximum routing layer",
-            switch="-asic_maxlayer <str>",
-            example= ["cli: -asic_maxlayer m2",
-                    "api: chip.set('asic', 'maxlayer', 'm2')"],
-            schelp="""
-            Maximum SC metal layer name to be used for automated place and route .
-            Alternatively the layer can be a string that matches a layer hard coded
-            in the pdk_aprtech file. Designers wishing to use the same setup across
-            multiple process nodes should use the integer approach. For processes
-            with ambiguous starting routing layers, exact strings should be used.
-            """)
 
     sigtype='default'
     scparam(cfg, ['asic', 'rclayer', sigtype],
@@ -3170,75 +3167,6 @@ def schema_asic(cfg):
             during APR.  The metal layers can be specified as technology
             agnostic SC layers starting with m1 or as hard PDK specific
             layer names.""")
-
-    scparam(cfg, ['asic', 'density'],
-            sctype='float',
-            scope='job',
-            shorthelp="ASIC: target core density",
-            switch="-asic_density <float>",
-            example= ["cli: -asic_density 30",
-                      "api: chip.set('asic', 'density', '30')"],
-            schelp="""
-            Target density based on the total design cell area reported
-            after synthesis. This number is used when no diearea or floorplan is
-            supplied. Any number between 1 and 100 is legal, but values above 50
-            may fail due to area/congestion issues during apr.""")
-
-    scparam(cfg, ['asic', 'coremargin'],
-            sctype='float',
-            unit='um',
-            scope='job',
-            shorthelp="ASIC: block core margin",
-            switch="-asic_coremargin <float>",
-            example= ["cli: -asic_coremargin 1",
-                      "api: chip.set('asic', 'coremargin', '1')"],
-            schelp="""
-            Halo/margin between the die boundary and core placement for
-            automated floorplanning when no diearea or floorplan is
-            supplied.""")
-
-    scparam(cfg, ['asic', 'aspectratio'],
-            sctype='float',
-            defvalue='1.0',
-            scope='job',
-            shorthelp="ASIC: block aspect ratio",
-            switch="-asic_aspectratio <float>",
-            example= ["cli: -asic_aspectratio 2.0",
-                    "api: chip.set('asic', 'aspectratio', '2.0')"],
-            schelp="""
-            Height to width ratio of the block for automated floor-planning.
-            Values below 0.1 and above 10 should be avoided as they will likely fail
-            to converge during placement and routing. The ideal aspect ratio for
-            most designs is 1. This value is only used when no diearea or floorplan
-            is supplied.""")
-
-    scparam(cfg, ['asic', 'diearea'],
-            sctype='[(float,float)]',
-            unit='um',
-            scope='job',
-            shorthelp="ASIC: die area outline",
-            switch="-asic_diearea <[(float,float)]>",
-            example= ["cli: -asic_diearea '(0,0)'",
-                      "api: chip.set('asic', 'diearea', (0,0))"],
-            schelp="""
-            List of (x,y) points that define the outline of the die area for the
-            physical design. Simple rectangle areas can be defined with two points,
-            one for the lower left corner and one for the upper right corner. All
-            values are specified in microns.""")
-
-    scparam(cfg, ['asic', 'corearea'],
-            sctype='[(float,float)]',
-            unit='um',
-            scope='job',
-            shorthelp="ASIC: core area outline",
-            switch="-asic_corearea <[(float,float)]>",
-            example= ["cli: -asic_corearea '(0,0)'",
-                    "api: chip.set('asic', 'corearea', (0,0))"],
-            schelp="""
-            List of (x,y) points that define the outline of the core area for the
-            physical design. Simple rectangle areas can be defined with two points,
-            one for the lower left corner and one for the upper right corner. All
-            values are specified in microns.""")
 
     tool = 'default'
     key = 'default'
@@ -3362,7 +3290,6 @@ def schema_asic(cfg):
             symmetric about the x axis, 'Y' implies symmetry about the y axis, and
             'X Y' implies symmetry about the x and y axis.""")
 
-
     scparam(cfg, ['asic', 'footprint', key, 'size'],
             sctype='(float,float)',
             shorthelp="ASIC: Footprint size",
@@ -3381,11 +3308,12 @@ def schema_asic(cfg):
 # Constraints
 ############################################
 
-def schema_constraint(cfg, scenario='default', name = 'default'):
-
-
+def schema_constraint(cfg):
 
     # TIMING
+
+    scenario = 'default'
+
     scparam(cfg,['constraint', 'timing', scenario, 'voltage'],
             sctype='float',
             unit='V',
@@ -3398,6 +3326,7 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
 
     scparam(cfg,['constraint', 'timing', scenario, 'temperature'],
             sctype='float',
+            unit='C',
             scope='job',
             shorthelp="Constraint: temperature",
             switch="-constraint_timing_temperature 'scenario <float>'",
@@ -3477,15 +3406,19 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             noise, reliability.""")
 
     # COMPONENTS
-    scparam(cfg, ['constraint', 'component', name, 'placement'],
+
+    inst = 'default'
+
+    scparam(cfg, ['constraint', 'component', inst, 'placement'],
             sctype='(float,float,float)',
+            unit='um',
             shorthelp="Constraint: Component placement",
-            switch="-constraint_component_placement 'name <(float,float, float)>'",
+            switch="-constraint_component_placement 'inst <(float,float, float)>'",
             example=[
                 "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
                 "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"],
             schelp="""
-            Placement location of a named component, specified as a (x,y,z) tuple of
+            Placement location of a named instance, specified as a (x,y,z) tuple of
             floats. The location refers to the placement of the center/centroid of the
             component. The 'placement' parameter is a goal/intent, not an exact specification.
             The compiler and layout system may adjust coordinates to meet competing
@@ -3498,10 +3431,35 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             layout system the component is being placed in (ASIC, SIP, PCB) but
             should not need to know exact manufacturing specifications.""")
 
-    scparam(cfg, ['constraint', 'component',  name, 'rotation'],
+    scparam(cfg, ['constraint', 'component', inst, 'partname'],
+            sctype='str',
+            shorthelp="Constraint: Component part name",
+            switch="-constraint_component_partname 'inst <str>'",
+            example=[
+                "cli: -constraint_component_partname 'i0 filler_x1'",
+                "api: chip.set('constraint', 'component', 'i0', 'partname', 'filler_x1')"],
+            schelp="""
+            Part name of a named instance. The parameter is required for instances
+            that are not contained within the design netlist (ie. physical only cells).
+            """)
+
+    scparam(cfg, ['constraint', 'component', inst, 'halo'],
+            sctype='(float,float)',
+            unit='um',
+            shorthelp="Constraint: Component halo",
+            switch="-constraint_component_halo 'inst <(float,float)>'",
+            example=[
+                "cli: -constraint_component_halo 'i0 (1,1)'",
+                "api: chip.set('constraint', 'component', 'i0', 'halo', (1,1))"],
+            schelp="""
+            Placement keepout halo around the named component, specified as a
+            (horizontal, vertical) tuple represented in microns or lambda units.
+            """)
+
+    scparam(cfg, ['constraint', 'component', inst, 'rotation'],
             sctype='float',
             shorthelp="Constraint: Component rotation",
-            switch="-constraint_component_rotation 'name <float>'",
+            switch="-constraint_component_rotation 'inst <float>'",
             example=[
                 "cli: -constraint_component_rotation 'i0 90'",
                 "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"],
@@ -3513,10 +3471,10 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             layout systems (like ASICs) only allow a finite number of rotation
             values (0,90,180,270).""")
 
-    scparam(cfg, ['constraint', 'component', name, 'flip'],
+    scparam(cfg, ['constraint', 'component', inst, 'flip'],
             sctype='bool',
             shorthelp="Constraint: Component flip option",
-            switch="-constraint_component_flip 'name <bool>'",
+            switch="-constraint_component_flip 'inst <bool>'",
             example=[
                 "cli: -constraint_component_flip 'i0 true'",
                 "api: chip.set('constraint', 'component', 'i0', 'flip', True)"],
@@ -3528,8 +3486,11 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             WCSP).""")
 
     # PINS
+    name = 'default'
+
     scparam(cfg, ['constraint', 'pin', name, 'placement'],
             sctype='(float,float,float)',
+            unit='um',
             shorthelp="Constraint: Pin placement",
             switch="-constraint_pin_placement 'name <(float,float, float)>'",
             example=[
@@ -3543,8 +3504,9 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             goals such as manufacturing design  rules and grid placement
             guidelines. The 'z' coordinate shall be set to 0 for planar components
             with only (x,y) coordinates. Discretized systems like 3D chips with
-            pins on to and bottom may choose to discretize the top and bottom
-            layer as 0,1 or use absolute coordinates.""")
+            pins on top and bottom may choose to discretize the top and bottom
+            layer as 0,1 or use absolute coordinates. Values are specified
+            in microns or lambda units.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',
@@ -3558,6 +3520,217 @@ def schema_constraint(cfg, scenario='default', name = 'default'):
             starting with m1 as the lowest routing layer and ending
             with m<n> as the highest routing layer.""")
 
+    scparam(cfg, ['constraint', 'pin', name, 'side'],
+            sctype='int',
+            shorthelp="Constraint: Pin side",
+            switch="-constraint_pin_side 'name <int>'",
+            example=[
+                "cli: -constraint_pin_side 'nreset 1'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'side', 1)"],
+            schelp="""
+            Side of block where the named pin should be placed. Sides are
+            enumerated as integers with '1' being the lower left side,
+            with the side index incremented on right turn in a clock wise
+            fashion. In case of conflict between 'lower' and 'left',
+            'left' has precedence. The side option and order option are
+            orthogonal to the placement option.""")
+
+    scparam(cfg, ['constraint', 'pin', name, 'order'],
+            sctype='int',
+            shorthelp="Constraint: Pin order",
+            switch="-constraint_pin_order 'name <int>'",
+            example=[
+                "cli: -constraint_pin_order 'nreset 1'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'order', 1)"],
+            schelp="""
+            The relative position of the named pin in a vector of pins
+            on the side specified by the 'side' option. Pin order counting
+            is done clockwise. If multiple pins on the same side have the
+            same order number, the actual order is at the discretion of the
+            tool.""")
+
+    # NETS
+    scparam(cfg, ['constraint', 'net', name, 'maxlength'],
+            sctype='float',
+            unit='um',
+            shorthelp="Constraint: Net max length",
+            switch="-constraint_net_maxlength 'name <float>'",
+            example=[
+                "cli: -constraint_net_maxlength 'nreset 1000'",
+                "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"],
+            schelp="""
+            Maximum total length of a net, specified in microns or lambda units.
+            Wildcards ('*') can be used for net names.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'maxresistance'],
+            sctype='float',
+            unit='ohm',
+            shorthelp="Constraint: Net max resistasnce",
+            switch="-constraint_net_maxresistance 'name <float>'",
+            example=[
+                "cli: -constraint_net_maxresistance 'nreset 1'",
+                "api: chip.set('constraint', 'net', 'nreset', 'maxresistance', '1')"],
+            schelp="""
+            Maximum resistance of named net between driver and receiver
+            specified in ohms. Wildcards ('*') can be used for net names.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'ndr'],
+            sctype='(float,float)',
+            unit='um',
+            shorthelp="Constraint: Net routing rule",
+            switch="-constraint_net_ndr 'name <(float,float)>'",
+            example=[
+                "cli: -constraint_net_ndr 'nreset (0.4,0.4)'",
+                "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4,0.4))"],
+            schelp="""
+            Definitions of non-default routing rule specified on a per
+            net basis. Constraints are entered as a (width,space) tuples
+            specified in microns or lambda units. Wildcards ('*') can be used
+            for net names.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'minlayer'],
+            sctype='str',
+            shorthelp="Constraint: Net minimum routing layer",
+            switch="-constraint_net_minlayer 'name <str>'",
+            example=[
+                "cli: -constraint_net_minlayer 'nreset m1'",
+                "api: chip.set('constraint', 'net', 'nreset', 'minlayer', 'm1')"],
+            schelp="""
+            Minimum metal layer to be used for automated place and route
+            specified on a per net basis. Metal names should either be the PDK
+            specific metal stack name or an integer with '1' being the lowest
+            routing layer. Wildcards ('*') can be used for net names.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'maxlayer'],
+            sctype='str',
+            shorthelp="Constraint: Net maximum routing layer",
+            switch="-constraint_net_maxlayer 'name <str>'",
+            example=[
+                "cli: -constraint_net_maxlayer 'nreset m1'",
+                "api: chip.set('constraint', 'net', 'nreset', 'maxlayer', 'm1')"],
+            schelp="""
+            Maximum metal layer to be used for automated place and route
+            specified on a per net basis. Metal names should either be the PDK
+            specific metal stack name or an integer with '1' being the lowest
+            routing layer. Wildcards ('*') can be used for net names.""")
+
+
+    scparam(cfg, ['constraint', 'net', name, 'shield'],
+            sctype='str',
+            shorthelp="Constraint: Net shielding",
+            switch="-constraint_net_shielding 'name <str>'",
+            example=[
+                "cli: -constraint_net_shield 'clk vss'",
+                "api: chip.set('constraint', 'net', 'clk', 'shield', 'vss')"],
+            schelp="""
+            Specifies that the named net should be shielded by the given
+            signal on both sides of the net.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'match'],
+            sctype='[str]',
+            shorthelp="Constraint: Net matched routing",
+            switch="-constraint_net_match 'name <str>'",
+            example=[
+                "cli: -constraint_net_match 'clk1 clk2'",
+                "api: chip.set('constraint', 'net', 'clk1', 'match', 'clk2')"],
+            schelp="""
+            List of nets whose routing should closely matched the named
+            net in terms of length, layer, width, etc. Wildcards ('*') can
+            be used for net names.""")
+
+    scparam(cfg, ['constraint', 'net', name, 'diffpair'],
+            sctype='str',
+            shorthelp="Constraint: Net diffpair",
+            switch="-constraint_net_diffpair 'name <str>'",
+            example=[
+                "cli: -constraint_net_diffpair 'clkn clkp'",
+                "api: chip.set('constraint', 'net', 'clkn', 'diffpair', 'clkp')"],
+            schelp="""
+            Differential pair signal of the named net (only used for actual
+            differential paris).""")
+
+    scparam(cfg, ['constraint', 'net', name, 'sympair'],
+            sctype='str',
+            shorthelp="Constraint: Net sympair",
+            switch="-constraint_net_sympair 'name <str>'",
+            example=[
+                "cli: -constraint_net_sympair 'netA netB'",
+                "api: chip.set('constraint', 'net', 'netA', 'sympair', 'netB')"],
+            schelp="""
+            Symmetrical pair signal to the named net. The two nets should be routed
+            as reflections around the vertical or horizontal axis to minimize on-chip
+            variability.""")
+
+    # AREA
+    scparam(cfg, ['constraint', 'outline'],
+            sctype='[(float,float)]',
+            unit='um',
+            scope='job',
+            shorthelp="Constraint: Layout outline",
+            switch="-constraint_outline <[(float,float)]>",
+            example= ["cli: -constraint_outline '(0,0)'",
+                      "api: chip.set('constraint', 'outline', (0,0))"],
+            schelp="""
+            List of (x,y) points that define the outline physical layout
+            physical design. Simple rectangle areas can be defined with two points,
+            one for the lower left corner and one for the upper right corner. All
+            values are specified in microns or lambda units.""")
+
+    scparam(cfg, ['constraint', 'corearea'],
+            sctype='[(float,float)]',
+            unit='um',
+            scope='job',
+            shorthelp="Constraint: Layout core area",
+            switch="-constraint_corearea <[(float,float)]>",
+            example= ["cli: -constraint_corearea '(0,0)'",
+                      "api: chip.set('constraint', 'corearea', (0,0))"],
+            schelp="""
+            List of (x,y) points that define the outline of the core area for the
+            physical design. Simple rectangle areas can be defined with two points,
+            one for the lower left corner and one for the upper right corner. All
+            values are specified in microns or lambda units.""")
+
+    scparam(cfg, ['constraint', 'coremargin'],
+            sctype='float',
+            unit='um',
+            scope='job',
+            shorthelp="Constraint: Layout core margin",
+            switch="-constraint_coremargin <float>",
+            example= ["cli: -constraint_coremargin 1",
+                      "api: chip.set('constraint', 'coremargin', '1')"],
+            schelp="""
+            Halo/margin between the outline and core area for fully
+            automated layout sizing and floorplanning, specified in
+            microns or lambda units.""")
+
+    scparam(cfg, ['constraint', 'density'],
+            sctype='float',
+            scope='job',
+            shorthelp="Constraint: Layout density",
+            switch="-constraint_density <float>",
+            example= ["cli: -constraint_density 30",
+                      "api: chip.set('constraint', 'density', '30')"],
+            schelp="""
+            Target density based on the total design cells area reported
+            after synthesis/elaboration. This number is used when no outline
+            or floorplan is supplied. Any number between 1 and 100 is legal,
+            but values above 50 may fail due to area/congestion issues during
+            automated place and route.""")
+
+    scparam(cfg, ['constraint', 'aspectratio'],
+            sctype='float',
+            defvalue='1.0',
+            scope='job',
+            shorthelp="Constraint: Layout aspect ratio",
+            switch="-constraint_aspectratio <float>",
+            example= ["cli: -constraint_aspectratio 2.0",
+                    "api: chip.set('constraint', 'aspectratio', '2.0')"],
+            schelp="""
+            Height to width ratio of the block for automated floorplanning.
+            Values below 0.1 and above 10 should be avoided as they will likely fail
+            to converge during placement and routing. The ideal aspect ratio for
+            most designs is 1. This value is only used when no diearea or floorplan
+            is supplied.""")
 
     return cfg
 

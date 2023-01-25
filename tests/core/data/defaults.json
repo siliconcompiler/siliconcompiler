@@ -78,24 +78,6 @@
         }
     },
     "asic": {
-        "aspectratio": {
-            "defvalue": "1.0",
-            "example": [
-                "cli: -asic_aspectratio 2.0",
-                "api: chip.set('asic', 'aspectratio', '2.0')"
-            ],
-            "help": "Height to width ratio of the block for automated floor-planning.\nValues below 0.1 and above 10 should be avoided as they will likely fail\nto converge during placement and routing. The ideal aspect ratio for\nmost designs is 1. This value is only used when no diearea or floorplan\nis supplied.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "ASIC: block aspect ratio",
-            "signature": null,
-            "switch": "-asic_aspectratio <float>",
-            "type": "float",
-            "value": "1.0"
-        },
         "cells": {
             "antenna": {
                 "defvalue": [],
@@ -404,44 +386,6 @@
                 "value": []
             }
         },
-        "corearea": {
-            "defvalue": [],
-            "example": [
-                "cli: -asic_corearea '(0,0)'",
-                "api: chip.set('asic', 'corearea', (0,0))"
-            ],
-            "help": "List of (x,y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "ASIC: core area outline",
-            "signature": [],
-            "switch": "-asic_corearea <[(float,float)]>",
-            "type": "[(float,float)]",
-            "unit": "um",
-            "value": []
-        },
-        "coremargin": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_coremargin 1",
-                "api: chip.set('asic', 'coremargin', '1')"
-            ],
-            "help": "Halo/margin between the die boundary and core placement for\nautomated floorplanning when no diearea or floorplan is\nsupplied.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "ASIC: block core margin",
-            "signature": null,
-            "switch": "-asic_coremargin <float>",
-            "type": "float",
-            "unit": "um",
-            "value": null
-        },
         "delaymodel": {
             "defvalue": null,
             "example": [
@@ -459,43 +403,6 @@
             "switch": "-asic_delaymodel <str>",
             "type": "str",
             "value": null
-        },
-        "density": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_density 30",
-                "api: chip.set('asic', 'density', '30')"
-            ],
-            "help": "Target density based on the total design cell area reported\nafter synthesis. This number is used when no diearea or floorplan is\nsupplied. Any number between 1 and 100 is legal, but values above 50\nmay fail due to area/congestion issues during apr.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "ASIC: target core density",
-            "signature": null,
-            "switch": "-asic_density <float>",
-            "type": "float",
-            "value": null
-        },
-        "diearea": {
-            "defvalue": [],
-            "example": [
-                "cli: -asic_diearea '(0,0)'",
-                "api: chip.set('asic', 'diearea', (0,0))"
-            ],
-            "help": "List of (x,y) points that define the outline of the die area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "ASIC: die area outline",
-            "signature": [],
-            "switch": "-asic_diearea <[(float,float)]>",
-            "type": "[(float,float)]",
-            "unit": "um",
-            "value": []
         },
         "dir": {
             "default": {
@@ -675,62 +582,6 @@
             "switch": "-asic_macrolib <str>",
             "type": "[str]",
             "value": []
-        },
-        "maxlayer": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_maxlayer m2",
-                "api: chip.set('asic', 'maxlayer', 'm2')"
-            ],
-            "help": "Maximum SC metal layer name to be used for automated place and route .\nAlternatively the layer can be a string that matches a layer hard coded\nin the pdk_aprtech file. Designers wishing to use the same setup across\nmultiple process nodes should use the integer approach. For processes\nwith ambiguous starting routing layers, exact strings should be used.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "ASIC: maximum routing layer",
-            "signature": null,
-            "switch": "-asic_maxlayer <str>",
-            "type": "str",
-            "value": null
-        },
-        "minlayer": {
-            "defvalue": null,
-            "example": [
-                "cli: -asic_minlayer m2",
-                "api: chip.set('asic', 'minlayer', 'm2')"
-            ],
-            "help": "Minimum SC metal layer name to be used for automated place and route .\nAlternatively the layer can be a string that matches a layer hard coded\nin the pdk_aprtech file. Designers wishing to use the same setup across\nmultiple process nodes should use the integer approach. For processes\nwith ambiguous starting routing layers, exact strings should be used.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "ASIC: minimum routing layer",
-            "signature": null,
-            "switch": "-asic_minlayer <str>",
-            "type": "str",
-            "value": null
-        },
-        "ndr": {
-            "default": {
-                "defvalue": null,
-                "example": [
-                    "cli: -asic_ndr 'clk (0.2,0.2)'",
-                    "api: chip.set('asic','ndr','clk', (0.2,0.2))"
-                ],
-                "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width,space) tuples\nspecified in microns.",
-                "lock": false,
-                "notes": null,
-                "require": null,
-                "scope": "job",
-                "set": false,
-                "shorthelp": "ASIC: non-default routing rule",
-                "signature": null,
-                "switch": "-asic_ndr 'netname <(float,float)>",
-                "type": "(float,float)",
-                "value": null
-            }
         },
         "pgmetal": {
             "defvalue": null,
@@ -992,6 +843,24 @@
         }
     },
     "constraint": {
+        "aspectratio": {
+            "defvalue": "1.0",
+            "example": [
+                "cli: -constraint_aspectratio 2.0",
+                "api: chip.set('constraint', 'aspectratio', '2.0')"
+            ],
+            "help": "Height to width ratio of the block for automated floorplanning.\nValues below 0.1 and above 10 should be avoided as they will likely fail\nto converge during placement and routing. The ideal aspect ratio for\nmost designs is 1. This value is only used when no diearea or floorplan\nis supplied.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Constraint: Layout aspect ratio",
+            "signature": null,
+            "switch": "-constraint_aspectratio <float>",
+            "type": "float",
+            "value": "1.0"
+        },
         "component": {
             "default": {
                 "flip": {
@@ -1008,9 +877,46 @@
                     "set": false,
                     "shorthelp": "Constraint: Component flip option",
                     "signature": null,
-                    "switch": "-constraint_component_flip 'name <bool>'",
+                    "switch": "-constraint_component_flip 'inst <bool>'",
                     "type": "bool",
                     "value": false
+                },
+                "halo": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_component_halo 'i0 (1,1)'",
+                        "api: chip.set('constraint', 'component', 'i0', 'halo', (1,1))"
+                    ],
+                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple represented in microns or lambda units.",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Component halo",
+                    "signature": null,
+                    "switch": "-constraint_component_halo 'inst <(float,float)>'",
+                    "type": "(float,float)",
+                    "unit": "um",
+                    "value": null
+                },
+                "partname": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_component_partname 'i0 filler_x1'",
+                        "api: chip.set('constraint', 'component', 'i0', 'partname', 'filler_x1')"
+                    ],
+                    "help": "Part name of a named instance. The parameter is required for instances\nthat are not contained within the design netlist (ie. physical only cells).",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Component part name",
+                    "signature": null,
+                    "switch": "-constraint_component_partname 'inst <str>'",
+                    "type": "str",
+                    "value": null
                 },
                 "placement": {
                     "defvalue": null,
@@ -1018,7 +924,7 @@
                         "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
                         "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"
                     ],
-                    "help": "Placement location of a named component, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
+                    "help": "Placement location of a named instance, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
                     "lock": false,
                     "notes": null,
                     "require": null,
@@ -1026,8 +932,9 @@
                     "set": false,
                     "shorthelp": "Constraint: Component placement",
                     "signature": null,
-                    "switch": "-constraint_component_placement 'name <(float,float, float)>'",
+                    "switch": "-constraint_component_placement 'inst <(float,float, float)>'",
                     "type": "(float,float,float)",
+                    "unit": "um",
                     "value": null
                 },
                 "rotation": {
@@ -1044,11 +951,255 @@
                     "set": false,
                     "shorthelp": "Constraint: Component rotation",
                     "signature": null,
-                    "switch": "-constraint_component_rotation 'name <float>'",
+                    "switch": "-constraint_component_rotation 'inst <float>'",
                     "type": "float",
                     "value": null
                 }
             }
+        },
+        "corearea": {
+            "defvalue": [],
+            "example": [
+                "cli: -constraint_corearea '(0,0)'",
+                "api: chip.set('constraint', 'corearea', (0,0))"
+            ],
+            "help": "List of (x,y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Constraint: Layout core area",
+            "signature": [],
+            "switch": "-constraint_corearea <[(float,float)]>",
+            "type": "[(float,float)]",
+            "unit": "um",
+            "value": []
+        },
+        "coremargin": {
+            "defvalue": null,
+            "example": [
+                "cli: -constraint_coremargin 1",
+                "api: chip.set('constraint', 'coremargin', '1')"
+            ],
+            "help": "Halo/margin between the outline and core area for fully\nautomated layout sizing and floorplanning, specified in\nmicrons or lambda units.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Constraint: Layout core margin",
+            "signature": null,
+            "switch": "-constraint_coremargin <float>",
+            "type": "float",
+            "unit": "um",
+            "value": null
+        },
+        "density": {
+            "defvalue": null,
+            "example": [
+                "cli: -constraint_density 30",
+                "api: chip.set('constraint', 'density', '30')"
+            ],
+            "help": "Target density based on the total design cells area reported\nafter synthesis/elaboration. This number is used when no outline\nor floorplan is supplied. Any number between 1 and 100 is legal,\nbut values above 50 may fail due to area/congestion issues during\nautomated place and route.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Constraint: Layout density",
+            "signature": null,
+            "switch": "-constraint_density <float>",
+            "type": "float",
+            "value": null
+        },
+        "net": {
+            "default": {
+                "diffpair": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_net_diffpair 'clkn clkp'",
+                        "api: chip.set('constraint', 'net', 'clkn', 'diffpair', 'clkp')"
+                    ],
+                    "help": "Differential pair signal of the named net (only used for actual\ndifferential paris).",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Net diffpair",
+                    "signature": null,
+                    "switch": "-constraint_net_diffpair 'name <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "match": {
+                    "defvalue": [],
+                    "example": [
+                        "cli: -constraint_net_match 'clk1 clk2'",
+                        "api: chip.set('constraint', 'net', 'clk1', 'match', 'clk2')"
+                    ],
+                    "help": "List of nets whose routing should closely matched the named\nnet in terms of length, layer, width, etc. Wildcards ('*') can\nbe used for net names.",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Net matched routing",
+                    "signature": [],
+                    "switch": "-constraint_net_match 'name <str>'",
+                    "type": "[str]",
+                    "value": []
+                },
+                "maxlayer": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_net_maxlayer 'nreset m1'",
+                        "api: chip.set('constraint', 'net', 'nreset', 'maxlayer', 'm1')"
+                    ],
+                    "help": "Maximum metal layer to be used for automated place and route\nspecified on a per net basis. Metal names should either be the PDK\nspecific metal stack name or an integer with '1' being the lowest\nrouting layer. Wildcards ('*') can be used for net names.",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Net maximum routing layer",
+                    "signature": null,
+                    "switch": "-constraint_net_maxlayer 'name <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "maxlength": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_net_maxlength 'nreset 1000'",
+                        "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"
+                    ],
+                    "help": "Maximum total length of a net, specified in microns or lambda units.\nWildcards ('*') can be used for net names.",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Net max length",
+                    "signature": null,
+                    "switch": "-constraint_net_maxlength 'name <float>'",
+                    "type": "float",
+                    "unit": "um",
+                    "value": null
+                },
+                "maxresistance": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_net_maxresistance 'nreset 1'",
+                        "api: chip.set('constraint', 'net', 'nreset', 'maxresistance', '1')"
+                    ],
+                    "help": "Maximum resistance of named net between driver and receiver\nspecified in ohms. Wildcards ('*') can be used for net names.",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Net max resistasnce",
+                    "signature": null,
+                    "switch": "-constraint_net_maxresistance 'name <float>'",
+                    "type": "float",
+                    "unit": "ohm",
+                    "value": null
+                },
+                "minlayer": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_net_minlayer 'nreset m1'",
+                        "api: chip.set('constraint', 'net', 'nreset', 'minlayer', 'm1')"
+                    ],
+                    "help": "Minimum metal layer to be used for automated place and route\nspecified on a per net basis. Metal names should either be the PDK\nspecific metal stack name or an integer with '1' being the lowest\nrouting layer. Wildcards ('*') can be used for net names.",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Net minimum routing layer",
+                    "signature": null,
+                    "switch": "-constraint_net_minlayer 'name <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "ndr": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_net_ndr 'nreset (0.4,0.4)'",
+                        "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4,0.4))"
+                    ],
+                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width,space) tuples\nspecified in microns or lambda units. Wildcards ('*') can be used\nfor net names.",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Net routing rule",
+                    "signature": null,
+                    "switch": "-constraint_net_ndr 'name <(float,float)>'",
+                    "type": "(float,float)",
+                    "unit": "um",
+                    "value": null
+                },
+                "shield": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_net_shield 'clk vss'",
+                        "api: chip.set('constraint', 'net', 'clk', 'shield', 'vss')"
+                    ],
+                    "help": "Specifies that the named net should be shielded by the given\nsignal on both sides of the net.",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Net shielding",
+                    "signature": null,
+                    "switch": "-constraint_net_shielding 'name <str>'",
+                    "type": "str",
+                    "value": null
+                },
+                "sympair": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_net_sympair 'netA netB'",
+                        "api: chip.set('constraint', 'net', 'netA', 'sympair', 'netB')"
+                    ],
+                    "help": "Symmetrical pair signal to the named net. The two nets should be routed\nas reflections around the vertical or horizontal axis to minimize on-chip\nvariability.",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Net sympair",
+                    "signature": null,
+                    "switch": "-constraint_net_sympair 'name <str>'",
+                    "type": "str",
+                    "value": null
+                }
+            }
+        },
+        "outline": {
+            "defvalue": [],
+            "example": [
+                "cli: -constraint_outline '(0,0)'",
+                "api: chip.set('constraint', 'outline', (0,0))"
+            ],
+            "help": "List of (x,y) points that define the outline physical layout\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Constraint: Layout outline",
+            "signature": [],
+            "switch": "-constraint_outline <[(float,float)]>",
+            "type": "[(float,float)]",
+            "unit": "um",
+            "value": []
         },
         "pin": {
             "default": {
@@ -1070,13 +1221,31 @@
                     "type": "str",
                     "value": null
                 },
+                "order": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_pin_order 'nreset 1'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'order', 1)"
+                    ],
+                    "help": "The relative position of the named pin in a vector of pins\non the side specified by the 'side' option. Pin order counting\nis done clockwise. If multiple pins on the same side have the\nsame order number, the actual order is at the discretion of the\ntool.",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Pin order",
+                    "signature": null,
+                    "switch": "-constraint_pin_order 'name <int>'",
+                    "type": "int",
+                    "value": null
+                },
                 "placement": {
                     "defvalue": null,
                     "example": [
                         "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0)"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on to and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates.",
+                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates. Values are specified\nin microns or lambda units.",
                     "lock": false,
                     "notes": null,
                     "require": null,
@@ -1086,6 +1255,25 @@
                     "signature": null,
                     "switch": "-constraint_pin_placement 'name <(float,float, float)>'",
                     "type": "(float,float,float)",
+                    "unit": "um",
+                    "value": null
+                },
+                "side": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -constraint_pin_side 'nreset 1'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'side', 1)"
+                    ],
+                    "help": "Side of block where the named pin should be placed. Sides are\nenumerated as integers with '1' being the lower left side,\nwith the side index incremented on right turn in a clock wise\nfashion. In case of conflict between 'lower' and 'left',\n'left' has precedence. The side option and order option are\northogonal to the placement option.",
+                    "lock": false,
+                    "notes": null,
+                    "require": null,
+                    "scope": "job",
+                    "set": false,
+                    "shorthelp": "Constraint: Pin side",
+                    "signature": null,
+                    "switch": "-constraint_pin_side 'name <int>'",
+                    "type": "int",
                     "value": null
                 }
             }
@@ -1221,6 +1409,7 @@
                     "signature": null,
                     "switch": "-constraint_timing_temperature 'scenario <float>'",
                     "type": "float",
+                    "unit": "C",
                     "value": null
                 },
                 "voltage": {
@@ -3839,13 +4028,13 @@
                 "cli: -relax",
                 "api: chip.set('option','relax',True)"
             ],
-            "help": "Specifies that tools should be lenient and suppress some\nwarnings that may or may not indicate design issues.",
+            "help": "Global option specifying that tools should be lenient and\nsuppress warnings that may or may not indicate real design\nissues. Extent of leniency is tool/task specific.",
             "lock": false,
             "notes": null,
             "require": "all",
             "scope": "job",
             "set": false,
-            "shorthelp": "Relax RTL linting",
+            "shorthelp": "Relax design checking",
             "signature": null,
             "switch": "-relax <bool>",
             "type": "bool",
@@ -4084,6 +4273,24 @@
             "shorthelp": "Enable provenance tracking",
             "signature": null,
             "switch": "-track <bool>",
+            "type": "bool",
+            "value": false
+        },
+        "uselambda": {
+            "defvalue": false,
+            "example": [
+                "cli: -uselambda true",
+                "api: chip.set('option','uselambda', True)"
+            ],
+            "help": "Turns on lambda scaling of all dimensionsional constraints.\n(new value = value * ['pdk', 'lambda']).",
+            "lock": false,
+            "notes": null,
+            "require": "all",
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Use lambda scaling",
+            "signature": null,
+            "switch": "-uselambda <bool>",
             "type": "bool",
             "value": false
         },
@@ -5540,7 +5747,7 @@
                     "cli: -pdk_lambda 'asap7 1e-06'",
                     "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"
                 ],
-                "help": "Elementary distance unit used for scaling all\nschema physical parameters (layout constraints, size, outline,\narea, margin etc).",
+                "help": "Elementary distance unit used for scaling user\nspecified physical schema parameters such as layout\nconstraints.",
                 "lock": false,
                 "notes": null,
                 "require": "asic",
@@ -5643,6 +5850,46 @@
                     }
                 }
             },
+            "maxlayer": {
+                "default": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -pdk_maxlayer 'asap7 2MA4MB2MC M8'",
+                        "api: chip.set('pdk', 'asap7', 'maxlayer', 'MA4MB2MC', 'M8')"
+                    ],
+                    "help": "Maximum metal layer to be used for automated place and route\nspecified on a per stackup basis.",
+                    "lock": false,
+                    "notes": null,
+                    "require": "asic",
+                    "scope": "global",
+                    "set": false,
+                    "shorthelp": "PDK: maximum routing layer",
+                    "signature": null,
+                    "switch": "-pdk_maxlayer 'pdk stackup <str>'",
+                    "type": "str",
+                    "value": null
+                }
+            },
+            "minlayer": {
+                "default": {
+                    "defvalue": null,
+                    "example": [
+                        "cli: -pdk_minlayer 'asap7 2MA4MB2MC M2'",
+                        "api: chip.set('pdk', 'asap7', 'minlayer', '2MA4MB2MC', 'M2')"
+                    ],
+                    "help": "Minimum metal layer to be used for automated place and route\nspecified on a per stackup basis.",
+                    "lock": false,
+                    "notes": null,
+                    "require": "asic",
+                    "scope": "global",
+                    "set": false,
+                    "shorthelp": "PDK: minimum routing layer",
+                    "signature": null,
+                    "switch": "-pdk_minlayer 'pdk stackup <str>'",
+                    "type": "str",
+                    "value": null
+                }
+            },
             "node": {
                 "defvalue": null,
                 "example": [
@@ -5734,7 +5981,7 @@
                         "cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
                         "api:  chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"
                     ],
-                    "help": "Thickness of a manufactured unit specified on a per stackup basis.",
+                    "help": "Thickness of a manufactured unit specified on a per stackup.",
                     "lock": false,
                     "notes": null,
                     "require": null,
@@ -5834,7 +6081,7 @@
                     "cli: -pdk_wafersize 'asap7 300'",
                     "api:  chip.set('pdk', 'asap7', 'wafersize', 300)"
                 ],
-                "help": "Wafer diameter used in wafer based manufacturing process. The standard diameter\nfor leading edge manufacturing is 300mm. For older process technologies\nand specialty fabs, smaller diameters such as 200, 100, 125, 100 are common.\nThe value is used to calculate dies per wafer and full factory chip costs.",
+                "help": "Wafer diameter used in wafer based manufacturing process.\nThe standard diameter for leading edge manufacturing is 300mm. For\nolder process technologies and specialty fabs, smaller diameters\nsuch as 200, 100, 125, 100 are common. The value is used to\ncalculate dies per wafer and full factory chip costs.",
                 "lock": false,
                 "notes": null,
                 "require": "asic",
@@ -6162,7 +6409,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.13.0",
+        "defvalue": "0.14.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6176,7 +6423,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.13.0"
+        "value": "0.14.0"
     },
     "tool": {
         "default": {
@@ -6824,7 +7071,7 @@
                 "cli: -unit_capacitance 'pf'",
                 "api: chip.set('unit','capacitance',pf)"
             ],
-            "help": "Units used for capacitance when not explicitly specified.",
+            "help": "Units used for capacitance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
             "notes": null,
             "require": null,
@@ -6837,12 +7084,12 @@
             "value": "pf"
         },
         "current": {
-            "defvalue": "ma",
+            "defvalue": "mA",
             "example": [
-                "cli: -unit_current 'ma'",
-                "api: chip.set('unit','current',ma)"
+                "cli: -unit_current 'mA'",
+                "api: chip.set('unit','current',mA)"
             ],
-            "help": "Units used for current when not explicitly specified.",
+            "help": "Units used for current when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
             "notes": null,
             "require": null,
@@ -6852,7 +7099,7 @@
             "signature": null,
             "switch": "-unit_current '<str>'",
             "type": "str",
-            "value": "ma"
+            "value": "mA"
         },
         "energy": {
             "defvalue": "pj",
@@ -6860,7 +7107,7 @@
                 "cli: -unit_energy 'pj'",
                 "api: chip.set('unit','energy',pj)"
             ],
-            "help": "Units used for energy when not explicitly specified.",
+            "help": "Units used for energy when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
             "notes": null,
             "require": null,
@@ -6878,7 +7125,7 @@
                 "cli: -unit_inductance 'nh'",
                 "api: chip.set('unit','inductance',nh)"
             ],
-            "help": "Units used for inductance when not explicitly specified.",
+            "help": "Units used for inductance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
             "notes": null,
             "require": null,
@@ -6896,7 +7143,7 @@
                 "cli: -unit_length 'um'",
                 "api: chip.set('unit','length',um)"
             ],
-            "help": "Units used for length when not explicitly specified.",
+            "help": "Units used for length when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
             "notes": null,
             "require": null,
@@ -6914,7 +7161,7 @@
                 "cli: -unit_mass 'g'",
                 "api: chip.set('unit','mass',g)"
             ],
-            "help": "Units used for mass when not explicitly specified.",
+            "help": "Units used for mass when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
             "notes": null,
             "require": null,
@@ -6932,7 +7179,7 @@
                 "cli: -unit_power 'mw'",
                 "api: chip.set('unit','power',mw)"
             ],
-            "help": "Units used for power when not explicitly specified.",
+            "help": "Units used for power when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
             "notes": null,
             "require": null,
@@ -6950,7 +7197,7 @@
                 "cli: -unit_resistance 'ohm'",
                 "api: chip.set('unit','resistance',ohm)"
             ],
-            "help": "Units used for resistance when not explicitly specified.",
+            "help": "Units used for resistance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
             "notes": null,
             "require": null,
@@ -6962,13 +7209,31 @@
             "type": "str",
             "value": "ohm"
         },
+        "temperature": {
+            "defvalue": "C",
+            "example": [
+                "cli: -unit_temperature 'C'",
+                "api: chip.set('unit','temperature',C)"
+            ],
+            "help": "Units used for temperature when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Unit: temperature",
+            "signature": null,
+            "switch": "-unit_temperature '<str>'",
+            "type": "str",
+            "value": "C"
+        },
         "time": {
             "defvalue": "ns",
             "example": [
                 "cli: -unit_time 'ns'",
                 "api: chip.set('unit','time',ns)"
             ],
-            "help": "Units used for time when not explicitly specified.",
+            "help": "Units used for time when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
             "notes": null,
             "require": null,
@@ -6986,7 +7251,7 @@
                 "cli: -unit_voltage 'mv'",
                 "api: chip.set('unit','voltage',mv)"
             ],
-            "help": "Units used for voltage when not explicitly specified.",
+            "help": "Units used for voltage when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
             "notes": null,
             "require": null,

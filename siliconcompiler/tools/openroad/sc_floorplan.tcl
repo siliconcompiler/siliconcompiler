@@ -18,13 +18,13 @@ proc design_has_unplaced_macros {} {
 # Initialize floorplan
 ###########################
 
-if {[dict exists $sc_cfg input layout floorplan.def]} {
-  set def [dict get $sc_cfg input layout floorplan.def]
+if {[dict exists $sc_cfg input asic floorplan]} {
+  set def [lindex [dict get $sc_cfg input asic floorplan] 0]
   read_def -floorplan_initialize $def
 } else {
   #NOTE: assuming a two tuple value as lower left, upper right
-  set sc_diearea   [dict get $sc_cfg asic diearea]
-  set sc_corearea  [dict get $sc_cfg asic corearea]
+  set sc_diearea   [dict get $sc_cfg constraint outline]
+  set sc_corearea  [dict get $sc_cfg constraint corearea]
   if {$sc_diearea != "" && $sc_corearea != ""} {
     # Use die and core sizes
     set sc_diesize  "[lindex $sc_diearea 0] [lindex $sc_diearea 1]"
@@ -35,9 +35,9 @@ if {[dict exists $sc_cfg input layout floorplan.def]} {
       -site $sc_site
   } else {
     # Use density
-    initialize_floorplan -aspect_ratio [dict get $sc_cfg asic aspectratio] \
-      -utilization [dict get $sc_cfg asic density] \
-      -core_space [dict get $sc_cfg asic coremargin] \
+    initialize_floorplan -aspect_ratio [dict get $sc_cfg constraint aspectratio] \
+      -utilization [dict get $sc_cfg constraint density] \
+      -core_space [dict get $sc_cfg constraint coremargin] \
       -site $sc_site
   }
 }

@@ -220,7 +220,7 @@ def get_default_iomap():
     hll_python = ('py',)
 
     # Register transfer languages
-    rtl_verilog = ('v', 'vg', 'sv', 'verilog')
+    rtl_verilog = ('v', 'sv', 'verilog')
     rtl_vhdl = ('vhd', 'vhdl')
 
     # Timing libraries
@@ -237,6 +237,7 @@ def get_default_iomap():
     # Netlist
     netlist_cdl = ('cdl',)
     netlist_sp = ('sp', 'spice')
+    netlist_verilog = ('vg',)
 
     # Waveform
     waveform_vcd = ('vcd',)
@@ -251,7 +252,7 @@ def get_default_iomap():
     # Build default map with fileset and type
     default_iomap = {}
     default_iomap.update({ext: ('hll', 'c') for ext in hll_c})
-    default_iomap.update({ext: ('hll', 'bvs') for ext in hll_bsv})
+    default_iomap.update({ext: ('hll', 'bsv') for ext in hll_bsv})
     default_iomap.update({ext: ('hll', 'scala') for ext in hll_scala})
     default_iomap.update({ext: ('hll', 'python') for ext in hll_python})
 
@@ -269,6 +270,7 @@ def get_default_iomap():
 
     default_iomap.update({ext: ('netlist', 'cdl') for ext in netlist_cdl})
     default_iomap.update({ext: ('netlist', 'sp') for ext in netlist_sp})
+    default_iomap.update({ext: ('netlist', 'verilog') for ext in netlist_verilog})
 
     default_iomap.update({ext: ('waveform', 'vcd') for ext in waveform_vcd})
 

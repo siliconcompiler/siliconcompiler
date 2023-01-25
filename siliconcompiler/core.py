@@ -436,18 +436,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Map sources to ['input'] keypath.
         if 'source' in cmdargs:
             for source in cmdargs['source']:
-                ext = utils.get_file_ext(source)
-                if ext in input_map:
-                    fileset, filetype = input_map[ext]
-                    if self.valid('input', fileset, filetype):
-                        self.add('input', fileset, filetype, source)
-                    else:
-                        self.set('input', fileset, filetype, source)
-                    self.logger.info(f'Source {source} inferred as {fileset}/{filetype}')
-                else:
-                    self.logger.warning('Unable to infer input type for '
-                        f'{source} based on file extension, ignoring. Use the '
-                        '-input flag to provide it explicitly.')
+                self.input(source, iomap=input_map)
             # we don't want to handle this in the next loop
             del cmdargs['source']
 
@@ -989,7 +978,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             field (str): Parameter field to set.
 
         Examples:
-            >>> chip.add('source', 'hello.v')
+            >>> chip.add('input', 'rtl', 'verilog', 'hello.v')
             Adds the file 'hello.v' to the list of sources.
         '''
         keypath = args[:-1]
@@ -1006,7 +995,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(str(e))
 
     ###########################################################################
-    def input(self, filename, fileset=None, filetype=None):
+    def input(self, filename, fileset=None, filetype=None, iomap=None):
         '''
         Adds file to a filset. The default behavior is to infer filetypes and
         filesets based on the suffix of the file extensions. The method is
@@ -1021,27 +1010,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             fileset (str): File grouping
             filetype (str): File type
+            iomap (dict of tuple(set, type)): File set and type mapping based on file extension
 
         '''
 
-        self._add_input_output('input', filename, fileset, filetype)
+        self._add_input_output('input', filename, fileset, filetype, iomap)
     # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
     input.__doc__= input.__doc__.replace("{iotable}",
                                          utils.format_fileset_type_table())
 
     ###########################################################################
-    def output(self, filename, fileset=None, filetype=None):
+    def output(self, filename, fileset=None, filetype=None, iomap=None):
         '''Same as input'''
 
-        self._add_input_output('output', filename, fileset, filetype)
+        self._add_input_output('output', filename, fileset, filetype, iomap)
     # Copy input functions __doc__ and replace 'input' with 'output' to make constant
     output.__doc__ = input.__doc__.replace("input", "output")
 
     ###########################################################################
-    def _add_input_output(self, category, filename, fileset, filetype):
+    def _add_input_output(self, category, filename, fileset, filetype, iomap):
         '''
         Adds file to input or output groups.
-        Performs a lookup in the default io map for the fileset and filetype
+        Performs a lookup in the io map for the fileset and filetype
         and will use those if they are not provided in the arguments
         '''
 
@@ -1049,8 +1039,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         default_fileset = None
         default_filetype = None
-        if ext in _metadata.default_iomap:
-            default_fileset, default_filetype = _metadata.default_iomap[ext]
+        if not iomap:
+            iomap = utils.get_default_iomap()
+
+        if ext in iomap:
+            default_fileset, default_filetype = iomap[ext]
 
         if not fileset:
             use_fileset = default_fileset
@@ -3430,7 +3423,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         top = self.top()
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
+        task = self._get_task(step, index, flow)
 
         quiet = self.get('option', 'quiet') and (step not in self.get('option', 'bkpt'))
 
@@ -3548,7 +3541,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Run preprocess step for tool
         if tool not in self.builtin:
-            func = self.find_function(tool, "pre_process", 'tools')
+            func = self.find_function(tool, "pre_process", 'tools', task)
             if func:
                 func(self)
                 if self._error:
@@ -3759,7 +3752,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Post process
         if (tool not in self.builtin) and (not self.get('option', 'skipall')) :
-            func = self.find_function(tool, 'post_process', 'tools')
+            func = self.find_function(tool, 'post_process', 'tools', task)
             if func:
                 func(self)
 

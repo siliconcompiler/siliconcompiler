@@ -9,7 +9,7 @@ def test_check_manifest():
 
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
-    chip.set('input', 'rtl', 'verilog', 'examples/gcd/gcd.v')
+    chip.input('examples/gcd/gcd.v')
     flow = chip.get('option', 'flow')
     index = "0"
     steps = ['import', 'syn']
@@ -32,7 +32,7 @@ def test_check_manifest():
 def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip = siliconcompiler.Chip('gcd')
 
-    chip.set('input', 'rtl', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
+    chip.input(os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.load_target("freepdk45_demo")
 
     # collect input files
@@ -56,8 +56,8 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
 def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip = siliconcompiler.Chip('gcd')
 
-    chip.set('input', 'rtl', 'verilog', os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
-    chip.set('input', 'constraint', 'sdc', '/random/abs/path/to/file.sdc')
+    chip.input(os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
+    chip.input('/random/abs/path/to/file.sdc')
     chip.set('input', 'constraint', 'sdc', False, field='copy')
     chip.load_target("freepdk45_demo")
 
