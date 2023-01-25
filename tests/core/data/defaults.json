@@ -6409,7 +6409,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.14.0",
+        "defvalue": "0.15.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6423,7 +6423,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.14.0"
+        "value": "0.15.0"
     },
     "tool": {
         "default": {
