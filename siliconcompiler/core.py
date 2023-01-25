@@ -103,7 +103,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.status = {}
 
         self.builtin = ['minimum','maximum',
-                        'nop', 'mux', 'join', 'verify']
+                        'nop', 'mux', 'join', 'verify', 'import']
 
         # We set 'design' and 'loglevel' by directly calling the schema object
         # because of a chicken-and-egg problem: self.set() relies on the logger,
@@ -1450,7 +1450,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'Required input {filename} not received for {step}{index}.')
                 error = True
 
-        if (not task in self.builtin) and self.valid('tool', tool,'task', task,  'require', step, index):
+        if (self._is_builtin(tool, task)) and self.valid('tool', tool,'task', task,  'require', step, index):
             all_required = self.get('tool', tool, 'task', task, 'require', step, index)
             for item in all_required:
                 keypath = item.split(',')
@@ -1588,7 +1588,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for index in self.getkeys('flowgraph', flow, step):
                 tool = self.get('flowgraph', flow, step, index, 'tool')
                 task = self.get('flowgraph', flow, step, index, 'task')
-                if (task not in self.builtin) and (tool in self.getkeys('tool')):
+                if (not self._is_builtin(tool, task)) and (tool in self.getkeys('tool')):
                     # checking that requirements are set
                     if self.valid('tool', tool, 'task', task, 'require', step, index):
                         all_required = self.get('tool', tool, 'task', task, 'require', step, index)
@@ -1622,19 +1622,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         task = self.get('flowgraph', flow, step, index, 'task')
 
         outputs = set()
-        if task in self.builtin:
+        if self._is_builtin(tool, task):
             in_tasks = self.get('flowgraph', flow, step, index, 'input')
             in_task_outputs = [self._gather_outputs(*task) for task in in_tasks]
 
-            if tool in ('minimum', 'maximum'):
+            if task in ('minimum', 'maximum'):
                 if len(in_task_outputs) > 0:
                     outputs = in_task_outputs[0].intersection(*in_task_outputs[1:])
-            elif tool in ('join', 'nop'):
+            elif task in ('join', 'nop', 'import'):
                 if len(in_task_outputs) > 0:
                     outputs = in_task_outputs[0].union(*in_task_outputs[1:])
             else:
                 # TODO: logic should be added here when mux/verify builtins are implemented.
-                self.logger.error(f'Builtin {tool} not yet implemented')
+                self.logger.error(f'Builtin {tool}/{task} not yet implemented')
         else:
             # Not builtin tool
             if self.valid('tool', tool,  'task', task, 'output', step, index):
@@ -1667,7 +1667,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 tool = self.get('flowgraph', flow, step, index, 'tool')
                 task = self.get('flowgraph', flow, step, index, 'task')
 
-                if task in self.builtin:
+                if self._is_builtin(tool, task):
                     # We can skip builtins since they don't have any particular
                     # input requirements -- they just pass through what they
                     # receive.
@@ -2195,7 +2195,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # create step node
                 tool = self.get('flowgraph', flow, step, index, 'tool')
                 task = self._get_task(step, index, flow=flow)
-                if task in self.builtin:
+                if self._is_builtin(tool, task):
                     labelname = step
                 elif tool is not None:
                     labelname = f"{step}{index}\n({tool})"
@@ -2768,7 +2768,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # only report tool based steps functions
         for step in steplist.copy():
-            if self._get_task(step, '0', flow=flow) in self.builtin:
+            tool = self.get('flowgraph', flow, step, '0', 'tool')
+            task = self._get_task(step, '0', flow=flow)
+            if self._is_builtin(tool, task):
                 index = steplist.index(step)
                 del steplist[index]
 
@@ -3433,6 +3435,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         quiet = self.get('option', 'quiet') and (step not in self.get('option', 'bkpt'))
 
+        is_builtin = self._is_builtin(tool, task)
+
         ##################
         # Start wall timer
         wall_start = time.time()
@@ -3486,7 +3490,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         sel_inputs = []
         score = 0
 
-        if task in self.builtin:
+        if is_builtin:
             self.logger.info(f"Running built in task '{tool}'")
             # Figure out which inputs to select
             if tool == 'minimum':
@@ -3546,7 +3550,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Run preprocess step for tool
-        if task not in self.builtin:
+        if not is_builtin:
             func = self.find_function(tool, "pre_process", 'tools', task)
             if func:
                 func(self)
@@ -3570,7 +3574,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 os.environ[item] = self.get('tool', tool, 'task', task, 'env', step, index, item)
 
         run_func = None
-        if task not in self.builtin:
+        if not is_builtin:
             run_func = self.find_function(tool, 'run', 'tools')
 
         ##################
@@ -3598,7 +3602,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self._haltstep(step, index)
             else:
                 self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
-        elif task not in self.builtin and run_func is None:
+        elif not is_builtin and run_func is None:
             exe_base = self.get('tool', tool, 'exe')
             self.logger.error(f'Executable {exe_base} not found')
             self._haltstep(step, index)
@@ -3622,7 +3626,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         max_mem_bytes = 0
 
         retcode = 0
-        if task in self.builtin:
+        if is_builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
         elif run_func and not self.get('option', 'skipall'):
             logfile = None
@@ -3757,14 +3761,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Post process
-        if (task not in self.builtin) and (not self.get('option', 'skipall')) :
+        if (not is_builtin) and (not self.get('option', 'skipall')) :
             func = self.find_function(tool, 'post_process', 'tools', task)
             if func:
                 func(self)
 
         ##################
         # Check log file (must be after post-process)
-        if (task not in self.builtin) and (not self.get('option', 'skipall')) and (run_func is None):
+        if (not is_builtin) and (not self.get('option', 'skipall')) and (run_func is None):
             matches = self.check_logfile(step=step, index=index, display=not quiet)
             if 'errors' in matches:
                 errors = self.get('metric', step, index, 'errors')
@@ -3781,7 +3785,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Hash files
-        if (task not in self.builtin) and self.get('option', 'hash'):
+        if (not is_builtin) and self.get('option', 'hash'):
             # hash all outputs
             self.hash_files('tool', tool, 'task', task, 'output', step, index)
             # hash all requirements
@@ -4113,7 +4117,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # Setting up tool is optional
                     tool = self.get('flowgraph', flow, step, index, 'tool')
                     task = self._get_task(step, index, flow=flow)
-                    if task not in self.builtin:
+                    if not self._is_builtin(tool, task):
                         self._setup_tool(tool, task, step, index)
 
             # Check validity of setup
@@ -4566,6 +4570,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return(bool(value!=goal))
         else:
             self.error(f"Illegal comparison operation {op}")
+
+    #######################################
+    def _is_builtin(self, tool, task):
+        '''
+        Check if tool and task is a builtin
+        '''
+        if tool != 'builtin':
+            return False
+        return task in self.builtin
 
     #######################################
     def _get_steps_by_task(self, flow=None):
