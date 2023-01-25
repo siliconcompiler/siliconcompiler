@@ -2106,12 +2106,12 @@
         "notes": null,
         "require": "all",
         "scope": "global",
-        "set": false,
+        "set": true,
         "shorthelp": "Design top module name",
         "signature": null,
         "switch": "-design <str>",
         "type": "str",
-        "value": null
+        "value": "test"
     },
     "flowgraph": {
         "default": {

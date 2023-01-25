@@ -44,6 +44,7 @@ def test_modified_schema(datadir):
 
     # special case (initialized in constructor)
     expected['design']['value'] = 'test'
+    expected['design']['set'] = True
 
     assert chip.schema.cfg == expected
 
