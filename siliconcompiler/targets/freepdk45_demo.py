@@ -31,11 +31,14 @@ def setup(chip):
     chip.set('option', 'mode','asic')
 
     #2. Load PDK, flow, libs combo
-    chip.load_pdk('freepdk45')
-    chip.load_flow('lintflow')
-    chip.load_flow('asicflow')
-    chip.load_flow('asictopflow')
-    chip.load_lib('nangate45')
+    from pdks import freepdk45
+    from flows import lintflow, asicflow, asictopflow
+    from libs import nangate45
+    chip.use(freepdk45)
+    chip.use(lintflow)
+    chip.use(asicflow)
+    chip.use(asictopflow)
+    chip.use(nangate45)
 
     #3. Set flow and pdk
     chip.set('option', 'flow', 'asicflow', clobber=False)
