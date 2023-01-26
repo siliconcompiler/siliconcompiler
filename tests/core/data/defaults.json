@@ -6206,6 +6206,24 @@
             "type": "int",
             "value": null
         },
+        "option": {
+            "defvalue": [],
+            "example": [
+                "cli: -server_option '--pty bash'",
+                "api: chip.set('server','option, '--pty bash')"
+            ],
+            "help": "List of run time options passed through to the job scheduler for\nexpert users. See the job scheduler (slurm, lsf, gse) for\ninformation about available options. The user specified options must\nbe compatible with the standardized job scheduler options (memory,\ncores,...).",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Job scheduler options",
+            "signature": [],
+            "switch": "-server_option <str>",
+            "type": "[str]",
+            "value": []
+        },
         "queue": {
             "defvalue": null,
             "example": [

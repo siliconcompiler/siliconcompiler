@@ -3636,6 +3636,20 @@ def schema_server(cfg):
             the job scheduler documentation. Examples of valid slurm specific
             values include: now+1hour, 16:00, 010-01-20T12:34:00.""")
 
+    scparam(cfg, ['server', 'option'],
+            sctype='[str]',
+            shorthelp="Server: Job scheduler options",
+            switch="-server_option <str>",
+            example=[
+                "cli: -server_option '--pty bash'",
+                "api: chip.set('server','option, '--pty bash')"],
+            schelp="""
+            List of run time options passed through to the job scheduler for
+            expert users. See the job scheduler (slurm, lsf, gse) for
+            information about available options. The user specified options must
+            be compatible with the standardized job scheduler options (memory,
+            cores,...).""")
+
     return cfg
 
 
