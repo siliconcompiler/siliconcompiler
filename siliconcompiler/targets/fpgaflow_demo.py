@@ -20,7 +20,8 @@ def setup(chip):
     chip.set('option', 'target', target)
 
     #2. Load flow
-    chip.load_flow('fpgaflow')
+    from flows import fpgaflow
+    chip.use(fpgaflow)
 
     #3. Select default flow
     chip.set('option', 'flow', 'fpgaflow')

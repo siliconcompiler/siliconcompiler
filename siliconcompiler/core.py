@@ -689,7 +689,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         # TODO: Is this the best way to determine module type? Also, remove chip arg from all but target?
-        if ('pdks.' in module.__name__) or ('flows.' in module.__name__) or ('targets' in module.__name__):
+        if ('pdks.' in module.__name__) or ('flows.' in module.__name__) \
+           or ('targets' in module.__name__) or ('checklists.' in module.__name__):
             # TODO: Update PDK setups to return Chip obj, and _merge_manifest or create 'import_[...]()'
             module.setup(self)
         elif 'libs.' in module.__name__:

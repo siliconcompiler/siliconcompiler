@@ -32,12 +32,16 @@ def setup(chip):
     chip.set('option', 'mode','asic')
 
     #2. Load PDK, flow, libs
-    chip.load_pdk('skywater130')
-    chip.load_flow('asicflow')
-    chip.load_flow('asictopflow')
-    chip.load_flow('signoffflow')
-    chip.load_lib('sky130hd')
-    chip.load_checklist('oh_tapeout')
+    from pdks import skywater130
+    from flows import asicflow, asictopflow, signoffflow
+    from libs import sky130hd
+    from checklists import oh_tapeout
+    chip.use(skywater130)
+    chip.use(asicflow)
+    chip.use(asictopflow)
+    chip.use(signoffflow)
+    chip.use(sky130hd)
+    chip.use(oh_tapeout)
 
     #3. Set default targets
     chip.set('option', 'flow', 'asicflow', clobber=False)

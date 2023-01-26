@@ -20,9 +20,12 @@ def setup(chip):
     chip.set('option', 'target', target)
 
     #2. Load PDK, flow, libs combo
-    chip.load_pdk('asap7')
-    chip.load_flow('asicflow')
-    chip.load_lib('asap7sc7p5t')
+    from pdks import asap7
+    from flows import asicflow
+    from libs import asap7sc7p5t
+    chip.use(asap7)
+    chip.use(asicflow)
+    chip.use(asap7sc7p5t)
 
     #3. Select default flow/PDK
     chip.set('option', 'flow', 'asicflow')
