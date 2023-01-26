@@ -3,7 +3,7 @@
 
 import os
 import siliconcompiler
-from siliconcompiler import freepdk45_demo
+from siliconcompiler.targets import freepdk45_demo
 
 def main(root='.'):
     '''Simple asicflow example.'''
