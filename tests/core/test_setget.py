@@ -164,6 +164,21 @@ def test_clear():
     chip.set('option', 'remote', True, clobber=False)
     assert chip.get('option', 'remote') == True
 
+def test_set_enum_success():
+    chip = siliconcompiler.Chip('test')
+    chip.add('option', 'mode', 'asic_new', field='enum')
+    chip.set('option', 'mode', 'asic_new')
+    assert chip.get('option', 'mode') == 'asic_new'
+
+def test_set_enum_fail():
+    chip = siliconcompiler.Chip('test')
+    try:
+        chip.set('option', 'mode', 'asic_new')
+    except siliconcompiler.SiliconCompilerError:
+        assert True
+        return
+    assert False
+
 #########################
 if __name__ == "__main__":
     test_setget()

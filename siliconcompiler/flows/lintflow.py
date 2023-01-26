@@ -37,7 +37,7 @@ def setup(chip):
 
     for step, tool, task in pipe:
         chip.node(flowname, step, tool, task)
-        if step != 'import':
+        if task != 'import':
             chip.edge(flowname, prevstep, step)
         prevstep = step
 
