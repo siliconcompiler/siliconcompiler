@@ -3540,6 +3540,23 @@ def schema_server(cfg):
             specified in MB. For the slurm scheduler, this translates to
             the '--mem' switch. """)
 
+    scparam(cfg, ['server', 'constraint'],
+            sctype='str',
+            scope='job',
+            shorthelp="Server: Machine constraint",
+            switch="-server_constraint <str>",
+            example= [
+                "cli: -server_constraint 'riscv&gpu'",
+                "api: chip.set('server', 'constraint', 'riscv&gpu')"],
+            schelp="""
+            Provides machine feature constraints to the job scheduler for
+            selecting compute nodes. Feature names are strings assigned to
+            computes nodes by the job scheduler administrator. The constraint
+            parameter is passed through to the job schedular unmodified. For
+            the slurm scheduler, this translates to the '--constraint'
+            switch. See the slurm documentation for examples of the types of
+            constraints supported.""")
+
     scparam(cfg, ['server', 'queue'],
             sctype='str',
             scope='job',
@@ -3549,8 +3566,8 @@ def schema_server(cfg):
                       "api: chip.set('server', 'queue', 'nightrun')"],
             schelp="""
             Schedule the job for the specified queue. With slurm, this
-            translates to -p 'partition'. The queue name must match
-            the name of an existing queue.""")
+            translates to 'partition'. The queue name must match
+            the name of an existing job schemduler queue.""")
 
     scparam(cfg, ['server', 'nice'],
             sctype='int',
@@ -3570,7 +3587,7 @@ def schema_server(cfg):
             shorthelp="Server: Timeout value",
             switch="-server_timeout <str>",
             example= ["cli: -server_timeout 16:00",
-                    "api: chip.set('server', '', '16:00')"],
+                    "api: chip.set('server', 'timeout', '16:00')"],
             schelp="""
             Specifies the limit on the total job run time.
             Acceptable slurm time formats include "minutes", "minutes:seconds",
@@ -3582,7 +3599,7 @@ def schema_server(cfg):
             scope='job',
             shorthelp="Server: Request interactive session",
             switch="-server_interactive <str>",
-            example= ["cli: -server_interactive True",
+            example= ["cli: -server_interactive true",
                     "api: chip.set('server', 'interactive', True)"],
             schelp="""
             Specifies that job is interactive. In slurm, this would
