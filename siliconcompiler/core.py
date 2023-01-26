@@ -582,56 +582,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f'Target module {name} not found in $SCPATH or siliconcompiler/targets/.')
 
     ##########################################################################
-    def load_lib(self, name):
-        """
-        Loads a library module and runs the setup() function.
-
-        The function searches the $SCPATH for libs/<name>.py and runs
-        the setup function in that module if found.
-
-        Args:
-            name (str): Module name
-
-        Examples:
-            >>> chip.load_lib('nangate45')
-            Loads the 'nangate45' library
-
-        """
-
-        func = self.find_function(name, 'setup', 'libs')
-        if func is not None:
-            self.logger.info(f"Loading library '{name}'")
-            self._loaded_modules['libs'].append(name)
-            func(self)
-        else:
-            self.error(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
-
-    ##########################################################################
-    def load_checklist(self, name):
-        """
-        Loads a checklist module and runs the setup() function.
-
-        The function searches the $SCPATH for checklist/<name>/<name>.py and runs
-        the setup function in that module if found.
-
-        Args:
-            name (str): Module name
-
-        Examples:
-            >>> chip.load_checklist('oh_tapeout')
-            Loads the 'oh_tapeout' checklist
-
-        """
-
-        func = self.find_function(name, 'setup', 'checklists')
-        if func is not None:
-            self.logger.info(f"Loading checklist '{name}'")
-            self._loaded_modules['checklists'].append(name)
-            func(self)
-        else:
-            self.error(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
-
-    ##########################################################################
     def use(self, module):
         '''
         Loads a SiliconCompiler module into the current chip object by calling
@@ -645,6 +595,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             module.setup(self)
         elif 'libs.' in module.__name__:
             lib_chip = module.setup(self)
+            # TODO: Was in 'load_lib', but may not be needed as that function was never called?
+            lib_name = module.__name__[module.__name__.rfind('.')+1:]
+            self._loaded_modules['libs'].append(lib_name)
             # TODO: Stdcell libs may call 'import_library' of their own volition, and not return a Chip.
             if lib_chip:
                 self.import_library(module.setup(self))
