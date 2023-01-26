@@ -2224,32 +2224,7 @@ def schema_option(cfg):
             EDA tool. If the step is a command line tool, then the flow
             drops into a Python interpreter.""")
 
-    scparam(cfg, ['option', 'msgevent'],
-            sctype='[str]',
-            scope='job',
-            shorthelp="Message event trigger",
-            switch="-msgevent <str>",
-            example=["cli: -msgevent export",
-                    "api: chip.set('option','msgevent','export')"],
-            schelp="""
-            A list of steps after which to notify a recipient. For
-            example if values of syn, place, cts are entered separate
-            messages would be sent after the completion of the syn,
-            place, and cts steps.""")
 
-    scparam(cfg, ['option', 'msgcontact'],
-            sctype='[str]',
-            scope='job',
-            shorthelp="Message contact",
-            switch="-msgcontact <str>",
-            example=[
-                "cli: -msgcontact 'wile.e.coyote@acme.com'",
-                "api: chip.set('option','msgcontact','wiley@acme.com')"],
-            schelp="""
-            A list of phone numbers or email addresses to message
-            on a event event within the msg_event param. Actual
-            support for email and phone messages is platform
-            dependent.""")
 
     filetype = 'default'
     scparam(cfg, ['option', 'showtool', filetype],
@@ -3649,6 +3624,33 @@ def schema_server(cfg):
             information about available options. The user specified options must
             be compatible with the standardized job scheduler options (memory,
             cores,...).""")
+
+    scparam(cfg, ['server', 'msgevent'],
+            sctype='str',
+            defvalue='NONE',
+            scope='job',
+            shorthelp="Server: Message event trigger",
+            switch="-server_msgevent <str>",
+            example=["cli: -server_msgevent ALL",
+                    "api: chip.set('server','msgevent', 'ALL')"],
+            schelp="""
+            Directs job scheduler to send a message to the user when
+            certain events occur during a task. Supported data types for
+            SLURM include NONE, BEGIN, END, FAIL, ALL, TIME_LIMIT. For a
+            list of supported event types, see the job scheduler
+            documentation.""")
+
+    scparam(cfg, ['server', 'msgcontact'],
+            sctype='[str]',
+            scope='job',
+            shorthelp="Server: Message contact",
+            switch="-server_msgcontact <str>",
+            example=[
+                "cli: -server_msgcontact 'wile.e.coyote@acme.com'",
+                "api: chip.set('server','msgcontact','wiley@acme.com')"],
+            schelp="""
+            List of email addresses to message on a 'msgevent'. Support for
+            email messages relies on job scheduler daemon support.""")
 
     return cfg
 
