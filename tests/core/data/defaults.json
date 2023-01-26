@@ -3664,10 +3664,12 @@
         "loglevel": {
             "defvalue": "INFO",
             "enum": [
+                "NOTSET",
                 "INFO",
                 "DEBUG",
                 "WARNING",
-                "ERROR"
+                "ERROR",
+                "CRITICAL"
             ],
             "example": [
                 "cli: -loglevel INFO",
