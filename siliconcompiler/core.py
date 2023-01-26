@@ -582,31 +582,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f'Target module {name} not found in $SCPATH or siliconcompiler/targets/.')
 
     ##########################################################################
-    def load_pdk(self, name):
-        """
-        Loads a PDK module and runs the setup() function.
-
-        The function searches the $SCPATH for pdks/<name>.py and runs
-        the setup function in that module if found.
-
-        Args:
-            name (str): Module name
-
-        Examples:
-            >>> chip.load_pdk('freepdk45_pdk')
-            Loads the 'freepdk45' pdk
-
-        """
-
-        func = self.find_function(name, 'setup', 'pdks')
-        if func is not None:
-            self.logger.info(f"Loading PDK '{name}'")
-            self._loaded_modules['pdks'].append(name)
-            func(self)
-        else:
-            self.error(f'PDK module {name} not found in $SCPATH or siliconcompiler/pdks/.')
-
-    ##########################################################################
     def load_flow(self, name):
         """
         Loads a flow  module and runs the setup() function.

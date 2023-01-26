@@ -1,3 +1,4 @@
+import importlib
 import siliconcompiler
 import pytest
 
@@ -30,16 +31,9 @@ def test_target_fpga_valid():
 
     assert chip.get('option', 'mode') == 'fpga'
 
-def test_target_pdk_error():
-    '''Ensure that we error out in ASIC mode if given an invalid PDK name.'''
-    chip = siliconcompiler.Chip('test')
-    with pytest.raises(siliconcompiler.SiliconCompilerError) as pytest_wrapped_e:
-        chip.load_flow('asicflow')
-        chip.load_pdk('fakepdk')
-    assert pytest_wrapped_e.type == siliconcompiler.SiliconCompilerError
-
 @pytest.mark.parametrize('pdk', ['asap7', 'freepdk45', 'skywater130'])
 def test_pdk(pdk):
     chip = siliconcompiler.Chip('test')
-    chip.load_pdk(pdk)
+    pdk_module = importlib.import_module(f'pdks.{pdk}')
+    chip.use(pdk_module)
     assert chip.getkeys('pdk')[0] == pdk
