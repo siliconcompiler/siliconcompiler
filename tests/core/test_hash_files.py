@@ -1,11 +1,12 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
 import siliconcompiler
+from siliconcompiler.targets import freepdk45_demo
 
 def test_hash_files():
     chip = siliconcompiler.Chip('top')
 
-    chip.load_target("freepdk45_demo")
+    chip.use(freepdk45_demo)
     chip.write_manifest("raw.json")
     allkeys = chip.allkeys()
     for keypath in allkeys:

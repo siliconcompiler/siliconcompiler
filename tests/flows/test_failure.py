@@ -1,7 +1,7 @@
 import os
-import siliconcompiler
-
 import pytest
+import siliconcompiler
+from siliconcompiler.targets import freepdk45_demo
 
 @pytest.fixture
 def chip(datadir):
@@ -13,7 +13,7 @@ def chip(datadir):
     chip.set('design', 'bad')
     chip.set('constraint', 'outline', [(0, 0), (10, 10)])
     chip.set('constraint', 'corearea', [(1, 1), (9, 9)])
-    chip.load_target("freepdk45_demo")
+    chip.use(freepdk45_demo)
 
     chip.add('option', 'steplist', 'import')
     chip.add('option', 'steplist', 'syn')

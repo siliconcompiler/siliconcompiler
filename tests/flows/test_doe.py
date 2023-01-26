@@ -1,7 +1,8 @@
-import siliconcompiler
 import multiprocessing
 import os
 import pytest
+import siliconcompiler
+from siliconcompiler.targets import freepdk45_demo
 
 # unit routine
 def run_design(datadir, design, N, job):
@@ -14,7 +15,7 @@ def run_design(datadir, design, N, job):
     chip.set('relax', True)
     chip.set('quiet', True)
     chip.set('steplist', ['import', 'syn'])
-    chip.load_target("freepdk45_demo")
+    chip.use(freepdk45_demo)
     chip.run()
 
 @pytest.mark.eda

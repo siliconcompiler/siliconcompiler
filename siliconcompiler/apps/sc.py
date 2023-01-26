@@ -5,6 +5,7 @@ import os
 import sys
 
 import siliconcompiler
+from siliconcompiler.targets import skywater130_demo
 from siliconcompiler.utils import get_default_iomap
 
 ###########################
@@ -63,7 +64,7 @@ def main():
 
     # Set demo target if none specified
     if not chip.get('option', 'target'):
-        chip.load_target('skywater130_demo')
+        chip.use(skywater130_demo)
 
     # Storing user entered steplist/args before running
     if chip.get('arg','step'):

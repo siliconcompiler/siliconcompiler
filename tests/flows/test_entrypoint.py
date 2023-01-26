@@ -3,6 +3,7 @@ import os
 import pytest
 
 import siliconcompiler
+from siliconcompiler.targets import freepdk45_demo
 
 @pytest.mark.eda
 def test_entrypoint(scroot):
@@ -14,7 +15,7 @@ def test_entrypoint(scroot):
 
     chip.set('option', 'entrypoint', 'heartbeat_top')
 
-    chip.load_target('skywater130_demo')
+    chip.use(skywater130_demo)
 
     chip.run()
 

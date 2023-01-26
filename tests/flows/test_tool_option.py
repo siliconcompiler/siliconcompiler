@@ -1,6 +1,7 @@
 import os
-import siliconcompiler
 import pytest
+import siliconcompiler
+from siliconcompiler.targets import freepdk45_demo
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -22,7 +23,7 @@ def test_tool_option(scroot):
     chip.set('option','relax', 'true')
     chip.set('option','novercheck', 'true')
     chip.set('arg', 'flow', 'place_np', ['2'])
-    chip.load_target('freepdk45_demo')
+    chip.use(freepdk45_demo)
 
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0',  'place_density', '0.15')
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1',  'place_density', '0.3')
@@ -63,7 +64,7 @@ def chip(scroot):
     chip.input(def_file)
     chip.set('option', 'quiet', True)
     chip.set('option','novercheck', 'true')
-    chip.load_target('freepdk45_demo')
+    chip.use(freepdk45_demo)
 
     # Important: set up our own flow instead of using asicflow.
     chip.set('option', 'flow', 'test')

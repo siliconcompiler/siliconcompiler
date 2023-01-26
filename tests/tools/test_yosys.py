@@ -1,6 +1,8 @@
-import siliconcompiler
+# Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
 import pytest
+import siliconcompiler
+from siliconcompiler.targets import freepdk45_demo
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -8,7 +10,7 @@ def test_yosys_lec(datadir):
     lec_dir = os.path.join(datadir, 'lec')
 
     chip = siliconcompiler.Chip('foo')
-    chip.load_target('freepdk45_demo')
+    chip.use(freepdk45_demo)
 
     chip.set('option', 'mode', 'asic')
 
@@ -33,7 +35,7 @@ def test_yosys_lec_broken(datadir):
     lec_dir = os.path.join(datadir, 'lec')
 
     chip = siliconcompiler.Chip('foo')
-    chip.load_target('freepdk45_demo')
+    chip.use(freepdk45_demo)
 
     chip.set('option', 'mode', 'asic')
 

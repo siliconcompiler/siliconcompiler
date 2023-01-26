@@ -1,5 +1,6 @@
 import siliconcompiler as sc
 from siliconcompiler.package import Sup
+from siliconcompiler.targets import freepdk45_demo
 import pytest
 import shutil
 import os
@@ -19,7 +20,7 @@ def test_sup():
     for i in ('a', 'b', 'c'):
         os.makedirs(f"{builddir}/{i}/job0/export/outputs", exist_ok=True)
         l1 = sc.Chip(i)
-        l1.load_target('freepdk45_demo')
+        l1.use(freepdk45_demo)
         l1.set('package', 'version', '0.0.0')
         l1.set('package', 'license', 'MIT')
         l1.set('package', 'description', 'sup?')
@@ -28,7 +29,7 @@ def test_sup():
             os.makedirs(f"{builddir}/{dep2}/job0/export/outputs", exist_ok=True)
             l1.add('package', 'dependency', dep2, f"0.0.{j}")
             l2 = sc.Chip(dep2)
-            l2.load_target('freepdk45_demo')
+            l2.use(freepdk45_demo)
             l2.set('package', 'version', f"0.0.{j}")
             l2.set('package', 'license', 'MIT')
             l2.set('package', 'description', 'sup?')
@@ -48,7 +49,7 @@ def test_sup():
 
     # 3. Create top object and update dependencies
     chip = sc.Chip('top')
-    chip.load_target('freepdk45_demo')
+    chip.use(freepdk45_demo)
     chip.set('option', 'registry', registry)
     chip.set('package', 'version', f"0.0.0")
     chip.set('package', 'license', 'MIT')
@@ -78,7 +79,7 @@ def test_sup_circ_import():
     for i in ('A', 'B'):
         os.makedirs(f"{builddir}/{i}/job0/export/outputs", exist_ok=True)
         p = sc.Chip(i)
-        p.load_target('freepdk45_demo')
+        p.use(freepdk45_demo)
         p.set('package', 'version', '0.0.0')
         p.set('package', 'license', 'MIT')
         p.set('package', 'description', f'sup {i}?')
@@ -98,7 +99,7 @@ def test_sup_circ_import():
     # Attempt to build a design with each circular dependency, verify errors are thrown.
     for i in ('A', 'B'):
         chip = sc.Chip('top')
-        chip.load_target('freepdk45_demo')
+        chip.use(freepdk45_demo)
         chip.set('option', 'registry', registry)
         chip.set('package', 'version', f"0.0.0")
         chip.set('package', 'license', 'MIT')

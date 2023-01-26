@@ -1,11 +1,13 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import siliconcompiler
 import gzip
+import importlib
 import os
 import pytest
-from pyvirtualdisplay import Display
+import siliconcompiler
 import sys
 
+from pyvirtualdisplay import Display
+from siliconcompiler.targets import freepdk45_demo
 from unittest import mock
 
 def adjust_exe_options(chip, headless):
@@ -35,7 +37,7 @@ def display():
      ('skywater130_demo', 'heartbeat_sky130.def')])
 def test_show(project, testfile, tool, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target(project)
+    chip.use(importlib.import_module(f'targets.{project}'))
     chip.set('option', "quiet", True)
 
     for ext in chip.getkeys('option', 'showtool'):
@@ -54,7 +56,7 @@ def test_show(project, testfile, tool, datadir, display, headless=True):
      ('skywater130_demo', 'heartbeat_sky130.def')])
 def test_screenshot(project, testfile, tool, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target(project)
+    chip.use(importlib.import_module(f'targets.{project}'))
     chip.set('option', "quiet", True)
 
     for ext in chip.getkeys('option', 'showtool'):
@@ -73,7 +75,7 @@ def test_show_lyp(datadir, display, headless=True):
     ''' Test sc-show with only a KLayout .lyp file for layer properties '''
 
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target(f'freepdk45_demo')
+    chip.use(freepdk45_demo)
     chip.set('option', 'quiet', True)
 
     # Remove the '.lyt' file
@@ -90,7 +92,7 @@ def test_show_lyp(datadir, display, headless=True):
 @pytest.mark.quick
 def test_show_nopdk(datadir, display):
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target('freepdk45_demo')
+    chip.use(freepdk45_demo)
     chip.set('option', 'quiet', True)
 
     testfile = os.path.join(datadir, 'heartbeat.gds.gz')

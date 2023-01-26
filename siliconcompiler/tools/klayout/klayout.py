@@ -4,6 +4,7 @@ import platform
 import shutil
 
 import siliconcompiler
+from siliconcompiler.targets import freepdk45_demo
 
 ####################################################################
 # Make Docs
@@ -23,7 +24,7 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.load_target('freepdk45_demo')
+    chip.use(freepdk45_demo)
     step = 'export'
     index = '<index>'
     chip.set('arg','step',step)

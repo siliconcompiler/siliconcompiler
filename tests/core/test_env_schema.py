@@ -12,7 +12,8 @@ def test_env(monkeypatch):
     # File doesn't need to resolve, just need to put something in the schema so
     # we don't fail the initial static check_manifest().
     chip.input('fake.v')
-    chip.load_target('freepdk45_demo')
+    from targets import freepdk45_demo
+    chip.use(freepdk45_demo)
     chip.set('option', 'steplist', 'import')
 
     # Set env

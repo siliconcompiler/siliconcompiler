@@ -426,7 +426,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if 'fpga_partname' in cmdargs.keys():
                 self.set('fpga', 'partname', cmdargs['fpga_partname'], clobber=True)
             # running target command
-            self.load_target(cmdargs['option_target'])
+            try:
+                target_module = importlib.import_module(f'targets.{cmdargs["option_target"]}')
+                self.use(target_module)
+            except ModuleNotFoundError:
+                self.error(f'Target module {cmdargs["option_target"]} not found in $SCPATH or siliconcompiler/targets/.')
 
         # 4. read in all cfg files
         if 'option_cfg' in cmdargs.keys():
@@ -556,28 +560,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return getattr(module, funcname, None)
 
     ##########################################################################
-    def load_target(self, name):
-        """
-        Loads a target module and runs the setup() function.
-
-        The function searches the $SCPATH for targets/<name>.py and runs
-        the setup function in that module if found.
-
-        Args:
-            name (str): Module name
-            flow (str): Target flow to
-
-        Examples:
-            >>> chip.load_target('freepdk45_demo')
-            Loads the 'freepdk45_demo' target
-
-        """
-
-        # TODO: Blergh, this method is called from a whole bunch of tests.
-        target_module = importlib.import_module(f'targets.{name}')
-        self.use(target_module)
-
-    ##########################################################################
     def use(self, module):
         '''
         Loads a SiliconCompiler module into the current chip object by calling
@@ -586,7 +568,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # TODO: Is this the best way to determine module type? Also, remove chip arg from all but target?
         if ('pdks.' in module.__name__) or ('flows.' in module.__name__) \
-           or ('targets' in module.__name__) or ('checklists.' in module.__name__):
+           or ('checklists.' in module.__name__):
             # TODO: Update PDK setups to return Chip obj, and _merge_manifest or create 'import_[...]()'
             module.setup(self)
         elif 'targets' in module.__name__:
