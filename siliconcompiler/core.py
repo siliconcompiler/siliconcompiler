@@ -582,31 +582,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f'Target module {name} not found in $SCPATH or siliconcompiler/targets/.')
 
     ##########################################################################
-    def load_flow(self, name):
-        """
-        Loads a flow  module and runs the setup() function.
-
-        The function searches the $SCPATH for flows/<name>.py and runs
-        the setup function in that module if found.
-
-        Args:
-            name (str): Module name
-
-        Examples:
-            >>> chip.load_flow('asicflow')
-            Loads the 'asicflow' flow
-
-        """
-
-        func = self.find_function(name, 'setup', 'flows')
-        if func is not None:
-            self.logger.info(f"Loading flow '{name}'")
-            self._loaded_modules['flows'].append(name)
-            func(self)
-        else:
-            self.error(f'Flow module {name} not found in $SCPATH or siliconcompiler/flows/.')
-
-    ##########################################################################
     def load_lib(self, name):
         """
         Loads a library module and runs the setup() function.
@@ -4297,7 +4272,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             stepname = 'screenshot'
 
         try:
-            self.load_flow('showflow')
+            from flows import showflow
+            self.use(showflow)
         except:
             # restore environment
             self.schema = saved_config
