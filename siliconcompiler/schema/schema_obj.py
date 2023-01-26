@@ -111,7 +111,11 @@ class Schema:
             # TODO: log here
             return False
 
-        value = Schema._check_and_normalize(value, cfg['type'], field, keypath)
+        allowed_values = None
+        if 'enum' in cfg:
+            allowed_values = cfg['enum']
+
+        value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
         cfg[field] = value
         if field == 'value':
@@ -141,7 +145,11 @@ class Schema:
             # TODO: log here
             return False
 
-        value = Schema._check_and_normalize(value, cfg['type'], field, keypath)
+        allowed_values = None
+        if 'enum' in cfg:
+            allowed_values = cfg['enum']
+
+        value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
         cfg[field].extend(value)
         if field == 'value':
@@ -251,7 +259,7 @@ class Schema:
                                     key)
 
     @staticmethod
-    def _check_and_normalize(value, sc_type, field, keypath):
+    def _check_and_normalize(value, sc_type, field, keypath, allowed_values):
         '''
         This method validates that user-provided values match the expected type,
         and returns a normalized version of the value.
@@ -285,17 +293,17 @@ class Schema:
         if field in ('value', 'defvalue'):
             # Push down error_msg from the top since arguments get modified in recursive call
             error_msg = f'Invalid value {value} for keypath {keypath}: expected type {sc_type}'
-            return Schema._normalize_value(value, sc_type, error_msg)
+            return Schema._normalize_value(value, sc_type, error_msg, allowed_values)
         else:
             return Schema._normalize_field(value, sc_type, field, keypath)
 
     @staticmethod
-    def _normalize_value(value, sc_type, error_msg):
+    def _normalize_value(value, sc_type, error_msg, allowed_values):
         if sc_type.startswith('['):
             if not isinstance(value, list):
                 value = [value]
             base_type = sc_type[1:-1]
-            return [Schema._normalize_value(v, base_type, error_msg) for v in value]
+            return [Schema._normalize_value(v, base_type, error_msg, allowed_values) for v in value]
 
         if sc_type.startswith('('):
             # TODO: make parsing more robust to support tuples-of-tuples
@@ -307,7 +315,7 @@ class Schema:
             base_types = sc_type[1:-1].split(',')
             if len(value) != len(base_types):
                 raise TypeError(error_msg)
-            return tuple(Schema._normalize_value(v, base_type, error_msg) for v, base_type in zip(value, base_types))
+            return tuple(Schema._normalize_value(v, base_type, error_msg, allowed_values) for v, base_type in zip(value, base_types))
 
         if sc_type == 'bool':
             if value == 'true': return True
@@ -327,6 +335,15 @@ class Schema:
         if sc_type in ('str', 'file', 'dir'):
             if isinstance(value, str): return value
             else: raise TypeError(error_msg)
+
+        if sc_type == 'enum':
+            if isinstance(value, str):
+                if value in allowed_values:
+                    return value
+                valid = ", ".join(allowed_values)
+                raise ValueError(error_msg + f", and value of {valid}")
+            else:
+                raise TypeError(error_msg)
 
         raise ValueError(f'Invalid type specifier: {sc_type}')
 
@@ -378,7 +395,7 @@ class Schema:
     def _is_list(field, type):
         is_list = type.startswith('[')
 
-        if field in ('filehash', 'date', 'author', 'example'):
+        if field in ('filehash', 'date', 'author', 'example', 'enum'):
             return True
 
         if is_list and field in ('signature', 'defvalue', 'value'):

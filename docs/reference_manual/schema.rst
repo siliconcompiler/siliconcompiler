@@ -24,6 +24,9 @@ Parameter Fields
    defvalue
        Default value for the parameter. The default value must agree with the parameter 'type'. To specify that a parameter has no default value, set the defvalue to [] (ie empty list) for a list type and to 'null' or None for a non-list/scalar type.
 
+   enum
+       List of strings containing the set of legal values for this parameter.
+
    example
        List of two strings, the first string containing an example for specifying the parameter using a command line switch, and a second string for setting the value using the core Python API. The examples can be pruned/filtered before the schema is dumped into a JSON file.
 
