@@ -1,6 +1,7 @@
 import siliconcompiler
 
 import glob
+import importlib
 import os
 import re
 import sys
@@ -21,7 +22,8 @@ def checkarea(filelist, libdir, target):
     for item in filelist:
           design = re.match(r'.*/(\w+)\.v',item).group(1)
           chip = siliconcompiler.Chip(design)
-          chip.load_target(target)
+          target_module = importlib.import_module(f'targets.{target}')
+          chip.use(target_module)
           chip.input(item)
           chip.add('option', 'ydir', libdir)
           chip.set('option','quiet', True)

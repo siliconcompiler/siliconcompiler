@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import siliconcompiler
 import os
+import siliconcompiler
+from siliconcompiler import freepdk45_demo
 
 def main(root='.'):
     '''Simple asicflow example.'''
@@ -18,7 +19,7 @@ def main(root='.'):
     chip.set('option', 'nodisplay', True)
     chip.set('constraint', 'outline', [(0,0), (100.13,100.8)])
     chip.set('constraint', 'corearea', [(10.07,11.2), (90.25,91)])
-    chip.load_target("freepdk45_demo")
+    chip.use(freepdk45_demo)
     chip.run()
     chip.summary()
 
