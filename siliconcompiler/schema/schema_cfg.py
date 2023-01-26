@@ -1973,13 +1973,14 @@ def schema_option(cfg):
             sctype='int',
             scope='job',
             shorthelp="Tool execution scheduling priority",
-            switch="-nice <str>",
+            switch="-nice <int>",
             example=[
                 "cli: -nice 5",
                 "api: chip.set('option','nice',5)"],
             schelp="""
             Sets the type of execution priority of each individual flowgraph steps.
-            If the parameter is undefined, nice will not be used.""")
+            If the parameter is undefined, nice will not be used. For more information see `Unix 'nice'
+            <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.""")
 
     # Compilation
     scparam(cfg, ['option', 'mode'],
