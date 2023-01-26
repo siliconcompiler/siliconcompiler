@@ -2106,12 +2106,12 @@
         "notes": null,
         "require": "all",
         "scope": "global",
-        "set": true,
+        "set": false,
         "shorthelp": "Design top module name",
         "signature": null,
         "switch": "-design <str>",
         "type": "str",
-        "value": "test"
+        "value": null
     },
     "flowgraph": {
         "default": {
@@ -6062,7 +6062,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.16.0",
+        "defvalue": "0.17.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6076,7 +6076,154 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.16.0"
+        "value": "0.17.0"
+    },
+    "server": {
+        "constraint": {
+            "defvalue": null,
+            "example": [
+                "cli: -server_constraint 'riscv&gpu'",
+                "api: chip.set('server', 'constraint', 'riscv&gpu')"
+            ],
+            "help": "Provides machine feature constraints to the job scheduler for\nselecting compute nodes. Feature names are strings assigned to\ncomputes nodes by the job scheduler administrator. The constraint\nparameter is passed through to the job schedular unmodified. For\nthe slurm scheduler, this translates to the '--constraint'\nswitch. See the slurm documentation for examples of the types of\nconstraints supported.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Machine constraint",
+            "signature": null,
+            "switch": "-server_constraint <str>",
+            "type": "str",
+            "value": null
+        },
+        "cores": {
+            "defvalue": null,
+            "example": [
+                "cli: -server_cores 48",
+                "api: chip.set('server', 'cores', '48')"
+            ],
+            "help": "Specifies the number cpu cores required to run the job.\nFor the slurm scheduler, this translates to the '-c'\nswitch.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Core constraint",
+            "signature": null,
+            "switch": "-server_cores <int>",
+            "type": "int",
+            "value": null
+        },
+        "defer": {
+            "defvalue": null,
+            "example": [
+                "cli: -server_defer 16:00",
+                "api: chip.set('server', 'defer', '16:00')"
+            ],
+            "help": "Defer initiation of job until the specified time. The parameter\nis pass through string for remote job scheduler such as slurm.\nFor more information abotut the exact format specification, see\nthe job scheduler documentation. Examples of valid slurm specific\nvalues include: now+1hour, 16:00, 010-01-20T12:34:00.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Start time",
+            "signature": null,
+            "switch": "-server_defer <str>",
+            "type": "str",
+            "value": null
+        },
+        "interactive": {
+            "defvalue": false,
+            "example": [
+                "cli: -server_interactive true",
+                "api: chip.set('server', 'interactive', True)"
+            ],
+            "help": "Specifies that job is interactive. In slurm, this would\ntranslate to something like '-i --pty bash'.",
+            "lock": false,
+            "notes": null,
+            "require": "all",
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Request interactive session",
+            "signature": null,
+            "switch": "-server_interactive <str>",
+            "type": "bool",
+            "value": false
+        },
+        "memory": {
+            "defvalue": null,
+            "example": [
+                "cli: -server_memory 8000",
+                "api: chip.set('server', 'memory', '8000')"
+            ],
+            "help": "Specifies the amount of memory required to run the job,\nspecified in MB. For the slurm scheduler, this translates to\nthe '--mem' switch.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Memory constraint",
+            "signature": null,
+            "switch": "-server_memory <str>",
+            "type": "int",
+            "unit": "MB",
+            "value": null
+        },
+        "nice": {
+            "defvalue": null,
+            "example": [
+                "cli: -server_nice 100",
+                "api: chip.set('server', 'nice', '100')"
+            ],
+            "help": "Specifies the scheduling priority for the job. Negative numbers\nincreases priority while positive numbers decrease priority.\nFor more information, see the job scheduler documentation.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Scheduling priority",
+            "signature": null,
+            "switch": "-server_nice <int>",
+            "type": "int",
+            "value": null
+        },
+        "queue": {
+            "defvalue": null,
+            "example": [
+                "cli: -server_queue nightrun",
+                "api: chip.set('server', 'queue', 'nightrun')"
+            ],
+            "help": "Schedule the job for the specified queue. With slurm, this\ntranslates to 'partition'. The queue name must match\nthe name of an existing job schemduler queue.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Queue selection",
+            "signature": null,
+            "switch": "-server_queue <str>",
+            "type": "str",
+            "value": null
+        },
+        "timeout": {
+            "defvalue": null,
+            "example": [
+                "cli: -server_timeout 16:00",
+                "api: chip.set('server', 'timeout', '16:00')"
+            ],
+            "help": "Specifies the limit on the total job run time.\nAcceptable slurm time formats include \"minutes\", \"minutes:seconds\",\n\"hours:minutes:seconds\", \"days-hours\", \"days-hours:minutes\",\nand \"days-hours:minutes:seconds\".",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Timeout value",
+            "signature": null,
+            "switch": "-server_timeout <str>",
+            "type": "str",
+            "value": null
+        }
     },
     "tool": {
         "default": {
