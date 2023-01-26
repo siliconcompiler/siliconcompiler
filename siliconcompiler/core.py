@@ -566,24 +566,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         a module.setup() method.
         '''
 
+        # Call the module setup function.
+        # TODO: Move from 'module.setup(self)' to 'self.[merge](module.setup())'
+        new_schema = module.setup(self)
+
         # TODO: Is this the best way to determine module type? Also, remove chip arg from all but target?
-        if ('pdks.' in module.__name__) or ('flows.' in module.__name__) \
-           or ('checklists.' in module.__name__):
-            # TODO: Update PDK setups to return Chip obj, and _merge_manifest or create 'import_[...]()'
-            module.setup(self)
-        elif 'targets' in module.__name__:
+        if 'targets' in module.__name__:
             self.set('option', 'target', module.__name__[module.__name__.rfind('.')+1:])
-            module.setup(self)
         elif 'libs.' in module.__name__:
-            lib_chip = module.setup(self)
-            # TODO: Was in 'load_lib', but may not be needed as that function was never called?
             lib_name = module.__name__[module.__name__.rfind('.')+1:]
             self._loaded_modules['libs'].append(lib_name)
             # TODO: Stdcell libs may call 'import_library' of their own volition, and not return a Chip.
-            if lib_chip:
+            if new_schema:
                 self.import_library(module.setup(self))
-        else:
-            raise SiliconCompilerError(f'Could not determine module type of: "{module.__name__}"')
 
     ###########################################################################
     def list_metrics(self):
