@@ -3515,6 +3515,23 @@ def schema_constraint(cfg):
 
 def schema_server(cfg):
 
+    scparam(cfg, ['server', 'jobscheduler'],
+            sctype='str',
+            scope='job',
+            shorthelp="Server: Job scheduler name",
+            switch="-server_jobscheduler <str>",
+            example=[
+                "cli: -server_jobscheduler slurm",
+                "api: chip.set('server','jobscheduler','slurm')"],
+            schelp="""
+            Sets the type of job scheduler to be used for each individual
+            flowgraph steps. If the parameter is undefined, the steps are executed
+            on the same machine that the SC was launched on. If 'slurm' is used,
+            the host running the 'sc' command must be running a 'slurmctld' daemon
+            managing a Slurm cluster. Additionally, the build directory ('-dir')
+            must be located in shared storage which can be accessed by all hosts
+            in the cluster.""")
+
     scparam(cfg, ['server', 'cores'],
             sctype='int',
             scope='job',

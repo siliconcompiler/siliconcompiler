@@ -6151,6 +6151,24 @@
             "type": "bool",
             "value": false
         },
+        "jobscheduler": {
+            "defvalue": null,
+            "example": [
+                "cli: -server_jobscheduler slurm",
+                "api: chip.set('server','jobscheduler','slurm')"
+            ],
+            "help": "Sets the type of job scheduler to be used for each individual\nflowgraph steps. If the parameter is undefined, the steps are executed\non the same machine that the SC was launched on. If 'slurm' is used,\nthe host running the 'sc' command must be running a 'slurmctld' daemon\nmanaging a Slurm cluster. Additionally, the build directory ('-dir')\nmust be located in shared storage which can be accessed by all hosts\nin the cluster.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Job scheduler name",
+            "signature": null,
+            "switch": "-server_jobscheduler <str>",
+            "type": "str",
+            "value": null
+        },
         "memory": {
             "defvalue": null,
             "example": [
