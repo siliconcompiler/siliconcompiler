@@ -573,13 +573,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         """
 
-        self.set('option', 'target', name)
-
-        func = self.find_function(name, 'setup', 'targets')
-        if func is not None:
-            func(self)
-        else:
-            self.error(f'Target module {name} not found in $SCPATH or siliconcompiler/targets/.')
+        # TODO: Blergh, this method is called from a whole bunch of tests.
+        target_module = importlib.import_module(f'targets.{name}')
+        self.use(target_module)
 
     ##########################################################################
     def use(self, module):
@@ -592,6 +588,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if ('pdks.' in module.__name__) or ('flows.' in module.__name__) \
            or ('targets' in module.__name__) or ('checklists.' in module.__name__):
             # TODO: Update PDK setups to return Chip obj, and _merge_manifest or create 'import_[...]()'
+            module.setup(self)
+        elif 'targets' in module.__name__:
+            self.set('option', 'target', module.__name__[module.__name__.rfind('.')+1:])
             module.setup(self)
         elif 'libs.' in module.__name__:
             lib_chip = module.setup(self)
