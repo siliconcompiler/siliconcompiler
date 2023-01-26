@@ -1961,23 +1961,6 @@ def schema_option(cfg):
             secret_key=<secret key used for authentication>
             server=<ipaddr or url>""")
 
-    scparam(cfg, ['option', 'jobscheduler'],
-            sctype='str',
-            scope='job',
-            shorthelp="Job scheduler name",
-            switch="-jobscheduler <str>",
-            example=[
-                "cli: -jobscheduler slurm",
-                "api: chip.set('option','jobscheduler','slurm')"],
-            schelp="""
-            Sets the type of job scheduler to be used for each individual
-            flowgraph steps. If the parameter is undefined, the steps are executed
-            on the same machine that the SC was launched on. If 'slurm' is used,
-            the host running the 'sc' command must be running a 'slurmctld' daemon
-            managing a Slurm cluster. Additionally, the build directory ('-dir')
-            must be located in shared storage which can be accessed by all hosts
-            in the cluster.""")
-
     # Compilation
     scparam(cfg, ['option', 'mode'],
             sctype='enum',
@@ -3493,19 +3476,20 @@ def schema_constraint(cfg):
     return cfg
 
 ############################################
-# Server Configuration
+# Scheduler Configuration
 ############################################
 
 def schema_server(cfg):
 
-    scparam(cfg, ['server', 'jobscheduler'],
+    scparam(cfg, ['scheduler', 'name'],
             sctype='str',
+            enum=["slurm", "lsf", "sge"],
             scope='job',
             shorthelp="Server: Job scheduler name",
-            switch="-server_jobscheduler <str>",
+            switch="-scheduler_name <str>",
             example=[
-                "cli: -server_jobscheduler slurm",
-                "api: chip.set('server','jobscheduler','slurm')"],
+                "cli: -scheduler_name slurm",
+                "api: chip.set('scheduler', 'name', 'slurm')"],
             schelp="""
             Sets the type of job scheduler to be used for each individual
             flowgraph steps. If the parameter is undefined, the steps are executed
@@ -3515,150 +3499,140 @@ def schema_server(cfg):
             must be located in shared storage which can be accessed by all hosts
             in the cluster.""")
 
-    scparam(cfg, ['server', 'cores'],
+    scparam(cfg, ['scheduler', 'cores'],
             sctype='int',
             scope='job',
             shorthelp="Server: Core constraint",
-            switch="-server_cores <int>",
-            example= ["cli: -server_cores 48",
-                    "api: chip.set('server', 'cores', '48')"],
+            switch="-scheduler_cores <int>",
+            example= ["cli: -scheduler_cores 48",
+                    "api: chip.set('scheduler', 'cores', '48')"],
             schelp="""
             Specifies the number cpu cores required to run the job.
             For the slurm scheduler, this translates to the '-c'
-            switch.""")
+            switch. For more information, see the job scheduler
+            documentation""")
 
-    scparam(cfg, ['server', 'memory'],
+    scparam(cfg, ['scheduler', 'memory'],
             sctype='int',
             unit='MB',
             scope='job',
             shorthelp="Server: Memory constraint",
-            switch="-server_memory <str>",
-            example= ["cli: -server_memory 8000",
-                    "api: chip.set('server', 'memory', '8000')"],
+            switch="-scheduler_memory <str>",
+            example= ["cli: -scheduler_memory 8000",
+                    "api: chip.set('scheduler', 'memory', '8000')"],
             schelp="""
             Specifies the amount of memory required to run the job,
             specified in MB. For the slurm scheduler, this translates to
-            the '--mem' switch. """)
+            the '--mem' switch. For more information, see the job
+            scheduler documentation""")
 
-    scparam(cfg, ['server', 'constraint'],
-            sctype='str',
-            scope='job',
-            shorthelp="Server: Machine constraint",
-            switch="-server_constraint <str>",
-            example= [
-                "cli: -server_constraint 'riscv&gpu'",
-                "api: chip.set('server', 'constraint', 'riscv&gpu')"],
-            schelp="""
-            Provides machine feature constraints to the job scheduler for
-            selecting compute nodes. Feature names are strings assigned to
-            computes nodes by the job scheduler administrator. The constraint
-            parameter is passed through to the job schedular unmodified. For
-            the slurm scheduler, this translates to the '--constraint'
-            switch. See the slurm documentation for examples of the types of
-            constraints supported.""")
-
-    scparam(cfg, ['server', 'queue'],
+    scparam(cfg, ['scheduler', 'queue'],
             sctype='str',
             scope='job',
             shorthelp="Server: Queue selection",
-            switch="-server_queue <str>",
-            example= ["cli: -server_queue nightrun",
-                      "api: chip.set('server', 'queue', 'nightrun')"],
+            switch="-scheduler_queue <str>",
+            example= ["cli: -scheduler_queue nightrun",
+                      "api: chip.set('scheduler', 'queue', 'nightrun')"],
             schelp="""
-            Schedule the job for the specified queue. With slurm, this
+            Send the job to the specified queue. With slurm, this
             translates to 'partition'. The queue name must match
-            the name of an existing job schemduler queue.""")
+            the name of an existing job schemduler queue. For more information,
+            see the job scheduler documentation""")
 
-    scparam(cfg, ['server', 'nice'],
+    scparam(cfg, ['scheduler', 'nice'],
             sctype='int',
             scope='job',
             shorthelp="Server: Scheduling priority",
-            switch="-server_nice <int>",
-            example= ["cli: -server_nice 100",
-                    "api: chip.set('server', 'nice', '100')"],
+            switch="-scheduler_nice <int>",
+            example= ["cli: -scheduler_nice 100",
+                    "api: chip.set('scheduler', 'nice', '100')"],
             schelp="""
             Specifies the scheduling priority for the job. Negative numbers
             increases priority while positive numbers decrease priority.
             For more information, see the job scheduler documentation.""")
 
-    scparam(cfg, ['server', 'timeout'],
+    scparam(cfg, ['scheduler', 'timeout'],
             sctype='str',
             scope='job',
             shorthelp="Server: Timeout value",
-            switch="-server_timeout <str>",
-            example= ["cli: -server_timeout 16:00",
-                    "api: chip.set('server', 'timeout', '16:00')"],
+            switch="-scheduler_timeout <str>",
+            example= ["cli: -scheduler_timeout 16:00",
+                    "api: chip.set('scheduler', 'timeout', '16:00')"],
             schelp="""
             Specifies the limit on the total job run time.
             Acceptable slurm time formats include "minutes", "minutes:seconds",
             "hours:minutes:seconds", "days-hours", "days-hours:minutes",
-            and "days-hours:minutes:seconds".""")
+            and "days-hours:minutes:seconds". For more information, see the
+            job scheduler documentation.""")
 
-    scparam(cfg, ['server', 'interactive'],
+    scparam(cfg, ['scheduler', 'interactive'],
             sctype='bool',
             scope='job',
             shorthelp="Server: Request interactive session",
-            switch="-server_interactive <str>",
-            example= ["cli: -server_interactive true",
-                    "api: chip.set('server', 'interactive', True)"],
+            switch="-scheduler_interactive <str>",
+            example= ["cli: -scheduler_interactive true",
+                    "api: chip.set('scheduler', 'interactive', True)"],
             schelp="""
-            Specifies that job is interactive. In slurm, this would
-            translate to something like '-i --pty bash'.""")
+            Specifies that job should be interactive. In slurm, this would
+            translate to something like '-i --pty bash'. For more information,
+            see the job scheduler documentation.""")
 
-    scparam(cfg, ['server', 'defer'],
+    scparam(cfg, ['scheduler', 'defer'],
             sctype='str',
             scope='job',
             shorthelp="Server: Start time",
-            switch="-server_defer <str>",
-            example= ["cli: -server_defer 16:00",
-                    "api: chip.set('server', 'defer', '16:00')"],
+            switch="-scheduler_defer <str>",
+            example= ["cli: -scheduler_defer 16:00",
+                    "api: chip.set('scheduler', 'defer', '16:00')"],
             schelp="""
             Defer initiation of job until the specified time. The parameter
             is pass through string for remote job scheduler such as slurm.
             For more information abotut the exact format specification, see
             the job scheduler documentation. Examples of valid slurm specific
-            values include: now+1hour, 16:00, 010-01-20T12:34:00.""")
+            values include: now+1hour, 16:00, 010-01-20T12:34:00. For more
+            information, see the job scheduler documentation.""")
 
-    scparam(cfg, ['server', 'option'],
+    scparam(cfg, ['scheduler', 'option'],
             sctype='[str]',
             shorthelp="Server: Job scheduler options",
-            switch="-server_option <str>",
+            switch="-scheduler_option <str>",
             example=[
-                "cli: -server_option '--pty bash'",
-                "api: chip.set('server','option, '--pty bash')"],
+                "cli: -scheduler_option '--pty bash'",
+                "api: chip.set('scheduler','option, '--pty bash')"],
             schelp="""
-            List of run time options passed through to the job scheduler for
-            expert users. See the job scheduler (slurm, lsf, gse) for
-            information about available options. The user specified options must
-            be compatible with the standardized job scheduler options (memory,
-            cores,...).""")
+            Advanced/export options passed through unchanged to the job
+            scheduler as-is. (The user specified options must be compatible
+            with the rest of the scheduler parameters entered.(memory etc).
+            For more information, see the job scheduler documentation.""")
 
-    scparam(cfg, ['server', 'msgevent'],
+    scparam(cfg, ['scheduler', 'msgevent'],
             sctype='str',
             defvalue='NONE',
             scope='job',
             shorthelp="Server: Message event trigger",
-            switch="-server_msgevent <str>",
-            example=["cli: -server_msgevent ALL",
-                    "api: chip.set('server','msgevent', 'ALL')"],
+            switch="-scheduler_msgevent <str>",
+            example=["cli: -scheduler_msgevent ALL",
+                    "api: chip.set('scheduler','msgevent', 'ALL')"],
             schelp="""
             Directs job scheduler to send a message to the user when
             certain events occur during a task. Supported data types for
             SLURM include NONE, BEGIN, END, FAIL, ALL, TIME_LIMIT. For a
             list of supported event types, see the job scheduler
+            documentation. For more information, see the job scheduler
             documentation.""")
 
-    scparam(cfg, ['server', 'msgcontact'],
+    scparam(cfg, ['scheduler', 'msgcontact'],
             sctype='[str]',
             scope='job',
             shorthelp="Server: Message contact",
-            switch="-server_msgcontact <str>",
+            switch="-scheduler_msgcontact <str>",
             example=[
-                "cli: -server_msgcontact 'wile.e.coyote@acme.com'",
-                "api: chip.set('server','msgcontact','wiley@acme.com')"],
+                "cli: -scheduler_msgcontact 'wile.e.coyote@acme.com'",
+                "api: chip.set('scheduler','msgcontact','wiley@acme.com')"],
             schelp="""
             List of email addresses to message on a 'msgevent'. Support for
-            email messages relies on job scheduler daemon support.""")
+            email messages relies on job scheduler daemon support.
+            For more information, see the job scheduler documentation. """)
 
     return cfg
 

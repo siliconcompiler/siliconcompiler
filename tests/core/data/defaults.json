@@ -3625,24 +3625,6 @@
             "type": "str",
             "value": "job0"
         },
-        "jobscheduler": {
-            "defvalue": null,
-            "example": [
-                "cli: -jobscheduler slurm",
-                "api: chip.set('option','jobscheduler','slurm')"
-            ],
-            "help": "Sets the type of job scheduler to be used for each individual\nflowgraph steps. If the parameter is undefined, the steps are executed\non the same machine that the SC was launched on. If 'slurm' is used,\nthe host running the 'sc' command must be running a 'slurmctld' daemon\nmanaging a Slurm cluster. Additionally, the build directory ('-dir')\nmust be located in shared storage which can be accessed by all hosts\nin the cluster.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Job scheduler name",
-            "signature": null,
-            "switch": "-jobscheduler <str>",
-            "type": "str",
-            "value": null
-        },
         "libext": {
             "defvalue": [],
             "example": [
@@ -6043,6 +6025,212 @@
             }
         }
     },
+    "scheduler": {
+        "cores": {
+            "defvalue": null,
+            "example": [
+                "cli: -scheduler_cores 48",
+                "api: chip.set('scheduler', 'cores', '48')"
+            ],
+            "help": "Specifies the number cpu cores required to run the job.\nFor the slurm scheduler, this translates to the '-c'\nswitch. For more information, see the job scheduler\ndocumentation",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Core constraint",
+            "signature": null,
+            "switch": "-scheduler_cores <int>",
+            "type": "int",
+            "value": null
+        },
+        "defer": {
+            "defvalue": null,
+            "example": [
+                "cli: -scheduler_defer 16:00",
+                "api: chip.set('scheduler', 'defer', '16:00')"
+            ],
+            "help": "Defer initiation of job until the specified time. The parameter\nis pass through string for remote job scheduler such as slurm.\nFor more information abotut the exact format specification, see\nthe job scheduler documentation. Examples of valid slurm specific\nvalues include: now+1hour, 16:00, 010-01-20T12:34:00. For more\ninformation, see the job scheduler documentation.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Start time",
+            "signature": null,
+            "switch": "-scheduler_defer <str>",
+            "type": "str",
+            "value": null
+        },
+        "interactive": {
+            "defvalue": false,
+            "example": [
+                "cli: -scheduler_interactive true",
+                "api: chip.set('scheduler', 'interactive', True)"
+            ],
+            "help": "Specifies that job should be interactive. In slurm, this would\ntranslate to something like '-i --pty bash'. For more information,\nsee the job scheduler documentation.",
+            "lock": false,
+            "notes": null,
+            "require": "all",
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Request interactive session",
+            "signature": null,
+            "switch": "-scheduler_interactive <str>",
+            "type": "bool",
+            "value": false
+        },
+        "memory": {
+            "defvalue": null,
+            "example": [
+                "cli: -scheduler_memory 8000",
+                "api: chip.set('scheduler', 'memory', '8000')"
+            ],
+            "help": "Specifies the amount of memory required to run the job,\nspecified in MB. For the slurm scheduler, this translates to\nthe '--mem' switch. For more information, see the job\nscheduler documentation",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Memory constraint",
+            "signature": null,
+            "switch": "-scheduler_memory <str>",
+            "type": "int",
+            "unit": "MB",
+            "value": null
+        },
+        "msgcontact": {
+            "defvalue": [],
+            "example": [
+                "cli: -scheduler_msgcontact 'wile.e.coyote@acme.com'",
+                "api: chip.set('scheduler','msgcontact','wiley@acme.com')"
+            ],
+            "help": "List of email addresses to message on a 'msgevent'. Support for\nemail messages relies on job scheduler daemon support.\nFor more information, see the job scheduler documentation.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Message contact",
+            "signature": [],
+            "switch": "-scheduler_msgcontact <str>",
+            "type": "[str]",
+            "value": []
+        },
+        "msgevent": {
+            "defvalue": "NONE",
+            "example": [
+                "cli: -scheduler_msgevent ALL",
+                "api: chip.set('scheduler','msgevent', 'ALL')"
+            ],
+            "help": "Directs job scheduler to send a message to the user when\ncertain events occur during a task. Supported data types for\nSLURM include NONE, BEGIN, END, FAIL, ALL, TIME_LIMIT. For a\nlist of supported event types, see the job scheduler\ndocumentation. For more information, see the job scheduler\ndocumentation.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Message event trigger",
+            "signature": null,
+            "switch": "-scheduler_msgevent <str>",
+            "type": "str",
+            "value": "NONE"
+        },
+        "name": {
+            "defvalue": null,
+            "enum": [
+                "slurm",
+                "lsf",
+                "sge"
+            ],
+            "example": [
+                "cli: -scheduler_name slurm",
+                "api: chip.set('scheduler', 'name', 'slurm')"
+            ],
+            "help": "Sets the type of job scheduler to be used for each individual\nflowgraph steps. If the parameter is undefined, the steps are executed\non the same machine that the SC was launched on. If 'slurm' is used,\nthe host running the 'sc' command must be running a 'slurmctld' daemon\nmanaging a Slurm cluster. Additionally, the build directory ('-dir')\nmust be located in shared storage which can be accessed by all hosts\nin the cluster.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Job scheduler name",
+            "signature": null,
+            "switch": "-scheduler_name <str>",
+            "type": "str",
+            "value": null
+        },
+        "nice": {
+            "defvalue": null,
+            "example": [
+                "cli: -scheduler_nice 100",
+                "api: chip.set('scheduler', 'nice', '100')"
+            ],
+            "help": "Specifies the scheduling priority for the job. Negative numbers\nincreases priority while positive numbers decrease priority.\nFor more information, see the job scheduler documentation.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Scheduling priority",
+            "signature": null,
+            "switch": "-scheduler_nice <int>",
+            "type": "int",
+            "value": null
+        },
+        "option": {
+            "defvalue": [],
+            "example": [
+                "cli: -scheduler_option '--pty bash'",
+                "api: chip.set('scheduler','option, '--pty bash')"
+            ],
+            "help": "Advanced/export options passed through unchanged to the job\nscheduler as-is. (The user specified options must be compatible\nwith the rest of the scheduler parameters entered.(memory etc).\nFor more information, see the job scheduler documentation.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Job scheduler options",
+            "signature": [],
+            "switch": "-scheduler_option <str>",
+            "type": "[str]",
+            "value": []
+        },
+        "queue": {
+            "defvalue": null,
+            "example": [
+                "cli: -scheduler_queue nightrun",
+                "api: chip.set('scheduler', 'queue', 'nightrun')"
+            ],
+            "help": "Send the job to the specified queue. With slurm, this\ntranslates to 'partition'. The queue name must match\nthe name of an existing job schemduler queue. For more information,\nsee the job scheduler documentation",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Queue selection",
+            "signature": null,
+            "switch": "-scheduler_queue <str>",
+            "type": "str",
+            "value": null
+        },
+        "timeout": {
+            "defvalue": null,
+            "example": [
+                "cli: -scheduler_timeout 16:00",
+                "api: chip.set('scheduler', 'timeout', '16:00')"
+            ],
+            "help": "Specifies the limit on the total job run time.\nAcceptable slurm time formats include \"minutes\", \"minutes:seconds\",\n\"hours:minutes:seconds\", \"days-hours\", \"days-hours:minutes\",\nand \"days-hours:minutes:seconds\". For more information, see the\njob scheduler documentation.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Server: Timeout value",
+            "signature": null,
+            "switch": "-scheduler_timeout <str>",
+            "type": "str",
+            "value": null
+        }
+    },
     "schemaversion": {
         "defvalue": "0.17.0",
         "example": [
@@ -6059,225 +6247,6 @@
         "switch": "-schemaversion <str>",
         "type": "str",
         "value": "0.17.0"
-    },
-    "server": {
-        "constraint": {
-            "defvalue": null,
-            "example": [
-                "cli: -server_constraint 'riscv&gpu'",
-                "api: chip.set('server', 'constraint', 'riscv&gpu')"
-            ],
-            "help": "Provides machine feature constraints to the job scheduler for\nselecting compute nodes. Feature names are strings assigned to\ncomputes nodes by the job scheduler administrator. The constraint\nparameter is passed through to the job schedular unmodified. For\nthe slurm scheduler, this translates to the '--constraint'\nswitch. See the slurm documentation for examples of the types of\nconstraints supported.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Machine constraint",
-            "signature": null,
-            "switch": "-server_constraint <str>",
-            "type": "str",
-            "value": null
-        },
-        "cores": {
-            "defvalue": null,
-            "example": [
-                "cli: -server_cores 48",
-                "api: chip.set('server', 'cores', '48')"
-            ],
-            "help": "Specifies the number cpu cores required to run the job.\nFor the slurm scheduler, this translates to the '-c'\nswitch.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Core constraint",
-            "signature": null,
-            "switch": "-server_cores <int>",
-            "type": "int",
-            "value": null
-        },
-        "defer": {
-            "defvalue": null,
-            "example": [
-                "cli: -server_defer 16:00",
-                "api: chip.set('server', 'defer', '16:00')"
-            ],
-            "help": "Defer initiation of job until the specified time. The parameter\nis pass through string for remote job scheduler such as slurm.\nFor more information abotut the exact format specification, see\nthe job scheduler documentation. Examples of valid slurm specific\nvalues include: now+1hour, 16:00, 010-01-20T12:34:00.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Start time",
-            "signature": null,
-            "switch": "-server_defer <str>",
-            "type": "str",
-            "value": null
-        },
-        "interactive": {
-            "defvalue": false,
-            "example": [
-                "cli: -server_interactive true",
-                "api: chip.set('server', 'interactive', True)"
-            ],
-            "help": "Specifies that job is interactive. In slurm, this would\ntranslate to something like '-i --pty bash'.",
-            "lock": false,
-            "notes": null,
-            "require": "all",
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Request interactive session",
-            "signature": null,
-            "switch": "-server_interactive <str>",
-            "type": "bool",
-            "value": false
-        },
-        "jobscheduler": {
-            "defvalue": null,
-            "example": [
-                "cli: -server_jobscheduler slurm",
-                "api: chip.set('server','jobscheduler','slurm')"
-            ],
-            "help": "Sets the type of job scheduler to be used for each individual\nflowgraph steps. If the parameter is undefined, the steps are executed\non the same machine that the SC was launched on. If 'slurm' is used,\nthe host running the 'sc' command must be running a 'slurmctld' daemon\nmanaging a Slurm cluster. Additionally, the build directory ('-dir')\nmust be located in shared storage which can be accessed by all hosts\nin the cluster.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Job scheduler name",
-            "signature": null,
-            "switch": "-server_jobscheduler <str>",
-            "type": "str",
-            "value": null
-        },
-        "memory": {
-            "defvalue": null,
-            "example": [
-                "cli: -server_memory 8000",
-                "api: chip.set('server', 'memory', '8000')"
-            ],
-            "help": "Specifies the amount of memory required to run the job,\nspecified in MB. For the slurm scheduler, this translates to\nthe '--mem' switch.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Memory constraint",
-            "signature": null,
-            "switch": "-server_memory <str>",
-            "type": "int",
-            "unit": "MB",
-            "value": null
-        },
-        "msgcontact": {
-            "defvalue": [],
-            "example": [
-                "cli: -server_msgcontact 'wile.e.coyote@acme.com'",
-                "api: chip.set('server','msgcontact','wiley@acme.com')"
-            ],
-            "help": "List of email addresses to message on a 'msgevent'. Support for\nemail messages relies on job scheduler daemon support.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Message contact",
-            "signature": [],
-            "switch": "-server_msgcontact <str>",
-            "type": "[str]",
-            "value": []
-        },
-        "msgevent": {
-            "defvalue": "NONE",
-            "example": [
-                "cli: -server_msgevent ALL",
-                "api: chip.set('server','msgevent', 'ALL')"
-            ],
-            "help": "Directs job scheduler to send a message to the user when\ncertain events occur during a task. Supported data types for\nSLURM include NONE, BEGIN, END, FAIL, ALL, TIME_LIMIT. For a\nlist of supported event types, see the job scheduler\ndocumentation.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Message event trigger",
-            "signature": null,
-            "switch": "-server_msgevent <str>",
-            "type": "str",
-            "value": "NONE"
-        },
-        "nice": {
-            "defvalue": null,
-            "example": [
-                "cli: -server_nice 100",
-                "api: chip.set('server', 'nice', '100')"
-            ],
-            "help": "Specifies the scheduling priority for the job. Negative numbers\nincreases priority while positive numbers decrease priority.\nFor more information, see the job scheduler documentation.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Scheduling priority",
-            "signature": null,
-            "switch": "-server_nice <int>",
-            "type": "int",
-            "value": null
-        },
-        "option": {
-            "defvalue": [],
-            "example": [
-                "cli: -server_option '--pty bash'",
-                "api: chip.set('server','option, '--pty bash')"
-            ],
-            "help": "List of run time options passed through to the job scheduler for\nexpert users. See the job scheduler (slurm, lsf, gse) for\ninformation about available options. The user specified options must\nbe compatible with the standardized job scheduler options (memory,\ncores,...).",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Job scheduler options",
-            "signature": [],
-            "switch": "-server_option <str>",
-            "type": "[str]",
-            "value": []
-        },
-        "queue": {
-            "defvalue": null,
-            "example": [
-                "cli: -server_queue nightrun",
-                "api: chip.set('server', 'queue', 'nightrun')"
-            ],
-            "help": "Schedule the job for the specified queue. With slurm, this\ntranslates to 'partition'. The queue name must match\nthe name of an existing job schemduler queue.",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Queue selection",
-            "signature": null,
-            "switch": "-server_queue <str>",
-            "type": "str",
-            "value": null
-        },
-        "timeout": {
-            "defvalue": null,
-            "example": [
-                "cli: -server_timeout 16:00",
-                "api: chip.set('server', 'timeout', '16:00')"
-            ],
-            "help": "Specifies the limit on the total job run time.\nAcceptable slurm time formats include \"minutes\", \"minutes:seconds\",\n\"hours:minutes:seconds\", \"days-hours\", \"days-hours:minutes\",\nand \"days-hours:minutes:seconds\".",
-            "lock": false,
-            "notes": null,
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Server: Timeout value",
-            "signature": null,
-            "switch": "-server_timeout <str>",
-            "type": "str",
-            "value": null
-        }
     },
     "tool": {
         "default": {
