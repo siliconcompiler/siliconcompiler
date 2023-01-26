@@ -225,7 +225,6 @@ sc_pdk = sc_cfg['option']['pdk']['value']
 
 sc_stackup = sc_cfg['pdk'][sc_pdk]['stackup']['value'][0]
 sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
-sc_libtype = sc_cfg['library'][sc_mainlib]['asic']['footprint']
 
 tech_file = sc_cfg['pdk'][sc_pdk]['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
 

@@ -37,15 +37,14 @@ def setup(chip):
     lib.set('package', 'version', version)
 
     # list of stackups supported
-    lib.set('asic', 'stackup', stackup)
+    lib.set('option', 'stackup', stackup)
 
     # list of pdks supported
-    lib.set('asic', 'pdk', process)
+    lib.set('option', 'pdk', process)
 
     # footprint/type/sites
     lib.set('asic', 'libarch', libtype)
-    lib.set('asic', 'footprint', 'FreePDK45_38x28_10R_NP_162NW_34O', 'symmetry', 'Y')
-    lib.set('asic', 'footprint', 'FreePDK45_38x28_10R_NP_162NW_34O', 'size', (0.19,1.4))
+    lib.set('asic', 'site', libtype, 'FreePDK45_38x28_10R_NP_162NW_34O')
 
     # timing
     lib.add('output', corner, 'nldm',
@@ -59,21 +58,12 @@ def setup(chip):
     lib.add('output', stackup, 'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
 
-    lib.set('asic', 'pgmetal', 'm1')
-
-
-    # driver
-    lib.add('asic', 'cells','driver', "BUF_X4")
-
     # clock buffers
     lib.add('asic', 'cells','clkbuf', "BUF_X4")
 
     # tie cells
-    lib.add('asic', 'cells','tie', ["LOGIC1_X1/Z",
-                                    "LOGIC0_X1/Z"])
-
-    # buffer cell
-    lib.add('asic', 'cells', 'buf', ['BUF_X1/A/Z'])
+    lib.add('asic', 'cells','tie', ["LOGIC1_X1",
+                                    "LOGIC0_X1"])
 
     # hold cells
     lib.add('asic', 'cells', 'hold', "BUF_X1")
@@ -87,8 +77,8 @@ def setup(chip):
                                         "FILLCELL_X32"])
 
     # Stupid small cells
-    lib.add('asic', 'cells', 'ignore', ["AOI211_X1",
-                                        "OAI211_X1"])
+    lib.add('asic', 'cells', 'dontuse', ["AOI211_X1",
+                                         "OAI211_X1"])
 
     # Tapcell
     lib.add('asic', 'cells','tap', "FILLCELL_X1")
@@ -110,6 +100,16 @@ def setup(chip):
     lib.set('asic', 'file', 'openroad', 'tapcells', libdir + '/apr/openroad/tapcell.tcl')
     lib.set('asic', 'file', 'openroad', 'pdngen', libdir + '/apr/openroad/pdngen.tcl')
     lib.set('asic', 'file', 'openroad', 'global_connect', libdir + '/apr/openroad/global_connect.tcl')
+
+    lib.set('asic', 'var', 'yosys', 'driver_cell', "BUF_X4")
+    lib.set('asic', 'var', 'yosys', 'buffer_cell', "BUF_X1")
+    lib.set('asic', 'var', 'yosys', 'buffer_input', "A")
+    lib.set('asic', 'var', 'yosys', 'buffer_output', "Z")
+    for tool in ('yosys', 'openroad'):
+        lib.set('asic', 'var', tool, 'tiehigh_cell', "LOGIC1_X1")
+        lib.set('asic', 'var', tool, 'tiehigh_port', "Z")
+        lib.set('asic', 'var', tool, 'tielow_cell', "LOGIC0_X1")
+        lib.set('asic', 'var', tool, 'tielow_port', "Z")
 
     chip.import_library(lib)
 

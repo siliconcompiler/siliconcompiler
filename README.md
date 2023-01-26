@@ -13,7 +13,7 @@ A modular build system for hardware ("make for silicon"). The project philosophy
 
 ![SC Overview](docs/_images/sc_overview.png)
 
-The project foundation is a standardized dynamic JSON schema for configuring and tracking of compile time parameter related to design setup, libraries, tools, Process Design Kits (PDKs), flows, constraints, compiler time options, and run time metrics, Advanced projects (like ASICs) are far too complex be handled manually through markup languages like JSON/YAML, so the project also includes a simple (but powerful) object oriented Python API for compilation setup, run time scheduling, and results analysis. For more information about the project motivation and design philosophy, you can refer to the following paper.
+The project foundation is a standardized dynamic JSON schema for configuring and tracking of compile time parameters related to design setup, libraries, tools, Process Design Kits (PDKs), flows, constraints, compiler time options, and run time metrics, Advanced projects (like ASICs) are far too complex to be handled manually through markup languages like JSON/YAML, so the project also includes a simple (but powerful) object oriented Python API for compilation setup, run time scheduling, and results analysis. For more information about the project motivation and design philosophy, you can refer to the following paper.
 
 A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silicon Compilation](docs/papers/sc_dac2022.pdf)", 59th Design Automation Conference (DAC), 10-14 July 2022, San Francisco, CA, USA. Published, 7/2022.
 
@@ -25,8 +25,8 @@ A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silic
 * **Friction-less:** [Remote execution model](https://docs.siliconcompiler.com/en/latest/user_guide/remote_processing.html) enables "zero install" compilation
 * **Modularity:** [Tool abstraction layer](architecture) makes it easy to add/port new tools to the project.
 * **Provenance:** [Comilation manifests](https://docs.siliconcompiler.com/en/latest/user_guide/data_model.html) created automatically during execution.
-* **Documentated:** An extensive set of auto-generated high quality [reference documents](https://docs.siliconcompiler.com/en/latest/).
-* **In-use:** Actively used by Zero ASIC for commercial tapeouts at advanced process node.
+* **Documented:** An extensive set of auto-generated high quality [reference documents](https://docs.siliconcompiler.com/en/latest/).
+* **In-use:** Actively used by Zero ASIC for commercial tapeouts at advanced process nodes.
 
 # Supported Technologies
 
@@ -75,7 +75,7 @@ To reduce the pain of tool installation, the project supports free remote compil
 Simple designs can be compiled using the built in command line 'sc' app:
 
 ```sh
-sc -remote -input "rtl verilog heartbeat.v" -design heartbeat -target "freepdk45_demo"
+sc -remote heartbeat.v -design heartbeat -target "freepdk45_demo"
 ```
 
 # Documentation

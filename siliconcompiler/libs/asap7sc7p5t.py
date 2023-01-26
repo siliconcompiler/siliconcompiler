@@ -28,7 +28,8 @@ def _setup_lib(libname, suffix):
     # rev
     lib.set('package', 'version',rev)
 
-    lib.set('asic', 'pdk', 'asap7')
+    # todo: remove later
+    lib.set('option', 'pdk', 'asap7')
 
     # timing
     lib.add('output', corner, 'nldm', libdir+'/nldm/'+libname+'_ff.lib')
@@ -39,26 +40,18 @@ def _setup_lib(libname, suffix):
     # gds
     lib.add('output', stackup, 'gds', libdir+'/gds/'+libname+'.gds')
 
-    # site name
-    lib.set('asic', 'footprint', 'asap7sc7p5t', 'symmetry', 'Y')
-    lib.set('asic', 'footprint', 'asap7sc7p5t', 'size', (0.054,0.270))
-
     # lib arch
     lib.set('asic', 'libarch', libtype)
 
-    #default input driver
-    lib.add('asic', 'cells', 'driver', f"BUFx2_ASAP7_75t_{suffix}")
+    # site name
+    lib.set('asic', 'site', libtype, 'asap7sc7p5t')
 
     # clock buffers
     lib.add('asic', 'cells', 'clkbuf', f"BUFx2_ASAP7_75t_{suffix}")
 
     # tie cells
-    lib.add('asic', 'cells', 'tie', [f"TIEHIx1_ASAP7_75t_{suffix}/H",
-                                     f"TIELOx1_ASAP7_75t_{suffix}/L"])
-
-    # buffer
-    # TODO: Need to fix this syntax!, not needed by modern tools!
-    lib.add('asic', 'cells', 'buf', [f"BUFx2_ASAP7_75t_{suffix}/A/Y"])
+    lib.add('asic', 'cells', 'tie', [f"TIEHIx1_ASAP7_75t_{suffix}",
+                                     f"TIELOx1_ASAP7_75t_{suffix}"])
 
     # hold cells
     lib.add('asic', 'cells', 'hold', f"BUFx2_ASAP7_75t_{suffix}")
@@ -67,12 +60,12 @@ def _setup_lib(libname, suffix):
     lib.add('asic', 'cells', 'filler', [f"FILLER_ASAP7_75t_{suffix}"])
 
     # Stupid small cells
-    lib.add('asic', 'cells', 'ignore', ["*x1_ASAP7*",
-                                        "*x1p*_ASAP7*",
-                                        "*xp*_ASAP7*",
-                                        "SDF*",
-                                        "ICG*",
-                                        "DFFH*"])
+    lib.add('asic', 'cells', 'dontuse', ["*x1_ASAP7*",
+                                         "*x1p*_ASAP7*",
+                                         "*xp*_ASAP7*",
+                                         "SDF*",
+                                         "ICG*",
+                                         "DFFH*"])
 
     # Tapcell
     lib.add('asic', 'cells', 'tap', f"TAPCELL_ASAP7_75t_{suffix}")
@@ -92,6 +85,16 @@ def _setup_lib(libname, suffix):
     lib.set('asic', 'var', 'openroad', 'pad_detail_place', ['1'])
     lib.set('asic', 'var', 'openroad', 'macro_place_halo', ['22.4', '15.12'])
     lib.set('asic', 'var', 'openroad', 'macro_place_channel', ['18.8', '19.95'])
+
+    lib.set('asic', 'var', 'yosys', 'driver_cell', f"BUFx2_ASAP7_75t_{suffix}")
+    lib.set('asic', 'var', 'yosys', 'buffer_cell', f"BUFx2_ASAP7_75t_{suffix}")
+    lib.set('asic', 'var', 'yosys', 'buffer_input', "A")
+    lib.set('asic', 'var', 'yosys', 'buffer_output', "Y")
+    for tool in ('yosys', 'openroad'):
+        lib.set('asic', 'var', tool, 'tiehigh_cell', f"TIEHIx1_ASAP7_75t_{suffix}")
+        lib.set('asic', 'var', tool, 'tiehigh_port', "H")
+        lib.set('asic', 'var', tool, 'tielow_cell', f"TIELOx1_ASAP7_75t_{suffix}")
+        lib.set('asic', 'var', tool, 'tielow_port', "L")
 
     # Openroad APR setup files
     lib.set('asic', 'file', 'openroad', 'tracks', libdir + '/apr/openroad/tracks.tcl')

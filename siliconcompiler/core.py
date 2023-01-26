@@ -114,6 +114,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._init_logger()
 
+        # Ensure that SC built-ins are on the $PYTHONPATH
+        if not self.scroot in sys.path:
+            sys.path.append(self.scroot)
+
         self._loaded_modules = {
             'flows': [],
             'pdks': [],
@@ -161,6 +165,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not entrypoint:
             return self.design
         return entrypoint
+
+    ###########################################################################
+    def _get_task(self, step, index='0', flow=None):
+        '''
+        Helper function to get the name of the task associated with a given step/index.
+        The flowgraph step name may be descriptive for disambiguation pruposes, while the
+        task name defines how the associated tool should be configured and run.
+
+        TODO: Is this sort of schema shortcut worth adding?
+              If so should we also add 'get_tool'?
+              Should it be called 'get_step_task'?
+        '''
+        if not flow:
+            flow = self.get('option', 'flow')
+        return self.get('flowgraph', flow, step, index, 'task')
+
 
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
@@ -310,7 +330,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                          description=description)
 
         # Get all keys from global dictionary or override at command line
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
 
         # Iterate over all keys to add parser arguments
         for keypath in allkeys:
@@ -416,18 +436,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Map sources to ['input'] keypath.
         if 'source' in cmdargs:
             for source in cmdargs['source']:
-                ext = utils.get_file_ext(source)
-                if ext in input_map:
-                    fileset, filetype = input_map[ext]
-                    if self.valid('input', fileset, filetype):
-                        self.add('input', fileset, filetype, source)
-                    else:
-                        self.set('input', fileset, filetype, source)
-                    self.logger.info(f'Source {source} inferred as {fileset}/{filetype}')
-                else:
-                    self.logger.warning('Unable to infer input type for '
-                        f'{source} based on file extension, ignoring. Use the '
-                        '-input flag to provide it explicitly.')
+                self.input(source, iomap=input_map)
             # we don't want to handle this in the next loop
             del cmdargs['source']
 
@@ -473,7 +482,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.set(*args, val, clobber=True)
 
     #########################################################################
-    def find_function(self, modulename, funcname, moduletype=None):
+    def find_function(self, modulename, funcname, moduletype=None, moduletask=None):
         '''
         Returns a function attribute from a module on disk.
 
@@ -514,39 +523,37 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         # module search path depends on modtype
+        module = None
         if moduletype is None:
             for item in ('targets', 'flows', 'tools', 'pdks', 'libs', 'checklists'):
-                fullpath = self.find_function(modulename, funcname, module_type=item)
-                if fullpath:
+                try:
+                    module = importlib.import_module(f'{item}.{modulename}')
                     break
+                except ModuleNotFoundError:
+                    pass
         elif moduletype in ('targets','flows', 'pdks', 'libs'):
-            fullpath = self._find_sc_file(f"{moduletype}/{modulename}.py", missing_ok=True)
+            try:
+                module = importlib.import_module(f'{moduletype}.{modulename}')
+            except ModuleNotFoundError:
+                pass
         elif moduletype in ('tools', 'checklists'):
-            fullpath = self._find_sc_file(f"{moduletype}/{modulename}/{modulename}.py", missing_ok=True)
+            modulefile = moduletask if moduletask is not None else modulename
+            try:
+                module = importlib.import_module(f'{moduletype}.{modulename}.{modulefile}')
+            except ModuleNotFoundError:
+                pass
         else:
             self.error(f"Illegal module type '{moduletype}'.")
             return None
 
-        if not fullpath:
+        if not module:
             self.error(f'Could not find module {modulename}')
             return None
 
         # try loading module if found
         self.logger.debug(f"Loading function '{funcname}' from module '{modulename}'")
 
-        try:
-            spec = importlib.util.spec_from_file_location(modulename, fullpath)
-            imported = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(imported)
-
-            if hasattr(imported, funcname):
-                function = getattr(imported, funcname)
-            else:
-                function = None
-            return function
-        except Exception:
-            traceback.print_exc()
-            self.error(f"Module setup failed for '{modulename}'")
+        return getattr(module, funcname, None)
 
     ##########################################################################
     def load_target(self, name):
@@ -837,8 +844,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Examples:
             >>> keylist = chip.getkeys('pdk')
             Returns all keys for the 'pdk' keypath.
-            >>> keylist = chip.getkeys()
-            Returns all list of all keypaths in the schema.
         """
         if len(keypath) > 0:
             self.logger.debug(f'Getting schema parameter keys for {keypath}')
@@ -850,6 +855,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except (ValueError, TypeError) as e:
             self.error(str(e))
             return None
+
+    ###########################################################################
+    def allkeys(self, *keypath_prefix):
+        '''Returns all keypaths in the schema as a list of lists.
+
+        Arg:
+            keypath_prefix (list str): Keypath prefix to search under. The
+                returned keypaths do not include the prefix.
+        '''
+        return self.schema.allkeys(*keypath_prefix)
 
     ###########################################################################
     def getdict(self, *keypath):
@@ -913,9 +928,34 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.setLevel(value)
 
         try:
-            self.schema.set(*keypath, value, field=field, clobber=clobber)
+            if not self.schema.set(*keypath, value, field=field, clobber=clobber):
+                # TODO: this message should be pushed down into Schema.set()
+                # once we have a static logger.
+                if clobber:
+                    self.logger.debug(f'Failed to set value for {keypath}: '
+                        'parameter is locked')
+                else:
+                    self.logger.debug(f'Failed to set value for {keypath}: '
+                        'clobber is False and parameter may be locked')
         except (ValueError, TypeError) as e:
             self.error(e)
+
+    ###########################################################################
+    def clear(self, *keypath):
+        '''
+        Clears a schema parameter.
+
+        Clearing a schema parameter causes the parameter to revert to its
+        default value. A call to ``set()`` with ``clobber=False`` will once
+        again be able to modify the value.
+
+        Args:
+            keypath (list): Parameter keypath to clear.
+        '''
+        self.logger.debug(f'Clearing {keypath}')
+
+        if not self.schema.clear(*keypath):
+            self.logger.debug(f'Failed to clear value for {keypath}: parameter is locked')
 
     ###########################################################################
     def add(self, *args, field='value'):
@@ -938,18 +978,24 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             field (str): Parameter field to set.
 
         Examples:
-            >>> chip.add('source', 'hello.v')
+            >>> chip.add('input', 'rtl', 'verilog', 'hello.v')
             Adds the file 'hello.v' to the list of sources.
         '''
-        self.logger.debug(f'Appending value {args[-1]} to {args[:-1]}')
+        keypath = args[:-1]
+        value = args[-1]
+        self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            self.schema.add(*args, field=field)
+            if not self.schema.add(*args, field=field):
+                # TODO: this message should be pushed down into Schema.add()
+                # once we have a static logger.
+                self.logger.debug(f'Failed to add value for {keypath}: '
+                    'parameter may be locked')
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
     ###########################################################################
-    def input(self, filename, fileset=None, filetype=None):
+    def input(self, filename, fileset=None, filetype=None, iomap=None):
         '''
         Adds file to a filset. The default behavior is to infer filetypes and
         filesets based on the suffix of the file extensions. The method is
@@ -964,27 +1010,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             fileset (str): File grouping
             filetype (str): File type
+            iomap (dict of tuple(set, type)): File set and type mapping based on file extension
 
         '''
 
-        self._add_input_output('input', filename, fileset, filetype)
+        self._add_input_output('input', filename, fileset, filetype, iomap)
     # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
     input.__doc__= input.__doc__.replace("{iotable}",
                                          utils.format_fileset_type_table())
 
     ###########################################################################
-    def output(self, filename, fileset=None, filetype=None):
+    def output(self, filename, fileset=None, filetype=None, iomap=None):
         '''Same as input'''
 
-        self._add_input_output('output', filename, fileset, filetype)
+        self._add_input_output('output', filename, fileset, filetype, iomap)
     # Copy input functions __doc__ and replace 'input' with 'output' to make constant
     output.__doc__ = input.__doc__.replace("input", "output")
 
     ###########################################################################
-    def _add_input_output(self, category, filename, fileset, filetype):
+    def _add_input_output(self, category, filename, fileset, filetype, iomap):
         '''
         Adds file to input or output groups.
-        Performs a lookup in the default io map for the fileset and filetype
+        Performs a lookup in the io map for the fileset and filetype
         and will use those if they are not provided in the arguments
         '''
 
@@ -992,8 +1039,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         default_fileset = None
         default_filetype = None
-        if ext in _metadata.default_iomap:
-            default_fileset, default_filetype = _metadata.default_iomap[ext]
+        if not iomap:
+            iomap = utils.get_default_iomap()
+
+        if ext in iomap:
+            default_fileset, default_filetype = iomap[ext]
 
         if not fileset:
             use_fileset = default_fileset
@@ -1224,40 +1274,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         relative paths resolved where required.
         '''
         schema = self.schema.copy()
-        for keypath in self.getkeys():
+        for keypath in self.allkeys():
             paramtype = self.get(*keypath, field='type')
             value = self.get(*keypath)
             if value:
                 #only do something if type is file or dir
                 if 'file' in paramtype or 'dir' in paramtype:
                     abspaths = self.find_files(*keypath, missing_ok=True)
-                    schema.set(*keypath, abspaths)
+                    if isinstance(abspaths, list) and None in abspaths:
+                        # Lists may not contain None
+                        schema.set(*keypath, [])
+                    else:
+                        schema.set(*keypath, abspaths)
         return schema
 
     ###########################################################################
-    def merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False):
-        """
-        Merges an external manifest with the current compilation manifest.
-
-        All value fields in the provided schema dictionary are merged into the
-        current chip object. Dictionaries with non-existent keypath produces a
-        logger error message and raises the Chip object error flag.
-
-        Args:
-            job (str): Specifies non-default job to merge into
-            clear (bool): If True, disables append operations for list type
-            clobber (bool): If True, overwrites existing parameter value
-            check (bool): If True, checks the validity of each key
-            partial (bool): If True, perform a partial merge, only merging
-                keypaths that may have been updated during run().
-
-        Examples:
-            >>> chip.merge_manifest('my.pkg.json')
-           Merges all parameters in my.pk.json into the Chip object
-
-        """
-        self._merge_manifest(cfg, job, clobber, clear, check)
-
     def _key_may_be_updated(self, keypath):
         '''Helper that returns whether `keypath` can be updated mid-run.'''
         # TODO: cleaner way to manage this?
@@ -1270,22 +1301,29 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return False
 
     ###########################################################################
-    def _merge_manifest(self, cfg, job=None, clobber=True, clear=True, check=False, partial=False):
+    def _merge_manifest(self, src, job=None, clobber=True, clear=True, check=False, partial=False):
         """
-        Internal merge_manifest() implementation with `partial` arg.
+        Merges a given manifest with the current compilation manifest.
 
-        partial (bool): If True, perform a partial merge, only merging keypaths
-        that may have been updated during run().
+        All value fields in the provided schema dictionary are merged into the
+        current chip object. Dictionaries with non-existent keypath produces a
+        logger error message and raises the Chip object error flag.
+
+        Args:
+            src (Schema): Schema object to merge
+            job (str): Specifies non-default job to merge into
+            clear (bool): If True, disables append operations for list type
+            clobber (bool): If True, overwrites existing parameter value
+            check (bool): If True, checks the validity of each key
+            partial (bool): If True, perform a partial merge, only merging
+                keypaths that may have been updated during run().
         """
-        src = Schema(cfg)
         if job is not None:
-            # TODO: do we really want to overwrite any existing job schema
-            # values?
-            dest = Schema()
+            dest = self.schema.history(job)
         else:
             dest = self.schema
 
-        for keylist in src.getkeys():
+        for keylist in src.allkeys():
             if partial and not self._key_may_be_updated(keylist):
                 continue
             if keylist[0] in ('history', 'library'):
@@ -1300,7 +1338,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # update value, handling scalars vs. lists
                 typestr = src.get(*keylist, field='type')
                 val = src.get(*keylist)
-                if bool(re.match(r'\[', typestr)) & bool(not clear):
+                if re.match(r'\[', typestr) and not clear:
                     dest.add(*keylist, val)
                 else:
                     dest.set(*keylist, val, clobber=clobber)
@@ -1319,7 +1357,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         allowed_paths = [os.path.join(self.cwd, self.get('option', 'builddir'))]
         allowed_paths.extend(os.environ['SC_VALID_PATHS'].split(os.pathsep))
 
-        for keypath in self.getkeys():
+        for keypath in self.allkeys():
             if 'default' in keypath:
                 continue
 
@@ -1361,7 +1399,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             True if all file paths are valid, otherwise False.
         '''
 
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
         for keypath in allkeys:
             allpaths = []
             paramtype = self.get(*keypath, field='type')
@@ -1526,7 +1564,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f"Target library {item} not found.")
 
         #3. Check requirements list
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key and 'history' not in key and 'library' not in key:
@@ -1702,50 +1740,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         partial (bool): If True, perform a partial merge, only merging keypaths
         that may have been updated during run().
         """
+        # Read from file into new schema object
+        schema = Schema(manifest=filename)
 
-        filepath = os.path.abspath(filename)
-        self.logger.debug(f"Reading manifest {filepath}")
-        if not os.path.isfile(filepath):
-            self.error(f"Manifest file not found {filepath}", fatal=True)
+        # Merge data in schema with Chip configuration
+        self._merge_manifest(schema, job=job, clear=clear, clobber=clobber, partial=partial)
 
-        #Read arguments from file based on file type
-
-        if filepath.endswith('.gz'):
-            fin = gzip.open(filepath, 'r')
-        else:
-            fin = open(filepath, 'r')
-
-        try:
-            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
-                localcfg = json.load(fin)
-            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
-                localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
-            else:
-                self.error('File format not recognized %s', filepath)
-        finally:
-            fin.close()
-
-        if self.get('schemaversion') != localcfg['schemaversion']['value']:
-            self.logger.warning('Attempting to read manifest with incompatible '
-            'schema version into current chip object. Skipping...')
-            return
-
-        # Merging arguments with the Chip configuration
-        self._merge_manifest(localcfg, job=job, clear=clear, clobber=clobber, partial=partial)
-
-        # Read history
-        if 'history' in localcfg and not partial:
-            for historic_job in localcfg['history'].keys():
-                self._merge_manifest(localcfg['history'][historic_job],
+        # Read history, if we're not already reading into a job
+        if 'history' in schema.getkeys() and not partial and not job:
+            for historic_job in schema.getkeys('history'):
+                self._merge_manifest(schema.history(historic_job),
                                      job=historic_job,
                                      clear=clear,
                                      clobber=clobber,
                                      partial=False)
 
         # TODO: better way to handle this?
-        if 'library' in localcfg and not partial:
-            for libname in localcfg['library'].keys():
-                self._import_library(libname, localcfg['library'][libname], job=job, clobber=clobber)
+        if 'library' in schema.getkeys() and not partial:
+            for libname in schema.getkeys('library'):
+                self._import_library(libname, schema.getdict('library', libname), job=job, clobber=clobber)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False):
@@ -2052,18 +2065,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # look through dependency package files
             package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
-            if not os.path.isfile(package):
-                self.error("Package missing. Try 'autoinstall' or install manually.")
-            with gzip.open(package, 'r') as f:
-                localcfg = json.load(f)
+            schema = Schema(manifest=package)
 
             # done if no more dependencies
-            if 'dependency' in localcfg['package']:
+            if 'dependency' in schema.getkeys('package'):
                 subdeps = {}
-                subdesign = localcfg['design']['value']
+                subdesign = schema.get('design')
                 depgraph[subdesign] = []
-                for item in localcfg['package']['dependency'].keys():
-                    subver = localcfg['package']['dependency'][item]['value']
+                for item in schema.getkeys('package', 'dependency'):
+                    subver = schema.get('package', 'dependency', item)
                     if (item in upstream) and (upstream[item] == subver):
                         # Circular imports are not supported.
                         self.error(f'Cannot process circular import: {dep}-{ver} <---> {item}-{subver}.', fatal=True)
@@ -2206,7 +2216,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         paths = []
 
         copyall = self.get('option', 'copyall')
-        allkeys = self.getkeys()
+        allkeys = self.allkeys()
         for key in allkeys:
             if key[0] == 'history':
                 continue
@@ -3091,31 +3101,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.graph('asicflow')
             Instantiates Creates a directed edge from place to cts.
         '''
-        # TODO: can we refactor this to not rely on config hacks
-        if flow not in self.getkeys('flowgraph'):
-            self.schema.cfg['flowgraph'][flow] ={}
-
-        # uniquify each step
-        for step in self.getkeys('flowgraph',subflow):
+        for step in self.getkeys('flowgraph', subflow):
+            # uniquify each step
             if name is None:
                 newstep = step
             else:
                 newstep = name + "." + step
-            if newstep not in self.getkeys('flowgraph', flow):
-                self.schema.cfg['flowgraph'][flow][newstep] ={}
-            # recursive copy
-            for key in self.schema._allkeys(self.schema.cfg['flowgraph'][subflow][step]):
-                self.schema._copyparam(self.schema.cfg['flowgraph'][subflow][step],
-                                       self.schema.cfg['flowgraph'][flow][newstep],
-                                       key)
-            # update step names
+
+            for keys in self.allkeys('flowgraph', subflow, step):
+                val = self.get('flowgraph', subflow, step, *keys)
+                self.set('flowgraph', flow, newstep, *keys, val)
+
+            if name is None:
+                continue
+
             for index in self.getkeys('flowgraph', flow, newstep):
-                all_inputs = self.get('flowgraph', flow, newstep, index,'input')
-                self.set('flowgraph', flow, newstep, index,'input',[])
+                # rename inputs
+                all_inputs = self.get('flowgraph', flow, newstep, index, 'input')
+                self.set('flowgraph', flow, newstep, index, 'input', [])
                 for in_step, in_index in all_inputs:
                     newin = name + "." + in_step
-                    self.add('flowgraph', flow, newstep, index,'input',(newin,in_index))
-
+                    self.add('flowgraph', flow, newstep, index, 'input', (newin, in_index))
 
     ###########################################################################
     def pipe(self, flow, plan):
@@ -3417,7 +3423,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         top = self.top()
         flow = self.get('option', 'flow')
         tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
+        task = self._get_task(step, index, flow)
 
         quiet = self.get('option', 'quiet') and (step not in self.get('option', 'bkpt'))
 
@@ -3535,7 +3541,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Run preprocess step for tool
         if tool not in self.builtin:
-            func = self.find_function(tool, "pre_process", 'tools')
+            func = self.find_function(tool, "pre_process", 'tools', task)
             if func:
                 func(self)
                 if self._error:
@@ -3746,7 +3752,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Post process
         if (tool not in self.builtin) and (not self.get('option', 'skipall')) :
-            func = self.find_function(tool, 'post_process', 'tools')
+            func = self.find_function(tool, 'post_process', 'tools', task)
             if func:
                 func(self)
 
@@ -3855,11 +3861,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg','step', step)
         self.set('arg','index', index)
 
-        func = self.find_function(tool, 'setup', 'tools')
-        if func is None:
-            self.logger.error(f'setup() not found for tool {tool}')
+        # Run task setup.
+        try:
+            task = self.get('flowgraph', self.get('option', 'flow'), step, index, 'task')
+            setup_step = self.find_function(tool, 'setup', 'tools', task)
+        except SiliconCompilerError:
+            setup_step = None
+        if setup_step:
+            setup_step(self)
+        else:
+            # TODO: Should we update this to 'self.error(..., fatal=True)'?
+            self.logger.error(f'setup() not found for tool {tool}, task {task}')
             sys.exit(1)
-        func(self)
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.
@@ -3982,10 +3995,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # we're not running with -resume, we also re-run anything
                     # in the steplist.
                     self.set('flowgraph', flow, step, index, 'status', None)
+
+                    # Reset metrics and records
                     for metric in self.getkeys('metric', 'default', 'default'):
-                        self.set('metric', step, index, metric, None)
+                        self.clear('metric', step, index, metric)
                     for record in self.getkeys('record', 'default', 'default'):
-                        self.set('record', step, index, record, None)
+                        self.clear('record', step, index, record)
                 elif os.path.isfile(cfg):
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
                     all_indices_failed = False
@@ -4004,6 +4019,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             self.set('record', step, index, record, None)
 
         # Set env variables
+        # Save current environment
+        environment = copy.deepcopy(os.environ)
+
         for envvar in self.getkeys('option', 'env'):
             val = self.get('option', 'env', envvar)
             os.environ[envvar] = val
@@ -4217,6 +4235,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
 
+        # Restore enviroment
+        os.environ.clear()
+        os.environ.update(environment)
+
         # Clear scratchpad args since these are checked on run() entry
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
@@ -4349,68 +4371,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 success = self.find_result('png', stepname)
             else:
                 success = True
-        except:
+        except SiliconCompilerError:
             success = False
 
         # restore environment
         self.schema = saved_config
 
         return success
-
-    def read_lef(self, path, pdkname, stackup):
-        '''Reads tech LEF and imports data into schema.
-
-        This function reads layer information from a provided tech LEF and uses
-        it to fill out the 'pdk', <pdkname>, 'grid' keypaths of the current chip
-        object.
-
-        Args:
-            path (str): Path to LEF file.
-            pdkname (str): Name of PDK associated with LEF file.
-            stackup (str): Stackup associated with LEF file.
-        '''
-        data = leflib.parse(path)
-        layer_index = 1
-        for name, layer in data['layers'].items():
-            if layer['type'] != 'ROUTING':
-                # Skip non-routing layers
-                continue
-
-            sc_name = f'm{layer_index}'
-            layer_index += 1
-            self.set('pdk', pdkname, 'grid', stackup, name, 'name', sc_name)
-
-            direction = None
-            if 'direction' in layer:
-                direction = layer['direction'].lower()
-                self.set('pdk', pdkname, 'grid', stackup, name, 'dir', direction)
-
-            if 'offset' in layer:
-                offset = layer['offset']
-                if isinstance(offset, float):
-                    # Per LEF spec, a single offset value applies to the
-                    # preferred routing direction. If one doesn't exist, we'll
-                    # just ignore.
-                    if direction == 'vertical':
-                        self.set('pdk', pdkname, 'grid', stackup, name, 'xoffset', offset)
-                    elif direction == 'horizontal':
-                        self.set('pdk', pdkname, 'grid', stackup, name, 'yoffset', offset)
-                else:
-                    xoffset, yoffset = offset
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'xoffset', xoffset)
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'yoffset', yoffset)
-
-            if 'pitch' in layer:
-                pitch = layer['pitch']
-                if isinstance(pitch, float):
-                    # Per LEF spec, a single pitch value applies to both
-                    # directions.
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'xpitch', pitch)
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'ypitch', pitch)
-                else:
-                    xpitch, ypitch = pitch
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'xpitch', xpitch)
-                    self.set('pdk', pdkname, 'grid', stackup, name, 'ypitch', ypitch)
 
     ############################################################################
     # Chip helper Functions

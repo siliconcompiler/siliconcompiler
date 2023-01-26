@@ -14,17 +14,17 @@ def test_tool_option(scroot):
 
     # Inserting value into configuration
     chip.set('design', 'gcd', clobber=True)
-    chip.add('input', 'rtl', 'verilog', os.path.join(gcd_ex_dir, 'gcd.v'))
-    chip.add('input', 'asic', 'sdc', os.path.join(gcd_ex_dir, 'gcd.sdc'))
-    chip.set('asic', 'diearea', [(0,0), (100.13,100.8)])
-    chip.set('asic', 'corearea', [(10.07,11.2), (90.25,91)])
+    chip.input(os.path.join(gcd_ex_dir, 'gcd.v'))
+    chip.input(os.path.join(gcd_ex_dir, 'gcd.sdc'))
+    chip.set('constraint', 'outline', [(0,0), (100.13,100.8)])
+    chip.set('constraint', 'corearea', [(10.07,11.2), (90.25,91)])
     chip.set('option', 'quiet', 'true')
     chip.set('option','relax', 'true')
     chip.set('option','novercheck', 'true')
     chip.set('arg', 'flow', 'place_np', ['2'])
     chip.load_target('freepdk45_demo')
 
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0',  'place_density', '0.15')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0',  'place_density', '0.4')
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1',  'place_density', '0.3')
 
     # No need to run beyond place, we just want to check that setting place_density
@@ -60,7 +60,7 @@ def chip(scroot):
     design = "oh_fifo_sync"
 
     chip = siliconcompiler.Chip(design)
-    chip.set('input', 'layout', 'def', def_file)
+    chip.input(def_file)
     chip.set('option', 'quiet', True)
     chip.set('option','novercheck', 'true')
     chip.load_target('freepdk45_demo')

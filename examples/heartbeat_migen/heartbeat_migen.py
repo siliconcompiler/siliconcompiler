@@ -18,7 +18,7 @@ def main():
     convert(heartbeat, ios={heartbeat.out}, name='heartbeat').write('heartbeat.v')
 
     chip = siliconcompiler.Chip('heartbeat')
-    chip.set('input', 'verilog', 'heartbeat.v')
+    chip.input('heartbeat.v')
     # default Migen clock pin is named 'sys_clk'
     chip.clock(pin='sys_clk', period=1)
     chip.load_target('freepdk45_demo')

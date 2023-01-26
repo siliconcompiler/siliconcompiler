@@ -91,7 +91,7 @@ def test_cli_examples(monkeypatch):
     monkeypatch.setattr(siliconcompiler.Chip, 'read_manifest', _mock_read_manifest)
 
     chip = siliconcompiler.Chip('test')
-    for keypath in chip.getkeys():
+    for keypath in chip.allkeys():
         examples = chip.get(*keypath, field='example')
         for example in examples:
             if not example.startswith('cli'):
@@ -135,16 +135,3 @@ def test_cli_examples(monkeypatch):
             else:
                 assert typestr == 'bool', 'Implicit value only alowed for boolean'
                 assert c.get(*replaced_keypath) == True
-
-@pytest.mark.skip(reason="needs further thought")
-def test_input_map(monkeypatch):
-    input_map = {
-        'v': 'verilog',
-        'vhdl': 'vhdl',
-        'def': 'def'
-    }
-    args = ['sc', 'source.v', 'floorplan.def', 'source2.vhdl']
-    chip = do_cli_test(args, monkeypatch, input_map=input_map)
-    assert chip.get('input', 'verilog') == ['source.v']
-    assert chip.get('input', 'vhdl') == ['source2.vhdl']
-    assert chip.get('input', 'def') == ['floorplan.def']

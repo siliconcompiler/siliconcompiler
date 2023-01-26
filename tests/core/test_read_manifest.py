@@ -12,7 +12,7 @@ def test_read_manifest_fields():
 
     chip = siliconcompiler.Chip('foo')
     chip.set('input', 'rtl', 'verilog', False, field='copy')
-    chip.add('input', 'rtl', 'verilog', 'foo.v')
+    chip.input('foo.v')
     chip.write_manifest('tmp.json')
 
     # fresh chip, so we don't retain anything from `chip` in-memory
@@ -25,30 +25,18 @@ def test_read_sup():
     '''Test compressed read/write'''
 
     chip = siliconcompiler.Chip('foo')
-    chip.add('input', 'rtl', 'verilog', 'foo.v')
+    chip.input('foo.v')
     chip.write_manifest('tmp.sup.gz')
 
     chip2 = siliconcompiler.Chip('foo')
     chip2.read_manifest('tmp.sup.gz')
     assert chip2.get('input', 'rtl', 'verilog') == ['foo.v']
 
-def test_read_defaults(datadir):
-    '''Make sure read/write operaton doesn't modify manifest'''
+def test_modified_schema(datadir):
+    '''Make sure schema has not been modified without updating defaults.json'''
 
-    DEBUG = False
-
-    # gets defaul from schema
+    # gets default from schema
     chip = siliconcompiler.Chip('test')
-
-    # check that read/write doesn't modify
-    chip.write_manifest("actual.json", prune=False)
-    chip.read_manifest("actual.json")
-
-    # independent dump of schema
-    with open("actual.json", 'w') as f:
-        print(json.dumps(chip.schema.cfg, indent=4, sort_keys=True), file=f)
-    with open("actual.json", 'r') as f:
-        actual = json.load(f)
 
     # expected
     with open(os.path.join(datadir, 'defaults.json'), 'r') as f:
@@ -56,11 +44,33 @@ def test_read_defaults(datadir):
 
     # special case (initialized in constructor)
     expected['design']['value'] = 'test'
+    expected['design']['set'] = True
 
-    assert actual == expected
+    assert chip.schema.cfg == expected
+
+def test_read_history():
+    '''Make sure that history gets included in manifest read.'''
+    chip = siliconcompiler.Chip('foo')
+    chip.input('foo.v')
+    chip.schema.record_history()
+    chip.write_manifest('tmp.json')
+
+    chip2 = siliconcompiler.Chip('foo')
+    chip2.read_manifest('tmp.json')
+    assert chip.get('input', 'rtl', 'verilog', job='job0') == ['foo.v']
+
+def test_read_job():
+    '''Make sure that we can read a manifest into a non-default job'''
+    chip = siliconcompiler.Chip('foo')
+    chip.input('foo.v')
+    chip.write_manifest('tmp.json')
+
+    chip2 = siliconcompiler.Chip('foo')
+    chip2.read_manifest('tmp.json', job='job1')
+    assert chip2.get('input', 'rtl', 'verilog', job='job1') == ['foo.v']
 
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir
-    test_read_defaults(datadir(__file__))
+    test_modified_schema(datadir(__file__))
     test_read_sup()

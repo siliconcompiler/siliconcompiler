@@ -24,8 +24,11 @@ def make_docs():
 
     chip = siliconcompiler.Chip('<design>')
     chip.load_target('freepdk45_demo')
-    chip.set('arg','step','export')
-    chip.set('arg','index','<index>')
+    step = 'export'
+    index = '<index>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'task', '<task>')
     setup(chip)
 
     return chip
@@ -43,8 +46,8 @@ def setup(chip, mode="batch"):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    #TODO: Fix below
-    task = step
+    task = chip._get_task(step, index)
+    clobber = False
 
     if platform.system() == 'Windows':
         klayout_exe = 'klayout_app.exe'
@@ -80,17 +83,7 @@ def setup(chip, mode="batch"):
     else:
         klayout_exe = 'klayout'
 
-    is_show = mode == 'show' or step == 'show'
-    is_screenshot = mode == 'screenshot' or step == 'screenshot'
-    if is_show or is_screenshot:
-        clobber = False
-        script = 'klayout_show.py'
-        option = ['-nc', '-rm']
-    else:
-        clobber = False
-        script = 'klayout_export.py'
-        option = ['-b', '-r']
-
+    # common to all
     chip.set('tool', tool, 'exe', klayout_exe)
     chip.set('tool', tool, 'vswitch', ['-zz', '-v'])
     # Versions < 0.27.6 may be bundled with an incompatible version of Python.
@@ -98,51 +91,9 @@ def setup(chip, mode="batch"):
     chip.set('tool', tool, 'format', 'json', clobber=clobber)
 
     chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'script', step, index, script, clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'option', step, index, option, clobber=clobber)
 
     # Export GDS with timestamps by default.
     chip.set('tool', tool, 'task', task, 'var', step, index, 'timestamps', 'true', clobber=False)
-
-    design = chip.top()
-
-    # Input/Output requirements for default flow
-    if step in ['export']:
-        if (not chip.valid('input', 'layout', 'def') or
-            not chip.get('input', 'layout', 'def')):
-            chip.add('tool', tool, 'task', task, 'input', step, index, design + '.def')
-        chip.add('tool', tool, 'task', task, 'output', step, index, design + '.gds')
-
-    # Adding requirements
-    if is_show or is_screenshot:
-        if chip.valid('tool', tool, 'task', task, 'var', step, index, 'show_filepath'):
-            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'show_filepath']))
-        else:
-            incoming_ext = find_incoming_ext(chip)
-            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'show_filetype']))
-            chip.set('tool', tool, 'task', task, 'var', step, index, 'show_filetype', incoming_ext)
-            chip.add('tool', tool, 'task', task, 'input', step, index, f'{design}.{incoming_ext}')
-        chip.set('tool', tool, 'task', task, 'var', step, index, 'show_exit', "true" if is_screenshot else "false", clobber=False)
-        if is_screenshot:
-            chip.add('tool', tool, 'task', task, 'output', step, index, design + '.png')
-            chip.set('tool', tool, 'task', task, 'var', step, index, 'show_horizontal_resolution', '1024', clobber=False)
-            chip.set('tool', tool, 'task', task, 'var', step, index, 'show_vertical_resolution', '1024', clobber=False)
-    else:
-        targetlibs = chip.get('asic', 'logiclib')
-        stackup = chip.get('asic', 'stackup')
-        pdk = chip.get('option', 'pdk')
-        if bool(stackup) & bool(targetlibs):
-            macrolibs = chip.get('asic', 'macrolib')
-
-            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'logiclib']))
-            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'stackup']))
-            chip.add('tool', tool, 'task', task, 'require', step, index,  ",".join(['pdk', pdk, 'layermap', 'klayout', 'def','gds', stackup]))
-
-            for lib in (targetlibs + macrolibs):
-                chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'gds']))
-                chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'lef']))
-        else:
-            chip.error(f'Stackup and targetlib paremeters required for Klayout.')
 
     # Log file parsing
     chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'(WARNING|warning)', clobber=False)

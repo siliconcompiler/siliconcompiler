@@ -16,8 +16,8 @@ def test_mixedsrc_local_py(scroot):
     ex_dir = os.path.join(scroot, 'examples', 'mixed-source')
 
     # Inserting value into configuration
-    chip.add('source', os.path.join(ex_dir, 'eq1.vhd'))
-    chip.add('source', os.path.join(ex_dir, 'eq2.v'))
+    chip.input(os.path.join(ex_dir, 'eq1.vhd'))
+    chip.input(os.path.join(ex_dir, 'eq2.v'))
     chip.set('design', 'eq2')
 
     chip.target("freepdk45")

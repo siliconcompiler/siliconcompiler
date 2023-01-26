@@ -68,66 +68,40 @@ def setup(chip):
     chip.set('pdk', process, 'stackup', stackup)
 
     # APR tech file
-    # TODO: remove libtype
     for tool in ('openroad', 'klayout', 'magic'):
         chip.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
                  pdkdir+'/apr/asap7_tech.lef')
+
+    chip.set('pdk', process, 'minlayer', stackup, 'M2')
+    chip.set('pdk', process, 'maxlayer', stackup, 'M7')
 
     # Klayout setup file
     chip.set('pdk', process, 'layermap','klayout','def','gds',stackup,
              pdkdir+'/setup/klayout/asap7.lyt')
 
-    # Routing Grid Definitions
-    for layer, sc_name in [('M1', 'm1')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     1.0)
+    # Openroad global routing grid derating
+    openroad_layer_adjustments = {
+        'M1': 1.0,
+        'M2': 0.8,
+        'M3': 0.7,
+        'M4': 0.4,
+        'M5': 0.4,
+        'M6': 0.4,
+        'M7': 0.4,
+        'M8': 0.4,
+        'M9': 0.4
+    }
+    for layer, adj in openroad_layer_adjustments.items():
+        chip.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
-    for layer, sc_name in [('M2', 'm2')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.027)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.8)
+    chip.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'M3')
+    chip.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'M5')
 
-    for layer, sc_name in [('M3', 'm3')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.7)
-
-    for layer, sc_name in [('M4', 'm4')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.048)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-
-    for layer, sc_name in [('M5', 'm5')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.048)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.048)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-
-    for layer, sc_name in [('M6', 'm6')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.048)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.064)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-
-    for layer, sc_name in [('M7', 'm7')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.064)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.064)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-
-    for layer, sc_name in [('M8', 'm8'), ('M9', 'm9')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.08)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.08)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
+    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'M5')
+    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'M4')
 
     # PEX
-    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical', 
+    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
 
 #########################

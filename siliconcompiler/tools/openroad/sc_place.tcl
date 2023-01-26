@@ -62,8 +62,10 @@ repair_design {*}$repair_design_args
 # TIE FANOUT
 #######################
 
-foreach sc_tie_port [dict get $sc_cfg library $sc_mainlib asic cells tie] {
-  repair_tie_fanout -separation $openroad_ifp_tie_separation $sc_tie_port
+foreach tie_type "high low" {
+  if {[has_tie_cell $tie_type]} {
+    repair_tie_fanout -separation $openroad_ifp_tie_separation [get_tie_cell $tie_type]
+  }
 }
 
 #######################

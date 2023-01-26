@@ -4,24 +4,32 @@ import siliconcompiler
 
 import pytest
 
-def test_summary(datadir):
+@pytest.fixture
+def gcd_with_metrics(gcd_chip):
+    steps = gcd_chip.list_steps()
 
-    chip = siliconcompiler.Chip('test')
-    manifest = os.path.join(datadir, 'gcd.pkg.json')
+    dummy_data = 0
+    flow = gcd_chip.get('option', 'flow')
+    for step in gcd_chip.getkeys('flowgraph', flow):
+        dummy_data += 1
+        for index in gcd_chip.getkeys('flowgraph', flow, step):
+            for metric in gcd_chip.getkeys('flowgraph', flow, step, index, 'weight'):
+                gcd_chip.set('flowgraph', flow, step, index, 'status', siliconcompiler.TaskStatus.SUCCESS)
+                gcd_chip.set('metric', step, index, metric, str(dummy_data))
+                prev_step = steps.index(step) - 1
+                if prev_step >= 0:
+                    gcd_chip.set('flowgraph', flow, step, index, 'select', [(steps[prev_step], '0')])
 
-    chip.read_manifest(manifest)
+    return gcd_chip
 
-    chip.summary()
+def test_summary(gcd_with_metrics):
+    gcd_with_metrics.summary()
 
-def test_steplist(datadir, capfd):
+def test_steplist(gcd_with_metrics, capfd):
     with capfd.disabled():
-        chip = siliconcompiler.Chip('test')
-        manifest = os.path.join(datadir, 'gcd.pkg.json')
+        gcd_with_metrics.set('option','steplist', ['syn'])
 
-        chip.read_manifest(manifest)
-        chip.set('option','steplist', ['syn'])
-
-    chip.summary()
+    gcd_with_metrics.summary()
     stdout, _ = capfd.readouterr()
 
     assert 'import0' not in stdout
@@ -66,8 +74,3 @@ def test_parallel_path(capfd):
     assert 'cts0' not in stdout
     assert 'place2' not in stdout
     assert 'cts2' not in stdout
-
-#########################
-if __name__ == "__main__":
-    from tests.fixtures import datadir
-    test_summary(datadir(__file__))

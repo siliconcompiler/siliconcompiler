@@ -35,7 +35,7 @@ def test_setget():
     chip = siliconcompiler.Chip('test')
     error = 0
 
-    allkeys = chip.getkeys()
+    allkeys = chip.allkeys()
     for key in allkeys:
         sctype = chip.get(*key, field='type')
         examples = chip.get(*key, field='example')
@@ -126,6 +126,43 @@ def test_set_add_field_list():
     chip.set('input', 'doc', 'txt', 'Alyssa P. Hacker', field='author')
     chip.add('input', 'doc', 'txt', 'Ben Bitdiddle', field='author')
     assert chip.get('input', 'doc', 'txt', field='author') == ['Alyssa P. Hacker', 'Ben Bitdiddle']
+
+def test_no_clobber_false():
+    '''Regression test that clobber=False won't overwrite booleans that have
+    been explictly set to False.
+    https://github.com/siliconcompiler/siliconcompiler/issues/1146
+    '''
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'remote', False)
+    chip.set('option', 'remote', True, clobber=False)
+
+    assert chip.get('option', 'remote') == False
+
+def test_get_no_side_effect():
+    '''Test that get() of keypaths that don't exist yet doesn't create them.'''
+    chip = siliconcompiler.Chip('test')
+
+    # Surelog not set up yet
+    assert chip.getkeys('tool', 'surelog', 'task') == []
+
+    # Able to recover default value
+    assert chip.get('tool', 'surelog', 'task', 'import', 'stdout', 'import', '0', 'suffix') == 'log'
+
+    # Recovering default does not affect cfg
+    assert chip.getkeys('tool', 'surelog', 'task') == []
+
+def test_clear():
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'remote', True)
+    assert chip.get('option', 'remote') == True
+
+    # Clearing a keypath resets it to default value
+    chip.clear('option','remote')
+    assert chip.get('option', 'remote') == False
+
+    # Able to set a keypath after it's been cleared even if clobber=False
+    chip.set('option', 'remote', True, clobber=False)
+    assert chip.get('option', 'remote') == True
 
 #########################
 if __name__ == "__main__":

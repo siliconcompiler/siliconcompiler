@@ -42,27 +42,15 @@ def setup(chip):
     #3. Set default targets
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'skywater130')
+    chip.set('option', 'stackup', '5M1LI')
 
     #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
 
-    #5. et project specific design choices
+    #5. get project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('asic', 'stackup', '5M1LI')
-    # TODO: how does LI get taken into account?
-    chip.set('asic', 'minlayer', "m1")
-    chip.set('asic', 'maxlayer', "m5")
-    chip.set('asic', 'maxfanout', 5) # TODO: fix this
-    chip.set('asic', 'maxlength', 21000)
-    chip.set('asic', 'maxslew', 1.5e-9)
-    chip.set('asic', 'maxcap', .1532e-12)
-    chip.set('asic', 'rclayer', 'clk', 'm5')
-    chip.set('asic', 'rclayer', 'data', 'm3')
-    chip.set('asic', 'hpinlayer', "m3")
-    chip.set('asic', 'vpinlayer', "m2")
-    chip.set('asic', 'density', 10)
-    chip.set('asic', 'aspectratio', 1)
-    chip.set('asic', 'coremargin', 4.6)
+    chip.set('constraint', 'density', 10)
+    chip.set('constraint', 'coremargin', 4.6)
 
     #5. Timing corners
     corner = 'typical'

@@ -12,17 +12,17 @@ def test_spree(scroot):
 
     chip = siliconcompiler.Chip('spree')
 
-    chip.add('input', 'rtl', 'verilog', source)
+    chip.input(source)
     chip.set('fpga', 'arch', arch)
     chip.set('fpga', 'partname', 'dummy')
     chip.load_flow('fpgaflow')
 
     chip.set('option', 'flow', 'fpgaflow')
 
-    chip.set('option', 'steplist', ['import', 'syn_vpr', 'pack-place-route'])
+    chip.set('option', 'steplist', ['import', 'syn_vpr', 'apr'])
     chip.run()
 
-    route_file = os.path.join(chip._getworkdir(), 'pack-place-route', '0', 'spree.route')
+    route_file = os.path.join(chip._getworkdir(), 'apr', '0', 'spree.route')
     assert os.path.exists(route_file)
 
 

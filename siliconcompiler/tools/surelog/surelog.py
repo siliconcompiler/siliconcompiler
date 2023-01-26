@@ -32,11 +32,13 @@ def make_docs():
 ################################
 
 def setup(chip):
-    ''' Sets up default settings on a per step basis
+    ''' Sets up default settings common to running Surelog.
     '''
 
     tool = 'surelog'
     task = 'import'
+    # Nothing in this method should rely on the value of 'step' or 'index', but they are used
+    # as schema keys in some important places, so we still need to fetch them.
     step = chip.get('arg','step')
     index = chip.get('arg','index')
     exe = tool
@@ -51,32 +53,16 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=1.13', clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
-
-    # -parse is slow but ensures the SV code is valid
-    # we might want an option to control when to enable this
-    # or replace surelog with a SV linter for the validate step
+    # Command-line options.
     options = []
-    options.append('-parse')
 
     # With newer versions of Surelog (at least 1.35 and up), this option is
     # necessary to make bundled versions work.
     # TODO: why?
     options.append('-nocache')
 
-    # We don't use UHDM currently, so disable. For large designs, this file is
-    # very big and takes a while to write out.
-    options.append('-nouhdm')
-
     # Wite back options to cfg
     chip.add('tool', tool, 'task', task, 'option', step, index, options)
-
-    # Input/Output requirements
-    chip.add('tool', tool, 'task', task, 'output', step, index, chip.top() + '.v')
-
-    # Schema requirements
-    # TODO: what filesets are used by surelog, RTL only?
-    #chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['input', 'rtl', 'verilog']))
 
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
@@ -221,32 +207,6 @@ def runtime_options(chip):
         cmdlist.append(f'-P{param}={value}')
 
     return cmdlist
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    step = chip.get('arg', 'step')
-
-    if step != 'import':
-        return 0
-
-    # Look in slpp_all/file_elab.lst for list of Verilog files included in
-    # design, read these and concatenate them into one pickled output file.
-    with open('slpp_all/file_elab.lst', 'r') as filelist, \
-            open(f'outputs/{chip.top()}.v', 'w') as outfile:
-        for path in filelist.read().split('\n'):
-            path = path.strip('"')
-            if not path:
-                # skip empty lines
-                continue
-            with open(path, 'r') as infile:
-                outfile.write(infile.read())
-            # in case end of file is missing a newline
-            outfile.write('\n')
 
 ##################################################
 if __name__ == "__main__":

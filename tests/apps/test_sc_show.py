@@ -22,7 +22,7 @@ def heartbeat_dir(tmpdir_factory):
     chip = siliconcompiler.Chip('heartbeat')
     chip.set('option', 'loglevel', 'ERROR')
     chip.set('option', 'quiet', True)
-    chip.add('input', 'rtl', 'verilog', os.path.join(datadir, 'heartbeat.v'))
+    chip.input(os.path.join(datadir, 'heartbeat.v'))
     chip.load_target('freepdk45_demo')
     chip.run()
 

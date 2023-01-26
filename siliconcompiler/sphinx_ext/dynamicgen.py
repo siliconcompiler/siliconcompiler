@@ -273,7 +273,7 @@ class FlowGen(DynamicGen):
                 cfg = chip.getdict(prefix, step)
                 if cfg is None:
                     continue
-                schema = Schema(cfg)
+                schema = Schema(cfg=cfg)
                 schema.prune()
                 pruned = schema.cfg
                 if prefix not in step_cfg:
@@ -287,7 +287,7 @@ class FlowGen(DynamicGen):
         section_key = '-'.join(['flows', modname, 'option', 'showtool'])
         section = build_section('showtool', section_key)
         cfg = chip.getdict('option', 'showtool')
-        schema = Schema(cfg)
+        schema = Schema(cfg=cfg)
         schema.prune()
         pruned = schema.cfg
         table = build_schema_value_table(pruned, keypath_prefix=['option', 'showtool'])
@@ -317,7 +317,7 @@ class LibGen(DynamicGen):
     def extra_content(self, chip, modname):
         # assume same pdk for all libraries configured by this module
         mainlib = chip.getkeys('library')[0]
-        pdk = chip.get('library', mainlib, 'asic', 'pdk')
+        pdk = chip.get('library', mainlib, 'option', 'pdk')
 
         p = docutils.nodes.inline('')
         self.parse_rst(f'Associated PDK: :ref:`{pdk}<{pdk}-ref>`', p)
@@ -346,7 +346,7 @@ class ToolGen(DynamicGen):
     def display_config(self, chip, modname):
         '''Display config under `eda, <modname>` in a single table.'''
         cfg = chip.getdict('tool', modname)
-        schema = Schema(cfg)
+        schema = Schema(cfg=cfg)
         schema.prune()
         pruned = schema.cfg
         table = build_schema_value_table(pruned, keypath_prefix=['tool', modname])
@@ -416,7 +416,7 @@ class TargetGen(DynamicGen):
         filtered_cfg = {}
         for key in ('asic', 'constraint', 'option'):
             filtered_cfg[key] = chip.getdict(key)
-        schema = Schema(filtered_cfg)
+        schema = Schema(cfg=filtered_cfg)
         schema.prune()
         pruned_cfg = schema.cfg
 
