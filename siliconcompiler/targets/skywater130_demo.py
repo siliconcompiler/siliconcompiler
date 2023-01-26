@@ -35,7 +35,7 @@ def setup(chip):
     from pdks import skywater130
     from flows import asicflow, asictopflow, signoffflow
     from libs import sky130hd
-    from checklists import oh_tapeout
+    from checklists.oh_tapeout import oh_tapeout
     chip.use(skywater130)
     chip.use(asicflow)
     chip.use(asictopflow)
