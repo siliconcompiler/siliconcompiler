@@ -1033,6 +1033,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     # flowgraph status
     scparam(cfg,['flowgraph', flow, step, index, 'status'],
             sctype='enum',
+            enum=["pending", "success", "error"],
             shorthelp="Flowgraph: task status",
             switch="-flowgraph_status 'flow step index <str>'",
             example=[
@@ -1043,8 +1044,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             * "success": task ran successfully
             * "error": task failed with an error
 
-            An empty value indicates the task has not yet been completed.""",
-            enum=["pending", "success", "error"])
+            An empty value indicates the task has not yet been completed.""")
 
     # flowgraph select
     scparam(cfg,['flowgraph', flow, step, index, 'select'],
@@ -1978,6 +1978,7 @@ def schema_option(cfg):
     # Compilation
     scparam(cfg, ['option', 'mode'],
             sctype='enum',
+            enum=["asic", "fpga", "sim"],
             scope='job',
             shorthelp="Compilation mode",
             switch="-mode <str>",
@@ -1989,8 +1990,7 @@ def schema_option(cfg):
             asic: RTL to GDS ASIC compilation
             fpga: RTL to bitstream FPGA compilation
             sim: simulation to verify design and compilation
-            """,
-            enum=["asic", "fpga", "sim"])
+            """)
 
     scparam(cfg, ['option','target'],
             sctype='str',
@@ -2125,6 +2125,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',
+            enum=["NOTSET", "INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"],
             scope='job',
             defvalue='INFO',
             shorthelp="Logging level",
@@ -2134,8 +2135,7 @@ def schema_option(cfg):
                 "api: chip.set('option', 'loglevel', 'INFO')"],
             schelp="""
             Provides explicit control over the level of debug logging printed.
-            Valid entries include INFO, DEBUG, WARNING, ERROR.""",
-            enum=["INFO", "DEBUG", "WARNING", "ERROR"])
+            Valid entries include INFO, DEBUG, WARNING, ERROR.""")
 
     scparam(cfg, ['option', 'builddir'],
             sctype='dir',
