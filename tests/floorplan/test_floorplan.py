@@ -4,7 +4,7 @@ import re
 
 from siliconcompiler.core import Chip
 from siliconcompiler.floorplan import Floorplan
-from siliconcompiler.targets import freepdk45_demo
+from siliconcompiler.targets import freepdk45_demo, skywater130_demo
 
 def _fp(datadir):
     c = Chip('test')
