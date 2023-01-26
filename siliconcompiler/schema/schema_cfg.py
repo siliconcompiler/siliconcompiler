@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.16.0'
+SCHEMA_VERSION = '0.17.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -193,6 +193,9 @@ def schema_cfg():
 
     # Packaging
     cfg = schema_package(cfg)
+
+    # Server
+    cfg = schema_server(cfg)
 
     return cfg
 
@@ -3505,6 +3508,102 @@ def schema_constraint(cfg):
             is supplied.""")
 
     return cfg
+
+############################################
+# Server Configuration
+############################################
+
+def schema_server(cfg):
+
+    scparam(cfg, ['server', 'cores'],
+            sctype='int',
+            scope='job',
+            shorthelp="Server: Core constraint",
+            switch="-server_cores <int>",
+            example= ["cli: -server_cores 48",
+                    "api: chip.set('server', 'cores', '48')"],
+            schelp="""
+            Specifies the number cpu cores required to run the job.
+            For the slurm scheduler, this translates to the '-c'
+            switch.""")
+
+    scparam(cfg, ['server', 'memory'],
+            sctype='int',
+            unit='MB',
+            scope='job',
+            shorthelp="Server: Memory constraint",
+            switch="-server_memory <str>",
+            example= ["cli: -server_memory 8000",
+                    "api: chip.set('server', 'memory', '8000')"],
+            schelp="""
+            Specifies the amount of memory required to run the job,
+            specified in MB. For the slurm scheduler, this translates to
+            the '--mem' switch. """)
+
+    scparam(cfg, ['server', 'queue'],
+            sctype='str',
+            scope='job',
+            shorthelp="Server: Queue selection",
+            switch="-server_queue <str>",
+            example= ["cli: -server_queue nightrun",
+                      "api: chip.set('server', 'queue', 'nightrun')"],
+            schelp="""
+            Schedule the job for the specified queue. With slurm, this
+            translates to -p 'partition'. The queue name must match
+            the name of an existing queue.""")
+
+    scparam(cfg, ['server', 'nice'],
+            sctype='int',
+            scope='job',
+            shorthelp="Server: Scheduling priority",
+            switch="-server_nice <int>",
+            example= ["cli: -server_nice 100",
+                    "api: chip.set('server', 'nice', '100')"],
+            schelp="""
+            Specifies the scheduling priority for the job. Negative numbers
+            increases priority while positive numbers decrease priority.
+            For more information, see the job scheduler documentation.""")
+
+    scparam(cfg, ['server', 'timeout'],
+            sctype='str',
+            scope='job',
+            shorthelp="Server: Timeout value",
+            switch="-server_timeout <str>",
+            example= ["cli: -server_timeout 16:00",
+                    "api: chip.set('server', '', '16:00')"],
+            schelp="""
+            Specifies the limit on the total job run time.
+            Acceptable slurm time formats include "minutes", "minutes:seconds",
+            "hours:minutes:seconds", "days-hours", "days-hours:minutes",
+            and "days-hours:minutes:seconds".""")
+
+    scparam(cfg, ['server', 'interactive'],
+            sctype='bool',
+            scope='job',
+            shorthelp="Server: Request interactive session",
+            switch="-server_interactive <str>",
+            example= ["cli: -server_interactive True",
+                    "api: chip.set('server', 'interactive', True)"],
+            schelp="""
+            Specifies that job is interactive. In slurm, this would
+            translate to something like '-i --pty bash'.""")
+
+    scparam(cfg, ['server', 'defer'],
+            sctype='str',
+            scope='job',
+            shorthelp="Server: Start time",
+            switch="-server_defer <str>",
+            example= ["cli: -server_defer 16:00",
+                    "api: chip.set('server', 'defer', '16:00')"],
+            schelp="""
+            Defer initiation of job until the specified time. The parameter
+            is pass through string for remote job scheduler such as slurm.
+            For more information abotut the exact format specification, see
+            the job scheduler documentation. Examples of valid slurm specific
+            values include: now+1hour, 16:00, 010-01-20T12:34:00.""")
+
+    return cfg
+
 
 ##############################################################################
 # Main routine
