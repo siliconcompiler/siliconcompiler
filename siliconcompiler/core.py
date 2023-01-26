@@ -3626,6 +3626,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         max_mem_bytes = 0
 
         retcode = 0
+        cmdlist = []
         if is_builtin:
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
         elif run_func and not self.get('option', 'skipall'):
