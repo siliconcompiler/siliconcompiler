@@ -11,7 +11,7 @@ from siliconcompiler.sphinx_ext.utils import *
 class SchemaGen(SphinxDirective):
 
     def run(self):
-        self.env.note_dependency('../siliconcompiler/schema_cfg.py')
+        self.env.note_dependency('siliconcompiler/schema/schema_cfg.py')
 
         schema = Schema().cfg
 
