@@ -3764,6 +3764,24 @@
             "type": "[str]",
             "value": []
         },
+        "nice": {
+            "defvalue": null,
+            "example": [
+                "cli: -nice 5",
+                "api: chip.set('option','nice',5)"
+            ],
+            "help": "Sets the type of execution priority of each individual flowgraph steps.\nIf the parameter is undefined, nice will not be used. For more information see `Unix 'nice'\n<https://en.wikipedia.org/wiki/Nice_(Unix)>`_.",
+            "lock": false,
+            "notes": null,
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Tool execution scheduling priority",
+            "signature": null,
+            "switch": "-nice <int>",
+            "type": "int",
+            "value": null
+        },
         "nodisplay": {
             "defvalue": false,
             "example": [
@@ -6080,7 +6098,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.17.0",
+        "defvalue": "0.18.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6094,7 +6112,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.17.0"
+        "value": "0.18.0"
     },
     "tool": {
         "default": {
