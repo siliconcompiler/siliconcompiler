@@ -3671,26 +3671,6 @@
             "type": "[file]",
             "value": []
         },
-        "defer": {
-            "defvalue": null,
-            "example": [
-                "cli: -defer 16:00",
-                "api: chip.set('option', 'scheduler', 'defer', '16:00')"
-            ],
-            "help": "Defer initiation of job until the specified time. The parameter\nis pass through string for remote job scheduler such as slurm.\nFor more information abotut the exact format specification, see\nthe job scheduler documentation. Examples of valid slurm specific\nvalues include: now+1hour, 16:00, 010-01-20T12:34:00. For more\ninformation, see the job scheduler documentation.",
-            "lock": false,
-            "nodevalue": {},
-            "notes": null,
-            "pernode": "none",
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Option: Scheduler start time",
-            "signature": null,
-            "switch": "-defer <str>",
-            "type": "str",
-            "value": null
-        },
         "define": {
             "defvalue": [],
             "example": [
@@ -4015,27 +3995,6 @@
             "type": "enum",
             "value": "INFO"
         },
-        "memory": {
-            "defvalue": null,
-            "example": [
-                "cli: -memory 8000",
-                "api: chip.set('option', 'scheduler', 'memory', '8000')"
-            ],
-            "help": "Specifies the amount of memory required to run the job,\nspecified in MB. For the slurm scheduler, this translates to\nthe '--mem' switch. For more information, see the job\nscheduler documentation",
-            "lock": false,
-            "nodevalue": {},
-            "notes": null,
-            "pernode": "none",
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Option: Scheduler memory constraint",
-            "signature": null,
-            "switch": "-memory <str>",
-            "type": "int",
-            "unit": "MB",
-            "value": null
-        },
         "metricoff": {
             "defvalue": [],
             "example": [
@@ -4203,26 +4162,6 @@
             "type": "str",
             "value": null
         },
-        "queue": {
-            "defvalue": null,
-            "example": [
-                "cli: -queue nightrun",
-                "api: chip.set('option', 'scheduler', 'queue', 'nightrun')"
-            ],
-            "help": "Send the job to the specified queue. With slurm, this\ntranslates to 'partition'. The queue name must match\nthe name of an existing job schemduler queue. For more information,\nsee the job scheduler documentation",
-            "lock": false,
-            "nodevalue": {},
-            "notes": null,
-            "pernode": "none",
-            "require": null,
-            "scope": "job",
-            "set": false,
-            "shorthelp": "Option: Scheduler queue",
-            "signature": null,
-            "switch": "-queue <str>",
-            "type": "str",
-            "value": null
-        },
         "quiet": {
             "defvalue": false,
             "example": [
@@ -4344,6 +4283,47 @@
                 "type": "int",
                 "value": null
             },
+            "defer": {
+                "defvalue": null,
+                "example": [
+                    "cli: -defer 16:00",
+                    "api: chip.set('option', 'scheduler', 'defer', '16:00')"
+                ],
+                "help": "Defer initiation of job until the specified time. The parameter\nis pass through string for remote job scheduler such as slurm.\nFor more information abotut the exact format specification, see\nthe job scheduler documentation. Examples of valid slurm specific\nvalues include: now+1hour, 16:00, 010-01-20T12:34:00. For more\ninformation, see the job scheduler documentation.",
+                "lock": false,
+                "nodevalue": {},
+                "notes": null,
+                "pernode": "none",
+                "require": null,
+                "scope": "job",
+                "set": false,
+                "shorthelp": "Option: Scheduler start time",
+                "signature": null,
+                "switch": "-defer <str>",
+                "type": "str",
+                "value": null
+            },
+            "memory": {
+                "defvalue": null,
+                "example": [
+                    "cli: -memory 8000",
+                    "api: chip.set('option', 'scheduler', 'memory', '8000')"
+                ],
+                "help": "Specifies the amount of memory required to run the job,\nspecified in MB. For the slurm scheduler, this translates to\nthe '--mem' switch. For more information, see the job\nscheduler documentation",
+                "lock": false,
+                "nodevalue": {},
+                "notes": null,
+                "pernode": "none",
+                "require": null,
+                "scope": "job",
+                "set": false,
+                "shorthelp": "Option: Scheduler memory constraint",
+                "signature": null,
+                "switch": "-memory <str>",
+                "type": "int",
+                "unit": "MB",
+                "value": null
+            },
             "msgcontact": {
                 "defvalue": [],
                 "example": [
@@ -4428,6 +4408,26 @@
                 "switch": "-scheduler_options <str>",
                 "type": "[str]",
                 "value": []
+            },
+            "queue": {
+                "defvalue": null,
+                "example": [
+                    "cli: -queue nightrun",
+                    "api: chip.set('option', 'scheduler', 'queue', 'nightrun')"
+                ],
+                "help": "Send the job to the specified queue. With slurm, this\ntranslates to 'partition'. The queue name must match\nthe name of an existing job schemduler queue. For more information,\nsee the job scheduler documentation",
+                "lock": false,
+                "nodevalue": {},
+                "notes": null,
+                "pernode": "none",
+                "require": null,
+                "scope": "job",
+                "set": false,
+                "shorthelp": "Option: Scheduler queue",
+                "signature": null,
+                "switch": "-queue <str>",
+                "type": "str",
+                "value": null
             }
         },
         "scpath": {

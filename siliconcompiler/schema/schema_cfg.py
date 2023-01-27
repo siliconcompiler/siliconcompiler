@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.19.0'
+SCHEMA_VERSION = '0.20.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2610,7 +2610,7 @@ def schema_option(cfg):
             unit='s',
             shorthelp="Option: Timeout value",
             switch="-timeout <str>",
-            example= ["cli: -timeout 1600",
+            example= ["cli: -timeout 3600",
                     "api: chip.set('option', 'timeout', 3600)"],
             schelp="""
             Timeout value in seconds. The timeout value is compared
@@ -2619,15 +2619,15 @@ def schema_option(cfg):
             useed by the jobscheduler to automatically kill jobs.""")
 
     # job scheduler
-    scparam(cfg, ['option', 'scheduler'],
-            sctype='str',
+    scparam(cfg, ['option', 'scheduler', 'name'],
+            sctype='enum',
             enum=["slurm", "lsf", "sge"],
             scope='job',
             shorthelp="Option: Scheduler platform",
             switch="-scheduler <str>",
             example=[
                 "cli: -scheduler slurm",
-                "api: chip.set('option', 'scheduler', 'slurm')"],
+                "api: chip.set('option', 'scheduler', 'name', 'slurm')"],
             schelp="""
             Sets the type of job scheduler to be used for each individual
             flowgraph steps. If the parameter is undefined, the steps are executed
@@ -2637,53 +2637,53 @@ def schema_option(cfg):
             must be located in shared storage which can be accessed by all hosts
             in the cluster.""")
 
-    scparam(cfg, ['option', 'cores'],
+    scparam(cfg, ['option', 'scheduler', 'cores'],
             sctype='int',
             scope='job',
             shorthelp="Option: Scheduler core constraint",
             switch="-cores <int>",
             example= ["cli: -cores 48",
-                      "api: chip.set('option', 'cores', '48')"],
+                      "api: chip.set('option', 'scheduler', 'cores', '48')"],
             schelp="""
             Specifies the number cpu cores required to run the job.
             For the slurm scheduler, this translates to the '-c'
             switch. For more information, see the job scheduler
             documentation""")
 
-    scparam(cfg, ['option', 'memory'],
+    scparam(cfg, ['option', 'scheduler', 'memory'],
             sctype='int',
             unit='MB',
             scope='job',
             shorthelp="Option: Scheduler memory constraint",
             switch="-memory <str>",
             example= ["cli: -memory 8000",
-                      "api: chip.set('option', 'memory', '8000')"],
+                      "api: chip.set('option', 'scheduler', 'memory', '8000')"],
             schelp="""
             Specifies the amount of memory required to run the job,
             specified in MB. For the slurm scheduler, this translates to
             the '--mem' switch. For more information, see the job
             scheduler documentation""")
 
-    scparam(cfg, ['option', 'queue'],
+    scparam(cfg, ['option', 'scheduler', 'queue'],
             sctype='str',
             scope='job',
             shorthelp="Option: Scheduler queue",
             switch="-queue <str>",
             example= ["cli: -queue nightrun",
-                      "api: chip.set('option', 'queue', 'nightrun')"],
+                      "api: chip.set('option', 'scheduler', 'queue', 'nightrun')"],
             schelp="""
             Send the job to the specified queue. With slurm, this
             translates to 'partition'. The queue name must match
             the name of an existing job schemduler queue. For more information,
             see the job scheduler documentation""")
 
-    scparam(cfg, ['option', 'defer'],
+    scparam(cfg, ['option', 'scheduler', 'defer'],
             sctype='str',
             scope='job',
             shorthelp="Option: Scheduler start time",
             switch="-defer <str>",
             example= ["cli: -defer 16:00",
-                    "api: chip.set('option', 'defer', '16:00')"],
+                    "api: chip.set('option', 'scheduler', 'defer', '16:00')"],
             schelp="""
             Defer initiation of job until the specified time. The parameter
             is pass through string for remote job scheduler such as slurm.
@@ -2692,27 +2692,28 @@ def schema_option(cfg):
             values include: now+1hour, 16:00, 010-01-20T12:34:00. For more
             information, see the job scheduler documentation.""")
 
-    scparam(cfg, ['option', 'schedargs'],
+    scparam(cfg, ['option', 'scheduler', 'options'],
             sctype='[str]',
             shorthelp="Option: Scheduler arguments",
-            switch="-schedargs <str>",
+            switch="-scheduler_options <str>",
             example=[
-                "cli: -schedargs '--pty bash'",
-                "api: chip.set('option', 'schedargs', '--pty bash')"],
+                "cli: -scheduler_options '--pty bash'",
+                "api: chip.set('option', 'scheduler', 'options', '--pty bash')"],
             schelp="""
             Advanced/export options passed through unchanged to the job
             scheduler as-is. (The user specified options must be compatible
             with the rest of the scheduler parameters entered.(memory etc).
             For more information, see the job scheduler documentation.""")
 
-    scparam(cfg, ['option', 'msgevent'],
+    scparam(cfg, ['option', 'scheduler', 'msgevent'],
             sctype='str',
             defvalue='NONE',
             scope='job',
             shorthelp="Option: Message event trigger",
             switch="-msgevent <str>",
-            example=["cli: -msgevent ALL",
-                    "api: chip.set('option','msgevent', 'ALL')"],
+            example=[
+                "cli: -msgevent ALL",
+                "api: chip.set('option', 'scheduler', 'msgevent', 'ALL')"],
             schelp="""
             Directs job scheduler to send a message to the user when
             certain events occur during a task. Supported data types for
@@ -2721,14 +2722,14 @@ def schema_option(cfg):
             documentation. For more information, see the job scheduler
             documentation.""")
 
-    scparam(cfg, ['option', 'msgcontact'],
+    scparam(cfg, ['option', 'scheduler', 'msgcontact'],
             sctype='[str]',
             scope='job',
             shorthelp="Option: Message contact",
             switch="-msgcontact <str>",
             example=[
                 "cli: -msgcontact 'wile.e.coyote@acme.com'",
-                "api: chip.set('option','msgcontact','wiley@acme.com')"],
+                "api: chip.set('option', 'scheduler', 'msgcontact', 'wiley@acme.com')"],
             schelp="""
             List of email addresses to message on a 'msgevent'. Support for
             email messages relies on job scheduler daemon support.
