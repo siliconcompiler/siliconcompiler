@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import platform
 import shutil
+import sys
 
 import siliconcompiler
 
@@ -98,6 +99,11 @@ def setup(chip, mode="batch"):
     # Log file parsing
     chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'(WARNING|warning)', clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'ERROR', clobber=False)
+
+    # Override $KLAYOUT_PYTHONPATH with the user's PYTHONPATH to ensure scripts
+    # have access to SC
+    chip.set('tool', tool, 'task', task, 'env', step, index, 'KLAYOUT_PYTHONPATH',
+             os.pathsep.join(sys.path), clobber=False)
 
 ################################
 # Version Check

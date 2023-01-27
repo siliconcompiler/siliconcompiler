@@ -39,6 +39,8 @@ import json
 import copy
 import os
 
+import siliconcompiler
+
 def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
               macro_lefs, config_file='', seal_file='', timestamps=True):
   # Expand layers in json
@@ -46,8 +48,8 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
     layers = cfg['layers']
     expand = [layer for layer in layers if 'layers' in layers[layer]]
     for layer in expand:
-      for i, (name, num) in enumerate(zip(layers[layer]['names'],
-                                          layers[layer]['layers'])):
+      for i, (name, num) in enumerate(zip(layers[layer, 'names'],
+                                          layers[layer, 'layers'])):
         new_layer = copy.deepcopy(layers[layer])
         del new_layer['names']
         new_layer['name'] = name
@@ -117,7 +119,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
             mask = 0
           else:
             mask = int(mask) - 1 # DEF is 1-based indexing
-          layer = cfg[m.group('layer')][opc_type]['klayout'][mask]
+          layer = cfg[m.group('layer'), opc_type, 'klayout', mask]
           xlo = int(m.group('xlo')) / units
           ylo = int(m.group('ylo')) / units
           xhi = int(m.group('xhi')) / units
@@ -213,56 +215,49 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
   write_options.gds2_write_timestamps = timestamps
   top_only_layout.write(out_file, write_options)
 
-# We read the manifest using the json library since KLayout bundles its own
-# Python interpreter, and it's difficult to include third-party libraries.
-with open('sc_manifest.json', 'r') as f:
-    sc_cfg = json.load(f)
+chip = siliconcompiler.Chip('')
+chip.read_manifest('sc_manifest.json')
 
 # Extract info from manifest
-sc_step = sc_cfg['arg']['step']['value']
-sc_index = sc_cfg['arg']['index']['value']
-sc_pdk = sc_cfg['option']['pdk']['value']
+sc_step = chip.get('arg', 'step')
+sc_index = chip.get('arg', 'index')
+sc_pdk = chip.get('option', 'pdk')
 
-sc_stackup = sc_cfg['pdk'][sc_pdk]['stackup']['value'][0]
-sc_mainlib = sc_cfg['asic']['logiclib']['value'][0]
+sc_stackup = chip.get('pdk', sc_pdk, 'stackup')[0]
+sc_mainlib = chip.get('asic', 'logiclib')[0]
 
-tech_file = sc_cfg['pdk'][sc_pdk]['layermap']['klayout']['def']['gds'][sc_stackup]['value'][0]
+tech_file = chip.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
 
-try:
-  design = sc_cfg['option']['entrypoint']['value']
-except KeyError:
-  design = sc_cfg['design']['value']
+design = chip.top()
 
-try:
-  in_def = sc_cfg['input']['layout']['def']['value'][0]
-except (KeyError, IndexError):
+if chip.get('input', 'layout', 'def'):
+  in_def = chip.get('input', 'layout', 'def')[0]
+else:
   in_def = os.path.join('inputs', f'{design}.def')
 out_gds = os.path.join('outputs', f'{design}.gds')
 
-libs = sc_cfg['asic']['logiclib']['value']
-if 'macrolib' in sc_cfg['asic']:
-  libs += sc_cfg['asic']['macrolib']['value']
+libs = chip.get('asic', 'logiclib')
+if 'macrolib' in chip.getkeys('asic'):
+  libs += chip.get('asic', 'macrolib')
 
 in_gds = []
 for lib in libs:
-  in_gds.extend(sc_cfg['library'][lib]['output'][sc_stackup]['gds']['value'])
+  in_gds.extend(chip.get('library', lib, 'output', sc_stackup, 'gds'))
 
-foundry_lef = os.path.dirname(sc_cfg['library'][sc_mainlib]['output'][sc_stackup]['lef']['value'][0])
+foundry_lef = os.path.dirname(chip.get('library', sc_mainlib, 'output', sc_stackup, 'lef')[0])
 
 macro_lefs = []
-if 'macrolib' in sc_cfg['asic']:
-  for lib in sc_cfg['asic']['macrolib']['value']:
-    macro_lefs.extend(sc_cfg['library'][lib]['output'][sc_stackup]['lef']['value'])
+if 'macrolib' in chip.getkeys('asic'):
+  for lib in chip.get('asic', 'macrolib'):
+    macro_lefs.extend(chip.get('library', lib, 'output', sc_stackup, 'lef'))
 
-sc_step = sc_cfg['arg']['step']['value']
-sc_index = sc_cfg['arg']['index']['value']
+flow = chip.get('option', 'flow')
 
-#TODO: fix properly
-sc_task = sc_step
+sc_task = chip.get('flowgraph', flow, sc_step, sc_index, 'task')
 
-sc_klayout_vars = sc_cfg['tool']['klayout']['task'][sc_step]['var'][sc_step][sc_index]
+sc_klayout_vars = chip.getkeys('tool', 'klayout', 'task', sc_task, 'var', sc_step, sc_index)
 if 'timestamps' in sc_klayout_vars:
-  sc_timestamps = sc_klayout_vars['timestamps']['value'] == ['true']
+  sc_timestamps = chip.get('tool', 'klayout', 'task', sc_task, 'var', sc_step, sc_index, 'timestamps') == ['true']
 else:
   sc_timestamps = False
 
