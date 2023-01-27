@@ -427,10 +427,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.set('fpga', 'partname', cmdargs['fpga_partname'], clobber=True)
             # running target command
             try:
+                # TODO: Maybe we shouldn't assume that user-defined target modules will be found
+                # under a local or $PYTHONPATH 'targets/' directory. Import the raw -target str?
                 target_module = importlib.import_module(f'targets.{cmdargs["option_target"]}')
                 self.use(target_module)
             except ModuleNotFoundError:
-                self.error(f'Target module {cmdargs["option_target"]} not found in $SCPATH or siliconcompiler/targets/.')
+                self.error(f'Target module targets.{cmdargs["option_target"]} not found on Python search path.')
 
         # 4. read in all cfg files
         if 'option_cfg' in cmdargs.keys():
