@@ -107,9 +107,9 @@ def test_get_invalid_field_continue():
 
 def test_set_valid_field_to_none():
     chip = siliconcompiler.Chip('test')
-    chip.set('scheduler', 'name', 'slurm')
-    chip.set('scheduler', 'name', None)
-    jobscheduler = chip.get('scheduler', 'name')
+    chip.set('option', 'scheduler', 'slurm')
+    chip.set('option', 'scheduler', None)
+    jobscheduler = chip.get('option', 'scheduler')
     assert jobscheduler == None
     assert chip._error == False
 
