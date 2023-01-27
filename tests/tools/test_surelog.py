@@ -1,5 +1,4 @@
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
 
 import os
 import subprocess
@@ -16,7 +15,7 @@ def test_surelog(scroot, clean):
     step = "import"
 
     chip = siliconcompiler.Chip(design)
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     chip.input(gcd_src)
     chip.set('option', 'mode', 'sim')
@@ -42,7 +41,7 @@ def test_surelog_duplicate_inputs(scroot):
     step = "import"
 
     chip = siliconcompiler.Chip(design)
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     # Set duplicate input files.
     chip.input(gcd_src)
@@ -74,7 +73,7 @@ def test_surelog_preproc_regression(datadir):
     step = "import"
 
     chip = siliconcompiler.Chip(design)
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
     chip.node('surelog', step, 'surelog', step)
     chip.input(src)
     chip.add('option', 'define', 'MEM_ROOT=test')
@@ -99,7 +98,7 @@ def test_replay(scroot):
     step = "import"
 
     chip = siliconcompiler.Chip(design)
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     chip.input(src)
     chip.set('option', 'mode', 'sim')

@@ -1,12 +1,11 @@
 import os
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
 
 def gcd_chip():
     gcd_ex_dir = os.path.join(scroot(), 'examples', 'gcd')
 
     chip = siliconcompiler.Chip('gcd')
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
     chip.input(os.path.join(gcd_ex_dir, 'gcd.v'))
     chip.input(os.path.join(gcd_ex_dir, 'gcd.sdc'))
     chip.set('constraint', 'outline', [(0,0), (100.13,100.8)])

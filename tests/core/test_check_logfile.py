@@ -1,11 +1,10 @@
 import os
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
 
 def test_check_logfile(datadir):
 
     chip = siliconcompiler.Chip('gcd')
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     # add regex
     chip.add('tool', 'openroad', 'task', 'place', 'regex', 'place', '0', 'warnings', "WARNING")

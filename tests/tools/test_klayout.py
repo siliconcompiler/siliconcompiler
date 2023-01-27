@@ -3,7 +3,6 @@ import hashlib
 import pytest
 
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -16,7 +15,7 @@ def test_klayout(datadir):
 
 
     chip = siliconcompiler.Chip('heartbeat_wrapper')
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     chip.input(in_def)
 

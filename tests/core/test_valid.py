@@ -1,12 +1,11 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import re
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
+import re
 
 def test_valid():
 
     chip = siliconcompiler.Chip('test')
-    chip.use(freepdk45_demo)
+    chip.load_target("freepdk45_demo")
     #basic
     valid =  chip.valid('design')
     assert valid

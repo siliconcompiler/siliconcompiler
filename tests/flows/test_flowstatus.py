@@ -1,5 +1,4 @@
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
 
 import json
 import os
@@ -29,7 +28,7 @@ def test_flowstatus(scroot, steplist):
     chip.set('option', 'quiet', True)
     chip.set('option', 'jobname', jobname)
 
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     flow = 'test'
     # no-op import since we're not preprocessing source files
@@ -86,7 +85,7 @@ def test_long_branch(scroot):
     chip.set('option', 'quiet', True)
     chip.set('option', 'jobname', jobname)
 
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     flow = 'test'
     # no-op import since we're not preprocessing source files
@@ -146,7 +145,7 @@ def test_remote(scroot):
     # Legal value, so this branch should succeed
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
 
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
     flow = chip.get('option', 'flow')
     chip.run()
 

@@ -1,7 +1,6 @@
+import siliconcompiler
 import os
 import pytest
-import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -19,7 +18,7 @@ def test_sv(datadir):
     chip.add('option', 'define', 'SYNTHESIS')
 
     chip.set('option', 'frontend', 'systemverilog')
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     chip.add('option', 'steplist', 'import')
     chip.add('option', 'steplist', 'convert')

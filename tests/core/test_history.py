@@ -1,11 +1,10 @@
 import os
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
 
 def test_history(datadir):
 
     chip = siliconcompiler.Chip('gcd')
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     # Set values in manifest
     chip.set('metric', 'floorplan', '0', 'utilization', 10)

@@ -8,8 +8,7 @@ def test_checklist():
     '''
 
     chip = siliconcompiler.Chip('test')
-    from targets import freepdk45_demo
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     # Test won't work if file doesn't exist
     os.makedirs('build/test/job0/syn/0')

@@ -1,8 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
-import pytest
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
+import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -11,7 +10,7 @@ def test_ghdl(datadir):
     design_src = os.path.join(datadir, f'{design}.vhdl')
 
     chip = siliconcompiler.Chip(design)
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
     chip.input(design_src)
     chip.set('option', 'mode', 'sim')
 

@@ -426,13 +426,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if 'fpga_partname' in cmdargs.keys():
                 self.set('fpga', 'partname', cmdargs['fpga_partname'], clobber=True)
             # running target command
-            try:
-                # TODO: Maybe we shouldn't assume that user-defined target modules will be found
-                # under a local or $PYTHONPATH 'targets/' directory. Import the raw -target str?
-                target_module = importlib.import_module(f'targets.{cmdargs["option_target"]}')
-                self.use(target_module)
-            except ModuleNotFoundError:
-                self.error(f'Target module targets.{cmdargs["option_target"]} not found on Python search path.')
+            self.load_target(cmdargs['option_target'])
 
         # 4. read in all cfg files
         if 'option_cfg' in cmdargs.keys():
@@ -562,6 +556,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return getattr(module, funcname, None)
 
     ##########################################################################
+    def load_target(self, name):
+        """
+        Loads a target module and runs the setup() function.
+
+        The function searches the $SCPATH for targets/<name>.py and runs
+        the setup function in that module if found.
+
+        Args:
+            name (str): Module name
+            flow (str): Target flow to
+
+        Examples:
+            >>> chip.load_target('freepdk45_demo')
+            Loads the 'freepdk45_demo' target
+
+        """
+
+        # TODO: Blergh, this method is called from a whole bunch of tests.
+        target_module = importlib.import_module(f'targets.{name}')
+        self.use(target_module)
+
+    ##########################################################################
     def use(self, module):
         '''
         Loads a SiliconCompiler module into the current chip object by calling
@@ -573,7 +589,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         new_schema = module.setup(self)
 
         # TODO: Is this the best way to determine module type? Also, remove chip arg from all but target?
-        if 'targets' in module.__name__:
+        if ('pdks.' in module.__name__) or ('flows.' in module.__name__) \
+           or ('checklists.' in module.__name__):
+            # TODO: Update PDK setups to return Chip obj, and _merge_manifest or create 'import_[...]()'
+            module.setup(self)
+        elif 'targets' in module.__name__:
             self.set('option', 'target', module.__name__[module.__name__.rfind('.')+1:])
         elif 'libs.' in module.__name__:
             lib_name = module.__name__[module.__name__.rfind('.')+1:]

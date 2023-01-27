@@ -1,14 +1,13 @@
 import os
-import pytest
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
+import pytest
 
 @pytest.mark.eda
 def test_picorv32(picorv32_dir):
     source = os.path.join(picorv32_dir, 'picorv32.v')
 
     chip = siliconcompiler.Chip("picorv32")
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     chip.input(source)
     chip.set('option', 'steplist', ['import'])

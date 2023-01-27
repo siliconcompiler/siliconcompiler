@@ -4,11 +4,10 @@ import re
 
 from siliconcompiler.core import Chip
 from siliconcompiler.floorplan import Floorplan
-from siliconcompiler.targets import freepdk45_demo, skywater130_demo
 
 def _fp(datadir):
     c = Chip('test')
-    c.use(freepdk45_demo)
+    c.load_target('freepdk45_demo')
     stackup = '10M'
     lib = 'ram'
     c.add('asic', 'macrolib', lib)
@@ -81,7 +80,7 @@ def test_padring(datadir):
     test_dir = os.path.dirname(os.path.abspath(__file__))
 
     chip = Chip('mypadring')
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     macro = 'io'
     stackup = '10M'
@@ -166,7 +165,7 @@ def test_padring(datadir):
 
 def test_vias_at_intersection():
     c = Chip('test')
-    c.use(skywater130_demo)
+    c.load_target('skywater130_demo')
 
     fp = Floorplan(c)
     fp.create_diearea([(0, 0), (100, 100)])
@@ -184,7 +183,7 @@ def test_vias_at_intersection():
 
 def test_place_vias(datadir):
     c = Chip('test')
-    c.use(freepdk45_demo)
+    c.load_target('freepdk45_demo')
     stackup = '10M'
     lib = 'ram'
     c.add('asic', 'macrolib', lib)

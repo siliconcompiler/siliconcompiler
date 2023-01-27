@@ -1,7 +1,6 @@
 import os
-import pytest
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
+import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -12,7 +11,7 @@ def test_parameterized_instantiation(datadir):
     '''
 
     chip = siliconcompiler.Chip('gate')
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
 
     chip.input(os.path.join(datadir, 'test_param_instantiation', 'wrapper.v'))
     chip.input(os.path.join(datadir, 'test_param_instantiation', 'gate.v'))

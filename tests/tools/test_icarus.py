@@ -1,8 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
-import pytest
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
+import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -13,7 +12,7 @@ def test_icarus(oh_dir):
     topfile = os.path.join(ydir, f'{design}.v')
 
     chip = siliconcompiler.Chip(design)
-    chip.use(freepdk45_demo)
+    chip.load_target('freepdk45_demo')
     chip.set('option', 'ydir', ydir)
     chip.input(topfile)
     chip.set('option', 'mode', 'sim')

@@ -1,6 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
 
 import os
 
@@ -9,7 +8,7 @@ import pytest
 def test_check_manifest():
 
     chip = siliconcompiler.Chip('gcd')
-    chip.use(freepdk45_demo)
+    chip.load_target("freepdk45_demo")
     chip.input('examples/gcd/gcd.v')
     flow = chip.get('option', 'flow')
     index = "0"
@@ -34,7 +33,7 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip = siliconcompiler.Chip('gcd')
 
     chip.input(os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
-    chip.use(freepdk45_demo)
+    chip.load_target("freepdk45_demo")
 
     # collect input files
     cwd = os.getcwd()
@@ -60,7 +59,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip.input(os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.input('/random/abs/path/to/file.sdc')
     chip.set('input', 'constraint', 'sdc', False, field='copy')
-    chip.use(freepdk45_demo)
+    chip.load_target("freepdk45_demo")
 
     # collect input files
     workdir = chip._getworkdir(step='import', index='0')
@@ -80,7 +79,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
 
 def test_check_missing_file_param():
     chip = siliconcompiler.Chip('gcd')
-    chip.use(freepdk45_demo)
+    chip.load_target("freepdk45_demo")
 
     chip._setup_tool('yosys', 'syn', 'syn', '0')
 
