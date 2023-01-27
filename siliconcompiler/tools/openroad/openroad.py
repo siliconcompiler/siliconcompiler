@@ -121,8 +121,8 @@ def setup(chip, mode='batch'):
 
         # set tapcell file
         tapfile = None
-        if chip.valid('library', mainlib, 'asic', 'file', tool, 'tapcells'):
-            tapfile = chip.find_files('library', mainlib, 'asic', 'file', tool, 'tapcells')
+        if chip.valid('library', mainlib, 'option', 'file', 'openroad_tapcells'):
+            tapfile = chip.find_files('library', mainlib, 'option', 'file', 'openroad_tapcells')
         elif chip.valid('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells'):
             tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
         if tapfile:
@@ -145,9 +145,9 @@ def setup(chip, mode='batch'):
     chip.set('tool', tool, 'task', task, 'var', step, index, 'power_corner', get_power_corner(chip), clobber=False)
     chip.set('tool', tool, 'task', task, 'var', step, index, 'parasitics', "inputs/sc_parasitics.tcl", clobber=True)
 
-    for var0, var1 in [('tiehigh_cell', 'tiehigh_port'), ('tiehigh_cell', 'tiehigh_port')]:
-        key0 = ['library', mainlib, 'asic', 'var', tool, var0]
-        key1 = ['library', mainlib, 'asic', 'var', tool, var1]
+    for var0, var1 in [('openroad_tiehigh_cell', 'openroad_tiehigh_port'), ('openroad_tiehigh_cell', 'openroad_tiehigh_port')]:
+        key0 = ['library', mainlib, 'option', 'var', tool, var0]
+        key1 = ['library', mainlib, 'option', 'var', tool, var1]
         if chip.valid(*key0):
             chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key1))
         if chip.valid(*key1):
@@ -169,14 +169,15 @@ def setup(chip, mode='batch'):
         # For each OpenROAD tool variable, read default from main library and write it
         # into schema. If PDK doesn't contain a default, the value must be set
         # by the user, so we add the variable keypath as a requirement.
-        if chip.valid('library', mainlib, 'asic', 'var', tool, variable):
-            value = chip.get('library', mainlib, 'asic', 'var', tool, variable)
+        var_key = ['library', mainlib, 'option', 'var', f'openroad_{variable}']
+        if chip.valid(*var_key):
+            value = chip.get(*var_key)
             # Clobber needs to be False here, since a user might want to
             # overwrite these.
             chip.set('tool', tool, 'task', task, 'var', step, index, variable, value,
                      clobber=False)
 
-            keypath = ','.join(['library', mainlib, 'asic', 'var', tool, variable])
+            keypath = ','.join(var_key)
             chip.add('tool', tool, 'task', task, 'require', step, index, keypath)
 
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, variable]))
@@ -229,8 +230,8 @@ def setup(chip, mode='batch'):
                             ]:
         chip.set('tool', tool, 'task', task, 'var', step, index, variable, value, clobber=False)
 
-    for libvar, openroadvar in [('pdngen', 'pdn_config'),
-                                ('global_connect', 'global_connect')]:
+    for libvar, openroadvar in [('pdngen', 'openroad_pdn_config'),
+                                ('global_connect', 'openroad_global_connect')]:
         if chip.valid('tool', tool, 'task', task, 'var', step, index, openroadvar) and \
            not chip.get('tool', tool, 'task', task, 'var', step, index, openroadvar):
             # value already set
@@ -238,8 +239,8 @@ def setup(chip, mode='batch'):
 
         # copy from libs
         for lib in targetlibs + macrolibs:
-            if chip.valid('library', lib, 'asic', 'file', tool, libvar):
-                for pdn_config in chip.find_files('library', lib, 'asic', 'file', tool, libvar):
+            if chip.valid('library', lib, 'option', 'file', libvar):
+                for pdn_config in chip.find_files('library', lib, 'option', 'file', libvar):
                     chip.add('tool', tool, 'task', task, 'var', step, index, openroadvar, pdn_config)
 
     # basic warning and error grep check on logfile
