@@ -408,59 +408,6 @@
             "type": "str",
             "value": null
         },
-        "dir": {
-            "default": {
-                "default": {
-                    "defvalue": [],
-                    "example": [
-                        "cli: -asic_dir 'lib atool db ~/libdb'",
-                        "api: chip.set('asic','dir','atool','db','~/libdb')"
-                    ],
-                    "help": "List of named dirs specified on a per tool basis. The parameter\nshould only be used for specifying dirs that are not directly\nsupported by the ASIC schema.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "none",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "ASIC: special directory",
-                    "signature": [],
-                    "switch": "-asic_dir 'tool key <dir>'",
-                    "type": "[dir]",
-                    "value": []
-                }
-            }
-        },
-        "file": {
-            "default": {
-                "default": {
-                    "author": [],
-                    "copy": false,
-                    "date": [],
-                    "defvalue": [],
-                    "example": [
-                        "cli: -asic_file 'yosys presyn ~/presyn.tcl'",
-                        "api: chip.set('asic','file','yosys','presyn','~/presyn.tcl')"
-                    ],
-                    "filehash": [],
-                    "hashalgo": "sha256",
-                    "help": "List of named files specified on a per tool basis.\nThe parameter should only be used for specifying files that are\nnot directly supported by the ASIC schema.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "none",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "ASIC: special file",
-                    "signature": [],
-                    "switch": "-asic_file 'tool key<file>'",
-                    "type": "[file]",
-                    "value": []
-                }
-            }
-        },
         "libarch": {
             "defvalue": null,
             "example": [
@@ -541,30 +488,6 @@
                 "switch": "-asic_site 'libarch <str>'",
                 "type": "[str]",
                 "value": []
-            }
-        },
-        "var": {
-            "default": {
-                "default": {
-                    "defvalue": [],
-                    "example": [
-                        "cli: -asic_variable 'xyce modeltype bsim4'",
-                        "api: chip.set('asic','var','xyce','modeltype','bsim4')"
-                    ],
-                    "help": "List of key/value strings specified on a per basis. The parameter\nshould only be used for specifying variables that are\nnot directly supported by the SiliconCompiler PDK schema.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "none",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "ASIC: special variable",
-                    "signature": [],
-                    "switch": "-asic_variable 'tool key <str>'",
-                    "type": "[str]",
-                    "value": []
-                }
             }
         }
     },
@@ -3793,7 +3716,7 @@
                 "defvalue": null,
                 "example": [
                     "cli: -env 'PDK_HOME /disk/mypdk'",
-                    "api: chip.set('option','env', 'PDK_HOME', '/disk/mypdk')"
+                    "api: chip.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"
                 ],
                 "help": "Certain tools and reference flows require global environment\nvariables to be set. These variables can be managed externally or\nspecified through the env variable.",
                 "lock": false,
@@ -3805,9 +3728,36 @@
                 "set": false,
                 "shorthelp": "Environment variables",
                 "signature": null,
-                "switch": "-env 'key <str>",
+                "switch": "-env 'key <str>'",
                 "type": "str",
                 "value": null
+            }
+        },
+        "file": {
+            "default": {
+                "author": [],
+                "copy": false,
+                "date": [],
+                "defvalue": [],
+                "example": [
+                    "cli: -file 'openroad_tapcell ./tapcell.tcl'",
+                    "api: chip.set('option', 'file', 'openroad_tapcell', './tapcell.tcl')"
+                ],
+                "filehash": [],
+                "hashalgo": "sha256",
+                "help": "List of named files specified. Certain tools and\nreference flows require special parameters, this\nparameter should only be used for specifying files that are\nnot directly supported by the schema.",
+                "lock": false,
+                "nodevalue": {},
+                "notes": null,
+                "pernode": "none",
+                "require": null,
+                "scope": "job",
+                "set": false,
+                "shorthelp": "Custom files",
+                "signature": [],
+                "switch": "-file 'key <str>'",
+                "type": "[file]",
+                "value": []
             }
         },
         "flow": {
@@ -4613,6 +4563,28 @@
             "switch": "-uselambda <bool>",
             "type": "bool",
             "value": false
+        },
+        "var": {
+            "default": {
+                "defvalue": [],
+                "example": [
+                    "cli: -var 'openroad_place_density 0.4'",
+                    "api: chip.set('option', 'var', 'openroad_place_density', '0.4')"
+                ],
+                "help": "List of key/value strings specified. Certain tools and\nreference flows require special parameters, this\nshould only be used for specifying variables that are\nnot directly supported by the SiliconCompiler schema.",
+                "lock": false,
+                "nodevalue": {},
+                "notes": null,
+                "pernode": "none",
+                "require": null,
+                "scope": "job",
+                "set": false,
+                "shorthelp": "Custom variables",
+                "signature": [],
+                "switch": "-var 'key <str>'",
+                "type": "[str]",
+                "value": []
+            }
         },
         "vlib": {
             "author": [],
@@ -6708,7 +6680,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.18.0",
+        "defvalue": "0.19.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6724,7 +6696,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.18.0"
+        "value": "0.19.0"
     },
     "tool": {
         "default": {
