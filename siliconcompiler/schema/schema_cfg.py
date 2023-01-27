@@ -2956,12 +2956,10 @@ def schema_checklist(cfg):
 def schema_asic(cfg):
     '''ASIC Automated Place and Route Parameters'''
 
-    step = 'default'
-    index = 'default'
-
     scparam(cfg, ['asic', 'logiclib'],
             sctype='[str]',
             scope='job',
+            pernode='optional',
             shorthelp="ASIC: logic libraries",
             switch="-asic_logiclib <str>",
             example=["cli: -asic_logiclib nangate45",
