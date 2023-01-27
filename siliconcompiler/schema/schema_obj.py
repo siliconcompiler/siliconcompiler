@@ -75,14 +75,17 @@ class Schema:
         """
         cfg = self._search(*keypath, job=job)
 
+        if not Schema._is_leaf(cfg):
+            raise ValueError(f'Invalid keypath {keypath}: get() must be called on a complete keypath')
+
         if cfg['pernode'] == 'none' and (step is not None or index is not None):
             raise ValueError(f'step and index are not valid for keypath {keypath}')
 
         if cfg['pernode'] == 'mandatory' and (step is None or index is None):
             raise ValueError(f'step and index must be provided for keypath {keypath}')
 
-        if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: get() must be called on a complete keypath')
+        if isinstance(index, int):
+            index = str(index)
 
         if field == 'value':
             if cfg['pernode'] == 'mandatory':
@@ -116,14 +119,17 @@ class Schema:
 
         cfg = self._search(*keypath, insert_defaults=True)
 
+        if not Schema._is_leaf(cfg):
+            raise ValueError(f'Invalid keypath {keypath}: set() must be called on a complete keypath')
+
         if cfg['pernode'] == 'none' and (step is not None or index is not None):
             raise ValueError(f'step and index are not valid for keypath {keypath}')
 
         if cfg['pernode'] == 'mandatory' and (step is None or index is None):
             raise ValueError(f'step and index must be provided for keypath {keypath}')
 
-        if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: set() must be called on a complete keypath')
+        if isinstance(index, int):
+            index = str(index)
 
         if cfg['lock']:
             # TODO: log here
@@ -174,11 +180,17 @@ class Schema:
         if cfg['pernode'] == 'mandatory' and (step is None or index is None):
             raise ValueError(f'step and index must be provided for keypath {keypath}')
 
+        if isinstance(index, int):
+            index = str(index)
+
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: add() must be called on a complete keypath')
 
         if not Schema._is_list(field, cfg['type']):
-            raise ValueError(f'Invalid keypath {keypath}: add() must be called on a complete keypath')
+            if field == 'value':
+                raise ValueError(f'Invalid keypath {keypath}: add() must be called on a list')
+            else:
+                raise ValueError(f'Invalid field {field}: add() must be called on a list')
 
         if cfg['lock']:
             # TODO: log here
@@ -228,6 +240,7 @@ class Schema:
             return False
 
         cfg['value'] = cfg['defvalue']
+        cfg['pernode_value'] = {}
         cfg['set'] = False
 
         return True

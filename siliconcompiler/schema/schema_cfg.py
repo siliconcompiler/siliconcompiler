@@ -55,7 +55,8 @@ def scparam(cfg,
                 switch=switch,
                 example=example,
                 schelp=schelp,
-                enum=enum)
+                enum=enum,
+                pernode=pernode)
     else:
 
         # removing leading spaces as if schelp were a docstring
