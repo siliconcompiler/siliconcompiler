@@ -24,8 +24,8 @@ proc has_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_cell] && \
-           [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_port]
+    return [dict exists $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_cell] && \
+           [dict exists $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_port]
 }
 
 proc get_tie_cell { type } {
@@ -33,8 +33,8 @@ proc get_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    set cell [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_cell] 0]
-    set port [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_port] 0]
+    set cell [lindex [dict get $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_cell] 0]
+    set port [lindex [dict get $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_port] 0]
 
     return "$cell/$port"
 }
