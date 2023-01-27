@@ -31,7 +31,7 @@ def test_check_flowgraph_join():
     chip.set('option', 'flow', flow)
     chip.node(flow, 'prejoin1', 'fake_out', 'prejoin1')
     chip.node(flow, 'prejoin2', 'fake_out', 'prejoin2')
-    chip.node(flow, 'dojoin', 'join', 'dojoin')
+    chip.node(flow, 'dojoin', 'builtin', 'join')
     chip.node(flow, 'postjoin', 'fake_in', 'postjoin')
 
     chip.edge(flow, 'prejoin1', 'dojoin')
@@ -52,7 +52,7 @@ def test_check_flowgraph_min():
     chip.set('option', 'flow', flow)
     chip.node(flow, 'premin', 'fake_out', 'premin', index=0)
     chip.node(flow, 'premin', 'fake_out', 'premin', index=1)
-    chip.node(flow, 'domin', 'minimum', 'domin')
+    chip.node(flow, 'domin', 'builtin', 'minimum')
     chip.node(flow, 'postmin', 'fake_in', 'postmin')
 
     chip.edge(flow, 'premin', 'domin', tail_index=0)
@@ -73,7 +73,7 @@ def test_check_flowgraph_min_fail():
     chip.set('option', 'flow', flow)
     chip.node(flow, 'premin', 'fake_out', 'premin', index=0)
     chip.node(flow, 'premin', 'fake_out', 'premin', index=1)
-    chip.node(flow, 'domin', 'minimum', 'domin')
+    chip.node(flow, 'domin', 'builtin', 'minimum')
     chip.node(flow, 'postmin', 'fake_in', 'postmin')
 
     chip.edge(flow, 'premin', 'domin', tail_index=0)

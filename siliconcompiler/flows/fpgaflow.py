@@ -96,7 +96,7 @@ def setup(chip, flowname='fpgaflow'):
     for step,tool,task in flowtools:
         # Flow
         chip.node(flowname, step, tool,task)
-        if step != 'import':
+        if task != 'import':
             chip.edge(flowname, prevstep, step)
         # Hard goals
         for metric in ('errors','warnings','drvs','unconstrained',
