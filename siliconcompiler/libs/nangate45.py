@@ -87,29 +87,28 @@ def setup(chip):
     lib.add('asic', 'cells','endcap', "FILLCELL_X1")
 
     # Techmap
-    lib.add('asic', 'file', 'yosys', 'techmap',
-            libdir + '/techmap/yosys/cells_latch.v')
+    lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
 
     # Defaults for OpenROAD tool variables
-    lib.set('asic', 'var', 'openroad', 'place_density', ['0.35'])
-    lib.set('asic', 'var', 'openroad', 'pad_global_place', ['2'])
-    lib.set('asic', 'var', 'openroad', 'pad_detail_place', ['1'])
-    lib.set('asic', 'var', 'openroad', 'macro_place_halo', ['22.4', '15.12'])
-    lib.set('asic', 'var', 'openroad', 'macro_place_channel', ['18.8', '19.95'])
+    lib.set('option', 'var', 'openroad_place_density', '0.35')
+    lib.set('option', 'var', 'openroad_pad_global_place', '2')
+    lib.set('option', 'var', 'openroad_pad_detail_place', '1')
+    lib.set('option', 'var', 'openroad_macro_place_halo', ['22.4', '15.12'])
+    lib.set('option', 'var', 'openroad_macro_place_channel', ['18.8', '19.95'])
 
-    lib.set('asic', 'file', 'openroad', 'tapcells', libdir + '/apr/openroad/tapcell.tcl')
-    lib.set('asic', 'file', 'openroad', 'pdngen', libdir + '/apr/openroad/pdngen.tcl')
-    lib.set('asic', 'file', 'openroad', 'global_connect', libdir + '/apr/openroad/global_connect.tcl')
+    lib.set('option', 'file', 'openroad_tapcells', libdir + '/apr/openroad/tapcell.tcl')
+    lib.set('option', 'file', 'openroad_pdngen', libdir + '/apr/openroad/pdngen.tcl')
+    lib.set('option', 'file', 'openroad_global_connect', libdir + '/apr/openroad/global_connect.tcl')
 
-    lib.set('asic', 'var', 'yosys', 'driver_cell', "BUF_X4")
-    lib.set('asic', 'var', 'yosys', 'buffer_cell', "BUF_X1")
-    lib.set('asic', 'var', 'yosys', 'buffer_input', "A")
-    lib.set('asic', 'var', 'yosys', 'buffer_output', "Z")
+    lib.set('option', 'var', 'yosys_driver_cell', "BUF_X4")
+    lib.set('option', 'var', 'yosys_buffer_cell', "BUF_X1")
+    lib.set('option', 'var', 'yosys_buffer_input', "A")
+    lib.set('option', 'var', 'yosys_buffer_output', "Z")
     for tool in ('yosys', 'openroad'):
-        lib.set('asic', 'var', tool, 'tiehigh_cell', "LOGIC1_X1")
-        lib.set('asic', 'var', tool, 'tiehigh_port', "Z")
-        lib.set('asic', 'var', tool, 'tielow_cell', "LOGIC0_X1")
-        lib.set('asic', 'var', tool, 'tielow_port', "Z")
+        lib.set('option', 'var', f'{tool}_tiehigh_cell', "LOGIC1_X1")
+        lib.set('option', 'var', f'{tool}_tiehigh_port', "Z")
+        lib.set('option', 'var', f'{tool}_tielow_cell', "LOGIC0_X1")
+        lib.set('option', 'var', f'{tool}_tielow_port', "Z")
 
     chip.import_library(lib)
 

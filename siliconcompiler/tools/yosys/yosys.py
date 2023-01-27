@@ -110,29 +110,29 @@ def setup_asic(chip):
     mainlib = chip.get('asic', 'logiclib')[0]
     for option, value, additional_require in [('flatten', "True", None),
                                               ('autoname', "True", None),
-                                              ('map_adders', "False", ['library', mainlib, 'asic', 'file', tool, 'addermap'])]:
+                                              ('map_adders', "False", ['library', mainlib, 'option', 'file', 'yosys_addermap'])]:
         chip.set('tool', tool, 'task', task, 'var', step, index, option, value, clobber=False)
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, option]))
-        if additional_require is not None and chip.get('tool', tool, 'task', task, 'var', step, index, option)[0] == "True":
+        if additional_require is not None and chip.get('tool', tool, 'task', task, 'var', step, index, option)[0] != "False":
             chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(additional_require))
 
     # copy techmapping from libraries
     for lib in chip.get('asic', 'logiclib') + chip.get('asic', 'macrolib'):
-        if not chip.valid('library', lib, 'asic', 'file', tool, 'techmap'):
+        if not chip.valid('library', lib, 'option', 'file', 'yosys_techmap'):
             continue
-        for techmap in chip.find_files('library', lib, 'asic', 'file', tool, 'techmap'):
+        for techmap in chip.find_files('library', lib, 'option', 'file', 'yosys_techmap'):
             if techmap is None:
                 continue
             chip.add('tool', tool, 'task', task, 'var', step, index, 'techmap', techmap)
 
     # Add conditionally required mainlib variables
-    if chip.valid('library', mainlib, 'asic', 'var', tool, 'buffer_cell'):
-        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'var', tool, 'buffer_input']))
-        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'asic', 'var', tool, 'buffer_output']))
+    if chip.valid('library', mainlib, 'option', 'var', 'yosys_buffer_cell'):
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'option', 'var', 'yosys_buffer_input']))
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'option', 'var', 'yosys_buffer_output']))
 
-    for var0, var1 in [('tiehigh_cell', 'tiehigh_port'), ('tiehigh_cell', 'tiehigh_port')]:
-        key0 = ['library', mainlib, 'asic', 'var', tool, var0]
-        key1 = ['library', mainlib, 'asic', 'var', tool, var1]
+    for var0, var1 in [('yosys_tiehigh_cell', 'yosys_tiehigh_port'), ('yosys_tiehigh_cell', 'yosys_tiehigh_port')]:
+        key0 = ['library', mainlib, 'option', 'var', var0]
+        key1 = ['library', mainlib, 'option', 'var', var1]
         if chip.valid(*key0):
             chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key1))
         if chip.valid(*key1):
@@ -268,8 +268,8 @@ def prepare_synthesis_libraries(chip):
     # this also ensures the liberty files have been decompressed and corrected formatting
     # issues that generally cannot be handled by yosys or yosys-abc
     def get_synthesis_libraries(lib):
-        if chip.valid('library', lib, 'asic', 'file', 'yosys', 'synthesis_libraries'):
-            synthesis_libraries = chip.find_files('library', lib, 'asic', 'file', 'yosys', 'synthesis_libraries')
+        if chip.valid('library', lib, 'option', 'file', 'yosys_synthesis_libraries'):
+            synthesis_libraries = chip.find_files('library', lib, 'option', 'file', 'yosys_synthesis_libraries')
         elif chip.valid('library', lib, 'output', corner, delaymodel):
             synthesis_libraries = chip.find_files('library', lib, 'output', corner, delaymodel)
         else:
@@ -459,8 +459,8 @@ def get_abc_driver(chip):
     if abc_driver is None:
         # get the first driver defined in the logic lib
         for lib in chip.get('asic', 'logiclib'):
-            if chip.valid('library', lib, 'asic', 'var', tool, 'driver_cell') and not abc_driver:
-                abc_driver = chip.get('library', lib, 'asic', 'var', tool, 'driver_cell')[0]
+            if chip.valid('library', lib, 'option', 'var', 'yosys_driver_cell') and not abc_driver:
+                abc_driver = chip.get('library', lib, 'option', 'var', 'yosys_driver_cell')[0]
 
     return abc_driver
 

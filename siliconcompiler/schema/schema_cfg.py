@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.18.0'
+SCHEMA_VERSION = '0.19.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -28,7 +28,8 @@ def scparam(cfg,
             switch=None,
             example=None,
             schelp=None,
-            enum=None):
+            enum=None,
+            pernode='none'):
 
     # 1. decend keypath until done
     # 2. create key if missing
@@ -54,7 +55,8 @@ def scparam(cfg,
                 switch=switch,
                 example=example,
                 schelp=schelp,
-                enum=enum)
+                enum=enum,
+                pernode=pernode)
     else:
 
         # removing leading spaces as if schelp were a docstring
@@ -84,6 +86,9 @@ def scparam(cfg,
         cfg['help'] = schelp
         cfg['signature'] = signature
         cfg['notes'] = notes
+        # none, optional, mandatory
+        cfg['pernode'] = pernode
+        cfg['nodevalue'] = {}
         cfg['set'] = False
 
         if enum is not None:
@@ -2098,14 +2103,42 @@ def schema_option(cfg):
             sctype='str',
             scope='job',
             shorthelp="Environment variables",
-            switch="-env 'key <str>",
+            switch="-env 'key <str>'",
             example=[
             "cli: -env 'PDK_HOME /disk/mypdk'",
-            "api: chip.set('option','env', 'PDK_HOME', '/disk/mypdk')"],
+            "api: chip.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"],
             schelp="""
             Certain tools and reference flows require global environment
             variables to be set. These variables can be managed externally or
             specified through the env variable.""")
+
+    scparam(cfg, ['option', 'var', key],
+            sctype='[str]',
+            scope='job',
+            shorthelp="Custom variables",
+            switch="-var 'key <str>'",
+            example=[
+            "cli: -var 'openroad_place_density 0.4'",
+            "api: chip.set('option', 'var', 'openroad_place_density', '0.4')"],
+            schelp="""
+            List of key/value strings specified. Certain tools and
+            reference flows require special parameters, this
+            should only be used for specifying variables that are
+            not directly supported by the SiliconCompiler schema.""")
+
+    scparam(cfg, ['option', 'file', key],
+            sctype='[file]',
+            scope='job',
+            shorthelp="Custom files",
+            switch="-file 'key <str>'",
+            example=[
+            "cli: -file 'openroad_tapcell ./tapcell.tcl'",
+            "api: chip.set('option', 'file', 'openroad_tapcell', './tapcell.tcl')"],
+            schelp="""
+            List of named files specified. Certain tools and
+            reference flows require special parameters, this
+            parameter should only be used for specifying files that are
+            not directly supported by the schema.""")
 
     scparam(cfg, ['option', 'scpath'],
             sctype='[dir]',
@@ -3049,12 +3082,10 @@ def schema_checklist(cfg):
 def schema_asic(cfg):
     '''ASIC Automated Place and Route Parameters'''
 
-    step = 'default'
-    index = 'default'
-
     scparam(cfg, ['asic', 'logiclib'],
             sctype='[str]',
             scope='job',
+            pernode='optional',
             shorthelp="ASIC: logic libraries",
             switch="-asic_logiclib <str>",
             example=["cli: -asic_logiclib nangate45",
@@ -3085,45 +3116,6 @@ def schema_asic(cfg):
             schelp="""
             Delay model to use for the target libs. Supported values
             are nldm and ccs.""")
-
-    tool = 'default'
-    key = 'default'
-    scparam(cfg, ['asic', 'file', tool, key],
-            sctype='[file]',
-            shorthelp="ASIC: special file",
-            switch="-asic_file 'tool key<file>'",
-            example=[
-                "cli: -asic_file 'yosys presyn ~/presyn.tcl'",
-                "api: chip.set('asic','file','yosys','presyn','~/presyn.tcl')"],
-            schelp="""
-            List of named files specified on a per tool basis.
-            The parameter should only be used for specifying files that are
-            not directly supported by the ASIC schema.""")
-
-    scparam(cfg, ['asic', 'dir', tool, key],
-            sctype='[dir]',
-            shorthelp="ASIC: special directory",
-            switch="-asic_dir 'tool key <dir>'",
-            example=[
-                "cli: -asic_dir 'lib atool db ~/libdb'",
-                "api: chip.set('asic','dir','atool','db','~/libdb')"],
-            schelp="""
-            List of named dirs specified on a per tool basis. The parameter
-            should only be used for specifying dirs that are not directly
-            supported by the ASIC schema.""")
-
-    scparam(cfg, ['asic', 'var', tool, key],
-            sctype='[str]',
-            shorthelp="ASIC: special variable",
-            switch="-asic_variable 'tool key <str>'",
-            example=[
-                "cli: -asic_variable 'xyce modeltype bsim4'",
-                "api: chip.set('asic','var','xyce','modeltype','bsim4')"],
-            schelp="""
-            List of key/value strings specified on a per basis. The parameter
-            should only be used for specifying variables that are
-            not directly supported by the SiliconCompiler PDK schema.""")
-
 
     # TODO: Expand on the exact definitions of these types of cells.
     # minimize typing
