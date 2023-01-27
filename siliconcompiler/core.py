@@ -3633,11 +3633,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             logfile = None
             retcode = run_func(self)
         elif not self.get('option', 'skipall'):
-            cmdlist = self._makecmd(tool, task, step, index)
-            exe_base = os.path.basename(cmdlist[0])
-            cmdstr = ' '.join([exe_base] + cmdlist[1:])
+            cmdlist, printable_cmd, _, cmd_args = self._makecmd(tool, task, step, index)
             self.logger.info('Running in %s', workdir)
-            self.logger.info('%s', cmdstr)
+            self.logger.info('%s', printable_cmd)
             timeout = self.get('flowgraph', flow, step, index, 'timeout')
             logfile = step + '.log'
             if sys.platform in ('darwin', 'linux') and step in self.get('option', 'bkpt'):
@@ -3806,7 +3804,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Make a record if tracking is enabled
         if self.get('option', 'track'):
-            self._make_record(step, index, wall_start, wall_end, version, toolpath, cmdlist[1:])
+            self._make_record(step, index, wall_start, wall_end, version, toolpath, cmd_args)
 
         ##################
         # Save a successful manifest
@@ -4419,6 +4417,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         Constructs a subprocess run command based on eda tool setup.
         Creates a replay script in current directory.
+
+        Returns:
+            runnable command (list)
+            printable command (str)
+            command name (str)
+            command arguments (list)
         '''
 
         fullexe = self._getexe(tool)
@@ -4461,6 +4465,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for key in self.getkeys('tool', tool, 'task', task, 'env', step, index):
                 envvars[key] = self.get('tool', tool, 'task', task, 'env', step, index, key)
 
+        if is_posix:
+            nice = None
+            if self.valid('option', 'nice'):
+                nice = self.get('option', 'nice')
+
+        nice_cmdlist = []
+        if nice:
+            nice_cmdlist = ['nice', '-n', str(nice)]
+        # Seperate variables to be able to display nice name of executable
+        cmd = os.path.basename(cmdlist[0])
+        cmd_args = cmdlist[1:]
+        replay_cmdlist = [*nice_cmdlist, cmd, *cmd_args]
+        cmdlist = [*nice_cmdlist, *cmdlist]
+
         #create replay file
         script_name = 'replay.sh'
         with open(script_name, 'w') as f:
@@ -4470,11 +4488,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for key, val in envvars.items():
                 print(f'{envvar_cmd} {key}="{val}"', file=f)
 
-            replay_cmdlist = [os.path.basename(cmdlist[0])] + cmdlist[1:]
             print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in replay_cmdlist), file=f)
         os.chmod(script_name, 0o755)
 
-        return cmdlist
+        return cmdlist, ' '.join(replay_cmdlist), cmd, cmd_args
 
     #######################################
     def _get_cloud_region(self):

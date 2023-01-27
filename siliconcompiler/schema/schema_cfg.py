@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.17.0'
+SCHEMA_VERSION = '0.18.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -1960,6 +1960,19 @@ def schema_option(cfg):
             userid=<user id>
             secret_key=<secret key used for authentication>
             server=<ipaddr or url>""")
+
+    scparam(cfg, ['option', 'nice'],
+            sctype='int',
+            scope='job',
+            shorthelp="Tool execution scheduling priority",
+            switch="-nice <int>",
+            example=[
+                "cli: -nice 5",
+                "api: chip.set('option','nice',5)"],
+            schelp="""
+            Sets the type of execution priority of each individual flowgraph steps.
+            If the parameter is undefined, nice will not be used. For more information see `Unix 'nice'
+            <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.""")
 
     # Compilation
     scparam(cfg, ['option', 'mode'],
