@@ -48,8 +48,8 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
     layers = cfg['layers']
     expand = [layer for layer in layers if 'layers' in layers[layer]]
     for layer in expand:
-      for i, (name, num) in enumerate(zip(layers[layer, 'names'],
-                                          layers[layer, 'layers'])):
+      for i, (name, num) in enumerate(zip(layers[layer]['names'],
+                                          layers[layer]['layers'])):
         new_layer = copy.deepcopy(layers[layer])
         del new_layer['names']
         new_layer['name'] = name
@@ -119,7 +119,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
             mask = 0
           else:
             mask = int(mask) - 1 # DEF is 1-based indexing
-          layer = cfg[m.group('layer'), opc_type, 'klayout', mask]
+          layer = cfg[m.group('layer')][opc_type]['klayout'][mask]
           xlo = int(m.group('xlo')) / units
           ylo = int(m.group('ylo')) / units
           xhi = int(m.group('xhi')) / units
