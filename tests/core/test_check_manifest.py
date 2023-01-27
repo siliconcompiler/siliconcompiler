@@ -102,7 +102,7 @@ def merge_flow_chip():
     chip = siliconcompiler.Chip('test')
 
     flow = 'test'
-    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'import', 'builtin', 'import')
     chip.node(flow, 'parallel1', 'foo', 'parallel1')
     chip.node(flow, 'parallel2', 'bar', 'parallel2')
     chip.edge(flow, 'import', 'parallel1')
@@ -130,7 +130,7 @@ def test_merged_graph_good(merge_flow_chip):
 def test_merged_graph_good_steplist():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
-    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'import', 'builtin', 'import')
     chip.node(flow, 'parallel1', 'echo', 'parallel1')
     chip.node(flow, 'parallel2', 'echo', 'parallel2')
     chip.node(flow, 'merge', 'echo', 'merge')
@@ -141,7 +141,6 @@ def test_merged_graph_good_steplist():
     chip.edge(flow, 'parallel2', 'merge')
     chip.edge(flow, 'merge', 'export')
     chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, 'import', '0', 'task', 'echo')
     chip.set('flowgraph', flow, 'merge', '0', 'task', 'echo')
     chip.set('flowgraph', flow, 'export', '0', 'task', 'echo')
     chip.set('flowgraph', flow, 'parallel1', '0', 'task', 'echo')
