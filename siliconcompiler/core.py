@@ -789,7 +789,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                  default_valid=default_valid)
 
     ###########################################################################
-    def get(self, *keypath, field='value', job=None):
+    def get(self, *keypath, field='value', job=None, step=None, index=None):
         """
         Returns a schema parameter field.
 
@@ -818,7 +818,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f"Reading from {keypath}. Field = '{field}'")
 
         try:
-            return self.schema.get(*keypath, field=field, job=job)
+            return self.schema.get(*keypath, field=field, job=job, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(str(e))
             return None
@@ -894,7 +894,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return None
 
     ###########################################################################
-    def set(self, *args, field='value', clobber=True):
+    def set(self, *args, field='value', clobber=True, step=None, index=None):
         '''
         Sets a schema parameter field.
 
@@ -928,7 +928,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.setLevel(value)
 
         try:
-            if not self.schema.set(*keypath, value, field=field, clobber=clobber):
+            if not self.schema.set(
+                *keypath, value, field=field, clobber=clobber, step=step, index=index
+            ):
                 # TODO: this message should be pushed down into Schema.set()
                 # once we have a static logger.
                 if clobber:
@@ -958,7 +960,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.debug(f'Failed to clear value for {keypath}: parameter is locked')
 
     ###########################################################################
-    def add(self, *args, field='value'):
+    def add(self, *args, field='value', step=None, index=None):
         '''
         Adds item(s) to a schema parameter list.
 
@@ -986,7 +988,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            if not self.schema.add(*args, field=field):
+            if not self.schema.add(*args, field=field, step=step, index=index):
                 # TODO: this message should be pushed down into Schema.add()
                 # once we have a static logger.
                 self.logger.debug(f'Failed to add value for {keypath}: '
@@ -1826,7 +1828,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
                 schema.write_yaml(fout)
             elif re.search(r'(\.tcl)(\.gz)*$', filepath):
-                schema.write_tcl(fout, prefix="dict set sc_cfg")
+                # TCL only gets values associated with the current node.
+                step = self.get('arg', 'step')
+                index = self.get('arg', 'index')
+                schema.write_tcl(fout, prefix="dict set sc_cfg", step=step, index=index)
             elif is_csv:
                 schema.write_csv(fout)
             else:
@@ -3611,7 +3616,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Write manifest (tool interface) (Don't move this!)
         suffix = self.get('tool', tool, 'format')
         if suffix:
-            pruneopt = bool(suffix!='tcl')
+            pruneopt = (suffix != 'tcl')
             self.write_manifest(f"sc_manifest.{suffix}", prune=pruneopt, abspath=True)
 
         ##################

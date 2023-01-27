@@ -28,7 +28,8 @@ def scparam(cfg,
             switch=None,
             example=None,
             schelp=None,
-            enum=None):
+            enum=None,
+            pernode='none'):
 
     # 1. decend keypath until done
     # 2. create key if missing
@@ -54,7 +55,8 @@ def scparam(cfg,
                 switch=switch,
                 example=example,
                 schelp=schelp,
-                enum=enum)
+                enum=enum,
+                pernode=pernode)
     else:
 
         # removing leading spaces as if schelp were a docstring
@@ -84,6 +86,9 @@ def scparam(cfg,
         cfg['help'] = schelp
         cfg['signature'] = signature
         cfg['notes'] = notes
+        # none, optional, mandatory
+        cfg['pernode'] = pernode
+        cfg['nodevalue'] = {}
         cfg['set'] = False
 
         if enum is not None:
@@ -2964,12 +2969,10 @@ def schema_checklist(cfg):
 def schema_asic(cfg):
     '''ASIC Automated Place and Route Parameters'''
 
-    step = 'default'
-    index = 'default'
-
     scparam(cfg, ['asic', 'logiclib'],
             sctype='[str]',
             scope='job',
+            pernode='optional',
             shorthelp="ASIC: logic libraries",
             switch="-asic_logiclib <str>",
             example=["cli: -asic_logiclib nangate45",
