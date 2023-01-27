@@ -589,11 +589,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         new_schema = module.setup(self)
 
         # TODO: Is this the best way to determine module type? Also, remove chip arg from all but target?
-        if ('pdks.' in module.__name__) or ('flows.' in module.__name__) \
-           or ('checklists.' in module.__name__):
-            # TODO: Update PDK setups to return Chip obj, and _merge_manifest or create 'import_[...]()'
-            module.setup(self)
-        elif 'targets' in module.__name__:
+        if 'targets' in module.__name__:
             self.set('option', 'target', module.__name__[module.__name__.rfind('.')+1:])
         elif 'libs.' in module.__name__:
             lib_name = module.__name__[module.__name__.rfind('.')+1:]
