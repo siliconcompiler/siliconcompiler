@@ -90,14 +90,14 @@ class Schema:
         if field == 'value':
             if cfg['pernode'] == 'mandatory':
                 try:
-                    return cfg['pernode_value'][step][index]
+                    return cfg['nodevalue'][step][index]
                 except KeyError:
                     raise ValueError(f'No value for keypath {keypath} for node {step}{index}')
 
-            if step in cfg['pernode_value'] and index in cfg['pernode_value'][step]:
-                return cfg['pernode_value'][step][index]
-            elif step in cfg['pernode_value']:
-                return cfg['pernode_value'][step]['default']
+            if step in cfg['nodevalue'] and index in cfg['nodevalue'][step]:
+                return cfg['nodevalue'][step][index]
+            elif step in cfg['nodevalue']:
+                return cfg['nodevalue'][step]['default']
             elif not Schema._is_empty(cfg):
                 return cfg['value']
             else:
@@ -147,13 +147,13 @@ class Schema:
 
         if field == 'value':
             if step is not None and index is not None:
-                if step not in cfg['pernode_value']:
-                    cfg['pernode_value'][step] = {}
-                cfg['pernode_value'][step][index] = value
+                if step not in cfg['nodevalue']:
+                    cfg['nodevalue'][step] = {}
+                cfg['nodevalue'][step][index] = value
             elif step is not None:
-                if step not in cfg['pernode_value']:
-                    cfg['pernode_value'][step] = {}
-                cfg['pernode_value'][step]['default'] = value
+                if step not in cfg['nodevalue']:
+                    cfg['nodevalue'][step] = {}
+                cfg['nodevalue'][step]['default'] = value
             else:
                 cfg['value'] = value
             cfg['set'] = True
@@ -204,17 +204,17 @@ class Schema:
 
         if field == 'value':
             if step is not None and index is not None:
-                if step not in cfg['pernode_value']:
-                    cfg['pernode_value'][step] = {}
-                if index not in cfg['pernode_value'][step]:
-                    cfg['pernode_value'][step][index] = []
-                cfg['pernode_value'][step][index].extend(value)
+                if step not in cfg['nodevalue']:
+                    cfg['nodevalue'][step] = {}
+                if index not in cfg['nodevalue'][step]:
+                    cfg['nodevalue'][step][index] = []
+                cfg['nodevalue'][step][index].extend(value)
             elif step is not None:
-                if step not in cfg['pernode_value']:
-                    cfg['pernode_value'][step] = {}
-                if 'default' not in cfg['pernode_value'][step]:
-                    cfg['pernode_value'][step]['default'] = []
-                cfg['pernode_value'][step]['default'].extend(value)
+                if step not in cfg['nodevalue']:
+                    cfg['nodevalue'][step] = {}
+                if 'default' not in cfg['nodevalue'][step]:
+                    cfg['nodevalue'][step]['default'] = []
+                cfg['nodevalue'][step]['default'].extend(value)
             else:
                 cfg['value'].extend(value)
                 cfg['set'] = True
@@ -240,7 +240,7 @@ class Schema:
             return False
 
         cfg['value'] = cfg['defvalue']
-        cfg['pernode_value'] = {}
+        cfg['nodevalue'] = {}
         cfg['set'] = False
 
         return True
@@ -453,7 +453,7 @@ class Schema:
             if isinstance(value, bool): return value
             else: raise TypeError(error_msg('bool'))
 
-        if field in ('pernode_value',):
+        if field in ('nodevalue',):
             if isinstance(value, dict): return value
             else: raise TypeError(f'Invalid value {value} for field {field}: expected dict')
 

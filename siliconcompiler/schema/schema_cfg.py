@@ -88,7 +88,7 @@ def scparam(cfg,
         cfg['notes'] = notes
         # none, optional, mandatory
         cfg['pernode'] = pernode
-        cfg['pernode_value'] = {}
+        cfg['nodevalue'] = {}
         cfg['set'] = False
 
         if enum is not None:
