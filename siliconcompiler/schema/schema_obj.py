@@ -552,7 +552,7 @@ class Schema:
         fout.write(yaml.dump(self.cfg, Dumper=YamlIndentDumper, default_flow_style=False))
 
     ###########################################################################
-    def write_tcl(self, fout, prefix=""):
+    def write_tcl(self, fout, prefix="", step=None, index=None):
         '''
         Prints out schema as TCL dictionary
         '''
@@ -565,7 +565,10 @@ class Schema:
 
         for key in allkeys:
             typestr = self.get(*key, field='type')
-            value = self.get(*key)
+            if self.get(*key, field='pernode') != 'none':
+                value = self.get(*key, step=step, index=index)
+            else:
+                value = self.get(*key)
 
             #create a TCL dict
             keystr = ' '.join(key)

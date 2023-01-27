@@ -1826,7 +1826,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
                 schema.write_yaml(fout)
             elif re.search(r'(\.tcl)(\.gz)*$', filepath):
-                schema.write_tcl(fout, prefix="dict set sc_cfg")
+                # TCL only gets values associated with the current node.
+                step = self.get('arg', 'step')
+                index = self.get('arg', 'index')
+                schema.write_tcl(fout, prefix="dict set sc_cfg", step=step, index=index)
             elif is_csv:
                 schema.write_csv(fout)
             else:
@@ -3611,7 +3614,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Write manifest (tool interface) (Don't move this!)
         suffix = self.get('tool', tool, 'format')
         if suffix:
-            pruneopt = bool(suffix!='tcl')
+            pruneopt = (suffix != 'tcl')
             self.write_manifest(f"sc_manifest.{suffix}", prune=pruneopt, abspath=True)
 
         ##################
