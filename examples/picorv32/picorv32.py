@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import importlib
 import os
 import siliconcompiler
 
@@ -17,7 +18,8 @@ def rtl2gds(design='picorv32',
     chip = siliconcompiler.Chip(design)
 
     # SETUP
-    chip.load_target(target)
+    target_module = importlib.import_module(f'targets.{target}')
+    chip.use(target_module)
     rootdir = os.path.dirname(__file__)
     if rtl is None:
         chip.input(os.path.join(rootdir, f"{design}.v"))

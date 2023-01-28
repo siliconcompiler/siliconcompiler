@@ -1,9 +1,9 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import siliconcompiler
-
 import os
 import multiprocessing
+import siliconcompiler
+from siliconcompiler.targets import freepdk45_demo
 
 # Setting up the experiment
 
@@ -18,7 +18,7 @@ def run_design(rootdir, design, N, job):
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
     chip.set('option', 'steplist', ['import', 'syn'])
-    chip.load_target('freepdk45_demo')
+    chip.use(freepdk45_demo)
     chip.run()
     #chip.summary()
 

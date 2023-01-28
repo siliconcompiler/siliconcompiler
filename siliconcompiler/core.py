@@ -573,113 +573,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         """
 
-        self.set('option', 'target', name)
-
-        func = self.find_function(name, 'setup', 'targets')
-        if func is not None:
-            func(self)
-        else:
-            self.error(f'Target module {name} not found in $SCPATH or siliconcompiler/targets/.')
-
-    ##########################################################################
-    def load_pdk(self, name):
-        """
-        Loads a PDK module and runs the setup() function.
-
-        The function searches the $SCPATH for pdks/<name>.py and runs
-        the setup function in that module if found.
-
-        Args:
-            name (str): Module name
-
-        Examples:
-            >>> chip.load_pdk('freepdk45_pdk')
-            Loads the 'freepdk45' pdk
-
-        """
-
-        func = self.find_function(name, 'setup', 'pdks')
-        if func is not None:
-            self.logger.info(f"Loading PDK '{name}'")
-            self._loaded_modules['pdks'].append(name)
-            func(self)
-        else:
-            self.error(f'PDK module {name} not found in $SCPATH or siliconcompiler/pdks/.')
-
-    ##########################################################################
-    def load_flow(self, name):
-        """
-        Loads a flow  module and runs the setup() function.
-
-        The function searches the $SCPATH for flows/<name>.py and runs
-        the setup function in that module if found.
-
-        Args:
-            name (str): Module name
-
-        Examples:
-            >>> chip.load_flow('asicflow')
-            Loads the 'asicflow' flow
-
-        """
-
-        func = self.find_function(name, 'setup', 'flows')
-        if func is not None:
-            self.logger.info(f"Loading flow '{name}'")
-            self._loaded_modules['flows'].append(name)
-            func(self)
-        else:
-            self.error(f'Flow module {name} not found in $SCPATH or siliconcompiler/flows/.')
-
-    ##########################################################################
-    def load_lib(self, name):
-        """
-        Loads a library module and runs the setup() function.
-
-        The function searches the $SCPATH for libs/<name>.py and runs
-        the setup function in that module if found.
-
-        Args:
-            name (str): Module name
-
-        Examples:
-            >>> chip.load_lib('nangate45')
-            Loads the 'nangate45' library
-
-        """
-
-        func = self.find_function(name, 'setup', 'libs')
-        if func is not None:
-            self.logger.info(f"Loading library '{name}'")
-            self._loaded_modules['libs'].append(name)
-            func(self)
-        else:
-            self.error(f'Library module {name} not found in $SCPATH or siliconcompiler/libs/.')
-
-    ##########################################################################
-    def load_checklist(self, name):
-        """
-        Loads a checklist module and runs the setup() function.
-
-        The function searches the $SCPATH for checklist/<name>/<name>.py and runs
-        the setup function in that module if found.
-
-        Args:
-            name (str): Module name
-
-        Examples:
-            >>> chip.load_checklist('oh_tapeout')
-            Loads the 'oh_tapeout' checklist
-
-        """
-
-        func = self.find_function(name, 'setup', 'checklists')
-        if func is not None:
-            self.logger.info(f"Loading checklist '{name}'")
-            self._loaded_modules['checklists'].append(name)
-            func(self)
-        else:
-            self.error(f'Checklist module {name} not found in $SCPATH or siliconcompiler/checklists/.')
+        # TODO: Blergh, this method is called from a whole bunch of tests.
+        target_module = importlib.import_module(f'targets.{name}')
+        self.use(target_module)
 
     ##########################################################################
     def use(self, module):
@@ -688,8 +584,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         a module.setup() method.
         '''
 
-        self.import_library(module.setup())
+        # Call the module setup function.
+        # TODO: Move from 'module.setup(self)' to 'self.[merge](module.setup())'
+        new_schema = module.setup(self)
 
+        # TODO: Is this the best way to determine module type? Also, remove chip arg from all but target?
+        if 'targets' in module.__name__:
+            self.set('option', 'target', module.__name__[module.__name__.rfind('.')+1:])
+        elif 'libs.' in module.__name__:
+            lib_name = module.__name__[module.__name__.rfind('.')+1:]
+            self._loaded_modules['libs'].append(lib_name)
+            # TODO: Stdcell libs may call 'import_library' of their own volition, and not return a Chip.
+            if new_schema:
+                self.import_library(module.setup(self))
 
     ###########################################################################
     def list_metrics(self):
@@ -4369,7 +4276,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             stepname = 'screenshot'
 
         try:
-            self.load_flow('showflow')
+            from flows import showflow
+            self.use(showflow)
         except:
             # restore environment
             self.schema = saved_config

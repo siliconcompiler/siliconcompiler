@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import importlib
 import os
 import siliconcompiler
 
@@ -17,7 +18,8 @@ def rtl2gds(design='aes',
     chip = siliconcompiler.Chip(design)
 
     # TARGET
-    chip.load_target(target)
+    target_module = importlib.import_module(f'targets.{target}')
+    chip.use(target_module)
 
     # FLOW OVERLOAD
     rootdir = os.path.dirname(__file__)

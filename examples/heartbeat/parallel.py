@@ -6,6 +6,8 @@ import multiprocessing
 import siliconcompiler
 import time
 
+from siliconcompiler.targets import freepdk45_demo
+
 # Shared setup routine
 def run_design(design, M, job):
 
@@ -18,7 +20,7 @@ def run_design(design, M, job):
     chip.set('arg', 'flow','place_np', str(M))
     chip.set('arg', 'flow','cts_np', str(M))
     chip.set('arg', 'flow','route_np', str(M))
-    chip.load_target("freepdk45_demo")
+    chip.use(freepdk45_demo)
     chip.run()
 
 def main():
