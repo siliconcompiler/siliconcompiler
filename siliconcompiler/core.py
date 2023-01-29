@@ -588,6 +588,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # TODO: Move from 'module.setup(self)' to 'self.[merge](module.setup())'
         new_schema = module.setup(self)
 
+        # Process new values based on Schema sub-type.
+        # TODO: Remove 'chip' refs in setup() signature once all import types are converted.
+        if isinstance(new_schema, PDKSchema):
+            self._merge_manifest(new_schema)
+
         # TODO: Is this the best way to determine module type? Also, remove chip arg from all but target?
         if 'targets' in module.__name__:
             self.set('option', 'target', module.__name__[module.__name__.rfind('.')+1:])
