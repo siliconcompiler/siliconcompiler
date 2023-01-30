@@ -219,6 +219,9 @@ set openroad_cts_cluster_diameter [lindex [dict get $sc_cfg tool $sc_tool task $
 set openroad_cts_cluster_size [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index cts_cluster_size] 0]
 set openroad_cts_balance_levels [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index cts_balance_levels] 0]
 
+set openroad_ant_iterations [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ant_iterations] 0]
+set openroad_ant_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ant_margin] 0]
+
 set openroad_grt_use_pin_access [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_use_pin_access] 0]
 set openroad_grt_overflow_iter [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_overflow_iter] 0]
 set openroad_grt_macro_extension [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_macro_extension] 0]
