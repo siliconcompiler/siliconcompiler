@@ -2,7 +2,7 @@ import pytest
 import os
 import re
 
-from siliconcompiler.core import Chip
+from siliconcompiler.core.chip import Chip
 from siliconcompiler.floorplan import Floorplan
 
 def _fp(datadir):

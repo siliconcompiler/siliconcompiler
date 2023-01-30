@@ -1,6 +1,6 @@
 import pytest
 
-from siliconcompiler.core import SiliconCompilerError
+from siliconcompiler.core.error import SiliconCompilerError
 from siliconcompiler.schema import Schema
 from siliconcompiler.schema.schema_cfg import scparam
 
