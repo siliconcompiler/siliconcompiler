@@ -62,30 +62,32 @@ def setup(chip):
 
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
+    pdk = siliconcompiler.PDK()
+
     # process name
-    chip.set('pdk', process, 'foundry', foundry)
-    chip.set('pdk', process, 'node', node)
-    chip.set('pdk', process, 'version', rev)
-    chip.set('pdk', process, 'stackup', stackup)
-    chip.set('pdk', process, 'wafersize', wafersize)
-    chip.set('pdk', process, 'edgemargin', edgemargin)
-    chip.set('pdk', process, 'hscribe', hscribe)
-    chip.set('pdk', process, 'vscribe', vscribe)
-    chip.set('pdk', process, 'd0', d0)
+    pdk.set('pdk', process, 'foundry', foundry)
+    pdk.set('pdk', process, 'node', node)
+    pdk.set('pdk', process, 'version', rev)
+    pdk.set('pdk', process, 'stackup', stackup)
+    pdk.set('pdk', process, 'wafersize', wafersize)
+    pdk.set('pdk', process, 'edgemargin', edgemargin)
+    pdk.set('pdk', process, 'hscribe', hscribe)
+    pdk.set('pdk', process, 'vscribe', vscribe)
+    pdk.set('pdk', process, 'd0', d0)
 
     # APR Setup
     for tool in ('openroad', 'klayout', 'magic'):
-        chip.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
+        pdk.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
                  pdkdir+'/apr/freepdk45.tech.lef')
 
-    chip.set('pdk', process, 'minlayer', stackup, 'metal1')
-    chip.set('pdk', process, 'maxlayer', stackup, 'metal10')
+    pdk.set('pdk', process, 'minlayer', stackup, 'metal1')
+    pdk.set('pdk', process, 'maxlayer', stackup, 'metal10')
 
     # Klayout setup file
-    chip.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup,
+    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup,
              pdkdir+'/setup/klayout/freepdk45.lyt')
 
-    chip.set('pdk', process, 'display', 'klayout', stackup,
+    pdk.set('pdk', process, 'display', 'klayout', stackup,
             pdkdir + '/setup/klayout/freepdk45.lyp')
 
     # Openroad global routing grid derating
@@ -102,17 +104,19 @@ def setup(chip):
         'metal10': 0.4
     }
     for layer, adj in openroad_layer_adjustments.items():
-        chip.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
+        pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
-    chip.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'metal3')
-    chip.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'metal5')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'metal3')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'metal5')
 
-    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'metal2')
-    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'metal3')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'metal2')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'metal3')
 
     # PEX
-    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
+    pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
+
+    return pdk
 
 #########################
 if __name__ == "__main__":

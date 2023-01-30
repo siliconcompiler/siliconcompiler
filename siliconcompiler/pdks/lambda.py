@@ -9,7 +9,7 @@ import siliconcompiler
 # PDK Setup
 ####################################################
 
-def setup_pdk(chip):
+def setup(chip):
     '''
     Setup package for the scalable lambda technology.
     The lambda technology uses the technology node to
@@ -21,10 +21,12 @@ def setup_pdk(chip):
     # Process
     ###############################################
 
+    pdk = siliconcompiler.PDK()
+
     # Process details
-    chip.set('pdk','foundry', 'virtual')
-    chip.set('pdk','process', 'lambda')
-    chip.set('pdk','version', 'r1p0')
+    pdk.set('pdk','foundry', 'virtual')
+    pdk.set('pdk','process', 'lambda')
+    pdk.set('pdk','version', 'r1p0')
 
     #User arguments
     if 'node' in chip.getkeys('techarg'):
@@ -34,8 +36,8 @@ def setup_pdk(chip):
         node = 45
         stackup = "M10"
 
-    chip.set('pdk','node', node)
-    chip.set('pdk','stackup', stackup)
+    pdk.set('pdk','node', node)
+    pdk.set('pdk','stackup', stackup)
 
     # Wafer Size
     if node > 130:
@@ -47,16 +49,16 @@ def setup_pdk(chip):
     # DPW Settings
     ##################
 
-    chip.set('pdk','edgemargin', 2)
-    chip.set('pdk','hscribe', 0.1)
-    chip.set('pdk','vscribe', 0.1)
-    chip.set('pdk','d0', 1.25)
+    pdk.set('pdk','edgemargin', 2)
+    pdk.set('pdk','hscribe', 0.1)
+    pdk.set('pdk','vscribe', 0.1)
+    pdk.set('pdk','d0', 1.25)
 
     # LUT + interpolation
     tapmax = 100
     tapoffset = 0
-    chip.set('pdk','tapmax', tapmax)
-    chip.set('pdk','tapoffset', tapoffset)
+    pdk.set('pdk','tapmax', tapmax)
+    pdk.set('pdk','tapoffset', tapoffset)
 
     ##################
     # APR Settings

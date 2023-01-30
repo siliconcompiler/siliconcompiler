@@ -60,23 +60,25 @@ def setup(chip):
     libtype = '7p5t'
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
+    pdk = siliconcompiler.PDK()
+
     # process name
-    chip.set('pdk', process, 'foundry', foundry)
-    chip.set('pdk', process, 'node', node)
-    chip.set('pdk', process, 'wafersize', wafersize)
-    chip.set('pdk', process, 'version', rev)
-    chip.set('pdk', process, 'stackup', stackup)
+    pdk.set('pdk', process, 'foundry', foundry)
+    pdk.set('pdk', process, 'node', node)
+    pdk.set('pdk', process, 'wafersize', wafersize)
+    pdk.set('pdk', process, 'version', rev)
+    pdk.set('pdk', process, 'stackup', stackup)
 
     # APR tech file
     for tool in ('openroad', 'klayout', 'magic'):
-        chip.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
+        pdk.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
                  pdkdir+'/apr/asap7_tech.lef')
 
-    chip.set('pdk', process, 'minlayer', stackup, 'M2')
-    chip.set('pdk', process, 'maxlayer', stackup, 'M7')
+    pdk.set('pdk', process, 'minlayer', stackup, 'M2')
+    pdk.set('pdk', process, 'maxlayer', stackup, 'M7')
 
     # Klayout setup file
-    chip.set('pdk', process, 'layermap','klayout','def','gds',stackup,
+    pdk.set('pdk', process, 'layermap','klayout','def','gds',stackup,
              pdkdir+'/setup/klayout/asap7.lyt')
 
     # Openroad global routing grid derating
@@ -92,16 +94,16 @@ def setup(chip):
         'M9': 0.4
     }
     for layer, adj in openroad_layer_adjustments.items():
-        chip.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
+        pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
-    chip.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'M3')
-    chip.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'M5')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'M3')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'M5')
 
-    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'M5')
-    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'M4')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'M5')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'M4')
 
     # PEX
-    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
+    pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
 
 #########################
