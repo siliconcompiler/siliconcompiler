@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import siliconcompiler
+from siliconcompiler.schema import PDKSchema
 
 def make_docs():
     '''
@@ -60,24 +61,26 @@ def setup(chip):
     libtype = '7p5t'
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
+    schema = PDKSchema()
+
     # process name
-    chip.set('pdk', process, 'foundry', foundry)
-    chip.set('pdk', process, 'node', node)
-    chip.set('pdk', process, 'wafersize', wafersize)
-    chip.set('pdk', process, 'version', rev)
-    chip.set('pdk', process, 'stackup', stackup)
+    schema.set('pdk', process, 'foundry', foundry)
+    schema.set('pdk', process, 'node', node)
+    schema.set('pdk', process, 'wafersize', wafersize)
+    schema.set('pdk', process, 'version', rev)
+    schema.set('pdk', process, 'stackup', stackup)
 
     # APR tech file
     for tool in ('openroad', 'klayout', 'magic'):
-        chip.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
+        schema.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
                  pdkdir+'/apr/asap7_tech.lef')
 
-    chip.set('pdk', process, 'minlayer', stackup, 'M2')
-    chip.set('pdk', process, 'maxlayer', stackup, 'M7')
+    schema.set('pdk', process, 'minlayer', stackup, 'M2')
+    schema.set('pdk', process, 'maxlayer', stackup, 'M7')
 
     # Klayout setup file
-    chip.set('pdk', process, 'layermap','klayout','def','gds',stackup,
-             pdkdir+'/setup/klayout/asap7.lyt')
+    schema.set('pdk', process, 'layermap','klayout','def','gds',stackup,
+               pdkdir+'/setup/klayout/asap7.lyt')
 
     # Openroad global routing grid derating
     openroad_layer_adjustments = {
@@ -92,17 +95,19 @@ def setup(chip):
         'M9': 0.4
     }
     for layer, adj in openroad_layer_adjustments.items():
-        chip.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
+        schema.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
-    chip.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'M3')
-    chip.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'M5')
+    schema.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'M3')
+    schema.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'M5')
 
-    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'M5')
-    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'M4')
+    schema.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'M5')
+    schema.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'M4')
 
     # PEX
-    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
-        pdkdir + '/pex/openroad/typical.tcl')
+    schema.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
+               pdkdir + '/pex/openroad/typical.tcl')
+
+    return schema
 
 #########################
 if __name__ == "__main__":
