@@ -335,6 +335,15 @@ if { $sc_step == "show" || $sc_step == "screenshot" } {
 
   report_units_metric
 
+  utl::set_metrics_stage "sc__prestep__{}"
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task prescript $sc_step $sc_index]} {
+    foreach sc_pre_script [dict get $sc_cfg tool $sc_tool task $sc_task prescript $sc_step $sc_index] {
+      puts "Sourcing pre script: ${sc_pre_script}"
+      source -echo $sc_pre_script
+    }
+  }
+  utl::pop_metrics_stage
+
   utl::set_metrics_stage "sc__step__{}"
   if { [llength $openroad_dont_touch] > 0} {
     # set don't touch list
@@ -346,6 +355,15 @@ if { $sc_step == "show" || $sc_step == "screenshot" } {
   if { [llength $openroad_dont_touch] > 0} {
     # unset for next step
     unset_dont_touch $openroad_dont_touch
+  }
+  utl::pop_metrics_stage
+
+  utl::set_metrics_stage "sc__poststep__{}"
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task postscript $sc_step $sc_index]} {
+    foreach sc_post_script [dict get $sc_cfg tool $sc_tool task $sc_task postscript $sc_step $sc_index] {
+      puts "Sourcing post script: ${sc_post_script}"
+      source -echo $sc_post_script
+    }
   }
   utl::pop_metrics_stage
 
