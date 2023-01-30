@@ -182,10 +182,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
 
     ###########################################################################
-    def _get_switches(self, *keypath):
+    def _get_switches(self, schema, *keypath):
         '''Helper function for parsing switches and metavars for a keypath.'''
         #Switch field fully describes switch format
-        switch = self.get(*keypath, field='switch')
+        switch = schema.get(*keypath, field='switch')
 
         if switch is None:
             switches = []
@@ -270,19 +270,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                          formatter_class=argparse.RawDescriptionHelpFormatter,
                                          description=description)
 
-        # Get all keys from global dictionary or override at command line
-        allkeys = self.allkeys()
+        # Get a new schema, incase values have already been set
+        schema = Schema()
 
-        # Iterate over all keys to add parser arguments
-        for keypath in allkeys:
+        # Iterate over all keys from an empty schema to add parser arguments
+        for keypath in schema.allkeys():
             #Fetch fields from leaf cell
-            helpstr = self.get(*keypath, field='shorthelp')
-            typestr = self.get(*keypath, field='type')
+            helpstr = schema.get(*keypath, field='shorthelp')
+            typestr = schema.get(*keypath, field='type')
 
             # argparse 'dest' must be a string, so join keypath with commas
             dest = '_'.join(keypath)
 
-            switchstrs, metavar = self._get_switches(*keypath)
+            switchstrs, metavar = self._get_switches(schema, *keypath)
 
             # Three switch types (bool, list, scalar)
             if not switchlist or any(switch in switchlist for switch in switchstrs):
@@ -352,8 +352,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         print("Version:", _metadata.version, "\n")
         print("-"*80)
 
-        os.environ["COLUMNS"] = '80'
-
         # 1. set loglevel if set at command line
         if 'option_loglevel' in cmdargs.keys():
             self.logger.setLevel(cmdargs['option_loglevel'])
@@ -401,7 +399,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if len(item.split(' ')) < num_free_keys + 1:
                     # Error out if value provided doesn't have enough words to
                     # fill in 'default' keys.
-                    switches, metavar = self._get_switches(*keypath)
+                    switches, metavar = self._get_switches(schema, *keypath)
                     switchstr = '/'.join(switches)
                     self.error(f'Invalid value {item} for switch {switchstr}. Expected format {metavar}.', fatal=True)
 
@@ -413,7 +411,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 # Storing in manifest
                 self.logger.info(f"Command line argument entered: {args} Value: {val}")
-                typestr = self.get(*keypath, field='type')
+                typestr = schema.get(*keypath, field='type')
                 if typestr.startswith('['):
                     if self.valid(*args):
                         self.add(*args, val)
