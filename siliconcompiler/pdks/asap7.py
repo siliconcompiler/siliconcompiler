@@ -106,6 +106,8 @@ def setup(chip):
     pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
 
+    return pdk
+
 #########################
 if __name__ == "__main__":
 
