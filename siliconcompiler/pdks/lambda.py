@@ -82,6 +82,8 @@ def setup_pdk(chip):
     # Methodology (TBD)
     ###############################################
 
+    return schema
+
 #########################
 if __name__ == "__main__":
 
