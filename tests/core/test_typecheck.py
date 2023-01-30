@@ -25,15 +25,15 @@ def test_scalar_to_list_access(chip):
 
 def test_illegal_key(chip):
     #check illegal key (expected error)
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.set('badquery', 'top')
 
 def test_error_scalar_add(chip):
     #check error on scalar add
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.add('design', 'top')
 
 def test_error_assign_list(chip):
     #check assigning list to scalar
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.set('design', ['top'])

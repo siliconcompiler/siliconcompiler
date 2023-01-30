@@ -81,22 +81,22 @@ def test_set_field_bool():
 
 def test_getkeys_invalid_field():
     chip = siliconcompiler.Chip('test')
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.getkeys('option', None)
 
 def test_add_invalid_field():
     chip = siliconcompiler.Chip('test')
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.add('option', None, 'test_val')
 
 def test_set_invalid_field():
     chip = siliconcompiler.Chip('test')
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.set('option', None, 'test_val')
 
 def test_get_invalid_field():
     chip = siliconcompiler.Chip('test')
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.get('option', None)
 
 def test_get_invalid_field_continue():

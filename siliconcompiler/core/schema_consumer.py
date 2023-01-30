@@ -1,5 +1,6 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import logging
+import textwrap
 import uuid
 
 from siliconcompiler.schema import Schema, SCHEMA_VERSION

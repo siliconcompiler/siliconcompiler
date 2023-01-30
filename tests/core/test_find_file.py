@@ -19,7 +19,7 @@ def test_find_sc_file(datadir):
 
     assert chip._find_sc_file('my_file_that_doesnt_exist.blah', missing_ok=True) is None
 
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         assert chip._find_sc_file('my_file_that_doesnt_exist.blah') is None
 
 def test_find_sc_file_env(datadir):
