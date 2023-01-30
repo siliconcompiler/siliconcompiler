@@ -4,10 +4,10 @@
 #######################
 
 set openroad_gpl_args []
-if {$openroad_gpl_routability_driven == "True"} {
+if {$openroad_gpl_routability_driven == "true"} {
   lappend openroad_gpl_args "-routability_driven"
 }
-if {$openroad_gpl_timing_driven == "True"} {
+if {$openroad_gpl_timing_driven == "true"} {
   lappend openroad_gpl_args "-timing_driven"
 }
 
@@ -30,6 +30,7 @@ if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_
 }
 if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints]} {
   foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints] {
+    puts "Sourcing pin constraints: ${pin_constraint}"
     source $pin_constraint
   }
 }
@@ -42,18 +43,18 @@ place_pins -hor_layers $sc_hpinmetal \
 
 estimate_parasitics -placement
 
-if {$openroad_rsz_buffer_inputs == "True"} {
+if {$openroad_rsz_buffer_inputs == "true"} {
   buffer_ports -inputs
 }
-if {$openroad_rsz_buffer_outputs == "True"} {
+if {$openroad_rsz_buffer_outputs == "true"} {
   buffer_ports -outputs
 }
 
 set repair_design_args []
-if {$openroad_rsz_cap_margin != "False"} {
+if {$openroad_rsz_cap_margin != "false"} {
   lappend repair_design_args "-cap_margin" $openroad_rsz_cap_margin
 }
-if {$openroad_rsz_slew_margin != "False"} {
+if {$openroad_rsz_slew_margin != "false"} {
   lappend repair_design_args "-slew_margin" $openroad_rsz_slew_margin
 }
 repair_design {*}$repair_design_args
@@ -78,7 +79,7 @@ set_placement_padding -global \
 
 detailed_placement -max_displacement $openroad_dpl_max_displacement
 
-if { $openroad_dpo_enable == "True" } {
+if { $openroad_dpo_enable == "true" } {
   improve_placement -max_displacement $openroad_dpo_max_displacement
 }
 
