@@ -3,7 +3,6 @@
 import os
 import re
 import siliconcompiler
-from siliconcompiler.targets import freepdk45
 
 def main():
     # Setting up the experiment
@@ -19,7 +18,7 @@ def main():
     chip.set('option', 'param', 'N', str(N))
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
-    chip.use(freepdk45_demo)
+    chip.load_target("freepdk45_demo")
 
     # First run (import + run)
     steplist = ['import', 'syn']
