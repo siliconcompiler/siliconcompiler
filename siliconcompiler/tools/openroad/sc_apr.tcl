@@ -118,6 +118,7 @@ foreach lib "$sc_targetlibs $sc_macrolibs" {
   foreach corner $sc_corners {
     if {[dict exists $sc_cfg library $lib output $corner $sc_delaymodel]} {
       foreach lib_file [dict get $sc_cfg library $lib output $corner $sc_delaymodel] {
+        puts "Reading liberty file for ${corner}: ${lib_file}"
         read_liberty -corner $corner $lib_file
       }
     }
@@ -126,14 +127,18 @@ foreach lib "$sc_targetlibs $sc_macrolibs" {
 
 if {[file exists "inputs/$sc_design.odb"]} {
   # read ODB
-  read_db "inputs/$sc_design.odb"
+  set odb_file "inputs/$sc_design.odb"
+  puts "Reading ODB: ${odb_file}"
+  read_db $odb_file
 } else {
   # Read techlef
-  read_lef  $sc_techlef
+  puts "Reading techlef: ${sc_techlef}"
+  read_lef $sc_techlef
 
   # Read Lefs
   foreach lib "$sc_targetlibs $sc_macrolibs" {
     foreach lef_file [dict get $sc_cfg library $lib output $sc_stackup lef] {
+      puts "Reading lef: ${lef_file}"
       read_lef $lef_file
     }
   }
@@ -142,20 +147,24 @@ if {[file exists "inputs/$sc_design.odb"]} {
     # Read Verilog
     if {[dict exists $sc_cfg input netlist verilog]} {
       foreach netlist [dict get $sc_cfg input netlist verilog] {
+        puts "Reading netlist verilog: ${netlist}"
         read_verilog $netlist
       }
     } else {
-      read_verilog "inputs/$sc_design.vg"
+      puts "Reading netlist verilog: inputs/${sc_design}.vg"
+      read_verilog "inputs/${sc_design}.vg"
     }
     link_design $sc_design
   } else {
     # Read DEF
-    if {[file exists "inputs/$sc_design.def"]} {
+    if {[file exists "inputs/${sc_design}.def"]} {
       # get from previous step
-      read_def "inputs/$sc_design.def"
+      puts "Reading DEF: inputs/${sc_design}.def"
+      read_def "inputs/${sc_design}.def"
     } elseif {[dict exists $sc_cfg input layout def]} {
       # Floorplan initialize handled separately in sc_floorplan.tcl
       set sc_def [lindex [dict get $sc_cfg input layout def] 0]
+      puts "Reading DEF: ${sc_def}"
       read_def $sc_def
     }
   }
@@ -163,16 +172,20 @@ if {[file exists "inputs/$sc_design.odb"]} {
 
 # Read SDC (in order of priority)
 # TODO: add logic for reading from ['constraint', ...] once we support MCMM
-if {[file exists "inputs/$sc_design.sdc"]} {
+if {[file exists "inputs/${sc_design}.sdc"]} {
   # get from previous step
-  read_sdc "inputs/$sc_design.sdc"
+  puts "Reading SDC: inputs/${sc_design}.sdc"
+  read_sdc "inputs/${sc_design}.sdc"
 } elseif {[dict exists $sc_cfg input constraint sdc]} {
   foreach sdc [dict get $sc_cfg input constraint sdc] {
     # read step constraint if exists
+    puts "Reading SDC: ${sdc}"
     read_sdc $sdc
   }
 } else {
   # fall back on default auto generated constraints file
+  puts "Reading SDC: ${sc_refdir}/sc_constraints.sdc"
+  utl::warn FLW 1 "Defaulting back to default SDC"
   read_sdc "${sc_refdir}/sc_constraints.sdc"
 }
 
@@ -205,6 +218,9 @@ set openroad_cts_distance_between_buffers [lindex [dict get $sc_cfg tool $sc_too
 set openroad_cts_cluster_diameter [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index cts_cluster_diameter] 0]
 set openroad_cts_cluster_size [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index cts_cluster_size] 0]
 set openroad_cts_balance_levels [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index cts_balance_levels] 0]
+
+set openroad_ant_iterations [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ant_iterations] 0]
+set openroad_ant_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ant_margin] 0]
 
 set openroad_grt_use_pin_access [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_use_pin_access] 0]
 set openroad_grt_overflow_iter [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_overflow_iter] 0]
@@ -274,6 +290,10 @@ if {$openroad_sta_late_timing_derate != 0.0} {
 # This produces a segfault on sky130
 #check_setup
 
+if { [llength [all_clocks]] == 0} {
+  utl::warn FLW 1 "No clocks defined."
+}
+
 set_dont_use $sc_dontuse
 
 set sc_parasitics [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index parasitics] 0]
@@ -318,6 +338,15 @@ if { $sc_step == "show" || $sc_step == "screenshot" } {
 
   report_units_metric
 
+  utl::set_metrics_stage "sc__prestep__{}"
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task prescript $sc_step $sc_index]} {
+    foreach sc_pre_script [dict get $sc_cfg tool $sc_tool task $sc_task prescript $sc_step $sc_index] {
+      puts "Sourcing pre script: ${sc_pre_script}"
+      source -echo $sc_pre_script
+    }
+  }
+  utl::pop_metrics_stage
+
   utl::set_metrics_stage "sc__step__{}"
   if { [llength $openroad_dont_touch] > 0} {
     # set don't touch list
@@ -329,6 +358,15 @@ if { $sc_step == "show" || $sc_step == "screenshot" } {
   if { [llength $openroad_dont_touch] > 0} {
     # unset for next step
     unset_dont_touch $openroad_dont_touch
+  }
+  utl::pop_metrics_stage
+
+  utl::set_metrics_stage "sc__poststep__{}"
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task postscript $sc_step $sc_index]} {
+    foreach sc_post_script [dict get $sc_cfg tool $sc_tool task $sc_task postscript $sc_step $sc_index] {
+      puts "Sourcing post script: ${sc_post_script}"
+      source -echo $sc_post_script
+    }
   }
   utl::pop_metrics_stage
 

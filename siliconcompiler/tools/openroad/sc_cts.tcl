@@ -10,7 +10,7 @@ if {[llength [all_clocks]] > 0} {
   repair_clock_inverters
 
   set sc_cts_arguments []
-  if {$openroad_cts_balance_levels == "True"} {
+  if {$openroad_cts_balance_levels == "true"} {
     lappend sc_cts_arguments "-balance_levels"
   }
 

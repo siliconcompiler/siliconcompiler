@@ -20,6 +20,7 @@ proc design_has_unplaced_macros {} {
 
 if {[dict exists $sc_cfg input asic floorplan]} {
   set def [lindex [dict get $sc_cfg input asic floorplan] 0]
+  puts "Reading floorplan DEF: ${def}"
   read_def -floorplan_initialize $def
 } else {
   #NOTE: assuming a two tuple value as lower left, upper right
@@ -48,7 +49,9 @@ if {[dict exists $sc_cfg input asic floorplan]} {
 
 # source tracks from file if found, else else use schema entries
 if {[dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks]} {
-  source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks]]
+  set tracks_file [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks]]
+  puts "Sourcing tracks configuration: ${tracks_file}"
+  source $tracks_file
 } else {
   make_tracks
 }
@@ -77,6 +80,7 @@ if { 0 } {
   }
   if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints]} {
     foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints] {
+      puts "Sourcing pin constraints: ${pin_constraint}"
       source $pin_constraint
     }
   }
@@ -164,7 +168,9 @@ foreach tie_type "high low" {
 ###########################
 
 if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ifp_tapcell] } {
-  source [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ifp_tapcell] 0]
+  set tapcell_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ifp_tapcell] 0]
+  puts "Sourcing tapcell file: ${tapcell_file}"
+  source $tapcell_file
 }
 
 ###########################
@@ -173,6 +179,7 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index i
 
 if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index global_connect] } {
   foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index global_connect] {
+    puts "Sourcing global connect configuration: ${global_connect}"
     source $global_connect
   }
 }
@@ -181,9 +188,10 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index g
 # Power Network
 ###########################
 
-if {$openroad_pdn_enable == "True" && \
+if {$openroad_pdn_enable == "true" && \
     [dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index pdn_config]} {
   foreach pdnconfig [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index pdn_config] {
+    puts "Sourcing PDNGEN configuration: ${pdnconfig}"
     source $pdnconfig
   }
   pdngen -failed_via_report "reports/${sc_design}_pdngen_failed_vias.rpt"
@@ -200,7 +208,7 @@ foreach net [[ord::get_db_block] getNets] {
     if { ![$net isSpecial] } {
       utl::warn FLW 1 "$net_name is marked as a supply net, but is not marked as a special net"
     }
-    if { $openroad_psm_enable == "True" } {
+    if { $openroad_psm_enable == "true" } {
       puts "Check supply net: $net_name"
       check_power_grid -net $net_name
     }
