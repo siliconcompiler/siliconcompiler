@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.20.0'
+SCHEMA_VERSION = '0.21.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2243,16 +2243,17 @@ def schema_option(cfg):
             List of indices to execute. The default is to execute all
             indices for each step of a run.""")
 
-    scparam(cfg, ['option', 'bkpt'],
-            sctype='[str]',
+    scparam(cfg, ['option', 'breakpoint'],
+            sctype='bool',
             scope='job',
+            pernode='optional',
             shorthelp="Breakpoint list",
-            switch="-bkpt <str>",
+            switch="-breakpoint <bool>",
             example=[
-                "cli: -bkpt place",
-                "api: chip.set('option,'bkpt','place')"],
+                "cli: -breakpoint true",
+                "api: chip.set('option, 'breakpoint', True)"],
             schelp="""
-            List of step stop (break) points. If the step is a TCL
+            Set a breakpoint on specific steps. If the step is a TCL
             based tool, then the breakpoints stops the flow inside the
             EDA tool. If the step is a command line tool, then the flow
             drops into a Python interpreter.""")

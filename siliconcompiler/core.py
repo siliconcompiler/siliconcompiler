@@ -3343,7 +3343,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         tool = self.get('flowgraph', flow, step, index, 'tool')
         task = self._get_task(step, index, flow)
 
-        quiet = self.get('option', 'quiet') and (step not in self.get('option', 'bkpt'))
+        quiet = self.get('option', 'quiet') and not self.get('option', 'breakpoint', step=step, index=index)
 
         is_builtin = self._is_builtin(tool, task)
 
@@ -3548,7 +3548,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.info('%s', printable_cmd)
             timeout = self.get('flowgraph', flow, step, index, 'timeout')
             logfile = step + '.log'
-            if sys.platform in ('darwin', 'linux') and step in self.get('option', 'bkpt'):
+            if sys.platform in ('darwin', 'linux') and self.get('option', 'breakpoint', step=step, index=index):
                 # When we break on a step, the tool often drops into a shell.
                 # However, our usual subprocess scheme seems to break terminal
                 # echo for some tools. On POSIX-compatible systems, we can use
@@ -4074,7 +4074,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # Check for new tasks that can be launched.
                 for task, deps in list(tasks_to_run.items()):
                     # TODO: breakpoint logic:
-                    # if task is bkpt, then don't launch while len(running_tasks) > 0
+                    # if task is breakpoint, then don't launch while len(running_tasks) > 0
 
                     # Clear any tasks that have finished from dependency list.
                     for in_task in deps.copy():

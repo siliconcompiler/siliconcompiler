@@ -73,9 +73,9 @@ def setup(chip, mode='batch'):
     else:
         clobber = False
 
-    # exit automatically in batch mode and not bkpt
+    # exit automatically in batch mode and not breakpoint
     option = ''
-    if (mode=='batch' or is_screenshot) and (step not in chip.get('option', 'bkpt')):
+    if (mode=='batch' or is_screenshot) and not chip.get('option', 'breakpoint', step=step, index=index):
         option += " -exit"
 
     option += " -metrics reports/metrics.json"
