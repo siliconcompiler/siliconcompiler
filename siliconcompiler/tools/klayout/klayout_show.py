@@ -46,7 +46,13 @@ if 'macrolib' in chip.getkeys('asic'):
 
 # Tech / library LEF files are optional.
 tech_lefs = chip.get('pdk', sc_pdk, 'aprtech', 'klayout', sc_stackup, sc_libtype, 'lef')
-lib_lefs = chip.get('library', sc_mainlib, 'output', sc_stackup, 'lef')
+
+# Need to check validity since there are no "default" placeholders within the
+# library schema that would allow chip.get() to get a default value.
+if chip.valid('library', sc_mainlib, 'output', sc_stackup, 'lef'):
+    lib_lefs = chip.get('library', sc_mainlib, 'output', sc_stackup, 'lef')
+else:
+    lib_lefs = []
 
 # Load KLayout technology file
 tech = pya.Technology()
