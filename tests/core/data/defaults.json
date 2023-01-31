@@ -3496,25 +3496,25 @@
             "type": "bool",
             "value": false
         },
-        "bkpt": {
-            "defvalue": [],
+        "breakpoint": {
+            "defvalue": false,
             "example": [
-                "cli: -bkpt place",
-                "api: chip.set('option,'bkpt','place')"
+                "cli: -breakpoint true",
+                "api: chip.set('option, 'breakpoint', True)"
             ],
-            "help": "List of step stop (break) points. If the step is a TCL\nbased tool, then the breakpoints stops the flow inside the\nEDA tool. If the step is a command line tool, then the flow\ndrops into a Python interpreter.",
+            "help": "Set a breakpoint on specific steps. If the step is a TCL\nbased tool, then the breakpoints stops the flow inside the\nEDA tool. If the step is a command line tool, then the flow\ndrops into a Python interpreter.",
             "lock": false,
             "nodevalue": {},
             "notes": null,
-            "pernode": "none",
-            "require": null,
+            "pernode": "optional",
+            "require": "all",
             "scope": "job",
             "set": false,
             "shorthelp": "Breakpoint list",
-            "signature": [],
-            "switch": "-bkpt <str>",
-            "type": "[str]",
-            "value": []
+            "signature": null,
+            "switch": "-breakpoint <bool>",
+            "type": "bool",
+            "value": false
         },
         "builddir": {
             "defvalue": "build",
@@ -6809,7 +6809,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.20.0",
+        "defvalue": "0.21.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6825,7 +6825,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.20.0"
+        "value": "0.21.0"
     },
     "tool": {
         "default": {
