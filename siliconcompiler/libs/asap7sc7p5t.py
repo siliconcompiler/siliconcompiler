@@ -40,6 +40,9 @@ def _setup_lib(libname, suffix):
     # gds
     lib.add('output', stackup, 'gds', libdir+'/gds/'+libname+'.gds')
 
+    # cdl
+    lib.add('output', stackup, 'cdl', libdir+'/netlist/'+libname+'.cdl')
+
     # lib arch
     lib.set('asic', 'libarch', libtype)
 

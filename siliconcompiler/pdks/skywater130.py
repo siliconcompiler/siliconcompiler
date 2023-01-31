@@ -118,6 +118,8 @@ def setup(chip):
     # PEX
     chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
+    chip.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, 'typical',
+        pdkdir + '/pex/openroad/rcx_patterns.rules')
 
 #########################
 if __name__ == "__main__":

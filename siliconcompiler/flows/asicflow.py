@@ -79,8 +79,7 @@ def setup(chip, flowname='asicflow'):
                 'ctsmin',
                 'route',
                 'routemin',
-                'dfm',
-                'export']
+                'dfm']
 
 
     #step -->(tool, task)
@@ -98,8 +97,7 @@ def setup(chip, flowname='asicflow'):
         'ctsmin' : ['builtin','minimum'],
         'route' : ['openroad','route'],
         'routemin' : ['builtin','minimum'],
-        'dfm' : ['openroad','dfm'],
-        'export' : ['klayout', 'export']
+        'dfm' : ['openroad','dfm']
     }
 
     # Clear old flowgraph if it exists
@@ -154,6 +152,12 @@ def setup(chip, flowname='asicflow'):
             for metric in weight_metrics:
                 chip.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
         prevstep = step
+
+    # add export
+    chip.node(flowname, 'export', 'klayout', 'export', index=0)
+    chip.node(flowname, 'export', 'openroad', 'export', index=1)
+    chip.edge(flowname, prevstep, 'export', head_index=0)
+    chip.edge(flowname, prevstep, 'export', head_index=1)
 
 ##################################################
 if __name__ == "__main__":
