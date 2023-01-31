@@ -36,7 +36,6 @@ def display():
 def test_show(project, testfile, tool, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target(project)
-    chip.set('option', "quiet", True)
 
     for ext in chip.getkeys('option', 'showtool'):
         chip.set('option', 'showtool', ext, tool)
@@ -56,7 +55,6 @@ def test_show(project, testfile, tool, datadir, display, headless=True):
 def test_screenshot(project, testfile, tool, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target(project)
-    chip.set('option', "quiet", True)
 
     for ext in chip.getkeys('option', 'showtool'):
         chip.set('option', 'showtool', ext, tool)
@@ -76,7 +74,6 @@ def test_show_lyp(datadir, display, headless=True):
 
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target(f'freepdk45_demo')
-    chip.set('option', 'quiet', True)
 
     # Remove the '.lyt' file
     stackup = chip.get('option', 'stackup')
@@ -94,7 +91,6 @@ def test_show_lyp(datadir, display, headless=True):
 def test_show_nopdk(datadir, display):
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target('freepdk45_demo')
-    chip.set('option', 'quiet', True)
 
     testfile = os.path.join(datadir, 'heartbeat.gds.gz')
 
