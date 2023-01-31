@@ -56,7 +56,9 @@ if {[dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tr
   make_tracks
 }
 
+set do_automatic_pins 1
 if { 0 } {
+  set do_automatic_pins 0
 
   ###########################
   # Generate pad ring
@@ -64,29 +66,29 @@ if { 0 } {
   # TODO: implement this if needed
   # source library config, pad ring config
   #initialize_padring
-} else {
+}
 
-  ###########################
-  # Automatic Pin Placement
-  ###########################
+###########################
+# Pin placement
+###########################
 
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h]} {
-    set h_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h] 0]
-    set_pin_thick_multiplier -hor_multiplier $h_mult
+if {[dict exists $sc_cfg constraints pin]} {
+  foreach name [dict get $sc_cfg constraints pin] {
+    set layer    [sc_get_layer_name [dict get $sc_cfg constraints pin $name layer]]
+    # TODO: determine layer if not set
+
+    set location [dict get $sc_cfg constraints pin $name placement]
+    # TODO: handle order
+
+    # TODO: shape?
+
+    set x_loc [lindex $location 0]
+    set y_loc [lindex $location 1]
+
+    place_pin -pin_name $name \
+      -layer $layer \
+      -location "$x_loc $y_loc"
   }
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v]} {
-    set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v] 0]
-    set_pin_thick_multiplier -ver_multiplier $v_mult
-  }
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints]} {
-    foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints] {
-      puts "Sourcing pin constraints: ${pin_constraint}"
-      source $pin_constraint
-    }
-  }
-  place_pins -hor_layers $sc_hpinmetal \
-    -ver_layers $sc_vpinmetal \
-    -random
 }
 
 ###########################
@@ -94,11 +96,19 @@ if { 0 } {
 ###########################
 
 # If manual macro placement is provided use that first
-if {[dict exists $sc_cfg constraint component]} {
-  dict for {name value} [dict get $sc_cfg constraint component] {
-    set location [dict get $sc_cfg constraint component $name placement]
-    set rotation [dict get $sc_cfg constraint component $name rotation]
-    set flip     [dict get $sc_cfg constraint component $name flip]
+if {[dict exists $sc_cfg constraints component]} {
+  dict for {name params} [dict get $sc_cfg constraint component] {
+    set location [dict get $params placement]
+    set rotation [dict get $params rotation]
+    set flip     [dict get $params flip]
+    if { [dict exists $params partname] } {
+      set cell   [dict get $params partname]
+    } else {
+      set cell ""
+    }
+    if { [dict exists $params halo] } {
+      utl::warn FLW 1 "Halo is not supported in OpenROAD"
+    }
 
     set transform_r [odb::dbTransform]
     $transform_r setOrient "R${rotation}"
@@ -121,11 +131,41 @@ if {[dict exists $sc_cfg constraint component]} {
     set x_loc [expr [lindex $location 0] - $width / 2]
     set y_loc [expr [lindex $location 1] - $height / 2]
 
+    set place_args []
+    if { $cell != "" } {
+      lappend place_args "-cell" $cell
+    }
+
     place_cell -inst_name $name \
       -origin "$x_loc $y_loc" \
       -orient [$transform_final getOrient] \
-      -status FIRM
+      -status FIRM \
+      {*}$place_args
   }
+}
+
+if { $do_automatic_pins } {
+  ###########################
+  # Automatic Pin Placement
+  ###########################
+
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h]} {
+    set h_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h] 0]
+    set_pin_thick_multiplier -hor_multiplier $h_mult
+  }
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v]} {
+    set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v] 0]
+    set_pin_thick_multiplier -ver_multiplier $v_mult
+  }
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints]} {
+    foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints] {
+      puts "Sourcing pin constraints: ${pin_constraint}"
+      source $pin_constraint
+    }
+  }
+  place_pins -hor_layers $sc_hpinmetal \
+    -ver_layers $sc_vpinmetal \
+    -random
 }
 
 # Need to check if we have any macros before performing macro placement,
