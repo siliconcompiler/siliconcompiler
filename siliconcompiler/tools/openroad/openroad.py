@@ -202,6 +202,8 @@ def setup(chip, mode='batch'):
                             ('cts_cluster_diameter', '100'),
                             ('cts_cluster_size', '30'),
                             ('cts_balance_levels', 'true'),
+                            ('ant_iterations', '3'),
+                            ('ant_margin', '0'),
                             ('grt_use_pin_access', 'false'),
                             ('grt_overflow_iter', '100'),
                             ('grt_macro_extension', '2'),
