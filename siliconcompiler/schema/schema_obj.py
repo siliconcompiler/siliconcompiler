@@ -96,7 +96,7 @@ class Schema:
                 return cfg['nodevalue'][step][index]
             elif step in cfg['nodevalue']:
                 return cfg['nodevalue'][step]['default']
-            elif not Schema._is_empty(cfg):
+            elif Schema._is_set(cfg):
                 return cfg['value']
             else:
                 return cfg['defvalue']
@@ -131,7 +131,7 @@ class Schema:
             # TODO: log here
             return False
 
-        if not Schema._is_empty(cfg, step=step, index=index) and not clobber:
+        if Schema._is_set(cfg, step=step, index=index) and not clobber:
             # TODO: log here
             return False
 
@@ -350,7 +350,7 @@ class Schema:
             # ignore history in case of cumulative history
             if key[0] != 'history':
                 scope = self.get(*key, field='scope')
-                if not self._keypath_empty(key) and (scope == 'job'):
+                if not self._is_empty(*key) and (scope == 'job'):
                     self._copyparam(self.cfg,
                                     self.cfg['history'][jobname],
                                     key)
@@ -490,7 +490,7 @@ class Schema:
         raise ValueError(f'Invalid field {field} for keypath {keypath}')
 
     @staticmethod
-    def _is_empty(cfg, step=None, index=None):
+    def _is_set(cfg, step=None, index=None):
         node_value_exists = False
         if step in cfg['nodevalue']:
             if index is None:
@@ -498,7 +498,7 @@ class Schema:
             else:
                 node_value_exists = index in cfg['nodevalue'][step]
 
-        return not (cfg['set'] or node_value_exists)
+        return cfg['set'] or node_value_exists
 
     @staticmethod
     def _is_leaf(cfg):
@@ -644,7 +644,7 @@ class Schema:
 
             if pernode == 'required' and (step is None or index is None):
                 # Skip mandatory per-node parameters if step and index are not specified
-                # TODO: should we dump these?
+                # TODO: how should we dump these?
                 continue
 
             if pernode != 'never':
@@ -694,7 +694,10 @@ class Schema:
 
     ###########################################################################
     def prune(self, keeplists=False):
-        '''Remove all empty parameters from configuration dictionary.'''
+        '''Remove all empty parameters from configuration dictionary.
+
+        Also deletes 'help' and 'example' keys.
+        '''
         # When at top of tree loop maxdepth times to make sure all stale
         # branches have been removed, not elegant, but stupid-simple
         # "good enough"
@@ -703,70 +706,57 @@ class Schema:
         maxdepth = 10
 
         for _ in range(maxdepth):
-            self._prune(self.cfg, keeplists=keeplists)
+            self._prune(keeplists=keeplists)
 
     ###########################################################################
-    def _prune(self, cfg, keeplists=False):
+    def _prune(self, *keypath, keeplists=False):
         '''
         Internal recursive function that creates a local copy of the Chip
         schema (cfg) with only essential non-empty parameters retained.
 
         '''
-        # TODO: rename
-        localcfg = cfg
+        cfg = self._search(*keypath)
 
         #Prune when the default & value are set to the following
-        if keeplists:
-            empty = ("null", None)
-        else:
-            empty = ("null", None, [])
-
         #Loop through all keys starting at the top
-        for k in list(localcfg.keys()):
+        for k in list(cfg.keys()):
             #removing all default/template keys
             # reached a default subgraph, delete it
             if k == 'default':
-                del localcfg[k]
+                del cfg[k]
             # reached leaf-cell
-            elif 'help' in localcfg[k].keys():
-                del localcfg[k]['help']
-            elif 'example' in localcfg[k].keys():
-                del localcfg[k]['example']
-            elif 'defvalue' in localcfg[k].keys():
-                if localcfg[k]['defvalue'] in empty:
-                    if 'value' in localcfg[k].keys():
-                        values = [localcfg[k]['value']]
-                        if localcfg[k]['pernode'] != 'never':
-                            nodevalue = localcfg[k]['nodevalue']
-                            for step_vals in nodevalue.values():
-                                for val in step_vals.values():
-                                    values.append(val)
-                        if all([v in empty for v in values]):
-                            del localcfg[k]
-                    else:
-                        del localcfg[k]
+            elif 'help' in cfg[k].keys():
+                del cfg[k]['help']
+            elif 'example' in cfg[k].keys():
+                del cfg[k]['example']
+            elif 'defvalue' in cfg[k].keys():
+                if self._is_empty(*keypath, k, keeplists=keeplists):
+                    del cfg[k]
             #removing stale branches
-            elif not localcfg[k]:
-                localcfg.pop(k)
+            elif not cfg[k]:
+                cfg.pop(k)
             #keep traversing tree
             else:
-                self._prune(cfg=localcfg[k], keeplists=keeplists)
+                self._prune(*keypath, k, keeplists=keeplists)
 
     ###########################################################################
-    def _keypath_empty(self, key):
+    def _is_empty(self, *keypath, keeplists=False):
         '''
-        Utility function to check key for an empty list.
+        Utility function to check key for an empty value.
+
+        If keeplists is True, don't consider length 0 lists as empty.
         '''
+        if keeplists:
+            empty = (None,)
+        else:
+            empty = (None, [])
 
-        emptylist = ("null", None, [])
-
-        # TODO: hack to skip this
-        if self.get(*key, field='pernode') == 'required':
-            return False
-
-        value = self.get(*key)
-        defvalue = self.get(*key, field='defvalue')
-        value_empty = (defvalue in emptylist) and (value in emptylist)
+        values = self.getvals(*keypath)
+        defvalue = self.get(*keypath, field='defvalue')
+        value_empty = (
+            (defvalue in empty) and
+            all([value in empty for value in values])
+        )
 
         return value_empty
 
