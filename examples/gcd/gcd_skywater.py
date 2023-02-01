@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import siliconcompiler
-from siliconcompiler.targets import skywater130_demo
 
 import os
 import sys
@@ -20,7 +19,7 @@ def main():
 
     chip.clock('clk', period=5)
 
-    chip.use(skywater130_demo)
+    chip.load_target("skywater130_demo")
 
     chip.set('datasheet', chip.top(), 'pin', 'vdd', 'type', 'global', 'power')
     chip.set('datasheet', chip.top(), 'pin', 'vss', 'type', 'global', 'ground')

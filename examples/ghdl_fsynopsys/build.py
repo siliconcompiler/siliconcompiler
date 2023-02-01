@@ -1,6 +1,4 @@
-import os
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
 
 def main():
     chip = siliconcompiler.Chip('binary_4_bit_adder_top')
@@ -9,7 +7,7 @@ def main():
     # see PR #1015 (https://github.com/siliconcompiler/siliconcompiler/pull/1015)
     chip.set('tool', 'ghdl', 'task', 'import', 'var', 'import', '0', 'extraopts', '-fsynopsys')
 
-    chip.use(freepdk45_demo)
+    chip.load_target("freepdk45_demo")
     flow = 'vhdlsyn'
     chip.node(flow, 'import', 'ghdl')
     chip.node(flow, 'syn', 'yosys')

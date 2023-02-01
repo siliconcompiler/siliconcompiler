@@ -1,6 +1,5 @@
 import os
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
 
 microwatt_wd = "../../third_party/designs/microwatt/"
 
@@ -65,7 +64,7 @@ def main():
     chip.add('option', 'define', 'CLK_INPUT=50000000')
     chip.add('option', 'define', 'CLK_FREQUENCY=40000000')
 
-    chip.use(freepdk45_demo)
+    chip.load_target("freepdk45_demo")
 
     # TODO: add in synthesis step once we can get an output that passes thru
     # Yosys.
