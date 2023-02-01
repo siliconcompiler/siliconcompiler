@@ -2790,7 +2790,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             data.append(row)
 
         df = pandas.DataFrame(data, row_labels, column_labels)
-        print(df.to_string())
+        if not df.empty:
+            print(df.to_string())
+        else:
+            print(' No metrics to display!')
         print("-"*135)
 
         # Create a report for the Chip object which can be viewed in a web browser.

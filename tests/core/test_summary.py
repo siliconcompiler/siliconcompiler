@@ -1,5 +1,4 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import os
 import siliconcompiler
 
 import pytest
@@ -31,6 +30,7 @@ def test_steplist(gcd_with_metrics, capfd):
 
     gcd_with_metrics.summary()
     stdout, _ = capfd.readouterr()
+    print(stdout)
 
     assert 'import0' not in stdout
     assert 'syn0' in stdout
@@ -38,12 +38,11 @@ def test_steplist(gcd_with_metrics, capfd):
 def test_parallel_path(capfd):
     with capfd.disabled():
         chip = siliconcompiler.Chip('test')
-        chip.set('design', 'test')
 
         flow = 'test'
         chip.set('option','flow', flow)
-        chip.node(flow, 'import', 'nop', 'nop')
-        chip.node(flow, 'ctsmin', 'minimum', 'ctsmin')
+        chip.node(flow, 'import', 'builtin', 'nop')
+        chip.node(flow, 'ctsmin', 'builtin', 'minimum')
 
         chip.set('flowgraph', flow, 'import', '0', 'status', siliconcompiler.TaskStatus.SUCCESS)
         chip.set('flowgraph', flow, 'ctsmin', '0', 'status', siliconcompiler.TaskStatus.SUCCESS)
@@ -62,6 +61,9 @@ def test_parallel_path(capfd):
 
             chip.set('flowgraph', flow, 'place', i, 'select', ('import', '0'))
             chip.set('flowgraph', flow, 'cts', i, 'select', ('place', i))
+
+            chip.set('metric', 'place', i, 'errors', 0)
+            chip.set('metric', 'cts', i, 'errors', 0)
 
     chip.write_flowgraph('test_graph.png')
 
