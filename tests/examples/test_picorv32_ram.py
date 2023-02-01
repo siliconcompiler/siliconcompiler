@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-# TODO: Daily test? It takes a minute or ten to build.
+# Run as a daily test, because this takes a long time to build.
 @pytest.mark.eda
 def test_picorv32_sram(setup_example_test):
     setup_example_test('picorv32_ram')
