@@ -29,7 +29,7 @@ def scparam(cfg,
             example=None,
             schelp=None,
             enum=None,
-            pernode='none'):
+            pernode='never'):
 
     # 1. decend keypath until done
     # 2. create key if missing

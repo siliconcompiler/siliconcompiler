@@ -78,21 +78,19 @@ class Schema:
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: get() must be called on a complete keypath')
 
-        if cfg['pernode'] == 'none' and (step is not None or index is not None):
-            raise ValueError(f'step and index are not valid for keypath {keypath}')
-
-        if cfg['pernode'] == 'mandatory' and (step is None or index is None):
-            raise ValueError(f'step and index must be provided for keypath {keypath}')
+        err = Schema._validate_step_index(cfg['pernode'], field, step, index)
+        if err:
+            raise ValueError(f'Invalid args to get() of keypath {keypath}: {err}')
 
         if isinstance(index, int):
             index = str(index)
 
         if field == 'value':
-            if cfg['pernode'] == 'mandatory':
+            if cfg['pernode'] == 'required':
                 try:
                     return cfg['nodevalue'][step][index]
                 except KeyError:
-                    raise ValueError(f'No value for keypath {keypath} for node {step}{index}')
+                    return cfg['defvalue']
 
             if step in cfg['nodevalue'] and index in cfg['nodevalue'][step]:
                 return cfg['nodevalue'][step][index]
@@ -122,11 +120,9 @@ class Schema:
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: set() must be called on a complete keypath')
 
-        if cfg['pernode'] == 'none' and (step is not None or index is not None):
-            raise ValueError(f'step and index are not valid for keypath {keypath}')
-
-        if cfg['pernode'] == 'mandatory' and (step is None or index is None):
-            raise ValueError(f'step and index must be provided for keypath {keypath}')
+        err = Schema._validate_step_index(cfg['pernode'], field, step, index)
+        if err:
+            raise ValueError(f'Invalid args to set() of keypath {keypath}: {err}')
 
         if isinstance(index, int):
             index = str(index)
@@ -135,7 +131,7 @@ class Schema:
             # TODO: log here
             return False
 
-        if not Schema._is_empty(cfg) and not clobber:
+        if not Schema._is_empty(cfg, step=step, index=index) and not clobber:
             # TODO: log here
             return False
 
@@ -156,7 +152,7 @@ class Schema:
                 cfg['nodevalue'][step]['default'] = value
             else:
                 cfg['value'] = value
-            cfg['set'] = True
+                cfg['set'] = True
         else:
             cfg[field] = value
 
@@ -174,11 +170,9 @@ class Schema:
 
         cfg = self._search(*keypath, insert_defaults=True)
 
-        if cfg['pernode'] == 'none' and (step is not None or index is not None):
-            raise ValueError(f'step and index are not valid for keypath {keypath}')
-
-        if cfg['pernode'] == 'mandatory' and (step is None or index is None):
-            raise ValueError(f'step and index must be provided for keypath {keypath}')
+        err = Schema._validate_step_index(cfg['pernode'], field, step, index)
+        if err:
+            raise ValueError(f'Invalid args to add() of keypath {keypath}: {err}')
 
         if isinstance(index, int):
             index = str(index)
@@ -224,7 +218,7 @@ class Schema:
         return True
 
     ###########################################################################
-    def clear(self, *keypath):
+    def clear(self, *keypath, step=None, index=None):
         '''
         Clears a schema parameter field.
 
@@ -235,15 +229,51 @@ class Schema:
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: clear() must be called on a complete keypath')
 
+        err = Schema._validate_step_index(cfg['pernode'], 'value', step, index)
+        if err:
+            raise ValueError(f'Invalid args to clear() of keypath {keypath}: {err}')
+
         if cfg['lock']:
             # TODO: log here
             return False
 
-        cfg['value'] = cfg['defvalue']
-        cfg['nodevalue'] = {}
-        cfg['set'] = False
+        if step is None and index is None:
+            cfg['nodevalue'] = {}
+            cfg['value'] = cfg['defvalue']
+            cfg['set'] = False
+        else:
+            if index is None:
+                index = 'default'
+            try:
+                del cfg['nodevalue'][step][index]
+            except KeyError:
+                # If this key doesn't exist, silently continue - it was never set
+                pass
 
         return True
+
+    def getvals(self, *keypath):
+        """
+        Returns all values (global and pernode) associated with a particular parameter.
+
+        Returns a list of tuples of the form (value, step, index).
+        """
+        cfg = self._search(*keypath)
+
+        if not Schema._is_leaf(cfg):
+            raise ValueError(f'Invalid keypath {keypath}: getvals() must be called on a complete keypath')
+
+        vals = []
+        if cfg['pernode'] != 'required':
+            vals.append((self.get(*keypath, step=None, index=None), None, None))
+
+        if cfg['pernode'] != 'never':
+            for step in cfg['nodevalue']:
+                for index in cfg['nodevalue'][step]:
+                    if index == 'default': index = None
+                    vals.append((cfg['nodevalue'][step][index], step, index))
+
+        return vals
 
     ###########################################################################
     def getkeys(self, *keypath, job=None):
@@ -434,9 +464,9 @@ class Schema:
 
         if field == 'pernode':
             # Restricted allowed values
-            if not (isinstance(value, str) and value in ('none', 'optional', 'mandatory')):
+            if not (isinstance(value, str) and value in ('never', 'optional', 'required')):
                 raise TypeError(f'Invalid value {value} for field {field}: '
-                    'expected one of "none", "optional", or "mandatory"')
+                    'expected one of "never", "optional", or "required"')
             return value
 
         if field in (
@@ -460,8 +490,15 @@ class Schema:
         raise ValueError(f'Invalid field {field} for keypath {keypath}')
 
     @staticmethod
-    def _is_empty(cfg):
-        return not cfg['set']
+    def _is_empty(cfg, step=None, index=None):
+        node_value_exists = False
+        if step in cfg['nodevalue']:
+            if index is None:
+                node_value_exists = 'default' in cfg['nodevalue'][step]
+            else:
+                node_value_exists = index in cfg['nodevalue'][step]
+
+        return not (cfg['set'] or node_value_exists)
 
     @staticmethod
     def _is_leaf(cfg):
@@ -480,6 +517,31 @@ class Schema:
             return True
 
         return False
+
+    @staticmethod
+    def _validate_step_index(pernode, field, step, index):
+        '''Shared validation logic for the step and index keyword arguments to
+        get(), set(), and add(), based on the pernode setting of a parameter and
+        field.
+
+        Returns an error message if there's a problem with the arguments,
+        otherwise None.
+        '''
+        if field != 'value':
+            if step is not None or index is not None:
+                return 'step and index are only valid for value fields'
+            return None
+
+        if pernode == 'never' and (step is not None or index is not None):
+            return 'step and index are not valid for this parameter'
+
+        if pernode == 'required' and (step is None or index is None):
+            return 'step and index are required for this parameter'
+
+        if step is None and index is not None:
+            return 'if index is provided, step must be provided as well'
+
+        return None
 
     def _search(self, *keypath, insert_defaults=False, job=None):
         if job is not None:
@@ -578,7 +640,14 @@ class Schema:
 
         for key in allkeys:
             typestr = self.get(*key, field='type')
-            if self.get(*key, field='pernode') != 'none':
+            pernode = self.get(*key, field='pernode')
+
+            if pernode == 'required' and (step is None or index is None):
+                # Skip mandatory per-node parameters if step and index are not specified
+                # TODO: should we dump these?
+                continue
+
+            if pernode != 'never':
                 value = self.get(*key, step=step, index=index)
             else:
                 value = self.get(*key)
@@ -666,7 +735,13 @@ class Schema:
             elif 'defvalue' in localcfg[k].keys():
                 if localcfg[k]['defvalue'] in empty:
                     if 'value' in localcfg[k].keys():
-                        if localcfg[k]['value'] in empty:
+                        values = [localcfg[k]['value']]
+                        if localcfg[k]['pernode'] != 'never':
+                            nodevalue = localcfg[k]['nodevalue']
+                            for step_vals in nodevalue.values():
+                                for val in step_vals.values():
+                                    values.append(val)
+                        if all([v in empty for v in values]):
                             del localcfg[k]
                     else:
                         del localcfg[k]
@@ -684,6 +759,10 @@ class Schema:
         '''
 
         emptylist = ("null", None, [])
+
+        # TODO: hack to skip this
+        if self.get(*key, field='pernode') == 'required':
+            return False
 
         value = self.get(*key)
         defvalue = self.get(*key, field='defvalue')

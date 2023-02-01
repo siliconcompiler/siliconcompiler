@@ -848,7 +848,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(e)
 
     ###########################################################################
-    def clear(self, *keypath):
+    def clear(self, *keypath, step=None, index=None):
         '''
         Clears a schema parameter.
 
@@ -861,7 +861,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         self.logger.debug(f'Clearing {keypath}')
 
-        if not self.schema.clear(*keypath):
+        if not self.schema.clear(*keypath, step=step, index=index):
             self.logger.debug(f'Failed to clear value for {keypath}: parameter is locked')
 
     ###########################################################################
@@ -1188,6 +1188,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         schema = self.schema.copy()
         for keypath in self.allkeys():
+            if self.get(*keypath, field='pernode') == 'required':
+                for step, step_dict in self.getdict(*keypath)['nodevalue'].items():
+                    for index, value in step_dict.items():
+                        if index == 'default': index = None
+                        self.set(*keypath, value, step=step, index=index)
+                continue
+
             paramtype = self.get(*keypath, field='type')
             value = self.get(*keypath)
             if value:
@@ -1250,15 +1257,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if key_valid and 'default' not in keylist:
                 # update value, handling scalars vs. lists
                 typestr = src.get(*keylist, field='type')
-                val = src.get(*keylist)
-                if re.match(r'\[', typestr) and not clear:
-                    dest.add(*keylist, val)
-                else:
-                    dest.set(*keylist, val, clobber=clobber)
+                for val, step, index in src.getvals(*keylist):
+                    if re.match(r'\[', typestr) and not clear:
+                        dest.add(*keylist, val, step=step, index=index)
+                    else:
+                        dest.set(*keylist, val, step=step, index=index, clobber=clobber)
 
                 # update other fields that a user might modify
                 for field in src.getdict(*keylist).keys():
-                    if field in ('value', 'switch', 'type', 'require', 'defvalue',
+                    if field in ('value', 'nodevalue', 'switch', 'type', 'require', 'defvalue',
                                  'shorthelp', 'example', 'help'):
                         # skip these fields (value handled above, others are static)
                         continue
