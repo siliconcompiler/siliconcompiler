@@ -1,9 +1,7 @@
 import os
-import sys
 import time
 import siliconcompiler
 from siliconcompiler.flows import asicflow
-from siliconcompiler.targets import skywater130_demo
 
 # Setting up the experiment
 
@@ -28,7 +26,7 @@ def main():
             wall_start = time.time()
             chip = siliconcompiler.Chip(design)
             chip.set('jobname', f"job{n}")
-            chip.use(skywater130_demo)
+            chip.load_target("skywater130_demo")
             chip.set('relax', True)
             chip.set('quiet', True)
             chip.set('remote',False)

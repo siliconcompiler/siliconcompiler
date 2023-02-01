@@ -2,7 +2,6 @@
 # This test does not work at the moment (Jan 4, 2023)
 
 import siliconcompiler
-from siliconcompiler.targets import skywater130_demo
 
 def main():
     '''GCD example with multiflow.'''
@@ -16,7 +15,7 @@ def main():
     chip.set('option', 'quiet', True)
     chip.set('option', 'skipcheck', True)
 
-    chip.use(skywater130_demo)
+    chip.load_target("skywater130_demo")
 
     #IMPORT
     #APR

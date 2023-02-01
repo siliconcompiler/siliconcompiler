@@ -3,9 +3,7 @@ import os
 import shutil
 
 from siliconcompiler.core import Chip
-from siliconcompiler.floorplan import Floorplan
 from siliconcompiler.flows import mpwflow
-from siliconcompiler.targets import skywater130_demo
 
 ###
 # Example Skywater130 / "Caravel" macro hardening with SiliconCompiler
@@ -43,7 +41,7 @@ CARAVEL_ROOT = '/path/to/caravel'
 def configure_chip(design):
     # Minimal Chip object construction.
     chip = Chip(design)
-    chip.use(skywater130_demo)
+    chip.target("skywater130_demo")
     chip.use(mpwflow)
     chip.set('option', 'flow', 'mpwflow')
     return chip

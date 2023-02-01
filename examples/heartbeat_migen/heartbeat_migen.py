@@ -2,7 +2,6 @@ from migen import *
 from migen.fhdl.verilog import convert
 
 import siliconcompiler
-from siliconcompiler.targets import freepdk45_demo
 
 class Heartbeat(Module):
   def __init__(self, N=8):
@@ -22,7 +21,7 @@ def main():
     chip.input('heartbeat.v')
     # default Migen clock pin is named 'sys_clk'
     chip.clock(pin='sys_clk', period=1)
-    chip.use(freepdk45_demo)
+    chip.load_target("freepdk45_demo")
     chip.run()
     chip.summary()
     chip.show()
