@@ -92,82 +92,33 @@ module picorv32_top #(
 );
 
     // Memory signals.
-    reg mem_valid, mem_instr;
+    reg mem_valid, mem_instr, mem_ready;
     reg [31:0] mem_addr;
     reg [31:0] mem_wdata;
     reg [ 3:0] mem_wstrb;
     reg [31:0] mem_rdata;
-    reg [31:0] mem_wback;
 
+    // No 'ready' signal in sky130 SRAM macro; presumably it is single-cycle?
+    always @(posedge clk)
+        mem_ready <= mem_valid;
+
+    // (Signals have the same name as the picorv32 module: use '.*')
     picorv32 rv32_soc (
-        .clk(clk),
-        .resetn(resetn),
-        .trap(trap),
-        .mem_valid(mem_valid),
-        .mem_instr(mem_instr),
-        .mem_ready(mem_ready),
-        .mem_addr(mem_addr),
-        .mem_wdata(mem_wdata),
-        .mem_wstrb(mem_wstrb),
-        .mem_rdata(mem_rdata),
-        .mem_la_read(mem_la_read),
-        .mem_la_write(mem_la_write),
-        .mem_la_addr(mem_la_addr),
-        .mem_la_wdata(mem_la_wdata),
-        .mem_la_wstrb(mem_la_wstrb),
-        .pcpi_valid(pcpi_valid),
-        .pcpi_insn(pcpi_insn),
-        .pcpi_rs1(pcpi_rs1),
-        .pcpi_rs2(pcpi_rs2),
-        .pcpi_wr(pcpi_wr),
-        .pcpi_rd(pcpi_rd),
-        .pcpi_wait(pcpi_wait),
-        .pcpi_ready(pcpi_ready),
-        .irq(irq),
-        .eoi(eoi),
-`ifdef RISCV_FORMAL
-        .rvfi_valid(rvfi_valid),
-        .rvfi_order(rvfi_order),
-        .rvfi_insn(rvfi_insn),
-        .rvfi_trap(rvfi_trap),
-        .rvfi_halt(rvfi_halt),
-        .rvfi_intr(rvfi_intr),
-        .rvfi_mode(rvfi_mode),
-        .rvfi_ixl(rvfi_ixl),
-        .rvfi_rs1_addr(rvfi_rs1_addr),
-        .rvfi_rs2_addr(rvfi_rs2_addr),
-        .rvfi_rs1_rdata(rvfi_rs1_rdata),
-        .rvfi_rs2_rdata(rvfi_rs2_rdata),
-        .rvfi_rd_addr(rvfi_rd_addr),
-        .rvfi_rd_wdata(rvfi_rd_wdata),
-        .rvfi_pc_rdata(rvfi_pc_rdata),
-        .rvfi_pc_wdata(rvfi_pc_wdata),
-        .rvfi_mem_addr(rvfi_mem_addr),
-        .rvfi_mem_rmask(rvfi_mem_rmask),
-        .rvfi_mem_wmask(rvfi_mem_wmask),
-        .rvfi_mem_rdata(rvfi_mem_rdata),
-        .rvfi_mem_wdata(rvfi_mem_wdata),
-        .rvfi_csr_mcycle_rmask(rvfi_csr_mcycle_rmask),
-        .rvfi_csr_mcycle_wmask(rvfi_csr_mcycle_wmask),
-        .rvfi_csr_mcycle_rdata(rvfi_csr_mcycle_rdata),
-        .rvfi_csr_mcycle_wdata(rvfi_csr_mcycle_wdata),
-`endif
-        .trace_valid(trace_valid),
-        .trace_data(trace_data)
+      .*
     );
 
     // SRAM with always-active chip select and write control bits.
     sky130_sram_2kbyte_1rw1r_32x512_8 sram (
         .clk0(clk),
         .csb0('b0),
-        .web0('b0),
+        .web0(!(mem_wstrb != 0)),
         .wmask0(mem_wstrb),
         .addr0(mem_addr),
         .din0(mem_wdata),
-        .dout0(mem_wback),
+        .dout0(mem_rdata),
         .clk1(clk),
-        .csb1('b0),
-        .addr1(mem_addr),
-        .dout1(mem_rdata)
+        .csb1('b1),
+        .addr1('b0),
+        .dout1()
     );
 endmodule
