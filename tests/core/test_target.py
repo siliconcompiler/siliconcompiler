@@ -5,8 +5,7 @@ import pytest
 def test_target_valid():
     '''Basic test of target function.'''
     chip = siliconcompiler.Chip('test')
-    from targets import freepdk45_demo
-    chip.use(freepdk45_demo)
+    chip.load_target("freepdk45_demo")
 
     assert chip.get('option', 'mode') == 'asic'
 
