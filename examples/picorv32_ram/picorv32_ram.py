@@ -3,7 +3,7 @@ import importlib
 import os
 import siliconcompiler
 
-if __name__ == '__main__':
+def build_top():
     # Core settings.
     design = 'picorv32_top'
     target = 'skywater130_demo'
@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     # Optional: Relax linting and/or silence each task's output in the terminal.
     chip.set('option', 'relax', True)
-    #chip.set('option', 'quiet', True)
+    chip.set('option', 'quiet', True)
 
     # Set die outline and core area.
     chip.set('constraint', 'outline', [(0,0), (die_w, die_h)])
@@ -49,8 +49,10 @@ if __name__ == '__main__':
     # Run the build.
     chip.run()
 
+if __name__ == '__main__':
+    # Build results.
+    build_top()
     # Print results.
     chip.summary()
-
-    # Display final result.
+    # Display results.
     chip.show()
