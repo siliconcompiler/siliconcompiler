@@ -72,23 +72,119 @@ if { 0 } {
 # Pin placement
 ###########################
 
-if {[dict exists $sc_cfg constraints pin]} {
-  foreach name [dict get $sc_cfg constraints pin] {
-    set layer    [sc_get_layer_name [dict get $sc_cfg constraints pin $name layer]]
-    # TODO: determine layer if not set
+# Build pin ordering if specified
+set pin_order [dict create]
+set pin_placement [list ]
+if {[dict exists $sc_cfg constraint pin]} {
+  dict for {name params} [dict get $sc_cfg constraint pin] {
+    set order [dict get $params order]
+    set side  [dict get $params side]
+    set place [dict get $params placement]
 
-    set location [dict get $sc_cfg constraints pin $name placement]
-    # TODO: handle order
+    if { [llength $place] != 0 } {
+      # Pin has placement information
 
-    # TODO: shape?
+      if { [llength $order] != 0 } {
+        # Pin also has order information
+        utl::error FLW 1 "Pin $name has placement specified in constraints, but also order."
+      }
+      lappend pin_placement $name
+    } else {
+      # Pin doesn't have placement
 
-    set x_loc [lindex $location 0]
-    set y_loc [lindex $location 1]
+      if { [llength $side] == 0 || [llength $order] == 0 } {
+        # Pin information is incomplete
 
-    place_pin -pin_name $name \
-      -layer $layer \
-      -location "$x_loc $y_loc"
+        utl::error FLW 1 "Pin $name doesn't have enough information to perform placement."
+      }
+
+      dict append pin_order [lindex $side 0] [lindex $order 0] $name
+    }
   }
+}
+
+foreach pin $pin_placement {
+  set params [dict get $sc_cfg constraint pin $pin]
+  set layer  [dict get $params layer]
+  set side   [dict get $params side]
+  set place  [dict get $params placement]
+  if { [llength $layer] != 0 } {
+    set layer [sc_get_layer_name [lindex $layer 0]]
+  } elseif { [llength $side] != 0 } {
+    # Layer not set, but side is, so use that to determine layer
+    set side [lindex $side 0]
+    switch -regexp $side {
+      "1|3" {
+        set layer [lindex $sc_hpinmetal 0]
+      }
+      "2|4" {
+        set layer [lindex $sc_vpinmetal 0]
+      }
+      default {
+        utl::error FLW 1 "Side number ($side) is not supported."
+      }
+    }
+  } else {
+    utl::error FLW 1 "$name needs to either specify side or layer parameter."
+  }
+
+  set x_loc [lindex $place 0]
+  set y_loc [lindex $place 1]
+
+  # TODO: snapping to grid and extend to edge
+  place_pin -pin_name $name \
+    -layer $layer \
+    -location "$x_loc $y_loc"
+}
+
+dict for {side pins} $pin_order {
+  set ordered_pins []
+  dict for {index pin} $$pins {
+    lappend ordered_pins {*}$pin
+  }
+
+  set layer  [dict get $params layer]
+  if { [llength $layer] != 0 } {
+    set layer [sc_get_layer_name [lindex $layer 0]]
+  } elseif { [llength $side] != 0 } {
+    # Layer not set, but side is, so use that to determine layer
+    switch -regexp $side {
+      "1|3" {
+        set layer [lindex $sc_hpinmetal 0]
+      }
+      "2|4" {
+        set layer [lindex $sc_vpinmetal 0]
+      }
+      default {
+        utl::error FLW 1 "Side number ($side) is not supported."
+      }
+    }
+  } else {
+    utl::error FLW 1 "$name needs to either specify side or layer parameter."
+  }
+
+  set edge_length 0
+  switch -regexp $side {
+    "1|3" {
+      set edge_length [expr [lindex [ord::get_die_area] 3] - [lindex [ord::get_die_area] 1]]
+    }
+    "2|4" {
+      set edge_length [expr [lindex [ord::get_die_area] 2] - [lindex [ord::get_die_area] 0]]
+    }
+    default {
+      utl::error FLW 1 "Side number ($side) is not supported."
+    }
+  }
+
+  set spacing [expr $edge_length / ([llength $ordered_pins] + 1)]
+
+  set x_loc [lindex $place 0]
+  set y_loc [lindex $place 1]
+
+  # TODO: snapping to grid and extend to edge
+  place_pin -pin_name $name \
+    -layer $layer \
+    -location "$x_loc $y_loc"
 }
 
 ###########################
