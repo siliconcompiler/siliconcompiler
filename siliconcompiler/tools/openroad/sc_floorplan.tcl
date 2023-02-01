@@ -94,11 +94,11 @@ if { 0 } {
 ###########################
 
 # If manual macro placement is provided use that first
-if {[dict exists $sc_cfg constraints component]} {
-  foreach name [dict get $sc_cfg constraints component] {
-    set location [dict get $sc_cfg constraints component $name placement]
-    set rotation [dict get $sc_cfg constraints component $name rotation]
-    set flip     [dict get $sc_cfg constraints component $name flip]
+if {[dict exists $sc_cfg constraint component]} {
+  dict for {name value} [dict get $sc_cfg constraint component] {
+    set location [dict get $sc_cfg constraint component $name placement]
+    set rotation [dict get $sc_cfg constraint component $name rotation]
+    set flip     [dict get $sc_cfg constraint component $name flip]
 
     set transform_r [odb::dbTransform]
     $transform_r setOrient "R${rotation}"
@@ -109,7 +109,7 @@ if {[dict exists $sc_cfg constraints component]} {
     set transform_final [odb::dbTransform]
     odb::dbTransform_concat $transform_r $transform_f $transform_final
 
-    set inst [[ord::get_db_block findInst] $name]
+    set inst [[ord::get_db_block] findInst $name]
     if { $inst == "NULL" } {
       utl::error FLW 1 "Could not find instance: $name"
     }
@@ -122,7 +122,7 @@ if {[dict exists $sc_cfg constraints component]} {
     set y_loc [expr [lindex $location 1] - $height / 2]
 
     place_cell -inst_name $name \
-      -origin "$x_loc $yloc" \
+      -origin "$x_loc $y_loc" \
       -orient [$transform_final getOrient] \
       -status FIRM
   }
@@ -136,8 +136,8 @@ if {[design_has_unplaced_macros]} {
   ###########################
 
   global_placement -density $openroad_gpl_place_density \
-    -pad_left $openroad_gpl_pad_global_place \
-    -pad_right $openroad_gpl_pad_global_place
+    -pad_left $openroad_gpl_padding \
+    -pad_right $openroad_gpl_padding
 
   ###########################
   # Macro placement
