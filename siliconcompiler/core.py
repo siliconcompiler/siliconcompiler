@@ -571,9 +571,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         """
 
-        # TODO: Blergh, this method is called from a whole bunch of tests.
-        target_module = importlib.import_module(f'targets.{name}')
-        self.use(target_module)
+        load_function = self.find_function(name, 'setup', 'targets')
+        load_function(self)
 
     ##########################################################################
     def use(self, module):
