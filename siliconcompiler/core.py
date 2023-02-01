@@ -2717,26 +2717,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         print("-"*135)
         print(info, "\n")
 
-        # Stepping through all steps/indices and printing out metrics
-        data = []
+        # Collections for data
+        nodes = []
+        errors = {}
+        metrics = {}
+        reports = {}
 
-        #Creating Header
-        header = []
-        indices_to_show = {}
-        colwidth = 8
+        # Build ordered list of nodes in flowgraph
         for step in steplist:
-            if show_all_indices:
-                indices_to_show[step] = self.getkeys('flowgraph', flow, step)
-            else:
-                indices_to_show[step] = []
-                for index in self.getkeys('flowgraph', flow, step):
-                    if (step, index) in selected_tasks:
-                        indices_to_show[step].append(index)
-
-        # header for data frame
-        for step in steplist:
-            for index in indices_to_show[step]:
-                header.append(f'{step}{index}'.center(colwidth))
+            for index in self.getkeys('flowgraph', flow, step):
+                nodes.append((step, index))
+                metrics[step, index] = {}
+                reports[step, index] = {}
 
         # Gather data and determine which metrics to show
         # We show a metric if:
@@ -2748,35 +2740,60 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if metric in self.get('option', 'metricoff'):
                 continue
 
-            row = []
             show_metric = False
-            for step in steplist:
-                for index in indices_to_show[step]:
-                    if (
-                        metric in self.getkeys('flowgraph', flow, step, index, 'weight') and
-                        self.get('flowgraph', flow, step, index, 'weight', metric)
-                    ):
-                        show_metric = True
+            for step, index in nodes:
+                if (
+                    metric in self.getkeys('flowgraph', flow, step, index, 'weight') and
+                    self.get('flowgraph', flow, step, index, 'weight', metric)
+                ):
+                    show_metric = True
 
-                    value = self.get('metric', step, index, metric)
-                    if value is None:
-                        value = '---'
-                    else:
-                        value = str(value)
-                        show_metric = True
+                value = self.get('metric', step, index, metric)
+                if value is not None:
+                    show_metric = True
+                tool = self.get('flowgraph', flow, step, index, 'tool')
+                task = self._get_task(step, index, flow=flow)
+                rpts = self.get('tool', tool, 'task', task, 'report', step, index, metric)
 
-                    row.append(" " + value.center(colwidth))
+                errors[step, index] = self.get('flowgraph', flow, step, index, 'status') == TaskStatus.ERROR
+                metrics[step, index][metric] = value
+                reports[step, index][metric] = rpts
 
             if show_metric:
                 metrics_to_show.append(metric)
-                data.append(row)
 
+        # Display data
         pandas.set_option('display.max_rows', 500)
         pandas.set_option('display.max_columns', 500)
         pandas.set_option('display.width', 100)
-        metrics = [" " + metric for metric in metrics_to_show]
-        df = pandas.DataFrame(data, metrics, header)
-        print(df.to_string())
+
+        if show_all_indices:
+            nodes_to_show = nodes
+        else:
+            nodes_to_show = [n for n in nodes if n in selected_tasks]
+
+        colwidth = 8 # minimum col width
+        row_labels = [' ' + metric for metric in metrics_to_show]
+        column_labels = [f'{step}{index}'.center(colwidth) for step, index in nodes_to_show]
+
+        data = []
+        for metric in metrics_to_show:
+            row = []
+            for node in nodes_to_show:
+                value = metrics[node][metric]
+                if value is None:
+                    value = '---'
+                else:
+                    value = str(value)
+                value = ' ' + value.center(colwidth)
+                row.append(value)
+            data.append(row)
+
+        df = pandas.DataFrame(data, row_labels, column_labels)
+        if not df.empty:
+            print(df.to_string())
+        else:
+            print(' No metrics to display!')
         print("-"*135)
 
         # Create a report for the Chip object which can be viewed in a web browser.
@@ -2786,11 +2803,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Gather essential variables.
             templ_dir = os.path.join(self.scroot, 'templates', 'report')
             design = self.top()
-            flow = self.get('option', 'flow')
-            flow_steps = steplist
-            flow_tasks = {}
-            for step in flow_steps:
-                flow_tasks[step] = self.getkeys('flowgraph', flow, step)
 
             # Call 'show()' to generate a low-res PNG of the design.
             img_data = None
@@ -2821,11 +2833,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # default encoding is not UTF-8.
             with open(results_page, 'w', encoding='utf-8') as wf:
                 wf.write(env.get_template('sc_report.j2').render(
+                    design = design,
+                    nodes = nodes,
+                    errors = errors,
+                    metrics = metrics,
+                    reports = reports,
                     manifest = self.schema.cfg,
                     pruned_cfg = pruned_cfg,
                     metric_keys = metrics_to_show,
-                    metrics = self.schema.cfg['metric'],
-                    tasks = flow_tasks,
                     img_data = img_data,
                 ))
 
