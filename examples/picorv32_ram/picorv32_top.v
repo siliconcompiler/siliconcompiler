@@ -31,16 +31,6 @@ module picorv32_top #(
         input clk, resetn,
         output reg trap,
 
-        // TODO: Remove - memory signals go to the SRAM module.
-        //output reg        mem_valid,
-        //output reg        mem_instr,
-        //input             mem_ready,
-
-        //output reg [31:0] mem_addr,
-        //output reg [31:0] mem_wdata,
-        //output reg [ 3:0] mem_wstrb,
-        //input      [31:0] mem_rdata,
-
         // Look-Ahead Interface
         output            mem_la_read,
         output            mem_la_write,
