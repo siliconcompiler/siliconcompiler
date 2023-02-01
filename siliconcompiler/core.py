@@ -599,15 +599,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.import_library(module.setup(self))
 
     ###########################################################################
-    def list_metrics(self):
-        '''
-        Returns a list of all metrics in the schema.
-
-        '''
-
-        return self.getkeys('metric','default','default')
-
-    ###########################################################################
     def help(self, *keypath):
         """
         Returns a schema parameter description.
@@ -1800,7 +1791,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if not m:
                     self.error(f"Illegal checklist criteria: {criteria}")
                     return False
-                elif m.group(1) not in self.getkeys('metric', 'default', 'default'):
+                elif m.group(1) not in self.getkeys('metric'):
                     self.error(f"Critera must use legal metrics only: {criteria}")
                     return False
 
@@ -1815,7 +1806,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     tool = self.get('flowgraph', flow, step, index, 'tool', job=job)
                     task = self.get('flowgraph', flow, step, index, 'task', job=job)
 
-                    value = self.get('metric', step, index, metric,  job=job)
+                    value = self.get('metric', metric, job=job, step=step, index=index)
                     criteria_ok = self._safecompare(value, op, goal)
                     if metric in self.getkeys('checklist', standard, item, 'waiver'):
                         waivers = self.get('checklist', standard, item, 'waiver', metric)
@@ -2742,7 +2733,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # - at least one step in the steplist has a non-zero weight for the metric -OR -
         #   at least one step in the steplist set a value for it
         metrics_to_show = []
-        for metric in self.getkeys('metric', 'default', 'default'):
+        for metric in self.getkeys('metric'):
             if metric in self.get('option', 'metricoff'):
                 continue
 
@@ -2754,7 +2745,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 ):
                     show_metric = True
 
-                value = self.get('metric', step, index, metric)
+                value = self.get('metric', metric, step=step, index=index)
                 if value is not None:
                     show_metric = True
                 tool = self.get('flowgraph', flow, step, index, 'tool')
@@ -2987,7 +2978,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('flowgraph', flow, step, index, 'task', task)
 
         # set default weights
-        for metric in self.getkeys('metric', 'default', 'default'):
+        for metric in self.getkeys('metric'):
             self.set('flowgraph', flow, step, index, 'weight', metric, 0)
 
     ###########################################################################
@@ -3204,10 +3195,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if self.get('flowgraph', flow, step, index, 'status') == TaskStatus.ERROR:
                 failed[step][index] = True
             else:
-                for metric in self.getkeys('metric', step, index):
+                for metric in self.getkeys('metric'):
                     if self.valid('flowgraph', flow, step, index, 'goal', metric):
                         goal = self.get('flowgraph', flow, step, index, 'goal', metric)
-                        real = self.get('metric', step, index, metric)
+                        real = self.get('metric', metric, step=step, index=index)
                         if real is None:
                             self.error(f'Metric {metric} has goal for {step}{index} '
                                 'but it has not been set.', fatal=True)
@@ -3225,7 +3216,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             min_val[metric] = float("inf")
             for step, index in steplist:
                 if not failed[step][index]:
-                    real = self.get('metric', step, index, metric)
+                    real = self.get('metric', metric, step=step, index=index)
                     if real is None:
                         continue
                     max_val[metric] = max(max_val[metric], real)
@@ -3245,7 +3236,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # skip if weight is 0 or None
                     continue
 
-                real = self.get('metric', step, index, metric)
+                real = self.get('metric', metric, step=step, index=index)
                 if real is None:
                     self.error(f'Metric {metric} has weight for {step}{index} '
                         'but it has not been set.', fatal=True)
@@ -3688,8 +3679,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
-        self.set('metric', step, index, 'exetime', cputime)
-        self.set('metric', step, index, 'memory', max_mem_bytes)
+        self.set('metric', 'exetime', cputime, step=step, index=index)
+        self.set('metric', 'memory', max_mem_bytes, step=step, index=index)
 
         ##################
         # Post process
@@ -3703,17 +3694,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if (not is_builtin) and (not self.get('option', 'skipall')) and (run_func is None):
             matches = self.check_logfile(step=step, index=index, display=not quiet)
             if 'errors' in matches:
-                errors = self.get('metric', step, index, 'errors')
+                errors = self.get('metric', 'errors', step=step, index=index)
                 if errors is None:
                     errors = 0
                 errors += matches['errors']
-                self.set('metric', step, index, 'errors', errors)
+                self.set('metric', 'errors', errors, step=step, index=index)
             if 'warnings' in matches:
-                warnings = self.get('metric', step, index, 'warnings')
+                warnings = self.get('metric', 'warnings', step=step, index=index)
                 if warnings is None:
                     warnings = 0
                 warnings += matches['warnings']
-                self.set('metric', step, index, 'warnings', warnings)
+                self.set('metric', 'warnings', warnings, step=step, index=index)
 
         ##################
         # Hash files
@@ -3731,7 +3722,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Capture wall runtime and cpu cores
         wall_end = time.time()
         walltime = round((wall_end - wall_start),2)
-        self.set('metric',step, index, 'tasktime', walltime)
+        self.set('metric', 'tasktime', walltime, step=step, index=index)
         self.logger.info(f"Finished task in {walltime}s")
 
         ##################
@@ -3747,7 +3738,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Stop if there are errors
-        errors = self.get('metric', step, index, 'errors')
+        errors = self.get('metric', 'errors', step=step, index=index)
         if errors and not self.get('option', 'flowcontinue'):
             # TODO: should we warn if errors is not set?
             self.logger.error(f'{tool} reported {errors} errors during {step}{index}')
@@ -3939,8 +3930,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.set('flowgraph', flow, step, index, 'status', None)
 
                     # Reset metrics and records
-                    for metric in self.getkeys('metric', 'default', 'default'):
-                        self.unset('metric', step, index, metric)
+                    for metric in self.getkeys('metric'):
+                        self.unset('metric', metric, step=step, index=index)
                     for record in self.getkeys('record', 'default', 'default'):
                         self.unset('record', step, index, record)
                 elif os.path.isfile(cfg):
@@ -3955,8 +3946,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for index in self.getkeys('flowgraph', flow, step):
                     if index in indexlist[step]:
                         self.set('flowgraph', flow, step, index, 'status', None)
-                        for metric in self.getkeys('metric', 'default', 'default'):
-                            self.set('metric', step, index, metric,  None)
+                        for metric in self.getkeys('metric'):
+                            self.set('metric', metric,  None, step=step, index=index)
                         for record in self.getkeys('record', 'default', 'default'):
                             self.set('record', step, index, record, None)
 

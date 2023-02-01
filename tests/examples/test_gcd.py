@@ -27,30 +27,30 @@ def test_py(setup_example_test):
     assert chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'syn', '0', 'cellarea') == ['syn.log']
 
     # "No timescale set..."
-    assert chip.get('metric', 'import', '0', 'warnings') == 10
+    assert chip.get('metric', 'warnings', step='import', index='0') == 10
 
     # "Found unsupported expression..." (x72) + 3 ABC Warnings
-    assert chip.get('metric', 'syn', '0', 'warnings') == 75
+    assert chip.get('metric', 'warnings', step='syn', index='0') == 75
 
     # [WARNING PSM*]
-    assert chip.get('metric', 'floorplan', '0', 'warnings') == 16
+    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 16
 
-    assert chip.get('metric', 'physyn', '0', 'warnings') == 0
+    assert chip.get('metric', 'warnings', step='physyn', index='0') == 0
 
-    assert chip.get('metric', 'place', '0', 'warnings') == 0
+    assert chip.get('metric', 'warnings', step='place', index='0') == 0
 
     # "1632 wires are pure wire and no slew degradation"
     # "Creating fake entries in the LUT"
-    assert chip.get('metric', 'cts', '0', 'warnings') == 2
+    assert chip.get('metric', 'warnings', step='cts', index='0') == 2
 
     # Missing route to pin (x77)
-    assert chip.get('metric', 'route', '0', 'warnings') == 77
+    assert chip.get('metric', 'warnings', step='route', index='0') == 77
 
     # Missing route to pin (x89)
-    assert chip.get('metric', 'dfm', '0', 'warnings') == 89
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 89
 
     # "no fill config specified"
-    assert chip.get('metric', 'export', '0', 'warnings') == 1
+    assert chip.get('metric', 'warnings', step='export', index='0') == 1
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -77,8 +77,8 @@ def test_py_sky130(setup_example_test):
     chip.read_manifest(manifest)
 
     # Verify that the build was LVS and DRC clean.
-    assert chip.get('metric', 'lvs', '0', 'drvs') == 0
-    assert chip.get('metric', 'drc', '0', 'drvs') == 0
+    assert chip.get('metric', 'drvs', step='lvs', index='0') == 0
+    assert chip.get('metric', 'drvs', step='drc', index='0') == 0
 
 @pytest.mark.eda
 @pytest.mark.skip(reason="asap7 not yet supported using new library scheme")

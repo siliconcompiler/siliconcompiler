@@ -72,7 +72,7 @@ history
 
 The "history" prefix stores configuration from past runs, indexed by jobname. Values are stored automatically at the end of :meth:`run()`, and only parameters tagged with the 'job' scope are stored. This can be used to go back and inspect the results of old runs. As a shortcut for accessing these stored values, most of the schema access functions support an optional ``job`` keyword arg. For example, the following line returns the number of errors from a synthesis step run as part of a job called "job0"::
 
-    chip.get('metric', 'syn', '0', 'error', job='job0')
+    chip.get('metric', 'error', job='job0', step='syn', index='0')
 
 library
 ++++++++

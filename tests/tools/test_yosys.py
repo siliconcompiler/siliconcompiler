@@ -23,7 +23,7 @@ def test_yosys_lec(datadir):
 
     chip.run()
 
-    errors = chip.get('metric', 'lec', '0', 'drvs')
+    errors = chip.get('metric', 'drvs', step='lec', index='0')
 
     assert errors == 0
 
@@ -48,7 +48,7 @@ def test_yosys_lec_broken(datadir):
 
     chip.run()
 
-    errors = chip.get('metric', 'lec', '0', 'drvs')
+    errors = chip.get('metric', 'drvs', step='lec', index='0')
 
     assert errors == 2
 

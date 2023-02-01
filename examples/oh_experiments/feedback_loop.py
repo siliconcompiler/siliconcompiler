@@ -51,8 +51,8 @@ def main():
         chip.run()
 
         # Query current run and last run
-        new_area = chip.get('metric', step, index, 'cellarea')
-        old_area = chip.get('metric', step, index, 'cellarea', job=oldid)
+        new_area = chip.get('metric', 'cellarea', step=step, index=index)
+        old_area = chip.get('metric', 'cellarea', job=oldid, step=step, index=index)
 
         # compare result
         print(N, new_area, old_area, newid, chip.get('option', 'jobname'))

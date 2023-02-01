@@ -7,12 +7,12 @@ def test_history(datadir):
     chip.load_target('freepdk45_demo')
 
     # Set values in manifest
-    chip.set('metric', 'floorplan', '0', 'utilization', 10)
+    chip.set('metric', 'utilization', 10, step='floorplan', index='0')
 
     # record history
     chip.schema.record_history()
 
-    assert chip.get('history', 'job0', 'metric', 'floorplan', '0', 'utilization') == 10
+    assert chip.get('history', 'job0', 'metric', 'utilization', step='floorplan', index='0') == 10
 
     # record new manifest
     chip.write_manifest("history.json")

@@ -28,7 +28,7 @@ def checkarea(filelist, libdir, target):
           chip.set('option','steplist', ['import', 'syn'])
           chip.run()
           cells = chip.get('metric','syn', '0', 'cells')
-          area = chip.get('metric', 'syn', '0', 'cellarea')
+          area = chip.get('metric', 'cellarea', step='syn', index='0')
           print(design, cells, area, sep=",")
 
     return 0

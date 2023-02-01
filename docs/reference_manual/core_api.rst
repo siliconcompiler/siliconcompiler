@@ -52,7 +52,6 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.core.Chip.find_result
     ~siliconcompiler.core.Chip.grep
     ~siliconcompiler.core.Chip.hash_files
-    ~siliconcompiler.core.Chip.list_metrics
     ~siliconcompiler.core.Chip.list_steps
     ~siliconcompiler.core.Chip.load_target
     ~siliconcompiler.core.Chip.read_file
