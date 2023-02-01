@@ -7,8 +7,8 @@ def build_top():
     # Core settings.
     design = 'picorv32_top'
     target = 'skywater130_demo'
-    die_w = 2000
-    die_h = 2000
+    die_w = 1000
+    die_h = 1200
 
     # Create Chip object.
     chip = siliconcompiler.Chip(design)
@@ -43,15 +43,17 @@ def build_top():
     chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'floorplan', '0', 'macro_place_channel', '40')
 
     # Place macro instance.
-    chip.set('constraint', 'component', 'sram', 'placement', (600.0, 600.0, 0.0))
-    chip.set('constraint', 'component', 'sram', 'rotation', 90)
+    chip.set('constraint', 'component', 'sram', 'placement', (600.0, 400.0, 0.0))
+    chip.set('constraint', 'component', 'sram', 'rotation', 270)
 
     # Run the build.
     chip.run()
 
+    return chip
+
 if __name__ == '__main__':
     # Build results.
-    build_top()
+    chip = build_top()
     # Print results.
     chip.summary()
     # Display results.
