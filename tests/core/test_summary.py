@@ -30,6 +30,7 @@ def test_steplist(gcd_with_metrics, capfd):
 
     gcd_with_metrics.summary()
     stdout, _ = capfd.readouterr()
+    # Summary output is hidden by capfd, so we print it to aid in debugging
     print(stdout)
 
     assert 'import0' not in stdout
@@ -69,6 +70,7 @@ def test_parallel_path(capfd):
 
     chip.summary()
     stdout, _ = capfd.readouterr()
+    # Summary output is hidden by capfd, so we print it to aid in debugging
     print(stdout)
     assert 'place1' in stdout
     assert 'cts1' in stdout
