@@ -1,27 +1,5 @@
 {
     "arg": {
-        "flow": {
-            "default": {
-                "defvalue": [],
-                "example": [
-                    "cli: -arg_flow 'n 100'",
-                    "api: chip.set('arg','flow','n', 100)"
-                ],
-                "help": "Parameter passed in as key/value pair to the flow target\nreferenced in the load_flow() API call. See the target flow\nfor specific guidelines regarding configuration parameters.",
-                "lock": false,
-                "nodevalue": {},
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "scratch",
-                "set": false,
-                "shorthelp": "ARG: Flow argument",
-                "signature": [],
-                "switch": "-arg_flow 'key <str>'",
-                "type": "[str]",
-                "value": []
-            }
-        },
         "index": {
             "defvalue": null,
             "example": [
@@ -41,28 +19,6 @@
             "switch": "-arg_index <str>",
             "type": "str",
             "value": null
-        },
-        "pdk": {
-            "default": {
-                "defvalue": [],
-                "example": [
-                    "cli: -arg_pdk 'mimcap true'",
-                    "api: chip.set('arg','pdk','mimcap',True)"
-                ],
-                "help": "Parameter passed in as key/value pair to the technology target\nreferenced in the load_pdk() API call. See the target technology\nfor specific guidelines regarding configuration parameters.",
-                "lock": false,
-                "nodevalue": {},
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "scratch",
-                "set": false,
-                "shorthelp": "ARG: PDK argument",
-                "signature": [],
-                "switch": "-arg_pdk 'key <str>",
-                "type": "[str]",
-                "value": []
-            }
         },
         "step": {
             "defvalue": null,
@@ -6805,7 +6761,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.21.0",
+        "defvalue": "0.22.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6821,7 +6777,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.21.0"
+        "value": "0.22.0"
     },
     "tool": {
         "default": {
