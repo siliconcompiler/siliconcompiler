@@ -558,7 +558,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return getattr(module, funcname, None)
 
     ##########################################################################
-    def load_target(self, name):
+    def load_target(self, name, **kwargs):
         """
         Loads a target module and runs the setup() function.
 
@@ -567,40 +567,84 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             name (str): Module name
-            flow (str): Target flow to
+            **kwargs (str): Options to pass along to the target
 
         Examples:
-            >>> chip.load_target('freepdk45_demo')
-            Loads the 'freepdk45_demo' target
-
+            >>> chip.load_target('freepdk45_demo', syn_np=5)
+            Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
         # Record target
         self.set('option', 'target', name)
 
         load_function = self.find_function(name, 'setup', 'targets')
-        load_function(self)
+        load_function(self, **kwargs)
 
     ##########################################################################
-    def use(self, module):
+    def use(self, module, **kwargs):
         '''
         Loads a SiliconCompiler module into the current chip object by calling
         a module.setup() method.
         '''
 
-        # Call the module setup function.
-        # TODO: Move from 'module.setup(self)' to 'self.[merge](module.setup())'
-        new_schema = module.setup(self)
+        # Load supported types here to avoid cyclic import
+        from siliconcompiler import PDK
+        from siliconcompiler import Flow
+        from siliconcompiler import Library
+        from siliconcompiler import Checklist
 
-        # TODO: Is this the best way to determine module type? Also, remove chip arg from all but target?
-        if 'targets' in module.__name__:
-            self.set('option', 'target', module.__name__[module.__name__.rfind('.')+1:])
-        elif 'libs.' in module.__name__:
-            lib_name = module.__name__[module.__name__.rfind('.')+1:]
-            self._loaded_modules['libs'].append(lib_name)
-            # TODO: Stdcell libs may call 'import_library' of their own volition, and not return a Chip.
-            if new_schema:
-                self.import_library(module.setup(self))
+        # Mark self as read only
+        self._readonly = True
+
+        # Call the module setup function.
+        use_modules = module.setup(self, **kwargs)
+
+        # Reset readonly flag
+        self._readonly = False
+
+        # Make it a list for consistency
+        if not isinstance(use_modules, list):
+            use_modules = [use_modules]
+
+        for use_module in use_modules:
+            if isinstance(use_module, PDK):
+                self._loaded_modules['pdks'].append(use_module.design)
+                self._use_import('pdk', use_module)
+
+            elif isinstance(use_module, Flow):
+                self._loaded_modules['flows'].append(use_module.design)
+                self._use_import('flowgraph', use_module)
+
+            elif isinstance(use_module, Checklist):
+                self._loaded_modules['checklists'].append(use_module.design)
+                self._use_import('checklist', use_module)
+
+            elif isinstance(use_module, Library) or isinstance(use_module, Chip):
+                self._loaded_modules['libs'].append(use_module.design)
+                self._import_library(use_module.design, use_module.schema.cfg)
+
+            else:
+                raise ValueError(f"{module.__name__} returned an object with an unsupported type: {use_module.__class__.__name__}")
+
+    def _use_import(self, group, module):
+        '''
+        Imports the module into the schema
+
+        Args:
+            group (str): Top group to copy information into
+            module (class): Chip object to import
+        '''
+
+        importname = module.design
+
+        src_cfg = self.schema.cfg[group]
+
+        if importname in src_cfg:
+            self.logger.warning(f'Overwriting existing {group} {importname}')
+            del src_cfg[importname]
+
+        # Copy
+        src_cfg[importname] = module.getdict(group, importname)
 
     ###########################################################################
     def help(self, *keypath):
@@ -2008,15 +2052,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self._find_deps(cache, local, remote, subdesign, subdeps, auto, depgraph, upstream)
 
         return depgraph
-
-    ###########################################################################
-    def import_library(self, lib_chip):
-        '''Import a Chip object into current Chip as a library.
-
-        Args:
-            lib_chip (Chip): An instance of Chip to import.
-        '''
-        self._import_library(lib_chip.design, lib_chip.schema.cfg)
 
     ###########################################################################
     def _import_library(self, libname, libcfg, job=None, clobber=True):
