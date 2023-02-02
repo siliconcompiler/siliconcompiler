@@ -56,11 +56,11 @@ def test_spaces_in_value(monkeypatch):
     assert chip.get('package', 'description') == desc
 
 def test_limited_switchlist(monkeypatch):
-    args = ['sc', '-loglevel', 'DEBUG', '-arg_flow', 'foo bar']
-    chip = do_cli_test(args, monkeypatch, switchlist=['-loglevel', '-arg_flow'])
+    args = ['sc', '-loglevel', 'DEBUG', '-var', 'foo bar']
+    chip = do_cli_test(args, monkeypatch, switchlist=['-loglevel', '-var'])
 
     assert chip.get('option', 'loglevel') == 'DEBUG'
-    assert chip.get('arg', 'flow', 'foo') == ['bar']
+    assert chip.get('option', 'var', 'foo') == ['bar']
 
 def _cast(val, sctype):
     if sctype.startswith('['):
