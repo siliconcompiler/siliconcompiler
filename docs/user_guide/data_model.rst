@@ -52,7 +52,7 @@ Table summarizing mandatory parameter type and value fields.
 
    * - **pernode**
      - Enables/disables setting of value on a per node basis
-     - never, required, optional
+     - 'never', 'required', 'optional'
 
    * - **set**
      - State indicating if parameter value has been modified by user.
@@ -63,7 +63,7 @@ Table summarizing mandatory parameter type and value fields.
      - True / False
 
    * - **scope**
-     - Scope of paremter in schema
+     - Scope of parameter in schema
      - 'global', 'job'
 
    * - **require**
@@ -83,7 +83,7 @@ Table summarizing mandatory parameter type and value fields.
      - String
 
    * - **example**
-     - Usage examples for CLI ad API
+     - Usage examples for CLI and API
      - String
 
    * - **notes**
