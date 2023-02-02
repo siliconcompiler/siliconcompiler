@@ -14,6 +14,11 @@ step = chip.get('arg', 'step')
 index = chip.get('arg', 'index')
 task = chip.get('flowgraph', flow, step, index, 'task')
 
+if 'hide_layers' in chip.getkeys('tool', 'klayout', 'task', task, 'var', step, index):
+    sc_hide_layers = chip.get('tool', 'klayout', 'task', task, 'var', step, index, 'hide_layers')
+else:
+    sc_hide_layers = []
+
 if 'show_filepath' in chip.getkeys('tool', 'klayout', 'task', task, 'var', step, index):
     sc_filename = chip.get('tool', 'klayout', 'task', task, 'var', step, index, 'show_filepath')[0]
 else:
@@ -104,6 +109,12 @@ if lyp_path:
     # Set layer properties -- setting second argument to True ensures things like
     # KLayout's extra outline, blockage, and obstruction layers appear.
     layout_view.load_layer_props(lyp_path, True)
+
+# Hide layers that shouldn't be shown in the screenshot.
+for layer in layout_view.each_layer():
+    layer_name = f'{layer.source_layer}/{layer.source_datatype}'
+    if layer_name in sc_hide_layers:
+        layer.visible = False
 
 # If 'screenshot' mode is set, save image and exit.
 if step == 'screenshot':
