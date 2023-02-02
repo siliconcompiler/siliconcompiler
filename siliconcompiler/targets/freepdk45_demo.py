@@ -20,7 +20,7 @@ def make_docs():
 # PDK Setup
 ####################################################
 
-def setup(chip):
+def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1, dfm_np=1):
     '''
     Target setup
     '''
@@ -31,9 +31,8 @@ def setup(chip):
     from libs import nangate45
     chip.use(freepdk45)
     chip.use(lintflow)
-    chip.use(asicflow)
+    chip.use(asicflow, syn_np=syn_np, floorplan_np=floorplan_np, physyn_np=physyn_np, place_np=place_np, cts_np=cts_np, route_np=route_np, dfm_np=dfm_np)
     chip.use(asictopflow)
-    chip.use(asicflow)
     chip.use(nangate45)
 
     #2. Setup default show tools
