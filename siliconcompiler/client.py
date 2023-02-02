@@ -54,8 +54,6 @@ def remote_preprocess(chip):
     for task_tuple in import_tasks:
         if not task_tuple[0] in import_steps:
             import_steps.append(task_tuple[0])
-    chip.logger.warning(remote_steplist)
-    chip.logger.warning(import_steps)
     if remote_steplist[:len(import_steps)] != import_steps:
         chip.error('Remote flows must be organized such that the "import" task(s) are run before '
                   f'all other steps.\nFull steplist: {remote_steplist}\n'
