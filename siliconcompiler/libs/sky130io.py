@@ -1,14 +1,13 @@
 import os
-
 import siliconcompiler
+from siliconcompiler import Library
 
 def make_docs():
     '''
     Skywater130 I/O library.
     '''
     chip = siliconcompiler.Chip('<design>')
-    setup(chip)
-    return chip
+    return setup(chip)
 
 def setup(chip):
     process = 'skywater130'
@@ -16,7 +15,7 @@ def setup(chip):
     stackup = '5M1LI'
     corner = 'typical'
 
-    lib = siliconcompiler.Chip(libname)
+    lib = Library(chip, libname)
 
     libdir = os.path.join('..',
                           'third_party',
@@ -36,4 +35,4 @@ def setup(chip):
     lib.add('output', stackup, 'gds', os.path.join(libdir, 'sky130_fd_io.gds'))
     lib.add('output', stackup, 'gds', os.path.join(libdir, 'sky130_ef_io__gpiov2_pad_wrapped.gds'))
 
-    chip.import_library(lib)
+    return lib

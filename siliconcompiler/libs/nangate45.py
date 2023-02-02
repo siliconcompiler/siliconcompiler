@@ -1,14 +1,14 @@
 import os
-import copy
 import siliconcompiler
+
+from siliconcompiler import Library
 
 def make_docs():
     '''
     Nangate open standard cell library for FreePDK45.
     '''
     chip = siliconcompiler.Chip('<design>')
-    setup(chip)
-    return chip
+    return setup(chip)
 
 def setup(chip):
     libname = 'nangate45'
@@ -18,7 +18,8 @@ def setup(chip):
     libtype = '10t'
     version = 'r1p0'
     corner = 'typical'
-    objectives = ['setup']
+
+    lib = Library(chip, libname)
 
     libdir = os.path.join('..',
                           'third_party',
@@ -28,10 +29,6 @@ def setup(chip):
                           'libs',
                           libname,
                           version)
-
-
-    # create local chip object
-    lib = siliconcompiler.Chip(libname)
 
     # version
     lib.set('package', 'version', version)
@@ -110,7 +107,7 @@ def setup(chip):
         lib.set('option', 'var', f'{tool}_tielow_cell', "LOGIC0_X1")
         lib.set('option', 'var', f'{tool}_tielow_port', "Z")
 
-    chip.import_library(lib)
+    return lib
 
 #########################
 if __name__ == "__main__":

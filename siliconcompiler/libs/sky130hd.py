@@ -1,13 +1,13 @@
 import os
 import siliconcompiler
+from siliconcompiler import Library
 
 def make_docs():
     '''
     Skywater130 standard cell library.
     '''
     chip = siliconcompiler.Chip('<design>')
-    setup(chip)
-    return chip
+    return setup(chip)
 
 def setup(chip):
     foundry = 'skywater'
@@ -20,7 +20,7 @@ def setup(chip):
 
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, version)
 
-    lib = siliconcompiler.Chip(libname)
+    lib = Library(chip, libname)
 
     # version
     lib.set('package', 'version', version)
@@ -124,7 +124,7 @@ def setup(chip):
         lib.set('option', 'var', f'{tool}_tielow_cell', "sky130_fd_sc_hd__conb_1")
         lib.set('option', 'var', f'{tool}_tielow_port', "LO")
 
-    chip.import_library(lib)
+    return lib
 
 #########################
 if __name__ == "__main__":
