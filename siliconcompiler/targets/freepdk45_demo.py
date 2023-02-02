@@ -33,7 +33,6 @@ def setup(chip):
     chip.use(lintflow)
     chip.use(asicflow)
     chip.use(asictopflow)
-    chip.use(asicflow)
     chip.use(nangate45)
 
     #2. Setup default show tools
