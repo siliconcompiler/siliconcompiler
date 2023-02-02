@@ -777,7 +777,7 @@
                     "defvalue": null,
                     "example": [
                         "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
-                        "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"
+                        "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0))"
                     ],
                     "help": "Placement location of a named instance, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
                     "lock": false,
@@ -1132,7 +1132,7 @@
                     "defvalue": null,
                     "example": [
                         "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
-                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0)"
+                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0))"
                     ],
                     "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates. Values are specified\nin microns or lambda units.",
                     "lock": false,
@@ -2627,852 +2627,848 @@
     },
     "library": {},
     "metric": {
-        "default": {
-            "default": {
-                "averagepower": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_averagepower 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','averagepower', 0.01)"
-                    ],
-                    "help": "Metric tracking the average workload power of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power averagepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: averagepower",
-                    "signature": null,
-                    "switch": "-metric_averagepower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": null
-                },
-                "brams": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_brams 'place 0 100'",
-                        "api: chip.set('metric','place','0','brams', 100)"
-                    ],
-                    "help": "Metric tracking the total FPGA BRAM tiles used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: FPGA BRAM tiles",
-                    "signature": null,
-                    "switch": "-metric_brams 'step index <int>'",
-                    "type": "int",
-                    "value": null
-                },
-                "buffers": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_buffers 'place 0 100'",
-                        "api: chip.set('metric','place','0','buffers', 50)"
-                    ],
-                    "help": "Metric tracking the total number of buffer and inverter instances in the design\non a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: buffers",
-                    "signature": null,
-                    "switch": "-metric_buffers 'step index <float>'",
-                    "type": "int",
-                    "value": null
-                },
-                "cellarea": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_cellarea 'place 0 100.00'",
-                        "api: chip.set('metric','place','0','cellarea', 100.00)"
-                    ],
-                    "help": "Metric tracking the total cell area (ignoring fillers) occupied by the design.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: cellarea",
-                    "signature": null,
-                    "switch": "-metric_cellarea 'step index <float>'",
-                    "type": "float",
-                    "unit": "um^2",
-                    "value": null
-                },
-                "cells": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_cells 'place 0 100'",
-                        "api: chip.set('metric','place','0','cells', 50)"
-                    ],
-                    "help": "Metric tracking the total number of cell instances in the design\non a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: cells",
-                    "signature": null,
-                    "switch": "-metric_cells 'step index <float>'",
-                    "type": "int",
-                    "value": null
-                },
-                "coverage": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_coverage 'place 0 99.9'",
-                        "api: chip.set('metric','place','0','coverage', 99.9)"
-                    ],
-                    "help": "Metric tracking the test coverage in the design expressed as a percentage\nwith 100 meaning full coverage. The meaning of the metric depends on the\ntask being executed. It can refer to code coverage, feature coverage,\nstuck at fault coverage.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: coverage",
-                    "signature": null,
-                    "switch": "-metric_coverage 'step index <float>'",
-                    "type": "float",
-                    "unit": "%",
-                    "value": null
-                },
-                "dozepower": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_dozepower 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','dozepower', 0.01)"
-                    ],
-                    "help": "Metric tracking the power consumed while in low frequency operating mode of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power dozepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: dozepower",
-                    "signature": null,
-                    "switch": "-metric_dozepower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": null
-                },
-                "drvs": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_drvs 'dfm 0 0'",
-                        "api: chip.set('metric','dfm','0','drvs', 0)"
-                    ],
-                    "help": "Metric tracking the total number of design rule violations on a\nper step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: total drvs",
-                    "signature": null,
-                    "switch": "-metric_drvs 'step index <int>'",
-                    "type": "int",
-                    "value": null
-                },
-                "dsps": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_dsps 'place 0 100'",
-                        "api: chip.set('metric','place','0','dsps', 100)"
-                    ],
-                    "help": "Metric tracking the total FPGA DSP slices used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: FPGA DSP slices",
-                    "signature": null,
-                    "switch": "-metric_dsps 'step index <int>'",
-                    "type": "int",
-                    "value": null
-                },
-                "errors": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_errors 'dfm 0 0'",
-                        "api: chip.set('metric','dfm','0','errors', 0)"
-                    ],
-                    "help": "Metric tracking the total number of errors on a\nper step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: total errors",
-                    "signature": null,
-                    "switch": "-metric_errors 'step index <int>'",
-                    "type": "int",
-                    "value": null
-                },
-                "exetime": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_exetime 'dfm 0 10.0'",
-                        "api: chip.set('metric','dfm','0','exetime', 10.0)"
-                    ],
-                    "help": "Metric tracking time spent by the eda executable 'exe' on a\nper step and index basis. It does not include the siliconcompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: exetime",
-                    "signature": null,
-                    "switch": "-metric_exetime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": null
-                },
-                "holdpaths": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_holdpaths 'place 0 10'",
-                        "api: chip.set('metric','place','0','holdpaths', 10)"
-                    ],
-                    "help": "Metric tracking the total number of timing paths violating hold\nconstraints.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: holdpaths",
-                    "signature": null,
-                    "switch": "-metric_holdpaths 'step index <float>'",
-                    "type": "int",
-                    "value": null
-                },
-                "holdslack": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_holdslack 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','holdslack', 0.01)"
-                    ],
-                    "help": "Metric tracking the worst hold slack (positive or negative) on a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: holdslack",
-                    "signature": null,
-                    "switch": "-metric_holdslack 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": null
-                },
-                "holdtns": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_holdtns 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','holdtns', 0.01)"
-                    ],
-                    "help": "Metric tracking the total negative hold slack (TNS) on a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: holdtns",
-                    "signature": null,
-                    "switch": "-metric_holdtns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": null
-                },
-                "holdwns": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_holdwns 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','holdwns', 0.01)"
-                    ],
-                    "help": "Metric tracking the worst negative hold slack (positive values truncated to zero) on a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: holdwns",
-                    "signature": null,
-                    "switch": "-metric_holdwns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": null
-                },
-                "idlepower": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_idlepower 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','idlepower', 0.01)"
-                    ],
-                    "help": "Metric tracking the power while not performing useful work of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power idlepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: idlepower",
-                    "signature": null,
-                    "switch": "-metric_idlepower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": null
-                },
-                "irdrop": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_irdrop 'place 0 0.05'",
-                        "api: chip.set('metric','place','0','irdrop', 0.05)"
-                    ],
-                    "help": "Metric tracking the peak IR drop in the design based on extracted\npower and ground rail parasitics, library power models, and\nswitching activity. The switching activity calculated on a per\nnode basis is taken from one of three possible sources, in order\nof priority: VCD file, SAIF file, 'activityfactor' parameter.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: peak IR drop",
-                    "signature": null,
-                    "switch": "-metric_irdrop 'step index <float>'",
-                    "type": "float",
-                    "unit": "mv",
-                    "value": null
-                },
-                "leakagepower": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_leakagepower 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','leakagepower', 0.01)"
-                    ],
-                    "help": "Metric tracking the leakage power with rails active but without any dynamic switching activity of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power leakagepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: leakagepower",
-                    "signature": null,
-                    "switch": "-metric_leakagepower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": null
-                },
-                "luts": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_luts 'place 0 100'",
-                        "api: chip.set('metric','place','0','luts', 100)"
-                    ],
-                    "help": "Metric tracking the total FPGA LUTs used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: FPGA LUTs",
-                    "signature": null,
-                    "switch": "-metric_luts 'step index <int>'",
-                    "type": "int",
-                    "value": null
-                },
-                "macros": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_macros 'place 0 100'",
-                        "api: chip.set('metric','place','0','macros', 50)"
-                    ],
-                    "help": "Metric tracking the total number of macros in the design\non a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: macros",
-                    "signature": null,
-                    "switch": "-metric_macros 'step index <float>'",
-                    "type": "int",
-                    "value": null
-                },
-                "memory": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_memory 'dfm 0 10e9'",
-                        "api: chip.set('metric','dfm','0','memory', 10e9)"
-                    ],
-                    "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: memory",
-                    "signature": null,
-                    "switch": "-metric_memory 'step index <float>'",
-                    "type": "float",
-                    "unit": "B",
-                    "value": null
-                },
-                "nets": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_nets 'place 0 100'",
-                        "api: chip.set('metric','place','0','nets', 50)"
-                    ],
-                    "help": "Metric tracking the total number of nets in the design\non a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: nets",
-                    "signature": null,
-                    "switch": "-metric_nets 'step index <float>'",
-                    "type": "int",
-                    "value": null
-                },
-                "overflow": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_overflow 'place 0 0'",
-                        "api: chip.set('metric','place','0','overflow', 50)"
-                    ],
-                    "help": "Metric tracking the total number of overflow tracks for the routing\non per step and index basis. Any non-zero number suggests an over\ncongested design. To analyze where the congestion is occurring\ninspect the router log files for detailed per metal overflow\nreporting and open up the design to find routing hotspots.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: overflow",
-                    "signature": null,
-                    "switch": "-metric_overflow 'step index <float>'",
-                    "type": "int",
-                    "value": null
-                },
-                "peakpower": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_peakpower 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','peakpower', 0.01)"
-                    ],
-                    "help": "Metric tracking the worst case total peak power of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power peakpower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: peakpower",
-                    "signature": null,
-                    "switch": "-metric_peakpower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": null
-                },
-                "pins": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_pins 'place 0 100'",
-                        "api: chip.set('metric','place','0','pins', 50)"
-                    ],
-                    "help": "Metric tracking the total number of pins in the design\non a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: pins",
-                    "signature": null,
-                    "switch": "-metric_pins 'step index <float>'",
-                    "type": "int",
-                    "value": null
-                },
-                "registers": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_registers 'place 0 100'",
-                        "api: chip.set('metric','place','0','registers', 50)"
-                    ],
-                    "help": "Metric tracking the total number of register instances in the design\non a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: registers",
-                    "signature": null,
-                    "switch": "-metric_registers 'step index <float>'",
-                    "type": "int",
-                    "value": null
-                },
-                "security": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_security 'place 0 100'",
-                        "api: chip.set('metric','place','0','security', 100)"
-                    ],
-                    "help": "Metric tracking the level of security (1/vulnerability) of the design.\nA completely secure design would have a score of 100. There is no\nabsolute scale for the security metrics (like with power, area, etc)\nso the metric will be task and tool dependent.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: security",
-                    "signature": null,
-                    "switch": "-metric_security 'step index <float>'",
-                    "type": "float",
-                    "unit": "%",
-                    "value": null
-                },
-                "setuppaths": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_setuppaths 'place 0 10'",
-                        "api: chip.set('metric','place','0','setuppaths', 10)"
-                    ],
-                    "help": "Metric tracking the total number of timing paths violating setup\nconstraints.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: setuppaths",
-                    "signature": null,
-                    "switch": "-metric_setuppaths 'step index <float>'",
-                    "type": "int",
-                    "value": null
-                },
-                "setupslack": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_setupslack 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','setupslack', 0.01)"
-                    ],
-                    "help": "Metric tracking the worst setup slack (positive or negative) on a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: setupslack",
-                    "signature": null,
-                    "switch": "-metric_setupslack 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": null
-                },
-                "setuptns": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_setuptns 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','setuptns', 0.01)"
-                    ],
-                    "help": "Metric tracking the total negative setup slack (TNS) on a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: setuptns",
-                    "signature": null,
-                    "switch": "-metric_setuptns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": null
-                },
-                "setupwns": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_setupwns 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','setupwns', 0.01)"
-                    ],
-                    "help": "Metric tracking the worst negative setup slack (positive values truncated to zero) on a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: setupwns",
-                    "signature": null,
-                    "switch": "-metric_setupwns 'step index <float>'",
-                    "type": "float",
-                    "unit": "ns",
-                    "value": null
-                },
-                "sleeppower": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_sleeppower 'place 0 0.01'",
-                        "api: chip.set('metric','place','0','sleeppower', 0.01)"
-                    ],
-                    "help": "Metric tracking the power consumed with some or all power rails gated off of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power sleeppower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: sleeppower",
-                    "signature": null,
-                    "switch": "-metric_sleeppower 'step index <float>'",
-                    "type": "float",
-                    "unit": "mw",
-                    "value": null
-                },
-                "tasktime": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_tasktime 'dfm 0 10.0'",
-                        "api: chip.set('metric','dfm','0','tasktime', 10.0)"
-                    ],
-                    "help": "Metric tracking the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: tasktime",
-                    "signature": null,
-                    "switch": "-metric_tasktime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": null
-                },
-                "totalarea": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_totalarea 'place 0 100.00'",
-                        "api: chip.set('metric','place','0','totalarea', 100.00)"
-                    ],
-                    "help": "Metric tracking the total physical die area occupied by the design.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: totalarea",
-                    "signature": null,
-                    "switch": "-metric_totalarea 'step index <float>'",
-                    "type": "float",
-                    "unit": "um^2",
-                    "value": null
-                },
-                "totaltime": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_totaltime 'dfm 0 10.0'",
-                        "api: chip.set('metric','dfm','0','totaltime', 10.0)"
-                    ],
-                    "help": "Metric tracking the total amount of time spent from the beginning\nof the run up to and including the current step and index.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: totaltime",
-                    "signature": null,
-                    "switch": "-metric_totaltime 'step index <float>'",
-                    "type": "float",
-                    "unit": "s",
-                    "value": null
-                },
-                "transistors": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_transistors 'place 0 100'",
-                        "api: chip.set('metric','place','0','transistors', 50)"
-                    ],
-                    "help": "Metric tracking the total number of transistors in the design\non a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: transistors",
-                    "signature": null,
-                    "switch": "-metric_transistors 'step index <float>'",
-                    "type": "int",
-                    "value": null
-                },
-                "unconstrained": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_unconstrained 'dfm 0 0'",
-                        "api: chip.set('metric','dfm','0','unconstrained', 0)"
-                    ],
-                    "help": "Metric tracking the total number of unconstrained timing paths on a\nper step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: total unconstrained",
-                    "signature": null,
-                    "switch": "-metric_unconstrained 'step index <int>'",
-                    "type": "int",
-                    "value": null
-                },
-                "utilization": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_utilization 'place 0 50.00'",
-                        "api: chip.set('metric','place','0','utilization', 50.00)"
-                    ],
-                    "help": "Metric tracking the area utilization of the design calculated as\n100 * (cellarea/totalarea).",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: area utilization",
-                    "signature": null,
-                    "switch": "-metric_utilization step index <float>",
-                    "type": "float",
-                    "unit": "%",
-                    "value": null
-                },
-                "vias": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_vias 'place 0 100'",
-                        "api: chip.set('metric','place','0','vias', 50)"
-                    ],
-                    "help": "Metric tracking the total number of vias in the design\non a per step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: vias",
-                    "signature": null,
-                    "switch": "-metric_vias 'step index <float>'",
-                    "type": "int",
-                    "value": null
-                },
-                "warnings": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_warnings 'dfm 0 0'",
-                        "api: chip.set('metric','dfm','0','warnings', 0)"
-                    ],
-                    "help": "Metric tracking the total number of warnings on a\nper step and index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: total warnings",
-                    "signature": null,
-                    "switch": "-metric_warnings 'step index <int>'",
-                    "type": "int",
-                    "value": null
-                },
-                "wirelength": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -metric_wirelength 'place 0 100.0'",
-                        "api: chip.set('metric','place','0','wirelength', 50.0)"
-                    ],
-                    "help": "Metric tracking the total wirelength of the design on a per step\nand index basis.",
-                    "lock": false,
-                    "nodevalue": {},
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "set": false,
-                    "shorthelp": "Metric: wirelength",
-                    "signature": null,
-                    "switch": "-metric_wirelength 'step index <float>'",
-                    "type": "float",
-                    "unit": "um",
-                    "value": null
-                }
-            }
+        "averagepower": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_averagepower 'place 0 0.01'",
+                "api: chip.set('metric', 'averagepower', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the average workload power of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power averagepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: averagepower",
+            "signature": null,
+            "switch": "-metric_averagepower 'step index <float>'",
+            "type": "float",
+            "unit": "mw",
+            "value": null
+        },
+        "brams": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_brams 'place 0 100'",
+                "api: chip.set('metric', 'brams', 100, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total FPGA BRAM tiles used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: FPGA BRAM tiles",
+            "signature": null,
+            "switch": "-metric_brams 'step index <int>'",
+            "type": "int",
+            "value": null
+        },
+        "buffers": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_buffers 'place 0 100'",
+                "api: chip.set('metric', 'buffers', 50, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total number of buffer and inverter instances in the design\non a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: buffers",
+            "signature": null,
+            "switch": "-metric_buffers 'step index <float>'",
+            "type": "int",
+            "value": null
+        },
+        "cellarea": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_cellarea 'place 0 100.00'",
+                "api: chip.set('metric', 'cellarea', 100.00, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total cell area (ignoring fillers) occupied by the design.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: cellarea",
+            "signature": null,
+            "switch": "-metric_cellarea 'step index <float>'",
+            "type": "float",
+            "unit": "um^2",
+            "value": null
+        },
+        "cells": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_cells 'place 0 100'",
+                "api: chip.set('metric', 'cells', 50, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total number of cell instances in the design\non a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: cells",
+            "signature": null,
+            "switch": "-metric_cells 'step index <float>'",
+            "type": "int",
+            "value": null
+        },
+        "coverage": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_coverage 'place 0 99.9'",
+                "api: chip.set('metric', 'coverage', 99.9, step='place', index=0)"
+            ],
+            "help": "Metric tracking the test coverage in the design expressed as a percentage\nwith 100 meaning full coverage. The meaning of the metric depends on the\ntask being executed. It can refer to code coverage, feature coverage,\nstuck at fault coverage.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: coverage",
+            "signature": null,
+            "switch": "-metric_coverage 'step index <float>'",
+            "type": "float",
+            "unit": "%",
+            "value": null
+        },
+        "dozepower": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_dozepower 'place 0 0.01'",
+                "api: chip.set('metric', 'dozepower', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the power consumed while in low frequency operating mode of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power dozepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: dozepower",
+            "signature": null,
+            "switch": "-metric_dozepower 'step index <float>'",
+            "type": "float",
+            "unit": "mw",
+            "value": null
+        },
+        "drvs": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_drvs 'dfm 0 0'",
+                "api: chip.set('metric', 'drvs', 0, step='dfm', index=0)"
+            ],
+            "help": "Metric tracking the total number of design rule violations on a\nper step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: total drvs",
+            "signature": null,
+            "switch": "-metric_drvs 'step index <int>'",
+            "type": "int",
+            "value": null
+        },
+        "dsps": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_dsps 'place 0 100'",
+                "api: chip.set('metric', 'dsps', 100, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total FPGA DSP slices used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: FPGA DSP slices",
+            "signature": null,
+            "switch": "-metric_dsps 'step index <int>'",
+            "type": "int",
+            "value": null
+        },
+        "errors": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_errors 'dfm 0 0'",
+                "api: chip.set('metric', 'errors', 0, step='dfm', index=0)"
+            ],
+            "help": "Metric tracking the total number of errors on a\nper step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: total errors",
+            "signature": null,
+            "switch": "-metric_errors 'step index <int>'",
+            "type": "int",
+            "value": null
+        },
+        "exetime": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_exetime 'dfm 0 10.0'",
+                "api: chip.set('metric', 'exetime', 10.0, step='dfm', index=0)"
+            ],
+            "help": "Metric tracking time spent by the eda executable 'exe' on a\nper step and index basis. It does not include the siliconcompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: exetime",
+            "signature": null,
+            "switch": "-metric_exetime 'step index <float>'",
+            "type": "float",
+            "unit": "s",
+            "value": null
+        },
+        "holdpaths": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_holdpaths 'place 0 10'",
+                "api: chip.set('metric', 'holdpaths', 10, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total number of timing paths violating hold\nconstraints.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: holdpaths",
+            "signature": null,
+            "switch": "-metric_holdpaths 'step index <float>'",
+            "type": "int",
+            "value": null
+        },
+        "holdslack": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_holdslack 'place 0 0.01'",
+                "api: chip.set('metric', 'holdslack', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the worst hold slack (positive or negative) on a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: holdslack",
+            "signature": null,
+            "switch": "-metric_holdslack 'step index <float>'",
+            "type": "float",
+            "unit": "ns",
+            "value": null
+        },
+        "holdtns": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_holdtns 'place 0 0.01'",
+                "api: chip.set('metric', 'holdtns', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total negative hold slack (TNS) on a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: holdtns",
+            "signature": null,
+            "switch": "-metric_holdtns 'step index <float>'",
+            "type": "float",
+            "unit": "ns",
+            "value": null
+        },
+        "holdwns": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_holdwns 'place 0 0.01'",
+                "api: chip.set('metric', 'holdwns', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the worst negative hold slack (positive values truncated to zero) on a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: holdwns",
+            "signature": null,
+            "switch": "-metric_holdwns 'step index <float>'",
+            "type": "float",
+            "unit": "ns",
+            "value": null
+        },
+        "idlepower": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_idlepower 'place 0 0.01'",
+                "api: chip.set('metric', 'idlepower', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the power while not performing useful work of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power idlepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: idlepower",
+            "signature": null,
+            "switch": "-metric_idlepower 'step index <float>'",
+            "type": "float",
+            "unit": "mw",
+            "value": null
+        },
+        "irdrop": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_irdrop 'place 0 0.05'",
+                "api: chip.set('metric', 'irdrop', 0.05, step='place', index=0)"
+            ],
+            "help": "Metric tracking the peak IR drop in the design based on extracted\npower and ground rail parasitics, library power models, and\nswitching activity. The switching activity calculated on a per\nnode basis is taken from one of three possible sources, in order\nof priority: VCD file, SAIF file, 'activityfactor' parameter.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: peak IR drop",
+            "signature": null,
+            "switch": "-metric_irdrop 'step index <float>'",
+            "type": "float",
+            "unit": "mv",
+            "value": null
+        },
+        "leakagepower": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_leakagepower 'place 0 0.01'",
+                "api: chip.set('metric', 'leakagepower', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the leakage power with rails active but without any dynamic switching activity of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power leakagepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: leakagepower",
+            "signature": null,
+            "switch": "-metric_leakagepower 'step index <float>'",
+            "type": "float",
+            "unit": "mw",
+            "value": null
+        },
+        "luts": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_luts 'place 0 100'",
+                "api: chip.set('metric', 'luts', 100, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total FPGA LUTs used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: FPGA LUTs",
+            "signature": null,
+            "switch": "-metric_luts 'step index <int>'",
+            "type": "int",
+            "value": null
+        },
+        "macros": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_macros 'place 0 100'",
+                "api: chip.set('metric', 'macros', 50, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total number of macros in the design\non a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: macros",
+            "signature": null,
+            "switch": "-metric_macros 'step index <float>'",
+            "type": "int",
+            "value": null
+        },
+        "memory": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_memory 'dfm 0 10e9'",
+                "api: chip.set('metric', 'memory', 10e9, step='dfm', index=0)"
+            ],
+            "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: memory",
+            "signature": null,
+            "switch": "-metric_memory 'step index <float>'",
+            "type": "float",
+            "unit": "B",
+            "value": null
+        },
+        "nets": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_nets 'place 0 100'",
+                "api: chip.set('metric', 'nets', 50, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total number of nets in the design\non a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: nets",
+            "signature": null,
+            "switch": "-metric_nets 'step index <float>'",
+            "type": "int",
+            "value": null
+        },
+        "overflow": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_overflow 'place 0 0'",
+                "api: chip.set('metric', 'overflow', 50, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total number of overflow tracks for the routing\non per step and index basis. Any non-zero number suggests an over\ncongested design. To analyze where the congestion is occurring\ninspect the router log files for detailed per metal overflow\nreporting and open up the design to find routing hotspots.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: overflow",
+            "signature": null,
+            "switch": "-metric_overflow 'step index <float>'",
+            "type": "int",
+            "value": null
+        },
+        "peakpower": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_peakpower 'place 0 0.01'",
+                "api: chip.set('metric', 'peakpower', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the worst case total peak power of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power peakpower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: peakpower",
+            "signature": null,
+            "switch": "-metric_peakpower 'step index <float>'",
+            "type": "float",
+            "unit": "mw",
+            "value": null
+        },
+        "pins": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_pins 'place 0 100'",
+                "api: chip.set('metric', 'pins', 50, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total number of pins in the design\non a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: pins",
+            "signature": null,
+            "switch": "-metric_pins 'step index <float>'",
+            "type": "int",
+            "value": null
+        },
+        "registers": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_registers 'place 0 100'",
+                "api: chip.set('metric', 'registers', 50, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total number of register instances in the design\non a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: registers",
+            "signature": null,
+            "switch": "-metric_registers 'step index <float>'",
+            "type": "int",
+            "value": null
+        },
+        "security": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_security 'place 0 100'",
+                "api: chip.set('metric', 'security', 100, step='place', index=0)"
+            ],
+            "help": "Metric tracking the level of security (1/vulnerability) of the design.\nA completely secure design would have a score of 100. There is no\nabsolute scale for the security metrics (like with power, area, etc)\nso the metric will be task and tool dependent.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: security",
+            "signature": null,
+            "switch": "-metric_security 'step index <float>'",
+            "type": "float",
+            "unit": "%",
+            "value": null
+        },
+        "setuppaths": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_setuppaths 'place 0 10'",
+                "api: chip.set('metric', 'setuppaths', 10, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total number of timing paths violating setup\nconstraints.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: setuppaths",
+            "signature": null,
+            "switch": "-metric_setuppaths 'step index <float>'",
+            "type": "int",
+            "value": null
+        },
+        "setupslack": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_setupslack 'place 0 0.01'",
+                "api: chip.set('metric', 'setupslack', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the worst setup slack (positive or negative) on a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: setupslack",
+            "signature": null,
+            "switch": "-metric_setupslack 'step index <float>'",
+            "type": "float",
+            "unit": "ns",
+            "value": null
+        },
+        "setuptns": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_setuptns 'place 0 0.01'",
+                "api: chip.set('metric', 'setuptns', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total negative setup slack (TNS) on a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: setuptns",
+            "signature": null,
+            "switch": "-metric_setuptns 'step index <float>'",
+            "type": "float",
+            "unit": "ns",
+            "value": null
+        },
+        "setupwns": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_setupwns 'place 0 0.01'",
+                "api: chip.set('metric', 'setupwns', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the worst negative setup slack (positive values truncated to zero) on a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: setupwns",
+            "signature": null,
+            "switch": "-metric_setupwns 'step index <float>'",
+            "type": "float",
+            "unit": "ns",
+            "value": null
+        },
+        "sleeppower": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_sleeppower 'place 0 0.01'",
+                "api: chip.set('metric', 'sleeppower', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the power consumed with some or all power rails gated off of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power sleeppower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: sleeppower",
+            "signature": null,
+            "switch": "-metric_sleeppower 'step index <float>'",
+            "type": "float",
+            "unit": "mw",
+            "value": null
+        },
+        "tasktime": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_tasktime 'dfm 0 10.0'",
+                "api: chip.set('metric', 'tasktime', 10.0, step='dfm', index=0)"
+            ],
+            "help": "Metric tracking the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: tasktime",
+            "signature": null,
+            "switch": "-metric_tasktime 'step index <float>'",
+            "type": "float",
+            "unit": "s",
+            "value": null
+        },
+        "totalarea": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_totalarea 'place 0 100.00'",
+                "api: chip.set('metric', 'totalarea', 100.00, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total physical die area occupied by the design.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: totalarea",
+            "signature": null,
+            "switch": "-metric_totalarea 'step index <float>'",
+            "type": "float",
+            "unit": "um^2",
+            "value": null
+        },
+        "totaltime": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_totaltime 'dfm 0 10.0'",
+                "api: chip.set('metric', 'totaltime', 10.0, step='dfm', index=0)"
+            ],
+            "help": "Metric tracking the total amount of time spent from the beginning\nof the run up to and including the current step and index.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: totaltime",
+            "signature": null,
+            "switch": "-metric_totaltime 'step index <float>'",
+            "type": "float",
+            "unit": "s",
+            "value": null
+        },
+        "transistors": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_transistors 'place 0 100'",
+                "api: chip.set('metric', 'transistors', 50, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total number of transistors in the design\non a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: transistors",
+            "signature": null,
+            "switch": "-metric_transistors 'step index <float>'",
+            "type": "int",
+            "value": null
+        },
+        "unconstrained": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_unconstrained 'dfm 0 0'",
+                "api: chip.set('metric', 'unconstrained', 0, step='dfm', index=0)"
+            ],
+            "help": "Metric tracking the total number of unconstrained timing paths on a\nper step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: total unconstrained",
+            "signature": null,
+            "switch": "-metric_unconstrained 'step index <int>'",
+            "type": "int",
+            "value": null
+        },
+        "utilization": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_utilization 'place 0 50.00'",
+                "api: chip.set('metric', 'utilization', 50.00, step='place', index=0)"
+            ],
+            "help": "Metric tracking the area utilization of the design calculated as\n100 * (cellarea/totalarea).",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: area utilization",
+            "signature": null,
+            "switch": "-metric_utilization step index <float>",
+            "type": "float",
+            "unit": "%",
+            "value": null
+        },
+        "vias": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_vias 'place 0 100'",
+                "api: chip.set('metric', 'vias', 50, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total number of vias in the design\non a per step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: vias",
+            "signature": null,
+            "switch": "-metric_vias 'step index <float>'",
+            "type": "int",
+            "value": null
+        },
+        "warnings": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_warnings 'dfm 0 0'",
+                "api: chip.set('metric', 'warnings', 0, step='dfm', index=0)"
+            ],
+            "help": "Metric tracking the total number of warnings on a\nper step and index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: total warnings",
+            "signature": null,
+            "switch": "-metric_warnings 'step index <int>'",
+            "type": "int",
+            "value": null
+        },
+        "wirelength": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_wirelength 'place 0 100.0'",
+                "api: chip.set('metric', 'wirelength', 50.0, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total wirelength of the design on a per step\nand index basis.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Metric: wirelength",
+            "signature": null,
+            "switch": "-metric_wirelength 'step index <float>'",
+            "type": "float",
+            "unit": "um",
+            "value": null
         }
     },
     "option": {
