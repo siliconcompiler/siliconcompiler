@@ -1,4 +1,5 @@
 import siliconcompiler
+from . import utils
 
 def make_docs():
     '''
@@ -20,7 +21,7 @@ def setup(chip):
     chip.use(fpgaflow)
 
     #2. Setup default show tools
-    siliconcompiler.utils.set_common_showtools(chip)
+    utils.set_common_showtools(chip)
 
     #3. Select default flow
     chip.set('option', 'mode', 'fpga')

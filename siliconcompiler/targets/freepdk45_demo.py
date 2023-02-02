@@ -1,4 +1,5 @@
 import siliconcompiler
+from . import utils
 
 ############################################################################
 # DOCS
@@ -35,7 +36,7 @@ def setup(chip):
     chip.use(nangate45)
 
     #2. Setup default show tools
-    siliconcompiler.utils.set_common_showtools(chip)
+    utils.set_common_showtools(chip)
 
     #3. Set flow and pdk
     chip.set('option', 'mode', 'asic')
