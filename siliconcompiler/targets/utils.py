@@ -3,9 +3,9 @@
 def set_common_showtools(chip):
 
     # Physical only
-    chip.set('option', 'showtool', 'gds', 'klayout')
-    chip.set('option', 'showtool', 'lef', 'klayout')
+    chip.set('option', 'showtool', 'gds', 'klayout', clobber=False)
+    chip.set('option', 'showtool', 'lef', 'klayout', clobber=False)
 
     # Design
-    chip.set('option', 'showtool', 'def', 'openroad')
-    chip.set('option', 'showtool', 'odb', 'openroad')
+    chip.set('option', 'showtool', 'def', 'openroad', clobber=False)
+    chip.set('option', 'showtool', 'odb', 'openroad', clobber=False)

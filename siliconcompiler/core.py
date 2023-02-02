@@ -2976,7 +2976,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Creates a task with step='place' and index=0 and binds it to the 'openroad' tool.
         '''
 
-        index =str(index)
+        index = str(index)
 
         # bind tool to node
         self.set('flowgraph', flow, step, index, 'tool', tool)
