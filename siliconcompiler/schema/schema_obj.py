@@ -491,6 +491,11 @@ class Schema:
 
     @staticmethod
     def _is_set(cfg, step=None, index=None):
+        '''Returns whether a user has set a value for this parameter.
+
+        A value counts as set if a user has set a global value OR a value for
+        the provided step/index.
+        '''
         node_value_exists = False
         if step in cfg['nodevalue']:
             if index is None:
