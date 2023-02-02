@@ -24,14 +24,7 @@ def setup(chip):
     Skywater130 Demo Target
     '''
 
-    #0. Defining the project
-    project = 'skywater130_demo'
-    chip.set('option', 'target', project)
-
-    #1. Setting to ASIC mode
-    chip.set('option', 'mode','asic')
-
-    #2. Load PDK, flow, libs
+    #1. Load PDK, flow, libs
     from pdks import skywater130
     from flows import asicflow, asictopflow, signoffflow
     from libs import sky130hd
@@ -43,15 +36,16 @@ def setup(chip):
     chip.use(sky130hd)
     chip.use(oh_tapeout)
 
-    #3. Set default targets
+    #2. Set default targets
+    chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'skywater130')
     chip.set('option', 'stackup', '5M1LI')
 
-    #4. Set project specific design choices
+    #3. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
 
-    #5. get project specific design choices
+    #4. get project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 4.6)
