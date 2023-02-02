@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.16.0'
+SCHEMA_VERSION = '0.21.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -27,7 +27,9 @@ def scparam(cfg,
             shorthelp=None,
             switch=None,
             example=None,
-            schelp=None):
+            schelp=None,
+            enum=None,
+            pernode='none'):
 
     # 1. decend keypath until done
     # 2. create key if missing
@@ -52,7 +54,9 @@ def scparam(cfg,
                 shorthelp=shorthelp,
                 switch=switch,
                 example=example,
-                schelp=schelp)
+                schelp=schelp,
+                enum=enum,
+                pernode=pernode)
     else:
 
         # removing leading spaces as if schelp were a docstring
@@ -82,7 +86,13 @@ def scparam(cfg,
         cfg['help'] = schelp
         cfg['signature'] = signature
         cfg['notes'] = notes
+        # none, optional, mandatory
+        cfg['pernode'] = pernode
+        cfg['nodevalue'] = {}
         cfg['set'] = False
+
+        if enum is not None:
+            cfg['enum'] = enum
 
         # unit for floats/ints
         if unit is not None:
@@ -1027,7 +1037,8 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
     # flowgraph status
     scparam(cfg,['flowgraph', flow, step, index, 'status'],
-            sctype='str',
+            sctype='enum',
+            enum=["pending", "success", "error"],
             shorthelp="Flowgraph: task status",
             switch="-flowgraph_status 'flow step index <str>'",
             example=[
@@ -1208,8 +1219,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             The "errors" and "warnings" suffixes are special cases. When set,
             the number of matches found for these regexes will be added to the
             errors and warnings metrics for the task, respectively. This will
-            also cause the logfile to be added to the :keypath:`task, <task>,
-            report` parameter for those metrics, if not already present.""")
+            also cause the logfile to be added to the :keypath:`tool, <tool>,
+            task, <task>, report` parameter for those metrics, if not already present.""")
 
     # Configuration: cli-option, tcl var, env var, file
     scparam(cfg, ['tool', tool, 'task', task, 'option', step, index],
@@ -1919,7 +1930,6 @@ def schema_option(cfg):
     ''' Technology agnostic run time options
     '''
 
-
     scparam(cfg, ['option', 'remote'],
             sctype='bool',
             scope='job',
@@ -1952,26 +1962,23 @@ def schema_option(cfg):
             secret_key=<secret key used for authentication>
             server=<ipaddr or url>""")
 
-    scparam(cfg, ['option', 'jobscheduler'],
-            sctype='str',
+    scparam(cfg, ['option', 'nice'],
+            sctype='int',
             scope='job',
-            shorthelp="Job scheduler name",
-            switch="-jobscheduler <str>",
+            shorthelp="Tool execution scheduling priority",
+            switch="-nice <int>",
             example=[
-                "cli: -jobscheduler slurm",
-                "api: chip.set('option','jobscheduler','slurm')"],
+                "cli: -nice 5",
+                "api: chip.set('option','nice',5)"],
             schelp="""
-            Sets the type of job scheduler to be used for each individual
-            flowgraph steps. If the parameter is undefined, the steps are executed
-            on the same machine that the SC was launched on. If 'slurm' is used,
-            the host running the 'sc' command must be running a 'slurmctld' daemon
-            managing a Slurm cluster. Additionally, the build directory ('-dir')
-            must be located in shared storage which can be accessed by all hosts
-            in the cluster.""")
+            Sets the type of execution priority of each individual flowgraph steps.
+            If the parameter is undefined, nice will not be used. For more information see `Unix 'nice'
+            <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.""")
 
     # Compilation
     scparam(cfg, ['option', 'mode'],
-            sctype='str',
+            sctype='enum',
+            enum=["asic", "fpga", "sim"],
             scope='job',
             shorthelp="Compilation mode",
             switch="-mode <str>",
@@ -2096,14 +2103,42 @@ def schema_option(cfg):
             sctype='str',
             scope='job',
             shorthelp="Environment variables",
-            switch="-env 'key <str>",
+            switch="-env 'key <str>'",
             example=[
             "cli: -env 'PDK_HOME /disk/mypdk'",
-            "api: chip.set('option','env', 'PDK_HOME', '/disk/mypdk')"],
+            "api: chip.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"],
             schelp="""
             Certain tools and reference flows require global environment
             variables to be set. These variables can be managed externally or
             specified through the env variable.""")
+
+    scparam(cfg, ['option', 'var', key],
+            sctype='[str]',
+            scope='job',
+            shorthelp="Custom variables",
+            switch="-var 'key <str>'",
+            example=[
+            "cli: -var 'openroad_place_density 0.4'",
+            "api: chip.set('option', 'var', 'openroad_place_density', '0.4')"],
+            schelp="""
+            List of key/value strings specified. Certain tools and
+            reference flows require special parameters, this
+            should only be used for specifying variables that are
+            not directly supported by the SiliconCompiler schema.""")
+
+    scparam(cfg, ['option', 'file', key],
+            sctype='[file]',
+            scope='job',
+            shorthelp="Custom files",
+            switch="-file 'key <str>'",
+            example=[
+            "cli: -file 'openroad_tapcell ./tapcell.tcl'",
+            "api: chip.set('option', 'file', 'openroad_tapcell', './tapcell.tcl')"],
+            schelp="""
+            List of named files specified. Certain tools and
+            reference flows require special parameters, this
+            parameter should only be used for specifying files that are
+            not directly supported by the schema.""")
 
     scparam(cfg, ['option', 'scpath'],
             sctype='[dir]',
@@ -2117,7 +2152,8 @@ def schema_option(cfg):
             Specifies python modules paths for target import.""")
 
     scparam(cfg, ['option', 'loglevel'],
-            sctype='str',
+            sctype='enum',
+            enum=["NOTSET", "INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"],
             scope='job',
             defvalue='INFO',
             shorthelp="Logging level",
@@ -2207,46 +2243,20 @@ def schema_option(cfg):
             List of indices to execute. The default is to execute all
             indices for each step of a run.""")
 
-    scparam(cfg, ['option', 'bkpt'],
-            sctype='[str]',
+    scparam(cfg, ['option', 'breakpoint'],
+            sctype='bool',
             scope='job',
+            pernode='optional',
             shorthelp="Breakpoint list",
-            switch="-bkpt <str>",
+            switch="-breakpoint <bool>",
             example=[
-                "cli: -bkpt place",
-                "api: chip.set('option,'bkpt','place')"],
+                "cli: -breakpoint true",
+                "api: chip.set('option, 'breakpoint', True)"],
             schelp="""
-            List of step stop (break) points. If the step is a TCL
+            Set a breakpoint on specific steps. If the step is a TCL
             based tool, then the breakpoints stops the flow inside the
             EDA tool. If the step is a command line tool, then the flow
             drops into a Python interpreter.""")
-
-    scparam(cfg, ['option', 'msgevent'],
-            sctype='[str]',
-            scope='job',
-            shorthelp="Message event trigger",
-            switch="-msgevent <str>",
-            example=["cli: -msgevent export",
-                    "api: chip.set('option','msgevent','export')"],
-            schelp="""
-            A list of steps after which to notify a recipient. For
-            example if values of syn, place, cts are entered separate
-            messages would be sent after the completion of the syn,
-            place, and cts steps.""")
-
-    scparam(cfg, ['option', 'msgcontact'],
-            sctype='[str]',
-            scope='job',
-            shorthelp="Message contact",
-            switch="-msgcontact <str>",
-            example=[
-                "cli: -msgcontact 'wile.e.coyote@acme.com'",
-                "api: chip.set('option','msgcontact','wiley@acme.com')"],
-            schelp="""
-            A list of phone numbers or email addresses to message
-            on a event event within the msg_event param. Actual
-            support for email and phone messages is platform
-            dependent.""")
 
     filetype = 'default'
     scparam(cfg, ['option', 'showtool', filetype],
@@ -2291,7 +2301,7 @@ def schema_option(cfg):
             * reports/
             * autogenerated manifests
             * any files generated by schema-specified regexes
-            * files specified by :keypath:`tool, <tool>, keep`""")
+            * files specified by :keypath:`tool, <tool>, task, <task>, keep`""")
 
     scparam(cfg, ['option', 'hash'],
             sctype='bool',
@@ -2594,6 +2604,137 @@ def schema_option(cfg):
             implementation. If errors are encountered, execution will halt
             before a run.
             """)
+
+    scparam(cfg, ['option', 'timeout'],
+            sctype='float',
+            scope='job',
+            unit='s',
+            shorthelp="Option: Timeout value",
+            switch="-timeout <str>",
+            example= ["cli: -timeout 3600",
+                    "api: chip.set('option', 'timeout', 3600)"],
+            schelp="""
+            Timeout value in seconds. The timeout value is compared
+            against the wall time tracked by the SC runtime to determine
+            if an operation should continue. The timeout value is also
+            useed by the jobscheduler to automatically kill jobs.""")
+
+    # job scheduler
+    scparam(cfg, ['option', 'scheduler', 'name'],
+            sctype='enum',
+            enum=["slurm", "lsf", "sge"],
+            scope='job',
+            shorthelp="Option: Scheduler platform",
+            switch="-scheduler <str>",
+            example=[
+                "cli: -scheduler slurm",
+                "api: chip.set('option', 'scheduler', 'name', 'slurm')"],
+            schelp="""
+            Sets the type of job scheduler to be used for each individual
+            flowgraph steps. If the parameter is undefined, the steps are executed
+            on the same machine that the SC was launched on. If 'slurm' is used,
+            the host running the 'sc' command must be running a 'slurmctld' daemon
+            managing a Slurm cluster. Additionally, the build directory ('-dir')
+            must be located in shared storage which can be accessed by all hosts
+            in the cluster.""")
+
+    scparam(cfg, ['option', 'scheduler', 'cores'],
+            sctype='int',
+            scope='job',
+            shorthelp="Option: Scheduler core constraint",
+            switch="-cores <int>",
+            example= ["cli: -cores 48",
+                      "api: chip.set('option', 'scheduler', 'cores', '48')"],
+            schelp="""
+            Specifies the number cpu cores required to run the job.
+            For the slurm scheduler, this translates to the '-c'
+            switch. For more information, see the job scheduler
+            documentation""")
+
+    scparam(cfg, ['option', 'scheduler', 'memory'],
+            sctype='int',
+            unit='MB',
+            scope='job',
+            shorthelp="Option: Scheduler memory constraint",
+            switch="-memory <str>",
+            example= ["cli: -memory 8000",
+                      "api: chip.set('option', 'scheduler', 'memory', '8000')"],
+            schelp="""
+            Specifies the amount of memory required to run the job,
+            specified in MB. For the slurm scheduler, this translates to
+            the '--mem' switch. For more information, see the job
+            scheduler documentation""")
+
+    scparam(cfg, ['option', 'scheduler', 'queue'],
+            sctype='str',
+            scope='job',
+            shorthelp="Option: Scheduler queue",
+            switch="-queue <str>",
+            example= ["cli: -queue nightrun",
+                      "api: chip.set('option', 'scheduler', 'queue', 'nightrun')"],
+            schelp="""
+            Send the job to the specified queue. With slurm, this
+            translates to 'partition'. The queue name must match
+            the name of an existing job schemduler queue. For more information,
+            see the job scheduler documentation""")
+
+    scparam(cfg, ['option', 'scheduler', 'defer'],
+            sctype='str',
+            scope='job',
+            shorthelp="Option: Scheduler start time",
+            switch="-defer <str>",
+            example= ["cli: -defer 16:00",
+                    "api: chip.set('option', 'scheduler', 'defer', '16:00')"],
+            schelp="""
+            Defer initiation of job until the specified time. The parameter
+            is pass through string for remote job scheduler such as slurm.
+            For more information abotut the exact format specification, see
+            the job scheduler documentation. Examples of valid slurm specific
+            values include: now+1hour, 16:00, 010-01-20T12:34:00. For more
+            information, see the job scheduler documentation.""")
+
+    scparam(cfg, ['option', 'scheduler', 'options'],
+            sctype='[str]',
+            shorthelp="Option: Scheduler arguments",
+            switch="-scheduler_options <str>",
+            example=[
+                "cli: -scheduler_options '--pty bash'",
+                "api: chip.set('option', 'scheduler', 'options', '--pty bash')"],
+            schelp="""
+            Advanced/export options passed through unchanged to the job
+            scheduler as-is. (The user specified options must be compatible
+            with the rest of the scheduler parameters entered.(memory etc).
+            For more information, see the job scheduler documentation.""")
+
+    scparam(cfg, ['option', 'scheduler', 'msgevent'],
+            sctype='str',
+            defvalue='NONE',
+            scope='job',
+            shorthelp="Option: Message event trigger",
+            switch="-msgevent <str>",
+            example=[
+                "cli: -msgevent ALL",
+                "api: chip.set('option', 'scheduler', 'msgevent', 'ALL')"],
+            schelp="""
+            Directs job scheduler to send a message to the user when
+            certain events occur during a task. Supported data types for
+            SLURM include NONE, BEGIN, END, FAIL, ALL, TIME_LIMIT. For a
+            list of supported event types, see the job scheduler
+            documentation. For more information, see the job scheduler
+            documentation.""")
+
+    scparam(cfg, ['option', 'scheduler', 'msgcontact'],
+            sctype='[str]',
+            scope='job',
+            shorthelp="Option: Message contact",
+            switch="-msgcontact <str>",
+            example=[
+                "cli: -msgcontact 'wile.e.coyote@acme.com'",
+                "api: chip.set('option', 'scheduler', 'msgcontact', 'wiley@acme.com')"],
+            schelp="""
+            List of email addresses to message on a 'msgevent'. Support for
+            email messages relies on job scheduler daemon support.
+            For more information, see the job scheduler documentation. """)
 
     return cfg
 
@@ -2943,12 +3084,10 @@ def schema_checklist(cfg):
 def schema_asic(cfg):
     '''ASIC Automated Place and Route Parameters'''
 
-    step = 'default'
-    index = 'default'
-
     scparam(cfg, ['asic', 'logiclib'],
             sctype='[str]',
             scope='job',
+            pernode='optional',
             shorthelp="ASIC: logic libraries",
             switch="-asic_logiclib <str>",
             example=["cli: -asic_logiclib nangate45",
@@ -2979,45 +3118,6 @@ def schema_asic(cfg):
             schelp="""
             Delay model to use for the target libs. Supported values
             are nldm and ccs.""")
-
-    tool = 'default'
-    key = 'default'
-    scparam(cfg, ['asic', 'file', tool, key],
-            sctype='[file]',
-            shorthelp="ASIC: special file",
-            switch="-asic_file 'tool key<file>'",
-            example=[
-                "cli: -asic_file 'yosys presyn ~/presyn.tcl'",
-                "api: chip.set('asic','file','yosys','presyn','~/presyn.tcl')"],
-            schelp="""
-            List of named files specified on a per tool basis.
-            The parameter should only be used for specifying files that are
-            not directly supported by the ASIC schema.""")
-
-    scparam(cfg, ['asic', 'dir', tool, key],
-            sctype='[dir]',
-            shorthelp="ASIC: special directory",
-            switch="-asic_dir 'tool key <dir>'",
-            example=[
-                "cli: -asic_dir 'lib atool db ~/libdb'",
-                "api: chip.set('asic','dir','atool','db','~/libdb')"],
-            schelp="""
-            List of named dirs specified on a per tool basis. The parameter
-            should only be used for specifying dirs that are not directly
-            supported by the ASIC schema.""")
-
-    scparam(cfg, ['asic', 'var', tool, key],
-            sctype='[str]',
-            shorthelp="ASIC: special variable",
-            switch="-asic_variable 'tool key <str>'",
-            example=[
-                "cli: -asic_variable 'xyce modeltype bsim4'",
-                "api: chip.set('asic','var','xyce','modeltype','bsim4')"],
-            schelp="""
-            List of key/value strings specified on a per basis. The parameter
-            should only be used for specifying variables that are
-            not directly supported by the SiliconCompiler PDK schema.""")
-
 
     # TODO: Expand on the exact definitions of these types of cells.
     # minimize typing
@@ -3505,6 +3605,7 @@ def schema_constraint(cfg):
             is supplied.""")
 
     return cfg
+
 
 ##############################################################################
 # Main routine

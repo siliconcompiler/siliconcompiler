@@ -3,6 +3,7 @@
 import shutil
 
 from siliconcompiler.core import Chip
+from siliconcompiler.libs import sky130io
 
 ###
 # Example build script: 'heartbeat' example with padring and pre-made .def floorplans.
@@ -21,10 +22,10 @@ SKY130IO_PREFIX = f'{SCROOT}/third_party/pdks/skywater/skywater130/libs/sky130io
 def configure_chip(design):
     # Minimal Chip object construction.
     chip = Chip(design)
-    chip.load_target('skywater130_demo')
+    chip.load_target("skywater130_demo")
 
     # Include I/O macro lib.
-    chip.load_lib('sky130io')
+    chip.use(sky130io)
     chip.add('asic', 'macrolib', 'sky130io')
 
     # Configure 'show' apps, and return the Chip object.

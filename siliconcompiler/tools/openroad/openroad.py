@@ -73,9 +73,9 @@ def setup(chip, mode='batch'):
     else:
         clobber = False
 
-    # exit automatically in batch mode and not bkpt
+    # exit automatically in batch mode and not breakpoint
     option = ''
-    if (mode=='batch' or is_screenshot) and (step not in chip.get('option', 'bkpt')):
+    if (mode=='batch' or is_screenshot) and not chip.get('option', 'breakpoint', step=step, index=index):
         option += " -exit"
 
     option += " -metrics reports/metrics.json"
@@ -121,8 +121,8 @@ def setup(chip, mode='batch'):
 
         # set tapcell file
         tapfile = None
-        if chip.valid('library', mainlib, 'asic', 'file', tool, 'tapcells'):
-            tapfile = chip.find_files('library', mainlib, 'asic', 'file', tool, 'tapcells')
+        if chip.valid('library', mainlib, 'option', 'file', 'openroad_tapcells'):
+            tapfile = chip.find_files('library', mainlib, 'option', 'file', 'openroad_tapcells')
         elif chip.valid('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells'):
             tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
         if tapfile:
@@ -145,9 +145,9 @@ def setup(chip, mode='batch'):
     chip.set('tool', tool, 'task', task, 'var', step, index, 'power_corner', get_power_corner(chip), clobber=False)
     chip.set('tool', tool, 'task', task, 'var', step, index, 'parasitics', "inputs/sc_parasitics.tcl", clobber=True)
 
-    for var0, var1 in [('tiehigh_cell', 'tiehigh_port'), ('tiehigh_cell', 'tiehigh_port')]:
-        key0 = ['library', mainlib, 'asic', 'var', tool, var0]
-        key1 = ['library', mainlib, 'asic', 'var', tool, var1]
+    for var0, var1 in [('openroad_tiehigh_cell', 'openroad_tiehigh_port'), ('openroad_tiehigh_cell', 'openroad_tiehigh_port')]:
+        key0 = ['library', mainlib, 'option', 'var', tool, var0]
+        key1 = ['library', mainlib, 'option', 'var', tool, var1]
         if chip.valid(*key0):
             chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key1))
         if chip.valid(*key1):
@@ -169,14 +169,15 @@ def setup(chip, mode='batch'):
         # For each OpenROAD tool variable, read default from main library and write it
         # into schema. If PDK doesn't contain a default, the value must be set
         # by the user, so we add the variable keypath as a requirement.
-        if chip.valid('library', mainlib, 'asic', 'var', tool, variable):
-            value = chip.get('library', mainlib, 'asic', 'var', tool, variable)
+        var_key = ['library', mainlib, 'option', 'var', f'openroad_{variable}']
+        if chip.valid(*var_key):
+            value = chip.get(*var_key)
             # Clobber needs to be False here, since a user might want to
             # overwrite these.
             chip.set('tool', tool, 'task', task, 'var', step, index, variable, value,
                      clobber=False)
 
-            keypath = ','.join(['library', mainlib, 'asic', 'var', tool, variable])
+            keypath = ','.join(var_key)
             chip.add('tool', tool, 'task', task, 'require', step, index, keypath)
 
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, variable]))
@@ -191,46 +192,48 @@ def setup(chip, mode='batch'):
 
     # set default values for openroad
     for variable, value in [('ifp_tie_separation', '0'),
-                            ('pdn_enable', 'True'),
-                            ('gpl_routability_driven', 'True'),
-                            ('gpl_timing_driven', 'True'),
-                            ('dpo_enable', 'True'),
+                            ('pdn_enable', 'true'),
+                            ('gpl_routability_driven', 'true'),
+                            ('gpl_timing_driven', 'true'),
+                            ('dpo_enable', 'true'),
                             ('dpo_max_displacement', '0'),
                             ('dpl_max_displacement', '0'),
                             ('cts_distance_between_buffers', '100'),
                             ('cts_cluster_diameter', '100'),
                             ('cts_cluster_size', '30'),
-                            ('cts_balance_levels', 'True'),
-                            ('grt_use_pin_access', 'False'),
+                            ('cts_balance_levels', 'true'),
+                            ('ant_iterations', '3'),
+                            ('ant_margin', '0'),
+                            ('grt_use_pin_access', 'false'),
                             ('grt_overflow_iter', '100'),
                             ('grt_macro_extension', '2'),
-                            ('grt_allow_congestion', 'False'),
-                            ('grt_allow_overflow', 'False'),
+                            ('grt_allow_congestion', 'false'),
+                            ('grt_allow_overflow', 'false'),
                             ('grt_signal_min_layer', chip.get('pdk', pdkname, 'minlayer', stackup)),
                             ('grt_signal_max_layer', chip.get('pdk', pdkname, 'maxlayer', stackup)),
                             ('grt_clock_min_layer', chip.get('pdk', pdkname, 'minlayer', stackup)),
                             ('grt_clock_max_layer', chip.get('pdk', pdkname, 'maxlayer', stackup)),
-                            ('drt_disable_via_gen', 'False'),
-                            ('drt_process_node', 'False'),
-                            ('drt_via_in_pin_bottom_layer', 'False'),
-                            ('drt_via_in_pin_top_layer', 'False'),
-                            ('drt_repair_pdn_vias', 'False'),
-                            ('drt_via_repair_post_route', 'False'),
+                            ('drt_disable_via_gen', 'false'),
+                            ('drt_process_node', 'false'),
+                            ('drt_via_in_pin_bottom_layer', 'false'),
+                            ('drt_via_in_pin_top_layer', 'false'),
+                            ('drt_repair_pdn_vias', 'false'),
+                            ('drt_via_repair_post_route', 'false'),
                             ('rsz_setup_slack_margin', '0.0'),
                             ('rsz_hold_slack_margin', '0.0'),
                             ('rsz_slew_margin', '0.0'),
                             ('rsz_cap_margin', '0.0'),
-                            ('rsz_buffer_inputs', 'False'),
-                            ('rsz_buffer_outputs', 'False'),
+                            ('rsz_buffer_inputs', 'false'),
+                            ('rsz_buffer_outputs', 'false'),
                             ('sta_early_timing_derate', '0.0'),
                             ('sta_late_timing_derate', '0.0'),
-                            ('fin_add_fill', 'True'),
-                            ('psm_enable', 'True')
+                            ('fin_add_fill', 'true'),
+                            ('psm_enable', 'true')
                             ]:
         chip.set('tool', tool, 'task', task, 'var', step, index, variable, value, clobber=False)
 
-    for libvar, openroadvar in [('pdngen', 'pdn_config'),
-                                ('global_connect', 'global_connect')]:
+    for libvar, openroadvar in [('openroad_pdngen', 'pdn_config'),
+                                ('openroad_global_connect', 'global_connect')]:
         if chip.valid('tool', tool, 'task', task, 'var', step, index, openroadvar) and \
            not chip.get('tool', tool, 'task', task, 'var', step, index, openroadvar):
             # value already set
@@ -238,8 +241,8 @@ def setup(chip, mode='batch'):
 
         # copy from libs
         for lib in targetlibs + macrolibs:
-            if chip.valid('library', lib, 'asic', 'file', tool, libvar):
-                for pdn_config in chip.find_files('library', lib, 'asic', 'file', tool, libvar):
+            if chip.valid('library', lib, 'option', 'file', libvar):
+                for pdn_config in chip.find_files('library', lib, 'option', 'file', libvar):
                     chip.add('tool', tool, 'task', task, 'var', step, index, openroadvar, pdn_config)
 
     # basic warning and error grep check on logfile

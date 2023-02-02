@@ -35,6 +35,9 @@ def setup(chip):
     lib.add('output', stackup, 'lef', libdir+'/lef/sky130_fd_sc_hd_merged.lef')
     lib.add('output', stackup, 'gds', libdir+'/gds/sky130_fd_sc_hd.gds')
 
+    # antenna cells
+    lib.add('asic', 'cells', 'antenna', 'sky130_fd_sc_hd__diode_2')
+
     # clock buffers
     lib.add('asic', 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
 
@@ -97,30 +100,29 @@ def setup(chip):
     lib.add('asic', 'cells', 'tie', ['sky130_fd_sc_hd__conb_1'])
 
     # Defaults for OpenROAD tool variables
-    lib.set('asic', 'var', 'openroad', 'place_density', ['0.6'])
-    lib.set('asic', 'var', 'openroad', 'pad_global_place', ['4'])
-    lib.set('asic', 'var', 'openroad', 'pad_detail_place', ['2'])
-    lib.set('asic', 'var', 'openroad', 'macro_place_halo', ['1', '1'])
-    lib.set('asic', 'var', 'openroad', 'macro_place_channel', ['80', '80'])
+    lib.set('option', 'var', 'openroad_place_density', '0.6')
+    lib.set('option', 'var', 'openroad_pad_global_place', '4')
+    lib.set('option', 'var', 'openroad_pad_detail_place', '2')
+    lib.set('option', 'var', 'openroad_macro_place_halo', ['1', '1'])
+    lib.set('option', 'var', 'openroad_macro_place_channel', ['80', '80'])
 
     # Yosys techmap
-    lib.add('asic', 'file', 'yosys', 'techmap',
-             libdir + '/techmap/yosys/cells_latch.v')
+    lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
 
     # Openroad specific files
-    lib.set('asic', 'file', 'openroad', 'pdngen', libdir+'/apr/openroad/pdngen.tcl')
-    lib.set('asic', 'file', 'openroad', 'global_connect', libdir+'/apr/openroad/global_connect.tcl')
-    lib.set('asic', 'file', 'openroad', 'tapcells', libdir+'/apr/openroad/tapcell.tcl')
+    lib.set('option', 'file', 'openroad_pdngen', libdir+'/apr/openroad/pdngen.tcl')
+    lib.set('option', 'file', 'openroad_global_connect', libdir+'/apr/openroad/global_connect.tcl')
+    lib.set('option', 'file', 'openroad_tapcells', libdir+'/apr/openroad/tapcell.tcl')
 
-    lib.set('asic', 'var', 'yosys', 'driver_cell', "sky130_fd_sc_hd__buf_4")
-    lib.set('asic', 'var', 'yosys', 'buffer_cell', "sky130_fd_sc_hd__buf_4")
-    lib.set('asic', 'var', 'yosys', 'buffer_input', "A")
-    lib.set('asic', 'var', 'yosys', 'buffer_output', "X")
+    lib.set('option', 'var', 'yosys_driver_cell', "sky130_fd_sc_hd__buf_4")
+    lib.set('option', 'var', 'yosys_buffer_cell', "sky130_fd_sc_hd__buf_4")
+    lib.set('option', 'var', 'yosys_buffer_input', "A")
+    lib.set('option', 'var', 'yosys_buffer_output', "X")
     for tool in ('yosys', 'openroad'):
-        lib.set('asic', 'var', tool, 'tiehigh_cell', "sky130_fd_sc_hd__conb_1")
-        lib.set('asic', 'var', tool, 'tiehigh_port', "HI")
-        lib.set('asic', 'var', tool, 'tielow_cell', "sky130_fd_sc_hd__conb_1")
-        lib.set('asic', 'var', tool, 'tielow_port', "LO")
+        lib.set('option', 'var', f'{tool}_tiehigh_cell', "sky130_fd_sc_hd__conb_1")
+        lib.set('option', 'var', f'{tool}_tiehigh_port', "HI")
+        lib.set('option', 'var', f'{tool}_tielow_cell', "sky130_fd_sc_hd__conb_1")
+        lib.set('option', 'var', f'{tool}_tielow_port', "LO")
 
     chip.import_library(lib)
 

@@ -22,8 +22,8 @@ proc has_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_cell] && \
-           [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_port]
+    return [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] && \
+           [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port]
 }
 
 proc get_tie_cell { type } {
@@ -31,8 +31,8 @@ proc get_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    set cell [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_cell] 0]
-    set port [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool tie${type}_port] 0]
+    set cell [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] 0]
+    set port [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port] 0]
 
     return "$cell $port"
 }
@@ -42,9 +42,9 @@ proc has_buffer_cell { } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_cell] && \
-           [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_input] && \
-           [dict exists $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_output]
+    return [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_cell] && \
+           [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_input] && \
+           [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_output]
 }
 
 proc get_buffer_cell { } {
@@ -52,9 +52,9 @@ proc get_buffer_cell { } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    set cell [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_cell] 0]
-    set in [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_input] 0]
-    set out [lindex [dict get $sc_cfg library $sc_mainlib asic {var} $sc_tool buffer_output] 0]
+    set cell [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_buffer_cell] 0]
+    set in   [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_buffer_input] 0]
+    set out  [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_buffer_output] 0]
 
     return "$cell $in $out"
 }
@@ -108,7 +108,7 @@ proc post_techmap { { opt_args "" } } {
     yosys opt {*}$opt_args -purge
 }
 if {[dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index map_adders] != "False"} {
-    set sc_adder_techmap [lindex [dict get $sc_cfg library $sc_mainlib asic "file" $sc_tool addermap] 0]
+    set sc_adder_techmap [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index map_adders] 0]
     # extract the full adders
     yosys extract_fa
     # map full adders

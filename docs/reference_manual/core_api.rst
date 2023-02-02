@@ -54,11 +54,7 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.core.Chip.hash_files
     ~siliconcompiler.core.Chip.list_metrics
     ~siliconcompiler.core.Chip.list_steps
-    ~siliconcompiler.core.Chip.load_flow
-    ~siliconcompiler.core.Chip.load_lib
-    ~siliconcompiler.core.Chip.load_pdk
     ~siliconcompiler.core.Chip.load_target
-    ~siliconcompiler.core.Chip.merge_manifest
     ~siliconcompiler.core.Chip.read_file
     ~siliconcompiler.core.Chip.read_manifest
     ~siliconcompiler.core.Chip.show

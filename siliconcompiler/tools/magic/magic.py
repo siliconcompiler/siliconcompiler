@@ -19,7 +19,8 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.load_pdk('skywater130')
+    from pdks import skywater130
+    chip.use(skywater130)
     index = '<index>'
     flow = '<flow>'
     chip.set('arg','index',index)

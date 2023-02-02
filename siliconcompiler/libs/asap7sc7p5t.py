@@ -76,31 +76,30 @@ def _setup_lib(libname, suffix):
     # Yosys techmap
     if libname.endswith('rvt'):
         # TODO: write map files for other groups
-        lib.add('asic', 'file', 'yosys', 'techmap',
-                    libdir + '/techmap/yosys/cells_latch.v')
+        lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
 
     # Defaults for OpenROAD tool variables
-    lib.set('asic', 'var', 'openroad', 'place_density', ['0.77'])
-    lib.set('asic', 'var', 'openroad', 'pad_global_place', ['2'])
-    lib.set('asic', 'var', 'openroad', 'pad_detail_place', ['1'])
-    lib.set('asic', 'var', 'openroad', 'macro_place_halo', ['22.4', '15.12'])
-    lib.set('asic', 'var', 'openroad', 'macro_place_channel', ['18.8', '19.95'])
+    lib.set('option', 'var', 'openroad_place_density', '0.77')
+    lib.set('option', 'var', 'openroad_pad_global_place', '2')
+    lib.set('option', 'var', 'openroad_pad_detail_place', '1')
+    lib.set('option', 'var', 'openroad_macro_place_halo', ['22.4', '15.12'])
+    lib.set('option', 'var', 'openroad_macro_place_channel', ['18.8', '19.95'])
 
-    lib.set('asic', 'var', 'yosys', 'driver_cell', f"BUFx2_ASAP7_75t_{suffix}")
-    lib.set('asic', 'var', 'yosys', 'buffer_cell', f"BUFx2_ASAP7_75t_{suffix}")
-    lib.set('asic', 'var', 'yosys', 'buffer_input', "A")
-    lib.set('asic', 'var', 'yosys', 'buffer_output', "Y")
+    lib.set('option', 'var', 'yosys_driver_cell', f"BUFx2_ASAP7_75t_{suffix}")
+    lib.set('option', 'var', 'yosys_buffer_cell', f"BUFx2_ASAP7_75t_{suffix}")
+    lib.set('option', 'var', 'yosys_buffer_input', "A")
+    lib.set('option', 'var', 'yosys_buffer_output', "Y")
     for tool in ('yosys', 'openroad'):
-        lib.set('asic', 'var', tool, 'tiehigh_cell', f"TIEHIx1_ASAP7_75t_{suffix}")
-        lib.set('asic', 'var', tool, 'tiehigh_port', "H")
-        lib.set('asic', 'var', tool, 'tielow_cell', f"TIELOx1_ASAP7_75t_{suffix}")
-        lib.set('asic', 'var', tool, 'tielow_port', "L")
+        lib.set('option', 'var', f'{tool}_tiehigh_cell', f"TIEHIx1_ASAP7_75t_{suffix}")
+        lib.set('option', 'var', f'{tool}_tiehigh_port', "H")
+        lib.set('option', 'var', f'{tool}_tielow_cell', f"TIELOx1_ASAP7_75t_{suffix}")
+        lib.set('option', 'var', f'{tool}_tielow_port', "L")
 
     # Openroad APR setup files
-    lib.set('asic', 'file', 'openroad', 'tracks', libdir + '/apr/openroad/tracks.tcl')
-    lib.set('asic', 'file', 'openroad', 'tapcells', libdir + '/apr/openroad/tapcells.tcl')
-    lib.set('asic', 'file', 'openroad', 'pdngen', libdir + '/apr/openroad/pdngen.tcl')
-    lib.set('asic', 'file', 'openroad', 'global_connect', libdir + '/apr/openroad/global_connect.tcl')
+    lib.set('option', 'file', 'openroad_tracks', libdir + '/apr/openroad/tracks.tcl')
+    lib.set('option', 'file', 'openroad_tapcells', libdir + '/apr/openroad/tapcells.tcl')
+    lib.set('option', 'file', 'openroad_pdngen', libdir + '/apr/openroad/pdngen.tcl')
+    lib.set('option', 'file', 'openroad_global_connect', libdir + '/apr/openroad/global_connect.tcl')
 
     return lib
 

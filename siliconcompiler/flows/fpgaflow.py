@@ -66,13 +66,9 @@ def setup(chip, flowname='fpgaflow'):
     else:
         chip.error('FPGA partname not specified', fatal=True)
 
-    # Set FPGA mode if not set
-    chip.set('option', 'mode', 'fpga')
-
     # Partname lookup for flows other than vpr
     if flow != 'vpr':
-        (vendor, flow) = flow_lookup(partname)
-        chip.set('fpga', 'vendor', vendor)
+        _, flow = flow_lookup(partname)
 
     #Setting up pipeline
     #TODO: Going forward we want to standardize steps
@@ -96,7 +92,7 @@ def setup(chip, flowname='fpgaflow'):
     for step,tool,task in flowtools:
         # Flow
         chip.node(flowname, step, tool,task)
-        if step != 'import':
+        if task != 'import':
             chip.edge(flowname, prevstep, step)
         # Hard goals
         for metric in ('errors','warnings','drvs','unconstrained',

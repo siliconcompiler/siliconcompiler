@@ -17,18 +17,13 @@ def setup(chip):
     chip.node(flow, 'import', 'surelog', 'import')
     chip.node(flow, 'syn', 'yosys', 'syn_asic')
     chip.node(flow, 'export', 'klayout', 'export')
-    chip.node(flow, 'merge', 'join', 'merge')
+    chip.node(flow, 'merge', 'builtin', 'join')
 
     chip.edge(flow, 'import', 'export')
     chip.edge(flow, 'import', 'syn')
 
     chip.edge(flow, 'export', 'merge')
     chip.edge(flow, 'syn', 'merge')
-
-    chip.set('option', 'mode', 'asic')
-
-    chip.set('option', 'showtool', 'def', 'klayout')
-    chip.set('option', 'showtool', 'gds', 'klayout')
 
     # Set default goal
     for step in chip.getkeys('flowgraph', flow):

@@ -107,9 +107,9 @@ def test_get_invalid_field_continue():
 
 def test_set_valid_field_to_none():
     chip = siliconcompiler.Chip('test')
-    chip.set('option', 'jobscheduler', 'slurm')
-    chip.set('option', 'jobscheduler', None)
-    jobscheduler = chip.get('option', 'jobscheduler')
+    chip.set('option', 'scheduler', 'name', 'slurm')
+    chip.set('option', 'scheduler', 'name', None)
+    jobscheduler = chip.get('option', 'scheduler', 'name')
     assert jobscheduler == None
     assert chip._error == False
 
@@ -163,6 +163,32 @@ def test_clear():
     # Able to set a keypath after it's been cleared even if clobber=False
     chip.set('option', 'remote', True, clobber=False)
     assert chip.get('option', 'remote') == True
+
+def test_set_enum_success():
+    chip = siliconcompiler.Chip('test')
+    chip.add('option', 'mode', 'asic_new', field='enum')
+    chip.set('option', 'mode', 'asic_new')
+    assert chip.get('option', 'mode') == 'asic_new'
+
+def test_set_enum_fail():
+    chip = siliconcompiler.Chip('test')
+    try:
+        chip.set('option', 'mode', 'asic_new')
+    except siliconcompiler.SiliconCompilerError:
+        assert True
+        return
+    assert False
+
+def test_prenode():
+    chip = siliconcompiler.Chip('test')
+
+    chip.set('asic', 'logiclib', 'mylib')
+    chip.set('asic', 'logiclib', 'synlib', step='syn')
+    chip.set('asic', 'logiclib', 'syn0lib', step='syn', index=0)
+
+    assert chip.get('asic', 'logiclib', step='floorplan') == ['mylib']
+    assert chip.get('asic', 'logiclib', step='syn', index=0) == ['syn0lib']
+    assert chip.get('asic', 'logiclib', step='syn') == ['synlib']
 
 #########################
 if __name__ == "__main__":

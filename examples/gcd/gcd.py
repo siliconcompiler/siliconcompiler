@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import siliconcompiler
 import os
+import siliconcompiler
 
 def main(root='.'):
     '''Simple asicflow example.'''
