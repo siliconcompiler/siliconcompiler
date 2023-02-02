@@ -571,6 +571,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         """
 
+        # Record target
+        self.set('option', 'target', name)
+
         load_function = self.find_function(name, 'setup', 'targets')
         load_function(self)
 
