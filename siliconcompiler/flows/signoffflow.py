@@ -1,35 +1,39 @@
 import siliconcompiler
+from siliconcompiler import Flow
 
 def make_docs():
     '''A flow for running LVS/DRC signoff on a GDS layout.
 
     Inputs must be passed to this flow as follows::
 
-        chip.set('input', 'gds', '<path-to-layout>.gds')
-        chip.set('input', 'netlist', '<path-to-netlist>.vg')
+        flow.input('<path-to-layout>.gds')
+        flow.input('<path-to-netlist>.vg')
     '''
     chip = siliconcompiler.Chip('<topmodule>')
     chip.set('option', 'flow', 'signoffflow')
-    setup(chip)
-    return chip
+    return setup(chip)
 
 def setup(chip):
-    flow = 'signoffflow'
+    flowname = 'signoffflow'
+
+    flow = Flow(chip, flowname)
 
     # nop import since we don't need to pull in any sources
-    chip.node(flow, 'import', 'builtin', 'import')
+    flow.node(flowname, 'import', 'builtin', 'import')
 
-    chip.node(flow, 'extspice', 'magic', 'extspice')
-    chip.node(flow, 'drc', 'magic', 'drc')
-    chip.node(flow, 'lvs', 'netgen', 'lvs')
-    chip.node(flow, 'signoff', 'builtin', 'join')
+    flow.node(flowname, 'extspice', 'magic', 'extspice')
+    flow.node(flowname, 'drc', 'magic', 'drc')
+    flow.node(flowname, 'lvs', 'netgen', 'lvs')
+    flow.node(flowname, 'signoff', 'builtin', 'join')
 
-    chip.edge(flow, 'import', 'drc')
-    chip.edge(flow, 'import', 'extspice')
-    chip.edge(flow, 'extspice', 'lvs')
-    chip.edge(flow, 'lvs', 'signoff')
-    chip.edge(flow, 'drc', 'signoff')
+    flow.edge(flowname, 'import', 'drc')
+    flow.edge(flowname, 'import', 'extspice')
+    flow.edge(flowname, 'extspice', 'lvs')
+    flow.edge(flowname, 'lvs', 'signoff')
+    flow.edge(flowname, 'drc', 'signoff')
 
     # Set default goal
-    for step in chip.getkeys('flowgraph', flow):
-        chip.set('flowgraph', flow, step, '0', 'goal', 'errors', 0)
+    for step in flow.getkeys('flowgraph', flowname):
+        flow.set('flowgraph', flowname, step, '0', 'goal', 'errors', 0)
+
+    return flow

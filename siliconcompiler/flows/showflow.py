@@ -1,4 +1,5 @@
 import siliconcompiler
+from siliconcompiler import Flow
 
 ############################################################################
 # DOCS
@@ -10,34 +11,21 @@ def make_docs():
 
     Required settings for this flow are below:
 
-    * show_filetype : Type of file to show
-    * show_filepath : Path to file to show
-    * show_job : Source job name
-    * show_step : Source step name
-    * show_index : Source index name
+    * filetype : Type of file to show
 
     Optional settings for this flow are below:
 
-    * show_np : Number of parallel show jobs to launch
-    * show_screenshot : true/false, indicate if this should be configured as a screenshot
+    * np : Number of parallel show jobs to launch
+    * screenshot : true/false, indicate if this should be configured as a screenshot
     '''
 
     chip = siliconcompiler.Chip('<topmodule>')
-    chip.set('arg', 'flow', 'show_np', '3')
-    chip.set('arg', 'flow', 'show_filetype', 'def')
-    chip.set('arg', 'flow', 'show_filepath', 'gcd.def')
-    chip.set('arg', 'flow', 'show_step', 'place')
-    chip.set('arg', 'flow', 'show_index', '0')
-    chip.set('arg', 'flow', 'show_job', 'job0')
-    chip.set('option', 'flow', 'showflow')
-    setup(chip)
-
-    return chip
+    return setup(chip, filetype='gds', np=3)
 
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='showflow'):
+def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
     '''
     Setup function for 'showflow' execution flowgraph.
 
@@ -46,35 +34,25 @@ def setup(chip, flowname='showflow'):
         flowname (str): name for the flow
     '''
 
+    flow = Flow(chip, flowname)
+
     # Get required parameters first
-    if 'show_filetype' in chip.getkeys('arg', 'flow'):
-        filetype = chip.get('arg', 'flow', 'show_filetype')[0]
-    else:
-        raise ValueError('show_filetype is a required argument')
+    if not filetype:
+        raise ValueError('filetype is a required argument')
 
-    sc_screenshot = False
-    if 'show_screenshot' in chip.getkeys('arg', 'flow'):
-        sc_screenshot = chip.get('arg', 'flow', 'show_screenshot')[0] == "true"
-
-    # Clear old flowgraph if it exists
-    if flowname in chip.getkeys('flowgraph'):
-        del chip.schema.cfg['flowgraph'][flowname]
-
-    chip.node(flowname, 'import', 'builtin', 'import')
+    flow.node(flowname, 'import', 'builtin', 'import')
 
     show_tool = chip.get('option', 'showtool', filetype)
 
     stepname = 'show'
-    if sc_screenshot:
+    if screenshot:
         stepname = 'screenshot'
 
-    np = 1
-    if 'show_np' in chip.getkeys('arg', 'flow'):
-        np = int(chip.get('arg', 'flow', 'show_np')[0])
-
     for idx in range(np):
-        chip.node(flowname, stepname, show_tool, stepname, index=idx)
-        chip.edge(flowname, 'import', stepname, head_index=idx, tail_index=0)
+        flow.node(flowname, stepname, show_tool, stepname, index=idx)
+        flow.edge(flowname, 'import', stepname, head_index=idx, tail_index=0)
+
+    return flow
 
 ##################################################
 if __name__ == "__main__":

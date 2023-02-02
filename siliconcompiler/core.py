@@ -4323,17 +4323,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         saved_config = self.schema.copy()
 
-        # Setup flow parameters
-        self.set('arg', 'flow', 'show_filetype', filetype)
-        self.set('arg', 'flow', 'show_screenshot', "true" if screenshot else "false")
-
         taskname = 'show'
         if screenshot:
             taskname = 'screenshot'
 
         try:
             from flows import showflow
-            self.use(showflow)
+            self.use(showflow, filetype=filetype, screenshot=screenshot)
         except:
             # restore environment
             self.schema = saved_config

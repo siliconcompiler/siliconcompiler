@@ -2,6 +2,7 @@ import siliconcompiler
 import re
 
 from siliconcompiler.flows._common import setup_frontend
+from siliconcompiler import Flow
 
 ############################################################################
 # DOCS
@@ -41,9 +42,7 @@ def make_docs():
     chip = siliconcompiler.Chip('<topmodule>')
     chip.set('option', 'flow', 'fpgaflow')
     chip.set('fpga', 'partname', 'ice40')
-    setup(chip)
-
-    return chip
+    return setup(chip)
 
 ############################################################################
 # Flowgraph Setup
@@ -57,24 +56,26 @@ def setup(chip, flowname='fpgaflow'):
 
     '''
 
+    flow = Flow(chip, flowname)
+
     # Check that fpga arch has been set for vpr flow or partname has been set for others
-    flow = ''
+    flowtype = ''
     if chip.get('fpga', 'arch'):
-        flow = 'vpr'
+        flowtype = 'vpr'
     elif chip.get('fpga', 'partname'):
         partname = chip.get('fpga', 'partname')
     else:
         chip.error('FPGA partname not specified', fatal=True)
 
     # Partname lookup for flows other than vpr
-    if flow != 'vpr':
-        _, flow = flow_lookup(partname)
+    if flowtype != 'vpr':
+        _, flowtype = flow_lookup(partname)
 
     #Setting up pipeline
     #TODO: Going forward we want to standardize steps
-    if  flow in ('vivado', 'quartus'):
+    if  flowtype in ('vivado', 'quartus'):
         flowpipe = ['syn_fpga', 'place', 'route', 'bitstream']
-    elif flow =='vpr':
+    elif flowtype =='vpr':
         flowpipe = ['syn_vpr', 'apr', 'bitstream']
         # flowpipe = ['syn_vpr', 'apr']
     else:
@@ -83,27 +84,29 @@ def setup(chip, flowname='fpgaflow'):
     flowtools = setup_frontend(chip)
     for step in flowpipe:
         task = step
-        if (step == 'syn_vpr') and (flow == 'vpr'):
+        if (step == 'syn_vpr') and (flowtype == 'vpr'):
             task = 'syn_fpga'
-        flowtools.append((step, tool_lookup(flow, step), task))
+        flowtools.append((step, tool_lookup(flowtype, step), task))
 
     # Minimal setup
     index = '0'
     for step,tool,task in flowtools:
         # Flow
-        chip.node(flowname, step, tool,task)
+        flow.node(flowname, step, tool,task)
         if task != 'import':
-            chip.edge(flowname, prevstep, step)
+            flow.edge(flowname, prevstep, step)
         # Hard goals
         for metric in ('errors','warnings','drvs','unconstrained',
                        'holdwns','holdtns', 'holdpaths',
                        'setupwns', 'setuptns', 'setuppaths'):
-            chip.set('flowgraph', flowname, step, index, 'goal', metric, 0)
+            flow.set('flowgraph', flowname, step, index, 'goal', metric, 0)
         # Metrics
         for metric in ('luts','dsps','brams','registers',
                        'pins','peakpower','leakagepower'):
-            chip.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
+            flow.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
         prevstep = step
+
+    return flow
 
 ##################################################
 

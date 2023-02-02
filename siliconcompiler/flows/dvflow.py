@@ -1,6 +1,5 @@
-import os
-import re
 import siliconcompiler
+from siliconcompiler import Library
 
 ############################################################################
 # DOCS
@@ -20,7 +19,7 @@ def make_docs():
     * **compare**: The outputs of the sim and refsim are compared
     * **signoff**: Parallel verification pipelines are merged and checked
 
-    The dvflow can be parametrized using a single 'np' flowarg parameter.
+    The dvflow can be parametrized using a single 'np' parameter.
     Setting 'np' > 1 results in multiple independent verificaiton
     pipelines to be launched.
 
@@ -28,21 +27,19 @@ def make_docs():
 
     chip = siliconcompiler.Chip('<topmodule>')
     chip.set('option', 'flow', 'dvflow')
-    chip.set('arg', 'flow', 'np', '5')
-    setup(chip)
-
-    return chip
+    return setup(chip, np=5)
 
 #############################################################################
 # Flowgraph Setup
 #############################################################################
-def setup(chip, flow='dflow'):
+def setup(chip, np=1):
     '''
     Setup function for 'dvflow'
     '''
 
     # Definting a flow
-    flow = 'dvflow'
+    flowname = 'dvflow'
+    flow = Library(chip, flowname)
 
     # A simple linear flow
     flowpipe = ['import',
@@ -63,38 +60,34 @@ def setup(chip, flow='dflow'):
         'signoff': ('verify', 'signoff')
     }
 
-    # Parallelism
-    if 'np' in chip.getkeys('arg', 'flow'):
-        np = int(chip.get('arg', 'flow', 'np')[0])
-    else:
-        np = 1
-
     # Flow setup
     for step in flowpipe:
         tool, task = tools[step]
         #start
         if step == 'import':
-            chip.node(flow, step, tool, task)
+            flow.node(flowname, step, tool, task)
         #serial
         elif step == 'compile':
-            chip.node(flow, step, tool, task)
-            chip.edge(flow, prevstep, step)
+            flow.node(flowname, step, tool, task)
+            flow.edge(flowname, prevstep, step)
         #fork
         elif step == 'testgen':
             for index in range(np):
-                chip.node(flow, step, tool, task, index=index)
-                chip.edge(flow, prevstep, step, head_index=index)
+                flow.node(flowname, step, tool, task, index=index)
+                flow.edge(flowname, prevstep, step, head_index=index)
         #join
         elif step == 'signoff':
-            chip.node(flow, step, tool, task)
+            flow.node(flowname, step, tool, task)
             for index in range(np):
-                chip.edge(flow, prevstep, step, tail_index=index)
+                flow.edge(flowname, prevstep, step, tail_index=index)
         else:
             for index in range(np):
-                chip.node(flow, step, tool, task, index=index)
-                chip.edge(flow, prevstep, step, head_index=index, tail_index=index)
+                flow.node(flowname, step, tool, task, index=index)
+                flow.edge(flowname, prevstep, step, head_index=index, tail_index=index)
 
         prevstep = step
+
+    return flow
 
 ##################################################
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import siliconcompiler
-import re
+from siliconcompiler import Flow
 
 ############################################################################
 # DOCS
@@ -13,8 +13,7 @@ def make_docs():
 
     chip = siliconcompiler.Chip('<design>')
     chip.set('option', 'flow', 'lintflow')
-    setup(chip)
-    return chip
+    return setup(chip)
 
 ###########################################################################
 # Flowgraph Setup
@@ -29,6 +28,7 @@ def setup(chip):
     '''
 
     flowname = 'lintflow'
+    flow = Flow(chip, flowname)
 
     # Linear flow, up until branch to run parallel verification steps.
     pipe = [('import', 'surelog', 'import'),
@@ -36,10 +36,12 @@ def setup(chip):
             ('export', 'nop', 'nop')]
 
     for step, tool, task in pipe:
-        chip.node(flowname, step, tool, task)
+        flow.node(flowname, step, tool, task)
         if task != 'import':
-            chip.edge(flowname, prevstep, step)
+            flow.edge(flowname, prevstep, step)
         prevstep = step
+
+    return flow
 
 ##################################################
 if __name__ == "__main__":
