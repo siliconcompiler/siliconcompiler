@@ -38,7 +38,7 @@ Inspection
 Once the compilation has completed, chip object can be queried and another :meth:`.run()` can be called. ::
 
   chip.summary()
-  print(chip.get('metric', 'syn', '0', 'cellarea')
+  print(chip.get('metric', 'cellarea', step='syn', index='0'))
   #..do something else
 
 For complete information, see the :ref:`Core API` section of the reference manual.

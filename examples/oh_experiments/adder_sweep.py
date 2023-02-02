@@ -27,7 +27,7 @@ def main():
         chip.set('option','param','N',str(n))
         chip.run()
 
-        area.append(chip.get('metric', 'syn', '0', 'cellarea'))
+        area.append(chip.get('metric', 'cellarea', step='syn', index='0'))
 
     if has_matplotlib:
         # Plot Data

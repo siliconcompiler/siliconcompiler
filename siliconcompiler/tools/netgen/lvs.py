@@ -64,7 +64,7 @@ def post_process(chip):
 
     with open(f'{step}.errors', 'r') as f:
         errors = len(f.readlines())
-    chip.set('metric', step, index, 'errors', errors)
+    chip.set('metric', 'errors', errors, step=step, index=index)
 
     # Export metrics
     lvs_report = f'reports/{design}.lvs.json'
@@ -80,5 +80,5 @@ def post_process(chip):
     # details.
     pin_failures = lvs_failures[3]
     errors = lvs_failures[0] - pin_failures
-    chip.set('metric', step, index, 'drvs', errors)
-    chip.set('metric', step, index, 'warnings', pin_failures)
+    chip.set('metric', 'drvs', errors, step=step, index=index)
+    chip.set('metric', 'warnings', pin_failures, step=step, index=index)

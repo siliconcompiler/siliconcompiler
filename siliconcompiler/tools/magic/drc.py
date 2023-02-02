@@ -38,7 +38,7 @@ def post_process(chip):
             errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
 
             if errors:
-                chip.set('metric', step, index, 'drvs', errors.group(1))
+                chip.set('metric', 'drvs', errors.group(1), step=step, index=index)
 
     #TODO: return error code
     return 0

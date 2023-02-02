@@ -1530,38 +1530,41 @@ def schema_metric(cfg, step='default', index='default'):
                'unconstrained' : 'unconstrained timing paths'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item],
+        scparam(cfg, ['metric', item],
                 sctype='int',
                 shorthelp=f"Metric: total {item}",
                 switch=f"-metric_{item} 'step index <int>'",
                 example=[
                     f"cli: -metric_{item} 'dfm 0 0'",
-                    f"api: chip.set('metric','dfm','0','{item}', 0)"],
+                    f"api: chip.set('metric', '{item}', 0, step='dfm', index=0)"],
+                pernode='required',
                 schelp=f"""Metric tracking the total number of {val} on a
                 per step and index basis.""")
 
-    scparam(cfg, ['metric', step, index, 'coverage'],
+    scparam(cfg, ['metric', 'coverage'],
             sctype='float',
             unit='%',
             shorthelp=f"Metric: coverage",
             switch="-metric_coverage 'step index <float>'",
             example=[
                 "cli: -metric_coverage 'place 0 99.9'",
-                "api: chip.set('metric','place','0','coverage', 99.9)"],
+                "api: chip.set('metric', 'coverage', 99.9, step='place', index=0)"],
+            pernode='required',
             schelp=f"""
             Metric tracking the test coverage in the design expressed as a percentage
             with 100 meaning full coverage. The meaning of the metric depends on the
             task being executed. It can refer to code coverage, feature coverage,
             stuck at fault coverage.""")
 
-    scparam(cfg, ['metric', step, index, 'security'],
+    scparam(cfg, ['metric', 'security'],
             sctype='float',
             unit='%',
             shorthelp="Metric: security",
             switch="-metric_security 'step index <float>'",
             example=[
                 "cli: -metric_security 'place 0 100'",
-                "api: chip.set('metric','place','0','security', 100)"],
+                "api: chip.set('metric', 'security', 100, step='place', index=0)"],
+            pernode='required',
             schelp=f"""
             Metric tracking the level of security (1/vulnerability) of the design.
             A completely secure design would have a score of 100. There is no
@@ -1573,14 +1576,15 @@ def schema_metric(cfg, step='default', index='default'):
                'brams' : 'FPGA BRAM tiles'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item],
+        scparam(cfg, ['metric', item],
                 sctype='int',
 
                 shorthelp=f"Metric: {val}",
                 switch=f"-metric_{item} 'step index <int>'",
                 example=[
                     f"cli: -metric_{item} 'place 0 100'",
-                    f"api: chip.set('metric','place','0','{item}', 100)"],
+                    f"api: chip.set('metric', '{item}', 100, step='place', index=0)"],
+                pernode='required',
                 schelp=f"""
                 Metric tracking the total {val} used by the design as reported
                 by the implementation tool. There is no standardized definition
@@ -1592,25 +1596,27 @@ def schema_metric(cfg, step='default', index='default'):
                'totalarea' :'physical die area'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item],
+        scparam(cfg, ['metric', item],
                 sctype='float',
                 unit='um^2',
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index <float>'",
                 example=[
                     f"cli: -metric_{item} 'place 0 100.00'",
-                    f"api: chip.set('metric','place','0','{item}', 100.00)"],
+                    f"api: chip.set('metric', '{item}', 100.00, step='place', index=0)"],
+                pernode='required',
                 schelp=f"""
                 Metric tracking the total {val} occupied by the design.""")
 
-    scparam(cfg, ['metric', step, index, 'utilization'],
+    scparam(cfg, ['metric', 'utilization'],
             sctype='float',
             unit='%',
             shorthelp=f"Metric: area utilization",
             switch=f"-metric_utilization step index <float>",
             example=[
                 f"cli: -metric_utilization 'place 0 50.00'",
-                f"api: chip.set('metric','place','0','utilization', 50.00)"],
+                f"api: chip.set('metric', 'utilization', 50.00, step='place', index=0)"],
+            pernode='required',
             schelp=f"""
             Metric tracking the area utilization of the design calculated as
             100 * (cellarea/totalarea).""")
@@ -1623,14 +1629,15 @@ def schema_metric(cfg, step='default', index='default'):
                'sleeppower': 'power consumed with some or all power rails gated off'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item],
+        scparam(cfg, ['metric', item],
                 sctype='float',
                 unit='mw',
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index <float>'",
                 example=[
                     f"cli: -metric_{item} 'place 0 0.01'",
-                    f"api: chip.set('metric','place','0','{item}', 0.01)"],
+                    f"api: chip.set('metric', '{item}', 0.01, step='place', index=0)"],
+                pernode='required',
                 schelp=f"""
                 Metric tracking the {val} of the design specified on a per step
                 and index basis. Power metric depend heavily on the method
@@ -1640,14 +1647,15 @@ def schema_metric(cfg, step='default', index='default'):
                 usually be reflected inside a datasheet given the approprate
                 footnote conditions.""")
 
-    scparam(cfg, ['metric', step, index, 'irdrop'],
+    scparam(cfg, ['metric', 'irdrop'],
             sctype='float',
             unit='mv',
             shorthelp=f"Metric: peak IR drop",
             switch="-metric_irdrop 'step index <float>'",
             example=[
                 f"cli: -metric_irdrop 'place 0 0.05'",
-                f"api: chip.set('metric','place','0','irdrop', 0.05)"],
+                f"api: chip.set('metric', 'irdrop', 0.05, step='place', index=0)"],
+            pernode='required',
             schelp=f"""
             Metric tracking the peak IR drop in the design based on extracted
             power and ground rail parasitics, library power models, and
@@ -1659,13 +1667,14 @@ def schema_metric(cfg, step='default', index='default'):
                'setuppaths': 'setup'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item],
+        scparam(cfg, ['metric', item],
                 sctype='int',
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index <float>'",
                 example=[
                     f"cli: -metric_{item} 'place 0 10'",
-                    f"api: chip.set('metric','place','0','{item}', 10)"],
+                    f"api: chip.set('metric', '{item}', 10, step='place', index=0)"],
+                pernode='required',
                 schelp=f"""
                 Metric tracking the total number of timing paths violating {val}
                 constraints.""")
@@ -1678,14 +1687,15 @@ def schema_metric(cfg, step='default', index='default'):
                'setuptns': 'total negative setup slack (TNS)'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item],
+        scparam(cfg, ['metric', item],
                 sctype='float',
                 unit='ns',
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index <float>'",
                 example=[
                     f"cli: -metric_{item} 'place 0 0.01'",
-                    f"api: chip.set('metric','place','0','{item}', 0.01)"],
+                    f"api: chip.set('metric', '{item}', 0.01, step='place', index=0)"],
+                pernode='required',
                 schelp=f"""
                 Metric tracking the {val} on a per step and index basis.""")
 
@@ -1699,38 +1709,41 @@ def schema_metric(cfg, step='default', index='default'):
                'vias': 'vias'}
 
     for item, val in metrics.items():
-        scparam(cfg, ['metric', step, index, item],
+        scparam(cfg, ['metric', item],
                 sctype='int',
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index <float>'",
                 example=[
                     f"cli: -metric_{item} 'place 0 100'",
-                    f"api: chip.set('metric','place','0','{item}', 50)"],
+                    f"api: chip.set('metric', '{item}', 50, step='place', index=0)"],
+                pernode='required',
                 schelp=f"""
                 Metric tracking the total number of {val} in the design
                 on a per step and index basis.""")
 
     item = 'wirelength'
-    scparam(cfg, ['metric', step, index, item],
+    scparam(cfg, ['metric', item],
             sctype='float',
             unit='um',
             shorthelp=f"Metric: {item}",
             switch=f"-metric_{item} 'step index <float>'",
             example=[
                 f"cli: -metric_{item} 'place 0 100.0'",
-                f"api: chip.set('metric','place','0','{item}', 50.0)"],
+                f"api: chip.set('metric', '{item}', 50.0, step='place', index=0)"],
+            pernode='required',
             schelp=f"""
             Metric tracking the total {item} of the design on a per step
             and index basis.""")
 
     item = 'overflow'
-    scparam(cfg, ['metric', step, index, item],
+    scparam(cfg, ['metric', item],
             sctype='int',
             shorthelp=f"Metric: {item}",
             switch=f"-metric_{item} 'step index <float>'",
             example=[
                 f"cli: -metric_{item} 'place 0 0'",
-                f"api: chip.set('metric','place','0','{item}', 50)"],
+                f"api: chip.set('metric', '{item}', 50, step='place', index=0)"],
+            pernode='required',
             schelp=f"""
             Metric tracking the total number of overflow tracks for the routing
             on per step and index basis. Any non-zero number suggests an over
@@ -1739,7 +1752,7 @@ def schema_metric(cfg, step='default', index='default'):
             reporting and open up the design to find routing hotspots.""")
 
     item = 'memory'
-    scparam(cfg, ['metric', step, index, item],
+    scparam(cfg, ['metric', item],
             sctype='float',
             unit='B',
             scope='job',
@@ -1747,20 +1760,22 @@ def schema_metric(cfg, step='default', index='default'):
             switch=f"-metric_{item} 'step index <float>'",
             example=[
                 f"cli: -metric_{item} 'dfm 0 10e9'",
-                f"api: chip.set('metric','dfm','0','{item}', 10e9)"],
+                f"api: chip.set('metric', '{item}', 10e9, step='dfm', index=0)"],
+            pernode='required',
             schelp=f"""
             Metric tracking total peak program memory footprint on a per
             step and index basis.""")
 
     item = 'exetime'
-    scparam(cfg, ['metric', step, index, item],
+    scparam(cfg, ['metric', item],
             sctype='float',
             unit='s',
             shorthelp=f"Metric: {item}",
             switch=f"-metric_{item} 'step index <float>'",
             example=[
                 f"cli: -metric_{item} 'dfm 0 10.0'",
-                f"api: chip.set('metric','dfm','0','{item}', 10.0)"],
+                f"api: chip.set('metric', '{item}', 10.0, step='dfm', index=0)"],
+            pernode='required',
             schelp=f"""
             Metric tracking time spent by the eda executable 'exe' on a
             per step and index basis. It does not include the siliconcompiler
@@ -1768,28 +1783,30 @@ def schema_metric(cfg, step='default', index='default'):
             inter-processor communication to complete.""")
 
     item = 'tasktime'
-    scparam(cfg, ['metric', step, index, item],
+    scparam(cfg, ['metric', item],
             sctype='float',
             unit='s',
             shorthelp=f"Metric: {item}",
             switch=f"-metric_{item} 'step index <float>'",
             example=[
                 f"cli: -metric_{item} 'dfm 0 10.0'",
-                f"api: chip.set('metric','dfm','0','{item}', 10.0)"],
+                f"api: chip.set('metric', '{item}', 10.0, step='dfm', index=0)"],
+            pernode='required',
             schelp=f"""
             Metric tracking the total amount of time spent on a task from
             beginning to end, including data transfers and pre/post
             processing.""")
 
     item = 'totaltime'
-    scparam(cfg, ['metric', step, index, item],
+    scparam(cfg, ['metric', item],
             sctype='float',
             unit='s',
             shorthelp=f"Metric: {item}",
             switch=f"-metric_{item} 'step index <float>'",
             example=[
                 f"cli: -metric_{item} 'dfm 0 10.0'",
-                f"api: chip.set('metric','dfm','0','{item}', 10.0)"],
+                f"api: chip.set('metric', '{item}', 10.0, step='dfm', index=0)"],
+            pernode='required',
             schelp=f"""
             Metric tracking the total amount of time spent from the beginning
             of the run up to and including the current step and index.""")
@@ -3288,7 +3305,7 @@ def schema_constraint(cfg):
             switch="-constraint_component_placement 'inst <(float,float, float)>'",
             example=[
                 "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
-                "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0)"],
+                "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0))"],
             schelp="""
             Placement location of a named instance, specified as a (x,y,z) tuple of
             floats. The location refers to the placement of the center/centroid of the
@@ -3367,7 +3384,7 @@ def schema_constraint(cfg):
             switch="-constraint_pin_placement 'name <(float,float, float)>'",
             example=[
                 "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
-                "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0)"],
+                "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0))"],
             schelp="""
             Placement location of a named pin, specified as a (x,y,z) tuple of
             floats. The location refers to the placement of the center of the

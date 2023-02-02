@@ -86,13 +86,13 @@ def _parse_qor_summary(chip, step, index):
         hold_tns = task['Ths(ns)']
 
         if setup_wns:
-            chip.set('metric', step, index, 'setupwns', setup_wns)
+            chip.set('metric', 'setupwns', setup_wns, step=step, index=index)
         if setup_tns:
-            chip.set('metric', step, index, 'setuptns', setup_tns)
+            chip.set('metric', 'setuptns', setup_tns, step=step, index=index)
         if hold_wns:
-            chip.set('metric', step, index, 'holdwns', hold_wns)
+            chip.set('metric', 'holdwns', hold_wns, step=step, index=index)
         if hold_tns:
-            chip.set('metric', step, index, 'holdtns', hold_tns)
+            chip.set('metric', 'holdtns', hold_tns, step=step, index=index)
 
 def _parse_utilization(chip, step, index):
     if not os.path.isfile('reports/total_utilization.rpt'):
@@ -118,15 +118,15 @@ def _parse_utilization(chip, step, index):
                     continue
 
         if 'luts' in vals:
-            chip.set('metric', step, index, 'luts', vals['luts'])
+            chip.set('metric', 'luts', vals['luts'], step=step, index=index)
         if 'regs' in vals:
-            chip.set('metric', step, index, 'registers', vals['regs'])
+            chip.set('metric', 'registers', vals['regs'], step=step, index=index)
 
         total_bram = 0
         if 'bram' in vals: total_bram += vals['bram']
         if 'uram' in vals: total_bram += vals['uram']
         if 'bram' in vals or 'uram' in vals:
-            chip.set('metric', step, index, 'brams', total_bram)
+            chip.set('metric', 'brams', total_bram, step=step, index=index)
 
 def post_process(chip):
     step = chip.get('arg', 'step')

@@ -14,7 +14,7 @@ def gcd_with_metrics(gcd_chip):
         for index in gcd_chip.getkeys('flowgraph', flow, step):
             for metric in gcd_chip.getkeys('flowgraph', flow, step, index, 'weight'):
                 gcd_chip.set('flowgraph', flow, step, index, 'status', siliconcompiler.TaskStatus.SUCCESS)
-                gcd_chip.set('metric', step, index, metric, str(dummy_data))
+                gcd_chip.set('metric', metric, str(dummy_data), step=step, index=index)
                 prev_step = steps.index(step) - 1
                 if prev_step >= 0:
                     gcd_chip.set('flowgraph', flow, step, index, 'select', [(steps[prev_step], '0')])
@@ -63,8 +63,8 @@ def test_parallel_path(capfd):
             chip.set('flowgraph', flow, 'place', i, 'select', ('import', '0'))
             chip.set('flowgraph', flow, 'cts', i, 'select', ('place', i))
 
-            chip.set('metric', 'place', i, 'errors', 0)
-            chip.set('metric', 'cts', i, 'errors', 0)
+            chip.set('metric', 'errors', 0, step='place', index=i)
+            chip.set('metric', 'errors', 0, step='cts', index=i)
 
     chip.write_flowgraph('test_graph.png')
 
