@@ -116,13 +116,6 @@ def setup(chip, flowname='asicflow'):
             flowpipe.append(step)
         prevstep = step
 
-    # Set mandatory mode
-    chip.set('option', 'mode', 'asic')
-
-    # Showtool definitions
-    chip.set('option', 'showtool', 'def', 'klayout')
-    chip.set('option', 'showtool', 'gds', 'klayout')
-
     flowtools = setup_frontend(chip)
     for step in flowpipe:
         flowtools.append((step, tools[step][0], tools[step][1]))

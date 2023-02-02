@@ -66,13 +66,9 @@ def setup(chip, flowname='fpgaflow'):
     else:
         chip.error('FPGA partname not specified', fatal=True)
 
-    # Set FPGA mode if not set
-    chip.set('option', 'mode', 'fpga')
-
     # Partname lookup for flows other than vpr
     if flow != 'vpr':
-        (vendor, flow) = flow_lookup(partname)
-        chip.set('fpga', 'vendor', vendor)
+        _, flow = flow_lookup(partname)
 
     #Setting up pipeline
     #TODO: Going forward we want to standardize steps

@@ -52,32 +52,6 @@ def setup(chip, flowname='showflow'):
     else:
         raise ValueError('show_filetype is a required argument')
 
-    if 'show_filepath' in chip.getkeys('arg', 'flow'):
-        filepath = chip.get('arg', 'flow', 'show_filepath')[0]
-    else:
-        raise ValueError('show_filepath is a required argument')
-
-    if 'show_step' in chip.getkeys('arg', 'flow'):
-        step = chip.get('arg', 'flow', 'show_step')[0]
-    else:
-        raise ValueError('show_step is a required argument')
-
-    if 'show_index' in chip.getkeys('arg', 'flow'):
-        index = chip.get('arg', 'flow', 'show_index')[0]
-    else:
-        raise ValueError('show_index is a required argument')
-
-    if 'show_job' in chip.getkeys('arg', 'flow'):
-        job = chip.get('arg', 'flow', 'show_job')[0]
-    else:
-        raise ValueError('show_job is a required argument')
-
-    # Showtool definitions
-    chip.set('option', 'showtool', 'odb', 'openroad', clobber=False)
-    chip.set('option', 'showtool', 'def', 'openroad', clobber=False)
-    chip.set('option', 'showtool', 'gds', 'klayout', clobber=False)
-    chip.set('option', 'showtool', 'oas', 'klayout', clobber=False)
-
     sc_screenshot = False
     if 'show_screenshot' in chip.getkeys('arg', 'flow'):
         sc_screenshot = chip.get('arg', 'flow', 'show_screenshot')[0] == "true"
@@ -101,20 +75,6 @@ def setup(chip, flowname='showflow'):
     for idx in range(np):
         chip.node(flowname, stepname, show_tool, stepname, index=idx)
         chip.edge(flowname, 'import', stepname, head_index=idx, tail_index=0)
-
-    # remove all old keys
-    for key in ('input', 'output', 'var'):
-        for index in chip.getkeys('flowgraph', flowname, stepname):
-            if chip.valid('tool', show_tool, key, stepname, index):
-                del chip.schema.cfg['tool'][show_tool][key][stepname][index]
-
-    # copy in step/index variables
-    for index in chip.getkeys('flowgraph', flowname, stepname):
-        chip.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_filetype', filetype)
-        chip.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_filepath', filepath)
-        chip.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_step', step)
-        chip.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_index', index)
-        chip.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_job', job)
 
 ##################################################
 if __name__ == "__main__":

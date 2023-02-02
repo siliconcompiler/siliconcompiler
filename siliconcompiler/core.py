@@ -4285,15 +4285,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Setup flow parameters
         self.set('arg', 'flow', 'show_filetype', filetype)
-        self.set('arg', 'flow', 'show_filepath', filepath)
-        self.set('arg', 'flow', 'show_step', sc_step)
-        self.set('arg', 'flow', 'show_index', sc_index)
-        self.set('arg', 'flow', 'show_job', sc_job)
         self.set('arg', 'flow', 'show_screenshot', "true" if screenshot else "false")
 
-        stepname = 'show'
+        taskname = 'show'
         if screenshot:
-            stepname = 'screenshot'
+            taskname = 'screenshot'
 
         try:
             from flows import showflow
@@ -4310,7 +4306,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         # build new job name
-        self.set('option', 'jobname', f'_{stepname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
+        self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
+
+        # Setup in step/index variables
+        stepname = self._get_steps_by_task(flow='showflow')[taskname][0]
+        for index in self.getkeys('flowgraph', 'showflow', stepname):
+            show_tool = self.get('flowgraph', 'showflow', stepname, index, 'tool')
+            self.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_filetype', filetype)
+            self.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_filepath', filepath)
+            self.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_step', sc_step)
+            self.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_index', sc_index)
+            self.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_job', sc_job)
 
         # run show flow
         try:

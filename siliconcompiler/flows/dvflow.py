@@ -63,15 +63,11 @@ def setup(chip, flow='dflow'):
         'signoff': ('verify', 'signoff')
     }
 
-
     # Parallelism
     if 'np' in chip.getkeys('arg', 'flow'):
         np = int(chip.get('arg', 'flow', 'np')[0])
     else:
         np = 1
-
-    # Setting mode as 'sim'
-    chip.set('option', 'mode', 'sim')
 
     # Flow setup
     for step in flowpipe:
