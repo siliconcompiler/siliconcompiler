@@ -52,10 +52,11 @@ def remote_preprocess(chip):
     local_step = remote_steplist[0]
     indexlist = chip.getkeys('flowgraph', flow, local_step)
     for index in indexlist:
+        task = chip._get_task(local_step, index)
         tool = chip.get('flowgraph', flow, local_step, index, 'tool')
         # Setting up tool is optional (step may be a builtin function)
         if tool and tool not in chip.builtin:
-            chip._setup_tool(tool, local_step, index)
+            chip._setup_tool(tool, task, local_step, index)
 
         # Need to override steplist here to make sure check_manifest() doesn't
         # check steps that haven't been setup.
@@ -69,6 +70,8 @@ def remote_preprocess(chip):
 
     # Set 'steplist' to only the remote steps, for the future server-side run.
     remote_steplist = remote_steplist[1:]
+    chip.set('arg', 'step', None, clobber=True)
+    chip.set('arg', 'index', None, clobber=True)
     chip.set('option', 'steplist', remote_steplist, clobber=True)
 
 ###################################
