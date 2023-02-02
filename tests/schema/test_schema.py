@@ -1,6 +1,5 @@
 import pytest
 
-from siliconcompiler.core import SiliconCompilerError
 from siliconcompiler.schema import Schema
 from siliconcompiler.schema.schema_cfg import scparam
 
@@ -15,7 +14,7 @@ def test_list_of_lists():
 
 def test_pernode_mandatory():
     cfg = {}
-    scparam(cfg, ['test'], sctype='str', shorthelp='Test', pernode='mandatory')
+    scparam(cfg, ['test'], sctype='str', shorthelp='Test', pernode='required')
 
     schema = Schema(cfg=cfg)
 
