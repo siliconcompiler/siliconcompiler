@@ -850,21 +850,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(e)
 
     ###########################################################################
-    def clear(self, *keypath):
+    def unset(self, *keypath, step=None, index=None):
         '''
-        Clears a schema parameter.
+        Unsets a schema parameter.
 
-        Clearing a schema parameter causes the parameter to revert to its
+        Unsetting a schema parameter causes the parameter to revert to its
         default value. A call to ``set()`` with ``clobber=False`` will once
         again be able to modify the value.
 
         Args:
             keypath (list): Parameter keypath to clear.
         '''
-        self.logger.debug(f'Clearing {keypath}')
+        self.logger.debug(f'Unsetting {keypath}')
 
-        if not self.schema.clear(*keypath):
-            self.logger.debug(f'Failed to clear value for {keypath}: parameter is locked')
+        if not self.schema.unset(*keypath, step=step, index=index):
+            self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
 
     ###########################################################################
     def add(self, *args, field='value', step=None, index=None):
@@ -1034,7 +1034,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return result
 
     ###########################################################################
-    def find_files(self, *keypath, missing_ok=False, job=None):
+    def find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None):
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -1080,7 +1080,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        paths = self.get(*keypath, job=job)
+        paths = self.get(*keypath, job=job, step=step, index=index)
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
@@ -1191,16 +1191,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         schema = self.schema.copy()
         for keypath in self.allkeys():
             paramtype = self.get(*keypath, field='type')
-            value = self.get(*keypath)
-            if value:
+            if not ('file' in paramtype or 'dir' in paramtype):
                 #only do something if type is file or dir
-                if 'file' in paramtype or 'dir' in paramtype:
-                    abspaths = self.find_files(*keypath, missing_ok=True)
-                    if isinstance(abspaths, list) and None in abspaths:
-                        # Lists may not contain None
-                        schema.set(*keypath, [])
-                    else:
-                        schema.set(*keypath, abspaths)
+                continue
+
+            values = self.schema._getvals(*keypath)
+            for value, step, index in values:
+                if not value:
+                    continue
+                abspaths = self.find_files(*keypath, missing_ok=True, step=step, index=index)
+                if isinstance(abspaths, list) and None in abspaths:
+                    # Lists may not contain None
+                    schema.set(*keypath, [], step=step, index=index)
+                else:
+                    schema.set(*keypath, abspaths, step=step, index=index)
         return schema
 
     ###########################################################################
@@ -1252,15 +1256,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if key_valid and 'default' not in keylist:
                 # update value, handling scalars vs. lists
                 typestr = src.get(*keylist, field='type')
-                val = src.get(*keylist)
-                if re.match(r'\[', typestr) and not clear:
-                    dest.add(*keylist, val)
-                else:
-                    dest.set(*keylist, val, clobber=clobber)
+                for val, step, index in src._getvals(*keylist):
+                    if re.match(r'\[', typestr) and not clear:
+                        dest.add(*keylist, val, step=step, index=index)
+                    else:
+                        dest.set(*keylist, val, step=step, index=index, clobber=clobber)
 
                 # update other fields that a user might modify
                 for field in src.getdict(*keylist).keys():
-                    if field in ('value', 'switch', 'type', 'require', 'defvalue',
+                    if field in ('value', 'nodevalue', 'switch', 'type', 'require', 'defvalue',
                                  'shorthelp', 'example', 'help'):
                         # skip these fields (value handled above, others are static)
                         continue
@@ -1483,7 +1487,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key and 'history' not in key and 'library' not in key:
-                key_empty = self.schema._keypath_empty(key)
+                key_empty = self.schema._is_empty(*key)
                 requirement = self.get(*key, field='require')
                 if key_empty and (str(requirement) == 'all'):
                     error = True
@@ -1503,11 +1507,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         all_required = self.get('tool', tool, 'task', task, 'require', step, index)
                         for item in all_required:
                             keypath = item.split(',')
-                            if self.schema._keypath_empty(keypath):
+                            if self.schema._is_empty(*keypath):
                                 error = True
                                 self.logger.error(f"Value empty for [{keypath}] for {tool}.")
 
-                    if (self.schema._keypath_empty(['tool', tool, 'exe']) and
+                    if (self.schema._is_empty('tool', tool, 'exe') and
                         self.find_function(tool, 'run', 'tools') is None):
                         error = True
                         self.logger.error(f'No executable or run() function specified for tool {tool}')
@@ -3936,9 +3940,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                     # Reset metrics and records
                     for metric in self.getkeys('metric', 'default', 'default'):
-                        self.clear('metric', step, index, metric)
+                        self.unset('metric', step, index, metric)
                     for record in self.getkeys('record', 'default', 'default'):
-                        self.clear('record', step, index, record)
+                        self.unset('record', step, index, record)
                 elif os.path.isfile(cfg):
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
                     all_indices_failed = False
