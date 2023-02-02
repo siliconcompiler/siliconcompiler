@@ -81,7 +81,6 @@ def remote_preprocess(chip):
         chip._runtask(local_step, index, {})
 
     # Set 'steplist' to only the remote steps, for the future server-side run.
-    remote_steplist = remote_steplist
     chip.unset('arg', 'step')
     chip.unset('arg', 'index')
     chip.set('option', 'steplist', remote_steplist, clobber=True)
