@@ -7,8 +7,8 @@ def build_top():
     # Core settings.
     design = 'picorv32_top'
     target = 'skywater130_demo'
-    die_w = 1000
-    die_h = 1200
+    die_w = 800
+    die_h = 800
 
     # Create Chip object.
     chip = siliconcompiler.Chip(design)
@@ -37,13 +37,11 @@ def build_top():
     chip.use(sky130_sram_2k)
     chip.add('asic', 'macrolib', 'sky130_sram_2k')
 
-    # Increase macro place halo to reduce global routing congestion on SRAM macro.
-    chip.set('tool', 'openroad', 'task', 'route', 'var', 'route', '0', 'grt_allow_congestion', 'true')
-    chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'floorplan', '0', 'macro_place_halo', '40')
-    chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'floorplan', '0', 'macro_place_channel', '40')
+    # SRAM pins are inside the macro boundary; no routing blockage padding is needed.
+    chip.set('tool', 'openroad', 'task', 'route', 'var', 'route', '0', 'grt_macro_extension', '0')
 
     # Place macro instance.
-    chip.set('constraint', 'component', 'sram', 'placement', (600.0, 400.0, 0.0))
+    chip.set('constraint', 'component', 'sram', 'placement', (400.0, 250.0, 0.0))
     chip.set('constraint', 'component', 'sram', 'rotation', 270)
 
     # Run the build.

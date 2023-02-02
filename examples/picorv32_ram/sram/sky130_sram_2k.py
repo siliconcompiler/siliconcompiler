@@ -9,7 +9,7 @@ def setup(chip):
     # Create library Chip object.
     lib = siliconcompiler.Chip(design)
     libdir = os.path.dirname(__file__)
-    lib.set('output', stackup, 'gds', f'{libdir}/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
+    lib.set('output', stackup, 'gds', f'{libdir}/sky130_sram_2kbyte_1rw1r_32x512_8.gds.gz')
     lib.set('output', stackup, 'lef', f'{libdir}/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
 
     # TODO: We'll probably want to 'return lib' instead, once 'chip.use' is finalized.
