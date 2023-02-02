@@ -218,20 +218,20 @@ class Schema:
         return True
 
     ###########################################################################
-    def clear(self, *keypath, step=None, index=None):
+    def unset(self, *keypath, step=None, index=None):
         '''
-        Clears a schema parameter field.
+        Unsets a schema parameter field.
 
         See :meth:`~siliconcompiler.core.Chip.clear` for detailed documentation.
         '''
         cfg = self._search(*keypath)
 
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: clear() must be called on a complete keypath')
+            raise ValueError(f'Invalid keypath {keypath}: unset() must be called on a complete keypath')
 
         err = Schema._validate_step_index(cfg['pernode'], 'value', step, index)
         if err:
-            raise ValueError(f'Invalid args to clear() of keypath {keypath}: {err}')
+            raise ValueError(f'Invalid args to unset() of keypath {keypath}: {err}')
 
         if cfg['lock']:
             # TODO: log here

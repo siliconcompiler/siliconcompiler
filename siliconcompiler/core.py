@@ -848,21 +848,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(e)
 
     ###########################################################################
-    def clear(self, *keypath, step=None, index=None):
+    def unset(self, *keypath, step=None, index=None):
         '''
-        Clears a schema parameter.
+        Unsets a schema parameter.
 
-        Clearing a schema parameter causes the parameter to revert to its
+        Unsetting a schema parameter causes the parameter to revert to its
         default value. A call to ``set()`` with ``clobber=False`` will once
         again be able to modify the value.
 
         Args:
             keypath (list): Parameter keypath to clear.
         '''
-        self.logger.debug(f'Clearing {keypath}')
+        self.logger.debug(f'Unsetting {keypath}')
 
-        if not self.schema.clear(*keypath, step=step, index=index):
-            self.logger.debug(f'Failed to clear value for {keypath}: parameter is locked')
+        if not self.schema.unset(*keypath, step=step, index=index):
+            self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
 
     ###########################################################################
     def add(self, *args, field='value', step=None, index=None):
@@ -3936,9 +3936,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                     # Reset metrics and records
                     for metric in self.getkeys('metric', 'default', 'default'):
-                        self.clear('metric', step, index, metric)
+                        self.unset('metric', step, index, metric)
                     for record in self.getkeys('record', 'default', 'default'):
-                        self.clear('record', step, index, record)
+                        self.unset('record', step, index, record)
                 elif os.path.isfile(cfg):
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
                     all_indices_failed = False

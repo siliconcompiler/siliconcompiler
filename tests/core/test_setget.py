@@ -161,13 +161,13 @@ def test_get_no_side_effect():
     # Recovering default does not affect cfg
     assert chip.getkeys('tool', 'surelog', 'task') == []
 
-def test_clear():
+def test_unset():
     chip = siliconcompiler.Chip('test')
     chip.set('option', 'remote', True)
     assert chip.get('option', 'remote') == True
 
     # Clearing a keypath resets it to default value
-    chip.clear('option','remote')
+    chip.unset('option','remote')
     assert chip.get('option', 'remote') == False
 
     # Able to set a keypath after it's been cleared even if clobber=False
