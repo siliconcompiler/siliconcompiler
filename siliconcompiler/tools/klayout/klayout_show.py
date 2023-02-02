@@ -110,7 +110,7 @@ if lyp_path:
     # KLayout's extra outline, blockage, and obstruction layers appear.
     layout_view.load_layer_props(lyp_path, True)
 
-# Hide layers that shouldn't be shown in the screenshot.
+# Hide layers that shouldn't be shown in the current view.
 for layer in layout_view.each_layer():
     layer_name = f'{layer.source_layer}/{layer.source_datatype}'
     if layer_name in sc_hide_layers:
