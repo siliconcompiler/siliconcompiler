@@ -16,7 +16,7 @@ The SiliconCompiler Schema is a data structure that stores all configurations an
             schelp="""Name of the top level module or library. Required for all
             chip objects.""")
 
-The table below summarizes mandatory fields used in all parameter definitions.
+Table summarizing mandatory parameter type and value fields.
 
 .. list-table::
    :widths: 10 25 50
@@ -28,11 +28,51 @@ The table below summarizes mandatory fields used in all parameter definitions.
 
    * - **type**
      - Parameter type
-     - file, dir, str, float, bool, int, [], (a,b)
+     - file, dir, str, float, bool, int, [], enum, tuple
+
+   * - **enum**
+     - List of legal strings for enum type
+     - List of Strings
+
+   * - **unit**
+     - Implied unit for parameter value
+     - String
 
    * - **defvalue**
      - Default schema value
      - Type dependent
+
+   * - **value**
+     - Global schema value
+     - Type dependent
+
+   * - **nodevalue**
+     - Dictionary of values based on step & index keys
+     - Dictionary
+
+   * - **pernode**
+     - Enables/disables setting of value on a per node basis
+     - 'never', 'required', 'optional'
+
+   * - **set**
+     - State indicating if parameter value has been modified by user.
+     - True / False
+
+   * - **lock**
+     - Enable/disable for set()/add() methods
+     - True / False
+
+   * - **scope**
+     - Scope of parameter in schema
+     - 'global', 'job'
+
+   * - **require**
+     - Flow based use requirements
+     - String
+
+   * - **switch**
+     - Mapping of parameter to a CLI switch
+     - String
 
    * - **shorthelp**
      - Short single line help string.
@@ -43,19 +83,11 @@ The table below summarizes mandatory fields used in all parameter definitions.
      - String
 
    * - **example**
-     - Usage examples for CLI ad API
+     - Usage examples for CLI and API
      - String
 
-   * - **lock**
-     - Enable/disable for set()/add() methods
-     - True / False
-
-   * - **require**
-     - Flow based use requirements
-     - String
-
-   * - **switch**
-     - Mapping of parameter to a CLI switch
+   * - **notes**
+     - User entered 'notes'/'disclaimers' about value being set.
      - String
 
 The file type parameters have the additional required fields show in the table below:
@@ -91,7 +123,6 @@ The file type parameters have the additional required fields show in the table b
    * - **copy**
      - Whether to copy files into build directory
      - True / False
-
 
 Accessing schema parameters is done using the :meth:`.set()`, :meth:`.get()`, and :meth:`.add()` Python methods. The following shows how to create a chip object and manipulate a schema parameter in Python.
 
@@ -161,7 +192,7 @@ The SiliconCompiler Schema is roughly divided into the following major sub-group
      - Description
 
    * - **option**
-     - 47
+     - 30
      - Compilation options
 
    * - **tool**
@@ -169,43 +200,39 @@ The SiliconCompiler Schema is roughly divided into the following major sub-group
      - Individual tool settings
 
    * - **flowgraph**
-     - 8
+     - 10
      - Execution flow definition
 
    * - **pdk**
-     - 46
+     - 42
      - PDK related settings
 
    * - **asic**
-     - 45
+     - 20
      - ASIC related settings
 
    * - **fpga**
-     - 5
+     - 6
      - FPGA related settings
 
    * - **constraint**
-     - 7
+     - 33
      - Advanced timing analysis settings
 
-   * - **model**
-     - 7
-     - Models/abstractions of design
-
    * - **metric**
-     - 40
+     - 45
      - Metric tracking
 
    * - **record**
-     - 15
+     - 18
      - Compilation history tracking
 
    * - **package**
-     - 28
+     - 31
      - Packaging manifest
 
    * - **datasheet**
-     - 36
+     - 41
      - Design interface specifications
 
    * - **units**
@@ -213,7 +240,7 @@ The SiliconCompiler Schema is roughly divided into the following major sub-group
      - Global units
 
    * - **total**
-     - 317
+     - 350
      -
 
 Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information. Another good resource is the single file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema.py>`_.
