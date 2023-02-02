@@ -23,21 +23,24 @@ def setup(chip):
     chip.use(asicflow)
     chip.use(asap7sc7p5t)
 
-    #2. Select default flow/PDK
+    #2. Setup default show tools
+    siliconcompiler.utils.set_common_showtools(chip)
+
+    #3. Select default flow/PDK
     chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow')
     chip.set('option', 'pdk', 'asap7')
     chip.set('option', 'stackup', '10M')
 
-    #3. Select libraries
+    #4. Select libraries
     chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt')
 
-    #4. Project specific design choices
+    #5. Project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 0.270)
 
-    #5. Timing corners
+    #6. Timing corners
     corner = 'typical'
     chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
     chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)

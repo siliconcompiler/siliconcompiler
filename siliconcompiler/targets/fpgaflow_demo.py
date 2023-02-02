@@ -19,7 +19,10 @@ def setup(chip):
     from flows import fpgaflow
     chip.use(fpgaflow)
 
-    #2. Select default flow
+    #2. Setup default show tools
+    siliconcompiler.utils.set_common_showtools(chip)
+
+    #3. Select default flow
     chip.set('option', 'mode', 'fpga')
     chip.set('option', 'flow', 'fpgaflow')
 

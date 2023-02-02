@@ -36,21 +36,24 @@ def setup(chip):
     chip.use(sky130hd)
     chip.use(oh_tapeout)
 
-    #2. Set default targets
+    #2. Setup default show tools
+    siliconcompiler.utils.set_common_showtools(chip)
+
+    #3. Set default targets
     chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'skywater130')
     chip.set('option', 'stackup', '5M1LI')
 
-    #3. Set project specific design choices
+    #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
 
-    #4. get project specific design choices
+    #5. get project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 4.6)
 
-    #5. Timing corners
+    #6. Timing corners
     corner = 'typical'
     chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
     chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)

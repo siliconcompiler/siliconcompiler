@@ -34,21 +34,24 @@ def setup(chip):
     chip.use(asictopflow)
     chip.use(nangate45)
 
-    #2. Set flow and pdk
+    #2. Setup default show tools
+    siliconcompiler.utils.set_common_showtools(chip)
+
+    #3. Set flow and pdk
     chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'freepdk45')
     chip.set('option', 'stackup', '10M')
 
-    #3. Select libraries
+    #4. Select libraries
     chip.set('asic', 'logiclib', 'nangate45')
 
-    #4 Set project specific design choices
+    #5 Set project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 1.9)
 
-    #5. Timing corners
+    #6. Timing corners
     corner = 'typical'
     chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
     chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)

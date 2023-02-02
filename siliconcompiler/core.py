@@ -142,9 +142,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return codecs.ignore_errors(e)
         codecs.register_error('ignore_with_warning', log_error_handler)
 
-        # Setup default show tools
-        utils.set_common_showtools(self)
-
     ###########################################################################
     @property
     def design(self):
