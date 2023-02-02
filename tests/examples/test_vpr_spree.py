@@ -18,6 +18,7 @@ def test_spree(scroot):
 
     from flows import fpgaflow
     chip.use(fpgaflow)
+    chip.set('option', 'mode', 'fpga')
 
     chip.set('option', 'flow', 'fpgaflow')
 
