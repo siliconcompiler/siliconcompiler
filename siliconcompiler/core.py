@@ -4306,20 +4306,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
 
         # Setup in step/index variables
-        stepname = self._get_steps_by_task(flow='showflow')[taskname][0]
-        for index in self.getkeys('flowgraph', 'showflow', stepname):
-            show_tool = self.get('flowgraph', 'showflow', stepname, index, 'tool')
-            self.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_filetype', filetype)
-            self.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_filepath', filepath)
-            self.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_step', sc_step)
-            self.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_index', sc_index)
-            self.set('tool', show_tool, 'task', stepname , 'var', stepname, index, 'show_job', sc_job)
+        steps = self._get_steps_by_task(flow='showflow')[taskname]
+        for step, index in steps:
+            show_tool = self.get('flowgraph', 'showflow', step, index, 'tool')
+            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_filetype', filetype)
+            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_filepath', filepath)
+            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_step', sc_step)
+            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_index', sc_index)
+            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_job', sc_job)
 
         # run show flow
         try:
             self.run()
             if screenshot:
-                success = self.find_result('png', stepname)
+                step, _ = steps[0]
+                success = self.find_result('png', step)
             else:
                 success = True
         except SiliconCompilerError:
