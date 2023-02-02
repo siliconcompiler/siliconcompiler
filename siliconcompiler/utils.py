@@ -302,3 +302,13 @@ def format_fileset_type_table(indent=12):
         table += f"{indent}{filetype:<10}| {fileset:<11}| {ext}\n"
 
     return table
+
+def set_common_showtools(chip):
+
+    # Physical only
+    chip.set('option', 'showtool', 'gds', 'klayout')
+    chip.set('option', 'showtool', 'lef', 'klayout')
+
+    # Design
+    chip.set('option', 'showtool', 'def', 'openroad')
+    chip.set('option', 'showtool', 'odb', 'openroad')

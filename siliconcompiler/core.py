@@ -142,6 +142,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return codecs.ignore_errors(e)
         codecs.register_error('ignore_with_warning', log_error_handler)
 
+        # Setup default show tools
+        utils.set_common_showtools(self)
+
     ###########################################################################
     @property
     def design(self):
@@ -2976,13 +2979,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Creates a task with step='place' and index=0 and binds it to the 'openroad' tool.
         '''
 
+        index =str(index)
+
         # bind tool to node
-        self.set('flowgraph', flow, step, str(index), 'tool', tool)
-        self.set('flowgraph', flow, step, str(index), 'task', task)
+        self.set('flowgraph', flow, step, index, 'tool', tool)
+        self.set('flowgraph', flow, step, index, 'task', task)
 
         # set default weights
         for metric in self.getkeys('metric', 'default', 'default'):
-            self.set('flowgraph', flow, step, str(index), 'weight', metric, 0)
+            self.set('flowgraph', flow, step, index, 'weight', metric, 0)
 
     ###########################################################################
     def edge(self, flow, tail, head, tail_index=0, head_index=0):
