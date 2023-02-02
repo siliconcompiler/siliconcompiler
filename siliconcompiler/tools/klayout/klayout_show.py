@@ -112,8 +112,9 @@ if lyp_path:
 
 # Hide layers that shouldn't be shown in the current view.
 for layer in layout_view.each_layer():
-    layer_name = f'{layer.source_layer}/{layer.source_datatype}'
-    if layer_name in sc_hide_layers:
+    layer_name = layer.name[ : layer.name.find(' - ')]
+    layer_ldt = layer.name[(layer.name.find(' - ') + len(' - ')) : ]
+    if (layer_name in sc_hide_layers) or (layer_ldt in sc_hide_layers):
         layer.visible = False
 
 # If 'screenshot' mode is set, save image and exit.

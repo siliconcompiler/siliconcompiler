@@ -113,7 +113,7 @@ def setup(chip):
     chip.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'met3')
 
     # Hide the 81/4 'areaid.standardc' layer by default; it puts opaque purple over most core areas.
-    chip.set('pdk', process, 'var', 'klayout', 'hide_layers', stackup, ['81/4'])
+    chip.set('pdk', process, 'var', 'klayout', 'hide_layers', stackup, ['areaid.standardc'])
 
     # PEX
     chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
