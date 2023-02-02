@@ -320,16 +320,16 @@ def post_process(chip):
                                         ('registers', 'sc__metric__design__registers'),
                                         ('buffers', 'sc__metric__design__buffers')]:
             if openroad_metric in metrics:
-                chip.set('metric', metric, metrics[openroad_metric], clobber=True, step=step, index=index)
+                chip.set('metric', metric, metrics[openroad_metric], step=step, index=index)
 
         # setup wns and hold wns can be computed from setup slack and hold slack
         if 'sc__metric__timing__setup__ws' in metrics:
             wns = min(0.0, float(metrics['sc__metric__timing__setup__ws']))
-            chip.set('metric', 'setupwns', wns, clobber=True, step=step, index=index)
+            chip.set('metric', 'setupwns', wns, step=step, index=index)
 
         if 'sc__metric__timing__hold__ws' in metrics:
             wns = min(0.0, float(metrics['sc__metric__timing__hold__ws']))
-            chip.set('metric', 'holdwns', wns, clobber=True, step=step, index=index)
+            chip.set('metric', 'holdwns', wns, step=step, index=index)
 
         drvs = None
         for metric in ['sc__metric__timing__drv__max_slew',
@@ -345,7 +345,7 @@ def post_process(chip):
                     drvs += int(metrics[metric])
 
         if drvs is not None:
-            chip.set('metric', 'drvs', str(drvs), clobber=True, step=step, index=index)
+            chip.set('metric', 'drvs', drvs, step=step, index=index)
 
 ######
 

@@ -497,30 +497,30 @@ def syn_post_process(chip):
     index = chip.get('arg','index')
 
     #TODO: looks like Yosys exits on error, so no need to check metric
-    chip.set('metric', 'errors', 0, clobber=True, step=step, index=index)
+    chip.set('metric', 'errors', 0, step=step, index=index)
     with open("reports/stat.json", 'r') as f:
         metrics = json.load(f)
         if "design" in metrics:
             metrics = metrics["design"]
 
         if "area" in metrics:
-            chip.set('metric', 'cellarea', float(metrics["area"]), clobber=True, step=step, index=index)
+            chip.set('metric', 'cellarea', float(metrics["area"]), step=step, index=index)
         if "num_cells" in metrics:
-            chip.set('metric', 'cells', int(metrics["num_cells"]), clobber=True, step=step, index=index)
+            chip.set('metric', 'cells', int(metrics["num_cells"]), step=step, index=index)
 
     registers = None
     with open(f"{step}.log", 'r') as f:
         for line in f:
             area_metric = re.findall(r"^SC_METRIC: area: ([0-9.]+)", line)
             if area_metric:
-                chip.set('metric', 'cellarea', float(area_metric[0]), clobber=True, step=step, index=index)
+                chip.set('metric', 'cellarea', float(area_metric[0]), step=step, index=index)
             line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
             if line_registers:
                 if registers is None:
                     registers = 0
                 registers += int(line_registers[0])
     if registers is not None:
-        chip.set('metric', 'registers', registers, clobber=True, step=step, index=index)
+        chip.set('metric', 'registers', registers, step=step, index=index)
 
 ##################################################
 if __name__ == "__main__":
