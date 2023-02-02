@@ -1,4 +1,5 @@
 import siliconcompiler
+from . import utils
 
 def make_docs():
     '''
@@ -15,11 +16,7 @@ def setup(chip):
     ASAP7 Demo Target
     '''
 
-    #0. Defining the project
-    target = 'asap7_demo'
-    chip.set('option', 'target', target)
-
-    #2. Load PDK, flow, libs combo
+    #1. Load PDK, flow, libs combo
     from pdks import asap7
     from flows import asicflow
     from libs import asap7sc7p5t
@@ -27,7 +24,11 @@ def setup(chip):
     chip.use(asicflow)
     chip.use(asap7sc7p5t)
 
+    #2. Setup default show tools
+    utils.set_common_showtools(chip)
+
     #3. Select default flow/PDK
+    chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow')
     chip.set('option', 'pdk', 'asap7')
     chip.set('option', 'stackup', '10M')
@@ -40,7 +41,7 @@ def setup(chip):
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 0.270)
 
-    #5. Timing corners
+    #6. Timing corners
     corner = 'typical'
     chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
     chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)

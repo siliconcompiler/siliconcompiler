@@ -14,9 +14,7 @@ def test_target_fpga_valid():
     correctly.'''
     chip = siliconcompiler.Chip('test')
     chip.set('fpga', 'partname', 'ice40')
-    from flows import fpgaflow
-    chip.use(fpgaflow)
-    chip.set('option', 'flow', 'fpgaflow')
+    chip.load_target("fpgaflow_demo")
 
     assert chip.get('option', 'mode') == 'fpga'
 

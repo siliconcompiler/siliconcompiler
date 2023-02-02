@@ -1,4 +1,5 @@
 import siliconcompiler
+from . import utils
 
 def make_docs():
     '''
@@ -15,15 +16,15 @@ def setup(chip):
     Target setup
     '''
 
-    #1. Defining the project
-    target = 'fpgaflow_demo'
-    chip.set('option', 'target', target)
-
-    #2. Load flow
+    #1. Load flow
     from flows import fpgaflow
     chip.use(fpgaflow)
 
+    #2. Setup default show tools
+    utils.set_common_showtools(chip)
+
     #3. Select default flow
+    chip.set('option', 'mode', 'fpga')
     chip.set('option', 'flow', 'fpgaflow')
 
 #########################

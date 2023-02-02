@@ -571,6 +571,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         """
 
+        # Record target
+        self.set('option', 'target', name)
+
         load_function = self.find_function(name, 'setup', 'targets')
         load_function(self)
 
@@ -2973,13 +2976,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Creates a task with step='place' and index=0 and binds it to the 'openroad' tool.
         '''
 
+        index = str(index)
+
         # bind tool to node
-        self.set('flowgraph', flow, step, str(index), 'tool', tool)
-        self.set('flowgraph', flow, step, str(index), 'task', task)
+        self.set('flowgraph', flow, step, index, 'tool', tool)
+        self.set('flowgraph', flow, step, index, 'task', task)
 
         # set default weights
         for metric in self.getkeys('metric', 'default', 'default'):
-            self.set('flowgraph', flow, step, str(index), 'weight', metric, 0)
+            self.set('flowgraph', flow, step, index, 'weight', metric, 0)
 
     ###########################################################################
     def edge(self, flow, tail, head, tail_index=0, head_index=0):
@@ -4277,15 +4282,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Setup flow parameters
         self.set('arg', 'flow', 'show_filetype', filetype)
-        self.set('arg', 'flow', 'show_filepath', filepath)
-        self.set('arg', 'flow', 'show_step', sc_step)
-        self.set('arg', 'flow', 'show_index', sc_index)
-        self.set('arg', 'flow', 'show_job', sc_job)
         self.set('arg', 'flow', 'show_screenshot', "true" if screenshot else "false")
 
-        stepname = 'show'
+        taskname = 'show'
         if screenshot:
-            stepname = 'screenshot'
+            taskname = 'screenshot'
 
         try:
             from flows import showflow
@@ -4302,13 +4303,24 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         # build new job name
-        self.set('option', 'jobname', f'_{stepname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
+        self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
+
+        # Setup in step/index variables
+        steps = self._get_steps_by_task(flow='showflow')[taskname]
+        for step, index in steps:
+            show_tool = self.get('flowgraph', 'showflow', step, index, 'tool')
+            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_filetype', filetype)
+            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_filepath', filepath)
+            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_step', sc_step)
+            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_index', sc_index)
+            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_job', sc_job)
 
         # run show flow
         try:
             self.run()
             if screenshot:
-                success = self.find_result('png', stepname)
+                step, _ = steps[0]
+                success = self.find_result('png', step)
             else:
                 success = True
         except SiliconCompilerError:

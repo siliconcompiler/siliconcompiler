@@ -1,4 +1,5 @@
 import siliconcompiler
+from . import utils
 
 ############################################################################
 # DOCS
@@ -24,13 +25,7 @@ def setup(chip):
     Target setup
     '''
 
-    #0. Defining the project
-    chip.set('option', 'target', 'freepdk45_demo')
-
-    #1. Setting to ASIC mode
-    chip.set('option', 'mode','asic')
-
-    #2. Load PDK, flow, libs combo
+    #1. Load PDK, flow, libs combo
     from pdks import freepdk45
     from flows import lintflow, asicflow, asictopflow
     from libs import nangate45
@@ -40,7 +35,11 @@ def setup(chip):
     chip.use(asictopflow)
     chip.use(nangate45)
 
+    #2. Setup default show tools
+    utils.set_common_showtools(chip)
+
     #3. Set flow and pdk
+    chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'freepdk45')
     chip.set('option', 'stackup', '10M')
@@ -48,7 +47,7 @@ def setup(chip):
     #4. Select libraries
     chip.set('asic', 'logiclib', 'nangate45')
 
-    #5. Set project specific design choices
+    #5 Set project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 1.9)
