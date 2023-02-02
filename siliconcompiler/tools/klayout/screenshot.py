@@ -24,8 +24,8 @@ def setup(chip):
     pdk = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
     if chip.valid('pdk', pdk, 'var', 'klayout', 'hide_layers', stackup):
-        scrot_hide_layers = chip.get('pdk', pdk, 'var', 'klayout', 'hide_layers', stackup)
-        chip.add('tool', tool, 'task', task, 'var', step, index, 'hide_layers', scrot_hide_layers)
+        layers_to_hide = chip.get('pdk', pdk, 'var', 'klayout', 'hide_layers', stackup)
+        chip.add('tool', tool, 'task', task, 'var', step, index, 'hide_layers', layers_to_hide)
     if chip.valid('tool', tool, 'task', task, 'var', step, index, 'show_filepath'):
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'show_filepath']))
     else:
