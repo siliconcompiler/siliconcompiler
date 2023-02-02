@@ -93,6 +93,9 @@ def test_cli_examples(monkeypatch):
     chip = siliconcompiler.Chip('test')
     for keypath in chip.allkeys():
         examples = chip.get(*keypath, field='example')
+        # TODO: undo this change once we support specifying pernode parameters using CLI
+        if chip.get(*keypath, field='pernode') == 'required':
+            continue
         for example in examples:
             if not example.startswith('cli'):
                 continue

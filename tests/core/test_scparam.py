@@ -56,7 +56,7 @@ def test_scparam():
         'value': None,
         'notes': None,
         'set': False,
-        'pernode': 'none',
+        'pernode': 'never',
         'nodevalue': {},
         'shorthelp': 'Metric total warnings',
         'example': [
@@ -78,7 +78,7 @@ def test_scparam():
         'value': None,
         'notes': None,
         'set': False,
-        'pernode': 'none',
+        'pernode': 'never',
         'nodevalue': {},
         'shorthelp': 'Metric instance count',
         'example': [

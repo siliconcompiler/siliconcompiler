@@ -39,20 +39,30 @@ def test_setget():
     for key in allkeys:
         sctype = chip.get(*key, field='type')
         examples = chip.get(*key, field='example')
+        pernode = chip.get(*key, field='pernode')
         if DEBUG:
             print(key, sctype, examples)
         for example in examples:
-            match = re.match(r'api\:\s+chip.(set|add|get)\((.*)\)', example)
+            if pernode != 'required':
+                match = re.match(r'api\:\s+chip.(set|add|get)\((.*)\)', example)
+            else:
+                match = re.match(r'api\:\s+chip.(set|add|get)\((.*), step=(.*), index=(.*)\)', example)
             if match is not None:
                 break
 
         assert match is not None, f'Illegal example for keypath {key}'
 
-        if match.group(1) == 'get':
+        if len(match.groups()) == 2:
+            method, argstring = match.groups()
+            step, index = None, None
+        else:
+            method, argstring, step, index = match.groups()
+
+        if method == 'get':
             continue
 
         # Remove ' and whitespace from args
-        argstring = re.sub(r'[\'\s]', '', match.group(2))
+        argstring = re.sub(r'[\'\s]', '', argstring)
 
         # Passing len(key) as second argument to split ensures we only split up
         # to len(key) commas, preserving tuple values.
@@ -63,11 +73,11 @@ def test_setget():
         if match.group(1) == 'set':
             if DEBUG:
                 print(*keypath, value)
-            chip.set(*keypath, value, clobber=True)
+            chip.set(*keypath, value, step=step, index=index, clobber=True)
         elif match.group(1) == 'add':
-            chip.add(*keypath, value)
+            chip.add(*keypath, value, step=step, index=index)
 
-        result = chip.get(*keypath)
+        result = chip.get(*keypath, step=step, index=index)
         assert result == value, f'Expected value {value} from keypath {keypath}. Got {result}.'
 
     chip.write_manifest('allvals.json')
