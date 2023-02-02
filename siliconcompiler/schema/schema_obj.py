@@ -252,7 +252,7 @@ class Schema:
 
         return True
 
-    def getvals(self, *keypath):
+    def _getvals(self, *keypath):
         """
         Returns all values (global and pernode) associated with a particular parameter.
 
@@ -261,7 +261,7 @@ class Schema:
         cfg = self._search(*keypath)
 
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: getvals() must be called on a complete keypath')
+            raise ValueError(f'Invalid keypath {keypath}: _getvals() must be called on a complete keypath')
 
         vals = []
         if cfg['pernode'] != 'required':
@@ -751,7 +751,7 @@ class Schema:
         else:
             empty = (None, [])
 
-        values = self.getvals(*keypath)
+        values = self._getvals(*keypath)
         defvalue = self.get(*keypath, field='defvalue')
         value_empty = (
             (defvalue in empty) and

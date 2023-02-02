@@ -1193,7 +1193,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 #only do something if type is file or dir
                 continue
 
-            values = self.schema.getvals(*keypath)
+            values = self.schema._getvals(*keypath)
             for value, step, index in values:
                 if not value:
                     continue
@@ -1254,7 +1254,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if key_valid and 'default' not in keylist:
                 # update value, handling scalars vs. lists
                 typestr = src.get(*keylist, field='type')
-                for val, step, index in src.getvals(*keylist):
+                for val, step, index in src._getvals(*keylist):
                     if re.match(r'\[', typestr) and not clear:
                         dest.add(*keylist, val, step=step, index=index)
                     else:
