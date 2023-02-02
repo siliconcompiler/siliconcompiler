@@ -1,5 +1,5 @@
 import siliconcompiler
-from . import utils
+from siliconcompiler.targets import utils
 
 def make_docs():
     '''
