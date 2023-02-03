@@ -3999,6 +3999,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 local_dir = self.get('option','builddir')
                 self.read_manifest(cfg, clobber=True, clear=True)
                 self.set('option', 'builddir', local_dir)
+                # Un-set steplist so 'show'/etc flows will work on returned results.
+                self.unset('option', 'steplist')
             else:
                 # Hack to find first failed step by checking for presence of
                 # output manifests.
