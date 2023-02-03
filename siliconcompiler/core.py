@@ -3994,8 +3994,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # in-progress build directory to the remote server.
             # Data is encrypted if user / key were specified.
             # run remote process
-            pre_remote_steplist = self.get('option', 'steplist')
-            remote_preprocess(self, steplist)
+            remote_preprocess(self)
 
             # Run the job on the remote server, and wait for it to finish.
             remote_run(self)
@@ -4010,7 +4009,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.read_manifest(cfg, clobber=True, clear=True)
                 self.set('option', 'builddir', local_dir)
                 # Un-set steplist so 'show'/etc flows will work on returned results.
-                self.set('option', 'steplist', pre_remote_steplist)
+                self.unset('option', 'steplist')
             else:
                 # Hack to find first failed step by checking for presence of
                 # output manifests.
