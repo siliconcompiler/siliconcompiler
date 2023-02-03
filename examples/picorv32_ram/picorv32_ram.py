@@ -8,19 +8,18 @@ def build_top():
     design = 'picorv32_top'
     target = 'skywater130_demo'
     die_w = 800
-    die_h = 800
+    die_h = 900
 
     # Create Chip object.
     chip = siliconcompiler.Chip(design)
 
     # Set default Skywater130 PDK / standard cell lib / flow.
-    target_module = importlib.import_module(f'targets.{target}')
-    chip.use(target_module)
+    chip.load_target(target)
 
     # Set design source files.
     rootdir = os.path.dirname(__file__)
     chip.input(os.path.join(rootdir, f"{design}.v"))
-    chip.input(os.path.join(rootdir, "picorv32.v"))
+    chip.input(os.path.join(rootdir, "../picorv32/picorv32.v"))
     chip.input(os.path.join(rootdir, "sky130_sram_2k.bb.v"))
     chip.input(os.path.join(rootdir, f"{design}.sdc"))
 
