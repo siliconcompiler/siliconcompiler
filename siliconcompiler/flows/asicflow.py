@@ -46,7 +46,7 @@ def make_docs():
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1, dfm_np=1):
+def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
     Setup function for 'asicflow' ASIC compilation execution flowgraph.
 
@@ -98,8 +98,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
         "physyn": physyn_np,
         "place": place_np,
         "cts": cts_np,
-        "route": route_np,
-        "dfm": dfm_np
+        "route": route_np
     }
 
     #Remove built in steps where appropriate

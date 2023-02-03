@@ -11,17 +11,26 @@ def make_docs():
     setup(chip)
     return chip
 
-def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1, dfm_np=1):
+def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
     ASAP7 Demo Target
     '''
+
+    asic_flow_args = {
+        "syn_np": syn_np,
+        "floorplan_np": floorplan_np,
+        "physyn_np": physyn_np,
+        "place_np": place_np,
+        "cts_np": cts_np,
+        "route_np": route_np
+    }
 
     #1. Load PDK, flow, libs combo
     from pdks import asap7
     from flows import asicflow
     from libs import asap7sc7p5t
     chip.use(asap7)
-    chip.use(asicflow, syn_np=syn_np, floorplan_np=floorplan_np, physyn_np=physyn_np, place_np=place_np, cts_np=cts_np, route_np=route_np, dfm_np=dfm_np)
+    chip.use(asicflow, **asic_flow_args)
     chip.use(asap7sc7p5t)
 
     #2. Setup default show tools
