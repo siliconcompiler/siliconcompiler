@@ -1890,13 +1890,14 @@ def schema_record(cfg, step='default', index='default'):
 
     for item,val in records.items():
         helpext = utils.trim(val[2])
-        scparam(cfg, ['record', step, index, item],
+        scparam(cfg, ['record', item],
                 sctype='str',
                 shorthelp=f"Record: {val[0]}",
                 switch=f"-record_{item} 'step index <str>'",
                 example=[
                     f"cli: -record_{item} 'dfm 0 <{val[1]}>'",
-                    f"api: chip.set('record','dfm','0','{item}', <{val[1]}>)"],
+                    f"api: chip.set('record', '{item}', <{val[1]}>, step='dfm', index=0)"],
+                pernode='required',
                 schelp=f'Record tracking the {val[0]} per step and index basis. {helpext}')
 
     return cfg

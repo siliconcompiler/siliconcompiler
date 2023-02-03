@@ -3932,8 +3932,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # Reset metrics and records
                     for metric in self.getkeys('metric'):
                         self.unset('metric', metric, step=step, index=index)
-                    for record in self.getkeys('record', 'default', 'default'):
-                        self.unset('record', step, index, record)
+                    for record in self.getkeys('record'):
+                        self.unset('record', record, step=step, index=index)
                 elif os.path.isfile(cfg):
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
                     all_indices_failed = False
@@ -3948,8 +3948,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         self.set('flowgraph', flow, step, index, 'status', None)
                         for metric in self.getkeys('metric'):
                             self.set('metric', metric,  None, step=step, index=index)
-                        for record in self.getkeys('record', 'default', 'default'):
-                            self.set('record', step, index, record, None)
+                        for record in self.getkeys('record'):
+                            self.set('record', record, None, step=step, index=index)
 
         # Set env variables
         # Save current environment
@@ -4438,31 +4438,31 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         Records provenance details for a runstep.
         '''
-        self.set('record', step, index, 'scversion', _metadata.version)
+        self.set('record', 'scversion', _metadata.version, step=step, index=index)
 
         start_date = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
         end_date = datetime.datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
 
         userid = getpass.getuser()
-        self.set('record', step, index, 'userid', userid)
+        self.set('record', 'userid', userid, step=step, index=index)
 
         if toolversion:
-            self.set('record', step, index, 'toolversion', toolversion)
+            self.set('record', 'toolversion', toolversion, step=step, index=index)
 
-        self.set('record', step, index, 'starttime', start_date)
-        self.set('record', step, index, 'endtime', end_date)
+        self.set('record', 'starttime', start_date, step=step, index=index)
+        self.set('record', 'endtime', end_date, step=step, index=index)
 
         machine = platform.node()
-        self.set('record', step, index, 'machine', machine)
+        self.set('record', 'machine', machine, step=step, index=index)
 
-        self.set('record', step, index, 'region', self._get_cloud_region())
+        self.set('record', 'region', self._get_cloud_region(), step=step, index=index)
 
         try:
             gateways = netifaces.gateways()
             ipaddr, interface = gateways['default'][netifaces.AF_INET]
             macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
-            self.set('record', step, index, 'ipaddr', ipaddr)
-            self.set('record', step, index, 'macaddr', macaddr)
+            self.set('record', 'ipaddr', ipaddr, step=step, index=index)
+            self.set('record', 'macaddr', macaddr, step=step, index=index)
         except KeyError:
             self.logger.warning('Could not find default network interface info')
 
@@ -4471,11 +4471,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             lower_sys_name = 'macos'
         else:
             lower_sys_name = system.lower()
-        self.set('record', step, index, 'platform', lower_sys_name)
+        self.set('record', 'platform', lower_sys_name, step=step, index=index)
 
         if system == 'Linux':
             distro_name = distro.id()
-            self.set('record', step, index, 'distro', distro_name)
+            self.set('record', 'distro', distro_name, step=step, index=index)
 
         if system == 'Darwin':
             osversion, _, _ = platform.mac_ver()
@@ -4483,7 +4483,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             osversion = distro.version()
         else:
             osversion = platform.release()
-        self.set('record', step, index, 'osversion', osversion)
+        self.set('record', 'osversion', osversion, step=step, index=index)
 
         if system == 'Linux':
             kernelversion = platform.release()
@@ -4494,15 +4494,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             kernelversion = None
         if kernelversion:
-            self.set('record', step, index, 'kernelversion', kernelversion)
+            self.set('record', 'kernelversion', kernelversion, step=step, index=index)
 
         arch = platform.machine()
-        self.set('record', step, index, 'arch', arch)
+        self.set('record', 'arch', arch, step=step, index=index)
 
-        self.set('record', step, index, 'toolpath', toolpath)
+        self.set('record', 'toolpath', toolpath, step=step, index=index)
 
         toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
-        self.set('record', step, index, 'toolargs', toolargs)
+        self.set('record', 'toolargs', toolargs, step=step, index=index)
 
     #######################################
     def _safecompare(self, value, op, goal):
