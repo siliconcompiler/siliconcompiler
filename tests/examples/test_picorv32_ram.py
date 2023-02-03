@@ -4,6 +4,7 @@ import sys
 import pytest
 
 # Run as a daily test, because this takes a long time to build.
+@pytest.mark.skip(reason="Not passing routing in OpenROAD.")
 @pytest.mark.eda
 def test_picorv32_sram(setup_example_test):
     setup_example_test('picorv32_ram')
