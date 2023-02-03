@@ -85,10 +85,6 @@ class Chip:
             self.error("""SiliconCompiler must be run from a directory that exists.
 If you are sure that your working directory is valid, try running `cd $(pwd)`.""", fatal=True)
 
-        # Indicates that the chip object is marked as read only and should not
-        # allow modifications to schema
-        self._readonly = False
-
         self.schema = Schema()
 
         # The 'status' dictionary can be used to store ephemeral config values.
@@ -593,14 +589,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         from siliconcompiler import Library
         from siliconcompiler import Checklist
 
-        # Mark self as read only
-        self._readonly = True
-
         # Call the module setup function.
         use_modules = module.setup(self, **kwargs)
-
-        # Reset readonly flag
-        self._readonly = False
 
         # Make it a list for consistency
         if not isinstance(use_modules, list):
@@ -873,9 +863,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if keypath == ['option', 'loglevel'] and field == 'value':
             self.logger.setLevel(value)
 
-        if self._readonly:
-            raise SiliconCompilerError("Chip object is read only.")
-
         try:
             if not self.schema.set(
                 *keypath, value, field=field, clobber=clobber, step=step, index=index
@@ -904,9 +891,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             keypath (list): Parameter keypath to clear.
         '''
         self.logger.debug(f'Unsetting {keypath}')
-
-        if self._readonly:
-            raise SiliconCompilerError("Chip object is read only.")
 
         if not self.schema.unset(*keypath, step=step, index=index):
             self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
@@ -938,9 +922,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         keypath = args[:-1]
         value = args[-1]
         self.logger.debug(f'Appending value {value} to {keypath}')
-
-        if self._readonly:
-            raise SiliconCompilerError("Chip object is read only.")
 
         try:
             if not self.schema.add(*args, field=field, step=step, index=index):
