@@ -3985,6 +3985,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # in-progress build directory to the remote server.
             # Data is encrypted if user / key were specified.
             # run remote process
+            if self.get('arg', 'step'):
+                self.error('Cannot pass "-step" parameter into remote flow. A steplist including '
+                           'an "import" task and at least one EDA task is required.',
+                           fatal=True)
             pre_remote_steplist = self.get('option', 'steplist')
             remote_preprocess(self, steplist)
 
