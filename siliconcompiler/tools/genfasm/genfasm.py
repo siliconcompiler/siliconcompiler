@@ -1,7 +1,4 @@
-import importlib
-import os
 import siliconcompiler
-import re
 
 ######################################################################
 # Make Docs

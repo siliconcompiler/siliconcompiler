@@ -1,9 +1,4 @@
-import importlib
-import os
-
 import siliconcompiler
-import re
-import shutil
 
 ######################################################################
 # Make Docs

@@ -1,6 +1,4 @@
 import importlib
-import os
-import shutil
 
 import siliconcompiler
 
