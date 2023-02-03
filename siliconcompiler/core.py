@@ -24,14 +24,12 @@ import importlib
 import textwrap
 import math
 import pandas
-import yaml
 import graphviz
 import time
 import uuid
 import shlex
 import platform
 import getpass
-import csv
 import distro
 import netifaces
 import webbrowser
@@ -40,11 +38,9 @@ import packaging.version
 import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
-from timeit import default_timer as timer
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
 from siliconcompiler.scheduler import _deferstep
-from siliconcompiler import leflib
 from siliconcompiler import utils
 from siliconcompiler import _metadata
 import psutil
