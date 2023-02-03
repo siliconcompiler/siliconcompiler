@@ -1,5 +1,4 @@
 import siliconcompiler
-from siliconcompiler import Flow
 
 ############################################################################
 # DOCS
@@ -28,7 +27,7 @@ def setup(chip):
     '''
 
     flowname = 'lintflow'
-    flow = Flow(chip, flowname)
+    flow = siliconcompiler.Flow(chip, flowname)
 
     # Linear flow, up until branch to run parallel verification steps.
     pipe = [('import', 'surelog', 'import'),

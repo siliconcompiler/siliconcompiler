@@ -1,5 +1,4 @@
 import siliconcompiler
-from siliconcompiler import Library
 
 ############################################################################
 # DOCS
@@ -39,7 +38,7 @@ def setup(chip, np=1):
 
     # Definting a flow
     flowname = 'dvflow'
-    flow = Library(chip, flowname)
+    flow = siliconcompiler.Flow(chip, flowname)
 
     # A simple linear flow
     flowpipe = ['import',

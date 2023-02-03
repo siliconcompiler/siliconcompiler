@@ -1,8 +1,6 @@
 import os
 import siliconcompiler
 
-from siliconcompiler import Library
-
 def make_docs():
     '''
     Nangate open standard cell library for FreePDK45.
@@ -19,7 +17,7 @@ def setup(chip):
     version = 'r1p0'
     corner = 'typical'
 
-    lib = Library(chip, libname)
+    lib = siliconcompiler.Library(chip, libname)
 
     libdir = os.path.join('..',
                           'third_party',

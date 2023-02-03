@@ -1,6 +1,5 @@
 import os
 import siliconcompiler
-from siliconcompiler import Library
 
 def make_docs():
     '''
@@ -15,7 +14,7 @@ def setup(chip):
     stackup = '5M1LI'
     corner = 'typical'
 
-    lib = Library(chip, libname)
+    lib = siliconcompiler.Library(chip, libname)
 
     libdir = os.path.join('..',
                           'third_party',

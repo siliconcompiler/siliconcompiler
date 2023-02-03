@@ -1,7 +1,6 @@
 import siliconcompiler
 
 from siliconcompiler.flows._common import setup_frontend
-from siliconcompiler import Flow
 
 ############################################################################
 # DOCS
@@ -56,7 +55,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
 
     '''
 
-    flow = Flow(chip, flowname)
+    flow = siliconcompiler.Flow(chip, flowname)
 
     # Linear flow, up until branch to run parallel verification steps.
     longpipe = ['syn',

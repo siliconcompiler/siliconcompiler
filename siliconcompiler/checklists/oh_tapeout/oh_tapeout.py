@@ -1,7 +1,5 @@
 import siliconcompiler
 
-from siliconcompiler import Checklist
-
 def make_docs():
     '''Subset of OH! library tapeout checklist.
 
@@ -13,7 +11,7 @@ def make_docs():
 def setup(chip):
     standard = 'oh_tapeout'
 
-    checklist = Checklist(chip, standard)
+    checklist = siliconcompiler.Checklist(chip, standard)
 
     # Automated
     checklist.set('checklist', standard, 'drc_clean', 'description',

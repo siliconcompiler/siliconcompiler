@@ -1,6 +1,5 @@
 import os
 import siliconcompiler
-from siliconcompiler import Library
 
 def make_docs():
     '''
@@ -20,7 +19,7 @@ def setup(chip):
 
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, version)
 
-    lib = Library(chip, libname)
+    lib = siliconcompiler.Library(chip, libname)
 
     # version
     lib.set('package', 'version', version)

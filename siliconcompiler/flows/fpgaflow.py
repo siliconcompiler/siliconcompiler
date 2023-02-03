@@ -2,7 +2,6 @@ import siliconcompiler
 import re
 
 from siliconcompiler.flows._common import setup_frontend
-from siliconcompiler import Flow
 
 ############################################################################
 # DOCS
@@ -56,7 +55,7 @@ def setup(chip, flowname='fpgaflow'):
 
     '''
 
-    flow = Flow(chip, flowname)
+    flow = siliconcompiler.Flow(chip, flowname)
 
     # Check that fpga arch has been set for vpr flow or partname has been set for others
     flowtype = ''

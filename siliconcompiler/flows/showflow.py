@@ -1,5 +1,4 @@
 import siliconcompiler
-from siliconcompiler import Flow
 
 ############################################################################
 # DOCS
@@ -34,7 +33,7 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
         flowname (str): name for the flow
     '''
 
-    flow = Flow(chip, flowname)
+    flow = siliconcompiler.Flow(chip, flowname)
 
     # Get required parameters first
     if not filetype:

@@ -1,5 +1,4 @@
 import siliconcompiler
-from siliconcompiler import Flow
 
 def make_docs():
     '''A flow for running LVS/DRC signoff on a GDS layout.
@@ -16,7 +15,7 @@ def make_docs():
 def setup(chip):
     flowname = 'signoffflow'
 
-    flow = Flow(chip, flowname)
+    flow = siliconcompiler.Flow(chip, flowname)
 
     # nop import since we don't need to pull in any sources
     flow.node(flowname, 'import', 'builtin', 'import')

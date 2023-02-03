@@ -1,5 +1,4 @@
 import siliconcompiler
-from siliconcompiler import Flow
 
 def make_docs():
     '''A flow for stitching together hardened blocks without doing any automated
@@ -13,7 +12,7 @@ def make_docs():
     return setup(chip)
 
 def setup(chip):
-    flow = Flow(chip, 'asictopflow')
+    flow = siliconcompiler.Flow(chip, 'asictopflow')
 
     flow.node(flow.design, 'import', 'surelog', 'import')
     flow.node(flow.design, 'syn', 'yosys', 'syn_asic')

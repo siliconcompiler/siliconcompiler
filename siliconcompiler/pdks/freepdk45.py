@@ -2,8 +2,6 @@
 import os
 import siliconcompiler
 
-from siliconcompiler import PDK
-
 ############################################################################
 # DOCS
 ############################################################################
@@ -60,7 +58,7 @@ def setup(chip):
 
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
-    pdk = PDK(chip, process)
+    pdk = siliconcompiler.PDK(chip, process)
 
     # process name
     pdk.set('pdk', process, 'foundry', foundry)

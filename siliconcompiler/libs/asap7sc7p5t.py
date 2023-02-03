@@ -1,8 +1,6 @@
 import os
 import siliconcompiler
 
-from siliconcompiler import Library
-
 def make_docs():
     '''
     ASAP 7 7.5-track standard cell library.
@@ -11,7 +9,7 @@ def make_docs():
     return setup(chip)
 
 def _setup_lib(chip, libname, suffix):
-    lib = Library(chip, libname)
+    lib = siliconcompiler.Library(chip, libname)
 
     group = 'asap7sc7p5t'
     vt = 'rvt'

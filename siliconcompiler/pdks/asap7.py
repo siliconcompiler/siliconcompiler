@@ -1,8 +1,6 @@
 import os
 import siliconcompiler
 
-from siliconcompiler import PDK
-
 def make_docs():
     '''
     The asap7 PDK was developed at ASU in collaboration with ARM Research.
@@ -59,7 +57,7 @@ def setup(chip):
     libtype = '7p5t'
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
-    pdk = PDK(chip, process)
+    pdk = siliconcompiler.PDK(chip, process)
 
     # process name
     pdk.set('pdk', process, 'foundry', foundry)
