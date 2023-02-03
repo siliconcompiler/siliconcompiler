@@ -1,7 +1,5 @@
 
 import os
-import sys
-import re
 import siliconcompiler
 
 ############################################################################
@@ -36,9 +34,8 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('skywater130')
-    setup(chip)
 
-    return chip
+    return setup(chip)
 
 ####################################################
 # PDK Setup
@@ -65,34 +62,36 @@ def setup(chip):
 
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
+    pdk = siliconcompiler.PDK(chip, process)
+
     # process name
-    chip.set('pdk', process, 'foundry', foundry)
-    chip.set('pdk', process, 'node', node)
-    chip.set('pdk', process, 'version', rev)
-    chip.set('pdk', process, 'stackup', stackup)
-    chip.set('pdk', process, 'wafersize', wafersize)
-    chip.set('pdk', process, 'edgemargin', edgemargin)
-    chip.set('pdk', process, 'hscribe', hscribe)
-    chip.set('pdk', process, 'vscribe', vscribe)
+    pdk.set('pdk', process, 'foundry', foundry)
+    pdk.set('pdk', process, 'node', node)
+    pdk.set('pdk', process, 'version', rev)
+    pdk.set('pdk', process, 'stackup', stackup)
+    pdk.set('pdk', process, 'wafersize', wafersize)
+    pdk.set('pdk', process, 'edgemargin', edgemargin)
+    pdk.set('pdk', process, 'hscribe', hscribe)
+    pdk.set('pdk', process, 'vscribe', vscribe)
 
     # APR Setup
     # TODO: remove libtype
     for tool in ('openroad', 'klayout', 'magic'):
-        chip.set('pdk', process,'aprtech',tool,stackup, libtype,'lef',
-                 pdkdir+'/apr/sky130_fd_sc_hd.tlef')
+        pdk.set('pdk', process,'aprtech',tool,stackup, libtype,'lef',
+                pdkdir+'/apr/sky130_fd_sc_hd.tlef')
 
-    chip.set('pdk', process, 'minlayer', stackup, 'met1')
-    chip.set('pdk', process, 'maxlayer', stackup, 'met5')
+    pdk.set('pdk', process, 'minlayer', stackup, 'met1')
+    pdk.set('pdk', process, 'maxlayer', stackup, 'met5')
 
     # DRC Runsets
-    chip.set('pdk', process,'drc', 'runset', 'magic', stackup, 'basic', pdkdir+'/setup/magic/sky130A.tech')
+    pdk.set('pdk', process,'drc', 'runset', 'magic', stackup, 'basic', pdkdir+'/setup/magic/sky130A.tech')
 
     # LVS Runsets
-    chip.set('pdk', process,'lvs', 'runset', 'netgen', stackup, 'basic', pdkdir+'/setup/netgen/lvs_setup.tcl')
+    pdk.set('pdk', process,'lvs', 'runset', 'netgen', stackup, 'basic', pdkdir+'/setup/netgen/lvs_setup.tcl')
 
     # Layer map and display file
-    chip.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup, pdkdir+'/setup/klayout/skywater130.lyt')
-    chip.set('pdk', process, 'display', 'klayout', stackup, pdkdir+'/setup/klayout/sky130A.lyp')
+    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup, pdkdir+'/setup/klayout/skywater130.lyt')
+    pdk.set('pdk', process, 'display', 'klayout', stackup, pdkdir+'/setup/klayout/sky130A.lyp')
 
     # Openroad global routing grid derating
     openroad_layer_adjustments = {
@@ -104,20 +103,22 @@ def setup(chip):
         'met5': 0.5,
     }
     for layer, adj in openroad_layer_adjustments.items():
-        chip.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
+        pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
-    chip.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'met3')
-    chip.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'met4')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'met3')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'met4')
 
-    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'met2')
-    chip.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'met3')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'met2')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'met3')
 
     # Hide the 81/4 'areaid.standardc' layer by default; it puts opaque purple over most core areas.
-    chip.set('pdk', process, 'var', 'klayout', 'hide_layers', stackup, ['areaid.standardc'])
+    pdk.set('pdk', process, 'var', 'klayout', 'hide_layers', stackup, ['areaid.standardc'])
 
     # PEX
-    chip.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
+    pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
+
+    return pdk
 
 #########################
 if __name__ == "__main__":

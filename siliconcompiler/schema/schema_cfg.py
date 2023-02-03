@@ -6,7 +6,7 @@ import re
 
 from siliconcompiler import utils
 
-SCHEMA_VERSION = '0.21.0'
+SCHEMA_VERSION = '0.22.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -1460,33 +1460,6 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
 ###########################################################################
 
 def schema_arg(cfg):
-
-    key = 'default'
-    scparam(cfg, ['arg', 'pdk', key],
-            sctype='[str]',
-            scope='scratch',
-            shorthelp="ARG: PDK argument",
-            switch="-arg_pdk 'key <str>",
-            example=[
-                "cli: -arg_pdk 'mimcap true'",
-                "api: chip.set('arg','pdk','mimcap',True)"],
-            schelp="""
-            Parameter passed in as key/value pair to the technology target
-            referenced in the load_pdk() API call. See the target technology
-            for specific guidelines regarding configuration parameters.""")
-
-    scparam(cfg, ['arg', 'flow', key],
-            sctype='[str]',
-            scope='scratch',
-            shorthelp="ARG: Flow argument",
-            switch="-arg_flow 'key <str>'",
-            example=[
-                "cli: -arg_flow 'n 100'",
-                "api: chip.set('arg','flow','n', 100)"],
-            schelp="""
-            Parameter passed in as key/value pair to the flow target
-            referenced in the load_flow() API call. See the target flow
-            for specific guidelines regarding configuration parameters.""")
 
     scparam(cfg, ['arg', 'step'],
             sctype='str',

@@ -21,8 +21,7 @@ def test_tool_option(scroot):
     chip.set('option', 'quiet', 'true')
     chip.set('option','relax', 'true')
     chip.set('option','novercheck', 'true')
-    chip.set('arg', 'flow', 'place_np', ['2'])
-    chip.load_target('freepdk45_demo')
+    chip.load_target('freepdk45_demo', place_np=2)
 
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0',  'place_density', '0.4')
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1',  'place_density', '0.3')
