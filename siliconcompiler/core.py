@@ -3927,7 +3927,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # If stepdir doesn't exist, we need to re-run this task. If
                     # we're not running with -resume, we also re-run anything
                     # in the steplist.
-                    self.set('flowgraph', flow, step, index, 'status', None)
+                    self.unset('flowgraph', flow, step, index, 'status')
 
                     # Reset metrics and records
                     for metric in self.getkeys('metric'):
@@ -3945,11 +3945,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # had all indices fail.
                 for index in self.getkeys('flowgraph', flow, step):
                     if index in indexlist[step]:
-                        self.set('flowgraph', flow, step, index, 'status', None)
+                        self.unset('flowgraph', flow, step, index, 'status')
                         for metric in self.getkeys('metric'):
-                            self.set('metric', metric,  None, step=step, index=index)
+                            self.unset('metric', metric, step=step, index=index)
                         for record in self.getkeys('record'):
-                            self.set('record', record, None, step=step, index=index)
+                            self.unset('record', record, step=step, index=index)
 
         # Set env variables
         # Save current environment
