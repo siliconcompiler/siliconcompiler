@@ -1,9 +1,9 @@
 
-from .openroad import setup as setup_tool
-from .openroad import build_pex_corners, post_process
+from siliconcompiler.tools.openroad.openroad import setup as setup_tool
+from siliconcompiler.tools.openroad.openroad import build_pex_corners
 
 def setup(chip):
-    ''' Helper method for configs specific to route tasks.
+    ''' Helper method for configs specific to export tasks.
     '''
 
     # Generic tool setup.
@@ -29,16 +29,20 @@ def setup(chip):
         for lib in targetlibs + macrolibs:
             chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'cdl']))
 
+    # Require openrcx pex models
     for corner in chip.get('tool', tool, 'task', task, 'var', step, index, 'pex_corners'):
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdk, 'pexmodel', 'openroad-openrcx', stackup, corner]))
 
     chip.add('tool', tool, 'task', task, 'input', step, index, design +'.def')
 
+    # Add outputs LEF
     chip.add('tool', tool, 'task', task, 'output', step, index, design + '.lef')
 
+    # Add outputs SPEF in the format {design}.{pexcorner}.spef
     for corner in chip.get('tool', tool, 'task', task, 'var', step, index, 'pex_corners'):
         chip.add('tool', tool, 'task', task, 'output', step, index, design + '.' + corner + '.spef')
 
+    # Add outputs liberty model in the format {design}.{libcorner}.lib
     for corner in chip.get('tool', tool, 'task', task, 'var', step, index, 'timing_corners'):
         chip.add('tool', tool, 'task', task, 'output', step, index, design + '.' + corner + '.lib')
 
