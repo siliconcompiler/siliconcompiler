@@ -14,7 +14,7 @@ import os
 import subprocess
 
 import siliconcompiler
-from siliconcompiler import utils
+from siliconcompiler.schema import utils
 from siliconcompiler.sphinx_ext.utils import *
 
 #############

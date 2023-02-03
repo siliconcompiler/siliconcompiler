@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 import platform
 import shutil
-import sys
 
 import siliconcompiler
 
@@ -100,10 +99,13 @@ def setup(chip, mode="batch"):
     chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'(WARNING|warning)', clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'ERROR', clobber=False)
 
-    # Override $KLAYOUT_PYTHONPATH with the user's PYTHONPATH to ensure scripts
-    # have access to SC
-    chip.set('tool', tool, 'task', task, 'env', step, index, 'KLAYOUT_PYTHONPATH',
-             os.pathsep.join(sys.path), clobber=False)
+def runtime_options(chip):
+    # Provide KLayout with path to SC package so the driver can import the
+    # schema package directly. Since KL may be using a different Python
+    # environment than the user, it needs to import the limited Schema class
+    # that has no 3rd-party dependencies.
+    # This must be done at runtime to work in a remote context.
+    return ['-rd', f'SC_ROOT={chip.scroot}']
 
 ################################
 # Version Check

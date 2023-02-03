@@ -1,5 +1,9 @@
 # Copyright 2022 Silicon Compiler Authors. All Rights Reserved.
 
+# NOTE: this file cannot rely on any third-party dependencies, including other
+# SC dependencies outside of its directory, since it may be used by tool drivers
+# that have isolated Python environments.
+
 import copy
 import csv
 import gzip
@@ -8,8 +12,8 @@ import os
 import re
 import yaml
 
-from siliconcompiler import utils
 from .schema_cfg import schema_cfg
+from .utils import escape_val_tcl, PACKAGE_ROOT
 
 class Schema:
     """Object for storing and accessing configuration values corresponding to
@@ -636,7 +640,7 @@ class Schema:
         '''
         Prints out schema as TCL dictionary
         '''
-        manifest_header = os.path.join(utils.PACKAGE_ROOT, 'data', 'sc_manifest_header.tcl')
+        manifest_header = os.path.join(PACKAGE_ROOT, 'data', 'sc_manifest_header.tcl')
         with open(manifest_header, 'r') as f:
             fout.write(f.read())
         fout.write('\n')
@@ -660,7 +664,7 @@ class Schema:
             #create a TCL dict
             keystr = ' '.join(key)
 
-            valstr = utils.escape_val_tcl(value, typestr)
+            valstr = escape_val_tcl(value, typestr)
 
             # Turning scalars into lists
             if not (typestr.startswith('[') or typestr.startswith('(')):

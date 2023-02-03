@@ -4,7 +4,7 @@ import copy as pycopy
 import json
 import re
 
-from siliconcompiler import utils
+from .utils import trim
 
 SCHEMA_VERSION = '0.22.0'
 
@@ -60,7 +60,7 @@ def scparam(cfg,
     else:
 
         # removing leading spaces as if schelp were a docstring
-        schelp = utils.trim(schelp)
+        schelp = trim(schelp)
 
         # setting valus based on types
         # note (bools are never lists)
@@ -1862,7 +1862,7 @@ def schema_record(cfg, step='default', index='default'):
     }
 
     for item,val in records.items():
-        helpext = utils.trim(val[2])
+        helpext = trim(val[2])
         scparam(cfg, ['record', item],
                 sctype='str',
                 shorthelp=f"Record: {val[0]}",
