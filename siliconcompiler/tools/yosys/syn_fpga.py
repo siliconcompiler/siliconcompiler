@@ -1,5 +1,5 @@
 
-from .yosys import syn_setup, create_vpr_lib, setup_fpga, syn_post_process
+from siliconcompiler.tools.yosys.yosys import syn_setup, create_vpr_lib, setup_fpga, syn_post_process
 
 def setup(chip):
     ''' Helper method for configs specific to FPGA synthesis tasks.

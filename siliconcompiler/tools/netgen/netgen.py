@@ -1,6 +1,3 @@
-import importlib
-import os
-
 import siliconcompiler
 
 ####################################################################

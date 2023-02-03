@@ -1,6 +1,6 @@
 import os
 
-from .surelog import setup as setup_tool
+from siliconcompiler.tools.surelog.surelog import setup as setup_tool
 
 ##################################################
 def setup(chip):
