@@ -62,8 +62,6 @@ To support standard RTL2GDS flows, the PDK setup will also need to specify point
     chip.set('pdk', process, 'grid', <stackup>, <sc_name>, 'ypitch',  0.14)
     chip.set('pdk', process, 'grid', <stackup>, <sc_name>, 'adj',     1.0)
 
-Note that the :keypath:`arg, pdk` dictionary in the schema can be used to pass named arguments to configure PDK setup.
-
 make_docs()
 -----------------
 The make_docs() function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup function to populate the schema with all settings::

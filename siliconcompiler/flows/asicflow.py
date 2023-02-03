@@ -1,5 +1,4 @@
 import siliconcompiler
-import re
 
 from siliconcompiler.flows._common import setup_frontend
 
@@ -29,7 +28,7 @@ def make_docs():
     * **drc**: Design rule check (signoff)
 
     The syn, physyn, place, cts, route steps supports per process
-    options that can be set up by setting the 'arg, flow,'<step>_np'
+    options that can be set up by setting '<step>_np'
     arg to a value > 1, as detailed below:
 
     * syn_np : Number of parallel synthesis jobs to launch
@@ -41,23 +40,13 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<topmodule>')
-    n = '3'
-    chip.set('arg', 'flow', 'verify','true')
-    chip.set('arg', 'flow', 'syn_np', n)
-    chip.set('arg', 'flow', 'floorplan_np', n)
-    chip.set('arg', 'flow', 'physyn_np', n)
-    chip.set('arg', 'flow', 'place_np', n)
-    chip.set('arg', 'flow', 'cts_np', n)
-    chip.set('arg', 'flow', 'route_np', n)
-    chip.set('option', 'flow', 'asicflow')
-    setup(chip)
-
-    return chip
+    n = 3
+    return setup(chip, syn_np=n, floorplan_np=n, physyn_np=n, place_np=n, cts_np=n, route_np=n)
 
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='asicflow'):
+def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
     Setup function for 'asicflow' ASIC compilation execution flowgraph.
 
@@ -65,6 +54,8 @@ def setup(chip, flowname='asicflow'):
         chip (object): SC Chip object
 
     '''
+
+    flow = siliconcompiler.Flow(chip, flowname)
 
     # Linear flow, up until branch to run parallel verification steps.
     longpipe = ['syn',
@@ -80,7 +71,6 @@ def setup(chip, flowname='asicflow'):
                 'route',
                 'routemin',
                 'dfm']
-
 
     #step -->(tool, task)
     tools = {
@@ -100,15 +90,20 @@ def setup(chip, flowname='asicflow'):
         'dfm' : ['openroad','dfm']
     }
 
-    # Clear old flowgraph if it exists
-    if flowname in chip.getkeys('flowgraph'):
-        del chip.schema.cfg['flowgraph'][flowname]
+    np = {
+        "syn": syn_np,
+        "floorplan": floorplan_np,
+        "physyn": physyn_np,
+        "place": place_np,
+        "cts": cts_np,
+        "route": route_np
+    }
 
     #Remove built in steps where appropriate
     flowpipe = []
     for step in longpipe:
         if tools[step][0] == 'builtin':
-            if bool(prevstep + "_np" in chip.getkeys('arg','flow')):
+            if prevstep in np and np[prevstep] > 1:
                 flowpipe.append(step)
         else:
             flowpipe.append(step)
@@ -120,23 +115,22 @@ def setup(chip, flowname='asicflow'):
 
     # Programatically build linear portion of flowgraph and fanin/fanout args
     for step,tool,task in flowtools:
-        #TODO: Fix
-        param = step + "_np"
         fanout = 1
-        if param in chip.getkeys('arg', 'flow'):
-            fanout = int(chip.get('arg', 'flow', param)[0])
+        if step in np:
+            fanout = np[step]
         # create nodes
         for index in range(fanout):
             # nodes
-            chip.node(flowname, step, tool, task, index=index)
+            flow.node(flowname, step, tool, task, index=index)
             # edges
             if tool == 'builtin':
-                prevparam = prevstep + "_np"
-                fanin  = int(chip.get('arg', 'flow', prevparam)[0])
+                fanin = 1
+                if prevstep in np:
+                    fanin = np[prevstep]
                 for i in range(fanin):
-                    chip.edge(flowname, prevstep, step, tail_index=i)
+                    flow.edge(flowname, prevstep, step, tail_index=i)
             elif step != 'import':
-                chip.edge(flowname, prevstep, step, head_index=index)
+                flow.edge(flowname, prevstep, step, head_index=index)
             # metrics
             goal_metrics = ()
             weight_metrics = ()
@@ -148,18 +142,20 @@ def setup(chip, flowname='asicflow'):
                 weight_metrics = ('cellarea', 'peakpower', 'leakagepower')
 
             for metric in goal_metrics:
-                chip.set('flowgraph', flowname, step, str(index), 'goal', metric, 0)
+                flow.set('flowgraph', flowname, step, str(index), 'goal', metric, 0)
             for metric in weight_metrics:
-                chip.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
+                flow.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
         prevstep = step
 
     # add export
-    chip.node(flowname, 'export', 'klayout', 'export', index=0)
-    chip.node(flowname, 'export', 'openroad', 'export', index=1)
-    chip.edge(flowname, prevstep, 'export', head_index=0)
-    chip.edge(flowname, prevstep, 'export', head_index=1)
+    flow.node(flowname, 'export', 'klayout', 'export', index=0)
+    flow.node(flowname, 'export', 'openroad', 'export', index=1)
+    flow.edge(flowname, prevstep, 'export', head_index=0)
+    flow.edge(flowname, prevstep, 'export', head_index=1)
+
+    return flow
 
 ##################################################
 if __name__ == "__main__":
     chip = make_docs()
-    chip.write_flowgraph("asicflow.png")
+    chip.write_flowgraph("asicflow.png", flow='asicflow')

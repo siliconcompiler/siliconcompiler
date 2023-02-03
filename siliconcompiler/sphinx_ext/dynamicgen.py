@@ -148,13 +148,17 @@ class DynamicGen(SphinxDirective):
             p += link(gh_link, text=filename)
             s += p
 
-        chip = make_docs()
+        chips = make_docs()
 
-        extra_content = self.extra_content(chip, modname)
-        if extra_content is not None:
-            s += extra_content
+        if not isinstance(chips, list):
+            chips = [chips]
 
-        s += self.display_config(chip, modname)
+        for chip in chips:
+            extra_content = self.extra_content(chip, modname)
+            if extra_content is not None:
+                s += extra_content
+
+            s += self.display_config(chip, modname)
 
         return s
 
@@ -249,7 +253,7 @@ class FlowGen(DynamicGen):
     def extra_content(self, chip, modname):
         flow_path = os.path.join(self.env.app.outdir, f'_images/gen/{modname}.svg')
         #chip.write_flowgraph(flow_path, fillcolor='#1c4587', fontcolor='#f1c232', border=False)
-        chip.write_flowgraph(flow_path)
+        chip.write_flowgraph(flow_path, flow=modname)
         return [image(flow_path, center=True)]
 
     def display_config(self, chip, modname):
@@ -316,8 +320,7 @@ class LibGen(DynamicGen):
 
     def extra_content(self, chip, modname):
         # assume same pdk for all libraries configured by this module
-        mainlib = chip.getkeys('library')[0]
-        pdk = chip.get('library', mainlib, 'option', 'pdk')
+        pdk = chip.get('option', 'pdk')
 
         p = docutils.nodes.inline('')
         self.parse_rst(f'Associated PDK: :ref:`{pdk}<{pdk}-ref>`', p)
@@ -328,15 +331,16 @@ class LibGen(DynamicGen):
 
         sections = []
 
-        for libname in chip.getkeys('library'):
-            section_key = '-'.join(['libs', modname, libname, 'configuration'])
-            settings = build_section(libname, section_key)
+        libname = chip.design
 
-            for key in ('asic', 'output'):
-                cfg = chip.getdict('library', libname, key)
-                settings += build_config_recursive(cfg, keypath_prefix=[key], sec_key_prefix=['libs', modname, libname, key])
+        section_key = '-'.join(['libs', modname, libname, 'configuration'])
+        settings = build_section(libname, section_key)
 
-            sections.append(settings)
+        for key in ('asic', 'output', 'option'):
+            cfg = chip.getdict(key)
+            settings += build_config_recursive(cfg, keypath_prefix=[key], sec_key_prefix=['libs', modname, libname, key])
+
+        sections.append(settings)
 
         return sections
 

@@ -6,11 +6,10 @@ def make_docs():
     ASAP 7 7.5-track standard cell library.
     '''
     chip =  siliconcompiler.Chip('<design>')
-    setup(chip)
-    return chip
+    return setup(chip)
 
-def _setup_lib(libname, suffix):
-    lib = siliconcompiler.Chip(libname)
+def _setup_lib(chip, libname, suffix):
+    lib = siliconcompiler.Library(chip, libname)
 
     group = 'asap7sc7p5t'
     vt = 'rvt'
@@ -113,6 +112,8 @@ def setup(chip):
         'asap7sc7p5t_slvt' : 'SL'
     }
 
+    libs = []
     for libname, suffix in all_libs.items():
-        lib = _setup_lib(libname, suffix)
-        chip.import_library(lib)
+        libs.append(_setup_lib(chip, libname, suffix))
+
+    return libs
