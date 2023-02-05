@@ -1,7 +1,7 @@
 import re
 
-from .yosys import setup as setup_tool
-from .yosys import setup_asic, setup_fpga
+from siliconcompiler.tools.yosys.yosys import setup as setup_tool
+from siliconcompiler.tools.yosys.yosys import setup_asic, setup_fpga
 
 def setup(chip):
     ''' Helper method for configuring LEC steps.

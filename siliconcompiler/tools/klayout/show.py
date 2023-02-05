@@ -1,5 +1,5 @@
 
-from .klayout import setup as setup_tool
+from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 
 def setup(chip):
     ''' Helper method for configs specific to show tasks.

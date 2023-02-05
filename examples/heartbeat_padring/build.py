@@ -71,7 +71,7 @@ def build_top():
     lib.set('output', stackup, 'lef', 'floorplan/heartbeat.lef')
     lib.set('output', stackup, 'gds', 'heartbeat.gds')
     lib.output('heartbeat.vg')
-    chip.import_library(lib)
+    chip.use(lib)
     chip.input('floorplan/heartbeat_top.def')
 
     chip.input('heartbeat_top.v')

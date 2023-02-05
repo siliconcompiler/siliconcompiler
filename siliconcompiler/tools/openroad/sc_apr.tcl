@@ -82,6 +82,7 @@ set sc_filler       [dict get $sc_cfg library $sc_mainlib asic cells filler]
 set sc_tap          [dict get $sc_cfg library $sc_mainlib asic cells tap]
 set sc_endcap       [dict get $sc_cfg library $sc_mainlib asic cells endcap]
 set sc_corners      [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index timing_corners]
+set sc_pex_corners  [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index pex_corners]
 set sc_power_corner [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index power_corner] 0]
 
 # PDK Design Rules
@@ -143,7 +144,7 @@ if {[file exists "inputs/$sc_design.odb"]} {
     }
   }
 
-  if {$sc_step == "floorplan"} {
+  if {$sc_task == "floorplan"} {
     # Read Verilog
     if {[dict exists $sc_cfg input netlist verilog]} {
       foreach netlist [dict get $sc_cfg input netlist verilog] {
@@ -303,7 +304,7 @@ set_wire_rc -signal -layer $sc_rc_signal
 
 set_thread_count $sc_threads
 
-if {$sc_step != "floorplan"} {
+if {$sc_task != "floorplan"} {
   ## Setup global routing
 
   # Adjust routing track density
@@ -322,8 +323,8 @@ if {$sc_step != "floorplan"} {
   set_routing_layers -clock "${openroad_grt_clock_min_layer}-${openroad_grt_clock_max_layer}"
 }
 
-if { $sc_step == "show" || $sc_step == "screenshot" } {
-  if { $sc_step == "screenshot" } {
+if { $sc_task == "show" || $sc_task == "screenshot" } {
+  if { $sc_task == "screenshot" } {
     source "$sc_refdir/sc_screenshot.tcl"
   }
 
@@ -353,7 +354,7 @@ if { $sc_step == "show" || $sc_step == "screenshot" } {
     set_dont_touch $openroad_dont_touch
   }
 
-  source -echo "$sc_refdir/sc_$sc_step.tcl"
+  source -echo "$sc_refdir/sc_$sc_task.tcl"
 
   if { [llength $openroad_dont_touch] > 0} {
     # unset for next step

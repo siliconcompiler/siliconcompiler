@@ -546,7 +546,7 @@ def build_top():
     lib.set('output', stackup, 'lef', 'heartbeat.lef')
     lib.set('output', stackup, 'gds', 'heartbeat.gds')
     lib.output('heartbeat.vg')
-    chip.import_library(lib)
+    chip.use(lib)
 
     fp = Floorplan(chip)
     top_floorplan(fp)

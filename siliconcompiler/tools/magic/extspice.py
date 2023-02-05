@@ -1,5 +1,5 @@
 
-from .magic import setup as setup_tool
+from siliconcompiler.tools.magic.magic import setup as setup_tool
 
 def setup(chip):
     ''' Helper method to setup configs specific to extspice tasks.

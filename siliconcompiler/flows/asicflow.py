@@ -70,8 +70,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
                 'ctsmin',
                 'route',
                 'routemin',
-                'dfm',
-                'export']
+                'dfm']
 
     #step -->(tool, task)
     tools = {
@@ -88,8 +87,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
         'ctsmin' : ['builtin','minimum'],
         'route' : ['openroad','route'],
         'routemin' : ['builtin','minimum'],
-        'dfm' : ['openroad','dfm'],
-        'export' : ['klayout', 'export']
+        'dfm' : ['openroad','dfm']
     }
 
     np = {
@@ -148,6 +146,12 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
             for metric in weight_metrics:
                 flow.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
         prevstep = step
+
+    # add export
+    flow.node(flowname, 'export', 'klayout', 'export', index=0)
+    flow.node(flowname, 'export', 'openroad', 'export', index=1)
+    flow.edge(flowname, prevstep, 'export', head_index=0)
+    flow.edge(flowname, prevstep, 'export', head_index=1)
 
     return flow
 

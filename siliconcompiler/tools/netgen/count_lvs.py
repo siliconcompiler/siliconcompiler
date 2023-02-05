@@ -28,9 +28,7 @@
 # Pulled from qflow GUI as standalone script Aug 20, 2018
 #---------------------------------------------------------
 
-import os
 import re
-import sys
 import json
 import argparse
 

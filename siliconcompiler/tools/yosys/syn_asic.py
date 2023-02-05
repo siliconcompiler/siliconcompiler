@@ -1,5 +1,5 @@
 
-from .yosys import syn_setup, setup_asic, prepare_synthesis_libraries, create_abc_synthesis_constraints, syn_post_process
+from siliconcompiler.tools.yosys.yosys import syn_setup, setup_asic, prepare_synthesis_libraries, create_abc_synthesis_constraints, syn_post_process
 
 def setup(chip):
     ''' Helper method for configs specific to ASIC synthesis tasks.
