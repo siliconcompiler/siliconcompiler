@@ -14,11 +14,13 @@ def run_design(design, M, job):
     chip.set('option', 'jobname', job)
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
-    chip.set('arg', 'flow','syn_np', str(M))
-    chip.set('arg', 'flow','place_np', str(M))
-    chip.set('arg', 'flow','cts_np', str(M))
-    chip.set('arg', 'flow','route_np', str(M))
-    chip.load_target("freepdk45_demo")
+    asic_flow_args = {
+        'syn_np': M,
+        'place_np': M,
+        'cts_np': M,
+        'route_np': M
+    }
+    chip.load_target("freepdk45_demo", **asic_flow_args)
     chip.run()
 
 def main():
