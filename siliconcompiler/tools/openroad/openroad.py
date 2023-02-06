@@ -17,11 +17,11 @@ def make_docs():
     needed to translate a synthesized netlist to a tapeout ready
     GDSII.
 
-    Documentation:https://github.com/The-OpenROAD-Project/OpenROAD
+    Documentation: https://openroad.readthedocs.io/
 
     Sources: https://github.com/The-OpenROAD-Project/OpenROAD
 
-    Installation: https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
+    Installation: https://github.com/The-OpenROAD-Project/OpenROAD
 
     '''
 
