@@ -77,7 +77,7 @@ class CategorySummary(SphinxDirective):
         new_doc = []
         section = nodes.section(ids = [nodes.make_id(f'{category}_summary')])
 
-        chip = siliconcompiler.Chip('<design>', loglevel='DEBUG')
+        chip = siliconcompiler.Chip('<design>')
 
         table = [[strong('parameter'), strong('description')]]
 
