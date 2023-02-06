@@ -68,6 +68,7 @@ def build_top():
     stackup = chip.get('option', 'stackup')
     chip.add('asic', 'macrolib', libname)
 
+    # TODO: Find a way to simplify importing an existing Chip object as a macro.
     class heartbeat_core:
         def setup(chip):
             lib = Library(chip, libname)
