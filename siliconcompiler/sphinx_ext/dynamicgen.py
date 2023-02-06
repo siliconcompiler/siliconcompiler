@@ -417,6 +417,10 @@ class TargetGen(DynamicGen):
         if libs_section is not None:
             sections.append(libs_section)
 
+        checklist_section = self.build_module_list(chip, 'Checklists', 'checklists', modname)
+        if checklist_section is not None:
+            sections.append(checklist_section)
+
         filtered_cfg = {}
         for key in ('asic', 'constraint', 'option'):
             filtered_cfg[key] = chip.getdict(key)
