@@ -24,6 +24,9 @@ def setup(chip):
     # version
     lib.set('package', 'version', version)
 
+    # pdk
+    lib.set('option', 'pdk', 'skywater130')
+
     # footprint/type/sites
     lib.set('asic', 'libarch', libtype)
     lib.set('asic', 'site', libtype, 'unithd')

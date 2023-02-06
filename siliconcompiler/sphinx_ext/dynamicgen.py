@@ -333,12 +333,12 @@ class LibGen(DynamicGen):
 
         libname = chip.design
 
-        section_key = '-'.join(['libs', modname, libname, 'configuration'])
-        settings = build_section(libname, section_key)
+        section_key = ['lib', libname]
+        settings = build_section_with_target(libname, '-'.join(section_key)+'-ref', self.state.document)
 
         for key in ('asic', 'output', 'option'):
             cfg = chip.getdict(key)
-            settings += build_config_recursive(cfg, keypath_prefix=[key], sec_key_prefix=['libs', modname, libname, key])
+            settings += build_config_recursive(cfg, keypath_prefix=[key], sec_key_prefix=[*section_key, key])
 
         sections.append(settings)
 
@@ -386,7 +386,7 @@ class ToolGen(DynamicGen):
 class TargetGen(DynamicGen):
     PATH = 'targets'
 
-    def build_module_list(self, chip, header, modtype, targetname):
+    def build_module_list(self, chip, header, modtype, targetname, refprefix=""):
         modules = chip._loaded_modules[modtype]
         if len(modules) > 0:
             section = build_section(header, f'{targetname}-{modtype}')
@@ -394,7 +394,7 @@ class TargetGen(DynamicGen):
             for module in modules:
                 list_item = nodes.list_item()
                 # TODO: replace with proper docutils nodes: sphinx.addnodes.pending_xref
-                modkey = nodes.make_id(module)
+                modkey = nodes.make_id(refprefix+module)
                 self.parse_rst(f':ref:`{module}<{modkey}-ref>`', list_item)
                 modlist += list_item
 
@@ -413,7 +413,7 @@ class TargetGen(DynamicGen):
         if pdk_section is not None:
             sections.append(pdk_section)
 
-        libs_section = self.build_module_list(chip, 'Libraries', 'libs', modname)
+        libs_section = self.build_module_list(chip, 'Libraries', 'libs', modname, 'lib-')
         if libs_section is not None:
             sections.append(libs_section)
 
