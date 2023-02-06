@@ -1294,7 +1294,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # update other fields that a user might modify
                 for field in src.getdict(*keylist).keys():
                     if field in ('value', 'nodevalue', 'switch', 'type', 'require', 'defvalue',
-                                 'shorthelp', 'example', 'help'):
+                                 'shorthelp', 'example', 'help', 'set'):
                         # skip these fields (value handled above, others are static)
                         continue
                     v = src.get(*keylist, field=field)

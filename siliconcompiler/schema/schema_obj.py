@@ -98,8 +98,6 @@ class Schema:
                 return cfg['nodevalue'][step]['default']
             elif Schema._is_set(cfg):
                 return cfg['value']
-            elif ('value' in cfg) and (cfg['value']):
-                return cfg['value']
             else:
                 return cfg['defvalue']
         elif field in cfg:
