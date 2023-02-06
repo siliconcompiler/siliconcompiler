@@ -122,7 +122,7 @@ class DynamicGen(SphinxDirective):
         '''Build section documenting given module and name.'''
         print(f'Generating docs for module {modname}...')
 
-        s = build_section_with_target(modname, f'{modname}-ref', self.state.document)
+        s = build_section_with_target(modname, f'{modname}', self.state.document)
 
         if not hasattr(module, 'make_docs'):
             return None
@@ -323,7 +323,12 @@ class LibGen(DynamicGen):
         pdk = chip.get('option', 'pdk')
 
         p = docutils.nodes.inline('')
-        self.parse_rst(f'Associated PDK: :ref:`{pdk}<{pdk}-ref>`', p)
+        pdk_ref = "None"
+        if pdk:
+            pdkid = get_ref_id(pdk)
+            pdk_ref = f":ref:`{pdk}<{pdkid}>`"
+        self.parse_rst(f'Associated PDK: {pdk_ref}', p)
+
         return [p]
 
     def display_config(self, chip, modname):
@@ -334,7 +339,7 @@ class LibGen(DynamicGen):
         libname = chip.design
 
         section_key = ['lib', libname]
-        settings = build_section_with_target(libname, '-'.join(section_key)+'-ref', self.state.document)
+        settings = build_section_with_target(libname, '-'.join(section_key), self.state.document)
 
         for key in ('asic', 'output', 'option'):
             cfg = chip.getdict(key)
@@ -394,8 +399,8 @@ class TargetGen(DynamicGen):
             for module in modules:
                 list_item = nodes.list_item()
                 # TODO: replace with proper docutils nodes: sphinx.addnodes.pending_xref
-                modkey = nodes.make_id(refprefix+module)
-                self.parse_rst(f':ref:`{module}<{modkey}-ref>`', list_item)
+                modkey = get_ref_id(refprefix+module)
+                self.parse_rst(f':ref:`{module}<{modkey}>`', list_item)
                 modlist += list_item
 
             section += modlist
