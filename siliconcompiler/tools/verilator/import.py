@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from .verilator import setup as setup_tool
+from siliconcompiler.tools.verilator.verilator import setup as setup_tool
 
 def setup(chip):
     ''' Helper method to load configs specific to compile tasks.

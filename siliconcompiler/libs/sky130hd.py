@@ -24,6 +24,9 @@ def setup(chip):
     # version
     lib.set('package', 'version', version)
 
+    # pdk
+    lib.set('option', 'pdk', 'skywater130')
+
     # footprint/type/sites
     lib.set('asic', 'libarch', libtype)
     lib.set('asic', 'site', libtype, 'unithd')
@@ -33,6 +36,7 @@ def setup(chip):
     lib.add('output', corner, 'nldm', libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
     lib.add('output', stackup, 'lef', libdir+'/lef/sky130_fd_sc_hd_merged.lef')
     lib.add('output', stackup, 'gds', libdir+'/gds/sky130_fd_sc_hd.gds')
+    lib.add('output', stackup, 'cdl', libdir+'/cdl/sky130_fd_sc_hd.cdl')
 
     # antenna cells
     lib.add('asic', 'cells', 'antenna', 'sky130_fd_sc_hd__diode_2')

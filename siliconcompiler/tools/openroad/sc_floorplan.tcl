@@ -56,7 +56,9 @@ if {[dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tr
   make_tracks
 }
 
+set do_automatic_pins 1
 if { 0 } {
+  set do_automatic_pins 0
 
   ###########################
   # Generate pad ring
@@ -64,29 +66,125 @@ if { 0 } {
   # TODO: implement this if needed
   # source library config, pad ring config
   #initialize_padring
-} else {
+}
 
-  ###########################
-  # Automatic Pin Placement
-  ###########################
+###########################
+# Pin placement
+###########################
 
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h]} {
-    set h_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h] 0]
-    set_pin_thick_multiplier -hor_multiplier $h_mult
-  }
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v]} {
-    set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v] 0]
-    set_pin_thick_multiplier -ver_multiplier $v_mult
-  }
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints]} {
-    foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints] {
-      puts "Sourcing pin constraints: ${pin_constraint}"
-      source $pin_constraint
+# Build pin ordering if specified
+set pin_order [dict create]
+set pin_placement [list ]
+if {[dict exists $sc_cfg constraint pin]} {
+  dict for {name params} [dict get $sc_cfg constraint pin] {
+    set order [dict get $params order]
+    set side  [dict get $params side]
+    set place [dict get $params placement]
+
+    if { [llength $place] != 0 } {
+      # Pin has placement information
+
+      if { [llength $order] != 0 } {
+        # Pin also has order information
+        utl::error FLW 1 "Pin $name has placement specified in constraints, but also order."
+      }
+      lappend pin_placement $name
+    } else {
+      # Pin doesn't have placement
+
+      if { [llength $side] == 0 || [llength $order] == 0 } {
+        # Pin information is incomplete
+
+        utl::error FLW 1 "Pin $name doesn't have enough information to perform placement."
+      }
+
+      dict append pin_order [lindex $side 0] [lindex $order 0] $name
     }
   }
-  place_pins -hor_layers $sc_hpinmetal \
-    -ver_layers $sc_vpinmetal \
-    -random
+}
+
+foreach pin $pin_placement {
+  set params [dict get $sc_cfg constraint pin $pin]
+  set layer  [dict get $params layer]
+  set side   [dict get $params side]
+  set place  [dict get $params placement]
+  if { [llength $layer] != 0 } {
+    set layer [sc_get_layer_name [lindex $layer 0]]
+  } elseif { [llength $side] != 0 } {
+    # Layer not set, but side is, so use that to determine layer
+    set side [lindex $side 0]
+    switch -regexp $side {
+      "1|3" {
+        set layer [lindex $sc_hpinmetal 0]
+      }
+      "2|4" {
+        set layer [lindex $sc_vpinmetal 0]
+      }
+      default {
+        utl::error FLW 1 "Side number ($side) is not supported."
+      }
+    }
+  } else {
+    utl::error FLW 1 "$name needs to either specify side or layer parameter."
+  }
+
+  set x_loc [lindex $place 0]
+  set y_loc [lindex $place 1]
+
+  # TODO: snapping to grid and extend to edge
+  place_pin -pin_name $name \
+    -layer $layer \
+    -location "$x_loc $y_loc"
+}
+
+dict for {side pins} $pin_order {
+  set ordered_pins []
+  dict for {index pin} $$pins {
+    lappend ordered_pins {*}$pin
+  }
+
+  set layer  [dict get $params layer]
+  if { [llength $layer] != 0 } {
+    set layer [sc_get_layer_name [lindex $layer 0]]
+  } elseif { [llength $side] != 0 } {
+    # Layer not set, but side is, so use that to determine layer
+    switch -regexp $side {
+      "1|3" {
+        set layer [lindex $sc_hpinmetal 0]
+      }
+      "2|4" {
+        set layer [lindex $sc_vpinmetal 0]
+      }
+      default {
+        utl::error FLW 1 "Side number ($side) is not supported."
+      }
+    }
+  } else {
+    utl::error FLW 1 "$name needs to either specify side or layer parameter."
+  }
+
+  set edge_length 0
+  switch -regexp $side {
+    "1|3" {
+      set edge_length [expr [lindex [ord::get_die_area] 3] - [lindex [ord::get_die_area] 1]]
+    }
+    "2|4" {
+      set edge_length [expr [lindex [ord::get_die_area] 2] - [lindex [ord::get_die_area] 0]]
+    }
+    default {
+      utl::error FLW 1 "Side number ($side) is not supported."
+    }
+  }
+
+  set spacing [expr $edge_length / ([llength $ordered_pins] + 1)]
+
+  set x_loc [lindex $place 0]
+  set y_loc [lindex $place 1]
+
+  # TODO: snapping to grid and extend to edge
+  place_pin -pin_name $name \
+    -layer $layer \
+    -location "$x_loc $y_loc"
 }
 
 ###########################
@@ -95,10 +193,18 @@ if { 0 } {
 
 # If manual macro placement is provided use that first
 if {[dict exists $sc_cfg constraint component]} {
-  dict for {name value} [dict get $sc_cfg constraint component] {
-    set location [dict get $sc_cfg constraint component $name placement]
-    set rotation [dict get $sc_cfg constraint component $name rotation]
-    set flip     [dict get $sc_cfg constraint component $name flip]
+  dict for {name params} [dict get $sc_cfg constraint component] {
+    set location [dict get $params placement]
+    set rotation [dict get $params rotation]
+    set flip     [dict get $params flip]
+    if { [dict exists $params partname] } {
+      set cell   [dict get $params partname]
+    } else {
+      set cell ""
+    }
+    if { [dict exists $params halo] } {
+      utl::warn FLW 1 "Halo is not supported in OpenROAD"
+    }
 
     set transform_r [odb::dbTransform]
     $transform_r setOrient "R${rotation}"
@@ -121,11 +227,41 @@ if {[dict exists $sc_cfg constraint component]} {
     set x_loc [expr [lindex $location 0] - $width / 2]
     set y_loc [expr [lindex $location 1] - $height / 2]
 
+    set place_args []
+    if { $cell != "" } {
+      lappend place_args "-cell" $cell
+    }
+
     place_cell -inst_name $name \
       -origin "$x_loc $y_loc" \
       -orient [$transform_final getOrient] \
-      -status FIRM
+      -status FIRM \
+      {*}$place_args
   }
+}
+
+if { $do_automatic_pins } {
+  ###########################
+  # Automatic Pin Placement
+  ###########################
+
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h]} {
+    set h_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h] 0]
+    set_pin_thick_multiplier -hor_multiplier $h_mult
+  }
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v]} {
+    set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v] 0]
+    set_pin_thick_multiplier -ver_multiplier $v_mult
+  }
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints]} {
+    foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints] {
+      puts "Sourcing pin constraints: ${pin_constraint}"
+      source $pin_constraint
+    }
+  }
+  place_pins -hor_layers $sc_hpinmetal \
+    -ver_layers $sc_vpinmetal \
+    -random
 }
 
 # Need to check if we have any macros before performing macro placement,

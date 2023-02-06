@@ -2,7 +2,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import shutil
 
-from siliconcompiler.core import Chip
+from siliconcompiler import Chip, Library
 from siliconcompiler.libs import sky130io
 
 ###
@@ -67,11 +67,16 @@ def build_top():
     libname = 'heartbeat'
     stackup = chip.get('option', 'stackup')
     chip.add('asic', 'macrolib', libname)
-    lib = Chip(libname)
-    lib.set('output', stackup, 'lef', 'floorplan/heartbeat.lef')
-    lib.set('output', stackup, 'gds', 'heartbeat.gds')
-    lib.output('heartbeat.vg')
-    chip.import_library(lib)
+
+    # TODO: Find a way to simplify importing an existing Chip object as a macro.
+    class heartbeat_core:
+        def setup(chip):
+            lib = Library(chip, libname)
+            lib.set('output', stackup, 'lef', 'floorplan/heartbeat.lef')
+            lib.set('output', stackup, 'gds', 'heartbeat.gds')
+            lib.output('heartbeat.vg')
+            return lib
+    chip.use(heartbeat_core)
     chip.input('floorplan/heartbeat_top.def')
 
     chip.input('heartbeat_top.v')

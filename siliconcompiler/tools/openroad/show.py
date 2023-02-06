@@ -1,6 +1,6 @@
 
-from .openroad import setup as setup_tool
-from .openroad import copy_show_files, build_pex_corners, post_process
+from siliconcompiler.tools.openroad.openroad import setup as setup_tool
+from siliconcompiler.tools.openroad.openroad import copy_show_files, build_pex_corners
 
 def setup(chip):
     ''' Helper method for configs specific to show tasks.

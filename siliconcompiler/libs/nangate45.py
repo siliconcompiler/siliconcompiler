@@ -53,6 +53,10 @@ def setup(chip):
     lib.add('output', stackup, 'gds',
              libdir+'/gds/NangateOpenCellLibrary.gds')
 
+    # cdl
+    lib.add('output', stackup, 'cdl',
+             libdir+'/cdl/NangateOpenCellLibrary.cdl')
+
     # clock buffers
     lib.add('asic', 'cells','clkbuf', "BUF_X4")
 

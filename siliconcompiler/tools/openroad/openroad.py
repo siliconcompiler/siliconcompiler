@@ -17,11 +17,11 @@ def make_docs():
     needed to translate a synthesized netlist to a tapeout ready
     GDSII.
 
-    Documentation:https://github.com/The-OpenROAD-Project/OpenROAD
+    Documentation: https://openroad.readthedocs.io/
 
     Sources: https://github.com/The-OpenROAD-Project/OpenROAD
 
-    Installation: https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
+    Installation: https://github.com/The-OpenROAD-Project/OpenROAD
 
     '''
 
@@ -103,7 +103,6 @@ def setup(chip, mode='batch'):
     chip.add('tool', tool, 'task', task, 'output', step, index, design + '.vg')
     chip.add('tool', tool, 'task', task, 'output', step, index, design + '.def')
     chip.add('tool', tool, 'task', task, 'output', step, index, design + '.odb')
-    chip.add('tool', tool, 'task', task, 'output', step, index, design + '.lef')
 
     if chip.get('option', 'nodisplay'):
         # Tells QT to use the offscreen platform if nodisplay is used
@@ -142,6 +141,7 @@ def setup(chip, mode='batch'):
         chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
 
     chip.set('tool', tool, 'task', task, 'var', step, index, 'timing_corners', get_corners(chip), clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'pex_corners', get_pex_corners(chip), clobber=False)
     chip.set('tool', tool, 'task', task, 'var', step, index, 'power_corner', get_power_corner(chip), clobber=False)
     chip.set('tool', tool, 'task', task, 'var', step, index, 'parasitics', "inputs/sc_parasitics.tcl", clobber=True)
 
@@ -349,11 +349,16 @@ def post_process(chip):
 
 ######
 
-def get_corners(chip):
+def get_pex_corners(chip):
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool = 'openroad'
+    corners = set()
+    for constraint in chip.getkeys('constraint', 'timing'):
+        if chip.valid('constraint', 'timing', constraint, 'pexcorner'):
+            corners.add(chip.get('constraint', 'timing', constraint, 'pexcorner'))
+
+    return list(corners)
+
+def get_corners(chip):
 
     corners = set()
     for constraint in chip.getkeys('constraint', 'timing'):
@@ -363,10 +368,6 @@ def get_corners(chip):
     return list(corners)
 
 def get_corner_by_check(chip, check):
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool = 'openroad'
 
     for constraint in chip.getkeys('constraint', 'timing'):
         if not chip.valid('constraint', 'timing', constraint, 'libcorner'):

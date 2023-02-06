@@ -26,6 +26,9 @@ def setup(chip):
                           'v0_0_2',
                           'io')
 
+    # pdk
+    lib.set('option', 'pdk', 'skywater130')
+
     lib.set('output', corner, 'nldm', os.path.join(libdir, 'sky130_dummy_io.lib'))
     lib.set('output', stackup, 'lef', os.path.join(libdir, 'sky130_ef_io.lef'))
 
