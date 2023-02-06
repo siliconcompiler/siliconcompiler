@@ -1,7 +1,7 @@
 import os
 import siliconcompiler
 
-def build_top():
+def build_top(remote=False):
     # Core settings.
     design = 'picorv32_top'
     target = 'skywater130_demo'
@@ -36,19 +36,23 @@ def build_top():
 
     # SRAM pins are inside the macro boundary; no routing blockage padding is needed.
     chip.set('tool', 'openroad', 'task', 'route', 'var', 'route', '0', 'grt_macro_extension', '0')
+    # Disable CDL file generation until we can find a CDL file for the SRAM block.
+    chip.set('tool', 'openroad', 'task', 'export', 'var', 'export', '1', 'write_cdl', 'false')
 
     # Place macro instance.
     chip.set('constraint', 'component', 'sram', 'placement', (400.0, 250.0, 0.0))
     chip.set('constraint', 'component', 'sram', 'rotation', 270)
 
-    # Run the build.
-    chip.run()
+    # Optional: build remotely.
+    chip.set('option', 'remote', remote)
 
     return chip
 
 if __name__ == '__main__':
-    # Build results.
+    # Prepare Chip object.
     chip = build_top()
+    # Run the build.
+    chip.run()
     # Print results.
     chip.summary()
     # Display results.
