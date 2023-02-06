@@ -1285,7 +1285,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if key_valid and 'default' not in keylist:
                 # update value, handling scalars vs. lists
                 typestr = src.get(*keylist, field='type')
-                for val, step, index in src._getvals(*keylist):
+                for val, step, index in src._getvals(*keylist, return_defvalue=False):
                     if re.match(r'\[', typestr) and not clear:
                         dest.add(*keylist, val, step=step, index=index)
                     else:

@@ -252,7 +252,7 @@ class Schema:
 
         return True
 
-    def _getvals(self, *keypath):
+    def _getvals(self, *keypath, return_defvalue=True):
         """
         Returns all values (global and pernode) associated with a particular parameter.
 
@@ -264,7 +264,7 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: _getvals() must be called on a complete keypath')
 
         vals = []
-        if cfg['pernode'] != 'required':
+        if cfg['pernode'] != 'required' and (return_defvalue or cfg['set']):
             vals.append((self.get(*keypath, step=None, index=None), None, None))
 
         if cfg['pernode'] != 'never':
