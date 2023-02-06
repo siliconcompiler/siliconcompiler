@@ -192,7 +192,7 @@ dict for {side pins} $pin_order {
 ###########################
 
 # If manual macro placement is provided use that first
-if {[dict exists $sc_cfg constraints component]} {
+if {[dict exists $sc_cfg constraint component]} {
   dict for {name params} [dict get $sc_cfg constraint component] {
     set location [dict get $params placement]
     set rotation [dict get $params rotation]
