@@ -160,6 +160,10 @@ class DynamicGen(SphinxDirective):
 
             s += self.display_config(chip, modname)
 
+        child_content = self.child_content(path, module, modname)
+        if child_content is not None:
+            s += child_content
+
         return s
 
     def run(self):
@@ -241,6 +245,9 @@ class DynamicGen(SphinxDirective):
         documentation in between a module's docstring and configuration table.
         Otherwise, if return value is None, don't add anything.
         '''
+        return None
+
+    def child_content(self, path, module, modname):
         return None
 
 #########################
