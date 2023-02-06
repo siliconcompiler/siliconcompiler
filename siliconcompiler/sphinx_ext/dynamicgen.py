@@ -129,24 +129,7 @@ class DynamicGen(SphinxDirective):
 
         make_docs = getattr(module, 'make_docs')
 
-        # raw docstrings have funky indentation (basically, each line is already
-        # indented as much as the function), so we call trim() helper function
-        # to clean it up
-        docstr = utils.trim(make_docs.__doc__)
-
-        if docstr:
-            self.parse_rst(docstr, s)
-
-        builtin = os.path.abspath(path).startswith(SC_ROOT)
-
-        if builtin:
-            relpath = path[len(SC_ROOT)+1:]
-            gh_root = 'https://github.com/siliconcompiler/siliconcompiler/blob/main'
-            gh_link = f'{gh_root}/{relpath}'
-            filename = os.path.basename(relpath)
-            p = para('Setup file: ')
-            p += link(gh_link, text=filename)
-            s += p
+        self.generate_documentation_from_function(make_docs, path, s)
 
         chips = make_docs()
 
@@ -249,6 +232,26 @@ class DynamicGen(SphinxDirective):
 
     def child_content(self, path, module, modname):
         return None
+
+    def generate_documentation_from_function(self, func, path, s):
+        # raw docstrings have funky indentation (basically, each line is already
+        # indented as much as the function), so we call trim() helper function
+        # to clean it up
+        docstr = utils.trim(func.__doc__)
+
+        if docstr:
+            self.parse_rst(docstr, s)
+
+        builtin = os.path.abspath(path).startswith(SC_ROOT)
+
+        if builtin:
+            relpath = path[len(SC_ROOT)+1:]
+            gh_root = 'https://github.com/siliconcompiler/siliconcompiler/blob/main'
+            gh_link = f'{gh_root}/{relpath}'
+            filename = os.path.basename(relpath)
+            p = para('Setup file: ')
+            p += link(gh_link, text=filename)
+            s += p
 
 #########################
 # Specialized extensions
@@ -437,25 +440,9 @@ class ToolGen(DynamicGen):
 
         print(f"Generating docs for task {toolname}/{taskname}...")
 
-        # raw docstrings have funky indentation (basically, each line is already
-        # indented as much as the function), so we call trim() helper function
-        # to clean it up
-        docstr = utils.trim(setup.__doc__)
+        self.generate_documentation_from_function(setup, path, s)
 
-        if docstr:
-            self.parse_rst(docstr, s)
-
-        builtin = os.path.abspath(path).startswith(SC_ROOT)
-
-        if builtin:
-            relpath = path[len(SC_ROOT)+1:]
-            gh_root = 'https://github.com/siliconcompiler/siliconcompiler/blob/main'
-            gh_link = f'{gh_root}/{relpath}'
-            filename = os.path.basename(relpath)
-            p = para('Setup file: ')
-            p += link(gh_link, text=filename)
-            s += p
-
+        # Annotate the target used for default values
         if chip.valid('option', 'target') and chip.get('option', 'target'):
             p = docutils.nodes.inline('')
             target = chip.get('option', 'target')
@@ -466,8 +453,9 @@ class ToolGen(DynamicGen):
         try:
             task_setup(chip)
             s += self.task_display_config(chip, toolname, taskname)
-        except:
+        except Exception as e:
             print('Failed to document task, Chip object probably not configured correctly.')
+            print(e)
             return None
 
         return s
