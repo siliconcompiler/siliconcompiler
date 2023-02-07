@@ -583,7 +583,7 @@ class ChecklistGen(DynamicGen):
         name = chip.design
 
         section_key = ['checklist', name]
-        settings = build_section_with_target(name, '-'.join(section_key)+'-ref', self.state.document)
+        settings = build_section_with_target(name, '-'.join(section_key), self.state.document)
         cfg = chip.getdict(*section_key)
 
         section_prefix = '-'.join(section_key + ['configuration'])
