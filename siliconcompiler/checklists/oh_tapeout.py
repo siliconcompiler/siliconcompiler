@@ -5,7 +5,7 @@ def make_docs():
 
     https://github.com/aolofsson/oh/blob/master/docs/tapeout_checklist.md
     '''
-    chip = siliconcompiler.Chip()
+    chip = siliconcompiler.Chip('<design>')
     return setup(chip)
 
 def setup(chip):
