@@ -198,9 +198,7 @@ if __name__ == "__main__":
     from tests.fixtures import gcd_chip
     if os.path.isdir('local_server_work'):
         os.rmdir('local_server_work')
-    test_gcd_server(gcd_chip())
-    test_gcd_server_partial(gcd_chip())
-    test_gcd_server_partial_noimport(gcd_chip())
-    test_gcd_server_partial_noeda(gcd_chip())
-    test_gcd_server_error(gcd_chip())
-    test_gcd_server_argstep_error(gcd_chip())
+    cur_dir = os.getcwd()
+    os.chdir(os.path.dirname(__file__))
+    pytest.main(['test_server.py'])
+    os.chdir(cur_dir)
