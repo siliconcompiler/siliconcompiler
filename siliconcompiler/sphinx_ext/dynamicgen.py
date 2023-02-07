@@ -453,6 +453,33 @@ class AppGen(DynamicGen):
 
         return section
 
+class ChecklistGen(DynamicGen):
+    PATH = 'checklists'
+
+    def display_config(self, chip, modname):
+        '''Display parameters under in nested form.'''
+
+        sections = []
+
+        name = chip.design
+
+        section_key = ['checklist', name]
+        settings = build_section_with_target(name, '-'.join(section_key)+'-ref', self.state.document)
+        cfg = chip.getdict(*section_key)
+
+        section_prefix = '-'.join(section_key + ['configuration'])
+        settings = build_section('Configuration', section_prefix)
+
+        for key in cfg.keys():
+            if key == 'default':
+                continue
+            settings += build_section(key, section_prefix+'-'+key)
+            settings += build_schema_value_table(cfg[key], keypath_prefix=[*section_key, key])
+
+        sections.append(settings)
+
+        return sections
+
 class ExampleGen(DynamicGen):
 
     def get_modules(self):
@@ -510,6 +537,7 @@ def setup(app):
     app.add_directive('appgen', AppGen)
     app.add_directive('examplegen', ExampleGen)
     app.add_directive('targetgen', TargetGen)
+    app.add_directive('checklistgen', ChecklistGen)
     app.add_role('keypath', keypath_role)
 
     return {
