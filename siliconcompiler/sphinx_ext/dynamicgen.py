@@ -122,31 +122,14 @@ class DynamicGen(SphinxDirective):
         '''Build section documenting given module and name.'''
         print(f'Generating docs for module {modname}...')
 
-        s = build_section_with_target(modname, f'{modname}-ref', self.state.document)
+        s = build_section_with_target(modname, f'{modname}', self.state.document)
 
         if not hasattr(module, 'make_docs'):
             return None
 
         make_docs = getattr(module, 'make_docs')
 
-        # raw docstrings have funky indentation (basically, each line is already
-        # indented as much as the function), so we call trim() helper function
-        # to clean it up
-        docstr = utils.trim(make_docs.__doc__)
-
-        if docstr:
-            self.parse_rst(docstr, s)
-
-        builtin = os.path.abspath(path).startswith(SC_ROOT)
-
-        if builtin:
-            relpath = path[len(SC_ROOT)+1:]
-            gh_root = 'https://github.com/siliconcompiler/siliconcompiler/blob/main'
-            gh_link = f'{gh_root}/{relpath}'
-            filename = os.path.basename(relpath)
-            p = para('Setup file: ')
-            p += link(gh_link, text=filename)
-            s += p
+        self.generate_documentation_from_function(make_docs, path, s)
 
         chips = make_docs()
 
@@ -159,6 +142,10 @@ class DynamicGen(SphinxDirective):
                 s += extra_content
 
             s += self.display_config(chip, modname)
+
+        child_content = self.child_content(path, module, modname)
+        if child_content is not None:
+            s += child_content
 
         return s
 
@@ -243,6 +230,29 @@ class DynamicGen(SphinxDirective):
         '''
         return None
 
+    def child_content(self, path, module, modname):
+        return None
+
+    def generate_documentation_from_function(self, func, path, s):
+        # raw docstrings have funky indentation (basically, each line is already
+        # indented as much as the function), so we call trim() helper function
+        # to clean it up
+        docstr = utils.trim(func.__doc__)
+
+        if docstr:
+            self.parse_rst(docstr, s)
+
+        builtin = os.path.abspath(path).startswith(SC_ROOT)
+
+        if builtin:
+            relpath = path[len(SC_ROOT)+1:]
+            gh_root = 'https://github.com/siliconcompiler/siliconcompiler/blob/main'
+            gh_link = f'{gh_root}/{relpath}'
+            filename = os.path.basename(relpath)
+            p = para('Setup file: ')
+            p += link(gh_link, text=filename)
+            s += p
+
 #########################
 # Specialized extensions
 #########################
@@ -323,7 +333,12 @@ class LibGen(DynamicGen):
         pdk = chip.get('option', 'pdk')
 
         p = docutils.nodes.inline('')
-        self.parse_rst(f'Associated PDK: :ref:`{pdk}<{pdk}-ref>`', p)
+        pdk_ref = "None"
+        if pdk:
+            pdkid = get_ref_id(pdk)
+            pdk_ref = f":ref:`{pdk}<{pdkid}>`"
+        self.parse_rst(f'Associated PDK: {pdk_ref}', p)
+
         return [p]
 
     def display_config(self, chip, modname):
@@ -334,7 +349,7 @@ class LibGen(DynamicGen):
         libname = chip.design
 
         section_key = ['lib', libname]
-        settings = build_section_with_target(libname, '-'.join(section_key)+'-ref', self.state.document)
+        settings = build_section_with_target(libname, '-'.join(section_key), self.state.document)
 
         for key in ('asic', 'output', 'option'):
             cfg = chip.getdict(key)
@@ -353,7 +368,23 @@ class ToolGen(DynamicGen):
         schema = Schema(cfg=cfg)
         schema.prune()
         pruned = schema.cfg
+        if 'task' in pruned:
+            # Remove task specific items since they will be documented
+            # by the task documentation
+            del pruned['task']
         table = build_schema_value_table(pruned, keypath_prefix=['tool', modname])
+        if table is not None:
+            return table
+        else:
+            return []
+
+    def task_display_config(self, chip, toolname, taskname):
+        '''Display config under `eda, <modname>` in a single table.'''
+        cfg = chip.getdict('tool', toolname, 'task', taskname)
+        schema = Schema(cfg=cfg)
+        schema.prune()
+        pruned = schema.cfg
+        table = build_schema_value_table(pruned, keypath_prefix=['tool', toolname, 'task', taskname])
         if table is not None:
             return table
         else:
@@ -383,6 +414,94 @@ class ToolGen(DynamicGen):
 
         return modules
 
+    def document_task(self, path, toolmodule, taskmodule, taskname, toolname):
+        self.env.note_dependency(path)
+        s = build_section_with_target(taskname, f'{toolname}-{taskname}', self.state.document)
+
+        # Find setup function
+        task_setup = getattr(taskmodule, 'setup', None)
+        if not task_setup:
+            return None
+
+        # Find make_docs function, check task module first
+        make_docs = getattr(taskmodule, 'make_docs', None)
+        if not make_docs:
+            # Then check tool module
+            make_docs = getattr(toolmodule, 'make_docs', None)
+        if not make_docs:
+            return None
+
+        chip = make_docs()
+        # set values for current step
+        chip.set('arg', 'step', '<step>')
+        chip.set('arg', 'index', '<index>')
+        chip.set('flowgraph', chip.get('option', 'flow'), '<step>', '<index>', 'tool', toolname)
+        chip.set('flowgraph', chip.get('option', 'flow'), '<step>', '<index>', 'task', taskname)
+
+        print(f"Generating docs for task {toolname}/{taskname}...")
+
+        self.generate_documentation_from_function(setup, path, s)
+
+        # Annotate the target used for default values
+        if chip.valid('option', 'target') and chip.get('option', 'target'):
+            p = docutils.nodes.inline('')
+            target = chip.get('option', 'target')
+            targetid = get_ref_id(target)
+            self.parse_rst(f"Built using target: :ref:`{target}<{targetid}>`", p)
+            s += p
+
+        try:
+            task_setup(chip)
+            s += self.task_display_config(chip, toolname, taskname)
+        except Exception as e:
+            print('Failed to document task, Chip object probably not configured correctly.')
+            print(e)
+            return None
+
+        return s
+
+    def child_content(self, path, module, modname):
+        sections = []
+        path = os.path.abspath(path)
+        module_dir = os.path.dirname(path)
+        for taskfile in os.listdir(module_dir):
+            if taskfile == "__init__.py":
+                # skip init
+                continue
+
+            task_path = os.path.join(module_dir, taskfile)
+            if path == task_path:
+                # skip tool module
+                continue
+
+            if not os.path.isfile(task_path):
+                # skip if not a file
+                continue
+
+            spec = importlib.util.spec_from_file_location(taskfile, task_path)
+            if not spec:
+                # unable to load, probably not a python file
+                continue
+            taskmodule = importlib.util.module_from_spec(spec)
+            try:
+                spec.loader.exec_module(taskmodule)
+            except:
+                # Module failed to load
+                # klayout imports pya which is only defined in klayout
+                continue
+
+            taskname = os.path.splitext(os.path.basename(task_path))[0]
+
+            task_doc = self.document_task(task_path, module, taskmodule, taskname, modname)
+            if task_doc:
+                sections.append((taskname, task_doc))
+
+        if len(sections) > 0:
+            sections = sorted(sections, key=lambda t: t[0])
+            # Strip off modname so we just return list of docutils sections
+            _, sections = zip(*sections)
+        return sections
+
 class TargetGen(DynamicGen):
     PATH = 'targets'
 
@@ -394,8 +513,8 @@ class TargetGen(DynamicGen):
             for module in modules:
                 list_item = nodes.list_item()
                 # TODO: replace with proper docutils nodes: sphinx.addnodes.pending_xref
-                modkey = nodes.make_id(refprefix+module)
-                self.parse_rst(f':ref:`{module}<{modkey}-ref>`', list_item)
+                modkey = get_ref_id(refprefix+module)
+                self.parse_rst(f':ref:`{module}<{modkey}>`', list_item)
                 modlist += list_item
 
             section += modlist
