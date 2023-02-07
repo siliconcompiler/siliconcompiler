@@ -53,12 +53,12 @@ def build_table(items, colwidths=None, colspec=None):
     return return_nodes
 
 def build_section(text, key):
-    sec = nodes.section(ids=[nodes.make_id(key)])
+    sec = nodes.section(ids=[get_ref_id(key)])
     sec += nodes.title(text=text)
     return sec
 
 def build_section_with_target(text, key, ctx):
-    id = nodes.make_id(key)
+    id = get_ref_id(key)
     target = nodes.target('', '', ids=[id], names=[id])
     sec = nodes.section(ids=[id])
     sec += nodes.title(text=text)
@@ -68,6 +68,9 @@ def build_section_with_target(text, key, ctx):
     ctx.note_explicit_target(target)
 
     return sec
+
+def get_ref_id(key):
+    return nodes.make_id(key+"-ref")
 
 def para(text):
     return nodes.paragraph(text=text)

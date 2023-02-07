@@ -38,8 +38,12 @@ import re
 import json
 import copy
 import os
+import sys
 
-import siliconcompiler
+# SC_ROOT provided by CLI
+sys.path.append(SC_ROOT)
+
+from schema import Schema
 
 def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
               macro_lefs, config_file='', seal_file='', timestamps=True):
@@ -215,49 +219,50 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
   write_options.gds2_write_timestamps = timestamps
   top_only_layout.write(out_file, write_options)
 
-chip = siliconcompiler.Chip('')
-chip.read_manifest('sc_manifest.json')
+schema = Schema(manifest='sc_manifest.json')
 
 # Extract info from manifest
-sc_step = chip.get('arg', 'step')
-sc_index = chip.get('arg', 'index')
-sc_pdk = chip.get('option', 'pdk')
+sc_step = schema.get('arg', 'step')
+sc_index = schema.get('arg', 'index')
+sc_pdk = schema.get('option', 'pdk')
 
-sc_stackup = chip.get('pdk', sc_pdk, 'stackup')[0]
-sc_mainlib = chip.get('asic', 'logiclib')[0]
+sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
+sc_mainlib = schema.get('asic', 'logiclib')[0]
 
-tech_file = chip.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
+tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
 
-design = chip.top()
+design = schema.get('option', 'entrypoint')
+if not design:
+    design = schema.get('design')
 
-if chip.get('input', 'layout', 'def'):
-  in_def = chip.get('input', 'layout', 'def')[0]
+if schema.valid('input', 'layout', 'def') and schema.get('input', 'layout', 'def'):
+  in_def = schema.get('input', 'layout', 'def')[0]
 else:
   in_def = os.path.join('inputs', f'{design}.def')
 out_gds = os.path.join('outputs', f'{design}.gds')
 
-libs = chip.get('asic', 'logiclib')
-if 'macrolib' in chip.getkeys('asic'):
-  libs += chip.get('asic', 'macrolib')
+libs = schema.get('asic', 'logiclib')
+if 'macrolib' in schema.getkeys('asic'):
+  libs += schema.get('asic', 'macrolib')
 
 in_gds = []
 for lib in libs:
-  in_gds.extend(chip.get('library', lib, 'output', sc_stackup, 'gds'))
+  in_gds.extend(schema.get('library', lib, 'output', sc_stackup, 'gds'))
 
-foundry_lef = os.path.dirname(chip.get('library', sc_mainlib, 'output', sc_stackup, 'lef')[0])
+foundry_lef = os.path.dirname(schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef')[0])
 
 macro_lefs = []
-if 'macrolib' in chip.getkeys('asic'):
-  for lib in chip.get('asic', 'macrolib'):
-    macro_lefs.extend(chip.get('library', lib, 'output', sc_stackup, 'lef'))
+if 'macrolib' in schema.getkeys('asic'):
+  for lib in schema.get('asic', 'macrolib'):
+    macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef'))
 
-flow = chip.get('option', 'flow')
+flow = schema.get('option', 'flow')
 
-sc_task = chip.get('flowgraph', flow, sc_step, sc_index, 'task')
+sc_task = schema.get('flowgraph', flow, sc_step, sc_index, 'task')
 
-sc_klayout_vars = chip.getkeys('tool', 'klayout', 'task', sc_task, 'var', sc_step, sc_index)
+sc_klayout_vars = schema.getkeys('tool', 'klayout', 'task', sc_task, 'var', sc_step, sc_index)
 if 'timestamps' in sc_klayout_vars:
-  sc_timestamps = chip.get('tool', 'klayout', 'task', sc_task, 'var', sc_step, sc_index, 'timestamps') == ['true']
+  sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', sc_step, sc_index, 'timestamps') == ['true']
 else:
   sc_timestamps = False
 
