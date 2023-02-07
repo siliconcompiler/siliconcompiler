@@ -154,7 +154,8 @@ def request_remote_run(chip):
     }
     local_build_dir = chip._getworkdir()
     rcfg = chip.status['remote_cfg']
-    if ('username' in rcfg) and ('password' in rcfg):
+    if ('username' in rcfg) and ('password' in rcfg) and \
+       (rcfg['username']) and (rcfg['password']):
         post_params['params']['username'] = rcfg['username']
         post_params['params']['key'] = rcfg['password']
 
