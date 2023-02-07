@@ -580,8 +580,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def use(self, module, **kwargs):
         '''
         Loads a SiliconCompiler module into the current chip object by calling
-        a module.setup() method.
+        a module.setup() method. In the input module is a Chip object it will be
+        imported as a library
         '''
+
+        if isinstance(module, Chip):
+            self._loaded_modules['libs'].append(module.design)
+            self._import_library(module.design, module.schema.cfg)
+            return
 
         # Load supported types here to avoid cyclic import
         from siliconcompiler import PDK
@@ -609,7 +615,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self._loaded_modules['checklists'].append(use_module.design)
                 self._use_import('checklist', use_module)
 
-            elif isinstance(use_module, Library) or isinstance(use_module, Chip):
+            elif isinstance(use_module, Library):
                 self._loaded_modules['libs'].append(use_module.design)
                 self._import_library(use_module.design, use_module.schema.cfg)
 
