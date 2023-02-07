@@ -61,6 +61,7 @@ Welcome to SiliconCompiler's documentation!
    reference_manual/pdks
    reference_manual/libs
    reference_manual/targets
+   reference_manual/checklists
 
 .. toctree::
    :maxdepth: 3
