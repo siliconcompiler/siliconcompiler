@@ -3989,7 +3989,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error('Cannot pass "-step" parameter into remote flow. A steplist including '
                            'an "import" task and at least one EDA task is required.',
                            fatal=True)
-            pre_remote_steplist = self.get('option', 'steplist')
+            pre_remote_steplist = {
+                'steplist': self.get('option', 'steplist'),
+                'set': self.get('option', 'steplist', field='set'),
+            }
             remote_preprocess(self, steplist)
 
             # Run the job on the remote server, and wait for it to finish.
@@ -4005,7 +4008,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.read_manifest(cfg, clobber=True, clear=True)
                 self.set('option', 'builddir', local_dir)
                 # Un-set steplist so 'show'/etc flows will work on returned results.
-                self.set('option', 'steplist', pre_remote_steplist)
+                if pre_remote_steplist['set']:
+                    self.set('option', 'steplist', pre_remote_steplist['steplist'])
+                else:
+                    self.unset('option', 'steplist')
             else:
                 # Hack to find first failed step by checking for presence of
                 # output manifests.
