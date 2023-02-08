@@ -37,7 +37,7 @@ def get_base_url(chip):
     return remote_protocol + remote_host
 
 ###################################
-def remote_preprocess(chip):
+def remote_preprocess(chip, steplist):
     '''Helper method to run a local import stage for remote jobs.
     '''
 
@@ -48,16 +48,17 @@ def remote_preprocess(chip):
 
     # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
-    remote_steplist = chip.getkeys('flowgraph', flow)
+    remote_steplist = steplist.copy()
     import_tasks = chip._get_steps_by_task()['import']
     import_steps = []
     for task_tuple in import_tasks:
         if not task_tuple[0] in import_steps:
             import_steps.append(task_tuple[0])
-    if remote_steplist[:len(import_steps)] != import_steps:
+    if (remote_steplist[:len(import_steps)] != import_steps) or (len(remote_steplist) == 1):
         chip.error('Remote flows must be organized such that the "import" task(s) are run before '
-                  f'all other steps.\nFull steplist: {remote_steplist}\n'
-                  f'Import steplist: {import_steps}', fatal=True)
+                   'all other steps, and at least one import and EDA task are included.\n'
+                  f'Full steplist: {remote_steplist}\nImport steplist: {import_steps}',
+                   fatal=True)
     # Setup up tools for all local functions
     for local_step in import_steps:
         indexlist = chip.getkeys('flowgraph', flow, local_step)
