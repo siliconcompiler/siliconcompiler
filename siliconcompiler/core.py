@@ -1123,8 +1123,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # cases.
 
         if keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
-            step = keypath[5]
-            index = keypath[6]
             if keypath[4] == 'report':
                 io = ""
             else:
@@ -1138,9 +1136,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         elif keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
-            step = keypath[5]
-            index = keypath[6]
-            refdirs = self.find_files('tool', tool, 'task', task, 'refdir', step, index)
+            refdirs = self.find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
             for path in paths:
                 for refdir in refdirs:
                     abspath = os.path.join(refdir, path)
@@ -1858,12 +1854,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         self.logger.error(f'{item} criteria {criteria_str} unmet by step {step}{index} with task {task}.')
                         error = True
 
-                    if (step in self.getkeys('tool', tool, 'task', task, 'report', job=job) and
-                        index in self.getkeys('tool', tool, 'task', task, 'report', step, job=job) and
-                        metric in self.getkeys('tool', tool, 'task', task, 'report', step, index, job=job)):
-                        eda_reports = self.find_files('tool', tool, 'task', task, 'report', step, index, metric, job=job)
-                    else:
-                        eda_reports = []
+                    eda_reports = self.find_files('tool', tool, 'task', task, 'report', metric, job=job, step=step, index=index)
 
                     if not eda_reports:
                         self.logger.error(f'No EDA reports generated for metric {metric} in step {step}{index} with task {task}')
@@ -2600,13 +2591,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # self.get is slow
         checks = {}
         matches = {}
-        regex_list = []
-        if self.valid('tool', tool, 'task', task, 'regex', step, index, 'default'):
-            regex_list = self.getkeys('tool', tool, 'task', task, 'regex', step, index)
-        for suffix in regex_list:
+        for suffix in self.getkeys('tool', tool, 'task', task, 'regex'):
+            regexes = self.get('tool', tool, 'task', task, 'regex', suffix, step=step, index=index)
+            if not regexes:
+                continue
+
             checks[suffix] = {}
             checks[suffix]['report'] = open(f"{step}.{suffix}", "w")
-            checks[suffix]['args'] = self.get('tool', tool, 'task', task, 'regex', step, index, suffix)
+            checks[suffix]['args'] = regexes
             matches[suffix] = 0
 
         # Looping through patterns for each line
@@ -2779,7 +2771,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     show_metric = True
                 tool = self.get('flowgraph', flow, step, index, 'tool')
                 task = self._get_task(step, index, flow=flow)
-                rpts = self.get('tool', tool, 'task', task, 'report', step, index, metric)
+                rpts = self.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)
 
                 errors[step, index] = self.get('flowgraph', flow, step, index, 'status') == TaskStatus.ERROR
                 metrics[step, index][metric] = value
@@ -3521,10 +3513,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 os.environ[item] = ':'.join(license_file)
 
         # Tool-specific environment variables for this task.
-        if (step in self.getkeys('tool', tool, 'task', task, 'env')) and \
-           (index in self.getkeys('tool', tool, 'task', task, 'env', step)):
-            for item in self.getkeys('tool', tool, 'task', task, 'env', step, index):
-                os.environ[item] = self.get('tool', tool, 'task', task, 'env', step, index, item)
+        for item in self.getkeys('tool', tool, 'task', task, 'env'):
+            val = self.get('tool', tool, 'task', task, 'env', item, step=step, index=index)
+            if val:
+                os.environ[item] = val
 
         run_func = None
         if not is_builtin:
@@ -3609,27 +3601,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     retcode = pty.spawn(cmdlist, read)
             else:
                 stdout_file = ''
-                stdout_suffix = self.get('tool', tool, 'task', task, 'stdout', step, index, 'suffix')
-                if self.get('tool', tool, 'task', task,  'stdout', step, index, 'destination') == 'log':
+                stdout_suffix = self.get('tool', tool, 'task', task, 'stdout', 'suffix', step=step, index=index)
+                if self.get('tool', tool, 'task', task,  'stdout', 'destination', step=step, index=index) == 'log':
                     stdout_file = step + "." + stdout_suffix
-                elif self.get('tool', tool, 'task', task, 'stdout', step, index, 'destination') == 'output':
+                elif self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index) == 'output':
                     stdout_file =  os.path.join('outputs', top + "." + stdout_suffix)
-                elif self.get('tool', tool, 'task', task, 'stdout', step, index, 'destination') == 'none':
+                elif self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index) == 'none':
                     stdout_file =  os.devnull
                 else:
-                    destination = self.get('tool', tool, 'task', task, 'stdout', step, index, 'destination')
+                    destination = self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index)
                     self.logger.error(f'stdout/destination has no support for {destination}. Use [log|output|none].')
                     self._haltstep(step, index)
                 stderr_file = ''
-                stderr_suffix = self.get('tool', tool, 'task', task, 'stderr', step, index, 'suffix')
-                if self.get('tool', tool, 'task', task, 'stderr', step, index, 'destination') == 'log':
+                stderr_suffix = self.get('tool', tool, 'task', task, 'stderr', 'suffix', step=step, index=index)
+                if self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index) == 'log':
                     stderr_file = step + "." + stderr_suffix
-                elif self.get('tool', tool, 'task', task, 'stderr', step, index, 'destination') == 'output':
+                elif self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index) == 'output':
                     stderr_file =  os.path.join('outputs', top + "." + stderr_suffix)
-                elif self.get('tool', tool, 'task', task, 'stderr', step, index, 'destination') == 'none':
+                elif self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index) == 'none':
                     stderr_file =  os.devnull
                 else:
-                    destination = self.get('tool', tool, 'task', task, 'stderr', step, index, 'destination')
+                    destination = self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index)
                     self.logger.error(f'stderr/destination has no support for {destination}. Use [log|output|none].')
                     self._haltstep(step, index)
 
@@ -3640,8 +3632,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # Use separate reader/writer file objects as hack to display
                     # live output in non-blocking way, so we can monitor the
                     # timeout. Based on https://stackoverflow.com/a/18422264.
-                    is_stdout_log = self.get('tool', tool, 'task', task, 'stdout', step, index, 'destination') == 'log'
-                    is_stderr_log = self.get('tool', tool, 'task', task, 'stderr', step, index, 'destination') == 'log' and stderr_file != stdout_file
+                    is_stdout_log = self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index) == 'log'
+                    is_stderr_log = self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index) == 'log' and stderr_file != stdout_file
                     # if STDOUT and STDERR are to be redirected to the same file,
                     # use a single writer
                     if stderr_file == stdout_file:
@@ -3801,13 +3793,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if manifest_format:
             keep.append(f'sc_manifest.{manifest_format}')
 
-        if self.valid('tool', tool, 'task', task, 'regex', step, index, 'default'):
-            for suffix in self.getkeys('tool', tool, 'task', task,  'regex', step, index):
+        for suffix in self.getkeys('tool', tool, 'task', task, 'regex'):
+            if self.get('tool', tool, 'task', task, 'regex', suffix, step=step, index=index):
                 keep.append(f'{step}.{suffix}')
 
         # Tool-specific keep files
-        if self.valid('tool', tool, 'task', task, 'keep', step, index):
-            keep.extend(self.get('tool', tool, 'task', task, 'keep', step, index))
+        keep.extend(self.get('tool', tool, 'task', task, 'keep', step=step, index=index))
 
         for path in os.listdir():
             if path in keep:
@@ -3838,22 +3829,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.
-        if self.valid('tool', tool, 'task', task, 'regex', step, index, 'default'):
-            re_keys = self.getkeys('tool', tool, 'task', task, 'regex', step, index)
-            logfile = f'{step}.log'
-            if (
-                'errors' in re_keys and
-                (not self.valid('tool', tool, 'task', task, 'report', step, index, 'errors') or
-                 logfile not in self.get('tool', tool, 'task', task, 'report', step, index, 'errors'))
-            ):
-                self.add('tool', tool, 'task', task, 'report', step, index, 'errors', logfile)
+        logfile = f'{step}.log'
+        if (
+            self.get('tool', tool, 'task', task, 'regex', 'errors', step=step, index=index) and
+            logfile not in self.get('tool', tool, 'task', task, 'report', 'errors', step=step, index=index),
+        ):
+            self.add('tool', tool, 'task', task, 'report', 'errors', logfile, step=step, index=index)
 
-            if (
-                'warnings' in re_keys and
-                (not self.valid('tool', tool, 'task', task, 'report', step, index, 'warnings') or
-                 logfile not in self.get('tool', tool, 'task', task, 'report', step, index, 'warnings'))
-            ):
-                self.add('tool', tool, 'task', task, 'report', step, index, 'warnings', logfile)
+        if (
+            self.get('tool', tool, 'task', task, 'regex', 'warnings', step=step, index=index) and
+            logfile not in self.get('tool', tool, 'task', task, 'report', 'warnings', step=step, index=index)
+        ):
+            self.add('tool', tool, 'task', task, 'report', 'warnings', logfile, step=step, index=index)
 
         # Need to clear index, otherwise we will skip setting up other indices.
         # Clear step for good measure.
@@ -4342,11 +4329,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         steps = self._get_steps_by_task(flow='showflow')[taskname]
         for step, index in steps:
             show_tool = self.get('flowgraph', 'showflow', step, index, 'tool')
-            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_filetype', filetype)
-            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_filepath', filepath)
-            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_step', sc_step)
-            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_index', sc_index)
-            self.set('tool', show_tool, 'task', taskname , 'var', step, index, 'show_job', sc_job)
+            self.set('tool', show_tool, 'task', taskname , 'var', 'show_filetype', filetype, step=step, index=index)
+            self.set('tool', show_tool, 'task', taskname , 'var', 'show_filepath', filepath, step=step, index=index)
+            self.set('tool', show_tool, 'task', taskname , 'var', 'show_step', sc_step, step=step, index=index)
+            self.set('tool', show_tool, 'task', taskname , 'var', 'show_index', sc_index, step=step, index=index)
+            self.set('tool', show_tool, 'task', taskname , 'var', 'show_job', sc_job, step=step, index=index)
 
         # run show flow
         try:
@@ -4400,14 +4387,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         options = []
         is_posix = (sys.platform != 'win32')
 
-        for option in self.get('tool', tool, 'task', task, 'option', step, index):
+        for option in self.get('tool', tool, 'task', task, 'option', step=step, index=index):
             options.extend(shlex.split(option, posix=is_posix))
 
         # Add scripts files
-        if self.valid('tool', tool, 'task', task, 'script', step, index):
-            scripts = self.find_files('tool', tool, 'task', task, 'script', step, index)
-        else:
-            scripts = []
+        scripts = self.find_files('tool', tool, 'task', task, 'script', step=step, index=index)
 
         cmdlist = [fullexe]
         if extra_options:
@@ -4433,7 +4417,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if (step in self.getkeys('tool', tool, 'task', task, 'env') and
             index in self.getkeys('tool', tool, 'task', task, 'env', step)):
             for key in self.getkeys('tool', tool, 'task', task, 'env', step, index):
-                envvars[key] = self.get('tool', tool, 'task', task, 'env', step, index, key)
+                envvars[key] = self.get('tool', tool, 'task', task, 'env', key, step=step, index=index)
 
         if is_posix:
             nice = None

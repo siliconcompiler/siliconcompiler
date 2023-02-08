@@ -23,8 +23,8 @@ set sc_design    [sc_top]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 set sc_stackup  [dict get $sc_cfg option stackup]
 
-if {[dict exists $sc_cfg tool magic task $sc_task var $sc_step $sc_index exclude]} {
-    set sc_exclude  [dict get $sc_cfg tool magic task $sc_task var $sc_step $sc_index exclude]
+if {[dict exists $sc_cfg tool magic task $sc_task var exclude]} {
+    set sc_exclude  [dict get $sc_cfg tool magic task $sc_task var exclude]
 } else {
     set sc_exclude [list]
 }

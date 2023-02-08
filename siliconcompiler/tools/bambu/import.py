@@ -16,15 +16,15 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=0.9.6', clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', step, index, os.cpu_count(), clobber=False)
-    chip.set('tool', tool, 'task', task, 'option', step, index, [])
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'option', [], step=step, index=index)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'task', task, 'output', step, index, chip.top() + '.v')
+    chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', step, index, 'input,hll,c')
+    chip.add('tool', tool, 'task', task, 'require', 'input,hll,c', step=step, index=index)
 
 ################################
 # Post_process (post executable)

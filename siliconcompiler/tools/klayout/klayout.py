@@ -90,14 +90,14 @@ def setup(chip, mode="batch"):
     chip.set('tool', tool, 'version', '>=0.27.6', clobber=clobber)
     chip.set('tool', tool, 'format', 'json', clobber=clobber)
 
-    chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, clobber=clobber, step=step, index=index)
 
     # Export GDS with timestamps by default.
-    chip.set('tool', tool, 'task', task, 'var', step, index, 'timestamps', 'true', clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'true', clobber=False, step=step, index=index)
 
     # Log file parsing
-    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'(WARNING|warning)', clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'ERROR', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'(WARNING|warning)', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'ERROR', clobber=False, step=step, index=index)
 
 def runtime_options(chip):
     # Provide KLayout with path to SC package so the driver can import the

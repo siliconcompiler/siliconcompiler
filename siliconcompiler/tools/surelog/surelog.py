@@ -63,7 +63,7 @@ def setup(chip):
     options.append('-nocache')
 
     # Wite back options to cfg
-    chip.add('tool', tool, 'task', task, 'option', step, index, options)
+    chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
@@ -73,8 +73,8 @@ def setup(chip):
         chip.set('tool', tool, 'path', surelog_path, clobber=False)
 
     # Log file parsing
-    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'^\[WRN:', clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'^\[(ERR|FTL|SNT):', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WRN:', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[(ERR|FTL|SNT):', clobber=False, step=step, index=index)
 
     #warnings_off = chip.get('tool', tool, 'warningoff')
     #for warning in warnings_off:

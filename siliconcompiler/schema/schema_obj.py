@@ -88,6 +88,8 @@ class Schema:
 
         if isinstance(index, int):
             index = str(index)
+        if step is not None and index is None:
+            index = 'default'
 
         if field == 'value':
             if cfg['pernode'] == 'required':
@@ -98,8 +100,6 @@ class Schema:
 
             if step in cfg['nodevalue'] and index in cfg['nodevalue'][step]:
                 return cfg['nodevalue'][step][index]
-            elif step in cfg['nodevalue']:
-                return cfg['nodevalue'][step]['default']
             elif Schema._is_set(cfg):
                 return cfg['value']
             else:
@@ -552,7 +552,7 @@ class Schema:
 
         return None
 
-    def _search(self, *keypath, insert_defaults=False, job=None):
+    def _search(self, *keypath, insert_defaults=False, traverse_defaults=True, job=None):
         if job is not None:
             cfg = self.cfg['history'][job]
         else:
@@ -573,6 +573,9 @@ class Schema:
                     cfg = cfg[key]
                 else:
                     cfg = cfg['default']
+                # elif traverse_defaults:
+                #     cfg = cfg['default']
+                #     raise ValueError(f'Invalid keypath {keypath}: unexpected key: {key}')
             else:
                 raise ValueError(f'Invalid keypath {keypath}: unexpected key: {key}')
 

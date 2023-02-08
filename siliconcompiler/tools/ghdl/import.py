@@ -17,14 +17,14 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=2.0.0-dev', clobber=clobber)
 
-    chip.set('tool', tool, 'task', task, 'threads', step, index, '4', clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'option', step, index, '', clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'stdout', step, index, 'destination', 'output')
-    chip.set('tool', tool, 'task', task, 'stdout', step, index, 'suffix', 'v')
+    chip.set('tool', tool, 'task', task, 'threads', '4', clobber=clobber, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'option', '', clobber=clobber, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'stdout', 'destination', 'output', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'stdout', 'suffix', 'v', step=step, index=index)
 
     # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', step, index, 'input,rtl,vhdl')
+    chip.add('tool', tool, 'task', task, 'require', 'input,rtl,vhdl', step=step, index=index)
 
     design = chip.top()
 
-    chip.set('tool', tool, 'task', task, 'output', step, index, f'{design}.v')
+    chip.set('tool', tool, 'task', task, 'output', f'{design}.v', step=step, index=index)

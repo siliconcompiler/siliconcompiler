@@ -13,8 +13,8 @@ def setup(chip):
     #TODO fix
     task = step
 
-    chip.set('tool', tool, 'task', task, 'input', step, index, f'{design}.vg')
-    chip.set('tool', tool, 'task', task,  'output', step, index, f'{design}.vg')
+    chip.set('tool', tool, 'task', task, 'input', f'{design}.vg', step=step, index=index)
+    chip.set('tool', tool, 'task', task,  'output', f'{design}.vg', step=step, index=index)
 
 def run(chip):
     design = chip.get('design')

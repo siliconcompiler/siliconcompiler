@@ -56,19 +56,19 @@ def setup(chip):
 
     #
     chip.set('tool', tool, 'task', task, 'option',  step, index, options, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', step, index, os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), clobber=False, step=step, index=index)
 
     # Required for script based tools
 
     chip.set('tool', tool, 'task', task, 'refdir',  step, index, refdir, clobber=False)
     chip.set('tool', tool, 'task', task, 'script',  step, index, refdir + script, clobber=False)
     for key in variables:
-        chip.set('tool', tool, 'task', task, 'var', step, index, key, variables[key], clobber=False)
+        chip.set('tool', tool, 'task', task, 'var', key, variables[key], clobber=False, step=step, index=index)
 
     # Required for checker
-    chip.add('tool', tool, 'task', task, 'output', step, index, outputs)
-    chip.add('tool', tool, 'task', task, 'output', step, index, inputs)
-    chip.add('tool', tool, 'task', task, 'require', step, index, requires)
+    chip.add('tool', tool, 'task', task, 'output', outputs, step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', inputs, step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'require', requires, step=step, index=index)
 
 def runtime_options(chip):
     '''

@@ -12,6 +12,6 @@ def setup(chip):
 
     chip.set('tool', tool, 'exe', tool)
 
-    chip.set('tool', tool, 'task', task, 'option', step, index, "", clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'input', step, index, f'{design}.asc')
-    chip.set('tool', tool, 'task', task, 'output', step, index, f'{design}.bit')
+    chip.set('tool', tool, 'task', task, 'option', "", clobber=clobber, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'input', f'{design}.asc', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'output', f'{design}.bit', step=step, index=index)

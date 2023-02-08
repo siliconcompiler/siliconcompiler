@@ -16,17 +16,17 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=1.5.5', clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'refdir', step, index,  refdir, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir',  refdir, clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'threads',  os.cpu_count(), clobber=False, step=step, index=index)
 
     design = chip.top()
     option = f'"runMain SCDriver --module {design} -o ../outputs/{design}.v"'
-    chip.set('tool', tool, 'task', task, 'option', step, index,  option)
+    chip.set('tool', tool, 'task', task, 'option',  option, step=step, index=index)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'task', task, 'output', step, index, chip.top() + '.v')
+    chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'keep', step, index, ['build.sbt', 'SCDriver.scala'])
+    chip.set('tool', tool, 'task', task, 'keep', ['build.sbt', 'SCDriver.scala'], step=step, index=index)
 
 def pre_process(chip):
     tool = 'chisel'

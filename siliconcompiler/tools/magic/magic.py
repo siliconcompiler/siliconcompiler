@@ -62,24 +62,24 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=8.3.196', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    chip.set('tool', tool, 'task', task, 'threads', step, index,  4, clobber=False)
-    chip.set('tool', tool, 'task', task, 'refdir', step, index,  refdir, clobber=False)
-    chip.set('tool', tool, 'task', task, 'script', step, index,  script, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads',  4, clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'refdir',  refdir, clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'script',  script, clobber=False, step=step, index=index)
 
     # set options
     options = []
     options.append('-noc')
     options.append('-dnull')
-    chip.set('tool', tool, 'task', task, 'option', step, index,  options, clobber=False)
+    chip.set('tool', tool, 'task', task, 'option',  options, clobber=False, step=step, index=index)
 
     design = chip.top()
     if chip.valid('input', 'layout', 'gds'):
-        chip.add('tool', tool, 'task', task, 'require', step, index, ','.join(['input', 'layout', 'gds']))
+        chip.add('tool', tool, 'task', task, 'require', ','.join(['input', 'layout', 'gds']), step=step, index=index)
     else:
-        chip.add('tool', tool, 'task', task, 'input', step, index, f'{design}.gds')
+        chip.add('tool', tool, 'task', task, 'input', f'{design}.gds', step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'^Error', clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'warning', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^Error', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'warning', clobber=False, step=step, index=index)
 
 ################################
 # Version Check

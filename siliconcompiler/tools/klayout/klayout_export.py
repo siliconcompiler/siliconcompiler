@@ -260,9 +260,9 @@ flow = schema.get('option', 'flow')
 
 sc_task = schema.get('flowgraph', flow, sc_step, sc_index, 'task')
 
-sc_klayout_vars = schema.getkeys('tool', 'klayout', 'task', sc_task, 'var', sc_step, sc_index)
+sc_klayout_vars = schema.getkeys('tool', 'klayout', 'task', sc_task, 'var')
 if 'timestamps' in sc_klayout_vars:
-  sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', sc_step, sc_index, 'timestamps') == ['true']
+  sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'timestamps', step=sc_step, index=sc_index) == ['true']
 else:
   sc_timestamps = False
 

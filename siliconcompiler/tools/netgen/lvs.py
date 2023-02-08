@@ -20,34 +20,34 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=1.5.192', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    chip.set('tool', tool, 'task', task, 'threads', step, index, 4, clobber=False)
-    chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=False)
-    chip.set('tool', tool, 'task', task, 'script', step, index, script, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', 4, clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'script', script, clobber=False, step=step, index=index)
 
     # set options
     options = []
     options.append('-batch')
     options.append('source')
-    chip.set('tool', tool, 'task', task, 'option', step, index, options, clobber=False)
+    chip.set('tool', tool, 'task', task, 'option', options, clobber=False, step=step, index=index)
 
     design = chip.top()
-    chip.add('tool', tool, 'task', task, 'input', step, index, f'{design}.spice')
+    chip.add('tool', tool, 'task', task, 'input', f'{design}.spice', step=step, index=index)
     if chip.valid('input', 'netlist', 'verilog'):
-        chip.add('tool', tool, 'task', task, 'require', step, index, ','.join(['input', 'netlist', 'verilog']))
+        chip.add('tool', tool, 'task', task, 'require', ','.join(['input', 'netlist', 'verilog']), step=step, index=index)
     else:
-        chip.add('tool', tool, 'task', task, 'input', step, index, f'{design}.vg')
+        chip.add('tool', tool, 'task', task, 'input', f'{design}.vg', step=step, index=index)
 
     # Netgen doesn't have a standard error prefix that we can grep for, but it
     # does print all errors to stderr, so we can redirect them to <step>.errors
     # and use that file to count errors.
-    chip.set('tool', tool, 'task', task, 'stderr', step, index, 'suffix', 'errors')
-    chip.set('tool', tool, 'task', task, 'report', step, index, 'errors', f'{step}.errors')
+    chip.set('tool', tool, 'task', task, 'stderr', 'suffix', 'errors', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'report', 'errors', f'{step}.errors', step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', '^Warning:', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', '^Warning:', clobber=False, step=step, index=index)
 
     report_path = f'reports/{design}.lvs.out'
-    chip.set('tool', tool, 'task', task, 'report', step, index, 'drvs', report_path)
-    chip.set('tool', tool, 'task', task, 'report', step, index, 'warnings', report_path)
+    chip.set('tool', tool, 'task', task, 'report', 'drvs', report_path, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'report', 'warnings', report_path, step=step, index=index)
 
 ################################
 # Post_process (post executable)

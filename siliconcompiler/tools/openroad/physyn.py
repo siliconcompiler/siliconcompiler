@@ -15,7 +15,7 @@ def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    chip.add('tool', tool, 'task', task, 'input', step, index, design +'.def')
+    chip.add('tool', tool, 'task', task, 'input', design +'.def', step=step, index=index)
 
 def pre_process(chip):
     build_pex_corners(chip)

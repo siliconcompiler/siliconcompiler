@@ -16,7 +16,7 @@ def setup(chip):
     design = chip.top()
 
     report_path = f'reports/{design}.drc'
-    chip.set('tool', tool, 'task', task, 'report', step, index, 'drvs', report_path)
+    chip.set('tool', tool, 'task', task, 'report', 'drvs', report_path, step=step, index=index)
 
 ################################
 # Post_process (post executable)

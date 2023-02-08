@@ -14,4 +14,4 @@ def setup(chip):
     task = 'extspice'
     design = chip.top()
 
-    chip.add('tool', tool, 'task', task, 'output', step, index, f'{design}.spice')
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.spice', step=step, index=index)
