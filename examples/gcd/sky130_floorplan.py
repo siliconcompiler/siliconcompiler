@@ -1,5 +1,3 @@
-from siliconcompiler.floorplan import Floorplan, _layer_i
-
 import math
 
 def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
@@ -73,6 +71,9 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
    fp.place_wires([vss] * ngnd, core_left, bottom, 0, spacing,
                     core_w, stripe_w, stripe_layer, 'followpin')
 
+
+   # move here until test can be rebuilt
+   from siliconcompiler.floorplan import _layer_i
    vlayer_i = _layer_i(fp.layers[vlayer]['sc_name'])
    hlayer_i = _layer_i(fp.layers[hlayer]['sc_name'])
    if vlayer_i > hlayer_i:
@@ -116,6 +117,9 @@ def generate_block_floorplan(fp, diearea, corearea, inputs, outputs, pdn=None):
    return pdn
 
 def make_floorplan(chip):
+    # move here until test can be rebuilt
+    from siliconcompiler.floorplan import Floorplan
+
     fp = Floorplan(chip)
 
     diearea = [(0, 0), (200.56, 201.28)]
