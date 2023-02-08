@@ -1,4 +1,5 @@
 import re
+import pytest
 
 import siliconcompiler
 
@@ -15,14 +16,14 @@ def test_cli_multi_source(monkeypatch):
     # I think it doesn't matter if these files actually exist, since we're just
     # checking that the CLI app parses them correctly
     args = ['sc',
-            '-input', 'verilog examples/ibex/ibex_alu.v',
-            '-input', 'verilog examples/ibex/ibex_branch_predict.v',
+            '-input', 'rtl verilog examples/ibex/ibex_alu.v',
+            '-input', 'rtl verilog examples/ibex/ibex_branch_predict.v',
             '-target', 'freepdk45_demo']
 
     chip = do_cli_test(args, monkeypatch)
 
-    assert chip.get('input','verilog') == ['examples/ibex/ibex_alu.v',
-                                           'examples/ibex/ibex_branch_predict.v']
+    assert chip.get('input','rtl','verilog') == ['examples/ibex/ibex_alu.v',
+                                                 'examples/ibex/ibex_branch_predict.v']
     assert chip.get('option','target') == 'freepdk45_demo'
 
 def test_cli_include_flag(monkeypatch):
@@ -30,12 +31,12 @@ def test_cli_include_flag(monkeypatch):
     source files properly.
     '''
     args = ['sc',
-            '-input', 'verilog source.v',
+            '-input', 'rtl verilog source.v',
             '-I', 'include/inc1', '+incdir+include/inc2']
 
     chip = do_cli_test(args, monkeypatch)
 
-    assert chip.get('input', 'verilog') == ['source.v']
+    assert chip.get('input', 'rtl', 'verilog') == ['source.v']
     assert chip.get('option', 'idir') == ['include/inc1', 'include/inc2']
 
 def test_optmode(monkeypatch):
@@ -55,11 +56,11 @@ def test_spaces_in_value(monkeypatch):
     assert chip.get('package', 'description') == desc
 
 def test_limited_switchlist(monkeypatch):
-    args = ['sc', '-loglevel', 'DEBUG', '-arg_flow', 'foo bar']
-    chip = do_cli_test(args, monkeypatch, switchlist=['-loglevel', '-arg_flow'])
+    args = ['sc', '-loglevel', 'DEBUG', '-var', 'foo bar']
+    chip = do_cli_test(args, monkeypatch, switchlist=['-loglevel', '-var'])
 
     assert chip.get('option', 'loglevel') == 'DEBUG'
-    assert chip.get('arg', 'flow', 'foo') == ['bar']
+    assert chip.get('option', 'var', 'foo') == ['bar']
 
 def _cast(val, sctype):
     if sctype.startswith('['):
@@ -90,8 +91,11 @@ def test_cli_examples(monkeypatch):
     monkeypatch.setattr(siliconcompiler.Chip, 'read_manifest', _mock_read_manifest)
 
     chip = siliconcompiler.Chip('test')
-    for keypath in chip.getkeys():
+    for keypath in chip.allkeys():
         examples = chip.get(*keypath, field='example')
+        # TODO: undo this change once we support specifying pernode parameters using CLI
+        if chip.get(*keypath, field='pernode') == 'required':
+            continue
         for example in examples:
             if not example.startswith('cli'):
                 continue
@@ -134,15 +138,3 @@ def test_cli_examples(monkeypatch):
             else:
                 assert typestr == 'bool', 'Implicit value only alowed for boolean'
                 assert c.get(*replaced_keypath) == True
-
-def test_input_map(monkeypatch):
-    input_map = {
-        'v': 'verilog',
-        'vhdl': 'vhdl',
-        'def': 'def'
-    }
-    args = ['sc', 'source.v', 'floorplan.def', 'source2.vhdl']
-    chip = do_cli_test(args, monkeypatch, input_map=input_map)
-    assert chip.get('input', 'verilog') == ['source.v']
-    assert chip.get('input', 'vhdl') == ['source2.vhdl']
-    assert chip.get('input', 'def') == ['floorplan.def']

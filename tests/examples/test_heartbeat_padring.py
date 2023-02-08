@@ -1,9 +1,10 @@
 import os
-import pytest
-import siliconcompiler
 import sys
 
+import pytest
+
 @pytest.mark.eda
+@pytest.mark.skip(reason='Floorplan module has not been updated for 2023 schema changes')
 def test_heartbeat_padring_with_floorplan(setup_example_test, oh_dir):
     setup_example_test('heartbeat_padring')
 

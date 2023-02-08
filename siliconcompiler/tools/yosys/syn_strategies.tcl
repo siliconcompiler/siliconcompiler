@@ -73,3 +73,8 @@ dict set syn_strategies "DELAY3" "+fx;mfs;strash;refactor;${abc_resyn2};${abc_re
 dict set syn_strategies "AREA0" "+fx;mfs;strash;refactor;${abc_resyn2};${abc_retime_area};scleanup;${abc_choice2};${abc_map_new_area};retime,{D};${abc_fine_tune};stime,-p;print_stats -m"
 dict set syn_strategies "AREA1" "+fx;mfs;strash;refactor;${abc_resyn2};${abc_retime_area};scleanup;${abc_choice2};${abc_map_new_area};${abc_choice2};${abc_map_new_area};retime,{D};${abc_fine_tune};stime,-p;print_stats -m"
 dict set syn_strategies "AREA2" "+fx;mfs;strash;refactor;${abc_choice2};${abc_retime_area};scleanup;${abc_choice2};${abc_map_new_area};${abc_choice2};${abc_map_new_area};retime,{D};${abc_fine_tune};stime,-p;print_stats -m"
+
+# Adopted from: https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/3c605819af855200bf567bfd04b7309218cc8013/flow/scripts/abc_speed.script
+dict set syn_strategies "AREA3" "+fx;mfs;strash;refactor;dch;map,-B,0.9;topo;dretime;stime,-c;buffer,-c;unbuffer;upsize,-c;dnsize,-c;stime,-p;print_stats,-m"
+set or_abc_loop "&get,-n;&st;&syn2;&if,-g,-K,6;&synch2;&nf;&put"
+dict set syn_strategies "DELAY4" "+fx;mfs;strash;refactor;&get,-n;&st;&dch;&nf;&put;${or_abc_loop};${or_abc_loop};${or_abc_loop};${or_abc_loop};${or_abc_loop};buffer,-c;unbuffer;topo;stime,-c;upsize,-c;dnsize,-c;stime,-p;print_stats,-m"

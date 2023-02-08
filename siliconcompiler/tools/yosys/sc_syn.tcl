@@ -13,7 +13,9 @@ yosys echo on
 set sc_tool   yosys
 set sc_step   [dict get $sc_cfg arg step]
 set sc_index  [dict get $sc_cfg arg index]
-set sc_refdir [dict get $sc_cfg tool $sc_tool refdir $sc_step $sc_index]
+set sc_flow   [dict get $sc_cfg option flow]
+set sc_task   [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index task]
+set sc_refdir [dict get $sc_cfg tool $sc_tool task $sc_task refdir $sc_step $sc_index]
 
 ####################
 # DESIGNER's CHOICE

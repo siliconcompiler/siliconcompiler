@@ -17,11 +17,11 @@ Compilation is based on a single chip object that follows the design from start 
 Setup
 ----------------
 
-Once the chip object has been created, functions and data are all contained within that object. A compilation is set up by accessing methods and parameters from the chip object. Parameters can generally be configured in any order during setup. The exceptions are :keypath:`arg,flow` and :keypath:`arg,pdk` parameters, which must be set before calling :meth:`chip.load_flow() <.load_flow>` or :meth:`chip.load_pdk() <.load_pdk>`, respectively.
+Once the chip object has been created, functions and data are all contained within that object. A compilation is set up by accessing methods and parameters from the chip object. Parameters can generally be configured in any order during setup.
 
 The snippet of code below shows the basic principles. ::
 
-  chip.set('input', 'verilog', '<file>.v')
+  chip.set('input', 'verilog', 'rtl', '<file>.v')
 
 
 Run
@@ -38,7 +38,7 @@ Inspection
 Once the compilation has completed, chip object can be queried and another :meth:`.run()` can be called. ::
 
   chip.summary()
-  print(chip.get('metric', 'syn', '0', 'cellarea')
+  print(chip.get('metric', 'cellarea', step='syn', index='0'))
   #..do something else
 
 For complete information, see the :ref:`Core API` section of the reference manual.

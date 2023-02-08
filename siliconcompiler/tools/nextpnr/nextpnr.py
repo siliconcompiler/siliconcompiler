@@ -18,32 +18,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','<apr>')
-    chip.set('arg','index','<index>')
+    step = 'apr'
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    from tools.nextpnr.apr import setup
     setup(chip)
     return chip
-
-################################
-# Setup NextPNR
-################################
-
-def setup(chip):
-    ''' Sets up default settings on a per step basis
-    '''
-
-    tool = 'nextpnr'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    clobber = False
-    chip.set('tool', tool, 'exe', 'nextpnr-ice40')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=0.2', clobber=clobber)
-    chip.set('tool', tool, 'option', step, index, "", clobber=clobber)
-
-    topmodule = chip.top()
-    chip.set('tool', tool, 'input', step, index, f'{topmodule}_netlist.json')
-    chip.set('tool', tool, 'output', step, index, f'{topmodule}.asc')
 
 ################################
 #  Custom runtime options
@@ -64,7 +48,7 @@ def runtime_options(chip):
     if partname == 'ice40up5k-sg48':
         options.append('--up5k --package sg48')
 
-    for constraint_file in chip.find_files('input', 'pcf'):
+    for constraint_file in chip.find_files('input', 'fpga', 'pcf'):
         options.append('--pcf ' + constraint_file)
 
     return options

@@ -211,7 +211,7 @@
           {% endfor %}
 
           // Send the updated JSON manifest back to the client as a "download" from RAM to disk.
-          saveTemplateAsFile('{{ manifest["design"]["value"] }}.json', cur_manifest);
+          saveTemplateAsFile('{{ design }}.json', cur_manifest);
         });
 
         // Setup the 'upload manifest' button listener.
@@ -231,25 +231,20 @@
         });
 
         // Setup links in the metrics tables. Each metric is associated with at least one log file.
-        {% for mk in metric_keys %}
-          {% for step in tasks %}
-            {% for index in tasks[step] %}
-              {% set report = manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] %}
-              {% if (step in report) and (index in report[step]) and (mk in report[step][index]) %}
-                var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ mk }}_metlink");
-                sim_log_btn.addEventListener('click', () => {
-                  // TODO: clean up... >_>
-                  log_link = "{{ step }}/{{ index }}/{{ manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
-                  window.open(log_link, "_blank");
-                });
-                var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ mk }}_ddmetlink");
-                sim_log_btn.addEventListener('click', () => {
-                  // TODO: clean up... >_>
-                  log_link = "{{ step }}/{{ index }}/{{ manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index][mk]['value'][0] }}";
-                  window.open(log_link, "_blank");
-                });
-              {% endif %}
-            {% endfor %}
+        {% for metric in metric_keys %}
+          {% for step, index in nodes %}
+            {% if reports[step, index][metric] %}
+              var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ metric }}_metlink");
+              sim_log_btn.addEventListener('click', () => {
+                log_link = "{{ step }}/{{ index }}/{{ reports[step, index][metric][0] }}";
+                window.open(log_link, "_blank");
+              });
+              var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ metric }}_ddmetlink");
+              sim_log_btn.addEventListener('click', () => {
+                log_link = "{{ step }}/{{ index }}/{{ reports[step, index][metric][0] }}";
+                window.open(log_link, "_blank");
+              });
+            {% endif %}
           {% endfor %}
         {% endfor %}
       });
@@ -262,7 +257,7 @@
     </script>
 
     <div style="text-align: center; width: 100%;">
-      <h1>Design Summary: "{{ manifest['design']['value'] }}"</h1>
+      <h1>Design Summary: "{{ design }}"</h1>
     </div>
 
     <span style="width: 33%; float: left;">
@@ -295,38 +290,35 @@
       </a></div>
 
       <div id="metrics_table_div" class="collapse" style="text-align: center;">
-        <h2>Full {{ manifest["design"]["value"] }} Metrics</h2>
+        <h2>Full {{ design }} Metrics</h2>
         <table id="metrics_table" class="table table-dark table-striped table-bordered">
             <tr>
               <th>-</th>
-              {% for step in tasks %}
-                {% for index in tasks[step] %}
-                  <th>{{ step }}{{ index }}</th>
-                {% endfor %}
+              {% for step, index in nodes %}
+                <th>{{ step }}{{ index }}</th>
               {% endfor %}
             </tr>
-            {% for mk in metric_keys %}
+            {% for metric in metric_keys %}
               <tr>
-                <th>{{ mk }}</th>
-                {% for step in tasks %}
-                  {% for index in tasks[step] %}
-                    {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
-                      <td>(failed)</td>
+                <th>{{ metric }}</th>
+                {% for step, index in nodes %}
+                  {% if errors[step, index] %}
+                    <td>(failed)</td>
+                  {% else %}
+                    {% set value = metrics[step, index][metric] %}
+                    {% if value is not none %}
+                      {% set valuestr = value %}
                     {% else %}
-                      {% set value = manifest["metric"][step][index][mk]["value"] %}
-                      {% if value is not none %}
-                        {% set valuestr = value %}
-                      {% else %}
-                        {% set valuestr = "---" %}
-                      {% endif %}
-
-                      {% if step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                        <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_metlink">{{ valuestr }}</a></td>
-                      {% else %}
-                        <td>{{ valuestr }}</td>
-                      {% endif %}
+                      {% set valuestr = "---" %}
                     {% endif %}
-                  {% endfor %}
+
+                    {% if reports[step, index][metric] %}
+                      {% set href_id = [step + index, metric, "metlink"] | join("_") %}
+                      <td><a href="#" class="link-success" id="{{ href_id }}">{{ valuestr }}</a></td>
+                    {% else %}
+                      <td>{{ valuestr }}</td>
+                    {% endif %}
+                  {% endif %}
                 {% endfor %}
               </tr>
             {% endfor %}
@@ -338,44 +330,43 @@
       </a></div>
 
       <div id="metrics_dropdowns_div" class="collapse" style="text-align: center;">
-        <h2>Metrics for {{ manifest["design"]["value"] }} Tasks</h2>
-        {% for step in tasks %}
-          {% for index in tasks[step] %}
-            <div>
-              <a class="btn btn-success" data-bs-toggle="collapse" href="#{{ step }}{{ index }}_dropdown_div", role="button", aria-controls="{{ step }}{{ index }}_dropdown_div">
-                Toggle {{ step }}{{ index }} Metrics
-              </a>
-            </div>
-            <div id="{{ step }}{{ index }}_dropdown_div" class="collapse">
-              <table id="{{ step }}{{ index }}_metrics_table" class="table table-dark table-striped table-bordered">
-                <tr>
-                  {% for mk in metric_keys %}
-                    <th>{{ mk }}</th>
-                  {% endfor %}
-                </tr>
-                <tr>
-                  {% for mk in metric_keys %}
-                    {% if manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['status']['value'] == 'error' %}
-                      <td>(failed)</td>
+        <h2>Metrics for {{ design }} Tasks</h2>
+        {% for step, index in nodes %}
+          <div>
+            <a class="btn btn-success" data-bs-toggle="collapse" href="#{{ step }}{{ index }}_dropdown_div", role="button", aria-controls="{{ step }}{{ index }}_dropdown_div">
+              Toggle {{ step }}{{ index }} Metrics
+            </a>
+          </div>
+          <div id="{{ step }}{{ index }}_dropdown_div" class="collapse">
+            <table id="{{ step }}{{ index }}_metrics_table" class="table table-dark table-striped table-bordered">
+              <tr>
+                {% for metric in metric_keys %}
+                  <th>{{ metric }}</th>
+                {% endfor %}
+              </tr>
+              <tr>
+                {% for metric in metric_keys %}
+                  {% if errors[step, index] %}
+                    <td>(failed)</td>
+                  {% else %}
+                    {% set value = metrics[step, index][metric] %}
+                    {% if value is not none %}
+                      {% set valuestr = value %}
                     {% else %}
-                      {% set value = manifest["metric"][step][index][mk]["value"] %}
-                      {% if value is not none %}
-                        {% set valuestr = value %}
-                      {% else %}
-                        {% set valuestr = "---" %}
-                      {% endif %}
-
-                      {% if step in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'] and mk in manifest['tool'][manifest['flowgraph'][manifest['option']['flow']['value']][step][index]['tool']['value']]['report'][step][index] %}
-                        <td><a href="#" class="link-success" id="{{ step }}{{ index }}_{{ mk }}_ddmetlink">{{ valuestr }}</a></td>
-                      {% else %}
-                        <td>{{ valuestr }}</td>
-                      {% endif %}
+                      {% set valuestr = "---" %}
                     {% endif %}
-                  {% endfor %}
-                </tr>
-              </table>
-            </div>
-          {% endfor %}
+
+                    {% if reports[step, index][metric] %}
+                      {% set href_id = [step + index, metric, "ddmetlink"] | join("_") %}
+                      <td><a href="#" class="link-success" id="{{ href_id }}">{{ valuestr }}</a></td>
+                    {% else %}
+                      <td>{{ valuestr }}</td>
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            </table>
+          </div>
         {% endfor %}
       </div>
 

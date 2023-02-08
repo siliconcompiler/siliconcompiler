@@ -41,9 +41,7 @@ def make_docs():
     chip = siliconcompiler.Chip('<topmodule>')
     chip.set('option', 'flow', 'fpgaflow')
     chip.set('fpga', 'partname', 'ice40')
-    setup(chip)
-
-    return chip
+    return setup(chip)
 
 ############################################################################
 # Flowgraph Setup
@@ -57,54 +55,57 @@ def setup(chip, flowname='fpgaflow'):
 
     '''
 
+    flow = siliconcompiler.Flow(chip, flowname)
+
     # Check that fpga arch has been set for vpr flow or partname has been set for others
-    flow = ''
+    flowtype = ''
     if chip.get('fpga', 'arch'):
-        flow = 'vpr'
+        flowtype = 'vpr'
     elif chip.get('fpga', 'partname'):
         partname = chip.get('fpga', 'partname')
     else:
         chip.error('FPGA partname not specified', fatal=True)
 
-    # Set FPGA mode if not set
-    chip.set('option', 'mode', 'fpga')
-    
-    # Partname lookup for flows other than vpr   
-    if flow != 'vpr':
-        (vendor, flow) = flow_lookup(partname)
-        chip.set('fpga', 'vendor', vendor)
+    # Partname lookup for flows other than vpr
+    if flowtype != 'vpr':
+        _, flowtype = flow_lookup(partname)
 
     #Setting up pipeline
     #TODO: Going forward we want to standardize steps
-    if  flow in ('vivado', 'quartus'):
-        flowpipe = ['syn', 'place', 'route', 'bitstream']
-    elif flow =='vpr':
-        flowpipe = ['syn_vpr', 'pack-place-route', 'bitstream']
-        # flowpipe = ['syn_vpr', 'pack-place-route']
+    if  flowtype in ('vivado', 'quartus'):
+        flowpipe = ['syn_fpga', 'place', 'route', 'bitstream']
+    elif flowtype =='vpr':
+        flowpipe = ['syn_vpr', 'apr', 'bitstream']
+        # flowpipe = ['syn_vpr', 'apr']
     else:
-        flowpipe = ['syn', 'apr', 'bitstream']
+        flowpipe = ['syn_fpga', 'apr', 'bitstream']
 
     flowtools = setup_frontend(chip)
     for step in flowpipe:
-        flowtools.append((step, tool_lookup(flow, step)))
+        task = step
+        if (step == 'syn_vpr') and (flowtype == 'vpr'):
+            task = 'syn_fpga'
+        flowtools.append((step, tool_lookup(flowtype, step), task))
 
     # Minimal setup
     index = '0'
-    for step, tool in flowtools:
+    for step,tool,task in flowtools:
         # Flow
-        chip.node(flowname, step, tool)
-        if step != 'import':
-            chip.edge(flowname, prevstep, step)
+        flow.node(flowname, step, tool,task)
+        if task != 'import':
+            flow.edge(flowname, prevstep, step)
         # Hard goals
         for metric in ('errors','warnings','drvs','unconstrained',
                        'holdwns','holdtns', 'holdpaths',
                        'setupwns', 'setuptns', 'setuppaths'):
-            chip.set('flowgraph', flowname, step, index, 'goal', metric, 0)
+            flow.set('flowgraph', flowname, step, index, 'goal', metric, 0)
         # Metrics
         for metric in ('luts','dsps','brams','registers',
                        'pins','peakpower','leakagepower'):
-            chip.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
+            flow.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
         prevstep = step
+
+    return flow
 
 ##################################################
 
@@ -126,7 +127,7 @@ def flow_lookup(partname):
     artixultra = bool(re.match('^au', partname))
     kintex7 = bool(re.match('^xc7k', partname))
     kintexultra = bool(re.match('^xcku', partname))
-    zynq = bool(re.match('^z\-7', partname))
+    zynq = bool(re.match(r'^z\-7', partname))
     zynqultra = bool(re.match('^zu', partname))
     virtex7 = bool(re.match('^xc7v', partname))
     virtexultra = bool(re.match('^xcvu', partname))
@@ -185,7 +186,7 @@ def tool_lookup(flow, step):
 
     # open source ice40 flow
     if flow == "yosys-nextpnr":
-        if step == "syn":
+        if step == "syn_fpga":
             tool = "yosys"
         elif step == "apr":
             tool = "nextpnr"
@@ -203,7 +204,7 @@ def tool_lookup(flow, step):
     elif flow == 'vpr':
         if step == "syn_vpr":
             tool = "yosys"
-        elif step == "pack-place-route":
+        elif step == "apr":
             tool = "vpr"
         else:
             tool = "genfasm"

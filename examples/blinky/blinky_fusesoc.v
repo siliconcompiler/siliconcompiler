@@ -1,5 +1,5 @@
 module blinky
-  #(parameter clk_freq_hz = 0)
+  #(parameter clk_freq_hz = 256)
    (input  clk,
     output reg q = 1'b0);
 

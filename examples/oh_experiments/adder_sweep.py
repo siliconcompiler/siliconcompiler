@@ -1,6 +1,5 @@
-import siliconcompiler
-
 import os
+import siliconcompiler
 
 try:
     import matplotlib.pyplot as plt
@@ -20,15 +19,15 @@ def main():
     area = []
     for n in datawidths:
         chip = siliconcompiler.Chip(design)
-        chip.load_target('freepdk45_demo')
-        chip.add('input', 'verilog', source)
+        chip.load_target("freepdk45_demo")
+        chip.input(source)
         chip.set('option', 'quiet', True)
         chip.set('option','relax', True)
         chip.set('option','steplist', ['import', 'syn'])
         chip.set('option','param','N',str(n))
         chip.run()
 
-        area.append(chip.get('metric', 'syn', '0', 'cellarea'))
+        area.append(chip.get('metric', 'cellarea', step='syn', index='0'))
 
     if has_matplotlib:
         # Plot Data

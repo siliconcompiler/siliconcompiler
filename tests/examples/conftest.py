@@ -25,7 +25,7 @@ def setup_example_test(scroot, monkeypatch):
     def setup(dir):
         ex_dir = os.path.join(scroot, 'examples', dir)
 
-        def _mock_show(chip, filename=None, extra_options=None):
+        def _mock_show(chip, filename=None, screenshot=False):
             pass
 
         # pytest's monkeypatch lets us modify sys.path for this test only.

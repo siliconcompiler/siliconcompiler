@@ -1,12 +1,20 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
-import gzip
 import os
 import pytest
 from pyvirtualdisplay import Display
 import sys
 
 from unittest import mock
+
+def adjust_exe_options(chip, headless):
+    if not headless:
+        return
+
+    for step in ('show', 'screenshot'):
+        # adjust options to ensure programs exit
+        for tool in ('klayout', 'openroad'):
+            chip.set('tool', tool, 'task', step, 'var', step, '0', 'show_exit', 'true')
 
 @pytest.fixture
 def display():
@@ -20,56 +28,73 @@ def display():
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.parametrize('tool', ['klayout', 'openroad'])
 @pytest.mark.parametrize('project, testfile',
     [('freepdk45_demo', 'heartbeat_freepdk45.def'),
      ('skywater130_demo', 'heartbeat_sky130.def')])
-def test_show(project, testfile, datadir, display, headless=True):
+@pytest.mark.timeout(60)
+def test_show(project, testfile, tool, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target(project)
-    chip.set('option', "quiet", True)
 
-    if headless:
-        # Adjust command line options to exit KLayout after run
-        chip.set('tool', 'klayout', 'option', 'showdef', '0', ['-z', '-r'])
+    for ext in chip.getkeys('option', 'showtool'):
+        chip.set('option', 'showtool', ext, tool)
+
+    adjust_exe_options(chip, headless)
 
     path = os.path.join(datadir, testfile)
     assert chip.show(path)
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.parametrize('tool', ['klayout', 'openroad'])
+@pytest.mark.parametrize('project, testfile',
+    [('freepdk45_demo', 'heartbeat_freepdk45.def'),
+     ('skywater130_demo', 'heartbeat_sky130.def')])
+@pytest.mark.timeout(60)
+def test_screenshot(project, testfile, tool, datadir, display, headless=True):
+    chip = siliconcompiler.Chip('heartbeat')
+    chip.load_target(project)
+
+    for ext in chip.getkeys('option', 'showtool'):
+        chip.set('option', 'showtool', ext, tool)
+
+    adjust_exe_options(chip, headless)
+
+    path = os.path.join(datadir, testfile)
+    screenshot_path = chip.show(path, screenshot=True)
+    assert screenshot_path
+    assert os.path.exists(screenshot_path)
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(60)
 def test_show_lyp(datadir, display, headless=True):
     ''' Test sc-show with only a KLayout .lyp file for layer properties '''
 
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target(f'freepdk45_demo')
-    chip.set('option', 'quiet', True)
 
     # Remove the '.lyt' file
-    stackup = chip.get('asic', 'stackup')
+    stackup = chip.get('option', 'stackup')
     pdkname = chip.get('option', 'pdk')
-    chip.set('pdk', pdkname, 'layermap', 'klayout', stackup, 'def', 'gds', None)
+    chip.set('pdk', pdkname, 'layermap', 'klayout', 'def', 'gds', stackup, [])
 
-    if headless:
-        # Adjust command line options to exit KLayout after run
-        chip.set('tool', 'klayout', 'option', 'showdef', '0', ['-z', '-r'])
+    adjust_exe_options(chip, headless)
 
     path = os.path.join(datadir, 'heartbeat_freepdk45.def')
     assert chip.show(path)
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(60)
 def test_show_nopdk(datadir, display):
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target('freepdk45_demo')
-    chip.set('option', 'quiet', True)
-    # Adjust command line options to exit KLayout after run
-    chip.set('tool', 'klayout', 'option', 'showgds', '0', ['-z', '-r'])
 
-    # uncompress test file
-    testfile = 'heartbeat.gds'
-    with gzip.open(os.path.join(datadir, 'heartbeat.gds.gz'), 'rb') as gds_gz:
-        with open(testfile, 'wb') as gds:
-            gds.write(gds_gz.read())
+    testfile = os.path.join(datadir, 'heartbeat.gds.gz')
+
+    adjust_exe_options(chip, True)
 
     # For some reason, if we try to use monkeypath to modify the env, the
     # subprocess call performed by chip.show() doesn't use the patched env. We
@@ -81,7 +106,10 @@ def test_show_nopdk(datadir, display):
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir
-    test_show('freepdk45_demo', 'heartbeat_freepdk45.def', datadir(__file__),
-              None, headless=False)
-    test_show('skywater130_demo', 'heartbeat_sky130.def', datadir(__file__),
-              None, headless=False)
+    test_show('freepdk45_demo', 'heartbeat_freepdk45.def', 'klayout', datadir(__file__),
+              None, headless=True)
+    test_show('skywater130_demo', 'heartbeat_sky130.def', 'klayout', datadir(__file__),
+              None, headless=True)
+    test_screenshot('skywater130_demo', 'heartbeat_sky130.def', 'openroad', datadir(__file__),
+              None, headless=True)
+    test_show_nopdk(datadir(__file__), None)

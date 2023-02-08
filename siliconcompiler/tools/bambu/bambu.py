@@ -1,5 +1,4 @@
-import os
-import shutil
+import importlib
 
 import siliconcompiler
 
@@ -11,37 +10,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','import')
-    chip.set('arg','index','0')
+    step = 'import'
+    index = '0'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    setup = getattr(importlib.import_module('tools.bambu.import'), 'setup')
     setup(chip)
     return chip
-
-################################
-# Setup Tool (pre executable)
-################################
-
-def setup(chip):
-    ''' Sets up default settings on a per step basis
-    '''
-
-    tool = 'bambu'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    # Standard Setup
-    refdir = 'tools/'+tool
-    chip.set('tool', tool, 'exe', 'bambu')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=0.9.6', clobber=False)
-    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=False)
-    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
-    chip.set('tool', tool, 'option', step, index, [])
-
-    # Input/Output requirements
-    chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
-
-    # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input,c')
 
 def parse_version(stdout):
     # Long multiline output, but second-to-last line looks like:
@@ -61,19 +39,9 @@ def runtime_options(chip):
         cmdlist.append('-I' + value)
     for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('input', 'c'):
+    for value in chip.find_files('input', 'hll', 'c'):
         cmdlist.append(value)
 
     cmdlist.append('--top-fname=' + chip.top())
 
     return cmdlist
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    design = chip.top()
-    shutil.copy(f'{design}.v', os.path.join('outputs', f'{design}.v'))

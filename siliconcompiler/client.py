@@ -46,16 +46,29 @@ def remote_preprocess(chip):
         job_hash = uuid.uuid4().hex
         chip.status['jobhash'] = job_hash
 
-    # Setup up tools for all local functions
+    # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
     remote_steplist = chip.getkeys('flowgraph', flow)
-    local_step = remote_steplist[0]
-    indexlist = chip.getkeys('flowgraph', flow, local_step)
-    for index in indexlist:
-        tool = chip.get('flowgraph', flow, local_step, index, 'tool')
-        # Setting up tool is optional (step may be a builtin function)
-        if tool and tool not in chip.builtin:
-            chip._setup_tool(tool, local_step, index)
+    import_tasks = chip._get_steps_by_task()['import']
+    import_steps = []
+    for task_tuple in import_tasks:
+        if not task_tuple[0] in import_steps:
+            import_steps.append(task_tuple[0])
+    if remote_steplist[:len(import_steps)] != import_steps:
+        chip.error('Remote flows must be organized such that the "import" task(s) are run before '
+                  f'all other steps.\nFull steplist: {remote_steplist}\n'
+                  f'Import steplist: {import_steps}', fatal=True)
+    # Setup up tools for all local functions
+    for local_step in import_steps:
+        indexlist = chip.getkeys('flowgraph', flow, local_step)
+        for index in indexlist:
+            task = chip._get_task(local_step, index)
+            tool = chip.get('flowgraph', flow, local_step, index, 'tool')
+            # Setting up tool is optional (step may be a builtin function)
+            if tool and not chip._is_builtin(tool, task):
+                chip._setup_tool(tool, task, local_step, index)
+        # Remove each local step from the list of steps to run on the server side.
+        remote_steplist.remove(local_step)
 
         # Need to override steplist here to make sure check_manifest() doesn't
         # check steps that haven't been setup.
@@ -68,7 +81,8 @@ def remote_preprocess(chip):
         chip._runtask(local_step, index, {})
 
     # Set 'steplist' to only the remote steps, for the future server-side run.
-    remote_steplist = remote_steplist[1:]
+    chip.unset('arg', 'step')
+    chip.unset('arg', 'index')
     chip.set('option', 'steplist', remote_steplist, clobber=True)
 
 ###################################
@@ -115,7 +129,7 @@ def remote_run(chip):
               else:
                   chip.logger.info(f"Job is still running (%d seconds, step: unknown)"%(
                                    int(time.monotonic() - step_start)))
-      except:
+      except Exception:
           # Sometimes an exception is raised if the request library cannot
           # reach the server due to a transient network issue.
           # Retrying ensures that jobs don't break off when the connection drops.
@@ -133,7 +147,7 @@ def request_remote_run(chip):
 
     # Use authentication if necessary.
     post_params = {
-        'chip_cfg': chip.cfg,
+        'chip_cfg': chip.schema.cfg,
         'params': {
             'job_hash': chip.status['jobhash'],
         }
@@ -145,7 +159,7 @@ def request_remote_run(chip):
         post_params['params']['key'] = rcfg['password']
 
     # If '-remote_user' and '-remote_key' are not both specified,
-    # no authorizaion is configured; proceed without crypto.
+    # no authorization is configured; proceed without crypto.
     # If they were specified, these files are now encrypted.
     subprocess.run(['tar',
                     '-czf',

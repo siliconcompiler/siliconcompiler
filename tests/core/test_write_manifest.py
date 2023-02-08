@@ -8,11 +8,11 @@ import siliconcompiler
 def test_write_manifest():
 
     chip = siliconcompiler.Chip('top')
-    chip.add('input', 'sdc','top.sdc')
-    chip.add('input', 'verilog', 'top.v')
-    chip.add('input', 'verilog', 'a.v')
-    chip.add('input', 'verilog', 'b.v')
-    chip.add('input', 'verilog', 'c.v')
+    chip.input('top.sdc')
+    chip.input('top.v')
+    chip.input('a.v')
+    chip.input('b.v')
+    chip.input('c.v')
 
     chip.write_manifest('top.pkg.json')
     chip.write_manifest('top.csv')
@@ -34,14 +34,14 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
     chip.set('package', 'description', desc)
 
     # Test tuples
-    chip.add('asic', 'diearea', (0, 0))
-    chip.add('asic', 'diearea', (30, 40))
+    chip.add('constraint', 'outline', (0, 0))
+    chip.add('constraint', 'outline', (30, 40))
 
     # Test bools
     chip.set('option', 'quiet', True)
 
     # Test envvars
-    chip.set('input', 'verilog', 'rtl/$TOPMOD.v')
+    chip.input('rtl/$TOPMOD.v')
 
     chip.write_manifest('top.tcl')
 
@@ -61,13 +61,13 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
     expected_desc = '{' + desc + '}'
     assert tcl_eval('[dict get $sc_cfg package description]') == expected_desc
 
-    assert tcl_eval('[lindex [lindex [dict get $sc_cfg asic diearea] 1] 0]') == '30.0'
+    assert tcl_eval('[lindex [lindex [dict get $sc_cfg constraint outline] 1] 0]') == '30.0'
     assert tcl_eval('[dict get $sc_cfg option quiet]') == 'true'
-    assert tcl_eval('[dict get $sc_cfg input verilog]') == 'rtl/design.v'
+    assert tcl_eval('[dict get $sc_cfg input rtl verilog]') == 'rtl/design.v'
 
 def test_csv():
     chip = siliconcompiler.Chip('test')
-    chip.set('input', 'verilog', 'source.v')
+    chip.input('source.v')
 
     chip.write_manifest('test.csv')
 
@@ -82,7 +82,7 @@ def test_csv():
             if keypath == 'design':
                 assert val == 'test'
                 design_found = True
-            elif keypath == 'input,verilog':
+            elif keypath == 'input,rtl,verilog':
                 assert val == 'source.v'
                 input_found = True
     assert design_found

@@ -10,16 +10,16 @@ def test_basic(scroot, datadir):
     chip = siliconcompiler.Chip('heartbeat')
 
     v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
-    chip.set('input', 'verilog', v_src)
+    chip.input(v_src)
     c_src = os.path.join(datadir, 'heartbeat_tb.cpp')
-    chip.set('input', 'c', c_src)
+    chip.input(c_src)
 
     chip.set('option', 'mode', 'sim')
 
     # Basic Verilator compilation flow
     flow = 'verilator_compile'
-    chip.node(flow, 'import', 'surelog')
-    chip.node(flow, 'compile', 'verilator')
+    chip.node(flow, 'import', 'surelog', 'import')
+    chip.node(flow, 'compile', 'verilator', 'compile')
     chip.edge(flow, 'import', 'compile')
     chip.set('option', 'flow', flow)
 

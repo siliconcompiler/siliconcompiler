@@ -3,7 +3,7 @@ import os
 import shutil
 
 from siliconcompiler.core import Chip
-from siliconcompiler.floorplan import Floorplan
+from siliconcompiler.flows import mpwflow
 
 ###
 # Example Skywater130 / "Caravel" macro hardening with SiliconCompiler
@@ -41,8 +41,8 @@ CARAVEL_ROOT = '/path/to/caravel'
 def configure_chip(design):
     # Minimal Chip object construction.
     chip = Chip(design)
-    chip.load_target('skywater130_demo')
-    chip.load_flow('mpwflow')
+    chip.target("skywater130_demo")
+    chip.use(mpwflow)
     chip.set('option', 'flow', 'mpwflow')
     return chip
 
@@ -51,7 +51,7 @@ def build_core():
     # We can skip a detailed floorplan and let the router connect top-level I/O signals.
     core_chip = configure_chip('heartbeat')
     design = core_chip.get('design')
-    core_chip.set('input', 'verilog', 'heartbeat.v')
+    core_chip.input('heartbeat.v')
     core_chip.set('tool', 'openroad', 'var', 'floorplan', '0', 'pin_thickness_h', ['2'])
     core_chip.set('tool', 'openroad', 'var', 'floorplan', '0', 'pin_thickness_v', ['2'])
     core_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
@@ -94,9 +94,9 @@ def build_top():
     chip.clock('user_clock2', period=20)
 
     # Set top-level source files.
-    chip.set('input', 'verilog', f'{CARAVEL_ROOT}/verilog/rtl/defines.v')
-    chip.add('input', 'verilog', 'heartbeat.bb.v')
-    chip.add('input', 'verilog', 'user_project_wrapper.v')
+    chip.input(f'{CARAVEL_ROOT}/verilog/rtl/defines.v')
+    chip.input('heartbeat.bb.v')
+    chip.input('user_project_wrapper.v')
 
     # Set top-level die/core area.
     chip.set('asic', 'diearea', (0, 0))
@@ -119,7 +119,7 @@ def build_top():
     chip.import_library(heartbeat_lib)
 
     # Use pre-defined floorplan for the wrapper..
-    chip.set('input', 'floorplan.def', f'{CARAVEL_ROOT}/def/user_project_wrapper.def')
+    chip.set('input', 'asic', 'floorplan.def', f'{CARAVEL_ROOT}/def/user_project_wrapper.def')
 
     # (No?) filler cells in the top-level wrapper.
     #chip.set('library', 'sky130hd', 'cells', 'filler', [])
@@ -127,7 +127,6 @@ def build_top():
 
     # (No?) tapcells in the top-level wrapper.
     libtype = 'unithd'
-    #chip.cfg['pdk']['aprtech']['openroad'][stackup][libtype].pop('tapcells')
 
     # No I/O buffers in the top-level wrapper, but keep tie-hi/lo cells.
     #chip.set('library', 'sky130hd', 'cells', 'tie', [])

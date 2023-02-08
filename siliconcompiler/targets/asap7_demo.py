@@ -1,4 +1,5 @@
 import siliconcompiler
+from siliconcompiler.targets import utils
 
 def make_docs():
     '''
@@ -10,50 +11,51 @@ def make_docs():
     setup(chip)
     return chip
 
-def setup(chip):
+def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
     ASAP7 Demo Target
     '''
 
-    #0. Defining the project
-    target = 'asap7_demo'
-    chip.set('option', 'target', target)
+    asic_flow_args = {
+        "syn_np": syn_np,
+        "floorplan_np": floorplan_np,
+        "physyn_np": physyn_np,
+        "place_np": place_np,
+        "cts_np": cts_np,
+        "route_np": route_np
+    }
 
-    #2. Load PDK, flow, libs combo
-    chip.load_pdk('asap7')
-    chip.load_flow('asicflow')
-    chip.load_lib('asap7sc7p5t')
+    #1. Load PDK, flow, libs combo
+    from pdks import asap7
+    from flows import asicflow
+    from libs import asap7sc7p5t
+    chip.use(asap7)
+    chip.use(asicflow, **asic_flow_args)
+    chip.use(asap7sc7p5t)
+
+    #2. Setup default show tools
+    utils.set_common_showtools(chip)
 
     #3. Select default flow/PDK
+    chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow')
     chip.set('option', 'pdk', 'asap7')
+    chip.set('option', 'stackup', '10M')
 
     #4. Select libraries
     chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt')
 
     #5. Project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('asic', 'stackup', '10M')
-    chip.set('asic', 'minlayer', "m2")
-    chip.set('asic', 'maxlayer', "m7")
-    chip.set('asic', 'maxfanout', 64)
-    chip.set('asic', 'maxlength', 1000)
-    chip.set('asic', 'maxslew', 0.2e-9)
-    chip.set('asic', 'maxcap', 0.2e-12)
-    chip.set('asic', 'rclayer', 'clk', "m5")
-    chip.set('asic', 'rclayer', 'data',"m3")
-    chip.set('asic', 'hpinlayer', "m4")
-    chip.set('asic', 'vpinlayer', "m5")
-    chip.set('asic', 'density', 10)
-    chip.set('asic', 'aspectratio', 1)
-    chip.set('asic', 'coremargin', 0.270)
+    chip.set('constraint', 'density', 10)
+    chip.set('constraint', 'coremargin', 0.270)
 
-    #5. Timing corners
+    #6. Timing corners
     corner = 'typical'
-    chip.set('constraint','worst','libcorner', corner)
-    chip.set('constraint','worst','pexcorner', corner)
-    chip.set('constraint','worst','mode', 'func')
-    chip.set('constraint','worst','check', ['setup','hold'])
+    chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
+    chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)
+    chip.set('constraint', 'timing', 'worst', 'mode', 'func')
+    chip.set('constraint', 'timing', 'worst', 'check', ['setup','hold'])
 
 #########################
 if __name__ == "__main__":

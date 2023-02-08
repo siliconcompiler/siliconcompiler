@@ -2,6 +2,7 @@ import base64
 import os
 import shlex
 import subprocess
+import stat
 import time
 
 ###########################################################################
@@ -16,30 +17,14 @@ def _deferstep(chip, step, index, status):
 
     # Determine which HPC job scheduler being used.
     scheduler_type = chip.get('option', 'jobscheduler')
-    username = chip.status['slurm_account']
-    partition = chip.status['slurm_partition']
+
+    # Determine which cluster parititon to use. (Default value can be overridden on per-step basis)
+    if f'{step}_slurm_partition' in chip.status:
+        partition = chip.status[f'{step}_slurm_partition']
+    else:
+        partition = chip.status['slurm_partition']
+    # Get the temporary UID associated with this job run.
     job_hash = chip.status['jobhash']
-    if scheduler_type == 'slurm':
-        # The script defining this Chip object may specify feature(s) to
-        # ensure that the job runs on a specific subset of available nodes.
-        if 'slurm_constraint' in chip.status:
-            slurm_constraint = chip.status['slurm_constraint']
-        else:
-            slurm_constraint = 'SHARED'
-        # Set the log file location.
-        output_file = os.path.join(chip.get('design'),
-                                   chip.get('option', 'jobname'),
-                                   f'sc_remote-{step}-{index}.log')
-        schedule_cmd = ['sbatch', '--exclusive',
-                       '--constraint', slurm_constraint,
-                       '--account', username,
-                       '--partition', partition,
-                       '--chdir', chip.get('option', 'builddir'),
-                       '--job-name', f'{job_hash}_{step}{index}',
-                       '--output', output_file]
-    elif scheduler_type == 'lsf':
-        # TODO: LSF support is untested and currently unsupported.
-        schedule_cmd = ['lsrun']
 
     # Job data is not encrypted, so it can be run in shared storage.
     # Write out the current schema for the compute node to pick up.
@@ -50,21 +35,58 @@ def _deferstep(chip, step, index, status):
         os.mkdir(cfg_dir)
     chip.write_manifest(cfg_file)
 
+    if scheduler_type == 'slurm':
+        # The script defining this Chip object may specify feature(s) to
+        # ensure that the job runs on a specific subset of available nodes.
+        if 'slurm_constraint' in chip.status:
+            slurm_constraint = chip.status['slurm_constraint']
+        else:
+            slurm_constraint = 'SHARED'
+
+        # Set the log file location.
+        # TODO: May need to prepend ('option', 'builddir') and remove the '--chdir' arg if
+        # running on a locally-managed cluster control node instead of submitting to a server app.
+        #output_file = os.path.join(chip.get('option', 'builddir'),
+        output_file = os.path.join(chip.get('design'),
+                                   chip.get('option', 'jobname'),
+                                   f'sc_remote-{step}-{index}.log')
+        schedule_cmd = ['sbatch', '--exclusive',
+                       '--constraint', slurm_constraint,
+                       '--partition', partition,
+                       '--chdir', chip.get('option', 'builddir'),
+                       '--job-name', f'{job_hash}_{step}{index}',
+                       '--output', output_file,
+                       ]
+        # Only specify an account if accounting is required for this cluster/run.
+        if 'slurm_account' in chip.status:
+            username = chip.status['slurm_account']
+            schedule_cmd.extend(['--acount', username])
+    elif scheduler_type == 'lsf':
+        # TODO: LSF support is untested and currently unsupported.
+        schedule_cmd = ['lsrun']
+
     # Create a command to defer execution to a compute node.
     script_path = f'{cfg_dir}/{step}{index}.sh'
     with open(script_path, 'w') as sf:
         sf.write('#!/bin/bash\n')
         sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
-                    f"-jobscheduler '' -design {shlex.quote(chip.top())}")
+                    f"-jobscheduler '' -design {shlex.quote(chip.top())}\n")
+        # In case of error(s) which prevents the SC build script from completing, ensure the
+        # file mutex for job completion is set in shared storage. This lockfile signals the server
+        # to mark the job done, without putting load on the cluster reporting/accounting system.
+        sf.write(f'touch {os.path.dirname(output_file)}/done')
+
+    # This is Python for: `chmod +x [script_path]`
+    fst = os.stat(script_path)
+    os.chmod(script_path, fst.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     schedule_cmd.append(script_path)
 
     # Run the 'srun' command, and track its output.
+    # TODO: output should be fed to log, and stdout if quiet = False
     step_result = subprocess.Popen(schedule_cmd,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT)
-
-    # TODO: output should be fed to log, and stdout if quiet = False
 
     # Wait for the subprocess call to complete. It should already be done,
     # as it has closed its output stream. But if we don't call '.wait()',
@@ -73,6 +95,7 @@ def _deferstep(chip, step, index, status):
     result_msg = step_result.stdout.read().decode()
     sbatch_id = result_msg.split(' ')[-1].strip()
     retcode = 0
+
     while True:
         # Return early with an error if the batch ID is not an integer.
         if not sbatch_id.isdigit():
@@ -104,7 +127,10 @@ def _deferstep(chip, step, index, status):
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT)
         jobout = jobcheck.stdout.decode()
-        if ('RUNNING' in jobout) or ('PENDING' in jobout):
+
+        # With native autoscaling, job can be 'PENDING', 'CONFIGURING', or 'COMPLETING'
+        # while the scale-up/down scripts are running.
+        if ('RUNNING' in jobout) or ('PENDING' in jobout) or ('CONFIGURING' in jobout) or ('COMPLETING' in jobout):
             if 'watchdog' in chip.status:
                 chip.status['watchdog'].set()
         elif 'COMPLETED' in jobout:

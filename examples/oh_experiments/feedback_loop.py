@@ -14,11 +14,11 @@ def main():
 
     # Plugging design into SC
     chip = siliconcompiler.Chip(design)
-    chip.add('input', 'verilog', rootdir+'/mathlib/hdl/'+design+'.v')
+    chip.input(rootdir+'/mathlib/hdl/'+design+'.v')
     chip.set('option', 'param', 'N', str(N))
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
-    chip.load_target('freepdk45_demo')
+    chip.load_target("freepdk45_demo")
 
     # First run (import + run)
     steplist = ['import', 'syn']
@@ -51,8 +51,8 @@ def main():
         chip.run()
 
         # Query current run and last run
-        new_area = chip.get('metric', step, index, 'cellarea')
-        old_area = chip.get('metric', step, index, 'cellarea', job=oldid)
+        new_area = chip.get('metric', 'cellarea', step=step, index=index)
+        old_area = chip.get('metric', 'cellarea', job=oldid, step=step, index=index)
 
         # compare result
         print(N, new_area, old_area, newid, chip.get('option', 'jobname'))

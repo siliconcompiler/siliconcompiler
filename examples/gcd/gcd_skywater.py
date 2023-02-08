@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import siliconcompiler
 
 import os
@@ -11,7 +13,7 @@ def main():
     # Create instance of Chip class
     chip = siliconcompiler.Chip("gcd")
 
-    chip.add('input', 'verilog', 'gcd.v')
+    chip.input('gcd.v')
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 
@@ -24,8 +26,9 @@ def main():
 
     # 1) RTL2GDS
 
-    def_path = make_floorplan(chip)
-    chip.set('input', 'floorplan.def', def_path)
+    # Disabled due to segfault in sky130
+    #def_path = make_floorplan(chip)
+    #chip.set('input', 'asic', 'floorplan.def', def_path)
 
     chip.set('option', 'jobname', 'rtl2gds')
     chip.run()
@@ -39,8 +42,8 @@ def main():
     chip.set('option', 'jobname', 'signoff')
     chip.set('option', 'flow', 'signoffflow')
 
-    chip.set('input', 'gds', gds_path)
-    chip.set('input', 'netlist', vg_path)
+    chip.input(gds_path)
+    chip.input(vg_path)
 
     chip.run()
     chip.summary()
@@ -60,12 +63,14 @@ def main():
     for step in chip.getkeys('flowgraph', 'asicflow'):
         for index in chip.getkeys('flowgraph', 'asicflow', step):
             tool = chip.get('flowgraph', 'asicflow', step, index, 'tool')
-            if tool not in chip.builtin:
+            task = chip._get_task(step, index, flow='asicflow')
+            if not chip._is_builtin(tool, task):
                 chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'task', ('rtl2gds', step, index))
     for step in chip.getkeys('flowgraph', 'signoffflow'):
         for index in chip.getkeys('flowgraph', 'signoffflow', step):
             tool = chip.get('flowgraph', 'signoffflow', step, index, 'tool')
-            if tool not in chip.builtin:
+            task = chip._get_task(step, index, flow='signoffflow')
+            if not chip._is_builtin(tool, task):
                 chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'task', ('signoff', step, index))
 
     status = chip.check_checklist('oh_tapeout')

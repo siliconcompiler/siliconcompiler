@@ -1,3 +1,5 @@
+import importlib
+
 import siliconcompiler
 
 #####################################################################
@@ -20,41 +22,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','import')
-    chip.set('arg','index','<index>')
+    step = 'import'
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    setup = getattr(importlib.import_module('tools.ghdl.import'), 'setup')
     setup(chip)
     return chip
-
-################################
-# Setup Tool (pre executable)
-################################
-
-def setup(chip):
-    ''' Per tool function that returns a dynamic options string based on
-    the dictionary settings.
-    '''
-
-    # Standard Setup
-    tool = 'ghdl'
-    clobber = False
-
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    chip.set('tool', tool, 'exe', 'ghdl')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=2.0.0-dev', clobber=clobber)
-    chip.set('tool', tool, 'threads', step, index, '4', clobber=clobber)
-    chip.set('tool', tool, 'option', step, index, '', clobber=clobber)
-    chip.set('tool', tool, 'stdout', step, index, 'destination', 'output')
-    chip.set('tool', tool, 'stdout', step, index, 'suffix', 'v')
-
-    # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input,vhdl')
-
-    design = chip.top()
-
-    chip.set('tool', tool, 'output', step, index, f'{design}.v')
 
 ################################
 #  Custom runtime options
@@ -67,6 +44,7 @@ def runtime_options(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = step
 
     options = []
 
@@ -79,8 +57,8 @@ def runtime_options(chip):
     # currently only -fsynopsys and --latches supported
     valid_extraopts = ['-fsynopsys', '--latches']
 
-    if chip.valid('tool', 'ghdl', 'var', step, index, 'extraopts'):
-        extra_opts = chip.get('tool', 'ghdl', 'var', step, index, 'extraopts')
+    if chip.valid('tool', 'ghdl', 'task', task, 'var', step, index, 'extraopts'):
+        extra_opts = chip.get('tool', 'ghdl', 'task', task, 'var', step, index, 'extraopts')
         for opt in extra_opts:
             if opt in valid_extraopts:
                 options.append(opt)
@@ -88,7 +66,7 @@ def runtime_options(chip):
                 chip.error('Unsupported option ' + opt)
 
     # Add sources
-    for value in chip.find_files('input', 'vhdl'):
+    for value in chip.find_files('input', 'rtl', 'vhdl'):
         options.append(value)
 
     # Set top module

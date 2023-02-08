@@ -10,9 +10,11 @@ def setup(chip):
     design = chip.get('design')
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    #TODO fix
+    task = step
 
-    chip.set('tool', tool, 'input', step, index, f'{design}.vg')
-    chip.set('tool', tool, 'output', step, index, f'{design}.vg')
+    chip.set('tool', tool, 'task', task, 'input', step, index, f'{design}.vg')
+    chip.set('tool', tool, 'task', task,  'output', step, index, f'{design}.vg')
 
 def run(chip):
     design = chip.get('design')

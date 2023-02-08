@@ -37,18 +37,19 @@ def chip():
             elif step == 'import':
                 chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
             else:
-                chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
-                chip.set('flowgraph', flow, step, str(index), 'input', (flowpipe[i-1],'0'))
+                chip.node(flow, step, tools[step], step, index=index)
+                chip.edge(flow, flowpipe[i-1], step, tail_index=0, head_index=index)
             #weight
             chip.set('flowgraph', flow, step, str(index), 'weight', 'cellarea', 1.0)
             #goal
             chip.set('flowgraph', flow, step, str(index), 'goal', 'setupwns', 0.0)
-            chip.set('metric', step, str(index), 'setupwns', 0.0)
+            chip.set('metric', 'setupwns', 0.0, step=step, index=index)
 
     # creating fake syn results
     for index in range(N):
         for metric in chip.getkeys('flowgraph', flow, 'syn', str(index), 'weight'):
-            chip.set('metric', 'syn', str(index), metric, 1000-index*1 + 42.0)
+            if metric != 'setupwns':
+                chip.set('metric', metric, 1000-index*1 + 42.0, step='syn', index=index)
 
     return chip
 
@@ -114,7 +115,7 @@ def test_winner_fails_goal_negative(chip):
     flow = chip.get('option', 'flow')
     N = len(chip.getkeys('flowgraph', flow, 'syn'))
 
-    chip.set('metric', 'syn', '9', 'setupwns', -1)
+    chip.set('metric', 'setupwns', -1, step='syn', index='9')
 
     steplist = []
     for i in range(N):
@@ -130,7 +131,7 @@ def test_winner_fails_goal_positive(chip):
     N = len(chip.getkeys('flowgraph', flow, 'syn'))
 
     chip.set('flowgraph', flow, 'syn', '9', 'goal', 'errors', 0)
-    chip.set('metric', 'syn', '9', 'errors', 1)
+    chip.set('metric', 'errors', 1, step='syn', index='9')
 
     steplist = []
     for i in range(N):
@@ -140,3 +141,6 @@ def test_winner_fails_goal_positive(chip):
 
     # winner should be second-best, not syn9
     assert winner == ('syn', '8')
+
+if __name__ == "__main__":
+    test_minimum(chip())

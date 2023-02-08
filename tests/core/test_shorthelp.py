@@ -6,7 +6,7 @@ def test_help():
     '''
 
     chip = siliconcompiler.Chip('test')
-    allkeys = chip.getkeys()
+    allkeys = chip.allkeys()
     for key in allkeys:
         shorthelp=chip.get(*key, field='shorthelp')
         typestr=chip.get(*key, field='type')

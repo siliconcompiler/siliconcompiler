@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import platform
 import shutil
+import sys
 
 import siliconcompiler
 
@@ -24,8 +25,11 @@ def make_docs():
 
     chip = siliconcompiler.Chip('<design>')
     chip.load_target('freepdk45_demo')
-    chip.set('arg','step','export')
-    chip.set('arg','index','<index>')
+    step = 'export'
+    index = '<index>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'task', '<task>')
     setup(chip)
 
     return chip
@@ -43,6 +47,8 @@ def setup(chip, mode="batch"):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = chip._get_task(step, index)
+    clobber = False
 
     if platform.system() == 'Windows':
         klayout_exe = 'klayout_app.exe'
@@ -78,67 +84,26 @@ def setup(chip, mode="batch"):
     else:
         klayout_exe = 'klayout'
 
-    if mode == 'show':
-        clobber = False
-        script = 'klayout_show.py'
-        option = ['-nc', '-rm']
-    else:
-        clobber = False
-        script = 'klayout_export.py'
-        option = ['-b', '-r']
-
+    # common to all
     chip.set('tool', tool, 'exe', klayout_exe)
     chip.set('tool', tool, 'vswitch', ['-zz', '-v'])
     # Versions < 0.27.6 may be bundled with an incompatible version of Python.
     chip.set('tool', tool, 'version', '>=0.27.6', clobber=clobber)
     chip.set('tool', tool, 'format', 'json', clobber=clobber)
-    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=clobber)
-    chip.set('tool', tool, 'script', step, index, script, clobber=clobber)
-    chip.set('tool', tool, 'option', step, index, option, clobber=clobber)
+
+    chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=clobber)
 
     # Export GDS with timestamps by default.
-    chip.set('tool', tool, 'var', step, index, 'timestamps', 'true', clobber=False)
-
-    design = chip.top()
-
-    # Input/Output requirements for default flow
-    if step in ['export']:
-        if (not chip.valid('input', 'def') or
-            not chip.get('input', 'def')):
-            chip.add('tool', tool, 'input', step, index, design + '.def')
-        chip.add('tool', tool, 'output', step, index, design + '.gds')
-
-    # Adding requirements
-    if mode != 'show':
-        targetlibs = chip.get('asic', 'logiclib')
-        stackup = chip.get('asic', 'stackup')
-        pdk = chip.get('option', 'pdk')
-        if bool(stackup) & bool(targetlibs):
-            macrolibs = chip.get('asic', 'macrolib')
-
-            chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
-            chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'stackup']))
-            chip.add('tool', tool, 'require', step, index,  ",".join(['pdk', pdk, 'layermap', 'klayout', 'def','gds', stackup]))
-
-            for lib in (targetlibs + macrolibs):
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'gds', stackup]))
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model', 'layout', 'lef', stackup]))
-        else:
-            chip.error(f'Stackup and targetlib paremeters required for Klayout.')
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'timestamps', 'true', clobber=False)
 
     # Log file parsing
-    chip.set('tool', tool, 'regex', step, index, 'warnings', r'(WARNING|warning)', clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', r'ERROR', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'(WARNING|warning)', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'ERROR', clobber=False)
 
-################################
-#  Custom runtime options
-################################
-
-def runtime_options(chip):
-    '''
-    Custom runtime options, returns list of command line options.
-    '''
-    return []
+    # Override $KLAYOUT_PYTHONPATH with the user's PYTHONPATH to ensure scripts
+    # have access to SC
+    chip.set('tool', tool, 'task', task, 'env', step, index, 'KLAYOUT_PYTHONPATH',
+             os.pathsep.join(sys.path), clobber=False)
 
 ################################
 # Version Check
@@ -148,6 +113,22 @@ def parse_version(stdout):
     # KLayout 0.26.11
     return stdout.split()[1]
 
+def find_incoming_ext(chip):
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    flow = chip.get('option', 'flow')
+
+    supported_ext = ('gds', 'oas', 'def')
+
+    for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
+        for ext in supported_ext:
+            show_file = chip.find_result(ext, step=input_step, index=input_index)
+            if show_file:
+                return ext
+
+    # Nothing found, just add last one
+    return supported_ext[-1]
 
 ##################################################
 if __name__ == "__main__":

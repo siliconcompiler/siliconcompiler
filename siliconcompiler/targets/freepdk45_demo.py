@@ -1,4 +1,5 @@
 import siliconcompiler
+from siliconcompiler.targets import utils
 
 ############################################################################
 # DOCS
@@ -19,54 +20,53 @@ def make_docs():
 # PDK Setup
 ####################################################
 
-def setup(chip):
+def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
     Target setup
     '''
 
-    #0. Defining the project
-    chip.set('option', 'target', 'freepdk45_demo')
+    asic_flow_args = {
+        "syn_np": syn_np,
+        "floorplan_np": floorplan_np,
+        "physyn_np": physyn_np,
+        "place_np": place_np,
+        "cts_np": cts_np,
+        "route_np": route_np
+    }
 
-    #1. Setting to ASIC mode
-    chip.set('option', 'mode','asic')
+    #1. Load PDK, flow, libs combo
+    from pdks import freepdk45
+    from flows import lintflow, asicflow, asictopflow
+    from libs import nangate45
+    chip.use(freepdk45)
+    chip.use(lintflow)
+    chip.use(asicflow, **asic_flow_args)
+    chip.use(asictopflow)
+    chip.use(nangate45)
 
-    #2. Load PDK, flow, libs combo
-    chip.load_pdk('freepdk45')
-    chip.load_flow('lintflow')
-    chip.load_flow('asicflow')
-    chip.load_flow('asictopflow')
-    chip.load_lib('nangate45')
+    #2. Setup default show tools
+    utils.set_common_showtools(chip)
 
     #3. Set flow and pdk
+    chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'freepdk45')
+    chip.set('option', 'stackup', '10M')
 
     #4. Select libraries
     chip.set('asic', 'logiclib', 'nangate45')
 
-    #5. Set project specific design choices
-    chip.set('asic', 'stackup', '10M')
+    #5 Set project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('asic', 'minlayer', "m1")
-    chip.set('asic', 'maxlayer', "m10")
-    chip.set('asic', 'maxfanout', 64)
-    chip.set('asic', 'maxlength', 1000)
-    chip.set('asic', 'maxslew', 0.2e-9)
-    chip.set('asic', 'maxcap', 0.2e-12)
-    chip.set('asic', 'rclayer', 'clk', "m5")
-    chip.set('asic', 'rclayer', 'data',"m3")
-    chip.set('asic', 'hpinlayer', "m3")
-    chip.set('asic', 'vpinlayer', "m2")
-    chip.set('asic', 'density', 10)
-    chip.set('asic', 'aspectratio', 1)
-    chip.set('asic', 'coremargin', 1.9)
+    chip.set('constraint', 'density', 10)
+    chip.set('constraint', 'coremargin', 1.9)
 
     #6. Timing corners
     corner = 'typical'
-    chip.set('constraint','worst','libcorner', corner)
-    chip.set('constraint','worst','pexcorner', corner)
-    chip.set('constraint','worst','mode', 'func')
-    chip.set('constraint','worst','check', ['setup','hold'])
+    chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
+    chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)
+    chip.set('constraint', 'timing', 'worst', 'mode', 'func')
+    chip.set('constraint', 'timing', 'worst', 'check', ['setup','hold'])
 
 #########################
 if __name__ == "__main__":

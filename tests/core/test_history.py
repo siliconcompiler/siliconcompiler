@@ -4,13 +4,15 @@ import siliconcompiler
 def test_history(datadir):
 
     chip = siliconcompiler.Chip('gcd')
+    chip.load_target('freepdk45_demo')
 
-    # mandatory to have manifest loaded
-    manifest = os.path.join(datadir, 'gcd.pkg.json')
-    chip.read_manifest(manifest)
+    # Set values in manifest
+    chip.set('metric', 'utilization', 10, step='floorplan', index='0')
 
     # record history
-    chip.record_history()
+    chip.schema.record_history()
+
+    assert chip.get('history', 'job0', 'metric', 'utilization', step='floorplan', index='0') == 10
 
     # record new manifest
     chip.write_manifest("history.json")

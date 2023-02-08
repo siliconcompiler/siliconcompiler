@@ -1,4 +1,5 @@
 import siliconcompiler
+from siliconcompiler.targets import utils
 
 ############################################################################
 # DOCS
@@ -19,57 +20,55 @@ def make_docs():
 # PDK Setup
 ####################################################
 
-def setup(chip):
+def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
     Skywater130 Demo Target
     '''
 
-    #0. Defining the project
-    project = 'skywater130_demo'
-    chip.set('option', 'target', project)
+    asic_flow_args = {
+        "syn_np": syn_np,
+        "floorplan_np": floorplan_np,
+        "physyn_np": physyn_np,
+        "place_np": place_np,
+        "cts_np": cts_np,
+        "route_np": route_np
+    }
 
-    #1. Setting to ASIC mode
-    chip.set('option', 'mode','asic')
+    #1. Load PDK, flow, libs
+    from pdks import skywater130
+    from flows import asicflow, asictopflow, signoffflow
+    from libs import sky130hd
+    from checklists.oh_tapeout import oh_tapeout
+    chip.use(skywater130)
+    chip.use(asicflow, **asic_flow_args)
+    chip.use(asictopflow)
+    chip.use(signoffflow)
+    chip.use(sky130hd)
+    chip.use(oh_tapeout)
 
-    #2. Load PDK, flow, libs
-    chip.load_pdk('skywater130')
-    chip.load_flow('asicflow')
-    chip.load_flow('asictopflow')
-    chip.load_flow('signoffflow')
-    chip.load_lib('sky130hd')
-    chip.load_checklist('oh_tapeout')
+    #2. Setup default show tools
+    utils.set_common_showtools(chip)
 
     #3. Set default targets
+    chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'skywater130')
+    chip.set('option', 'stackup', '5M1LI')
 
     #4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
 
-    #5. et project specific design choices
+    #5. get project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('asic', 'stackup', '5M1LI')
-    # TODO: how does LI get taken into account?
-    chip.set('asic', 'minlayer', "m1")
-    chip.set('asic', 'maxlayer', "m5")
-    chip.set('asic', 'maxfanout', 5) # TODO: fix this
-    chip.set('asic', 'maxlength', 21000)
-    chip.set('asic', 'maxslew', 1.5e-9)
-    chip.set('asic', 'maxcap', .1532e-12)
-    chip.set('asic', 'rclayer', 'clk', 'm5')
-    chip.set('asic', 'rclayer', 'data', 'm3')
-    chip.set('asic', 'hpinlayer', "m3")
-    chip.set('asic', 'vpinlayer', "m2")
-    chip.set('asic', 'density', 10)
-    chip.set('asic', 'aspectratio', 1)
-    chip.set('asic', 'coremargin', 4.6)
+    chip.set('constraint', 'density', 10)
+    chip.set('constraint', 'coremargin', 4.6)
 
-    #5. Timing corners
+    #6. Timing corners
     corner = 'typical'
-    chip.set('constraint', 'worst', 'libcorner', corner)
-    chip.set('constraint', 'worst', 'pexcorner', corner)
-    chip.set('constraint', 'worst', 'mode', 'func')
-    chip.add('constraint', 'worst', 'check', ['setup','hold'])
+    chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
+    chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)
+    chip.set('constraint', 'timing', 'worst', 'mode', 'func')
+    chip.add('constraint', 'timing', 'worst', 'check', ['setup','hold'])
 
 #########################
 if __name__ == "__main__":

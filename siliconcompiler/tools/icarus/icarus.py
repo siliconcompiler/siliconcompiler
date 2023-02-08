@@ -1,5 +1,3 @@
-import os
-
 import siliconcompiler
 
 ####################################################################
@@ -21,41 +19,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step', 'run')
-    chip.set('arg','index', '<index>')
+    step = 'compile'
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    from tools.icarus.compile import setup
     setup(chip)
     return chip
-
-################################
-# Setup Tool (pre executable)
-################################
-
-def setup(chip):
-    ''' Per tool function that returns a dynamic options string based on
-    the dictionary settings.
-    '''
-
-    # If the 'lock' bit is set, don't reconfigure.
-    tool = 'icarus'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    design = chip.top()
-
-    # Standard Setup
-    chip.set('tool', tool, 'exe', 'iverilog')
-    chip.set('tool', tool, 'vswitch', '-V')
-    chip.set('tool', tool, 'version', '>=10.3', clobber=False)
-    chip.set('tool', tool, 'threads', step, index, os.cpu_count(), clobber=False)
-
-    if step == 'compile':
-        chip.set('tool', tool, 'option', step, index,'-o outputs/'+design+'.vvp')
-    elif step == 'run':
-        chip.set('tool', tool, 'option', step, index, '')
-    else:
-        chip.logger.error(f"Step '{step}' not supported in Icarus tool")
-
-    # Schema requirements
-    chip.add('tool', tool, 'require', step, index, 'input,verilog')
 
 ################################
 #  Custom runtime options
@@ -79,7 +52,7 @@ def runtime_options(chip):
         cmdlist.append('-D' + value)
     for value in chip.find_files('option','cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('input', 'verilog'):
+    for value in chip.find_files('input', 'rtl', 'verilog'):
         cmdlist.append(value)
 
     return cmdlist

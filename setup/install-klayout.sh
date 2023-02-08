@@ -10,6 +10,8 @@ if [ "$version" = "18.04" ]; then
     url=https://www.klayout.org/downloads/Ubuntu-18/klayout_${pkg_version}_amd64.deb
 elif [ "$version" = "20.04" ]; then
     url=https://www.klayout.org/downloads/Ubuntu-20/klayout_${pkg_version}_amd64.deb
+elif [ "$version" = "22.04" ]; then
+    url=https://www.klayout.org/downloads/Ubuntu-22/klayout_${pkg_version}_amd64.deb
 else
     echo "Script doesn't support Ubuntu version $version."
 fi
@@ -22,7 +24,5 @@ sudo apt-get install -y libqt5core5a libqt5designer5 libqt5gui5 libqt5multimedia
        libqt5sql5 libqt5svg5 libqt5widgets5 libqt5xml5 libqt5xmlpatterns5 libruby2.7
 # Install package
 sudo dpkg -i klayout_${pkg_version}_amd64.deb
-
-echo "Please add \"export QT_QPA_PLATFORM=offscreen\" to your .bashrc"
 
 cd -

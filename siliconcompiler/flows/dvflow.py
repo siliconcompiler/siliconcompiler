@@ -1,5 +1,3 @@
-import os
-import re
 import siliconcompiler
 
 ############################################################################
@@ -20,7 +18,7 @@ def make_docs():
     * **compare**: The outputs of the sim and refsim are compared
     * **signoff**: Parallel verification pipelines are merged and checked
 
-    The dvflow can be parametrized using a single 'np' flowarg parameter.
+    The dvflow can be parametrized using a single 'np' parameter.
     Setting 'np' > 1 results in multiple independent verificaiton
     pipelines to be launched.
 
@@ -28,20 +26,19 @@ def make_docs():
 
     chip = siliconcompiler.Chip('<topmodule>')
     chip.set('option', 'flow', 'dvflow')
-    setup(chip)
-
-    return chip
+    return setup(chip, np=5)
 
 #############################################################################
 # Flowgraph Setup
 #############################################################################
-def setup(chip, flow='dflow'):
+def setup(chip, np=1):
     '''
     Setup function for 'dvflow'
     '''
 
     # Definting a flow
-    flow = 'dvflow'
+    flowname = 'dvflow'
+    flow = siliconcompiler.Flow(chip, flowname)
 
     # A simple linear flow
     flowpipe = ['import',
@@ -53,50 +50,43 @@ def setup(chip, flow='dflow'):
                 'signoff']
 
     tools = {
-        'import': 'verilator',
-        'compile': 'verilator',
-        'testgen': 'verilator',
-        'refsim': 'verilator',
-        'sim': 'verilator',
-        'compare': 'verilator',
-        'signoff': 'verify'
+        'import': ('verilator', 'import'),
+        'compile': ('verilator', 'compile'),
+        'testgen': ('verilator', 'testgen'),
+        'refsim': ('verilator', 'refsim'),
+        'sim': ('verilator', 'sim'),
+        'compare': ('verilator', 'compare'),
+        'signoff': ('verify', 'signoff')
     }
-
-
-    # Parallelism
-    if 'np' in chip.getkeys('arg', 'flow'):
-        np = int(chip.get('arg', 'flow', 'np')[0])
-    else:
-        np = 1
-
-    # Setting mode as 'sim'
-    chip.set('option', 'mode', 'sim')
 
     # Flow setup
     for step in flowpipe:
+        tool, task = tools[step]
         #start
         if step == 'import':
-            chip.set('flowgraph', flow, step, '0', 'tool', tools[step])
+            flow.node(flowname, step, tool, task)
         #serial
         elif step == 'compile':
-            chip.set('flowgraph', flow, step, '0', 'tool', tools[step])
-            chip.set('flowgraph', flow, step, '0', 'input', ('import', '0'))
+            flow.node(flowname, step, tool, task)
+            flow.edge(flowname, prevstep, step)
         #fork
         elif step == 'testgen':
             for index in range(np):
-                chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
-                chip.set('flowgraph', flow, step, str(index), 'input', ('compile', '0'))
+                flow.node(flowname, step, tool, task, index=index)
+                flow.edge(flowname, prevstep, step, head_index=index)
         #join
         elif step == 'signoff':
-            chip.set('flowgraph', flow, step, '0', 'tool', tools[step])
+            flow.node(flowname, step, tool, task)
             for index in range(np):
-                chip.add('flowgraph', flow, step, '0', 'input', (prevstep, str(index)))
+                flow.edge(flowname, prevstep, step, tail_index=index)
         else:
             for index in range(np):
-                chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
-                chip.set('flowgraph', flow, step, str(index), 'input', (prevstep, str(index)))
+                flow.node(flowname, step, tool, task, index=index)
+                flow.edge(flowname, prevstep, step, head_index=index, tail_index=index)
 
         prevstep = step
+
+    return flow
 
 ##################################################
 if __name__ == "__main__":

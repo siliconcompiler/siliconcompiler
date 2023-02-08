@@ -2,6 +2,7 @@ import pytest
 import re
 
 @pytest.mark.eda
+@pytest.mark.skip(reason='Skipping until fixed in openroad')
 def test_gcd_infer_diesize(gcd_chip):
     '''Test inferring diesize from density/aspectratio/margin arguments
     '''

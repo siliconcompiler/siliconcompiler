@@ -11,7 +11,7 @@ def test_env(monkeypatch):
     chip = siliconcompiler.Chip('test')
     # File doesn't need to resolve, just need to put something in the schema so
     # we don't fail the initial static check_manifest().
-    chip.add('input', 'verilog', 'fake.v')
+    chip.input('fake.v')
     chip.load_target('freepdk45_demo')
     chip.set('option', 'steplist', 'import')
 
@@ -23,7 +23,7 @@ def test_env(monkeypatch):
         chip._init_logger(step, index, in_run=True)
 
         # Ensure env variable is propagated to tasks
-        assert os.environ['TEST'] == 'hello'
+        assert os.getenv('TEST') == 'hello'
 
         # Logic to make sure chip.run() registers task as success
 
@@ -36,4 +36,4 @@ def test_env(monkeypatch):
     chip.run()
 
     # Ensure env variable is set in current process
-    assert os.environ['TEST'] == 'hello'
+    assert 'TEST' not in os.environ

@@ -1,1 +1,6 @@
-sc heartbeat.v heartbeat.sdc -design heartbeat -target "freepdk45_demo"
+#!/bin/bash
+
+sc -design heartbeat \
+   heartbeat.v \
+   heartbeat.sdc \
+   -target "freepdk45_demo"

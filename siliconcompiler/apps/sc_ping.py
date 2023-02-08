@@ -42,7 +42,7 @@ def main():
            (not 'address' in remote_cfg):
             print('Error reading remote configuration file.')
             sys.exit(1)
-    except:
+    except Exception:
         print('Error reading remote configuration file.')
         sys.exit(1)
 
@@ -79,7 +79,7 @@ def main():
         print(f'  Remaining compute time: {(user_info["compute_time"]/60.0):.2f} minutes')
         print(f'  Remaining results bandwidth: {user_info["bandwidth_kb"]} KiB')
         return
-    except:
+    except Exception:
         print('Error fetching user information from the remote server.')
         sys.exit(1)
 

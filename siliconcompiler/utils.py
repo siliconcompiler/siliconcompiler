@@ -5,6 +5,8 @@ import sys
 import xml.etree.ElementTree as ET
 import re
 
+PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 def copytree(src, dst, ignore=[], dirs_exist_ok=False, link=False):
     '''Simple implementation of shutil.copytree to give us a dirs_exist_ok
     option in Python < 3.8.
@@ -81,6 +83,47 @@ def terminate_process(pid, timeout=3):
         # If processes are still alive after timeout seconds, send more
         # aggressive signal.
         p.kill()
+
+def escape_val_tcl(val, typestr):
+    '''Recursive helper function for converting Python values to safe TCL
+    values, based on the SC type string.'''
+    if val is None:
+        return ''
+    elif typestr.startswith('('):
+        # Recurse into each item of tuple
+        subtypes = typestr.strip('()').split(',')
+        valstr = ' '.join(escape_val_tcl(v, subtype.strip())
+                          for v, subtype in zip(val, subtypes))
+        return f'[list {valstr}]'
+    elif typestr.startswith('['):
+        # Recurse into each item of list
+        subtype = typestr.strip('[]')
+        valstr = ' '.join(escape_val_tcl(v, subtype) for v in val)
+        return f'[list {valstr}]'
+    elif typestr == 'bool':
+        return 'true' if val else 'false'
+    elif typestr == 'str':
+        # Escape string by surrounding it with "" and escaping the few
+        # special characters that still get considered inside "". We don't
+        # use {}, since this requires adding permanent backslashes to any
+        # curly braces inside the string.
+        # Source: https://www.tcl.tk/man/tcl8.4/TclCmd/Tcl.html (section [4] on)
+        escaped_val = (val.replace('\\', '\\\\') # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
+                            .replace('[', '\\[')   # escape '[' to avoid command substition
+                            .replace('$', '\\$')   # escape '$' to avoid variable substition
+                            .replace('"', '\\"'))  # escape '"' to avoid string terminating early
+        return '"' + escaped_val + '"'
+    elif typestr in ('file', 'dir'):
+        # Replace $VAR with $env(VAR) for tcl
+        val = re.sub(r'\$(\w+)', r'$env(\1)', val)
+        # Same escapes as applied to string, minus $ (since we want to resolve env vars).
+        escaped_val = (val.replace('\\', '\\\\') # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
+                            .replace('[', '\\[')   # escape '[' to avoid command substition
+                            .replace('"', '\\"'))  # escape '"' to avoid string terminating early
+        return '"' +  escaped_val + '"'
+    else:
+        # floats/ints just become strings
+        return str(val)
 
 # This class holds all the information about a single primitive defined in the FPGA arch file
 class PbPrimitive:
@@ -162,3 +205,100 @@ def get_file_ext(filename):
         filename = os.path.splitext(filename)[0]
     filetype = os.path.splitext(filename)[1].lower().lstrip('.')
     return filetype
+
+def get_default_iomap():
+    """
+    Default input file map for SC with filesets and extensions
+    """
+
+    # Record extensions:
+
+    # High level languages
+    hll_c = ('c', 'cc', 'cpp', 'c++', 'cp', 'cxx', 'hpp')
+    hll_bsv = ('bsv',)
+    hll_scala = ('scala',)
+    hll_python = ('py',)
+
+    # Register transfer languages
+    rtl_verilog = ('v', 'sv', 'verilog')
+    rtl_vhdl = ('vhd', 'vhdl')
+
+    # Timing libraries
+    timing_liberty = ('lib', 'ccs')
+
+    # Layout
+    layout_def = ('def',)
+    layout_lef = ('lef',)
+    layout_gds = ('gds', 'gds2', 'gdsii')
+    layout_oas = ('oas', 'oasis')
+    layout_gerber = ('gbr', 'gerber')
+    layout_odb = ('odb',)
+
+    # Netlist
+    netlist_cdl = ('cdl',)
+    netlist_sp = ('sp', 'spice')
+    netlist_verilog = ('vg',)
+
+    # Waveform
+    waveform_vcd = ('vcd',)
+
+    # Constraint
+    constraint_sdc = ('sdc', )
+
+    # FPGA constraints
+    fpga_xdc = ('xdc',)
+    fpga_pcf = ('pcf',)
+
+    # Build default map with fileset and type
+    default_iomap = {}
+    default_iomap.update({ext: ('hll', 'c') for ext in hll_c})
+    default_iomap.update({ext: ('hll', 'bsv') for ext in hll_bsv})
+    default_iomap.update({ext: ('hll', 'scala') for ext in hll_scala})
+    default_iomap.update({ext: ('hll', 'python') for ext in hll_python})
+
+    default_iomap.update({ext: ('rtl', 'verilog') for ext in rtl_verilog})
+    default_iomap.update({ext: ('rtl', 'vhdl') for ext in rtl_vhdl})
+
+    default_iomap.update({ext: ('timing', 'liberty') for ext in timing_liberty})
+
+    default_iomap.update({ext: ('layout', 'def') for ext in layout_def})
+    default_iomap.update({ext: ('layout', 'lef') for ext in layout_lef})
+    default_iomap.update({ext: ('layout', 'gds') for ext in layout_gds})
+    default_iomap.update({ext: ('layout', 'oas') for ext in layout_oas})
+    default_iomap.update({ext: ('layout', 'gerber') for ext in layout_gerber})
+    default_iomap.update({ext: ('layout', 'odb') for ext in layout_odb})
+
+    default_iomap.update({ext: ('netlist', 'cdl') for ext in netlist_cdl})
+    default_iomap.update({ext: ('netlist', 'sp') for ext in netlist_sp})
+    default_iomap.update({ext: ('netlist', 'verilog') for ext in netlist_verilog})
+
+    default_iomap.update({ext: ('waveform', 'vcd') for ext in waveform_vcd})
+
+    default_iomap.update({ext: ('constraint', 'sdc') for ext in constraint_sdc})
+
+    default_iomap.update({ext: ('fpga', 'xdc') for ext in fpga_xdc})
+    default_iomap.update({ext: ('fpga', 'pcf') for ext in fpga_pcf})
+
+    return default_iomap
+
+
+def format_fileset_type_table(indent=12):
+    '''
+    Generate a table to use in the __doc__ of the input function which auto
+    updates based on the iomap
+    '''
+    table  = "filetype  | fileset    | suffix (case insensitive)\n"
+    indent = " " * indent
+    table += f"{indent}----------|------------|---------------------------------------------\n"
+
+    iobytype = {}
+    for ext, settype in get_default_iomap().items():
+        fileset, filetype = settype
+        iobytype.setdefault((fileset, filetype), []).append(ext)
+
+    for settype, exts in iobytype.items():
+        fileset, filetype = settype
+        ext = ",".join(exts)
+        table += f"{indent}{filetype:<10}| {fileset:<11}| {ext}\n"
+
+    return table

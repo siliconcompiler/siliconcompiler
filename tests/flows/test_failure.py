@@ -9,10 +9,10 @@ def chip(datadir):
     chip = siliconcompiler.Chip('bad', loglevel='NOTSET')
 
     # Inserting value into configuration
-    chip.add('input', 'verilog', os.path.join(datadir, 'bad.v'))
+    chip.input(os.path.join(datadir, 'bad.v'))
     chip.set('design', 'bad')
-    chip.set('asic', 'diearea', [(0, 0), (10, 10)])
-    chip.set('asic', 'corearea', [(1, 1), (9, 9)])
+    chip.set('constraint', 'outline', [(0, 0), (10, 10)])
+    chip.set('constraint', 'corearea', [(1, 1), (9, 9)])
     chip.load_target("freepdk45_demo")
 
     chip.add('option', 'steplist', 'import')

@@ -15,3 +15,8 @@ if {[string match {ice*} $sc_partname]} {
 } else {
     yosys script "${build_dir}/${sc_design}/${job_name}/${step}/${index}/inputs/vpr_yosyslib/synthesis.ys"
 }
+
+# turn off echo to prevent the stat command from showing up in the json file
+yosys echo off
+yosys tee -o ./reports/stat.json stat -json -top $sc_design
+yosys echo on

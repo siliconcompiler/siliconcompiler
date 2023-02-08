@@ -1,6 +1,4 @@
 import os
-import sys
-import re
 import siliconcompiler
 
 def make_docs():
@@ -42,9 +40,8 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('asap7')
-    setup(chip)
 
-    return chip
+    return setup(chip)
 
 def setup(chip):
     '''
@@ -60,83 +57,55 @@ def setup(chip):
     libtype = '7p5t'
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
+    pdk = siliconcompiler.PDK(chip, process)
+
     # process name
-    chip.set('pdk', process, 'foundry', foundry)
-    chip.set('pdk', process, 'node', node)
-    chip.set('pdk', process, 'wafersize', wafersize)
-    chip.set('pdk', process, 'version', rev)
-    chip.set('pdk', process, 'stackup', stackup)
+    pdk.set('pdk', process, 'foundry', foundry)
+    pdk.set('pdk', process, 'node', node)
+    pdk.set('pdk', process, 'wafersize', wafersize)
+    pdk.set('pdk', process, 'version', rev)
+    pdk.set('pdk', process, 'stackup', stackup)
 
     # APR tech file
     for tool in ('openroad', 'klayout', 'magic'):
-        chip.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
-                 pdkdir+'/apr/asap7_tech.lef')
+        pdk.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
+                pdkdir+'/apr/asap7_tech.lef')
 
-    # Openroad APR setup files
-    chip.set('pdk', process, 'aprtech', 'openroad', stackup, libtype, 'tracks',
-             pdkdir + '/apr/openroad_tracks.tcl')
-    chip.set('pdk', process, 'aprtech', 'openroad', stackup, libtype, 'tapcells',
-             pdkdir + '/apr/openroad_tapcells.tcl')
+    pdk.set('pdk', process, 'minlayer', stackup, 'M2')
+    pdk.set('pdk', process, 'maxlayer', stackup, 'M7')
 
     # Klayout setup file
-    chip.set('pdk', process, 'layermap','klayout','def','gds',stackup,
-             pdkdir+'/setup/klayout/asap7.lyt')
+    pdk.set('pdk', process, 'layermap','klayout','def','gds',stackup,
+            pdkdir+'/setup/klayout/asap7.lyt')
 
-    # Routing Grid Definitions
-    for layer, sc_name in [('M1', 'm1')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     1.0)
+    # Openroad global routing grid derating
+    openroad_layer_adjustments = {
+        'M1': 1.0,
+        'M2': 0.8,
+        'M3': 0.7,
+        'M4': 0.4,
+        'M5': 0.4,
+        'M6': 0.4,
+        'M7': 0.4,
+        'M8': 0.4,
+        'M9': 0.4
+    }
+    for layer, adj in openroad_layer_adjustments.items():
+        pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
-    for layer, sc_name in [('M2', 'm2')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.027)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.8)
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'M3')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'M5')
 
-    for layer, sc_name in [('M3', 'm3')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.7)
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'M5')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'M4')
 
-    for layer, sc_name in [('M4', 'm4')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.036)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.048)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
+    # PEX
+    pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
+        pdkdir + '/pex/openroad/typical.tcl')
+    pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, 'typical',
+        pdkdir + '/pex/openroad/rcx_patterns.rules')
 
-    for layer, sc_name in [('M5', 'm5')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.048)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.048)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-
-    for layer, sc_name in [('M6', 'm6')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.048)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.064)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-
-    for layer, sc_name in [('M7', 'm7')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.064)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.064)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-
-    for layer, sc_name in [('M8', 'm8'), ('M9', 'm9')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name', sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.08)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.08)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-
-    # Defaults for OpenROAD tool variables
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'place_density', ['0.77'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_global_place', ['2'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_detail_place', ['1'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_halo', ['22.4', '15.12'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_channel', ['18.8', '19.95'])
+    return pdk
 
 #########################
 if __name__ == "__main__":

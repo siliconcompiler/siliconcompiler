@@ -45,7 +45,7 @@ def test_gcd_server(gcd_chip):
     # Run the remote job.
     try:
         gcd_chip.run()
-    except:
+    except Exception:
         # Failures will be printed, and noted in the following assert.
         traceback.print_exc()
 

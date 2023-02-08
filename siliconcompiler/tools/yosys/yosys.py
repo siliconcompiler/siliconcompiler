@@ -1,9 +1,11 @@
 import os
 import re
+import json
 import shutil
 import importlib
 from jinja2 import Template
 import siliconcompiler
+import siliconcompiler.tools.yosys.markDontUse as markDontUse
 
 ######################################################################
 # Make Docs
@@ -27,8 +29,14 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step', 'syn')
-    chip.set('arg','index', '<index>')
+    # TODO: docs split by task
+    step = 'syn_asic'
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','step', step)
+    chip.set('arg','index', index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
     setup(chip)
     return chip
 
@@ -45,91 +53,131 @@ def setup(chip):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = chip._get_task(step, index)
+    design = chip.top()
 
     # Standard Setup
     chip.set('tool', tool, 'exe', 'yosys')
     chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=0.13', clobber=False)
+    chip.set('tool', tool, 'version', '>=0.24', clobber=False)
     chip.set('tool', tool, 'format', 'tcl', clobber=False)
-    chip.set('tool', tool, 'option', step, index, '-c', clobber=False)
-    chip.set('tool', tool, 'refdir', step, index, refdir, clobber=False)
 
-    if re.search(r'syn', step):
-        script = 'sc_syn.tcl'
-    elif re.search(r'lec', step):
-        script = 'sc_lec.tcl'
-    else:
-        # Emit a warning for unsupported yosys step, but allow execution to proceed.
-        # Users can configure their own flows involving yosys, but they will be responsible for
-        # setting appropriate schema values, including 'script'.
-        script = ''
-        chip.logger.warning(f'Unsupported yosys step: {step}.')
+    # Task Setup
+    # common to all
+    chip.set('tool', tool, 'task', task, 'option', step, index, '-c', clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', step, index, refdir, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', "Warning:", clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', "^ERROR", clobber=False)
+    for metric in ('cells', 'nets', 'pins'):
+        chip.set('tool', tool, 'task', task, 'report', step, index, metric, "reports/stat.json")
+    for metric in ('cellarea', 'errors', 'warnings', 'cellarea', 'drvs', 'coverage', 'security',
+                   'luts', 'dsps', 'brams', 'registers', 'buffers'):
+        chip.set('tool', tool, 'task', task, 'report', step, index, metric, f"{step}.log")
 
-    chip.set('tool', tool, 'script', step, index, script, clobber=False)
-
-    design = chip.top()
-
-    # Input/output requirements
-    if step.startswith('syn'):
-        # TODO: Our yosys script can also accept uhdm or ilang files. How do we
-        # represent a set of possible inputs where you must pick one?
-        chip.set('tool', tool, 'input', step, index, design + '.v')
-        chip.set('tool', tool, 'output', step, index, design + '.vg')
-        chip.add('tool', tool, 'output', step, index, design + '_netlist.json')
-        chip.add('tool', tool, 'output', step, index, design + '.blif')
-    elif step == 'lec':
-        if (not chip.valid('input', 'netlist') or
-            not chip.get('input', 'netlist')):
-            chip.set('tool', tool, 'input', step, index, design + '.vg')
-        if not chip.get('input', 'verilog'):
-            # TODO: Not sure this logic makes sense? Seems like reverse of
-            # what's in TCL
-            chip.set('tool', tool, 'input', step, index, design + '.v')
-
-    # Schema requirements
-    if chip.get('option', 'mode') == 'asic':
-        chip.add('tool', tool, 'require', step, index, ",".join(['asic', 'logiclib']))
-
-        targetlibs = chip.get('asic', 'logiclib')
-        for lib in targetlibs:
-            # mandatory for logiclibs
-            for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
-                chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model','timing', 'nldm', corner]))
-
-        macrolibs = chip.get('asic', 'macrolib')
-        for lib in macrolibs:
-            # optional for macrolibs
-            if chip.valid('library', lib, 'model', 'timing', 'nldm'):
-                for corner in chip.getkeys('library', lib, 'model', 'timing', 'nldm'):
-                    chip.add('tool', tool, 'require', step, index, ",".join(['library', lib, 'model','timing', 'nldm', corner]))
-    else:
-        chip.add('tool', tool, 'require', step, index, ",".join(['fpga','partname']))
-
-
-    # Setting up regex patterns
-    chip.set('tool', tool, 'regex', step, index, 'warnings', "Warning:", clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'errors', "^ERROR", clobber=False)
-
-    # Reports
-    for metric in ('errors', 'warnings', 'drvs', 'coverage', 'security',
-                   'luts', 'dsps', 'brams',
-                   'cellarea',
-                   'cells', 'registers', 'buffers', 'nets', 'pins'):
-        chip.set('tool', tool, 'report', step, index, metric, f"{step}.log")
-
-#############################################
-# Runtime pre processing
-#############################################
-
-def pre_process(chip):
+def setup_asic(chip):
+    ''' Helper method for configs specific to ASIC steps (both syn and lec).
+    '''
 
     tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = chip._get_task(step, index)
 
-    # copy the VPR library to the yosys input directory and render the placeholders
-    if chip.get('fpga', 'arch'):
-        create_vpr_lib(chip)
+    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['asic', 'logiclib']))
+
+    delaymodel = chip.get('asic', 'delaymodel')
+    syn_corner = get_synthesis_corner(chip)
+
+    if syn_corner is None:
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'synthesis_corner']))
+    if get_dff_liberty_file(chip) is None:
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'dff_liberty']))
+
+    if syn_corner is not None:
+    # add timing library requirements
+        for lib in chip.get('asic', 'logiclib'):
+            # mandatory for logiclibs
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', lib, 'output', syn_corner, delaymodel]))
+
+        for lib in chip.get('asic', 'macrolib'):
+            # optional for macrolibs
+            if not chip.valid('library', lib, 'output', syn_corner, delaymodel):
+                continue
+
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', lib, 'output', syn_corner, delaymodel]))
+
+    # set default control knobs
+    mainlib = chip.get('asic', 'logiclib')[0]
+    for option, value, additional_require in [('flatten', "True", None),
+                                              ('autoname', "True", None),
+                                              ('map_adders', "False", ['library', mainlib, 'option', 'file', 'yosys_addermap'])]:
+        chip.set('tool', tool, 'task', task, 'var', step, index, option, value, clobber=False)
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, option]))
+        if additional_require is not None and chip.get('tool', tool, 'task', task, 'var', step, index, option)[0] != "False":
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(additional_require))
+
+    # copy techmapping from libraries
+    for lib in chip.get('asic', 'logiclib') + chip.get('asic', 'macrolib'):
+        if not chip.valid('library', lib, 'option', 'file', 'yosys_techmap'):
+            continue
+        for techmap in chip.find_files('library', lib, 'option', 'file', 'yosys_techmap'):
+            if techmap is None:
+                continue
+            chip.add('tool', tool, 'task', task, 'var', step, index, 'techmap', techmap)
+
+    # Add conditionally required mainlib variables
+    if chip.valid('library', mainlib, 'option', 'var', 'yosys_buffer_cell'):
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'option', 'var', 'yosys_buffer_input']))
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', mainlib, 'option', 'var', 'yosys_buffer_output']))
+
+    for var0, var1 in [('yosys_tiehigh_cell', 'yosys_tiehigh_port'), ('yosys_tiehigh_cell', 'yosys_tiehigh_port')]:
+        key0 = ['library', mainlib, 'option', 'var', var0]
+        key1 = ['library', mainlib, 'option', 'var', var1]
+        if chip.valid(*key0):
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key1))
+        if chip.valid(*key1):
+            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(key0))
+
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner', get_synthesis_corner(chip), clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'dff_liberty', get_dff_liberty_file(chip), clobber=False)
+    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'synthesis_corner']))
+    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'dff_liberty']))
+
+    # Constants needed by yosys, do not allow overriding of values so force clobbering
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'dff_liberty_file', "inputs/sc_dff_library.lib", clobber=True)
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_file', "inputs/sc_abc.constraints", clobber=True)
+
+    abc_driver = get_abc_driver(chip)
+    if abc_driver:
+        chip.set('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver', abc_driver, clobber=False)
+    abc_clock_period = get_abc_period(chip)
+    if abc_clock_period:
+        chip.set('tool', tool, 'task', task, 'var', step, index, 'abc_clock_period', str(abc_clock_period), clobber=False)
+        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', step, index, 'abc_clock_period']))
+
+    # document parameters
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'preserve_modules', 'List of modules in input files to prevent flatten from "flattening"', field='help')
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'flatten', 'True/False, invoke synth with the -flatten option', field='help')
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'autoname', 'True/False, call autoname to rename wires based on registers', field='help')
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'map_adders', 'False/path to map_adders, techmap adders in Yosys', field='help')
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner', 'Timing corner to use for synthesis', field='help')
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'dff_liberty', 'Liberty file to use for flip-flop mapping, if not specified the first in the logiclib is used', field='help')
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver', 'Buffer that drives the abc techmapping, defaults to first buffer specified', field='help')
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_load', 'Capacitive load for the abc techmapping in fF, if not specified it will not be used', field='help')
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'abc_clock_period', 'Clock period to use for synthesis in ps, if more than one clock is specified, the smallest period is used.', field='help')
+    chip.set('tool', tool, 'task', task, 'var', step, index, 'abc_clock_derating', 'Used to derate the clock period to further constrain the clock, values between 0 and 1', field='help')
+
+def setup_fpga(chip):
+    ''' Helper method for configs specific to FPGA steps (both syn and lec).
+    '''
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    task = chip._get_task(step, index)
+
+    # Require that a partname is set for FPGA scripts.
+    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['fpga', 'partname']))
 
 ################################
 # Version Check
@@ -143,41 +191,6 @@ def normalize_version(version):
     # Replace '+', which represents a "local version label", with '-', which is
     # an "implicit post release number".
     return version.replace('+', '-')
-
-################################
-# Post_process (post executable)
-################################
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    # Extracting
-    if step.startswith('syn'):
-        #TODO: looks like Yosys exits on error, so no need to check metric
-        chip.set('metric', step, index, 'errors', 0, clobber=True)
-        with open(step + ".log") as f:
-            for line in f:
-                area = re.search(r'Chip area for module.*\:\s+(.*)', line)
-                cells = re.search(r'Number of cells\:\s+(.*)', line)
-                if area:
-                    chip.set('metric', step, index, 'cellarea', round(float(area.group(1)),2), clobber=True)
-                elif cells:
-                    chip.set('metric', step, index, 'cells', int(cells.group(1)), clobber=True)
-    elif step == 'lec':
-        with open(step + ".log") as f:
-            for line in f:
-                if line.endswith('Equivalence successfully proven!\n'):
-                    chip.set('metric', step, index, 'drvs', 0, clobber=True)
-                    continue
-
-                errors = re.search(r'Found a total of (\d+) unproven \$equiv cells.', line)
-                if errors is not None:
-                    num_errors = int(errors.group(1))
-                    chip.set('metric', step, index, 'drvs', num_errors, clobber=True)
-
 
 ################################
 # copy and render the VPR library
@@ -221,10 +234,296 @@ def create_vpr_lib(chip):
             with open(file, "w") as rendered_f:
                 rendered_f.write(template.render(data))
 
+################################
+# mark cells dont use and format liberty files for yosys and abc
+################################
+def prepare_synthesis_libraries(chip):
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    task = chip._get_task(step, index)
+    delaymodel = chip.get('asic', 'delaymodel')
+
+    corner = chip.get('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner')[0]
+
+
+    # mark dff libery file with dont use
+    dff_liberty_file = chip.get('tool', tool, 'task', task, 'var', step, index, 'dff_liberty')[0]
+    dff_dont_use = []
+    for lib in chip.get('asic', 'logiclib'):
+        dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse')
+        if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel):
+            # if we have the exact library, use those dontuses, otherwise continue to build full list
+            dff_dont_use = dontuse
+            break
+
+        dff_dont_use.extend(dontuse)
+
+    markDontUse.processLibertyFile(dff_liberty_file, chip.get('tool', tool, 'task', task, 'var', step, index, 'dff_liberty_file')[0], dff_dont_use, chip.get('option', 'quiet'))
+
+    #### Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
+
+    # mark libs with dont_use since ABC cannot get this information via its commands
+    # this also ensures the liberty files have been decompressed and corrected formatting
+    # issues that generally cannot be handled by yosys or yosys-abc
+    def get_synthesis_libraries(lib):
+        if chip.valid('library', lib, 'option', 'file', 'yosys_synthesis_libraries'):
+            synthesis_libraries = chip.find_files('library', lib, 'option', 'file', 'yosys_synthesis_libraries')
+        elif chip.valid('library', lib, 'output', corner, delaymodel):
+            synthesis_libraries = chip.find_files('library', lib, 'output', corner, delaymodel)
+        else:
+            synthesis_libraries = []
+
+        return synthesis_libraries
+
+    def process_lib_file(libtype, lib, lib_file, dont_use):
+        input_base_name = os.path.splitext(os.path.basename(lib_file))[0]
+        output_file = f"inputs/sc_{libtype}_{lib}_{input_base_name}.lib"
+        markDontUse.processLibertyFile(lib_file, output_file, dont_use, chip.get('option', 'quiet'))
+
+        var_name = 'synthesis_libraries'
+        if (libtype == "macrolib"):
+            var_name = 'synthesis_libraries_macros'
+
+        chip.add('tool', tool, 'task', task, 'var', step, index, var_name, output_file)
+
+    for libtype in ('logiclib', 'macrolib'):
+        for lib in chip.get('asic', libtype):
+            dont_use = chip.get('library', lib, 'asic', 'cells', 'dontuse')
+
+            for lib_file in get_synthesis_libraries(lib):
+                process_lib_file(libtype, lib, lib_file, dont_use)
+
+def create_abc_synthesis_constraints(chip):
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    task = chip._get_task(step, index)
+
+    abc_driver = None
+    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver'):
+        abc_driver = chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver')
+        if abc_driver:
+            abc_driver = abc_driver[0]
+
+    abc_load = None
+    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_load'):
+        abc_load = chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_load')
+        if abc_load:
+            abc_load = float(abc_load[0])
+
+    if not abc_driver and not abc_load:
+        # either is set so nothing to do
+        return
+
+    with open(chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_file')[0], "w") as f:
+        if abc_driver:
+            f.write(f"set_driving_cell {abc_driver}\n")
+        if abc_load:
+            # convert to fF
+            if chip.get('unit', 'capacitance')[0] == 'p':
+                abc_load *= 1000
+            f.write(f"set_load {abc_load}\n")
+
+def get_synthesis_corner(chip):
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    task = chip._get_task(step, index)
+
+    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner'):
+        return chip.get('tool', tool, 'task', task, 'var', step, index, 'synthesis_corner')[0]
+
+    # determine corner based on setup corner from constraints
+    corner = None
+    for constraint in chip.getkeys('constraint', 'timing'):
+        if "setup" in chip.get('constraint', 'timing', constraint, 'check') and not corner:
+            corner = chip.get('constraint', 'timing', constraint, 'libcorner')
+
+    if corner is None:
+        # try getting it from first constraint with a valid libcorner
+        for constraint in chip.getkeys('constraint', 'timing'):
+            if chip.valid('constraint', 'timing', constraint, 'libcorner') and not corner:
+                corner = chip.get('constraint', 'timing', constraint, 'libcorner')
+
+    if isinstance(corner, (list)):
+        corner = corner[0]
+
+    return corner
+
+def get_dff_liberty_file(chip):
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    task = chip._get_task(step, index)
+
+    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'dff_liberty'):
+        return chip.get('tool', tool, 'task', task, 'var', step, index, 'dff_liberty')[0]
+
+    corner = get_synthesis_corner(chip)
+    if corner is None:
+        return None
+
+    # if dff liberty file is not set, use the first liberty file defined
+    delaymodel = chip.get('asic', 'delaymodel')
+    for lib in chip.get('asic', 'logiclib'):
+        if not chip.valid('library', lib, 'output', corner, delaymodel):
+            continue
+
+        lib_files = chip.find_files('library', lib, 'output', corner, delaymodel)
+        if len(lib_files) > 0:
+            return lib_files[0]
+
+    return None
+
+
+def get_abc_period(chip):
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    task = chip._get_task(step, index)
+
+    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_clock_period'):
+        abc_clock_period = chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_clock_period')
+        if abc_clock_period:
+            return abc_clock_period[0]
+
+    period = None
+
+    # get clock information from sdc files
+    # TODO: fix for fpga/asic differentiation later
+    if chip.valid('input', 'constraint', 'sdc'):
+        for sdc in chip.find_files('input', 'constraint', 'sdc'):
+            lines = []
+            with open(sdc, 'r') as f:
+                lines = f.read().splitlines()
+
+            # TODO: handle line continuations
+            for line in lines:
+                clock_period = re.findall(r"create_clock.*-period\s+([0-9\.]+)", line)
+                if clock_period:
+                    clock_period = float(clock_period[0])
+
+                    if period is None:
+                        period = clock_period
+                    else:
+                        period = min(period, clock_period)
+
+    if period is None and chip.valid('clock'):
+        # get clock information from defined clocks
+        for clock in chip.getkeys('clock'):
+            if not chip.valid('clock', clock, 'period'):
+                continue
+
+            clock_period = float(chip.get('clock', clock, 'period'))
+            if period is None:
+                period = clock_period
+            else:
+                period = min(period, clock_period)
+
+    if period is None:
+        return None
+
+    # need period in PS
+    if chip.get('unit', 'time')[0] == 'n':
+        period *= 1000
+
+    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_clock_derating'):
+        derating = float(chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_clock_derating')[0])
+        if derating > 1:
+            chip.logger.warning("abc_clock_derating is greater than 1.0")
+        elif derating > 0:
+            period *= (1.0 - derating)
+        else:
+            chip.logger.error("abc_clock_derating is negative")
+
+    return int(period)
+
+def get_abc_driver(chip):
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    task = chip._get_task(step, index)
+
+    abc_driver = None
+    if chip.valid('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver') and \
+       chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver'):
+        abc_driver = chip.get('tool', tool, 'task', task, 'var', step, index, 'abc_constraint_driver')[0]
+
+    if abc_driver is None:
+        # get the first driver defined in the logic lib
+        for lib in chip.get('asic', 'logiclib'):
+            if chip.valid('library', lib, 'option', 'var', 'yosys_driver_cell') and not abc_driver:
+                abc_driver = chip.get('library', lib, 'option', 'var', 'yosys_driver_cell')[0]
+
+    return abc_driver
+
+
+def syn_setup(chip):
+    ''' Helper method for configs specific to synthesis tasks.
+    '''
+
+    # Generic tool setup.
+    setup(chip)
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    task = chip._get_task(step, index)
+    design = chip.top()
+
+    # Set yosys script path.
+    chip.set('tool', tool, 'task', task, 'script', step, index, 'sc_syn.tcl', clobber=False)
+
+    # Input/output requirements.
+    chip.set('tool', tool, 'task', task, 'input', step, index, design + '.v')
+    chip.set('tool', tool, 'task', task, 'output', step, index, design + '.vg')
+    chip.add('tool', tool, 'task', task, 'output', step, index, design + '_netlist.json')
+    chip.add('tool', tool, 'task', task, 'output', step, index, design + '.blif')
+
+##################################################
+def syn_post_process(chip):
+    ''' Tool specific function to run after step execution
+    '''
+
+    tool = 'yosys'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+
+    #TODO: looks like Yosys exits on error, so no need to check metric
+    chip.set('metric', 'errors', 0, step=step, index=index)
+    with open("reports/stat.json", 'r') as f:
+        metrics = json.load(f)
+        if "design" in metrics:
+            metrics = metrics["design"]
+
+        if "area" in metrics:
+            chip.set('metric', 'cellarea', float(metrics["area"]), step=step, index=index)
+        if "num_cells" in metrics:
+            chip.set('metric', 'cells', int(metrics["num_cells"]), step=step, index=index)
+
+    registers = None
+    with open(f"{step}.log", 'r') as f:
+        for line in f:
+            area_metric = re.findall(r"^SC_METRIC: area: ([0-9.]+)", line)
+            if area_metric:
+                chip.set('metric', 'cellarea', float(area_metric[0]), step=step, index=index)
+            line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
+            if line_registers:
+                if registers is None:
+                    registers = 0
+                registers += int(line_registers[0])
+    if registers is not None:
+        chip.set('metric', 'registers', registers, step=step, index=index)
+
 ##################################################
 if __name__ == "__main__":
 
     chip = make_docs()
     chip.write_manifest("yosys.json")
-
-

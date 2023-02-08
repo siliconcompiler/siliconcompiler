@@ -1,7 +1,7 @@
 import os
-import sys
 import time
 import siliconcompiler
+from siliconcompiler.flows import asicflow
 
 # Setting up the experiment
 
@@ -26,22 +26,22 @@ def main():
             wall_start = time.time()
             chip = siliconcompiler.Chip(design)
             chip.set('jobname', f"job{n}")
-            chip.load_target('skywater130_demo')
+            chip.load_target("skywater130_demo")
             chip.set('relax', True)
             chip.set('quiet', True)
             chip.set('remote',False)
 
             # load dsign
-            chip.add('source', os.path.join(rootdir, f"{design}.v"))
-            chip.add('constraint', os.path.join(rootdir, f"{design}.sdc"))
-            chip.set('asic', 'diearea', [(0,0), (size,size)])
-            chip.set('asic', 'corearea', [(10,10), (size-10,size-10)])
+            chip.input(os.path.join(rootdir, f"{design}.v"))
+            chip.input(os.path.join(rootdir, f"{design}.sdc"))
+            chip.set('constraint', 'outline', [(0,0), (size,size)])
+            chip.set('constraint', 'corearea', [(10,10), (size-10,size-10)])
 
             # load flow
             chip.set('flowarg', 'syn_np', n)
             chip.set('flowarg', 'place_np', n)
             chip.set('flowarg', 'cts_np', n)
-            chip.load_flow('asicflow')
+            chip.use(asicflow)
             chip.set('flow', 'asicflow')
 
             # Set router to 1 thread to not interfere with measurement

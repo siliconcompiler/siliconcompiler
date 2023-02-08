@@ -1,7 +1,9 @@
+#!/usr/bin/env python3
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import shutil
 
-from siliconcompiler.core import Chip
+from siliconcompiler import Chip, Library
+from siliconcompiler.libs import sky130io
 
 ###
 # Example build script: 'heartbeat' example with padring and pre-made .def floorplans.
@@ -20,10 +22,10 @@ SKY130IO_PREFIX = f'{SCROOT}/third_party/pdks/skywater/skywater130/libs/sky130io
 def configure_chip(design):
     # Minimal Chip object construction.
     chip = Chip(design)
-    chip.load_target('skywater130_demo')
+    chip.load_target("skywater130_demo")
 
     # Include I/O macro lib.
-    chip.load_lib('sky130io')
+    chip.use(sky130io)
     chip.add('asic', 'macrolib', 'sky130io')
 
     # Configure 'show' apps, and return the Chip object.
@@ -37,16 +39,14 @@ def build_core():
     core_chip.write_manifest('heartbeat_manifest.json')
 
     # Configure the Chip object for a full build.
-    core_chip.set('input', 'floorplan.def', 'floorplan/heartbeat.def', clobber=True)
-    core_chip.set('input', 'verilog', 'heartbeat.v')
-    core_chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
-    core_chip.set('tool', 'openroad', 'var', 'route', '0', 'grt_allow_congestion', ['true'])
+    core_chip.set('input', 'asic', 'floorplan.def', 'floorplan/heartbeat.def', clobber=True)
+    core_chip.input('heartbeat.v')
     core_chip.clock('clk', period=20)
 
     # Run the actual ASIC build flow with the resulting floorplan.
     core_chip.run()
     # (Un-comment to display a summary report)
-    #core_chip.summary()
+    core_chip.summary()
 
     # Copy stream files for padring integration.
     design = core_chip.top()
@@ -65,30 +65,35 @@ def build_top():
 
     # Configure inputs for the top-level design.
     libname = 'heartbeat'
-    stackup = chip.get('asic', 'stackup')
+    stackup = chip.get('option', 'stackup')
     chip.add('asic', 'macrolib', libname)
-    lib = Chip(libname)
-    lib.set('model', 'layout', 'lef', stackup, 'floorplan/heartbeat.lef')
-    lib.set('model', 'layout', 'gds', stackup, 'heartbeat.gds')
-    lib.set('output', 'netlist', 'heartbeat.vg')
-    chip.import_library(lib)
-    chip.set('input', 'def', 'floorplan/heartbeat_top.def')
 
-    chip.set('input', 'verilog', 'heartbeat_top.v')
-    chip.add('input', 'verilog', 'heartbeat.bb.v')
+    # TODO: Find a way to simplify importing an existing Chip object as a macro.
+    class heartbeat_core:
+        def setup(chip):
+            lib = Library(chip, libname)
+            lib.set('output', stackup, 'lef', 'floorplan/heartbeat.lef')
+            lib.set('output', stackup, 'gds', 'heartbeat.gds')
+            lib.output('heartbeat.vg')
+            return lib
+    chip.use(heartbeat_core)
+    chip.input('floorplan/heartbeat_top.def')
+
+    chip.input('heartbeat_top.v')
+    chip.input('heartbeat.bb.v')
     # (Padring sources needed for the 'syn' step of asictopflow)
-    chip.add('input', 'verilog', f'{OH_PREFIX}/padring/hdl/oh_padring.v')
-    chip.add('input', 'verilog', f'{OH_PREFIX}/padring/hdl/oh_pads_domain.v')
-    chip.add('input', 'verilog', f'{OH_PREFIX}/padring/hdl/oh_pads_corner.v')
-    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iobuf.v')
-    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iovdd.v')
-    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iovddio.v')
-    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iovss.v')
-    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iovssio.v')
-    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iocorner.v')
-    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iopoc.v')
-    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/asic_iocut.v')
-    chip.add('input', 'verilog', f'{SKY130IO_PREFIX}/io/sky130_io.blackbox.v')
+    chip.input(f'{OH_PREFIX}/padring/hdl/oh_padring.v')
+    chip.input(f'{OH_PREFIX}/padring/hdl/oh_pads_domain.v')
+    chip.input(f'{OH_PREFIX}/padring/hdl/oh_pads_corner.v')
+    chip.input(f'{SKY130IO_PREFIX}/io/asic_iobuf.v')
+    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovdd.v')
+    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovddio.v')
+    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovss.v')
+    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovssio.v')
+    chip.input(f'{SKY130IO_PREFIX}/io/asic_iocorner.v')
+    chip.input(f'{SKY130IO_PREFIX}/io/asic_iopoc.v')
+    chip.input(f'{SKY130IO_PREFIX}/io/asic_iocut.v')
+    chip.input(f'{SKY130IO_PREFIX}/io/sky130_io.blackbox.v')
 
     chip.write_manifest('top_manifest.json')
 
@@ -98,7 +103,7 @@ def build_top():
     # Run the top-level build.
     chip.run()
     # (Un-comment to display a summary report)
-    #chip.summary()
+    chip.summary()
 
 def main():
     # Build the core design, which gets placed inside the padring.

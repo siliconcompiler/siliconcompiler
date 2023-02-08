@@ -35,24 +35,34 @@ def test_setget():
     chip = siliconcompiler.Chip('test')
     error = 0
 
-    allkeys = chip.getkeys()
+    allkeys = chip.allkeys()
     for key in allkeys:
         sctype = chip.get(*key, field='type')
         examples = chip.get(*key, field='example')
+        pernode = chip.get(*key, field='pernode')
         if DEBUG:
             print(key, sctype, examples)
         for example in examples:
-            match = re.match(r'api\:\s+chip.(set|add|get)\((.*)\)', example)
+            if pernode != 'required':
+                match = re.match(r'api\:\s+chip.(set|add|get)\((.*)\)', example)
+            else:
+                match = re.match(r'api\:\s+chip.(set|add|get)\((.*), step=(.*), index=(.*)\)', example)
             if match is not None:
                 break
 
         assert match is not None, f'Illegal example for keypath {key}'
 
-        if match.group(1) == 'get':
+        if len(match.groups()) == 2:
+            method, argstring = match.groups()
+            step, index = None, None
+        else:
+            method, argstring, step, index = match.groups()
+
+        if method == 'get':
             continue
 
         # Remove ' and whitespace from args
-        argstring = re.sub(r'[\'\s]', '', match.group(2))
+        argstring = re.sub(r'[\'\s]', '', argstring)
 
         # Passing len(key) as second argument to split ensures we only split up
         # to len(key) commas, preserving tuple values.
@@ -63,11 +73,11 @@ def test_setget():
         if match.group(1) == 'set':
             if DEBUG:
                 print(*keypath, value)
-            chip.set(*keypath, value, clobber=True)
+            chip.set(*keypath, value, step=step, index=index, clobber=True)
         elif match.group(1) == 'add':
-            chip.add(*keypath, value)
+            chip.add(*keypath, value, step=step, index=index)
 
-        result = chip.get(*keypath)
+        result = chip.get(*keypath, step=step, index=index)
         assert result == value, f'Expected value {value} from keypath {keypath}. Got {result}.'
 
     chip.write_manifest('allvals.json')
@@ -76,8 +86,8 @@ def test_setget():
 
 def test_set_field_bool():
     chip = siliconcompiler.Chip('test')
-    chip.set('input', 'txt', False, field='copy')
-    assert chip.get('input', 'txt', field='copy') is False
+    chip.set('input', 'doc', 'txt', False, field='copy')
+    assert chip.get('input', 'doc', 'txt', field='copy') is False
 
 def test_getkeys_invalid_field():
     chip = siliconcompiler.Chip('test')
@@ -107,25 +117,88 @@ def test_get_invalid_field_continue():
 
 def test_set_valid_field_to_none():
     chip = siliconcompiler.Chip('test')
-    chip.set('option', 'jobscheduler', 'slurm')
-    chip.set('option', 'jobscheduler', None)
-    jobscheduler = chip.get('option', 'jobscheduler')
+    chip.set('option', 'scheduler', 'name', 'slurm')
+    chip.set('option', 'scheduler', 'name', None)
+    jobscheduler = chip.get('option', 'scheduler', 'name')
     assert jobscheduler == None
     assert chip._error == False
 
 def test_set_field_error():
     chip = siliconcompiler.Chip('test')
     chip.set('option', 'continue', True)
-    chip.set('input', 'txt', 'asdf', field='copy')
+    chip.set('input', 'doc', 'txt', 'asdf', field='copy')
     # expect copy flag unchanged and error triggered
-    assert chip.get('input', 'txt', field='copy') is True
+    assert chip.get('input', 'doc', 'txt', field='copy') is True
     assert chip._error == True
 
 def test_set_add_field_list():
     chip = siliconcompiler.Chip('test')
-    chip.set('input', 'txt', 'Alyssa P. Hacker', field='author')
-    chip.add('input', 'txt', 'Ben Bitdiddle', field='author')
-    assert chip.get('input', 'txt', field='author') == ['Alyssa P. Hacker', 'Ben Bitdiddle']
+    chip.set('input', 'doc', 'txt', 'Alyssa P. Hacker', field='author')
+    chip.add('input', 'doc', 'txt', 'Ben Bitdiddle', field='author')
+    assert chip.get('input', 'doc', 'txt', field='author') == ['Alyssa P. Hacker', 'Ben Bitdiddle']
+
+def test_no_clobber_false():
+    '''Regression test that clobber=False won't overwrite booleans that have
+    been explictly set to False.
+    https://github.com/siliconcompiler/siliconcompiler/issues/1146
+    '''
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'remote', False)
+    chip.set('option', 'remote', True, clobber=False)
+
+    assert chip.get('option', 'remote') == False
+
+def test_get_no_side_effect():
+    '''Test that get() of keypaths that don't exist yet doesn't create them.'''
+    chip = siliconcompiler.Chip('test')
+
+    # Surelog not set up yet
+    assert chip.getkeys('tool', 'surelog', 'task') == []
+
+    # Able to recover default value
+    assert chip.get('tool', 'surelog', 'task', 'import', 'stdout', 'import', '0', 'suffix') == 'log'
+
+    # Recovering default does not affect cfg
+    assert chip.getkeys('tool', 'surelog', 'task') == []
+
+def test_unset():
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'remote', True)
+    assert chip.get('option', 'remote') == True
+
+    # Clearing a keypath resets it to default value
+    chip.unset('option','remote')
+    assert chip.get('option', 'remote') == False
+
+    # Able to set a keypath after it's been cleared even if clobber=False
+    chip.set('option', 'remote', True, clobber=False)
+    assert chip.get('option', 'remote') == True
+
+def test_set_enum_success():
+    chip = siliconcompiler.Chip('test')
+    chip.add('option', 'mode', 'asic_new', field='enum')
+    chip.set('option', 'mode', 'asic_new')
+    assert chip.get('option', 'mode') == 'asic_new'
+
+def test_set_enum_fail():
+    chip = siliconcompiler.Chip('test')
+    try:
+        chip.set('option', 'mode', 'asic_new')
+    except siliconcompiler.SiliconCompilerError:
+        assert True
+        return
+    assert False
+
+def test_prenode():
+    chip = siliconcompiler.Chip('test')
+
+    chip.set('asic', 'logiclib', 'mylib')
+    chip.set('asic', 'logiclib', 'synlib', step='syn')
+    chip.set('asic', 'logiclib', 'syn0lib', step='syn', index=0)
+
+    assert chip.get('asic', 'logiclib', step='floorplan') == ['mylib']
+    assert chip.get('asic', 'logiclib', step='syn', index=0) == ['syn0lib']
+    assert chip.get('asic', 'logiclib', step='syn') == ['synlib']
 
 #########################
 if __name__ == "__main__":

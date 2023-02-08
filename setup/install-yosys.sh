@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Get directory of script
+src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
+
+# From: https://github.com/YosysHQ/yosys/blob/f2c689403ace0637b7455bac8f1e8d4bc312e74f/README.md
+sudo apt-get install build-essential clang bison flex \
+	libreadline-dev gawk tcl-dev libffi-dev git \
+	graphviz xdot pkg-config python3 libboost-system-dev \
+	libboost-python-dev libboost-filesystem-dev zlib1g-dev
+
+mkdir -p deps
+cd deps
+
+git clone $(python3 ${src_path}/_tools.py --tool yosys --field git-url) yosys
+cd yosys
+git checkout $(python3 ${src_path}/_tools.py --tool yosys --field git-commit)
+
+make -j
+sudo make install
+cd -

@@ -27,7 +27,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 .vagrant/
-/deps
+/setup/deps
 
 # Test results
 pytest_tmp/

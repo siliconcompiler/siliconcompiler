@@ -24,6 +24,9 @@ Parameter Fields
    defvalue
        Default value for the parameter. The default value must agree with the parameter 'type'. To specify that a parameter has no default value, set the defvalue to [] (ie empty list) for a list type and to 'null' or None for a non-list/scalar type.
 
+   enum
+       List of strings containing the set of legal values for this parameter.
+
    example
        List of two strings, the first string containing an example for specifying the parameter using a command line switch, and a second string for setting the value using the core Python API. The examples can be pruned/filtered before the schema is dumped into a JSON file.
 
@@ -69,12 +72,11 @@ history
 
 The "history" prefix stores configuration from past runs, indexed by jobname. Values are stored automatically at the end of :meth:`run()`, and only parameters tagged with the 'job' scope are stored. This can be used to go back and inspect the results of old runs. As a shortcut for accessing these stored values, most of the schema access functions support an optional ``job`` keyword arg. For example, the following line returns the number of errors from a synthesis step run as part of a job called "job0"::
 
-    chip.get('metric', 'syn', '0', 'error', job='job0')
+    chip.get('metric', 'error', job='job0', step='syn', index='0')
 
 library
 ++++++++
 
 The "library" prefix stores the schema parameters of library chip objects that have been imported into the current chip object, keyed by library name. These values are accessed directly using the schema access functions. For example, the following line returns the path to a LEF file associated with a library called "mylib"::
 
-    chip.find_files('library', 'mylib', 'model', 'layout', 'lef', stackup)
-
+    chip.find_files('library', 'mylib', 'output', stackup, 'lef')

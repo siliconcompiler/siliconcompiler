@@ -36,4 +36,5 @@ pip-licenses
 #:test
 pytest >= 6.2.4
 pytest-xdist >= 2.3.0
+pytest-timeout >= 2.1.0
 pyvirtualdisplay

@@ -1,28 +1,37 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import os
 import siliconcompiler
 
 import pytest
 
-def test_summary(datadir):
+@pytest.fixture
+def gcd_with_metrics(gcd_chip):
+    steps = gcd_chip.list_steps()
 
-    chip = siliconcompiler.Chip('test')
-    manifest = os.path.join(datadir, 'gcd.pkg.json')
+    dummy_data = 0
+    flow = gcd_chip.get('option', 'flow')
+    for step in gcd_chip.getkeys('flowgraph', flow):
+        dummy_data += 1
+        for index in gcd_chip.getkeys('flowgraph', flow, step):
+            for metric in gcd_chip.getkeys('flowgraph', flow, step, index, 'weight'):
+                gcd_chip.set('flowgraph', flow, step, index, 'status', siliconcompiler.TaskStatus.SUCCESS)
+                gcd_chip.set('metric', metric, str(dummy_data), step=step, index=index)
+                prev_step = steps.index(step) - 1
+                if prev_step >= 0:
+                    gcd_chip.set('flowgraph', flow, step, index, 'select', [(steps[prev_step], '0')])
 
-    chip.read_manifest(manifest)
+    return gcd_chip
 
-    chip.summary()
+def test_summary(gcd_with_metrics):
+    gcd_with_metrics.summary()
 
-def test_steplist(datadir, capfd):
+def test_steplist(gcd_with_metrics, capfd):
     with capfd.disabled():
-        chip = siliconcompiler.Chip('test')
-        manifest = os.path.join(datadir, 'gcd.pkg.json')
+        gcd_with_metrics.set('option','steplist', ['syn'])
 
-        chip.read_manifest(manifest)
-        chip.set('option','steplist', ['syn'])
-
-    chip.summary()
+    gcd_with_metrics.summary()
     stdout, _ = capfd.readouterr()
+    # Summary output is hidden by capfd, so we print it to aid in debugging
+    print(stdout)
 
     assert 'import0' not in stdout
     assert 'syn0' in stdout
@@ -30,20 +39,19 @@ def test_steplist(datadir, capfd):
 def test_parallel_path(capfd):
     with capfd.disabled():
         chip = siliconcompiler.Chip('test')
-        chip.set('design', 'test')
 
         flow = 'test'
         chip.set('option','flow', flow)
-        chip.node(flow, 'import', 'nop')
-        chip.node(flow, 'ctsmin', 'minimum')
+        chip.node(flow, 'import', 'builtin', 'nop')
+        chip.node(flow, 'ctsmin', 'builtin', 'minimum')
 
         chip.set('flowgraph', flow, 'import', '0', 'status', siliconcompiler.TaskStatus.SUCCESS)
         chip.set('flowgraph', flow, 'ctsmin', '0', 'status', siliconcompiler.TaskStatus.SUCCESS)
         chip.set('flowgraph', flow, 'ctsmin', '0', 'select', ('cts', '1'))
 
         for i in ('0', '1', '2'):
-            chip.node(flow, 'place', 'openroad', index=i)
-            chip.node(flow, 'cts', 'openroad', index=i)
+            chip.node(flow, 'place', 'openroad', 'place', index=i)
+            chip.node(flow, 'cts', 'openroad', 'cts', index=i)
 
             chip.set('flowgraph', flow, 'place', i, 'status', siliconcompiler.TaskStatus.SUCCESS)
             chip.set('flowgraph', flow, 'cts', i, 'status', siliconcompiler.TaskStatus.SUCCESS)
@@ -55,10 +63,14 @@ def test_parallel_path(capfd):
             chip.set('flowgraph', flow, 'place', i, 'select', ('import', '0'))
             chip.set('flowgraph', flow, 'cts', i, 'select', ('place', i))
 
+            chip.set('metric', 'errors', 0, step='place', index=i)
+            chip.set('metric', 'errors', 0, step='cts', index=i)
+
     chip.write_flowgraph('test_graph.png')
 
     chip.summary()
     stdout, _ = capfd.readouterr()
+    # Summary output is hidden by capfd, so we print it to aid in debugging
     print(stdout)
     assert 'place1' in stdout
     assert 'cts1' in stdout
@@ -66,8 +78,3 @@ def test_parallel_path(capfd):
     assert 'cts0' not in stdout
     assert 'place2' not in stdout
     assert 'cts2' not in stdout
-
-#########################
-if __name__ == "__main__":
-    from tests.fixtures import datadir
-    test_summary(datadir(__file__))

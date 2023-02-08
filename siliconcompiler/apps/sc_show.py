@@ -2,6 +2,7 @@
 import sys
 import os
 import siliconcompiler
+from siliconcompiler.utils import get_default_iomap
 
 def main():
     progname = "sc-show"
@@ -30,10 +31,14 @@ def main():
     # Create a base chip class.
     chip = siliconcompiler.Chip(UNSET_DESIGN)
 
-    input_map = {
-        'def': 'def',
-        'gds': 'gds',
-    }
+    # Fill input map with default mapping only for showable files
+    default_input = 'gds'
+    input_map = {}
+    default_input_map = get_default_iomap()
+    for ext in ('gds', 'oas', 'odb', 'def'):
+        if ext in default_input_map:
+            input_map[ext] = default_input_map[ext]
+
     chip.create_cmdline(progname,
                         switchlist=['-design', '-input', '-loglevel', '-cfg'],
                         description=description,
@@ -42,21 +47,21 @@ def main():
     #Error checking
     design = chip.get('design')
     design_set = design != UNSET_DESIGN
-    gds_mode = chip.valid('input', 'gds') and bool(chip.get('input', 'gds'))
-    def_mode = chip.valid('input', 'def') and bool(chip.get('input', 'def'))
 
-    if def_mode and gds_mode:
-        chip.logger.error('Exclusive options -input_gds and -input_def cannot both be defined.')
-        sys.exit(1)
-    if not (design_set or def_mode or gds_mode):
-        chip.logger.error('Nothing to load: please define a target with -cfg, -design, -input_def, and/or -input_gds.')
+    input_mode = None
+    if 'layout' in chip.getkeys('input'):
+        for mode in chip.getkeys('input', 'layout'):
+            if bool(chip.get('input', 'layout', mode)):
+                input_mode = mode
+                break
+
+    if not (design_set or input_mode):
+        chip.logger.error('Nothing to load: please define a target with -cfg, -design, and/or -input.')
         sys.exit(1)
 
     filename = None
-    if gds_mode:
-        filename = chip.get('input', 'gds')[-1]
-    elif def_mode:
-        filename = chip.get('input', 'def')[-1]
+    if input_mode:
+        filename = chip.get('input', 'layout', input_mode)[-1]
 
     if (filename is not None) and (not chip.get('option', 'cfg')):
         # only autoload manifest if user doesn't supply manually
@@ -76,13 +81,14 @@ def main():
         else:
             chip.read_manifest(manifest)
 
-        filename = chip.find_result('gds', step='export')
+        filename = chip.find_result(default_input, step='export')
         if filename is None:
-            chip.logger.error('No final GDS export found for design')
+            chip.logger.error(f'No final {default_input} export found for design')
             sys.exit(1)
 
     # Read in file
-    chip.logger.info(f"Displaying {filename}")
+    if filename:
+        chip.logger.info(f"Displaying {filename}")
 
     success = chip.show(filename)
 

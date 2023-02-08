@@ -2,154 +2,357 @@
 # FLOORPLANNING
 ########################################################
 
-# Functon adapted from OpenROAD:
+# Function adapted from OpenROAD:
 # https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/ca3004b85e0d4fbee3470115e63b83c498cfed85/flow/scripts/macro_place.tcl#L26
-proc design_has_macros {} {
-  set db [::ord::get_db]
-  set block [[$db getChip] getBlock]
-  foreach inst [$block getInsts] {
-    set inst_master [$inst getMaster]
-
-    # BLOCK means MACRO cells
-    if { [string match [$inst_master getType] "BLOCK"] } {
-        return true
+proc design_has_unplaced_macros {} {
+  foreach inst [[ord::get_db_block] getInsts] {
+    if {[$inst isBlock] && ![$inst isFixed]} {
+      return true
     }
   }
   return false
 }
 
-# Auto-generate floorplan if not defined yet
-if {[expr ! [dict exists $sc_cfg "input" "floorplan.def"]]} {
 
-    #########################
-    #Init Floorplan
-    #########################
-    #NOTE: assuming a two tuple value as lower left, upper right
-    set sc_diearea   [dict get $sc_cfg asic diearea]
-    set sc_corearea  [dict get $sc_cfg asic corearea]
-    set sc_diesize "[lindex $sc_diearea 0] [lindex $sc_diearea 1]"
+###########################
+# Initialize floorplan
+###########################
+
+if {[dict exists $sc_cfg input asic floorplan]} {
+  set def [lindex [dict get $sc_cfg input asic floorplan] 0]
+  puts "Reading floorplan DEF: ${def}"
+  read_def -floorplan_initialize $def
+} else {
+  #NOTE: assuming a two tuple value as lower left, upper right
+  set sc_diearea   [dict get $sc_cfg constraint outline]
+  set sc_corearea  [dict get $sc_cfg constraint corearea]
+  if {$sc_diearea != "" && $sc_corearea != ""} {
+    # Use die and core sizes
+    set sc_diesize  "[lindex $sc_diearea 0] [lindex $sc_diearea 1]"
     set sc_coresize "[lindex $sc_corearea 0] [lindex $sc_corearea 1]"
 
     initialize_floorplan -die_area $sc_diesize \
-	-core_area $sc_coresize \
-	-site $sc_site
-
-    ###########################
-    # Track Creation
-    ###########################
-
-    set metal_list ""
-    dict for {key value} [dict get $sc_cfg pdk $sc_pdk grid $sc_stackup] {
-	lappend metal_list $key
-    }
-
-    # source tracks from file if found, else else use schema entries
-    if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks] {
-	source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks]]
-    } else {
-	make_tracks
-    }
-
-    ###########################
-    # Automatic Pin Placement
-    ###########################
-    if [dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_h] {
-        set h_mult [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_h] 0]
-        set_pin_thick_multiplier -hor_multiplier $h_mult
-    }
-    if [dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_v] {
-        set v_mult [lindex [dict get $sc_cfg tool $sc_tool var $sc_step $sc_index pin_thickness_v] 0]
-        set_pin_thick_multiplier -ver_multiplier $v_mult
-    }
-
-    place_pins -hor_layers $sc_hpinmetal \
-	-ver_layers $sc_vpinmetal \
-	-random \
-
-    # Need to check if we have any macros before performing macro placement,
-    # since we get an error otherwise.
-    if {[design_has_macros] || \
-        [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace]} {
-        ###########################
-        # TDMS Placement
-        ###########################
-
-        global_placement -density $openroad_place_density \
-            -pad_left $openroad_pad_global_place \
-            -pad_right $openroad_pad_global_place
-
-        ###########################
-        # Macro placement
-        ###########################
-
-        if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {
-            # Manual macro placement
-            source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
-        } else {
-            macro_placement \
-                -halo $openroad_macro_place_halo \
-                -channel $openroad_macro_place_channel
-        }
-
-        # Note: some platforms set a "macro blockage halo" at this point, but the
-        # technologies we support do not, so we don't include that step for now.
-    }
-
-    ###########################
-    # Power Network (not good)
-    ###########################
-    #pdngen $::env(PDN_CFG) -verbose
-
-} else {
-    ###########################
-    # Add power nets
-    ###########################
-    set block [ord::get_db_block]
-    foreach pin $sc_pins {
-        if {[set net [$block findNet $pin]] == "NULL"} {
-            set type [dict get $sc_cfg datasheet $sc_design pin $pin type global]
-            if {$type == "power" || $type == "ground"} {
-                set net [odb::dbNet_create $block $pin]
-                $net setSpecial
-                $net setSigType [string toupper $type]
-            }
-        }
-    }
-
-    ###########################
-    # Initialize floorplan
-    ###########################
-    set def [dict get $sc_cfg "input" "floorplan.def"]
-    read_def -floorplan_initialize $def
-
-    if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] {
-        ###########################
-        # TDMS Placement
-        ###########################
-        global_placement -density $openroad_place_density \
-            -pad_left $openroad_pad_global_place \
-            -pad_right $openroad_pad_global_place
-
-        ###########################
-        # Manual macro placement
-        ###########################
-        source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype macroplace] 0]
-    }
+      -core_area $sc_coresize \
+      -site $sc_site
+  } else {
+    # Use density
+    initialize_floorplan -aspect_ratio [dict get $sc_cfg constraint aspectratio] \
+      -utilization [dict get $sc_cfg constraint density] \
+      -core_space [dict get $sc_cfg constraint coremargin] \
+      -site $sc_site
+  }
 }
 
 ###########################
-# Power Network (if defined)
+# Track Creation
 ###########################
-if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype pdngen] {
-    source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype pdngen] 0]
+
+# source tracks from file if found, else else use schema entries
+if {[dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks]} {
+  set tracks_file [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks]]
+  puts "Sourcing tracks configuration: ${tracks_file}"
+  source $tracks_file
+} else {
+  make_tracks
+}
+
+set do_automatic_pins 1
+if { 0 } {
+  set do_automatic_pins 0
+
+  ###########################
+  # Generate pad ring
+  ###########################
+  # TODO: implement this if needed
+  # source library config, pad ring config
+  #initialize_padring
+}
+
+###########################
+# Pin placement
+###########################
+
+# Build pin ordering if specified
+set pin_order [dict create]
+set pin_placement [list ]
+if {[dict exists $sc_cfg constraint pin]} {
+  dict for {name params} [dict get $sc_cfg constraint pin] {
+    set order [dict get $params order]
+    set side  [dict get $params side]
+    set place [dict get $params placement]
+
+    if { [llength $place] != 0 } {
+      # Pin has placement information
+
+      if { [llength $order] != 0 } {
+        # Pin also has order information
+        utl::error FLW 1 "Pin $name has placement specified in constraints, but also order."
+      }
+      lappend pin_placement $name
+    } else {
+      # Pin doesn't have placement
+
+      if { [llength $side] == 0 || [llength $order] == 0 } {
+        # Pin information is incomplete
+
+        utl::error FLW 1 "Pin $name doesn't have enough information to perform placement."
+      }
+
+      dict append pin_order [lindex $side 0] [lindex $order 0] $name
+    }
+  }
+}
+
+foreach pin $pin_placement {
+  set params [dict get $sc_cfg constraint pin $pin]
+  set layer  [dict get $params layer]
+  set side   [dict get $params side]
+  set place  [dict get $params placement]
+  if { [llength $layer] != 0 } {
+    set layer [sc_get_layer_name [lindex $layer 0]]
+  } elseif { [llength $side] != 0 } {
+    # Layer not set, but side is, so use that to determine layer
+    set side [lindex $side 0]
+    switch -regexp $side {
+      "1|3" {
+        set layer [lindex $sc_hpinmetal 0]
+      }
+      "2|4" {
+        set layer [lindex $sc_vpinmetal 0]
+      }
+      default {
+        utl::error FLW 1 "Side number ($side) is not supported."
+      }
+    }
+  } else {
+    utl::error FLW 1 "$name needs to either specify side or layer parameter."
+  }
+
+  set x_loc [lindex $place 0]
+  set y_loc [lindex $place 1]
+
+  # TODO: snapping to grid and extend to edge
+  place_pin -pin_name $name \
+    -layer $layer \
+    -location "$x_loc $y_loc"
+}
+
+dict for {side pins} $pin_order {
+  set ordered_pins []
+  dict for {index pin} $$pins {
+    lappend ordered_pins {*}$pin
+  }
+
+  set layer  [dict get $params layer]
+  if { [llength $layer] != 0 } {
+    set layer [sc_get_layer_name [lindex $layer 0]]
+  } elseif { [llength $side] != 0 } {
+    # Layer not set, but side is, so use that to determine layer
+    switch -regexp $side {
+      "1|3" {
+        set layer [lindex $sc_hpinmetal 0]
+      }
+      "2|4" {
+        set layer [lindex $sc_vpinmetal 0]
+      }
+      default {
+        utl::error FLW 1 "Side number ($side) is not supported."
+      }
+    }
+  } else {
+    utl::error FLW 1 "$name needs to either specify side or layer parameter."
+  }
+
+  set edge_length 0
+  switch -regexp $side {
+    "1|3" {
+      set edge_length [expr [lindex [ord::get_die_area] 3] - [lindex [ord::get_die_area] 1]]
+    }
+    "2|4" {
+      set edge_length [expr [lindex [ord::get_die_area] 2] - [lindex [ord::get_die_area] 0]]
+    }
+    default {
+      utl::error FLW 1 "Side number ($side) is not supported."
+    }
+  }
+
+  set spacing [expr $edge_length / ([llength $ordered_pins] + 1)]
+
+  set x_loc [lindex $place 0]
+  set y_loc [lindex $place 1]
+
+  # TODO: snapping to grid and extend to edge
+  place_pin -pin_name $name \
+    -layer $layer \
+    -location "$x_loc $y_loc"
+}
+
+###########################
+# Macro placement
+###########################
+
+# If manual macro placement is provided use that first
+if {[dict exists $sc_cfg constraint component]} {
+  dict for {name params} [dict get $sc_cfg constraint component] {
+    set location [dict get $params placement]
+    set rotation [dict get $params rotation]
+    set flip     [dict get $params flip]
+    if { [dict exists $params partname] } {
+      set cell   [dict get $params partname]
+    } else {
+      set cell ""
+    }
+    if { [dict exists $params halo] } {
+      utl::warn FLW 1 "Halo is not supported in OpenROAD"
+    }
+
+    set transform_r [odb::dbTransform]
+    $transform_r setOrient "R${rotation}"
+    set transform_f [odb::dbTransform]
+    if { $flip == "true" } {
+      $transform_f setOrient [odb::dbTransform "MY"]
+    }
+    set transform_final [odb::dbTransform]
+    odb::dbTransform_concat $transform_r $transform_f $transform_final
+
+    set inst [[ord::get_db_block] findInst $name]
+    if { $inst == "NULL" } {
+      utl::error FLW 1 "Could not find instance: $name"
+    }
+    set master [$inst getMaster]
+    set height [ord::dbu_to_microns [$master getHeight]]
+    set width [ord::dbu_to_microns [$master getWidth]]
+
+    # TODO: determine snapping method and apply
+    set x_loc [expr [lindex $location 0] - $width / 2]
+    set y_loc [expr [lindex $location 1] - $height / 2]
+
+    set place_args []
+    if { $cell != "" } {
+      lappend place_args "-cell" $cell
+    }
+
+    place_cell -inst_name $name \
+      -origin "$x_loc $y_loc" \
+      -orient [$transform_final getOrient] \
+      -status FIRM \
+      {*}$place_args
+  }
+}
+
+if { $do_automatic_pins } {
+  ###########################
+  # Automatic Pin Placement
+  ###########################
+
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h]} {
+    set h_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_h] 0]
+    set_pin_thick_multiplier -hor_multiplier $h_mult
+  }
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v]} {
+    set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index pin_thickness_v] 0]
+    set_pin_thick_multiplier -ver_multiplier $v_mult
+  }
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints]} {
+    foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index ppl_constraints] {
+      puts "Sourcing pin constraints: ${pin_constraint}"
+      source $pin_constraint
+    }
+  }
+  place_pins -hor_layers $sc_hpinmetal \
+    -ver_layers $sc_vpinmetal \
+    -random
+}
+
+# Need to check if we have any macros before performing macro placement,
+# since we get an error otherwise.
+if {[design_has_unplaced_macros]} {
+  ###########################
+  # TDMS Placement
+  ###########################
+
+  global_placement -density $openroad_gpl_place_density \
+    -pad_left $openroad_gpl_padding \
+    -pad_right $openroad_gpl_padding
+
+  ###########################
+  # Macro placement
+  ###########################
+
+  macro_placement -halo $openroad_mpl_macro_place_halo \
+    -channel $openroad_mpl_macro_place_channel
+
+  # Note: some platforms set a "macro blockage halo" at this point, but the
+  # technologies we support do not, so we don't include that step for now.
+}
+if { [design_has_unplaced_macros] } {
+  utl::error FLW 1 "Design contains unplaced macros."
+}
+
+###########################
+# Insert tie cells
+###########################
+
+foreach tie_type "high low" {
+  if {[has_tie_cell $tie_type]} {
+    insert_tiecells [get_tie_cell $tie_type]
+  }
 }
 
 ###########################
 # Tap Cells
 ###########################
 
-if [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tapcells] {
-    source [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tapcells] 0]
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ifp_tapcell] } {
+  set tapcell_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ifp_tapcell] 0]
+  puts "Sourcing tapcell file: ${tapcell_file}"
+  source $tapcell_file
 }
+
+###########################
+# Global Connections
+###########################
+
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index global_connect] } {
+  foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index global_connect] {
+    puts "Sourcing global connect configuration: ${global_connect}"
+    source $global_connect
+  }
+}
+
+###########################
+# Power Network
+###########################
+
+if {$openroad_pdn_enable == "true" && \
+    [dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index pdn_config]} {
+  foreach pdnconfig [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index pdn_config] {
+    puts "Sourcing PDNGEN configuration: ${pdnconfig}"
+    source $pdnconfig
+  }
+  pdngen -failed_via_report "reports/${sc_design}_pdngen_failed_vias.rpt"
+}
+
+###########################
+# Check Power Network
+###########################
+
+foreach net [[ord::get_db_block] getNets] {
+  set type [$net getSigType]
+  if {$type == "POWER" || $type == "GROUND"} {
+    set net_name [$net getName]
+    if { ![$net isSpecial] } {
+      utl::warn FLW 1 "$net_name is marked as a supply net, but is not marked as a special net"
+    }
+    if { $openroad_psm_enable == "true" } {
+      puts "Check supply net: $net_name"
+      check_power_grid -net $net_name
+    }
+  }
+}
+
+###########################
+# Remove buffers inserted by synthesis
+###########################
 
 remove_buffers

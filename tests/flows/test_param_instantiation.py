@@ -13,10 +13,10 @@ def test_parameterized_instantiation(datadir):
     chip = siliconcompiler.Chip('gate')
     chip.load_target('freepdk45_demo')
 
-    chip.add('source', 'verilog', os.path.join(datadir, 'test_param_instantiation', 'wrapper.v'))
-    chip.add('source', 'verilog', os.path.join(datadir, 'test_param_instantiation', 'gate.v'))
-    chip.add('source', 'verilog', os.path.join(datadir, 'test_param_instantiation', 'and2.v'))
-    chip.add('source', 'verilog', os.path.join(datadir, 'test_param_instantiation', 'or2.v'))
+    chip.input(os.path.join(datadir, 'test_param_instantiation', 'wrapper.v'))
+    chip.input(os.path.join(datadir, 'test_param_instantiation', 'gate.v'))
+    chip.input(os.path.join(datadir, 'test_param_instantiation', 'and2.v'))
+    chip.input(os.path.join(datadir, 'test_param_instantiation', 'or2.v'))
 
     chip.set('option', 'steplist', ['import', 'syn'])
 

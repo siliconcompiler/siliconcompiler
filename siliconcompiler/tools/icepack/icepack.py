@@ -18,29 +18,17 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','bitstream')
-    chip.set('arg','index','<index>')
+    step = 'bitstream'
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    from tools.icepack.bitstream import setup
     setup(chip)
     return chip
 
-
-################################
-# Setup Tool (pre executable)
-################################
-
-def setup(chip):
-    ''' Sets up default settings on a per step basis
-    '''
-    tool = 'icepack'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    clobber = False
-    chip.set('tool', tool, 'exe', tool)
-    chip.set('tool', tool, 'option', step, index, "", clobber=clobber)
-
-    design = chip.top()
-    chip.set('tool', tool, 'input', step, index, f'{design}.asc')
-    chip.set('tool', tool, 'output', step, index, f'{design}.bit')
 
 ################################
 #  Custom runtime options

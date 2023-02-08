@@ -11,7 +11,7 @@ The process for target contributions is as follows:
 
 1.) Clone the SiliconCompiler project from the `GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_ and follow the :ref:`Installation` instructions.
 
-2.) Create a flow, pdk, or tool target using the existing targets as guides. Place the target file in the appropropriate location per the directory structure shown below:
+2.) Create a flow, pdk, or tool target using the existing targets as guides. Place the target file in the appropriate location per the directory structure shown below:
 
 .. code-block:: text
 

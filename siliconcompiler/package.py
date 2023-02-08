@@ -47,7 +47,7 @@ class Sup:
         check_ok = self.chip.check_manifest()
 
         #TODO: Add packaging specific checks
-        for keylist in self.chip.getkeys():
+        for keylist in self.chip.allkeys():
             if (keylist[0] in ('package') and
                 keylist[1] in ('version', 'description', 'license')):
                 if self.chip.get(*keylist) in ("null", None, []):
@@ -72,7 +72,7 @@ class Sup:
             registry (str): File system directory or IP address of registry
             history (bool): Include job history in package
             metrics (bool): Include metrics in package
-            imports (bool): Include import files (sourcs) in package
+            imports (bool): Include import files (sources) in package
             exports (bool): Include export files (outputs) in package
 
         '''
@@ -108,7 +108,7 @@ class Sup:
         Install registry package in local cache.
 
         Args:
-            name (str): Package to install in formatl <design>-(<semver>)?
+            name (str): Package to install in format <design>-(<semver>)?
             registry (str): List of registries tos search
             nodeps (bool): Don't descend dependency tree if True
         '''
@@ -227,7 +227,7 @@ class Sup:
 
         self.chip.read_manifest(supfile)
 
-        for key in self.chip.getkeys():
+        for key in self.chip.allkeys():
             if key[0] == 'package':
                 value = self.chip.get(*key)
                 if value:

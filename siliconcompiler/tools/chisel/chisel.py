@@ -1,5 +1,4 @@
-import os
-import shutil
+import importlib
 
 import siliconcompiler
 
@@ -24,39 +23,16 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','import')
-    chip.set('arg','index','0')
+    step = 'import'
+    index = '0'
+    flow = '<flow>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
+    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+    setup = getattr(importlib.import_module('tools.chisel.import'), 'setup')
     setup(chip)
     return chip
-
-################################
-# Setup Tool (pre executable)
-################################
-
-def setup(chip):
-    ''' Sets up default settings on a per step basis
-    '''
-
-    tool = 'chisel'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-
-    # Standard Setup
-    refdir = 'tools/'+tool
-    chip.set('tool', tool, 'exe', 'sbt')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=1.5.5', clobber=False)
-    chip.set('tool', tool, 'refdir', step, index,  refdir, clobber=False)
-    chip.set('tool', tool, 'threads', step, index,  os.cpu_count(), clobber=False)
-
-    design = chip.top()
-    option = f'"runMain SCDriver --module {design} -o ../outputs/{design}.v"'
-    chip.set('tool', tool, 'option', step, index,  option)
-
-    # Input/Output requirements
-    chip.add('tool', tool, 'output', step, index, chip.top() + '.v')
-
-    chip.set('tool', tool, 'keep', step, index, ['build.sbt', 'SCDriver.scala'])
 
 def parse_version(stdout):
     # sbt version in this project: 1.5.5
@@ -92,18 +68,3 @@ def runtime_options(chip):
     #     cmdlist.append(f'-P{param}={value}')
 
     return cmdlist
-
-def pre_process(chip):
-    tool = 'chisel'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    refdir = chip.find_files('tool', tool, 'refdir', step, index)[0]
-
-    for filename in ('build.sbt', 'SCDriver.scala'):
-        src = os.path.join(refdir, filename)
-        dst = filename
-        shutil.copyfile(src, dst)
-
-    # Hack: Chisel driver relies on Scala files being collected into '$CWD/inputs'
-    chip.set('input', 'scala', True, field='copy')
-    chip._collect(step, index)

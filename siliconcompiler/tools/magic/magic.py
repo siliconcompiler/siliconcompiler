@@ -1,5 +1,3 @@
-import re
-
 import siliconcompiler
 
 ####################################################################
@@ -19,15 +17,23 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('<design>')
-    chip.load_pdk('skywater130')
-    chip.set('arg','index','<index>')
+    from pdks import skywater130
+    chip.use(skywater130)
+    index = '<index>'
+    flow = '<flow>'
+    chip.set('arg','index',index)
+    chip.set('option', 'flow', flow)
 
     # check drc
-    chip.set('arg','step','drc')
-    setup(chip)
+    from tools.magic.drc import setup as setup_drc
+    chip.set('arg','step', 'drc')
+    chip.set('flowgraph', flow, 'drc', index, 'task', 'drc')
+    setup_drc(chip)
 
     # check lvs
+    from tools.magic.extspice import setup as setup_extspice
     chip.set('arg','step', 'extspice')
+    chip.set('flowgraph', flow, 'extspice', index, 'task', 'extspice')
     setup(chip)
 
     return chip
@@ -44,6 +50,7 @@ def setup(chip):
     refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = chip._get_task(step, index)
 
     # magic used for drc and lvs
     #if step not in ('drc', 'extspice'):
@@ -54,30 +61,25 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=8.3.196', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
-    chip.set('tool', tool, 'threads', step, index,  4, clobber=False)
-    chip.set('tool', tool, 'refdir', step, index,  refdir, clobber=False)
-    chip.set('tool', tool, 'script', step, index,  script, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'threads', step, index,  4, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', step, index,  refdir, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', step, index,  script, clobber=False)
 
     # set options
     options = []
     options.append('-noc')
     options.append('-dnull')
-    chip.set('tool', tool, 'option', step, index,  options, clobber=False)
+    chip.set('tool', tool, 'task', task, 'option', step, index,  options, clobber=False)
 
     design = chip.top()
-    if chip.valid('input', 'gds'):
-        chip.add('tool', tool, 'require', step, index, ','.join(['input', 'gds']))
+    if chip.valid('input', 'layout', 'gds'):
+        chip.add('tool', tool, 'task', task, 'require', step, index, ','.join(['input', 'layout', 'gds']))
     else:
-        chip.add('tool', tool, 'input', step, index, f'{design}.gds')
-    if step == 'extspice':
-        chip.add('tool', tool, 'output', step, index, f'{design}.spice')
+        chip.add('tool', tool, 'task', task, 'input', step, index, f'{design}.gds')
 
-    chip.set('tool', tool, 'regex', step, index, 'errors', r'^Error', clobber=False)
-    chip.set('tool', tool, 'regex', step, index, 'warnings', r'warning', clobber=False)
-
-    if step == 'drc':
-        report_path = f'reports/{design}.drc'
-        chip.set('tool', tool, 'report', step, index, 'drvs', report_path)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r'^Error', clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r'warning', clobber=False)
 
 ################################
 # Version Check
@@ -85,31 +87,6 @@ def setup(chip):
 
 def parse_version(stdout):
     return stdout.strip('\n')
-
-################################
-# Post_process (post executable)
-################################
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-
-    Reads error count from output and fills in appropriate entry in metrics
-    '''
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    design = chip.top()
-
-    if step == 'drc':
-        report_path = f'reports/{design}.drc'
-        with open(report_path, 'r') as f:
-            for line in f:
-                errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
-
-                if errors:
-                    chip.set('metric', step, index, 'drvs', errors.group(1))
-
-    #TODO: return error code
-    return 0
 
 ##################################################
 if __name__ == "__main__":

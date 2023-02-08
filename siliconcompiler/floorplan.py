@@ -26,7 +26,7 @@ def _layer_i(layer):
     '''Helper function to go from SC layer name to layer position in stackup.'''
     try:
         return int(layer.lstrip('m'))
-    except:
+    except Exception:
         raise ValueError(f'Invalid routing layer {layer}.')
 
 def _get_rect_intersection(r1, r2):
@@ -76,7 +76,7 @@ def _wire_to_rect(wire):
     return (left, bottom, right, top)
 
 def _get_tech_lef_data(chip, tool):
-    stackup = chip.get('asic', 'stackup')
+    stackup = chip.get('option', 'stackup')
     pdkname = chip.get('option', 'pdk')
     # TODO: This?
     libname = chip.get('asic', 'logiclib')[0]
@@ -163,7 +163,7 @@ class Floorplan:
         # Used by Jinja LEF/DEF templates
         self.design = chip.top()
 
-        self.stackup = chip.get('asic', 'stackup')
+        self.stackup = chip.get('option', 'stackup')
         self.diearea = None
         self.corearea = None
         self.pins = {}
@@ -208,7 +208,7 @@ class Floorplan:
         self.available_cells = {}
 
         for macrolib in self.chip.get('asic', 'macrolib'):
-            lef_path = chip.find_files('library', macrolib, 'model', 'layout', 'lef', self.stackup)[0]
+            lef_path = chip.find_files('library', macrolib, 'output', self.stackup, 'lef')[0]
             lef_data = leflib.parse(lef_path)
 
             if 'macros' not in lef_data:
@@ -1392,7 +1392,7 @@ def _find_cell_area(chip, startstep, startindex):
     flow = chip.get('option','flow')
     select = chip.get('flowgraph', flow, startstep, startindex, 'select')
     for step, index in select:
-        cell_area = chip.get('metric', step, index, 'cellarea')
+        cell_area = chip.get('metric', 'cellarea', step=step, index=index)
         if cell_area:
             return cell_area
 

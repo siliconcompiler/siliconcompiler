@@ -148,13 +148,17 @@ class DynamicGen(SphinxDirective):
             p += link(gh_link, text=filename)
             s += p
 
-        chip = make_docs()
+        chips = make_docs()
 
-        extra_content = self.extra_content(chip, modname)
-        if extra_content is not None:
-            s += extra_content
+        if not isinstance(chips, list):
+            chips = [chips]
 
-        s += self.display_config(chip, modname)
+        for chip in chips:
+            extra_content = self.extra_content(chip, modname)
+            if extra_content is not None:
+                s += extra_content
+
+            s += self.display_config(chip, modname)
 
         return s
 
@@ -249,7 +253,7 @@ class FlowGen(DynamicGen):
     def extra_content(self, chip, modname):
         flow_path = os.path.join(self.env.app.outdir, f'_images/gen/{modname}.svg')
         #chip.write_flowgraph(flow_path, fillcolor='#1c4587', fontcolor='#f1c232', border=False)
-        chip.write_flowgraph(flow_path)
+        chip.write_flowgraph(flow_path, flow=modname)
         return [image(flow_path, center=True)]
 
     def display_config(self, chip, modname):
@@ -273,7 +277,9 @@ class FlowGen(DynamicGen):
                 cfg = chip.getdict(prefix, step)
                 if cfg is None:
                     continue
-                pruned = chip._prune(cfg)
+                schema = Schema(cfg=cfg)
+                schema.prune()
+                pruned = schema.cfg
                 if prefix not in step_cfg:
                     step_cfg[prefix] = {}
                 step_cfg[prefix][step] = pruned
@@ -285,7 +291,9 @@ class FlowGen(DynamicGen):
         section_key = '-'.join(['flows', modname, 'option', 'showtool'])
         section = build_section('showtool', section_key)
         cfg = chip.getdict('option', 'showtool')
-        pruned = chip._prune(cfg)
+        schema = Schema(cfg=cfg)
+        schema.prune()
+        pruned = schema.cfg
         table = build_schema_value_table(pruned, keypath_prefix=['option', 'showtool'])
         if table is not None:
             section += table
@@ -312,8 +320,7 @@ class LibGen(DynamicGen):
 
     def extra_content(self, chip, modname):
         # assume same pdk for all libraries configured by this module
-        mainlib = chip.getkeys('library')[0]
-        pdk = chip.get('library', mainlib, 'asic', 'pdk')
+        pdk = chip.get('option', 'pdk')
 
         p = docutils.nodes.inline('')
         self.parse_rst(f'Associated PDK: :ref:`{pdk}<{pdk}-ref>`', p)
@@ -324,15 +331,16 @@ class LibGen(DynamicGen):
 
         sections = []
 
-        for libname in chip.getkeys('library'):
-            section_key = '-'.join(['libs', modname, libname, 'configuration'])
-            settings = build_section(libname, section_key)
+        libname = chip.design
 
-            for key in ('asic', 'model'):
-                cfg = chip.getdict('library', libname, key)
-                settings += build_config_recursive(cfg, keypath_prefix=[key], sec_key_prefix=['libs', modname, libname, key])
+        section_key = ['lib', libname]
+        settings = build_section_with_target(libname, '-'.join(section_key)+'-ref', self.state.document)
 
-            sections.append(settings)
+        for key in ('asic', 'output', 'option'):
+            cfg = chip.getdict(key)
+            settings += build_config_recursive(cfg, keypath_prefix=[key], sec_key_prefix=[*section_key, key])
+
+        sections.append(settings)
 
         return sections
 
@@ -342,7 +350,9 @@ class ToolGen(DynamicGen):
     def display_config(self, chip, modname):
         '''Display config under `eda, <modname>` in a single table.'''
         cfg = chip.getdict('tool', modname)
-        pruned = chip._prune(cfg)
+        schema = Schema(cfg=cfg)
+        schema.prune()
+        pruned = schema.cfg
         table = build_schema_value_table(pruned, keypath_prefix=['tool', modname])
         if table is not None:
             return table
@@ -376,7 +386,7 @@ class ToolGen(DynamicGen):
 class TargetGen(DynamicGen):
     PATH = 'targets'
 
-    def build_module_list(self, chip, header, modtype, targetname):
+    def build_module_list(self, chip, header, modtype, targetname, refprefix=""):
         modules = chip._loaded_modules[modtype]
         if len(modules) > 0:
             section = build_section(header, f'{targetname}-{modtype}')
@@ -384,7 +394,7 @@ class TargetGen(DynamicGen):
             for module in modules:
                 list_item = nodes.list_item()
                 # TODO: replace with proper docutils nodes: sphinx.addnodes.pending_xref
-                modkey = nodes.make_id(module)
+                modkey = nodes.make_id(refprefix+module)
                 self.parse_rst(f':ref:`{module}<{modkey}-ref>`', list_item)
                 modlist += list_item
 
@@ -403,14 +413,20 @@ class TargetGen(DynamicGen):
         if pdk_section is not None:
             sections.append(pdk_section)
 
-        libs_section = self.build_module_list(chip, 'Libraries', 'libs', modname)
+        libs_section = self.build_module_list(chip, 'Libraries', 'libs', modname, 'lib-')
         if libs_section is not None:
             sections.append(libs_section)
+
+        checklist_section = self.build_module_list(chip, 'Checklists', 'checklists', modname)
+        if checklist_section is not None:
+            sections.append(checklist_section)
 
         filtered_cfg = {}
         for key in ('asic', 'constraint', 'option'):
             filtered_cfg[key] = chip.getdict(key)
-        pruned_cfg = chip._prune(filtered_cfg)
+        schema = Schema(cfg=filtered_cfg)
+        schema.prune()
+        pruned_cfg = schema.cfg
 
         if len(pruned_cfg) > 0:
             schema_section = build_section('Configuration', key=f'{modname}-config')

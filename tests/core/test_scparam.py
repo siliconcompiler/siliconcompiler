@@ -1,12 +1,7 @@
-import siliconcompiler
-import os
-import json
-from siliconcompiler.schema import scparam
+from siliconcompiler.schema import Schema
+from siliconcompiler.schema.schema_cfg import scparam
 
 def test_scparam():
-
-    chip = siliconcompiler.Chip('test')
-
     cfg = {}
 
     # metrics
@@ -53,13 +48,16 @@ def test_scparam():
     cfg_golden['metric'][step][index]['warnings'][group] = {
         'switch': "-metric_warnings 'step index group <int>'",
         'type': 'int',
-        'lock': 'false',
+        'lock': False,
         'scope': 'job',
         'require': 'all',
         'signature': None,
         'defvalue': None,
         'value': None,
         'notes': None,
+        'set': False,
+        'pernode': 'never',
+        'nodevalue': {},
         'shorthelp': 'Metric total warnings',
         'example': [
             "cli: -metric_warnings 'dfm 0 goal 0'",
@@ -72,13 +70,16 @@ def test_scparam():
     cfg_golden['metric'][step][index]['cells'][group] = {
         'switch': "-metric_cells 'step index group <int>'",
         'type': 'int',
-        'lock': 'false',
+        'lock': False,
         'scope': 'job',
         'require': 'asic',
         'signature': None,
         'defvalue': None,
         'value': None,
         'notes': None,
+        'set': False,
+        'pernode': 'never',
+        'nodevalue': {},
         'shorthelp': 'Metric instance count',
         'example': [
             "cli: -metric_cells 'place 0 goal 100'",
@@ -91,10 +92,10 @@ def test_scparam():
 def test_defvalue():
     '''Regression test that changing list-type value doesn't change defvalue.'''
 
-    chip = siliconcompiler.Chip('test')
-    assert chip.cfg['asic']['logiclib']['defvalue'] == []
-    chip.add('asic', 'logiclib', 'mylib')
-    assert chip.cfg['asic']['logiclib']['defvalue'] == []
+    schema = Schema()
+    assert schema.cfg['asic']['logiclib']['defvalue'] == []
+    schema.add('asic', 'logiclib', 'mylib')
+    assert schema.cfg['asic']['logiclib']['defvalue'] == []
 
 #########################
 if __name__ == "__main__":

@@ -1,9 +1,6 @@
 
 import os
-import sys
-import re
 import siliconcompiler
-
 
 ############################################################################
 # DOCS
@@ -30,9 +27,8 @@ def make_docs():
     '''
 
     chip = siliconcompiler.Chip('freepdk45')
-    setup(chip)
 
-    return chip
+    return setup(chip)
 
 
 ####################################################
@@ -62,104 +58,63 @@ def setup(chip):
 
     pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
 
-    # If you got here,  you are in asic mode
-    chip.set('option', 'mode', 'asic', clobber=True)
-    chip.set('asic', 'pdk', process, clobber=True)
+    pdk = siliconcompiler.PDK(chip, process)
 
     # process name
-    chip.set('pdk', process, 'foundry', foundry)
-    chip.set('pdk', process, 'node', node)
-    chip.set('pdk', process, 'version', rev)
-    chip.set('pdk', process, 'stackup', stackup)
-    chip.set('pdk', process, 'wafersize', wafersize)
-    chip.set('pdk', process, 'edgemargin', edgemargin)
-    chip.set('pdk', process, 'hscribe', hscribe)
-    chip.set('pdk', process, 'vscribe', vscribe)
-    chip.set('pdk', process, 'd0', d0)
+    pdk.set('pdk', process, 'foundry', foundry)
+    pdk.set('pdk', process, 'node', node)
+    pdk.set('pdk', process, 'version', rev)
+    pdk.set('pdk', process, 'stackup', stackup)
+    pdk.set('pdk', process, 'wafersize', wafersize)
+    pdk.set('pdk', process, 'edgemargin', edgemargin)
+    pdk.set('pdk', process, 'hscribe', hscribe)
+    pdk.set('pdk', process, 'vscribe', vscribe)
+    pdk.set('pdk', process, 'd0', d0)
 
-    # APR tech file
+    # APR Setup
     for tool in ('openroad', 'klayout', 'magic'):
-        chip.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
-                 pdkdir+'/apr/freepdk45.tech.lef')
+        pdk.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
+                pdkdir+'/apr/freepdk45.tech.lef')
+
+    pdk.set('pdk', process, 'minlayer', stackup, 'metal1')
+    pdk.set('pdk', process, 'maxlayer', stackup, 'metal10')
 
     # Klayout setup file
-    chip.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup,
-             pdkdir+'/setup/klayout/freepdk45.lyt')
+    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup,
+            pdkdir+'/setup/klayout/freepdk45.lyt')
 
-    chip.set('pdk', process, 'display', 'klayout', stackup,
+    pdk.set('pdk', process, 'display', 'klayout', stackup,
             pdkdir + '/setup/klayout/freepdk45.lyp')
 
-    # Routing Grid Definitions
-    for layer, sc_name in [('metal1', 'm1')]:
-        chip.set('pdk', process,'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.19)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.14)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     1.0)
-        chip.set('pdk', process, 'grid', stackup, layer, 'dir',    'horizontal')
+    # Openroad global routing grid derating
+    openroad_layer_adjustments = {
+        'metal1': 1.0,
+        'metal2': 0.8,
+        'metal3': 0.7,
+        'metal4': 0.4,
+        'metal5': 0.4,
+        'metal6': 0.4,
+        'metal7': 0.4,
+        'metal8': 0.4,
+        'metal9': 0.4,
+        'metal10': 0.4
+    }
+    for layer, adj in openroad_layer_adjustments.items():
+        pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
-    for layer, sc_name in [('metal2', 'm2')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.19)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.14)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.8)
-        chip.set('pdk', process, 'grid', stackup, layer, 'dir',    'vertical')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'metal3')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'metal5')
 
-    for layer, sc_name in [('metal3', 'm3')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.19)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.14)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.7)
-        chip.set('pdk', process, 'grid', stackup, layer, 'dir',    'horizontal')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'metal2')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'metal3')
 
-    for layer, sc_name in [('metal4', 'm4'), ('metal5', 'm5'), ('metal6', 'm6')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.28)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.28)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-        if layer in ('metal4', 'metal6'):
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'vertical')
-        else:
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'horizontal')
+    # PEX
+    pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
+        pdkdir + '/pex/openroad/typical.tcl')
+    pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, 'typical',
+        pdkdir + '/pex/openroad/rcx_patterns.rules')
 
-    for layer, sc_name in [('metal7', 'm7'), ('metal8', 'm8')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  0.8)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  0.8)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-        if layer in ('metal8'):
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'vertical')
-        else:
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'horizontal')
-
-
-    for layer, sc_name in [('metal9', 'm9'), ('metal10', 'm10')]:
-        chip.set('pdk', process, 'grid', stackup, layer, 'name',    sc_name)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xoffset', 0.095)
-        chip.set('pdk', process, 'grid', stackup, layer, 'xpitch',  1.6)
-        chip.set('pdk', process, 'grid', stackup, layer, 'yoffset', 0.07)
-        chip.set('pdk', process, 'grid', stackup, layer, 'ypitch',  1.6)
-        chip.set('pdk', process, 'grid', stackup, layer, 'adj',     0.4)
-        if layer in ('metal10'):
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'vertical')
-        else:
-            chip.set('pdk', process, 'grid', stackup, layer, 'dir', 'horizontal')
-
-    # Defaults for OpenROAD tool variables
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'place_density', ['0.3'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_global_place', ['2'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'pad_detail_place', ['1'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_halo', ['22.4', '15.12'])
-    chip.set('pdk', process, 'var', 'openroad', stackup, 'macro_place_channel', ['18.8', '19.95'])
+    return pdk
 
 #########################
 if __name__ == "__main__":

@@ -73,7 +73,7 @@ class Server:
                         'priv_key': mapping['priv_key'],
                         'password': mapping['password'],
                     }
-            except:
+            except Exception:
                 self.logger.warning("Could not find well-formatted 'users.json' "\
                                     "file in the server's working directory. "\
                                     "(User : Key) mappings were not imported.")
@@ -156,8 +156,10 @@ class Server:
                 return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
 
         # Create a dummy Chip object to make schema traversal easier.
+        # TODO: if this is a dummy Chip we should be able to use Schema class,
+        # but looks like it relies on chip.status.
         chip = Chip(cfg['design']['value'])
-        chip.cfg = cfg
+        chip.schema.cfg = cfg
 
         # Fetch some common values.
         design = chip.get('design')
