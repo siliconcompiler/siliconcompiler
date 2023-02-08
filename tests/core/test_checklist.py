@@ -1,8 +1,6 @@
 import os
-import pytest
 import siliconcompiler
 
-@pytest.mark.skip(reason="Deferring until new test/index change")
 def test_checklist():
     '''API test for help method
     '''
@@ -15,8 +13,8 @@ def test_checklist():
     with open('build/test/job0/syn/0/yosys.log', 'w') as f:
         f.write('test')
 
-    chip.set('metric','syn','0', 'errors', 1)
-    chip.set('tool', 'yosys', 'task', 'syn', 'report', 'syn', '0', 'errors', 'yosys.log')
+    chip.set('metric', 'errors', 1, step='syn', index='0')
+    chip.set('tool', 'yosys', 'task', 'syn_asic', 'report', 'errors', 'yosys.log', step='syn', index='0')
     chip.schema.record_history()
 
     #automated fail

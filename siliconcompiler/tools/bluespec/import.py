@@ -26,10 +26,10 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'option',  [], clobber=False, step=step, index=index)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'task', task,'output', step, index, chip.top() + '.v')
+    chip.add('tool', tool, 'task', task,'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
-    chip.add('tool', tool, 'task', task,'require', step, index, 'input,hll,bsv')
+    chip.add('tool', tool, 'task', task, 'require', 'input,hll,bsv', step=step, index=index)
 
 ################################
 # Pre-process

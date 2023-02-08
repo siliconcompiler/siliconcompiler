@@ -57,13 +57,12 @@ def runtime_options(chip):
     # currently only -fsynopsys and --latches supported
     valid_extraopts = ['-fsynopsys', '--latches']
 
-    if chip.valid('tool', 'ghdl', 'task', task, 'var', step, index, 'extraopts'):
-        extra_opts = chip.get('tool', 'ghdl', 'task', task, 'var', step, index, 'extraopts')
-        for opt in extra_opts:
-            if opt in valid_extraopts:
-                options.append(opt)
-            else:
-                chip.error('Unsupported option ' + opt)
+    extra_opts = chip.get('tool', 'ghdl', 'task', task, 'var', 'extraopts', step=step, index=index)
+    for opt in extra_opts:
+        if opt in valid_extraopts:
+            options.append(opt)
+        else:
+            chip.error('Unsupported option ' + opt)
 
     # Add sources
     for value in chip.find_files('input', 'rtl', 'vhdl'):

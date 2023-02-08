@@ -456,7 +456,7 @@ def copy_show_files(chip):
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
-    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
+    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
         show_file = chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index)[0]
         show_type = chip.get('tool', tool, 'task', task, 'var', 'show_filetype', step=step, index=index)[0]
         show_job = chip.get('tool', tool, 'task', task, 'var', 'show_job', step=step, index=index)[0]

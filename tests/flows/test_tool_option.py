@@ -23,8 +23,8 @@ def test_tool_option(scroot):
     chip.set('option','novercheck', 'true')
     chip.load_target('freepdk45_demo', place_np=2)
 
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0',  'place_density', '0.4')
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1',  'place_density', '0.3')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.4', step='place', index='0')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.3', step='place', index='1')
 
     # No need to run beyond place, we just want to check that setting place_density
     # doesn't break anything.
@@ -88,9 +88,9 @@ def test_failed_branch_min(chip):
     flow = chip.get('option', 'flow')
 
     # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf', step='place', index='0')
     # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5', step='place', index='1')
 
     # Perform minimum
     chip.node(flow, 'placemin', 'builtin', 'minimum')
@@ -119,8 +119,7 @@ def test_all_failed_min(chip):
     flow = chip.get('option', 'flow')
 
     # Illegal values, so both branches should fail
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf')
 
     # Perform minimum
     chip.node(flow, 'placemin', 'builtin', 'minimum')
@@ -142,9 +141,9 @@ def test_branch_failed_join(chip):
     flow = chip.get('option','flow')
 
     # Illegal values, so branch should fail
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf', step='place', index='0')
     # Legal value, so branch should succeed
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5', step='place', index='1')
 
     # Perform join
     chip.node(flow, 'placemin', 'builtin', 'join')

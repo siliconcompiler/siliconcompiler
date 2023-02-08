@@ -35,11 +35,11 @@ def build_top(remote=False):
     chip.add('asic', 'macrolib', 'sky130_sram_2k')
 
     # SRAM pins are inside the macro boundary; no routing blockage padding is needed.
-    chip.set('tool', 'openroad', 'task', 'route', 'var', 'route', '0', 'grt_macro_extension', '0')
+    chip.set('tool', 'openroad', 'task', 'route', 'var', 'grt_macro_extension', '0')
     # Disable CDL file generation until we can find a CDL file for the SRAM block.
-    chip.set('tool', 'openroad', 'task', 'export', 'var', 'export', '1', 'write_cdl', 'false')
+    chip.set('tool', 'openroad', 'task', 'export', 'var', 'write_cdl', 'false')
     # Reduce placement density a bit to ease routing congestion and hopefully speed up the route step.
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5')
 
     # Place macro instance.
     chip.set('constraint', 'component', 'sram', 'placement', (500.0, 250.0, 0.0))

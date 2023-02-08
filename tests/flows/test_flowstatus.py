@@ -41,9 +41,9 @@ def test_flowstatus(scroot, steplist):
     chip.edge(flow, 'import', 'place', head_index='1')
 
     # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf', step='place', index='0')
     # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5', step='place', index='1')
 
     # Perform minimum
     chip.node(flow, 'placemin', 'builtin', 'minimum')
@@ -98,9 +98,9 @@ def test_long_branch(scroot):
     chip.edge(flow, 'import', 'place', head_index='1')
 
     # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf', step='place', index='0')
     # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5', step='place', index='1')
 
     chip.node(flow, 'cts', 'openroad', 'cts', index='0')
     chip.node(flow, 'cts', 'openroad', 'cts', index='1')
@@ -141,9 +141,9 @@ def test_remote(scroot):
 
     chip.set('arg', 'flow', 'place_np', '2')
     # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '0', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf', step='place', index='0')
     # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place', '1', 'place_density', '0.5')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5', step='place', index='1')
 
     chip.load_target('freepdk45_demo')
     flow = chip.get('option', 'flow')

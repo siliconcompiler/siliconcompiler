@@ -3732,13 +3732,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Hash files
         if (not is_builtin) and self.get('option', 'hash'):
             # hash all outputs
-            self.hash_files('tool', tool, 'task', task, 'output', step, index)
+            # TODO: only hash outputs from this step
+            self.hash_files('tool', tool, 'task', task, 'output')
             # hash all requirements
-            if self.valid('tool', tool, 'task', task, 'require', step, index):
-                for item in self.get('tool', tool, 'task', task, 'require', step, index):
-                    args = item.split(',')
-                    if 'file' in self.get(*args, field='type'):
-                        self.hash_files(*args)
+            for item in self.get('tool', tool, 'task', task, 'require', step=step, index=index):
+                args = item.split(',')
+                if 'file' in self.get(*args, field='type'):
+                    self.hash_files(*args)
 
         ##################
         # Capture wall runtime and cpu cores
@@ -4344,7 +4344,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 success = self.find_result('png', step)
             else:
                 success = True
-        except SiliconCompilerError:
+        except SiliconCompilerError as e:
+            self.logger.error(e)
             success = False
 
         # restore environment

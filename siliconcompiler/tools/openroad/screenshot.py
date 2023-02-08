@@ -23,17 +23,17 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '1024', clobber=False, step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'show_exit', "true", clobber=False, step=step, index=index)
-    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']), step=step, index=index)
+    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
+        chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']), step=step, index=index)
     else:
         incoming_ext = find_incoming_ext(chip)
         chip.set('tool', tool, 'task', task, 'var', 'show_filetype', incoming_ext, step=step, index=index)
         chip.add('tool', tool, 'task', task, 'input', f'{design}.{incoming_ext}', step=step, index=index)
 
     # Add to option string.
-    cur_options = ' '.join(chip.get('tool', tool, 'task', task, 'option',  step, index))
+    cur_options = ' '.join(chip.get('tool', tool, 'task', task, 'option', step=step, index=index))
     new_options = f'{cur_options} {option}'
-    chip.set('tool', tool, 'task', task, 'option',  step, index, new_options, clobber=True)
+    chip.set('tool', tool, 'task', task, 'option', new_options, step=step, index=index, clobber=True)
 
 def pre_process(chip):
     copy_show_files(chip)
