@@ -7,7 +7,7 @@ name: 'Daily CI Tests'
 
 jobs:
   daily_tests_job:
-    timeout-minutes: 60
+    timeout-minutes: 40
     runs-on: self-hosted
     name: 'All tests'
     strategy:
