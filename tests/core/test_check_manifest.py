@@ -81,13 +81,13 @@ def test_check_missing_file_param():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
 
-    chip._setup_tool('yosys', 'syn', 'syn', '0')
+    chip._setup_tool('yosys', 'syn_asic', 'syn', '0')
 
     chip.set('arg', 'step', 'syn')
     chip.set('arg', 'index', '0')
 
-    chip.set('tool', 'yosys', 'task', 'syn', 'input', 'syn', '0', [])
-    chip.set('tool', 'yosys', 'task', 'syn', 'output', 'syn', '0',[])
+    chip.set('tool', 'yosys', 'task', 'syn_asic', 'input', 'syn', '0', [])
+    chip.set('tool', 'yosys', 'task', 'syn_asic', 'output', 'syn', '0',[])
 
     # not real file, will cause error
     libname = 'nangate45'
