@@ -156,7 +156,7 @@ def test_get_no_side_effect():
     assert chip.getkeys('tool', 'surelog', 'task') == []
 
     # Able to recover default value
-    assert chip.get('tool', 'surelog', 'task', 'import', 'stdout', 'import', '0', 'suffix') == 'log'
+    assert chip.get('tool', 'surelog', 'task', 'import', 'stdout', 'suffix', step='import', index='0') == 'log'
 
     # Recovering default does not affect cfg
     assert chip.getkeys('tool', 'surelog', 'task') == []

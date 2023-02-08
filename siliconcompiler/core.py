@@ -1377,10 +1377,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         tool = self.get('flowgraph', flow, step, index, 'tool')
         task = self.get('flowgraph', flow, step, index, 'task')
 
-        if self.valid('tool', tool, 'task', task, 'input', step, index):
-            required_inputs = self.get('tool', tool, 'task', task, 'input', step, index)
-        else:
-            required_inputs = []
+        required_inputs = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
         input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
         for filename in required_inputs:
             path = os.path.join(input_dir, filename)
@@ -1388,8 +1385,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'Required input {filename} not received for {step}{index}.')
                 error = True
 
-        if (not self._is_builtin(tool, task)) and self.valid('tool', tool,'task', task,  'require', step, index):
-            all_required = self.get('tool', tool, 'task', task, 'require', step, index)
+        if not self._is_builtin(tool, task):
+            all_required = self.get('tool', tool, 'task', task, 'require', step=step, index=index)
             for item in all_required:
                 keypath = item.split(',')
                 if not self.valid(*keypath):
@@ -1528,13 +1525,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 task = self.get('flowgraph', flow, step, index, 'task')
                 if (not self._is_builtin(tool, task)) and (tool in self.getkeys('tool')):
                     # checking that requirements are set
-                    if self.valid('tool', tool, 'task', task, 'require', step, index):
-                        all_required = self.get('tool', tool, 'task', task, 'require', step, index)
-                        for item in all_required:
-                            keypath = item.split(',')
-                            if self.schema._is_empty(*keypath):
-                                error = True
-                                self.logger.error(f"Value empty for [{keypath}] for {tool}.")
+                    all_required = self.get('tool', tool, 'task', task, 'require', step=step, index=index)
+                    for item in all_required:
+                        keypath = item.split(',')
+                        if self.schema._is_empty(*keypath):
+                            error = True
+                            self.logger.error(f"Value empty for [{keypath}] for {tool}.")
 
                     if (self.schema._is_empty('tool', tool, 'exe') and
                         self.find_function(tool, 'run', 'tools') is None):
@@ -1575,10 +1571,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'Builtin {tool}/{task} not yet implemented')
         else:
             # Not builtin tool
-            if self.valid('tool', tool,  'task', task, 'output', step, index):
-                outputs = set(self.get('tool', tool, 'task', task, 'output', step, index))
-            else:
-                outputs = set()
+            outputs = set(self.get('tool', tool, 'task', task, 'output', step=step, index=index))
 
         if task == 'import' and self.get('option', 'remote'):
             imports = {self._get_imported_filename(p) for p in self._collect_paths()}
@@ -1643,10 +1636,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             return False
                         all_inputs.add(inp)
 
-                if self.valid('tool', tool, 'task', task, 'input', step, index):
-                    requirements = self.get('tool', tool, 'task', task, 'input', step, index)
-                else:
-                    requirements = []
+                requirements = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
                 for requirement in requirements:
                     if requirement not in all_inputs:
                         self.logger.error(f'Invalid flow: {step}{index} will '
@@ -2156,10 +2146,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             leaftype = self.get(*key, field='type')
             if re.search('file', leaftype):
                 copy = self.get(*key, field='copy')
-                value = self.get(*key)
                 if copyall or copy:
-                    for item in value:
-                        paths.append(item)
+                    for value, _, _ in self.schema._getvals(*key):
+                        if not isinstance(value, list):
+                            value = [value]
+                        paths.extend(value)
 
         return paths
 
@@ -2296,7 +2287,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if 'file' not in self.get(*keypath, field='type'):
             self.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
         else:
-            filelist = self.find_files(*keypath)
+            vals = self.schema._getvals(*keypath)
+            # TODO: fix this. will require changing schema structure.
+            if len(vals) > 1:
+                self.logger.warning(
+                    'Hashing files for a parameter with multiple pernode values '
+                    'is not yet supported. Hashes for only one value will be returned.'
+                )
+            elif len(vals) == 0:
+                return
+
+            _, step, index = vals[0]
+            filelist = self.find_files(*keypath, step=step, index=index)
             #cycle through all paths
             hashlist = []
             if filelist:
@@ -2318,7 +2320,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if item != hashlist[i]:
                     self.error(f"Hash mismatch for [{keypath}]")
             self.set(*keypath, hashlist, field='filehash', clobber=True)
-
 
     ###########################################################################
     def audit_manifest(self):

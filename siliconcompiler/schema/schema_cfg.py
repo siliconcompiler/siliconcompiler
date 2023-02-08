@@ -1291,7 +1291,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_input 'task <str>'",
             example=[
                 "cli: -tool_task_input 'openroad place oh_add.def'",
-                "api: chip.set('tool','openroad','task','place','input','oh_add.def')"],
+                "api: chip.set('tool','openroad','task','place','input','oh_add.def', step='place', index='0')"],
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
             directory. The list of steps to copy files from is defined by the
@@ -1306,7 +1306,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_output 'task step index <str>'",
             example=[
                 "cli: -tool_task_output 'openroad place oh_add.def'",
-                "api: chip.set('tool','openroad','task','place','output','oh_add.def')"],
+                "api: chip.set('tool','openroad','task','place','output','oh_add.def', step='place', index='0')"],
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
             directory. The list of steps to copy files from is defined by the
@@ -1393,7 +1393,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_report 'task metric <str>'",
             example=[
                  "cli: -tool_task_report 'openroad place holdtns place.log'",
-                "api: chip.set('tool','openroad','task','place','report','holdtns','place.log')"],
+                "api: chip.set('tool','openroad','task','place','report','holdtns','place.log', step='place', index='0')"],
             schelp="""
             List of report files associated with a specific 'metric'. The file path
             specified is relative to the run directory of the current task.""")
