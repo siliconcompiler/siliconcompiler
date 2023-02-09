@@ -55,13 +55,13 @@ def setup(chip):
     chip.set('tool', tool, 'format', 'tcl', clobber=False)
 
     #
-    chip.set('tool', tool, 'task', task, 'option',  step, index, options, clobber=False)
+    chip.set('tool', tool, 'task', task, 'option', options, step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
 
     # Required for script based tools
 
-    chip.set('tool', tool, 'task', task, 'refdir',  step, index, refdir, clobber=False)
-    chip.set('tool', tool, 'task', task, 'script',  step, index, refdir + script, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', refdir + script, step=step, index=index, clobber=False)
     for key in variables:
         chip.set('tool', tool, 'task', task, 'var', key, variables[key], step=step, index=index, clobber=False)
 
