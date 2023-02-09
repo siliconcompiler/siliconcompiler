@@ -253,6 +253,43 @@ class DynamicGen(SphinxDirective):
             p += link(gh_link, text=filename)
             s += p
 
+    def document_free_params(self, cfg, reference_prefix, s):
+        self._document_free_params(cfg, 'var', reference_prefix, s)
+        self._document_free_params(cfg, 'file', reference_prefix, s)
+
+    def _document_free_params(self, cfg, type, reference_prefix, s):
+        if type in cfg:
+            cfg = cfg[type]
+        else:
+            return
+
+        if "<step>" in cfg:
+            cfg = cfg["<step>"]
+        else:
+            return
+
+        if "<index>" in cfg:
+            cfg = cfg["<index>"]
+        else:
+            return
+
+        if type == "var":
+            type_heading = "Variables"
+        elif type == "file":
+            type_heading = "Files"
+
+        table = [[strong('Parameter'), strong('Help')]]
+        for key, params in cfg.items():
+            if key == "default":
+                continue
+
+            table.append([code(key), para(params["help"])])
+
+        if len(table) > 1:
+            s += build_section(type_heading, f'{reference_prefix}-{type}')
+            colspec = r'{|\X{1}{2}|\X{1}{2}|}'
+            s += build_table(table, colspec=colspec)
+
 #########################
 # Specialized extensions
 #########################
@@ -452,7 +489,10 @@ class ToolGen(DynamicGen):
 
         try:
             task_setup(chip)
+
+            s += build_section("Configuration", f'{toolname}-{taskname}-configuration')
             s += self.task_display_config(chip, toolname, taskname)
+            self.document_free_params(chip.getdict('tool', toolname, 'task', taskname), f'{toolname}-{taskname}', s)
         except Exception as e:
             print('Failed to document task, Chip object probably not configured correctly.')
             print(e)
