@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 import siliconcompiler
 
 def create_fake_surelog():
@@ -13,6 +15,8 @@ def create_fake_surelog():
     # executable
     os.chmod('surelog', 0o755)
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_multiple_tools():
     '''Tests that we can tweak tool version, path, and licenseserver settings
     across different nodes.'''
