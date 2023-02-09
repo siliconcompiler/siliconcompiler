@@ -16,8 +16,8 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=1.5.5', clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'refdir',  refdir, step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads',  os.cpu_count(), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
 
     design = chip.top()
     option = f'"runMain SCDriver --module {design} -o ../outputs/{design}.v"'

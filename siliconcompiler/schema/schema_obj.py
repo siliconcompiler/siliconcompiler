@@ -552,7 +552,7 @@ class Schema:
 
         return None
 
-    def _search(self, *keypath, insert_defaults=False, traverse_defaults=True, job=None):
+    def _search(self, *keypath, insert_defaults=False, job=None):
         if job is not None:
             cfg = self.cfg['history'][job]
         else:
@@ -573,9 +573,6 @@ class Schema:
                     cfg = cfg[key]
                 else:
                     cfg = cfg['default']
-                # elif traverse_defaults:
-                #     cfg = cfg['default']
-                #     raise ValueError(f'Invalid keypath {keypath}: unexpected key: {key}')
             else:
                 raise ValueError(f'Invalid keypath {keypath}: unexpected key: {key}')
 

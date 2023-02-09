@@ -17,8 +17,8 @@ def setup(chip):
 
     script = 'klayout_export.py'
     option = ['-b', '-r']
-    chip.set('tool', tool, 'task', task, 'script', script, clobber=clobber, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'option', option, clobber=clobber, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
     targetlibs = chip.get('asic', 'logiclib')
     stackup = chip.get('option', 'stackup')

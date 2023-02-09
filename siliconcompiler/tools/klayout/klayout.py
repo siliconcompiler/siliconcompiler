@@ -90,7 +90,7 @@ def setup(chip, mode="batch"):
     chip.set('tool', tool, 'version', '>=0.27.6', clobber=clobber)
     chip.set('tool', tool, 'format', 'json', clobber=clobber)
 
-    chip.set('tool', tool, 'task', task, 'refdir', refdir, clobber=clobber, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=clobber)
 
     # Export GDS with timestamps by default.
     chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'true', step=step, index=index, clobber=False)

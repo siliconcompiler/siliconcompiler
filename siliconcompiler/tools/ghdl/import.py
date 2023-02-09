@@ -17,8 +17,8 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=2.0.0-dev', clobber=clobber)
 
-    chip.set('tool', tool, 'task', task, 'threads', '4', clobber=clobber, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'option', '', clobber=clobber, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'threads', '4', step=step, index=index, clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'option', '', step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'stdout', 'destination', 'output', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'stdout', 'suffix', 'v', step=step, index=index)
 

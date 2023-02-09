@@ -17,8 +17,8 @@ def setup(chip):
 
     script = 'klayout_show.py'
     option = ['-nc', '-rm']
-    chip.set('tool', tool, 'task', task, 'script', script, clobber=clobber, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'option', option, clobber=clobber, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
     pdk = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
