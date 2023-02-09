@@ -34,7 +34,7 @@ def setup(chip):
     if 'sdc' in chip.getkeys('input'):
         options.append(f"--sdc_file {chip.get('input', 'fpga', 'sdc')}")
 
-    threads = chip.get('tool', tool, 'task', task, 'threads', step, index)
+    threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
     options.append(f"--num_workers {threads}")
 
     chip.add('tool', tool, 'task', task, 'option',  options, step=step, index=index)
@@ -72,7 +72,7 @@ def post_process(chip):
     index = chip.get('arg','index')
     task = chip._get_task(step, index)
 
-    for file in chip.get('tool', 'vpr', 'task', task, 'output', step, index):
+    for file in chip.get('tool', 'vpr', 'task', task, 'output', step=step, index=index):
         shutil.copy(file, 'outputs')
     design = chip.top()
     shutil.copy(f'inputs/{design}.blif', 'outputs')

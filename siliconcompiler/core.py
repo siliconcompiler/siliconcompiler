@@ -4416,10 +4416,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             envvars['PATH'] = self.get('tool', tool, 'path') + os.pathsep + os.environ['PATH']
         else:
             envvars['PATH'] = os.environ['PATH']
-        if (step in self.getkeys('tool', tool, 'task', task, 'env') and
-            index in self.getkeys('tool', tool, 'task', task, 'env', step)):
-            for key in self.getkeys('tool', tool, 'task', task, 'env', step, index):
-                envvars[key] = self.get('tool', tool, 'task', task, 'env', key, step=step, index=index)
+
+        for key in self.getkeys('tool', tool, 'task', task, 'env'):
+            val = self.get('tool', tool, 'task', task, 'env', key, step=step, index=index)
+            if val:
+                envvars[key] = val
 
         if is_posix:
             nice = None
