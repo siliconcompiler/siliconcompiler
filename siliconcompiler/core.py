@@ -3509,7 +3509,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # License file configuration.
         for item in self.getkeys('tool', tool, 'licenseserver'):
-            license_file = self.get('tool', tool, 'licenseserver', item)
+            license_file = self.get('tool', tool, 'licenseserver', item, step=step, index=index)
             if license_file:
                 os.environ[item] = ':'.join(license_file)
 
@@ -3528,7 +3528,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         vercheck = not self.get('option', 'novercheck')
         veropt = self.get('tool', tool, 'vswitch')
-        exe = self._getexe(tool)
+        exe = self._getexe(tool, step, index)
         version = None
         toolpath = exe # For record
         if exe is not None:
@@ -3544,7 +3544,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 version = parse_version(proc.stdout)
 
                 self.logger.info(f"Tool '{exe_base}' found with version '{version}' in directory '{exe_path}'")
-                if vercheck and not self._check_version(version, tool):
+                if vercheck and not self._check_version(version, tool, step, index):
                     self._haltstep(step, index)
             else:
                 self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
@@ -4356,8 +4356,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ############################################################################
     # Chip helper Functions
     ############################################################################
-    def _getexe(self, tool):
-        path = self.get('tool', tool, 'path')
+    def _getexe(self, tool, step, index):
+        path = self.get('tool', tool, 'path', step=step, index=index)
         exe = self.get('tool', tool, 'exe')
         if exe is None:
             return None
@@ -4384,7 +4384,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             command arguments (list)
         '''
 
-        fullexe = self._getexe(tool)
+        fullexe = self._getexe(tool, step, index)
 
         options = []
         is_posix = (sys.platform != 'win32')
@@ -4409,11 +4409,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for key in self.getkeys('option','env'):
             envvars[key] = self.get('option','env', key)
         for item in self.getkeys('tool', tool, 'licenseserver'):
-            license_file = self.get('tool', tool, 'licenseserver', item)
+            license_file = self.get('tool', tool, 'licenseserver', item, step=step, index=index)
             if license_file:
                 envvars[item] = ':'.join(license_file)
-        if self.get('tool', tool, 'path'):
-            envvars['PATH'] = self.get('tool', tool, 'path') + os.pathsep + os.environ['PATH']
+
+        path = self.get('tool', tool, 'path', step=step, index=index)
+        if path:
+            envvars['PATH'] = path + os.pathsep + os.environ['PATH']
         else:
             envvars['PATH'] = os.environ['PATH']
 
@@ -4623,7 +4625,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         return f'{filename}_{pathhash}{ext}'
 
-    def _check_version(self, reported_version, tool):
+    def _check_version(self, reported_version, tool, step, index):
         # Based on regex for deprecated "legacy specifier" from PyPA packaging
         # library. Use this to parse PEP-440ish specifiers with arbitrary
         # versions.
@@ -4642,7 +4644,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         normalize_version = self.find_function(tool, 'normalize_version', 'tools')
         # Version is good if it matches any of the specifier sets in this list.
-        spec_sets = self.get('tool', tool, 'version')
+        spec_sets = self.get('tool', tool, 'version', step=step, index=index)
         if not spec_sets:
             return True
 
