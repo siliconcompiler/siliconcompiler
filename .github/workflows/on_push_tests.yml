@@ -4,7 +4,7 @@ name: 'Quick CI Tests'
 
 jobs:
   self_hosted_tests:
-    timeout-minutes: 20
+    timeout-minutes: 15
     runs-on: self-hosted
     name: 'Tool-based tests'
     steps:
