@@ -1392,7 +1392,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'Required input {filename} not received for {step}{index}.')
                 error = True
 
-        if (self._is_builtin(tool, task)) and self.valid('tool', tool,'task', task,  'require', step, index):
+        if (not self._is_builtin(tool, task)) and self.valid('tool', tool,'task', task,  'require', step, index):
             all_required = self.get('tool', tool, 'task', task, 'require', step, index)
             for item in all_required:
                 keypath = item.split(',')
