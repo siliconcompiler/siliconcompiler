@@ -6937,7 +6937,7 @@
                         "defvalue": [],
                         "example": [
                             "cli: -tool_task_input 'openroad place oh_add.def'",
-                            "api: chip.set('tool','openroad','task','place','input','oh_add.def')"
+                            "api: chip.set('tool','openroad','task','place','input','oh_add.def', step='place', index='0')"
                         ],
                         "filehash": [],
                         "hashalgo": "sha256",
@@ -7002,7 +7002,7 @@
                         "defvalue": [],
                         "example": [
                             "cli: -tool_task_output 'openroad place oh_add.def'",
-                            "api: chip.set('tool','openroad','task','place','output','oh_add.def')"
+                            "api: chip.set('tool','openroad','task','place','output','oh_add.def', step='place', index='0')"
                         ],
                         "filehash": [],
                         "hashalgo": "sha256",
@@ -7120,7 +7120,7 @@
                             "defvalue": [],
                             "example": [
                                 "cli: -tool_task_report 'openroad place holdtns place.log'",
-                                "api: chip.set('tool','openroad','task','place','report','holdtns','place.log')"
+                                "api: chip.set('tool','openroad','task','place','report','holdtns','place.log', step='place', index='0')"
                             ],
                             "filehash": [],
                             "hashalgo": "sha256",
