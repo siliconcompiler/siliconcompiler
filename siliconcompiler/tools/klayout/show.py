@@ -32,4 +32,4 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', 'show_filetype']), step=step, index=index)
         chip.set('tool', tool, 'task', task, 'var', 'show_filetype', incoming_ext, step=step, index=index)
         chip.add('tool', tool, 'task', task, 'input', f'{design}.{incoming_ext}', step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'var', 'show_exit', "false", clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'var', 'show_exit', "false", step=step, index=index, clobber=False)

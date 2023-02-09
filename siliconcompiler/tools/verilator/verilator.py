@@ -88,11 +88,11 @@ def setup(chip):
 
     # Common to all tasks
     # Max threads
-    chip.set('tool', tool, 'task', task, 'threads',  os.cpu_count(), clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'threads',  os.cpu_count(), step=step, index=index, clobber=False)
 
     # Basic warning and error grep check on logfile
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r"^\%Warning", clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', r"^\%Error", clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r"^\%Warning", step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', r"^\%Error", step=step, index=index, clobber=False)
 
     # Generic CLI options (for all steps)
     chip.set('tool', tool, 'task', task, 'option',  '-sv', step=step, index=index)

@@ -16,7 +16,7 @@ def setup(chip):
     index = chip.get('arg','index')
 
     # Runtime parameters.
-    chip.set('tool', tool, 'task', task, 'threads',  os.cpu_count(), clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'threads',  os.cpu_count(), step=step, index=index, clobber=False)
 
     # Command-line options.
     options = []

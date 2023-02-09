@@ -20,15 +20,15 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=1.5.192', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    chip.set('tool', tool, 'task', task, 'threads', 4, clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'refdir', refdir, clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'script', script, clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'threads', 4, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=False)
 
     # set options
     options = []
     options.append('-batch')
     options.append('source')
-    chip.set('tool', tool, 'task', task, 'option', options, clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'option', options, step=step, index=index, clobber=False)
 
     design = chip.top()
     chip.add('tool', tool, 'task', task, 'input', f'{design}.spice', step=step, index=index)
@@ -43,7 +43,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'stderr', 'suffix', 'errors', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'report', 'errors', f'{step}.errors', step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', '^Warning:', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', '^Warning:', step=step, index=index, clobber=False)
 
     report_path = f'reports/{design}.lvs.out'
     chip.set('tool', tool, 'task', task, 'report', 'drvs', report_path, step=step, index=index)

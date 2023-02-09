@@ -64,10 +64,10 @@ def setup(chip):
 
     # Task Setup
     # common to all
-    chip.set('tool', tool, 'task', task, 'option', '-c', clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'refdir', refdir, clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', "Warning:", clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', "^ERROR", clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'option', '-c', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', "Warning:", step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', "^ERROR", step=step, index=index, clobber=False)
     for metric in ('cells', 'nets', 'pins'):
         chip.set('tool', tool, 'task', task, 'report', metric, "reports/stat.json", step=step, index=index)
     for metric in ('cellarea', 'errors', 'warnings', 'cellarea', 'drvs', 'coverage', 'security',
@@ -111,7 +111,7 @@ def setup_asic(chip):
     for option, value, additional_require in [('flatten', "True", None),
                                               ('autoname', "True", None),
                                               ('map_adders', "False", ['library', mainlib, 'option', 'file', 'yosys_addermap'])]:
-        chip.set('tool', tool, 'task', task, 'var', option, value, clobber=False, step=step, index=index)
+        chip.set('tool', tool, 'task', task, 'var', option, value, step=step, index=index, clobber=False)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', option]), step=step, index=index)
         if additional_require is not None and chip.get('tool', tool, 'task', task, 'var', option, step=step, index=index)[0] != "False":
             chip.add('tool', tool, 'task', task, 'require', ",".join(additional_require), step=step, index=index)
@@ -138,21 +138,21 @@ def setup_asic(chip):
         if chip.valid(*key1):
             chip.add('tool', tool, 'task', task, 'require', ",".join(key0), step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner', get_synthesis_corner(chip), clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'var', 'dff_liberty', get_dff_liberty_file(chip), clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner', get_synthesis_corner(chip), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'dff_liberty', get_dff_liberty_file(chip), step=step, index=index, clobber=False)
     chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'synthesis_corner']), step=step, index=index)
     chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'dff_liberty']), step=step, index=index)
 
     # Constants needed by yosys, do not allow overriding of values so force clobbering
-    chip.set('tool', tool, 'task', task, 'var', 'dff_liberty_file', "inputs/sc_dff_library.lib", clobber=True, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_file', "inputs/sc_abc.constraints", clobber=True, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'var', 'dff_liberty_file', "inputs/sc_dff_library.lib", step=step, index=index, clobber=True)
+    chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_file', "inputs/sc_abc.constraints", step=step, index=index, clobber=True)
 
     abc_driver = get_abc_driver(chip)
     if abc_driver:
-        chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver', abc_driver, clobber=False, step=step, index=index)
+        chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver', abc_driver, step=step, index=index, clobber=False)
     abc_clock_period = get_abc_period(chip)
     if abc_clock_period:
-        chip.set('tool', tool, 'task', task, 'var', 'abc_clock_period', str(abc_clock_period), clobber=False, step=step, index=index)
+        chip.set('tool', tool, 'task', task, 'var', 'abc_clock_period', str(abc_clock_period), step=step, index=index, clobber=False)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'abc_clock_period']), step=step, index=index)
 
     # document parameters
@@ -480,7 +480,7 @@ def syn_setup(chip):
     design = chip.top()
 
     # Set yosys script path.
-    chip.set('tool', tool, 'task', task, 'script', 'sc_syn.tcl', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'script', 'sc_syn.tcl', step=step, index=index, clobber=False)
 
     # Input/output requirements.
     chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)

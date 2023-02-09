@@ -12,7 +12,7 @@ def setup(chip):
     chip.set('tool', tool, 'exe', tool, clobber=False)
     chip.set('tool', tool, 'version', '0.0', clobber=False)
 
-    chip.set('tool', tool,  'task', task, 'threads', os.cpu_count(), clobber=False, step=step, index=index)
+    chip.set('tool', tool,  'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
 
     topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"

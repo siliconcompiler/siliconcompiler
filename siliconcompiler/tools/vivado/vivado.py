@@ -48,10 +48,10 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '-version', clobber=False)
     chip.set('tool', tool, 'format', 'tcl', clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'refdir', refdir, clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'script', script, clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'option', option, clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=False)
 
     for metric in ('setupwns', 'setuptns', 'holdwns', 'holdtns'):
         chip.set('tool', tool, 'task', task, 'report', metric, 'reports/timing_summary.rpt', step=step, index=index)
@@ -59,8 +59,8 @@ def setup(chip):
     for metric in ('luts', 'registers', 'bram', 'uram'):
         chip.set('tool', tool, 'task', task, 'report', metric, 'reports/total_utilization.rpt', step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^ERROR:', clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^(CRITICAL )?WARNING:', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^ERROR:', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^(CRITICAL )?WARNING:', step=step, index=index, clobber=False)
 
 def parse_version(stdout):
     # Vivado v2021.2 (64-bit)

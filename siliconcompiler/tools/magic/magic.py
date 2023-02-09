@@ -62,15 +62,15 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=8.3.196', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    chip.set('tool', tool, 'task', task, 'threads',  4, clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'refdir',  refdir, clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'script',  script, clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'threads',  4, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir',  refdir, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script',  script, step=step, index=index, clobber=False)
 
     # set options
     options = []
     options.append('-noc')
     options.append('-dnull')
-    chip.set('tool', tool, 'task', task, 'option',  options, clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'option',  options, step=step, index=index, clobber=False)
 
     design = chip.top()
     if chip.valid('input', 'layout', 'gds'):
@@ -78,8 +78,8 @@ def setup(chip):
     else:
         chip.add('tool', tool, 'task', task, 'input', f'{design}.gds', step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^Error', clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'warning', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^Error', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'warning', step=step, index=index, clobber=False)
 
 ################################
 # Version Check

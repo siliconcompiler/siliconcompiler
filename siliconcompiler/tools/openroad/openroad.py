@@ -125,7 +125,7 @@ def setup(chip, mode='batch'):
         elif chip.valid('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells'):
             tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
         if tapfile:
-            chip.set('tool', tool, 'task', task, 'var', 'ifp_tapcell', tapfile, clobber=False, step=step, index=index)
+            chip.set('tool', tool, 'task', task, 'var', 'ifp_tapcell', tapfile, step=step, index=index, clobber=False)
 
         corners = get_corners(chip)
         for lib in targetlibs:
@@ -140,10 +140,10 @@ def setup(chip, mode='batch'):
     else:
         chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
 
-    chip.set('tool', tool, 'task', task, 'var', 'timing_corners', get_corners(chip), clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'var', 'pex_corners', get_pex_corners(chip), clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'var', 'power_corner', get_power_corner(chip), clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'var', 'parasitics', "inputs/sc_parasitics.tcl", clobber=True, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'var', 'timing_corners', get_corners(chip), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'pex_corners', get_pex_corners(chip), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'power_corner', get_power_corner(chip), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'parasitics', "inputs/sc_parasitics.tcl", step=step, index=index, clobber=True)
 
     for var0, var1 in [('openroad_tiehigh_cell', 'openroad_tiehigh_port'), ('openroad_tiehigh_cell', 'openroad_tiehigh_port')]:
         key0 = ['library', mainlib, 'option', 'var', tool, var0]
@@ -230,7 +230,7 @@ def setup(chip, mode='batch'):
                             ('fin_add_fill', 'true'),
                             ('psm_enable', 'true')
                             ]:
-        chip.set('tool', tool, 'task', task, 'var', variable, value, clobber=False, step=step, index=index)
+        chip.set('tool', tool, 'task', task, 'var', variable, value, step=step, index=index, clobber=False)
 
     for libvar, openroadvar in [('openroad_pdngen', 'pdn_config'),
                                 ('openroad_global_connect', 'global_connect')]:
@@ -247,9 +247,9 @@ def setup(chip, mode='batch'):
 
     # basic warning and error grep check on logfile
     # print('warnings', step, index)
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WARNING|^Warning', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WARNING|^Warning', step=step, index=index, clobber=False)
     # print(chip.getdict('tool', tool, 'task', task, 'regex', 'warnings'))
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[ERROR', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[ERROR', step=step, index=index, clobber=False)
 
     # reports
     for metric in ('vias', 'wirelength', 'cellarea', 'totalarea', 'utilization', 'setuptns', 'holdtns',

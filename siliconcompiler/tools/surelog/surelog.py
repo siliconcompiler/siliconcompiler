@@ -73,8 +73,8 @@ def setup(chip):
         chip.set('tool', tool, 'path', surelog_path, clobber=False)
 
     # Log file parsing
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WRN:', clobber=False, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[(ERR|FTL|SNT):', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WRN:', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[(ERR|FTL|SNT):', step=step, index=index, clobber=False)
 
     #warnings_off = chip.get('tool', tool, 'warningoff')
     #for warning in warnings_off:

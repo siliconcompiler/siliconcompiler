@@ -24,7 +24,7 @@ def setup(chip):
     design = chip.top()
 
     # Set yosys script path.
-    chip.set('tool', tool, 'task', task, 'script', 'sc_lec.tcl', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'script', 'sc_lec.tcl', step=step, index=index, clobber=False)
 
     # Input/output requirements.
     if (not chip.valid('input', 'netlist', 'verilog') or

@@ -19,7 +19,7 @@ def setup(chip):
     clobber = True
     option = "-no_init -gui"
 
-    chip.set('tool', tool, 'task', task, 'var', 'show_exit', "false", clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'var', 'show_exit', "false", step=step, index=index, clobber=False)
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
         chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']), step=step, index=index)
     else:
@@ -30,7 +30,7 @@ def setup(chip):
     # Add to option string.
     cur_options = ' '.join(chip.get('tool', tool, 'task', task, 'option', step=step, index=index))
     new_options = f'{cur_options} {option}'
-    chip.set('tool', tool, 'task', task, 'option', new_options, clobber=True, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'option', new_options, step=step, index=index, clobber=True)
 
 def pre_process(chip):
     copy_show_files(chip)
