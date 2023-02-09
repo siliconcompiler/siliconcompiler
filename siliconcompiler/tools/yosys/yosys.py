@@ -89,9 +89,9 @@ def setup_asic(chip):
     syn_corner = get_synthesis_corner(chip)
 
     if syn_corner is None:
-        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', 'synthesis_corner']), step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'synthesis_corner']), step=step, index=index)
     if get_dff_liberty_file(chip) is None:
-        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['tool', tool, 'task', task, 'var', 'dff_liberty']), step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'dff_liberty']), step=step, index=index)
 
     if syn_corner is not None:
     # add timing library requirements
