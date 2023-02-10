@@ -335,8 +335,9 @@ def get_synthesis_corner(chip):
     index = chip.get('arg','index')
     task = chip._get_task(step, index)
 
-    if chip.valid('tool', tool, 'task', task, 'var', 'synthesis_corner'):
-        return chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner', step=step, index=index)[0]
+    syn_corner = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner', step=step, index=index)
+    if syn_corner:
+        return syn_corner[0]
 
     # determine corner based on setup corner from constraints
     corner = None
@@ -362,8 +363,9 @@ def get_dff_liberty_file(chip):
     index = chip.get('arg','index')
     task = chip._get_task(step, index)
 
-    if chip.valid('tool', tool, 'task', task, 'var', 'dff_liberty'):
-        return chip.get('tool', tool, 'task', task, 'var', 'dff_liberty', step=step, index=index)[0]
+    dff_liberty = chip.get('tool', tool, 'task', task, 'var', 'dff_liberty', step=step, index=index)
+    if dff_liberty:
+        return dff_liberty[0]
 
     corner = get_synthesis_corner(chip)
     if corner is None:
@@ -389,10 +391,9 @@ def get_abc_period(chip):
     index = chip.get('arg','index')
     task = chip._get_task(step, index)
 
-    if chip.valid('tool', tool, 'task', task, 'var', 'abc_clock_period'):
-        abc_clock_period = chip.get('tool', tool, 'task', task, 'var', 'abc_clock_period', step=step, index=index)
-        if abc_clock_period:
-            return abc_clock_period[0]
+    abc_clock_period = chip.get('tool', tool, 'task', task, 'var', 'abc_clock_period', step=step, index=index)
+    if abc_clock_period:
+        return abc_clock_period[0]
 
     period = None
 
@@ -434,8 +435,9 @@ def get_abc_period(chip):
     if chip.get('unit', 'time')[0] == 'n':
         period *= 1000
 
-    if chip.valid('tool', tool, 'task', task, 'var', 'abc_clock_derating'):
-        derating = float(chip.get('tool', tool, 'task', task, 'var', 'abc_clock_derating', step=step, index=index)[0])
+    abc_clock_derating = chip.get('tool', tool, 'task', task, 'var', 'abc_clock_derating')
+    if abc_clock_derating:
+        derating = float(abc_clock_derating[0])
         if derating > 1:
             chip.logger.warning("abc_clock_derating is greater than 1.0")
         elif derating > 0:
@@ -452,16 +454,15 @@ def get_abc_driver(chip):
     index = chip.get('arg','index')
     task = chip._get_task(step, index)
 
-    abc_driver = None
-    if chip.valid('tool', tool, 'task', task, 'var', 'abc_constraint_driver') and \
-       chip.get('tool', tool, 'task', task, 'var', 'abc_constraint_driver', step=step, index=index):
-        abc_driver = chip.get('tool', tool, 'task', task, 'var', 'abc_constraint_driver', step=step, index=index)[0]
+    abc_driver = chip.get('tool', tool, 'task', task, 'var', 'abc_constraint_driver', step=step, index=index)
+    if abc_driver:
+        return abc_driver[0]
 
-    if abc_driver is None:
-        # get the first driver defined in the logic lib
-        for lib in chip.get('asic', 'logiclib'):
-            if chip.valid('library', lib, 'option', 'var', 'yosys_driver_cell') and not abc_driver:
-                abc_driver = chip.get('library', lib, 'option', 'var', 'yosys_driver_cell')[0]
+    abc_driver = None
+    # get the first driver defined in the logic lib
+    for lib in chip.get('asic', 'logiclib'):
+        if chip.valid('library', lib, 'option', 'var', 'yosys_driver_cell') and not abc_driver:
+            abc_driver = chip.get('library', lib, 'option', 'var', 'yosys_driver_cell')[0]
 
     return abc_driver
 
