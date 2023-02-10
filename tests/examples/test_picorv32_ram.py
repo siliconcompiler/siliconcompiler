@@ -8,7 +8,9 @@ import time
 from unittest.mock import Mock
 
 # Run as a daily test, because this takes a long time to build.
+@pytest.mark.skip(reason='Long runtime, and almost the same as "test_picorv32_sram_remote"')
 @pytest.mark.eda
+@pytest.mark.timeout(900)
 def test_picorv32_sram(setup_example_test):
     setup_example_test('picorv32_ram')
 
@@ -24,6 +26,7 @@ def test_picorv32_sram(setup_example_test):
 # directory, this "remote" test will only work on localhost.
 # It is still useful to test for failures which can only occur in the remote flow, however.
 @pytest.mark.eda
+@pytest.mark.timeout(900)
 def test_picorv32_sram_remote(setup_example_test):
     setup_example_test('picorv32_ram')
 
