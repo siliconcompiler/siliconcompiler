@@ -20,7 +20,7 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=1.5.192', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    chip.set('tool', tool, 'task', task, 'threads', 4, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=False)
 
