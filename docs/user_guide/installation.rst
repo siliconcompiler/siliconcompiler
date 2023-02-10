@@ -92,6 +92,19 @@ To exit the Python virtual environment, type 'deactivate' and hit enter.
 You can also install SiliconCompiler from the latest `SiliconCompiler GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_. This option is currently
 only supported on Linux/MacOS platforms.
 
+On MacOS, note that you must first install Bison and Flex from Homebrew.
+
+.. code-block:: bash
+
+   brew install bison
+   brew install flex
+
+Ensure that the path to the Homebrew packages takes priority over system
+packages in your ``$PATH``. Run ``brew --prefix`` to determine where Homebrew
+installs packages on your machine.
+
+Finally, to clone and install SiliconCompiler, run the following.
+
 .. code-block:: bash
 
    git clone https://github.com/siliconcompiler/siliconcompiler
