@@ -1,6 +1,5 @@
 import importlib
 import os
-import subprocess
 
 import siliconcompiler
 
@@ -140,7 +139,7 @@ def runtime_options(chip):
     elif step == 'compile':
         for value in chip.find_files('input', 'hll', 'c'):
             cmdlist.append(value)
-        for value in chip.find_files('tool', tool, 'task', task, 'input', step, index):
+        for value in chip.find_files('tool', tool, 'task', task, 'input', step=step, index=index):
             cmdlist.append(value)
 
     return cmdlist
