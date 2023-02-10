@@ -6,7 +6,7 @@ import re
 
 from .utils import trim
 
-SCHEMA_VERSION = '0.22.0'
+SCHEMA_VERSION = '0.23.0'
 
 #############################################################################
 # PARAM DEFINITION
