@@ -2,6 +2,11 @@ import os
 import siliconcompiler
 
 def make_docs():
+    chip = siliconcompiler.Chip('asap7')
+
+    return setup(chip)
+
+def setup(chip):
     '''
     The asap7 PDK was developed at ASU in collaboration with ARM Research.
     With funding from the DARPA IDEA program, the PDK was released
@@ -36,16 +41,6 @@ def make_docs():
 
     .. warning::
        Work in progress (not ready for use)
-
-    '''
-
-    chip = siliconcompiler.Chip('asap7')
-
-    return setup(chip)
-
-def setup(chip):
-    '''
-    TODO: Add process information
     '''
 
     foundry = 'virtual'
