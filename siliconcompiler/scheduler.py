@@ -16,7 +16,7 @@ def _deferstep(chip, step, index, status):
     '''
 
     # Determine which HPC job scheduler being used.
-    scheduler_type = chip.get('option', 'jobscheduler')
+    scheduler_type = chip.get('option', 'scheduler', 'name')
 
     # Determine which cluster parititon to use. (Default value can be overridden on per-step basis)
     if f'{step}_slurm_partition' in chip.status:
@@ -66,12 +66,27 @@ def _deferstep(chip, step, index, status):
         schedule_cmd = ['lsrun']
 
     # Create a command to defer execution to a compute node.
+    # Create a Python script to setup and run the task using a Chip object.
+    py_script_path = f'{cfg_dir}/{step}{index}.py'
+    with open(py_script_path, 'w') as sf:
+        sf.write(f'''
+import siliconcompiler
+
+chip = siliconcompiler.Chip("{chip.get('design')}")
+chip.read_manifest("{shlex.quote(cfg_file)}")
+chip.unset('option', 'scheduler', 'name')
+chip.set('arg', 'step', '{step}')
+chip.set('arg', 'index', '{index}')
+chip.set('option', 'builddir', '{chip.get("option", "builddir")}')
+
+chip.run()
+        ''')
+    # Create a bash script to run the script, and handle scheduler bookkeeping.
     script_path = f'{cfg_dir}/{step}{index}.sh'
     with open(script_path, 'w') as sf:
         sf.write('#!/bin/bash\n')
-        sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
-                    f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
-                    f"-jobscheduler '' -design {shlex.quote(chip.top())}\n")
+        # Use 'python3' in case of old OS which still ships with Python2.x
+        sf.write(f'python3 {py_script_path}\n')
         # In case of error(s) which prevents the SC build script from completing, ensure the
         # file mutex for job completion is set in shared storage. This lockfile signals the server
         # to mark the job done, without putting load on the cluster reporting/accounting system.
