@@ -59,7 +59,7 @@ def setup(chip):
     #    chip.add('tool', tool, 'task', task, 'option', f'-Wno-{warning}', step=step, index=index)
 
     # User runtime option
-    if chip.get('option', 'trace'):
+    if chip.get('option', 'trace', step=step, index=index):
         chip.add('tool', tool, 'task', task, 'task', task, 'option', '--trace', step=step, index=index)
 
 ################################

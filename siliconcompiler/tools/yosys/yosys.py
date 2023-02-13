@@ -251,7 +251,7 @@ def prepare_synthesis_libraries(chip):
         dff_liberty_file,
         chip.get('tool', tool, 'task', task, 'var', 'dff_liberty_file', step=step, index=index)[0],
         dff_dont_use,
-        chip.get('option', 'quiet'),
+        chip.get('option', 'quiet', step=step, index=index),
     )
 
     #### Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
@@ -272,7 +272,7 @@ def prepare_synthesis_libraries(chip):
     def process_lib_file(libtype, lib, lib_file, dont_use):
         input_base_name = os.path.splitext(os.path.basename(lib_file))[0]
         output_file = f"inputs/sc_{libtype}_{lib}_{input_base_name}.lib"
-        markDontUse.processLibertyFile(lib_file, output_file, dont_use, chip.get('option', 'quiet'))
+        markDontUse.processLibertyFile(lib_file, output_file, dont_use, chip.get('option', 'quiet', step=step, index=index))
 
         var_name = 'synthesis_libraries'
         if (libtype == "macrolib"):

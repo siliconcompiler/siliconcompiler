@@ -2072,6 +2072,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option','optmode'],
             sctype='str',
+            pernode='optional',
             scope='job',
             require='all',
             defvalue='O0',
@@ -2190,6 +2191,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',
             enum=["NOTSET", "INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"],
+            pernode='optional',
             scope='job',
             defvalue='INFO',
             shorthelp="Logging level",
@@ -2364,6 +2366,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'quiet'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Quiet execution",
             switch="-quiet <bool>",
@@ -2390,6 +2393,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'novercheck'],
             sctype='bool',
+            pernode='optional',
             defvalue=False,
             scope='job',
             shorthelp="Disable version checking",
@@ -2428,6 +2432,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'track'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Enable provenance tracking",
             switch="-track <bool>",
@@ -2441,6 +2446,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'trace'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Enable debug traces",
             switch="-trace <bool>",
@@ -2619,6 +2625,7 @@ def schema_option(cfg):
 
     scparam(cfg,['option', 'flowcontinue'],
             sctype='bool',
+            pernode='optional',
             shorthelp="Flow continue-on-error",
             switch='-flowcontinue',
             example=["cli: -flowcontinue",
@@ -2631,6 +2638,7 @@ def schema_option(cfg):
 
     scparam(cfg,['option', 'continue'],
             sctype='bool',
+            pernode='optional',
             shorthelp='Implementation continue-on-error',
             switch='-continue',
             example=["cli: -continue",
@@ -2670,6 +2678,7 @@ def schema_option(cfg):
     # job scheduler
     scparam(cfg, ['option', 'scheduler', 'name'],
             sctype='enum',
+            pernode='optional',
             enum=["slurm", "lsf", "sge"],
             scope='job',
             pernode='optional',
@@ -2689,6 +2698,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'cores'],
             sctype='int',
+            pernode='optional',
             scope='job',
             shorthelp="Option: Scheduler core constraint",
             switch="-cores <int>",
@@ -2702,6 +2712,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'memory'],
             sctype='int',
+            pernode='optional',
             unit='MB',
             scope='job',
             shorthelp="Option: Scheduler memory constraint",
@@ -2716,6 +2727,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'queue'],
             sctype='str',
+            pernode='optional',
             scope='job',
             shorthelp="Option: Scheduler queue",
             switch="-queue <str>",
@@ -2729,6 +2741,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'defer'],
             sctype='str',
+            pernode='optional',
             scope='job',
             shorthelp="Option: Scheduler start time",
             switch="-defer <str>",
@@ -2744,6 +2757,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'options'],
             sctype='[str]',
+            pernode='optional',
             shorthelp="Option: Scheduler arguments",
             switch="-scheduler_options <str>",
             example=[
@@ -2757,6 +2771,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'msgevent'],
             sctype='str',
+            pernode='optional',
             defvalue='NONE',
             scope='job',
             shorthelp="Option: Message event trigger",
@@ -2774,6 +2789,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'msgcontact'],
             sctype='[str]',
+            pernode='optional',
             scope='job',
             shorthelp="Option: Message contact",
             switch="-msgcontact <str>",
