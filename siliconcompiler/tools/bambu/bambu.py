@@ -1,3 +1,6 @@
+'''
+'''
+
 import importlib
 
 import siliconcompiler
@@ -6,9 +9,6 @@ import siliconcompiler
 # Make Docs
 ####################################################################
 def make_docs():
-    '''
-    '''
-
     chip = siliconcompiler.Chip('<design>')
     step = 'import'
     index = '0'

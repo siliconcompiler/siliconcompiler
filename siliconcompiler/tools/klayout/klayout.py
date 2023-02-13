@@ -1,3 +1,15 @@
+
+'''
+Klayout is a production grade viewer and editor of GDSII and
+Oasis data with customizable Python and Ruby interfaces.
+
+Documentation: https://www.klayout.de
+
+Sources: https://github.com/KLayout/klayout
+
+Installation: https://www.klayout.de/build.html
+'''
+
 import os
 from pathlib import Path
 import platform
@@ -10,18 +22,6 @@ import siliconcompiler
 ####################################################################
 
 def make_docs():
-    '''
-    Klayout is a production grade viewer and editor of GDSII and
-    Oasis data with customizable Python and Ruby interfaces.
-
-    Documentation: https://www.klayout.de
-
-    Sources: https://github.com/KLayout/klayout
-
-    Installation: https://www.klayout.de/build.html
-
-    '''
-
     chip = siliconcompiler.Chip('<design>')
     chip.load_target('freepdk45_demo')
     step = 'export'

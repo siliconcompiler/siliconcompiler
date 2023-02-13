@@ -1,3 +1,18 @@
+'''
+Yosys is a framework for RTL synthesis that takes synthesizable
+Verilog-2005 design and converts it to BLIF, EDIF, BTOR, SMT,
+Verilog netlist etc. The tool supports logical synthesis and
+tech mapping to ASIC standard cell libraries, FPGA architectures.
+In addition it has built in formal methods for property and
+equivalence checking.
+
+Documentation: https://yosyshq.readthedocs.io/projects/yosys/en/latest/
+
+Sources: https://github.com/YosysHQ/yosys
+
+Installation: https://github.com/YosysHQ/yosys
+'''
+
 import os
 import re
 import json
@@ -12,21 +27,7 @@ import siliconcompiler.tools.yosys.markDontUse as markDontUse
 ######################################################################
 
 def make_docs():
-    '''
-    Yosys is a framework for RTL synthesis that takes synthesizable
-    Verilog-2005 design and converts it to BLIF, EDIF, BTOR, SMT,
-    Verilog netlist etc. The tool supports logical synthesis and
-    tech mapping to ASIC standard cell libraries, FPGA architectures.
-    In addition it has built in formal methods for property and
-    equivalence checking.
 
-    Documentation: http://www.clifford.at/yosys/documentation.html
-
-    Sources: https://github.com/YosysHQ/yosys
-
-    Installation: https://github.com/YosysHQ/yosys
-
-    '''
 
     chip = siliconcompiler.Chip('<design>')
     # TODO: docs split by task

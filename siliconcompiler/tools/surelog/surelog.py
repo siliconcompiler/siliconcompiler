@@ -1,3 +1,15 @@
+'''
+Surelog is a SystemVerilog pre-processor, parser, elaborator,
+and UHDM compiler that provdes IEEE design and testbench
+C/C++ VPI and a Python AST API.
+
+Documentation: https://github.com/chipsalliance/Surelog
+
+Sources: https://github.com/chipsalliance/Surelog
+
+Installation: https://github.com/chipsalliance/Surelog
+'''
+
 import os
 import sys
 import shutil
@@ -8,18 +20,6 @@ import siliconcompiler
 # Make Docs
 ####################################################################
 def make_docs():
-    '''
-    Surelog is a SystemVerilog pre-processor, parser, elaborator,
-    and UHDM compiler that provdes IEEE design and testbench
-    C/C++ VPI and a Python AST API.
-
-    Documentation: https://github.com/chipsalliance/Surelog
-
-    Sources: https://github.com/chipsalliance/Surelog
-
-    Installation: https://github.com/chipsalliance/Surelog
-
-    '''
 
     chip = siliconcompiler.Chip('<design>')
     chip.load_target('freepdk45_demo')

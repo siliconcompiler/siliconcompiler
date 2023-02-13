@@ -2,7 +2,10 @@
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
 
 def setup(chip):
-    ''' Helper method to load configs specific to compile tasks.
+    '''
+    Lints Verilog source. Takes in a single pickled Verilog file from
+    ``inputs/<design>.v`` and produces no outputs. Results of linting can be
+    programatically queried using errors/warnings metrics.
     '''
 
     # Generic tool setup.

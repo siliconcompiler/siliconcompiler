@@ -1,3 +1,7 @@
+'''
+To-Do: Add details here
+'''
+
 import siliconcompiler
 
 ######################################################################
@@ -5,10 +9,6 @@ import siliconcompiler
 ######################################################################
 
 def make_docs():
-    '''
-    To-Do: Add details here
-    '''
-
     chip = siliconcompiler.Chip('<design>')
     step = 'bitstream'
     index = '<index>'

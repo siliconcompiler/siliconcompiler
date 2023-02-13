@@ -4,7 +4,17 @@ import subprocess
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
 
 def setup(chip):
-    ''' Helper method to load configs specific to compile tasks.
+    '''
+    Preprocesses and pickles Verilog sources. Takes in a set of Verilog source
+    files supplied via :keypath:`input, verilog` and reads the following
+    parameters:
+
+    * :keypath:`option, ydir`
+    * :keypath:`option, vlib`
+    * :keypath:`option, idir`
+    * :keypath:`option, cmdfile`
+
+    Outputs a single Verilog file in ``outputs/<design>.v``.
     '''
 
     # Generic tool setup.

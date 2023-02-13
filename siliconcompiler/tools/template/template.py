@@ -1,16 +1,17 @@
-import os
+'''
+Tool description
 
+Documentation:https://
+
+Sources: https://
+
+Installation: https://
+'''
+
+import os
 import siliconcompiler
 
 def make_docs():
-    '''
-    Tool description
-
-    Documentation:https://
-    Sources: https://
-    Installation: https://
-
-    '''
 
     chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','<step>')
