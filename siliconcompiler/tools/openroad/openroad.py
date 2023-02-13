@@ -352,31 +352,42 @@ def post_process(chip):
 
 def get_pex_corners(chip):
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
     corners = set()
     for constraint in chip.getkeys('constraint', 'timing'):
-        if chip.valid('constraint', 'timing', constraint, 'pexcorner'):
-            corners.add(chip.get('constraint', 'timing', constraint, 'pexcorner'))
+        pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner', step=step, index=index)
+        if pexcorner:
+            corners.add(pexcorner)
 
     return list(corners)
 
 def get_corners(chip):
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
     corners = set()
     for constraint in chip.getkeys('constraint', 'timing'):
-        if chip.valid('constraint', 'timing', constraint, 'libcorner'):
-            corners.add(chip.get('constraint', 'timing', constraint, 'libcorner')[0])
+        libcorner = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
+        if libcorner:
+            corners.update(libcorner)
 
     return list(corners)
 
 def get_corner_by_check(chip, check):
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
     for constraint in chip.getkeys('constraint', 'timing'):
-        if not chip.valid('constraint', 'timing', constraint, 'libcorner'):
+        if check not in chip.get('constraint', 'timing', constraint, 'check', step=step, index=index):
             continue
 
-        if chip.valid('constraint', 'timing', constraint, 'check'):
-            if check in chip.get('constraint', 'timing', constraint, 'check'):
-                return chip.get('constraint', 'timing', constraint, 'libcorner')[0]
+        libcorner = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
+        if libcorner:
+            return libcorner[0]
 
     # if not specified, just pick the first corner available
     return get_corners(chip)[0]
@@ -402,17 +413,12 @@ def build_pex_corners(chip):
 
     corners = {}
     for constraint in chip.getkeys('constraint', 'timing'):
-        libcorner = None
-        if chip.valid('constraint', 'timing', constraint, 'libcorner'):
-            libcorner = chip.get('constraint', 'timing', constraint, 'libcorner')[0]
-
-        pexcorner = None
-        if chip.valid('constraint', 'timing', constraint, 'pexcorner'):
-            pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner')
+        libcorner = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
+        pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner', step=step, index=index)
 
         if not libcorner or not pexcorner:
             continue
-        corners[libcorner] = pexcorner
+        corners[libcorner[0]] = pexcorner
 
     default_corner = get_setup_corner(chip)
     if default_corner in corners:
