@@ -1,6 +1,11 @@
 import siliconcompiler
 
 def make_docs():
+    chip = siliconcompiler.Chip('<topmodule>')
+    chip.set('option', 'flow', 'signoffflow')
+    return setup(chip)
+
+def setup(chip):
     '''A flow for running LVS/DRC signoff on a GDS layout.
 
     Inputs must be passed to this flow as follows::
@@ -8,11 +13,6 @@ def make_docs():
         flow.input('<path-to-layout>.gds')
         flow.input('<path-to-netlist>.vg')
     '''
-    chip = siliconcompiler.Chip('<topmodule>')
-    chip.set('option', 'flow', 'signoffflow')
-    return setup(chip)
-
-def setup(chip):
     flowname = 'signoffflow'
 
     flow = siliconcompiler.Flow(chip, flowname)

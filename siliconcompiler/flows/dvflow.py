@@ -5,6 +5,14 @@ import siliconcompiler
 ############################################################################
 
 def make_docs():
+    chip = siliconcompiler.Chip('<topmodule>')
+    chip.set('option', 'flow', 'dvflow')
+    return setup(chip, np=5)
+
+#############################################################################
+# Flowgraph Setup
+#############################################################################
+def setup(chip, np=1):
     '''
     A configurable constrained random stimulus DV flow.
 
@@ -21,19 +29,6 @@ def make_docs():
     The dvflow can be parametrized using a single 'np' parameter.
     Setting 'np' > 1 results in multiple independent verificaiton
     pipelines to be launched.
-
-    '''
-
-    chip = siliconcompiler.Chip('<topmodule>')
-    chip.set('option', 'flow', 'dvflow')
-    return setup(chip, np=5)
-
-#############################################################################
-# Flowgraph Setup
-#############################################################################
-def setup(chip, np=1):
-    '''
-    Setup function for 'dvflow'
     '''
 
     # Definting a flow
