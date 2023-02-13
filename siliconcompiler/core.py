@@ -3394,7 +3394,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # (Run the initial 'import' stage[s] locally)
 
         if self.get('option', 'scheduler', 'name') and \
-           self.get('flowgraph', flow, step, index, 'input'):
+           self.get('flowgraph', flow, step, index, 'input') and \
+           (self.get('option', 'scheduler', 'name') != 'none'):
             # Note: The _deferstep method blocks until the compute node
             # finishes processing this step, and it sets the active/error bits.
             _deferstep(self, step, index, status)
@@ -4029,6 +4030,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.set('option', 'steplist', pre_remote_steplist['steplist'])
                 else:
                     self.unset('option', 'steplist')
+                self.unset('option', 'scheduler', 'name')
             else:
                 # Hack to find first failed step by checking for presence of
                 # output manifests.
