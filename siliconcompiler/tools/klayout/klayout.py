@@ -115,23 +115,6 @@ def parse_version(stdout):
     # KLayout 0.26.11
     return stdout.split()[1]
 
-def find_incoming_ext(chip):
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    flow = chip.get('option', 'flow')
-
-    supported_ext = ('gds', 'oas', 'def')
-
-    for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
-        for ext in supported_ext:
-            show_file = chip.find_result(ext, step=input_step, index=input_index)
-            if show_file:
-                return ext
-
-    # Nothing found, just add last one
-    return supported_ext[-1]
-
 ##################################################
 if __name__ == "__main__":
 

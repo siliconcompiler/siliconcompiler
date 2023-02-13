@@ -1,5 +1,19 @@
-
+import siliconcompiler
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
+from siliconcompiler.tools.klayout.show import find_incoming_ext
+
+def make_docs():
+    chip = siliconcompiler.Chip('<design>')
+    chip.load_target('freepdk45_demo')
+    step = 'screenshot'
+    index = '<index>'
+    chip.set('arg','step',step)
+    chip.set('arg','index',index)
+    chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'task', 'screenshot')
+    chip.set('tool', 'klayout', 'task', 'screenshot', 'var', 'show_filepath', '<path>')
+    setup(chip)
+
+    return chip
 
 def setup(chip):
     ''' Helper method for configs specific to screenshot tasks.

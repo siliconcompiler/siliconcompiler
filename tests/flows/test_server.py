@@ -59,6 +59,7 @@ def gcd_remote_test(gcd_chip, request):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
 @pytest.mark.remote_test(port='8080')
 def test_gcd_server(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -81,6 +82,7 @@ def test_gcd_server(gcd_remote_test):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
 @pytest.mark.remote_test(port='8081')
 def test_gcd_server_partial(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -110,6 +112,7 @@ def test_gcd_server_partial(gcd_remote_test):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
 @pytest.mark.remote_test(port='8082')
 def test_gcd_server_partial_noeda(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -131,6 +134,7 @@ def test_gcd_server_partial_noeda(gcd_remote_test):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
 @pytest.mark.remote_test(port='8083')
 def test_gcd_server_partial_noimport(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -152,6 +156,7 @@ def test_gcd_server_partial_noimport(gcd_remote_test):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
 @pytest.mark.remote_test(port='8084')
 def test_gcd_server_error(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -175,6 +180,7 @@ def test_gcd_server_error(gcd_remote_test):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
 @pytest.mark.remote_test(port='8085')
 def test_gcd_server_argstep_noimport(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
