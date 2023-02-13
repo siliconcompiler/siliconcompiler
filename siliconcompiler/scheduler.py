@@ -71,7 +71,7 @@ def _deferstep(chip, step, index, status):
         sf.write('#!/bin/bash\n')
         sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
-                    f"-jobscheduler 'none' -design {shlex.quote(chip.top())}\n")
+                    f"-scheduler 'none' -design {shlex.quote(chip.top())}\n")
         # In case of error(s) which prevents the SC build script from completing, ensure the
         # file mutex for job completion is set in shared storage. This lockfile signals the server
         # to mark the job done, without putting load on the cluster reporting/accounting system.
