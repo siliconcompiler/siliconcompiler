@@ -16,7 +16,7 @@ def setup(chip):
     index = chip.get('arg', 'index')
 
     if (not chip.valid('input', 'layout', 'def') or
-        not chip.get('input', 'layout', 'def')):
+        not chip.get('input', 'layout', 'def', step=step, index=index)):
         chip.add('tool', tool, 'task', task, 'input', design +'.def', step=step, index=index)
 
 def pre_process(chip):

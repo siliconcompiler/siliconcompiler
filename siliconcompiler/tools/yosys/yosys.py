@@ -396,7 +396,7 @@ def get_abc_period(chip):
     # get clock information from sdc files
     # TODO: fix for fpga/asic differentiation later
     if chip.valid('input', 'constraint', 'sdc'):
-        for sdc in chip.find_files('input', 'constraint', 'sdc'):
+        for sdc in chip.find_files('input', 'constraint', 'sdc', step=step, index=index):
             lines = []
             with open(sdc, 'r') as f:
                 lines = f.read().splitlines()

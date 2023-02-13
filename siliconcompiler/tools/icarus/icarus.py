@@ -25,8 +25,11 @@ def make_docs(chip):
 
 def runtime_options(chip):
 
-    ''' Custom runtime options, returnst list of command line options.
+    ''' Custom runtime options, returns list of command line options.
     '''
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     cmdlist = []
 
@@ -41,7 +44,7 @@ def runtime_options(chip):
         cmdlist.append('-D' + value)
     for value in chip.find_files('option','cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('input', 'rtl', 'verilog'):
+    for value in chip.find_files('input', 'rtl', 'verilog', step=step, index=index):
         cmdlist.append(value)
 
     return cmdlist

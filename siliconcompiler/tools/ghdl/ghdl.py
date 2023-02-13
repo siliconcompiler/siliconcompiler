@@ -56,7 +56,7 @@ def runtime_options(chip):
             chip.error('Unsupported option ' + opt)
 
     # Add sources
-    for value in chip.find_files('input', 'rtl', 'vhdl'):
+    for value in chip.find_files('input', 'rtl', 'vhdl', step=step, index=index):
         options.append(value)
 
     # Set top module

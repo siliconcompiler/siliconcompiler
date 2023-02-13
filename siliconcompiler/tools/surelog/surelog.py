@@ -83,6 +83,9 @@ def runtime_options(chip):
     ''' Custom runtime options, returnst list of command line options.
     '''
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
     cmdlist = []
 
     #####################
@@ -159,7 +162,7 @@ def runtime_options(chip):
     # Sources
     #######################
 
-    src_files = chip.find_files('input', 'rtl', 'verilog')
+    src_files = chip.find_files('input', 'rtl', 'verilog', step=step, index=index)
 
     # TODO: add back later
     #for item in chip.getkeys('library'):
