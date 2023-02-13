@@ -124,11 +124,11 @@ class DynamicGen(SphinxDirective):
 
         s = build_section_with_target(modname, f'{modname}', self.state.document)
 
-        setup = self.get_setup_method(module)
-        if not setup:
-            return None
-
-        self.generate_documentation_from_function(setup, path, s)
+        # Attempt to use module doc string first
+        if not self.generate_documentation_from_object(module, path, s):
+            setup = self.get_setup_method(module)
+            # Then use setup doc string
+            self.generate_documentation_from_object(setup, path, s)
 
         make_docs = self.get_make_docs_method(module)
         if not make_docs:
@@ -235,7 +235,7 @@ class DynamicGen(SphinxDirective):
     def child_content(self, path, module, modname):
         return None
 
-    def generate_documentation_from_function(self, func, path, s):
+    def generate_documentation_from_object(self, func, path, s):
         # raw docstrings have funky indentation (basically, each line is already
         # indented as much as the function), so we call trim() helper function
         # to clean it up
@@ -243,6 +243,8 @@ class DynamicGen(SphinxDirective):
 
         if docstr:
             self.parse_rst(docstr, s)
+        else:
+            return False
 
         builtin = os.path.abspath(path).startswith(SC_ROOT)
 
@@ -254,6 +256,8 @@ class DynamicGen(SphinxDirective):
             p = para('Setup file: ')
             p += link(gh_link, text=filename)
             s += p
+
+        return True
 
     def document_free_params(self, cfg, reference_prefix, s):
         self._document_free_params(cfg, 'var', reference_prefix, s)
@@ -485,7 +489,7 @@ class ToolGen(DynamicGen):
 
         print(f"Generating docs for task {toolname}/{taskname}...")
 
-        self.generate_documentation_from_function(task_setup, path, s)
+        self.generate_documentation_from_object(task_setup, path, s)
 
         # Annotate the target used for default values
         if chip.valid('option', 'target') and chip.get('option', 'target'):
