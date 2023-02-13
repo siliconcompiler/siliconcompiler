@@ -1339,29 +1339,29 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             paramtype = self.get(*keypath, field='type')
             #only do something if type is file or dir
             if ('history' not in keypath and 'library' not in keypath) and ('file' in paramtype or 'dir' in paramtype):
+                for val, step, index in self.schema._getvals(*keypath):
+                    if val is None:
+                        # skip unset values (some directories are None by default)
+                        continue
 
-                if self.get(*keypath) is None:
-                    # skip unset values (some directories are None by default)
-                    continue
+                    abspaths = self.find_files(*keypath, missing_ok=True, step=step, index=index)
+                    if not isinstance(abspaths, list):
+                        abspaths = [abspaths]
 
-                abspaths = self.find_files(*keypath, missing_ok=True)
-                if not isinstance(abspaths, list):
-                    abspaths = [abspaths]
+                    for abspath in abspaths:
+                        ok = False
 
-                for abspath in abspaths:
-                    ok = False
+                        if abspath is not None:
+                            for allowed_path in allowed_paths:
+                                if os.path.commonpath([abspath, allowed_path]) == allowed_path:
+                                    ok = True
+                                    continue
 
-                    if abspath is not None:
-                        for allowed_path in allowed_paths:
-                            if os.path.commonpath([abspath, allowed_path]) == allowed_path:
-                                ok = True
-                                continue
-
-                    if not ok:
-                        self.logger.error(f'Keypath {keypath} contains path(s) '
-                            'that do not exist or resolve to files outside of '
-                            'allowed directories.')
-                        return False
+                        if not ok:
+                            self.logger.error(f'Keypath {keypath} contains path(s) '
+                                'that do not exist or resolve to files outside of '
+                                'allowed directories.')
+                            return False
 
         return True
 
@@ -1426,16 +1426,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     paramtype = self.get(*keypath, field='type')
                     if ('file' in paramtype) or ('dir' in paramtype):
-                        abspath = self.find_files(*keypath, missing_ok=True)
-                        unresolved_paths = self.get(*keypath)
-                        if not isinstance(abspath, list):
-                            abspath = [abspath]
-                            unresolved_paths = [unresolved_paths]
-                        for i, path in enumerate(abspath):
-                            if path is None:
-                                unresolved_path = unresolved_paths[i]
-                                self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
-                                error = True
+                        for val, step, index in self.schema._getvals(*keypath):
+                            abspath = self.find_files(*keypath, missing_ok=True, step=step, index=index)
+                            unresolved_paths = val
+                            if not isinstance(abspath, list):
+                                abspath = [abspath]
+                                unresolved_paths = [unresolved_paths]
+                            for i, path in enumerate(abspath):
+                                if path is None:
+                                    unresolved_path = unresolved_paths[i]
+                                    self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
+                                    error = True
 
         # Need to run this check here since file resolution can change in
         # _runtask().
@@ -1530,10 +1531,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     error = True
 
         #2. Check libary names
-        for item in self.get('asic', 'logiclib'):
-            if item not in self.getkeys('library'):
+        libraries = set()
+        for step in steplist:
+            for index in indexlist[step]:
+                libraries.update(self.get('asic', 'logiclib', step=step, index=index))
+
+        for library in libraries:
+            if library not in self.getkeys('library'):
                 error = True
-                self.logger.error(f"Target library {item} not found.")
+                self.logger.error(f"Target library {library} not found.")
 
         #3. Check requirements list
         allkeys = self.allkeys()
@@ -2755,9 +2761,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if self.get('option', 'mode') == 'asic':
             pdk = self.get('option', 'pdk')
+
+            libraries = set()
+            for val, step, _ in self.schema._getvals('asic', 'logiclib'):
+                if step in steplist:
+                    libraries.update(val)
+
             info_list.extend(["foundry : " + self.get('pdk', pdk, 'foundry'),
                               "process : " + pdk,
-                              "targetlibs : "+" ".join(self.get('asic', 'logiclib'))])
+                              "targetlibs : "+" ".join(libraries)])
         elif self.get('option', 'mode') == 'fpga':
             info_list.extend(["partname : "+self.get('fpga','partname')])
 

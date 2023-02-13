@@ -86,7 +86,7 @@ def scparam(cfg,
         cfg['help'] = schelp
         cfg['signature'] = signature
         cfg['notes'] = notes
-        # none, optional, mandatory
+        # never, optional, required
         cfg['pernode'] = pernode
         cfg['nodevalue'] = {}
         cfg['set'] = False

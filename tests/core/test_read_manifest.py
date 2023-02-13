@@ -30,7 +30,7 @@ def test_read_sup():
 
     chip2 = siliconcompiler.Chip('foo')
     chip2.read_manifest('tmp.sup.gz')
-    assert chip2.get('input', 'rtl', 'verilog') == ['foo.v']
+    assert chip2.get('input', 'rtl', 'verilog', step='default', index='default') == ['foo.v']
 
 def test_modified_schema(datadir):
     '''Make sure schema has not been modified without updating defaults.json'''
@@ -57,7 +57,7 @@ def test_read_history():
 
     chip2 = siliconcompiler.Chip('foo')
     chip2.read_manifest('tmp.json')
-    assert chip.get('input', 'rtl', 'verilog', job='job0') == ['foo.v']
+    assert chip.get('input', 'rtl', 'verilog', job='job0', step='default', index='default') == ['foo.v']
 
 def test_read_job():
     '''Make sure that we can read a manifest into a non-default job'''
@@ -67,7 +67,7 @@ def test_read_job():
 
     chip2 = siliconcompiler.Chip('foo')
     chip2.read_manifest('tmp.json', job='job1')
-    assert chip2.get('input', 'rtl', 'verilog', job='job1') == ['foo.v']
+    assert chip2.get('input', 'rtl', 'verilog', job='job1', step='default', index='default') == ['foo.v']
 
 #########################
 if __name__ == "__main__":

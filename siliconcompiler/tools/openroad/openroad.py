@@ -56,7 +56,7 @@ def setup(chip, mode='batch'):
     flow = chip.get('option', 'flow')
     task = chip._get_task(step, index)
     pdkname = chip.get('option', 'pdk')
-    targetlibs = chip.get('asic', 'logiclib')
+    targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
     mainlib = targetlibs[0]
     macrolibs = chip.get('asic', 'macrolib')
     stackup = chip.get('option', 'stackup')

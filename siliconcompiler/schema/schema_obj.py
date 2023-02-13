@@ -82,6 +82,13 @@ class Schema:
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: get() must be called on a complete keypath')
 
+        pernode = cfg['pernode']
+        if pernode == 'optional' and field == 'value' and (step is None or index is None):
+            raise ValueError(
+                f'Invalid args to get() of keypath {keypath}: step and index '
+                'are required for reading from this parameter'
+            )
+
         err = Schema._validate_step_index(cfg['pernode'], field, step, index)
         if err:
             raise ValueError(f'Invalid args to get() of keypath {keypath}: {err}')
@@ -100,6 +107,8 @@ class Schema:
 
             if step in cfg['nodevalue'] and index in cfg['nodevalue'][step]:
                 return cfg['nodevalue'][step][index]
+            elif step in cfg['nodevalue'] and 'default' in cfg['nodevalue'][step]:
+                return cfg['nodevalue'][step]['default']
             elif Schema._is_set(cfg):
                 return cfg['value']
             else:
@@ -128,6 +137,12 @@ class Schema:
         if err:
             raise ValueError(f'Invalid args to set() of keypath {keypath}: {err}')
 
+        if step is None:
+            step = 'default'
+
+        if index is None:
+            index = 'default'
+
         if isinstance(index, int):
             index = str(index)
 
@@ -146,11 +161,11 @@ class Schema:
         value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
         if field == 'value':
-            if step is not None and index is not None:
+            if step != 'default' and index != 'default':
                 if step not in cfg['nodevalue']:
                     cfg['nodevalue'][step] = {}
                 cfg['nodevalue'][step][index] = value
-            elif step is not None:
+            elif step != 'default':
                 if step not in cfg['nodevalue']:
                     cfg['nodevalue'][step] = {}
                 cfg['nodevalue'][step]['default'] = value
@@ -178,6 +193,10 @@ class Schema:
         if err:
             raise ValueError(f'Invalid args to add() of keypath {keypath}: {err}')
 
+        if step is None:
+            step = 'default'
+        if index is None:
+            index = 'default'
         if isinstance(index, int):
             index = str(index)
 
@@ -201,13 +220,13 @@ class Schema:
         value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
         if field == 'value':
-            if step is not None and index is not None:
+            if step != 'default' and index != 'default':
                 if step not in cfg['nodevalue']:
                     cfg['nodevalue'][step] = {}
                 if index not in cfg['nodevalue'][step]:
                     cfg['nodevalue'][step][index] = []
                 cfg['nodevalue'][step][index].extend(value)
-            elif step is not None:
+            elif step != 'default':
                 if step not in cfg['nodevalue']:
                     cfg['nodevalue'][step] = {}
                 if 'default' not in cfg['nodevalue'][step]:
@@ -269,12 +288,14 @@ class Schema:
 
         vals = []
         if cfg['pernode'] != 'required' and (return_defvalue or cfg['set']):
-            vals.append((self.get(*keypath, step=None, index=None), None, None))
+            if cfg['pernode'] == 'never':
+                vals.append((self.get(*keypath), None, None))
+            else:
+                vals.append((self.get(*keypath, step='default', index='default'), 'default', 'default'))
 
         if cfg['pernode'] != 'never':
             for step in cfg['nodevalue']:
                 for index in cfg['nodevalue'][step]:
-                    if index == 'default': index = None
                     vals.append((cfg['nodevalue'][step][index], step, index))
 
         return vals
@@ -657,7 +678,9 @@ class Schema:
                 continue
 
             if pernode != 'never':
-                value = self.get(*key, step=step, index=index)
+                step_arg = step if step is not None else 'default'
+                index_arg = index if index is not None else 'default'
+                value = self.get(*key, step=step_arg, index=index_arg)
             else:
                 value = self.get(*key)
 
@@ -689,7 +712,15 @@ class Schema:
         allkeys = self.allkeys()
         for key in allkeys:
             keypath = ','.join(key)
-            value = self.get(*key)
+            # TODO: properly dump step/index values
+            pernode = self.get(*key, field='pernode')
+            if pernode == 'never':
+                value = self.get(*key)
+            elif pernode == 'optional':
+                value = self.get(*key, step='default', index='default')
+            elif pernode == 'required':
+                continue
+
             if isinstance(value,list):
                 for item in value:
                     csvwriter.writerow([keypath, item])
