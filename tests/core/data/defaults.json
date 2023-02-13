@@ -4319,6 +4319,7 @@
             "name": {
                 "defvalue": null,
                 "enum": [
+                    "none",
                     "slurm",
                     "lsf",
                     "sge"
