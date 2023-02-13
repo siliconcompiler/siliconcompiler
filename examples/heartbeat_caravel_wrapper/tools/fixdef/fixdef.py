@@ -16,8 +16,8 @@ def setup(chip):
     index = chip.get('arg', 'index')
     task = step
 
-    chip.set('tool', tool, 'task', task, 'input', step, index, f'{design}.def')
-    chip.set('tool', tool, 'task', task, 'output', step, index, f'{design}.def')
+    chip.set('tool', tool, 'task', task, 'input', f'{design}.def', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'output', f'{design}.def', step=step, index=index)
 
 def run(chip):
     design = chip.get('design')

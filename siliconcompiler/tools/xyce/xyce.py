@@ -45,7 +45,7 @@ def setup(chip):
 
      chip.set('tool', tool, 'exe', tool)
      chip.set('tool', tool, 'version', '0.0', clobber=clobber)
-     chip.set('tool', tool, 'task', task, 'threads', step, index, os.cpu_count(), clobber=clobber)
+     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=clobber)
 
 ##################################################
 if __name__ == "__main__":

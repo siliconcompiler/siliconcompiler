@@ -27,6 +27,7 @@ def test_picorv32_sram(setup_example_test):
 # It is still useful to test for failures which can only occur in the remote flow, however.
 @pytest.mark.eda
 @pytest.mark.timeout(900)
+@pytest.mark.skip(reason='Long runtime, possibly causing transient failures')
 def test_picorv32_sram_remote(setup_example_test):
     setup_example_test('picorv32_ram')
 

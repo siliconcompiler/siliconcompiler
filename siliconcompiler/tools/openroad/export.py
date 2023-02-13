@@ -21,30 +21,30 @@ def setup(chip):
     macrolibs = chip.get('asic', 'macrolib')
 
     # Determine if exporting the cdl
-    chip.set('tool', tool, 'task', task, 'var', step, index, 'write_cdl', 'true', clobber=False)
-    do_cdl = chip.get('tool', tool, 'task', task, 'var', step, index, 'write_cdl')[0] == 'true'
+    chip.set('tool', tool, 'task', task, 'var', 'write_cdl', 'true', step=step, index=index, clobber=False)
+    do_cdl = chip.get('tool', tool, 'task', task, 'var', 'write_cdl', step=step, index=index)[0] == 'true'
 
     if do_cdl:
-        chip.add('tool', tool, 'task', task, 'output', step, index, design + '.cdl')
+        chip.add('tool', tool, 'task', task, 'output', design + '.cdl', step=step, index=index)
         for lib in targetlibs + macrolibs:
-            chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['library', lib, 'output', stackup, 'cdl']))
+            chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', stackup, 'cdl']), step=step, index=index)
 
     # Require openrcx pex models
-    for corner in chip.get('tool', tool, 'task', task, 'var', step, index, 'pex_corners'):
-        chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['pdk', pdk, 'pexmodel', 'openroad-openrcx', stackup, corner]))
+    for corner in chip.get('tool', tool, 'task', task, 'var', 'pex_corners', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require', ",".join(['pdk', pdk, 'pexmodel', 'openroad-openrcx', stackup, corner]), step=step, index=index)
 
-    chip.add('tool', tool, 'task', task, 'input', step, index, design +'.def')
+    chip.add('tool', tool, 'task', task, 'input', design +'.def', step=step, index=index)
 
     # Add outputs LEF
-    chip.add('tool', tool, 'task', task, 'output', step, index, design + '.lef')
+    chip.add('tool', tool, 'task', task, 'output', design + '.lef', step=step, index=index)
 
     # Add outputs SPEF in the format {design}.{pexcorner}.spef
-    for corner in chip.get('tool', tool, 'task', task, 'var', step, index, 'pex_corners'):
-        chip.add('tool', tool, 'task', task, 'output', step, index, design + '.' + corner + '.spef')
+    for corner in chip.get('tool', tool, 'task', task, 'var', 'pex_corners', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.spef', step=step, index=index)
 
     # Add outputs liberty model in the format {design}.{libcorner}.lib
-    for corner in chip.get('tool', tool, 'task', task, 'var', step, index, 'timing_corners'):
-        chip.add('tool', tool, 'task', task, 'output', step, index, design + '.' + corner + '.lib')
+    for corner in chip.get('tool', tool, 'task', task, 'var', 'timing_corners', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.lib', step=step, index=index)
 
 def pre_process(chip):
     build_pex_corners(chip)

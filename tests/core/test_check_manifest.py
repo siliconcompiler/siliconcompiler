@@ -86,8 +86,8 @@ def test_check_missing_file_param():
     chip.set('arg', 'step', 'syn')
     chip.set('arg', 'index', '0')
 
-    chip.set('tool', 'yosys', 'task', 'syn_asic', 'input', 'syn', '0', [])
-    chip.set('tool', 'yosys', 'task', 'syn_asic', 'output', 'syn', '0',[])
+    chip.set('tool', 'yosys', 'task', 'syn_asic', 'input', [], step='syn', index='0')
+    chip.set('tool', 'yosys', 'task', 'syn_asic', 'output', [], step='syn', index='0')
 
     # not real file, will cause error
     libname = 'nangate45'
@@ -117,13 +117,13 @@ def merge_flow_chip():
     chip.set('tool', 'bar', 'exe', 'foo')
     chip.set('tool', 'baz', 'exe', 'baz')
 
-    chip.set('tool', 'baz', 'task', 'export', 'input', 'export', '0', ['foo.out', 'bar.out'])
+    chip.set('tool', 'baz', 'task', 'export', 'input', ['foo.out', 'bar.out'], step='export', index='0')
 
     return chip
 
 def test_merged_graph_good(merge_flow_chip):
-    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'parallel1', '0', 'bar.out')
-    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'parallel2', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'bar.out', step='parallel1', index='0')
+    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'foo.out', step='parallel2', index='0')
 
     assert merge_flow_chip.check_manifest()
 
@@ -154,14 +154,14 @@ def test_merged_graph_good_steplist():
 
 def test_merged_graph_bad_same(merge_flow_chip):
     # Two merged steps can't output the same thing
-    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'parallel1', '0', 'foo.out')
-    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'parallel2', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'foo.out', step='parallel1', index='0')
+    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'foo.out', step='parallel2', index='0')
 
     assert not merge_flow_chip.check_manifest()
 
 def test_merged_graph_bad_missing(merge_flow_chip):
     # bar doesn't provide necessary output
-    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'parallel1', '0', 'foo.out')
+    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'foo.out', step='parallel1', index='0')
 
     assert not merge_flow_chip.check_manifest()
 

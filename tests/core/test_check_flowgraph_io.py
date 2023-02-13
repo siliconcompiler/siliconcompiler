@@ -38,9 +38,9 @@ def test_check_flowgraph_join():
     chip.edge(flow, 'prejoin2', 'dojoin')
     chip.edge(flow, 'dojoin', 'postjoin')
 
-    chip.set('tool', 'fake_out', 'task', 'prejoin1', 'output', 'prejoin1', '0', 'a.v')
-    chip.set('tool', 'fake_out', 'task', 'prejoin2', 'output', 'prejoin2', '0', 'b.v')
-    chip.set('tool', 'fake_in', 'task', 'postjoin', 'input', 'postjoin', '0', ['a.v', 'b.v'])
+    chip.set('tool', 'fake_out', 'task', 'prejoin1', 'output', 'a.v', step='prejoin1', index='0')
+    chip.set('tool', 'fake_out', 'task', 'prejoin2', 'output', 'b.v', step='prejoin2', index='0')
+    chip.set('tool', 'fake_in', 'task', 'postjoin', 'input', ['a.v', 'b.v'], step='postjoin', index='0')
 
     assert chip._check_flowgraph_io()
 
@@ -59,9 +59,9 @@ def test_check_flowgraph_min():
     chip.edge(flow, 'premin', 'domin', tail_index=1)
     chip.edge(flow, 'domin', 'postmin')
 
-    chip.set('tool', 'fake_out', 'task', 'premin', 'output', 'premin', '0', ['a.v', 'common.v'])
-    chip.set('tool', 'fake_out', 'task', 'premin', 'output', 'premin', '1', ['b.v', 'common.v'])
-    chip.set('tool', 'fake_in', 'task', 'postmin', 'input', 'postmin', '0', 'common.v')
+    chip.set('tool', 'fake_out', 'task', 'premin', 'output', ['a.v', 'common.v'], step='premin', index='0')
+    chip.set('tool', 'fake_out', 'task', 'premin', 'output', ['b.v', 'common.v'], step='premin', index='1')
+    chip.set('tool', 'fake_in', 'task', 'postmin', 'input', 'common.v', step='postmin', index='0')
 
     assert chip._check_flowgraph_io()
 
@@ -80,8 +80,8 @@ def test_check_flowgraph_min_fail():
     chip.edge(flow, 'premin', 'domin', tail_index=1)
     chip.edge(flow, 'domin', 'postmin')
 
-    chip.set('tool', 'fake_out', 'task', 'premin', 'output', 'premin', '0', ['a.v'])
-    chip.set('tool', 'fake_out', 'task', 'premin', 'output', 'premin', '1', ['b.v'])
-    chip.set('tool', 'fake_in', 'task', 'postmin', 'input', 'postmin', '0', 'a.v')
+    chip.set('tool', 'fake_out', 'task', 'premin', 'output', ['a.v'], step='premin', index='0')
+    chip.set('tool', 'fake_out', 'task', 'premin', 'output', ['b.v'], step='premin', index='1')
+    chip.set('tool', 'fake_in', 'task', 'postmin', 'input', 'a.v', step='postmin', index='0')
 
     assert not chip._check_flowgraph_io()

@@ -12,7 +12,7 @@ def setup(chip):
     chip.set('tool', tool, 'exe', tool, clobber=False)
     chip.set('tool', tool, 'version', '0.0', clobber=False)
 
-    chip.set('tool', tool,  'task', task, 'threads', step, index, os.cpu_count(), clobber=False)
+    chip.set('tool', tool,  'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
 
     topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"
@@ -28,7 +28,7 @@ def setup(chip):
                 f"--place_file inputs/{topmodule}.place",
                 f"--route_file inputs/{topmodule}.route"])
 
-    chip.add('tool', tool, 'task', task, 'option', step, index,  options)
+    chip.add('tool', tool, 'task', task, 'option',  options, step=step, index=index)
 
 #############################################
 # Runtime pre processing
@@ -40,7 +40,7 @@ def pre_process(chip):
     task = chip._get_task(step, index)
     tool = "genfasm"
 
-    chip.add('tool', tool, 'task', task, 'option', step, index,  [f"--route_chan_width {find_chann_width()}" ])
+    chip.add('tool', tool, 'task', task, 'option',  [f"--route_chan_width {find_chann_width()}" ], step=step, index=index)
 
 ################################
 # Find the final channel width from the VPR report

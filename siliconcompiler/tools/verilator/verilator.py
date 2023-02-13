@@ -1,6 +1,5 @@
 import importlib
 import os
-import subprocess
 
 import siliconcompiler
 
@@ -88,27 +87,27 @@ def setup(chip):
 
     # Common to all tasks
     # Max threads
-    chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads',  os.cpu_count(), step=step, index=index, clobber=False)
 
     # Basic warning and error grep check on logfile
-    chip.set('tool', tool, 'task', task, 'regex', step, index, 'warnings', r"^\%Warning", clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', step, index, 'errors', r"^\%Error", clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r"^\%Warning", step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', r"^\%Error", step=step, index=index, clobber=False)
 
     # Generic CLI options (for all steps)
-    chip.set('tool', tool, 'task', task, 'option', step, index,  '-sv')
-    chip.add('tool', tool, 'task', task, 'option', step, index, f'--top-module {design}')
+    chip.set('tool', tool, 'task', task, 'option',  '-sv', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'option', f'--top-module {design}', step=step, index=index)
 
     # Make warnings non-fatal in relaxed mode
     if chip.get('option', 'relax'):
-        chip.add('tool', tool, 'task', task, 'option', step, index, ['-Wno-fatal', '-Wno-UNOPTFLAT'])
+        chip.add('tool', tool, 'task', task, 'option', ['-Wno-fatal', '-Wno-UNOPTFLAT'], step=step, index=index)
 
     # Converting user setting to verilator specific filter
     #for warning in chip.get('tool', tool, 'task', task, step, index, 'warningoff'):
-    #    chip.add('tool', tool, 'task', task, 'option', step, index, f'-Wno-{warning}')
+    #    chip.add('tool', tool, 'task', task, 'option', f'-Wno-{warning}', step=step, index=index)
 
     # User runtime option
     if chip.get('option', 'trace'):
-        chip.add('tool', tool, 'task', task, 'task', task, 'option', step, index, '--trace')
+        chip.add('tool', tool, 'task', task, 'task', task, 'option', '--trace', step=step, index=index)
 
 ################################
 #  Custom runtime options
@@ -140,7 +139,7 @@ def runtime_options(chip):
     elif step == 'compile':
         for value in chip.find_files('input', 'hll', 'c'):
             cmdlist.append(value)
-        for value in chip.find_files('tool', tool, 'task', task, 'input', step, index):
+        for value in chip.find_files('tool', tool, 'task', task, 'input', step=step, index=index):
             cmdlist.append(value)
 
     return cmdlist

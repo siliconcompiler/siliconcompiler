@@ -16,11 +16,11 @@ def setup(chip):
     task = 'import'
     design = chip.top()
 
-    chip.add('tool', tool, 'task', task, 'option', step, index,  ['--lint-only', '--debug'])
-    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['input', 'rtl', 'verilog']))
-    chip.add('tool', tool, 'task', task, 'output', step, index, f'{design}.v')
+    chip.add('tool', tool, 'task', task, 'option',  ['--lint-only', '--debug'], step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'require', ",".join(['input', 'rtl', 'verilog']), step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.v', step=step, index=index)
     for value in chip.get('option', 'define'):
-        chip.add('tool', tool, 'task', task, 'option', step, index, '-D' + value)
+        chip.add('tool', tool, 'task', task, 'option', '-D' + value, step=step, index=index)
 
 def post_process(chip):
     ''' Tool specific function to run after step execution

@@ -15,9 +15,9 @@ def setup(chip):
     task = 'compile'
     design = chip.top()
 
-    chip.add('tool', tool, 'task', task, 'option', step, index,  ['--cc', '--exe'])
-    chip.set('tool', tool, 'task', task, 'input', step, index, f'{design}.v')
-    chip.add('tool', tool, 'task', task, 'option', step, index, f'-o ../outputs/{design}.vexe')
+    chip.add('tool', tool, 'task', task, 'option',  ['--cc', '--exe'], step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'input', f'{design}.v', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'option', f'-o ../outputs/{design}.vexe', step=step, index=index)
 
 def post_process(chip):
     ''' Tool specific function to run after step execution

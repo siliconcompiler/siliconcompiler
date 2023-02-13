@@ -21,15 +21,14 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '-v')
     chip.set('tool', tool, 'version', '>=2021.07', clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'refdir', step, index,  refdir, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
-    chip.set('tool', tool, 'task', task, 'option', step, index,  [], clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'task', task,'output', step, index, chip.top() + '.v')
+    chip.add('tool', tool, 'task', task,'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
-    chip.add('tool', tool, 'task', task,'require', step, index, 'input,hll,bsv')
+    chip.add('tool', tool, 'task', task, 'require', 'input,hll,bsv')
 
 ################################
 # Pre-process

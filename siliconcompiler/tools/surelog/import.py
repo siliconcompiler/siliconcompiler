@@ -16,7 +16,7 @@ def setup(chip):
     index = chip.get('arg','index')
 
     # Runtime parameters.
-    chip.set('tool', tool, 'task', task, 'threads', step, index,  os.cpu_count(), clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads',  os.cpu_count(), step=step, index=index, clobber=False)
 
     # Command-line options.
     options = []
@@ -28,13 +28,13 @@ def setup(chip):
     # very big and takes a while to write out.
     options.append('-nouhdm')
     # Wite back options to cfg
-    chip.add('tool', tool, 'task', task, 'option', step, index, options)
+    chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'task', task, 'output', step, index, chip.top() + '.v')
+    chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', step, index, ",".join(['input', 'rtl', 'verilog']))
+    chip.add('tool', tool, 'task', task, 'require', ",".join(['input', 'rtl', 'verilog']), step=step, index=index)
 
 ##################################################
 def post_process(chip):

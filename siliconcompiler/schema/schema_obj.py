@@ -88,6 +88,8 @@ class Schema:
 
         if isinstance(index, int):
             index = str(index)
+        if step is not None and index is None:
+            index = 'default'
 
         if field == 'value':
             if cfg['pernode'] == 'required':
@@ -98,8 +100,6 @@ class Schema:
 
             if step in cfg['nodevalue'] and index in cfg['nodevalue'][step]:
                 return cfg['nodevalue'][step][index]
-            elif step in cfg['nodevalue']:
-                return cfg['nodevalue'][step]['default']
             elif Schema._is_set(cfg):
                 return cfg['value']
             else:

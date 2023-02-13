@@ -49,7 +49,7 @@ set sc_index  [dict get $sc_cfg arg index]
 set sc_flow   [dict get $sc_cfg option flow]
 set sc_task   [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index task]
 
-set sc_refdir [dict get $sc_cfg tool $sc_tool task $sc_task refdir $sc_step $sc_index ]
+set sc_refdir [dict get $sc_cfg tool $sc_tool task $sc_task refdir ]
 
 # Design
 set sc_design     [sc_top]
@@ -81,9 +81,9 @@ set sc_clkbuf       [dict get $sc_cfg library $sc_mainlib asic cells clkbuf]
 set sc_filler       [dict get $sc_cfg library $sc_mainlib asic cells filler]
 set sc_tap          [dict get $sc_cfg library $sc_mainlib asic cells tap]
 set sc_endcap       [dict get $sc_cfg library $sc_mainlib asic cells endcap]
-set sc_corners      [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index timing_corners]
-set sc_pex_corners  [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index pex_corners]
-set sc_power_corner [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index power_corner] 0]
+set sc_corners      [dict get $sc_cfg tool $sc_tool task $sc_task {var} timing_corners]
+set sc_pex_corners  [dict get $sc_cfg tool $sc_tool task $sc_task {var} pex_corners]
+set sc_power_corner [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} power_corner] 0]
 
 # PDK Design Rules
 set sc_techlef     [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype lef]
@@ -94,11 +94,11 @@ if {[dict exists $sc_cfg datasheet $sc_design]} {
   set sc_pins    [list]
 }
 
-set sc_threads     [dict get $sc_cfg tool $sc_tool task $sc_task threads $sc_step $sc_index]
+set sc_threads [dict get $sc_cfg tool $sc_tool task $sc_task threads]
 
 set openroad_dont_touch {}
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index dont_touch]} {
-  set openroad_dont_touch [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index dont_touch]
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task {var} dont_touch]} {
+  set openroad_dont_touch [dict get $sc_cfg tool $sc_tool task $sc_task {var} dont_touch]
 }
 
 ###############################
@@ -195,74 +195,74 @@ if {[file exists "inputs/${sc_design}.sdc"]} {
 ###############################
 
 # Sweep parameters
-set openroad_ifp_tie_separation [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ifp_tie_separation] 0]
+set openroad_ifp_tie_separation [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ifp_tie_separation] 0]
 
-set openroad_pdn_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index pdn_enable] 0]
+set openroad_pdn_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} pdn_enable] 0]
 
-set openroad_psm_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index psm_enable] 0]
+set openroad_psm_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} psm_enable] 0]
 
-set openroad_mpl_macro_place_halo [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step  $sc_index macro_place_halo]
-set openroad_mpl_macro_place_channel [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index macro_place_channel]
+set openroad_mpl_macro_place_halo [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_halo]
+set openroad_mpl_macro_place_channel [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_channel]
 
-set openroad_gpl_place_density [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index place_density] 0]
-set openroad_gpl_padding [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index pad_global_place] 0]
-set openroad_gpl_routability_driven [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index gpl_routability_driven] 0]
-set openroad_gpl_timing_driven [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index gpl_timing_driven] 0]
+set openroad_gpl_place_density [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} place_density] 0]
+set openroad_gpl_padding [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} pad_global_place] 0]
+set openroad_gpl_routability_driven [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} gpl_routability_driven] 0]
+set openroad_gpl_timing_driven [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} gpl_timing_driven] 0]
 
-set openroad_dpo_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index dpo_enable] 0]
-set openroad_dpo_max_displacement [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index dpo_max_displacement] 0]
+set openroad_dpo_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpo_enable] 0]
+set openroad_dpo_max_displacement [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpo_max_displacement] 0]
 
-set openroad_dpl_max_displacement [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index dpl_max_displacement] 0]
-set openroad_dpl_padding [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index pad_detail_place] 0]
+set openroad_dpl_max_displacement [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpl_max_displacement] 0]
+set openroad_dpl_padding [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} pad_detail_place] 0]
 
-set openroad_cts_distance_between_buffers [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index cts_distance_between_buffers] 0]
-set openroad_cts_cluster_diameter [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index cts_cluster_diameter] 0]
-set openroad_cts_cluster_size [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index cts_cluster_size] 0]
-set openroad_cts_balance_levels [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index cts_balance_levels] 0]
+set openroad_cts_distance_between_buffers [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} cts_distance_between_buffers] 0]
+set openroad_cts_cluster_diameter [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} cts_cluster_diameter] 0]
+set openroad_cts_cluster_size [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} cts_cluster_size] 0]
+set openroad_cts_balance_levels [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} cts_balance_levels] 0]
 
-set openroad_ant_iterations [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ant_iterations] 0]
-set openroad_ant_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index ant_margin] 0]
+set openroad_ant_iterations [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ant_iterations] 0]
+set openroad_ant_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ant_margin] 0]
 
-set openroad_grt_use_pin_access [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_use_pin_access] 0]
-set openroad_grt_overflow_iter [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_overflow_iter] 0]
-set openroad_grt_macro_extension [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_macro_extension] 0]
-set openroad_grt_allow_congestion [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_allow_congestion] 0]
-set openroad_grt_allow_overflow [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_allow_overflow] 0]
-set openroad_grt_signal_min_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_signal_min_layer] 0]
-set openroad_grt_signal_max_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_signal_max_layer] 0]
-set openroad_grt_clock_min_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_clock_min_layer] 0]
-set openroad_grt_clock_max_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index grt_clock_max_layer] 0]
+set openroad_grt_use_pin_access [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_use_pin_access] 0]
+set openroad_grt_overflow_iter [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_overflow_iter] 0]
+set openroad_grt_macro_extension [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_macro_extension] 0]
+set openroad_grt_allow_congestion [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_allow_congestion] 0]
+set openroad_grt_allow_overflow [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_allow_overflow] 0]
+set openroad_grt_signal_min_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_signal_min_layer] 0]
+set openroad_grt_signal_max_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_signal_max_layer] 0]
+set openroad_grt_clock_min_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_clock_min_layer] 0]
+set openroad_grt_clock_max_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_clock_max_layer] 0]
 
-set openroad_drt_disable_via_gen [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index drt_disable_via_gen] 0]
-set openroad_drt_process_node [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index drt_process_node] 0]
-set openroad_drt_via_in_pin_bottom_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index drt_via_in_pin_bottom_layer] 0]
-set openroad_drt_via_in_pin_top_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index drt_via_in_pin_top_layer] 0]
-set openroad_drt_repair_pdn_vias [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index drt_repair_pdn_vias] 0]
-set openroad_drt_via_repair_post_route [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index drt_via_repair_post_route] 0]
+set openroad_drt_disable_via_gen [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} drt_disable_via_gen] 0]
+set openroad_drt_process_node [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} drt_process_node] 0]
+set openroad_drt_via_in_pin_bottom_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} drt_via_in_pin_bottom_layer] 0]
+set openroad_drt_via_in_pin_top_layer [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} drt_via_in_pin_top_layer] 0]
+set openroad_drt_repair_pdn_vias [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} drt_repair_pdn_vias] 0]
+set openroad_drt_via_repair_post_route [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} drt_via_repair_post_route] 0]
 set openroad_drt_default_vias []
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index drt_default_via]} {
-  foreach via [dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index drt_default_via] {
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via]} {
+  foreach via [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via] {
     lappend openroad_drt_default_vias $via
   }
 }
 set openroad_drt_unifirectional_layers []
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index drt_unidirectional_layer]} {
-  foreach layer [dict exists $sc_cfg tool $sc_tool task $sc_task var $sc_step $sc_index drt_unidirectional_layer] {
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task var drt_unidirectional_layer]} {
+  foreach layer [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_unidirectional_layer] {
     lappend openroad_drt_unifirectional_layers [sc_get_layer_name $layer]
   }
 }
 
-set openroad_rsz_setup_slack_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index rsz_setup_slack_margin] 0]
-set openroad_rsz_hold_slack_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index rsz_hold_slack_margin] 0]
-set openroad_rsz_slew_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index rsz_slew_margin] 0]
-set openroad_rsz_cap_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index rsz_cap_margin] 0]
-set openroad_rsz_buffer_inputs [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index rsz_buffer_inputs] 0]
-set openroad_rsz_buffer_outputs [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index rsz_buffer_outputs] 0]
+set openroad_rsz_setup_slack_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_setup_slack_margin] 0]
+set openroad_rsz_hold_slack_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_hold_slack_margin] 0]
+set openroad_rsz_slew_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_slew_margin] 0]
+set openroad_rsz_cap_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_cap_margin] 0]
+set openroad_rsz_buffer_inputs [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_buffer_inputs] 0]
+set openroad_rsz_buffer_outputs [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_buffer_outputs] 0]
 
-set openroad_sta_early_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index sta_early_timing_derate] 0]
-set openroad_sta_late_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index sta_late_timing_derate] 0]
+set openroad_sta_early_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_early_timing_derate] 0]
+set openroad_sta_late_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_late_timing_derate] 0]
 
-set openroad_fin_add_fill [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index fin_add_fill] 0]
+set openroad_fin_add_fill [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} fin_add_fill] 0]
 
 # PDK agnostic design rule translation
 set sc_minmetal [sc_get_layer_name $sc_minmetal]
@@ -297,7 +297,7 @@ if { [llength [all_clocks]] == 0} {
 
 set_dont_use $sc_dontuse
 
-set sc_parasitics [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index parasitics] 0]
+set sc_parasitics [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} parasitics] 0]
 source $sc_parasitics
 set_wire_rc -clock  -layer $sc_rc_clk
 set_wire_rc -signal -layer $sc_rc_signal
@@ -328,7 +328,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
     source "$sc_refdir/sc_screenshot.tcl"
   }
 
-  set show_exit [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index show_exit] 0]
+  set show_exit [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} show_exit] 0]
   if { $show_exit == "true" } {
     exit
   }
@@ -340,8 +340,8 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   report_units_metric
 
   utl::set_metrics_stage "sc__prestep__{}"
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task prescript $sc_step $sc_index]} {
-    foreach sc_pre_script [dict get $sc_cfg tool $sc_tool task $sc_task prescript $sc_step $sc_index] {
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task prescript]} {
+    foreach sc_pre_script [dict get $sc_cfg tool $sc_tool task $sc_task prescript] {
       puts "Sourcing pre script: ${sc_pre_script}"
       source -echo $sc_pre_script
     }
@@ -363,8 +363,8 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   utl::pop_metrics_stage
 
   utl::set_metrics_stage "sc__poststep__{}"
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task postscript $sc_step $sc_index]} {
-    foreach sc_post_script [dict get $sc_cfg tool $sc_tool task $sc_task postscript $sc_step $sc_index] {
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task postscript]} {
+    foreach sc_post_script [dict get $sc_cfg tool $sc_tool task $sc_task postscript] {
       puts "Sourcing post script: ${sc_post_script}"
       source -echo $sc_post_script
     }

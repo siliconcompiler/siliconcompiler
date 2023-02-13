@@ -20,22 +20,22 @@ step = schema.get('arg', 'step')
 index = schema.get('arg', 'index')
 task = schema.get('flowgraph', flow, step, index, 'task')
 
-if 'hide_layers' in schema.getkeys('tool', 'klayout', 'task', task, 'var', step, index):
-    sc_hide_layers = schema.get('tool', 'klayout', 'task', task, 'var', step, index, 'hide_layers')
+if 'hide_layers' in schema.getkeys('tool', 'klayout', 'task', task, 'var'):
+    sc_hide_layers = schema.get('tool', 'klayout', 'task', task, 'var', 'hide_layers', step=step, index=index)
 else:
     sc_hide_layers = []
 
-if 'show_filepath' in schema.getkeys('tool', 'klayout', 'task', task, 'var', step, index):
-    sc_filename = schema.get('tool', 'klayout', 'task', task, 'var', step, index, 'show_filepath')[0]
+if 'show_filepath' in schema.getkeys('tool', 'klayout', 'task', task, 'var'):
+    sc_filename = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filepath', step=step, index=index)[0]
 else:
-    sc_fileext = schema.get('tool', 'klayout', 'task', task, 'var', step, index, 'show_filetype')[0]
+    sc_fileext = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filetype', step=step, index=index)[0]
     sc_filename = f"inputs/{design}.{sc_fileext}"
 sc_pdk = schema.get('option', 'pdk')
 sc_stackup = schema.get('option', 'stackup')
 sc_mainlib = schema.get('asic', 'logiclib')[0]
 sc_libtype = schema.get('library', sc_mainlib, 'asic', 'libarch')
 
-sc_exit = schema.get('tool', 'klayout', 'task', task, 'var', step, index, 'show_exit') == ["true"]
+sc_exit = schema.get('tool', 'klayout', 'task', task, 'var', 'show_exit', step=step, index=index) == ["true"]
 
 tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'gds', sc_stackup)
 if tech_file:
@@ -126,8 +126,8 @@ for layer in layout_view.each_layer():
 # If 'screenshot' mode is set, save image and exit.
 if step == 'screenshot':
     # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
-    horizontal_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var', step, index, 'show_horizontal_resolution')[0])
-    vertical_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var', step, index, 'show_vertical_resolution')[0])
+    horizontal_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var', 'show_horizontal_resolution', step=step, index=index)[0])
+    vertical_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var', 'show_vertical_resolution', step=step, index=index)[0])
     gds_img = layout_view.get_image(horizontal_resolution, vertical_resolution)
     gds_img.save(f'outputs/{design}.png', 'PNG')
 

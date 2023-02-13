@@ -24,15 +24,15 @@ def setup(chip):
     design = chip.top()
 
     # Set yosys script path.
-    chip.set('tool', tool, 'task', task, 'script', step, index, 'sc_lec.tcl', clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', 'sc_lec.tcl', step=step, index=index, clobber=False)
 
     # Input/output requirements.
     if (not chip.valid('input', 'netlist', 'verilog') or
         not chip.get('input', 'netlist', 'verilog')):
-        chip.set('tool', tool, 'task', task, 'input', step, index, design + '.vg')
+        chip.set('tool', tool, 'task', task, 'input', design + '.vg', step=step, index=index)
     #if not chip.get('input', 'rtl', 'verilog'):
         # TODO: Not sure this logic makes sense? Seems like reverse of tcl
-        #chip.set('tool', tool, 'task', task, 'input', step, index, design + '.v')
+        #chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
 
 ##################################################
 def post_process(chip):

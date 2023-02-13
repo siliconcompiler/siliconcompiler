@@ -1,7 +1,7 @@
 # Write LEF
 write_abstract_lef "outputs/${sc_design}.lef"
 
-if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} $sc_step $sc_index write_cdl] 0] == "true" } {
+if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} write_cdl] 0] == "true" } {
   # Write CDL
   set sc_cdl_masters []
   foreach lib "$sc_targetlibs $sc_macrolibs" {

@@ -11,6 +11,7 @@ def run_design(design, M, job):
 
     chip = siliconcompiler.Chip(design, loglevel='INFO')
     chip.input(design+'.v')
+    chip.input(design+'.sdc')
     chip.set('option', 'jobname', job)
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
