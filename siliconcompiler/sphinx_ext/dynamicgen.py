@@ -124,13 +124,15 @@ class DynamicGen(SphinxDirective):
 
         s = build_section_with_target(modname, f'{modname}', self.state.document)
 
-        if not hasattr(module, 'make_docs'):
+        setup = self.get_setup_method(module)
+        if not setup:
             return None
 
-        make_docs = getattr(module, 'make_docs')
+        self.generate_documentation_from_function(setup, path, s)
 
-        self.generate_documentation_from_function(make_docs, path, s)
-
+        make_docs = self.get_make_docs_method(module)
+        if not make_docs:
+            return None
         chips = make_docs()
 
         if not isinstance(chips, list):
@@ -289,6 +291,12 @@ class DynamicGen(SphinxDirective):
             s += build_section(type_heading, f'{reference_prefix}-{type}')
             colspec = r'{|\X{1}{2}|\X{1}{2}|}'
             s += build_table(table, colspec=colspec)
+
+    def get_make_docs_method(self, module):
+        return getattr(module, 'make_docs', None)
+
+    def get_setup_method(self, module):
+        return getattr(module, 'setup', None)
 
 #########################
 # Specialized extensions
@@ -456,15 +464,15 @@ class ToolGen(DynamicGen):
         s = build_section_with_target(taskname, f'{toolname}-{taskname}', self.state.document)
 
         # Find setup function
-        task_setup = getattr(taskmodule, 'setup', None)
+        task_setup = self.get_setup_method(taskmodule)
         if not task_setup:
             return None
 
         # Find make_docs function, check task module first
-        make_docs = getattr(taskmodule, 'make_docs', None)
+        make_docs = self.get_make_docs_method(taskmodule)
         if not make_docs:
             # Then check tool module
-            make_docs = getattr(toolmodule, 'make_docs', None)
+            make_docs = self.get_make_docs_method(toolmodule)
         if not make_docs:
             return None
 
@@ -477,7 +485,7 @@ class ToolGen(DynamicGen):
 
         print(f"Generating docs for task {toolname}/{taskname}...")
 
-        self.generate_documentation_from_function(setup, path, s)
+        self.generate_documentation_from_function(task_setup, path, s)
 
         # Annotate the target used for default values
         if chip.valid('option', 'target') and chip.get('option', 'target'):
