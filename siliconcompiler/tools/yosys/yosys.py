@@ -345,10 +345,11 @@ def get_synthesis_corner(chip):
         if "setup" in chip.get('constraint', 'timing', constraint, 'check', step=step, index=index) and not corner:
             corner = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
 
-    if corner is None:
+    if not corner:
         # try getting it from first constraint with a valid libcorner
         for constraint in chip.getkeys('constraint', 'timing'):
-            corner = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
+            if not corner:
+                corner = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
 
     if isinstance(corner, (list)):
         corner = corner[0]
