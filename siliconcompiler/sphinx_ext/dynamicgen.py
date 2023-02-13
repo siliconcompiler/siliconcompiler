@@ -446,6 +446,9 @@ class ToolGen(DynamicGen):
         '''
         modules = []
         for toolname in os.listdir(module_dir):
+            if (toolname == "template"):
+                # No need to include empty template in documentation
+                continue
             # skip over directories/files that don't match the structure of tool
             # directories (otherwise we'll get confused by Python metadata like
             # __init__.py or __pycache__/)
