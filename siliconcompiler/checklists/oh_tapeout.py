@@ -1,14 +1,14 @@
 import siliconcompiler
 
 def make_docs():
-    '''Subset of OH! library tapeout checklist.
-
-    https://github.com/aolofsson/oh/blob/master/docs/tapeout_checklist.md
-    '''
     chip = siliconcompiler.Chip('<design>')
     return setup(chip)
 
 def setup(chip):
+    '''Subset of OH! library tapeout checklist.
+
+    https://github.com/aolofsson/oh/blob/master/docs/tapeout_checklist.md
+    '''
     standard = 'oh_tapeout'
 
     checklist = siliconcompiler.Checklist(chip, standard)
