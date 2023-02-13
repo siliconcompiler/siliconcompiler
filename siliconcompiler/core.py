@@ -4305,15 +4305,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         views (and we probably want to prioritize final layouts like
         DEF/GDS/OAS).
         '''
-        step = chip.get('arg', 'step')
-        index = chip.get('arg', 'index')
+        step = self.get('arg', 'step')
+        index = self.get('arg', 'index')
 
-        for key in self.getkeys('output'):
-            for output in self.find_files('output', key, step=step, index=index):
-                file_ext = utils.get_file_ext(output)
-                if file_ext in self.getkeys('option', 'showtool'):
-                    if not tool or self.get('option', 'showtool', file_ext) == tool:
-                        return output
+        for fileset in self.getkeys('output'):
+            for filetype in self.getkeys('output', fileset):
+                for output in self.find_files('output', fileset, filetype, step=step, index=index):
+                    file_ext = utils.get_file_ext(output)
+                    if file_ext in self.getkeys('option', 'showtool'):
+                        if not tool or self.get('option', 'showtool', file_ext) == tool:
+                            return output
         return None
 
     ###########################################################################
