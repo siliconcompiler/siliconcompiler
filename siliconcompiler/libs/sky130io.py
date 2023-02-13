@@ -2,13 +2,13 @@ import os
 import siliconcompiler
 
 def make_docs():
-    '''
-    Skywater130 I/O library.
-    '''
     chip = siliconcompiler.Chip('<design>')
     return setup(chip)
 
 def setup(chip):
+    '''
+    Skywater130 I/O library.
+    '''
     process = 'skywater130'
     libname = 'sky130io'
     stackup = '5M1LI'
