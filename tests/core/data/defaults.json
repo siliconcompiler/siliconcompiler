@@ -3643,6 +3643,28 @@
             "type": "[str]",
             "value": []
         },
+        "dir": {
+            "default": {
+                "defvalue": [],
+                "example": [
+                    "cli: -dir 'openroad_tapcell ./tapcell.tcl'",
+                    "api: chip.set('option', 'dir', 'openroad_files', './openroad_support/')"
+                ],
+                "help": "List of named directories specified. Certain tools and\nreference flows require special parameters, this\nparameter should only be used for specifying directories that are\nnot directly supported by the schema.",
+                "lock": false,
+                "nodevalue": {},
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "set": false,
+                "shorthelp": "Custom directories",
+                "signature": [],
+                "switch": "-dir 'key <str>'",
+                "type": "[dir]",
+                "value": []
+            }
+        },
         "entrypoint": {
             "defvalue": null,
             "example": [
@@ -6757,7 +6779,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.23.0",
+        "defvalue": "0.24.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6773,7 +6795,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.23.0"
+        "value": "0.24.0"
     },
     "tool": {
         "default": {
