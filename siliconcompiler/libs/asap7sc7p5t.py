@@ -1,10 +1,6 @@
 import os
 import siliconcompiler
 
-def make_docs():
-    chip =  siliconcompiler.Chip('<design>')
-    return setup(chip)
-
 def _setup_lib(chip, libname, suffix):
     lib = siliconcompiler.Library(chip, libname)
 
@@ -119,3 +115,8 @@ def setup(chip):
         libs.append(_setup_lib(chip, libname, suffix))
 
     return libs
+
+#########################
+if __name__ == "__main__":
+    for lib in setup(siliconcompiler.Chip('<lib>')):
+        lib.write_manifest(f'{lib.top()}.json')

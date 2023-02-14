@@ -1,10 +1,6 @@
 import os
 import siliconcompiler
 
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    return setup(chip)
-
 def setup(chip):
     '''
     Skywater130 standard cell library.
@@ -131,6 +127,5 @@ def setup(chip):
 
 #########################
 if __name__ == "__main__":
-
-    lib = make_docs()
-    lib.write_manifest('sky130.tcl')
+    lib = setup(siliconcompiler.Chip('<lib>'))
+    lib.write_manifest(f'{lib.top()}.json')
