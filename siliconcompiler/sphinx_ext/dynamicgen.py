@@ -138,10 +138,9 @@ class DynamicGen(SphinxDirective):
             # Then use setup doc string
             self.generate_documentation_from_object(setup, path, s)
 
-        make_docs = self.get_make_docs_method(module)
-        if not make_docs:
+        chips = self.configure_chip_for_docs(module)
+        if not chips:
             return None
-        chips = make_docs()
 
         if not isinstance(chips, list):
             chips = [chips]
@@ -299,6 +298,25 @@ class DynamicGen(SphinxDirective):
 
     def get_setup_method(self, module):
         return getattr(module, 'setup', None)
+
+    def make_chip(self):
+        return siliconcompiler.Chip('<design>')
+
+    def configure_chip_for_docs(self, module):
+        make_docs = getattr(module, 'make_docs', None)
+        chip = self.make_chip()
+        if make_docs:
+            return make_docs()
+        else:
+            setup = self.get_setup_method(module)
+            if not setup:
+                return None
+            new_chip = setup(chip)
+            if new_chip:
+                return new_chip
+            else:
+                # Setup didn't return anything so return the Chip object
+                return chip
 
 #########################
 # Specialized extensions
