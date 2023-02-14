@@ -6,7 +6,7 @@ import re
 
 from .utils import trim
 
-SCHEMA_VERSION = '0.23.0'
+SCHEMA_VERSION = '0.24.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2153,6 +2153,20 @@ def schema_option(cfg):
             List of named files specified. Certain tools and
             reference flows require special parameters, this
             parameter should only be used for specifying files that are
+            not directly supported by the schema.""")
+
+    scparam(cfg, ['option', 'dir', key],
+            sctype='[dir]',
+            scope='job',
+            shorthelp="Custom directories",
+            switch="-dir 'key <str>'",
+            example=[
+            "cli: -dir 'openroad_tapcell ./tapcell.tcl'",
+            "api: chip.set('option', 'dir', 'openroad_files', './openroad_support/')"],
+            schelp="""
+            List of named directories specified. Certain tools and
+            reference flows require special parameters, this
+            parameter should only be used for specifying directories that are
             not directly supported by the schema.""")
 
     scparam(cfg, ['option', 'scpath'],
