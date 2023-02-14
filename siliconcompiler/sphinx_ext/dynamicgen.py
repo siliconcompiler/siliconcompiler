@@ -36,19 +36,27 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
             'value' in val and val['value'] == '0'):
             continue
 
+        value = None
         if 'value' in val and val['value']:
+            value = val['value']
+        elif 'nodevalue' in val and val['nodevalue']:
+            value = val['nodevalue']
+            while isinstance(value, dict):
+                value = list(value.values())[0]
+
+        if value:
             # Don't display false booleans
-            if val['type'] == 'bool' and val['value'] == 'false':
+            if val['type'] == 'bool' and value == 'false':
                 continue
             if val['type'].startswith('['):
-                if len(val['value']) > 1:
-                    val_node = build_list([code(v) for v in val['value']])
-                elif len(val['value']) > 0:
-                    val_node = code(val['value'][0])
+                if len(value) > 1:
+                    val_node = build_list([code(v) for v in value])
+                elif len(value) > 0:
+                    val_node = code(value[0])
                 else:
                     val_node = para('')
             else:
-                val_node = code(val['value'])
+                val_node = code(value)
 
             # HTML builder fails if we don't make a text node the parent of the
             # reference node returned by keypath()
@@ -260,16 +268,6 @@ class DynamicGen(SphinxDirective):
     def _document_free_params(self, cfg, type, reference_prefix, s):
         if type in cfg:
             cfg = cfg[type]
-        else:
-            return
-
-        if "<step>" in cfg:
-            cfg = cfg["<step>"]
-        else:
-            return
-
-        if "<index>" in cfg:
-            cfg = cfg["<index>"]
         else:
             return
 
