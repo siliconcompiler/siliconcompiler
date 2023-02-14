@@ -1242,6 +1242,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return True
         if keypath[0] == 'tool':
             return True
+        if self.get(*keypath, field='type') in ['file', '[file]']:
+            return True
         return False
 
     ###########################################################################
@@ -3426,6 +3428,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self._read_manifest(cfgfile, clobber=False, partial=True)
+
+        ##################
+        # Write manifest prior to step running into inputs
+
+        self.set('arg', 'step', None, clobber=True)
+        self.set('arg', 'index', None, clobber=True)
+        self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
         # Select inputs
