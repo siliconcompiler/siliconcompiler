@@ -33,10 +33,17 @@ def main():
             elif (oin == 'y') or (oin == 'Y'):
                 overwrite = True
 
-    # Get parameters from user input.
-    srv_addr = input('Remote server address: ').replace(" ","")
-    username = input('Remote username: ').replace(" ","")
-    user_pass = input('Remote password: ').replace(" ","")
+    # If a command-line argument is passed in, use that as a public server address.
+    if len(sys.argv) > 1:
+        print(f'Creating remote configuration file for public server: {sys.argv[1]}')
+        with open(cfg_file, 'w') as f:
+            f.write('{"address": "%s"}'%(sys.argv[1]))
+        return
+
+    # If no arguments were passed in, interactively request credentials from the user.
+    srv_addr = input('Remote server address:\n').replace(" ","")
+    username = input('Remote username (leave blank for public servers):\n').replace(" ","")
+    user_pass = input('Remote password (leave blank for public servers):\n').replace(" ","")
 
     # Save the values to the target config file in JSON format.
     with open(cfg_file, 'w') as f:
