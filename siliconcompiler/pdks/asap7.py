@@ -1,11 +1,6 @@
 import os
 import siliconcompiler
 
-def make_docs():
-    chip = siliconcompiler.Chip('asap7')
-
-    return setup(chip)
-
 def setup(chip):
     '''
     The asap7 PDK was developed at ASU in collaboration with ARM Research.
@@ -105,6 +100,5 @@ def setup(chip):
 
 #########################
 if __name__ == "__main__":
-
-    chip = make_docs()
-    chip.write_manifest('asap7.tcl')
+    pdk = setup(siliconcompiler.Chip('<pdk>'))
+    pdk.write_manifest(f'{pdk.top()}.json')
