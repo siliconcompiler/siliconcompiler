@@ -1201,7 +1201,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             shorthelp="Task: regex filter",
             switch="-tool_task_regex 'tool task suffix <str>'",
             example=[
-                "cli: -tool_task_regex 'openroad place errors -v ERROR'",
+                "cli: -tool_task_regex 'openroad place errors \"-v ERROR\"'",
                 "api: chip.set('tool','openroad','task','place','regex','errors','-v ERROR')"],
             schelp="""
             A list of piped together grep commands. Each entry represents a set
@@ -1288,9 +1288,9 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='required',
             shorthelp="Task: inputs",
-            switch="-tool_task_input 'task <str>'",
+            switch="-tool_task_input 'tool task step index <str>'",
             example=[
-                "cli: -tool_task_input 'openroad place oh_add.def'",
+                "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
                 "api: chip.set('tool','openroad','task','place','input','oh_add.def', step='place', index='0')"],
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
@@ -1303,9 +1303,9 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='required',
             shorthelp="Task: outputs",
-            switch="-tool_task_output 'task step index <str>'",
+            switch="-tool_task_output 'tool task step index <str>'",
             example=[
-                "cli: -tool_task_output 'openroad place oh_add.def'",
+                "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
                 "api: chip.set('tool','openroad','task','place','output','oh_add.def', step='place', index='0')"],
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
@@ -1390,9 +1390,9 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='required',
             shorthelp="Task: reports",
-            switch="-tool_task_report 'task metric <str>'",
+            switch="-tool_task_report 'task metric step index <str>'",
             example=[
-                 "cli: -tool_task_report 'openroad place holdtns place.log'",
+                 "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
                 "api: chip.set('tool','openroad','task','place','report','holdtns','place.log', step='place', index='0')"],
             schelp="""
             List of report files associated with a specific 'metric'. The file path
@@ -3305,7 +3305,7 @@ def schema_constraint(cfg):
             shorthelp="Constraint: timing checks",
             switch="-constraint_timing_check 'scenario <str>'",
             example=[
-                "cli: -constraint_timing_check 'worst check setup'",
+                "cli: -constraint_timing_check 'worst setup'",
                 "api: chip.add('constraint', 'timing', 'worst','check','setup')"],
             schelp="""
             List of checks for to perform for the scenario. The checks must
