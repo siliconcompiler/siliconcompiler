@@ -83,7 +83,8 @@ def setup(chip):
         'M6': 0.4,
         'M7': 0.4,
         'M8': 0.4,
-        'M9': 0.4
+        'M9': 0.4,
+        'Pad': 1.0
     }
     for layer, adj in openroad_layer_adjustments.items():
         pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
