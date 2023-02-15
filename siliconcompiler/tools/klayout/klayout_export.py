@@ -243,7 +243,7 @@ out_gds = os.path.join('outputs', f'{design}.gds')
 
 libs = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)
 if 'macrolib' in schema.getkeys('asic'):
-  libs += schema.get('asic', 'macrolib')
+  libs += schema.get('asic', 'macrolib', step=sc_step, index=sc_index)
 
 in_gds = []
 for lib in libs:
@@ -253,7 +253,7 @@ foundry_lef = os.path.dirname(schema.get('library', sc_mainlib, 'output', sc_sta
 
 macro_lefs = []
 if 'macrolib' in schema.getkeys('asic'):
-  for lib in schema.get('asic', 'macrolib'):
+  for lib in schema.get('asic', 'macrolib', step=sc_step, index=sc_index):
     macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef', step=sc_step, index=sc_index))
 
 flow = schema.get('option', 'flow')
