@@ -16,8 +16,9 @@ def _setup_lib(chip, libname, suffix):
     stackup = '10M'
     libtype = '7p5t'
     rev = 'r1p7'
-    corner = 'typical'
-    objectives = ['setup']
+    corners = {'typical': 'tt',
+               'fast': 'ff',
+               'slow': 'ss'}
 
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
 
@@ -28,7 +29,8 @@ def _setup_lib(chip, libname, suffix):
     lib.set('option', 'pdk', 'asap7')
 
     # timing
-    lib.add('output', corner, 'nldm', libdir+'/nldm/'+libname+'_ff.lib')
+    for corner_name, lib_corner in corners.items():
+        lib.add('output', corner_name, 'nldm', libdir+'/nldm/'+libname+'_' + lib_corner + '.lib.gz')
 
     # lef
     lib.add('output', stackup, 'lef', libdir+'/lef/'+libname+'.lef')

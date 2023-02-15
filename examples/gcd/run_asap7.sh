@@ -15,7 +15,7 @@ sc -design gcd \
    -constraint_outline "(0,0)" \
    -constraint_outline "(100.13,100.8)" \
    -constraint_corearea "(10.07,11.2)" \
-   -consrtraint_corearea "(90.25,91)" \
+   -constraint_corearea "(90.25,91)" \
    -loglevel "INFO" \
    -novercheck \
    -quiet \
