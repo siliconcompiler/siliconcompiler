@@ -240,7 +240,7 @@ def prepare_synthesis_libraries(chip):
     dff_dont_use = []
     for lib in chip.get('asic', 'logiclib', step=step, index=index):
         dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse')
-        if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel):
+        if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel, step=step, index=index):
             # if we have the exact library, use those dontuses, otherwise continue to build full list
             dff_dont_use = dontuse
             break
@@ -263,7 +263,7 @@ def prepare_synthesis_libraries(chip):
         if chip.valid('library', lib, 'option', 'file', 'yosys_synthesis_libraries'):
             synthesis_libraries = chip.find_files('library', lib, 'option', 'file', 'yosys_synthesis_libraries')
         elif chip.valid('library', lib, 'output', corner, delaymodel):
-            synthesis_libraries = chip.find_files('library', lib, 'output', corner, delaymodel)
+            synthesis_libraries = chip.find_files('library', lib, 'output', corner, delaymodel, step=step, index=index)
         else:
             synthesis_libraries = []
 
@@ -373,7 +373,7 @@ def get_dff_liberty_file(chip):
         if not chip.valid('library', lib, 'output', corner, delaymodel):
             continue
 
-        lib_files = chip.find_files('library', lib, 'output', corner, delaymodel)
+        lib_files = chip.find_files('library', lib, 'output', corner, delaymodel, step=step, index=index)
         if len(lib_files) > 0:
             return lib_files[0]
 
