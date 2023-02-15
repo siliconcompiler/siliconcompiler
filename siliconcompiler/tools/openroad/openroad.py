@@ -1,3 +1,16 @@
+'''
+OpenROAD is an automated physical design platform for
+integrated circuit design with a complete set of features
+needed to translate a synthesized netlist to a tapeout ready
+GDSII.
+
+Documentation: https://openroad.readthedocs.io/
+
+Sources: https://github.com/The-OpenROAD-Project/OpenROAD
+
+Installation: https://github.com/The-OpenROAD-Project/OpenROAD
+'''
+
 import math
 import os
 import json
@@ -10,19 +23,6 @@ import siliconcompiler
 ####################################################################
 
 def make_docs():
-    '''
-    OpenROAD is an automated physical design platform for
-    integrated circuit design with a complete set of features
-    needed to translate a synthesized netlist to a tapeout ready
-    GDSII.
-
-    Documentation: https://openroad.readthedocs.io/
-
-    Sources: https://github.com/The-OpenROAD-Project/OpenROAD
-
-    Installation: https://github.com/The-OpenROAD-Project/OpenROAD
-
-    '''
 
     chip = siliconcompiler.Chip('<design>')
     step = '<step>'

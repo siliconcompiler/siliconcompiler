@@ -1,21 +1,20 @@
+'''
+Magic is a chip layout viewer, editor, and circuit verifier with
+built in DRC and LVS engines.
+
+Documentation: http://opencircuitdesign.com/magic/userguide.html
+
+Installation: https://github.com/RTimothyEdwards/magic
+
+Sources: https://github.com/RTimothyEdwards/magic
+'''
+
 import siliconcompiler
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs():
-    '''
-    Magic is a chip layout viewer, editor, and circuit verifier with
-    built in DRC and LVS engines.
-
-    Documentation: http://opencircuitdesign.com/magic/userguide.html
-
-    Installation: https://github.com/RTimothyEdwards/magic
-
-    Sources: https://github.com/RTimothyEdwards/magic
-
-    '''
-
     chip = siliconcompiler.Chip('<design>')
     from pdks import skywater130
     chip.use(skywater130)

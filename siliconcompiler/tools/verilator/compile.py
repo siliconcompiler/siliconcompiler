@@ -3,7 +3,14 @@ import subprocess
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
 
 def setup(chip):
-    ''' Helper method to load configs specific to compile tasks.
+    '''
+    Compiles Verilog and C/C++ sources into an executable.  Takes in a single
+    pickled Verilog file from ``inputs/<design>.v`` and a set of C/C++ sources
+    from :keypath:`input, c`. Outputs an executable in
+    ``outputs/<design>.vexe``.
+
+    This step supports using the :keypath:`option, trace` parameter to enable
+    Verilator's ``--trace`` flag.
     '''
 
     # Generic tool setup.

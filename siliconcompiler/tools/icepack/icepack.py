@@ -1,3 +1,15 @@
+
+'''
+Icepack converts an ASCII bitstream file to a .bin file for the
+ICE40 FPGA.
+
+Documentation: http://bygone.clairexen.net/icestorm/
+
+Sources: https://github.com/YosysHQ/icestorm
+
+Installation: https://github.com/YosysHQ/icestorm
+'''
+
 import siliconcompiler
 
 #####################################################################
@@ -5,18 +17,6 @@ import siliconcompiler
 #####################################################################
 
 def make_docs():
-    '''
-    Icepack converts an ASCII bitstream file to a .bin file for the
-    ICE40 FPGA.
-
-    Documentation: http://bygone.clairexen.net/icestorm/
-
-    Sources: https://github.com/YosysHQ/icestorm
-
-    Installation: https://github.com/YosysHQ/icestorm
-
-    '''
-
     chip = siliconcompiler.Chip('<design>')
     step = 'bitstream'
     index = '<index>'

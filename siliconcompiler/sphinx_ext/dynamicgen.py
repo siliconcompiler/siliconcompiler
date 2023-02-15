@@ -132,13 +132,15 @@ class DynamicGen(SphinxDirective):
 
         s = build_section_with_target(modname, f'{modname}', self.state.document)
 
-        if not hasattr(module, 'make_docs'):
+        # Attempt to use module doc string first
+        if not self.generate_documentation_from_object(module, path, s):
+            setup = self.get_setup_method(module)
+            # Then use setup doc string
+            self.generate_documentation_from_object(setup, path, s)
+
+        make_docs = self.get_make_docs_method(module)
+        if not make_docs:
             return None
-
-        make_docs = getattr(module, 'make_docs')
-
-        self.generate_documentation_from_function(make_docs, path, s)
-
         chips = make_docs()
 
         if not isinstance(chips, list):
@@ -241,7 +243,7 @@ class DynamicGen(SphinxDirective):
     def child_content(self, path, module, modname):
         return None
 
-    def generate_documentation_from_function(self, func, path, s):
+    def generate_documentation_from_object(self, func, path, s):
         # raw docstrings have funky indentation (basically, each line is already
         # indented as much as the function), so we call trim() helper function
         # to clean it up
@@ -249,6 +251,8 @@ class DynamicGen(SphinxDirective):
 
         if docstr:
             self.parse_rst(docstr, s)
+        else:
+            return False
 
         builtin = os.path.abspath(path).startswith(SC_ROOT)
 
@@ -260,6 +264,8 @@ class DynamicGen(SphinxDirective):
             p = para('Setup file: ')
             p += link(gh_link, text=filename)
             s += p
+
+        return True
 
     def document_free_params(self, cfg, reference_prefix, s):
         self._document_free_params(cfg, 'var', reference_prefix, s)
@@ -287,6 +293,12 @@ class DynamicGen(SphinxDirective):
             s += build_section(type_heading, f'{reference_prefix}-{type}')
             colspec = r'{|\X{1}{2}|\X{1}{2}|}'
             s += build_table(table, colspec=colspec)
+
+    def get_make_docs_method(self, module):
+        return getattr(module, 'make_docs', None)
+
+    def get_setup_method(self, module):
+        return getattr(module, 'setup', None)
 
 #########################
 # Specialized extensions
@@ -432,6 +444,9 @@ class ToolGen(DynamicGen):
         '''
         modules = []
         for toolname in os.listdir(module_dir):
+            if (toolname == "template"):
+                # No need to include empty template in documentation
+                continue
             # skip over directories/files that don't match the structure of tool
             # directories (otherwise we'll get confused by Python metadata like
             # __init__.py or __pycache__/)
@@ -454,15 +469,15 @@ class ToolGen(DynamicGen):
         s = build_section_with_target(taskname, f'{toolname}-{taskname}', self.state.document)
 
         # Find setup function
-        task_setup = getattr(taskmodule, 'setup', None)
+        task_setup = self.get_setup_method(taskmodule)
         if not task_setup:
             return None
 
         # Find make_docs function, check task module first
-        make_docs = getattr(taskmodule, 'make_docs', None)
+        make_docs = self.get_make_docs_method(taskmodule)
         if not make_docs:
             # Then check tool module
-            make_docs = getattr(toolmodule, 'make_docs', None)
+            make_docs = self.get_make_docs_method(toolmodule)
         if not make_docs:
             return None
 
@@ -475,7 +490,7 @@ class ToolGen(DynamicGen):
 
         print(f"Generating docs for task {toolname}/{taskname}...")
 
-        self.generate_documentation_from_function(setup, path, s)
+        self.generate_documentation_from_object(task_setup, path, s)
 
         # Annotate the target used for default values
         if chip.valid('option', 'target') and chip.get('option', 'target'):

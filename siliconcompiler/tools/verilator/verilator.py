@@ -1,3 +1,19 @@
+'''
+Verilator is a free and open-source software tool which converts Verilog (a
+hardware description language) to a cycle-accurate behavioral model in C++
+or SystemC.
+
+For all steps, this driver runs Verilator using the ``-sv`` switch to enable
+parsing a subset of SystemVerilog features. All steps also support using
+:keypath:`option, relax` to make warnings nonfatal.
+
+Documentation: https://verilator.org/guide/latest
+
+Sources: https://github.com/verilator/verilator
+
+Installation: https://verilator.org/guide/latest/install.html
+'''
+
 import importlib
 import os
 
@@ -8,55 +24,6 @@ import siliconcompiler
 ####################################################################
 
 def make_docs():
-    '''
-    Verilator is a free and open-source software tool which converts Verilog (a
-    hardware description language) to a cycle-accurate behavioral model in C++
-    or SystemC.
-
-    Steps supported
-    ---------------
-
-    **import**
-
-    Preprocesses and pickles Verilog sources. Takes in a set of Verilog source
-    files supplied via :keypath:`input, verilog` and reads the following
-    parameters:
-
-    * :keypath:`option, ydir`
-    * :keypath:`option, vlib`
-    * :keypath:`option, idir`
-    * :keypath:`option, cmdfile`
-
-    Outputs a single Verilog file in ``outputs/<design>.v``.
-
-    **lint**
-
-    Lints Verilog source. Takes in a single pickled Verilog file from
-    ``inputs/<design>.v`` and produces no outputs. Results of linting can be
-    programatically queried using errors/warnings metrics.
-
-    **compile**
-
-    Compiles Verilog and C/C++ sources into an executable.  Takes in a single
-    pickled Verilog file from ``inputs/<design>.v`` and a set of C/C++ sources
-    from :keypath:`input, c`. Outputs an executable in
-    ``outputs/<design>.vexe``.
-
-    This step supports using the :keypath:`option, trace` parameter to enable
-    Verilator's ``--trace`` flag.
-
-    For all steps, this driver runs Verilator using the ``-sv`` switch to enable
-    parsing a subset of SystemVerilog features. All steps also support using
-    :keypath:`option, relax` to make warnings nonfatal.
-
-    Documentation: https://verilator.org/guide/latest
-
-    Sources: https://github.com/verilator/verilator
-
-    Installation: https://verilator.org/guide/latest/install.html
-
-    '''
-
     chip = siliconcompiler.Chip('<design>')
     step = 'import'
     index = '<index>'

@@ -2,13 +2,13 @@ import os
 import siliconcompiler
 
 def make_docs():
-    '''
-    Nangate open standard cell library for FreePDK45.
-    '''
     chip = siliconcompiler.Chip('<design>')
     return setup(chip)
 
 def setup(chip):
+    '''
+    Nangate open standard cell library for FreePDK45.
+    '''
     libname = 'nangate45'
     foundry = 'virtual'
     process = 'freepdk45'

@@ -8,6 +8,15 @@ from siliconcompiler.flows._common import setup_frontend
 ############################################################################
 
 def make_docs():
+    chip = siliconcompiler.Chip('<topmodule>')
+    chip.set('option', 'flow', 'fpgaflow')
+    chip.set('fpga', 'partname', 'ice40')
+    return setup(chip)
+
+############################################################################
+# Flowgraph Setup
+############################################################################
+def setup(chip, flowname='fpgaflow'):
     '''
     A configurable FPGA compilation flow.
 
@@ -35,24 +44,6 @@ def make_docs():
 
     * ['fpga', 'partname']: Used to select partname to vendor and tool flow
     * ['fpga', 'program']: Used to turn on/off HW programming step
-
-    '''
-
-    chip = siliconcompiler.Chip('<topmodule>')
-    chip.set('option', 'flow', 'fpgaflow')
-    chip.set('fpga', 'partname', 'ice40')
-    return setup(chip)
-
-############################################################################
-# Flowgraph Setup
-############################################################################
-def setup(chip, flowname='fpgaflow'):
-    '''
-    Setup function for 'fpgaflow'
-
-    Args:
-        chip (object): SC Chip object
-
     '''
 
     flow = siliconcompiler.Flow(chip, flowname)

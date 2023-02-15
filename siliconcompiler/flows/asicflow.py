@@ -7,6 +7,14 @@ from siliconcompiler.flows._common import setup_frontend
 ############################################################################
 
 def make_docs():
+    chip = siliconcompiler.Chip('<topmodule>')
+    n = 3
+    return setup(chip, syn_np=n, floorplan_np=n, physyn_np=n, place_np=n, cts_np=n, route_np=n)
+
+###########################################################################
+# Flowgraph Setup
+############################################################################
+def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
     A configurable ASIC compilation flow.
 
@@ -37,22 +45,6 @@ def make_docs():
     * place_np : Number of parallel place jobs to launch
     * cts_np : Number of parallel clock tree synthesis jobs to launch
     * route_np : Number of parallel routing jobs to launch
-    '''
-
-    chip = siliconcompiler.Chip('<topmodule>')
-    n = 3
-    return setup(chip, syn_np=n, floorplan_np=n, physyn_np=n, place_np=n, cts_np=n, route_np=n)
-
-###########################################################################
-# Flowgraph Setup
-############################################################################
-def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
-    '''
-    Setup function for 'asicflow' ASIC compilation execution flowgraph.
-
-    Args:
-        chip (object): SC Chip object
-
     '''
 
     flow = siliconcompiler.Flow(chip, flowname)

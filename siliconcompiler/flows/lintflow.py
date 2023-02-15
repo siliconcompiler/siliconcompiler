@@ -5,11 +5,6 @@ import siliconcompiler
 ############################################################################
 
 def make_docs():
-    '''
-    A configurable RTL linting flow.
-
-    '''
-
     chip = siliconcompiler.Chip('<design>')
     chip.set('option', 'flow', 'lintflow')
     return setup(chip)
@@ -19,11 +14,7 @@ def make_docs():
 ############################################################################
 def setup(chip):
     '''
-    Setup function RTL linting flow
-
-    Args:
-        chip (object): SC Chip object
-
+    An RTL linting flow.
     '''
 
     flowname = 'lintflow'

@@ -2,13 +2,13 @@ import os
 import siliconcompiler
 
 def make_docs():
-    '''
-    Skywater130 standard cell library.
-    '''
     chip = siliconcompiler.Chip('<design>')
     return setup(chip)
 
 def setup(chip):
+    '''
+    Skywater130 standard cell library.
+    '''
     foundry = 'skywater'
     process = 'skywater130'
     stackup = '5M1LI'
