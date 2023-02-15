@@ -2678,7 +2678,6 @@ def schema_option(cfg):
     # job scheduler
     scparam(cfg, ['option', 'scheduler', 'name'],
             sctype='enum',
-            pernode='optional',
             enum=["slurm", "lsf", "sge"],
             scope='job',
             pernode='optional',
@@ -2698,7 +2697,6 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'cores'],
             sctype='int',
-            pernode='optional',
             scope='job',
             shorthelp="Option: Scheduler core constraint",
             switch="-cores <int>",
@@ -2712,7 +2710,6 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'memory'],
             sctype='int',
-            pernode='optional',
             unit='MB',
             scope='job',
             shorthelp="Option: Scheduler memory constraint",
@@ -2727,7 +2724,6 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'queue'],
             sctype='str',
-            pernode='optional',
             scope='job',
             shorthelp="Option: Scheduler queue",
             switch="-queue <str>",
@@ -2741,7 +2737,6 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'defer'],
             sctype='str',
-            pernode='optional',
             scope='job',
             shorthelp="Option: Scheduler start time",
             switch="-defer <str>",
@@ -2757,7 +2752,6 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'options'],
             sctype='[str]',
-            pernode='optional',
             shorthelp="Option: Scheduler arguments",
             switch="-scheduler_options <str>",
             example=[
@@ -2771,7 +2765,6 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'msgevent'],
             sctype='str',
-            pernode='optional',
             defvalue='NONE',
             scope='job',
             shorthelp="Option: Message event trigger",
@@ -2789,7 +2782,6 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'msgcontact'],
             sctype='[str]',
-            pernode='optional',
             scope='job',
             shorthelp="Option: Message contact",
             switch="-msgcontact <str>",
