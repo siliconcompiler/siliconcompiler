@@ -110,9 +110,6 @@ def test_cli_examples(monkeypatch):
     chip = siliconcompiler.Chip('test')
     for keypath in chip.allkeys():
         examples = chip.get(*keypath, field='example')
-        # TODO: undo this change once we support specifying pernode parameters using CLI
-        if chip.get(*keypath, field='pernode') == 'required':
-            continue
         for example in examples:
             if not example.startswith('cli'):
                 continue
@@ -130,7 +127,11 @@ def test_cli_examples(monkeypatch):
 
             default_count = keypath.count('default')
             assert len(value.split(' ')) >= default_count + 1, f'Not enough values to fill in default keys: {keypath}'
-            *free_keys, expected_val = value.split(' ', default_count)
+            if chip.get(*keypath, field='pernode') == 'required':
+                *free_keys, step, index, expected_val = value.split(' ', default_count + 2)
+            else:
+                *free_keys, expected_val = value.split(' ', default_count)
+                step, index = None, None
             typestr = chip.get(*keypath, field='type')
             replaced_keypath = [free_keys.pop(0) if key == 'default' else key for key in keypath]
 
@@ -151,7 +152,7 @@ def test_cli_examples(monkeypatch):
             c = do_cli_test(args, monkeypatch)
 
             if expected_val:
-                assert c.get(*replaced_keypath) == _cast(expected_val, typestr)
+                assert c.get(*replaced_keypath, step=step, index=index) == _cast(expected_val, typestr)
             else:
                 assert typestr == 'bool', 'Implicit value only alowed for boolean'
-                assert c.get(*replaced_keypath) == True
+                assert c.get(*replaced_keypath, step=step, index=index) == True

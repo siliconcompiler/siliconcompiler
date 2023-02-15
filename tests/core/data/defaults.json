@@ -1132,7 +1132,7 @@
                 "check": {
                     "defvalue": [],
                     "example": [
-                        "cli: -constraint_timing_check 'worst check setup'",
+                        "cli: -constraint_timing_check 'worst setup'",
                         "api: chip.add('constraint', 'timing', 'worst','check','setup')"
                     ],
                     "help": "List of checks for to perform for the scenario. The checks must\nalign with the capabilities of the EDA tools and flow being used.\nChecks generally include objectives like meeting setup and hold goals\nand minimize power. Standard check names include setup, hold, power,\nnoise, reliability.",
@@ -6936,7 +6936,7 @@
                         "date": [],
                         "defvalue": [],
                         "example": [
-                            "cli: -tool_task_input 'openroad place oh_add.def'",
+                            "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
                             "api: chip.set('tool','openroad','task','place','input','oh_add.def', step='place', index='0')"
                         ],
                         "filehash": [],
@@ -6951,7 +6951,7 @@
                         "set": false,
                         "shorthelp": "Task: inputs",
                         "signature": [],
-                        "switch": "-tool_task_input 'task <str>'",
+                        "switch": "-tool_task_input 'tool task step index <str>'",
                         "type": "[file]",
                         "value": []
                     },
@@ -7001,7 +7001,7 @@
                         "date": [],
                         "defvalue": [],
                         "example": [
-                            "cli: -tool_task_output 'openroad place oh_add.def'",
+                            "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
                             "api: chip.set('tool','openroad','task','place','output','oh_add.def', step='place', index='0')"
                         ],
                         "filehash": [],
@@ -7016,7 +7016,7 @@
                         "set": false,
                         "shorthelp": "Task: outputs",
                         "signature": [],
-                        "switch": "-tool_task_output 'task step index <str>'",
+                        "switch": "-tool_task_output 'tool task step index <str>'",
                         "type": "[file]",
                         "value": []
                     },
@@ -7094,7 +7094,7 @@
                         "default": {
                             "defvalue": [],
                             "example": [
-                                "cli: -tool_task_regex 'openroad place errors -v ERROR'",
+                                "cli: -tool_task_regex 'openroad place errors \"-v ERROR\"'",
                                 "api: chip.set('tool','openroad','task','place','regex','errors','-v ERROR')"
                             ],
                             "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('task', 'openroad', 'regex', 'place', '0', 'warnings', [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`tool, <tool>,\ntask, <task>, report` parameter for those metrics, if not already present.",
@@ -7119,7 +7119,7 @@
                             "date": [],
                             "defvalue": [],
                             "example": [
-                                "cli: -tool_task_report 'openroad place holdtns place.log'",
+                                "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
                                 "api: chip.set('tool','openroad','task','place','report','holdtns','place.log', step='place', index='0')"
                             ],
                             "filehash": [],
@@ -7134,7 +7134,7 @@
                             "set": false,
                             "shorthelp": "Task: reports",
                             "signature": [],
-                            "switch": "-tool_task_report 'task metric <str>'",
+                            "switch": "-tool_task_report 'task metric step index <str>'",
                             "type": "[file]",
                             "value": []
                         }

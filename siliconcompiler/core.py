@@ -455,11 +455,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 num_free_keys = keypath.count('default')
 
+                switches, metavar = self._get_switches(schema, *keypath)
+                switchstr = '/'.join(switches)
+
                 if len(item.split(' ')) < num_free_keys + 1:
                     # Error out if value provided doesn't have enough words to
                     # fill in 'default' keys.
-                    switches, metavar = self._get_switches(schema, *keypath)
-                    switchstr = '/'.join(switches)
                     self.error(f'Invalid value {item} for switch {switchstr}. Expected format {metavar}.', fatal=True)
 
                 # We replace 'default' in keypath with first N words in provided
@@ -471,13 +472,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 pernode = self.get(*keypath, field='pernode')
                 step, index = None, None
                 if pernode == 'required':
-                    step, index, val = remainder.split(' ', 3)
+                    try:
+                        step, index, val = remainder.split(' ', 2)
+                    except ValueError:
+                        self.error(f"Invalid value '{item}' for switch {switchstr}. "
+                            "Requires step and index before final value.")
                 elif pernode == 'optional':
                     # Split on spaces, preserving items that are grouped in quotes
                     items = shlex.split(remainder)
                     if len(items) > 3:
-                        self.error(f'Invalid value {item} for switch {switchstr}. '
-                            'Too many arguments, please wrap multiline strings in quotes.')
+                        self.error(f"Invalid value '{item}'' for switch {switchstr}. "
+                            "Too many arguments, please wrap multiline strings in quotes.")
                         continue
                     elif len(items) == 3:
                         step, index, val = items
@@ -488,8 +493,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     val = remainder
 
+                msg = f'Command line argument entered: {args} Value: {val}'
+                if step is not None: msg += f' Step: {step}'
+                if index is not None: msg += f' Index: {index}'
+                self.logger.info(msg)
+
                 # Storing in manifest
-                self.logger.info(f"Command line argument entered: {args} Value: {val}")
                 typestr = schema.get(*keypath, field='type')
                 if typestr.startswith('['):
                     if self.valid(*args):
