@@ -78,7 +78,8 @@ def test_setget():
             chip.add(*keypath, value, step=step, index=index)
 
         if step is None and index is None and pernode == 'optional':
-            step, index = 'default', 'default'
+            # arbitrary step/index to avoid error
+            step, index = 'syn', '0'
         result = chip.get(*keypath, step=step, index=index)
         assert result == value, f'Expected value {value} from keypath {keypath}. Got {result}.'
 

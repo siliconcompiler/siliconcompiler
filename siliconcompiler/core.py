@@ -1178,7 +1178,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         elif keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
-            refdirs = self.find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
+            refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
             for path in paths:
                 for refdir in refdirs:
                     abspath = os.path.join(refdir, path)
@@ -1357,7 +1357,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         # skip unset values (some directories are None by default)
                         continue
 
-                    abspaths = self.find_files(*keypath, missing_ok=True, step=step, index=index)
+                    abspaths = self._find_files(*keypath, missing_ok=True, step=step, index=index)
                     if not isinstance(abspaths, list):
                         abspaths = [abspaths]
 
@@ -1545,9 +1545,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         #2. Check libary names
         libraries = set()
-        for step in steplist:
-            for index in indexlist[step]:
-                libraries.update(self.get('asic', 'logiclib', step=step, index=index))
+        for val, step, index in self.schema._getvals('asic', 'logiclib'):
+            if step in steplist and index in indexlist[step]:
+                libraries.update(val)
 
         for library in libraries:
             if library not in self.getkeys('library'):
@@ -2348,7 +2348,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 return
 
             _, step, index = vals[0]
-            filelist = self.find_files(*keypath, step=step, index=index)
+            filelist = self._find_files(*keypath, step=step, index=index)
             #cycle through all paths
             hashlist = []
             if filelist:

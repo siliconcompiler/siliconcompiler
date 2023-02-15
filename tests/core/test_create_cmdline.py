@@ -22,7 +22,7 @@ def test_cli_multi_source(monkeypatch):
 
     chip = do_cli_test(args, monkeypatch)
 
-    sources = chip.get('input','rtl','verilog', step='default', index='default')
+    sources = chip.get('input','rtl','verilog')
     assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
     assert chip.get('option','target') == 'freepdk45_demo'
 
@@ -36,7 +36,7 @@ def test_cli_include_flag(monkeypatch):
 
     chip = do_cli_test(args, monkeypatch)
 
-    assert chip.get('input', 'rtl', 'verilog', step='default', index='default') == ['source.v']
+    assert chip.get('input', 'rtl', 'verilog') == ['source.v']
     assert chip.get('option', 'idir') == ['include/inc1', 'include/inc2']
 
 def test_optmode(monkeypatch):
@@ -72,8 +72,8 @@ def test_pernode_optional(monkeypatch):
 
     chip = do_cli_test(args, monkeypatch)
 
-    assert chip.get('asic', 'logiclib') == ['my lib']
-    assert chip.get('asic', 'logiclib', step='syn') == ['syn lib']
+    assert chip.get('asic', 'logiclib', step='floorplan', index=0) == ['my lib']
+    assert chip.get('asic', 'logiclib', step='syn', index=0) == ['syn lib']
     assert chip.get('asic', 'logiclib', step='syn', index=1) == ['"syn1" lib']
 
 def test_pernode_required(monkeypatch):
@@ -152,7 +152,7 @@ def test_cli_examples(monkeypatch):
             c = do_cli_test(args, monkeypatch)
 
             if expected_val:
-                assert c.get(*replaced_keypath, step=step, index=index) == _cast(expected_val, typestr)
+                assert c.schema._get(*replaced_keypath, step=step, index=index) == _cast(expected_val, typestr)
             else:
                 assert typestr == 'bool', 'Implicit value only alowed for boolean'
-                assert c.get(*replaced_keypath, step=step, index=index) == True
+                assert c.schema._get(*replaced_keypath, step=step, index=index) == True
