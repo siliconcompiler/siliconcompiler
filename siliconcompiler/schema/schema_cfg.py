@@ -1201,7 +1201,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             shorthelp="Task: regex filter",
             switch="-tool_task_regex 'tool task suffix <str>'",
             example=[
-                "cli: -tool_task_regex 'openroad place errors -v ERROR'",
+                "cli: -tool_task_regex 'openroad place errors \"-v ERROR\"'",
                 "api: chip.set('tool','openroad','task','place','regex','errors','-v ERROR')"],
             schelp="""
             A list of piped together grep commands. Each entry represents a set
@@ -3291,7 +3291,7 @@ def schema_constraint(cfg):
             shorthelp="Constraint: timing checks",
             switch="-constraint_timing_check 'scenario <str>'",
             example=[
-                "cli: -constraint_timing_check 'worst check setup'",
+                "cli: -constraint_timing_check 'worst setup'",
                 "api: chip.add('constraint', 'timing', 'worst','check','setup')"],
             schelp="""
             List of checks for to perform for the scenario. The checks must

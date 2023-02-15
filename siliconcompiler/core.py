@@ -463,21 +463,41 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.error(f'Invalid value {item} for switch {switchstr}. Expected format {metavar}.', fatal=True)
 
                 # We replace 'default' in keypath with first N words in provided
-                # value. Remainder is the actual value we want to store in the
-                # parameter.
-                *free_keys, val = item.split(' ', num_free_keys)
+                # value.
+                *free_keys, remainder = item.split(' ', num_free_keys)
                 args = [free_keys.pop(0) if key == 'default' else key for key in keypath]
+
+                # Remainder is the value we want to set, possibly with a step/index value beforehand
+                pernode = self.get(*keypath, field='pernode')
+                step, index = None, None
+                if pernode == 'required':
+                    step, index, val = remainder.split(' ', 3)
+                elif pernode == 'optional':
+                    # Split on spaces, preserving items that are grouped in quotes
+                    items = shlex.split(remainder)
+                    if len(items) > 3:
+                        self.error(f'Invalid value {item} for switch {switchstr}. '
+                            'Too many arguments, please wrap multiline strings in quotes.')
+                        continue
+                    elif len(items) == 3:
+                        step, index, val = items
+                    elif len(items) == 2:
+                        step, val = items
+                    else:
+                        val, = items
+                else:
+                    val = remainder
 
                 # Storing in manifest
                 self.logger.info(f"Command line argument entered: {args} Value: {val}")
                 typestr = schema.get(*keypath, field='type')
                 if typestr.startswith('['):
                     if self.valid(*args):
-                        self.add(*args, val)
+                        self.add(*args, val, step=step, index=index)
                     else:
-                        self.set(*args, val, clobber=True)
+                        self.set(*args, val, step=step, index=index, clobber=True)
                 else:
-                    self.set(*args, val, clobber=True)
+                    self.set(*args, val, step=step, index=index, clobber=True)
 
     #########################################################################
     def find_function(self, modulename, funcname, moduletype=None, moduletask=None):

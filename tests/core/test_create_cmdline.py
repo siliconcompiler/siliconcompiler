@@ -62,6 +62,23 @@ def test_limited_switchlist(monkeypatch):
     assert chip.get('option', 'loglevel') == 'DEBUG'
     assert chip.get('option', 'var', 'foo') == ['bar']
 
+def test_pernode_optional(monkeypatch):
+    '''Ensure we can specify pernode overrides from CLI, and that they support
+    spaces in values.'''
+    args = ['sc']
+    args += ['-asic_logiclib', 'syn "syn lib"']
+    args += ['-asic_logiclib', 'syn 1 "\\"syn1\\" lib"']
+    args += ['-asic_logiclib', '"my lib"']
+
+    chip = do_cli_test(args, monkeypatch)
+
+    assert chip.get('asic', 'logiclib') == ['my lib']
+    assert chip.get('asic', 'logiclib', step='syn') == ['syn lib']
+    assert chip.get('asic', 'logiclib', step='syn', index=1) == ['"syn1" lib']
+
+def test_pernode_required(monkeypatch):
+    pass
+
 def _cast(val, sctype):
     if sctype.startswith('['):
         # TODO: doesn't handle examples w/ multiple list items (we do not have
@@ -80,7 +97,7 @@ def _cast(val, sctype):
         return bool(val)
     else:
         # everything else (str, file, dir) is treated like a string
-        return val
+        return val.strip('"')
 
 def test_cli_examples(monkeypatch):
     # Need to mock this function, since our cfg CLI example will try to call it
