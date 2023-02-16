@@ -3394,7 +3394,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # (Run the initial 'import' stage[s] locally)
 
         if self.get('option', 'scheduler', 'name', step=step, index=index) and \
-           self.get('flowgraph', flow, step, index, 'input') and \
+           self.get('flowgraph', flow, step, index, 'input'):
             # Note: The _deferstep method blocks until the compute node
             # finishes processing this step, and it sets the active/error bits.
             _deferstep(self, step, index, status)
