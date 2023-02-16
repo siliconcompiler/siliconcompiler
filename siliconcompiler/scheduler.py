@@ -16,7 +16,7 @@ def _deferstep(chip, step, index, status):
     '''
 
     # Determine which HPC job scheduler being used.
-    scheduler_type = chip.get('option', 'scheduler', 'name')
+    scheduler_type = chip.get('option', 'scheduler', 'name', step=step, index=index)
 
     # Determine which cluster parititon to use. (Default value can be overridden on per-step basis)
     if f'{step}_slurm_partition' in chip.status:
@@ -33,6 +33,7 @@ def _deferstep(chip, step, index, status):
     cfg_file = f'{cfg_dir}/{step}{index}.json'
     if not os.path.isdir(cfg_dir):
         os.mkdir(cfg_dir)
+    chip.unset('option', 'scheduler', 'name', step=step, index=index)
     chip.write_manifest(cfg_file)
 
     if scheduler_type == 'slurm':
@@ -71,7 +72,7 @@ def _deferstep(chip, step, index, status):
         sf.write('#!/bin/bash\n')
         sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
-                    f"-scheduler 'none' -design {shlex.quote(chip.top())}\n")
+                    f"-design {shlex.quote(chip.top())}\n")
         # In case of error(s) which prevents the SC build script from completing, ensure the
         # file mutex for job completion is set in shared storage. This lockfile signals the server
         # to mark the job done, without putting load on the cluster reporting/accounting system.

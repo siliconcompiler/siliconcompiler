@@ -4319,7 +4319,6 @@
             "name": {
                 "defvalue": null,
                 "enum": [
-                    "none",
                     "slurm",
                     "lsf",
                     "sge"
@@ -4332,7 +4331,7 @@
                 "lock": false,
                 "nodevalue": {},
                 "notes": null,
-                "pernode": "never",
+                "pernode": "optional",
                 "require": null,
                 "scope": "job",
                 "set": false,
