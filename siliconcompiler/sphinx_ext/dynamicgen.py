@@ -449,6 +449,28 @@ class LibGen(DynamicGen):
 class ToolGen(DynamicGen):
     PATH = 'tools'
 
+    def make_chip(self):
+        chip = super().make_chip()
+        self._setup_chip(chip, '<tool>', '<task>')
+
+        return chip
+
+    def _setup_chip(self, chip, tool_name, task_name):
+        step = chip.get('arg', 'step')
+        if not step:
+            step = '<step>'
+        index = chip.get('arg', 'index')
+        if not index:
+            index = '<index>'
+        chip.set('arg', 'step', step)
+        chip.set('arg', 'index', index)
+
+        flow = chip.get('option', 'flow')
+        if not flow:
+            flow = '<flow>'
+        chip.set('flowgraph', flow, step, index, 'tool', tool_name)
+        chip.set('flowgraph', flow, step, index, 'task', task_name)
+
     def configure_chip_for_docs(self, module, toolmodule=None):
         chip = self.make_chip()
         docs_chip, docs_configured = self._handle_make_docs(chip, module)
@@ -458,21 +480,13 @@ class ToolGen(DynamicGen):
             return docs_chip
 
         # set values for current step
-        step = '<step>'
-        index = '<index>'
-        chip.set('arg', 'step', step)
-        chip.set('arg', 'index', index)
-        flow = chip.get('option', 'flow')
-        if not flow:
-            flow = '<flow>'
+        toolname = module.__name__
         if self.__tool:
-            chip.set('flowgraph', flow, step, index, 'tool', self.__tool)
-        else:
-            chip.set('flowgraph', flow, step, index, 'tool', module.__name__)
+            toolname = self.__tool
+        taskname = '<task>'
         if self.__task:
-            chip.set('flowgraph', flow, step, index, 'task', self.__task)
-        else:
-            chip.set('flowgraph', flow, step, index, 'task', '<task>')
+            taskname = self.__task
+        self._setup_chip(chip, toolname, taskname)
 
         if toolmodule:
             return chip
