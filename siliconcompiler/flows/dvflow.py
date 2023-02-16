@@ -85,5 +85,5 @@ def setup(chip, np=1):
 
 ##################################################
 if __name__ == "__main__":
-    chip = make_docs()
-    chip.write_flowgraph("dvflow.png")
+    flow = make_docs()
+    flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
