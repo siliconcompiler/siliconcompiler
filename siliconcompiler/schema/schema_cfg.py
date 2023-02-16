@@ -4,9 +4,9 @@ import copy as pycopy
 import json
 import re
 
-# Default import must be relative, to facilitate KLayout's direct import of the
-# schema package. However, the fallback allows running this script directly to
-# generate defaults.json.
+# Default import must be relative, to facilitate tools with Python interfaces
+# (such as KLayout) directly importing the schema package. However, the fallback
+# allows running this script directly to generate defaults.json.
 try:
     from .utils import trim
 except ImportError:
