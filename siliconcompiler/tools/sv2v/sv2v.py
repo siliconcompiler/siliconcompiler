@@ -20,13 +20,6 @@ import importlib
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    step = '<step>'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
     from tools.sv2v.convert import setup
     setup = getattr(importlib.import_module('tools.sv2v.convert'), 'setup')
     setup(chip)

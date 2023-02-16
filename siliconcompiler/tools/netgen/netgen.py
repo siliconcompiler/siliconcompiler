@@ -15,17 +15,8 @@ Sources: https://github.com/RTimothyEdwards/netgen
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    chip.load_target('skywater130_demo')
-    step = 'lvs'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
     from tools.netgen.lvs import setup
     setup(chip)
-
     return chip
 
 ################################

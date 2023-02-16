@@ -20,13 +20,6 @@ import importlib
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    step = 'import'
-    index = '0'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
     setup = getattr(importlib.import_module('tools.chisel.import'), 'setup')
     setup(chip)
     return chip

@@ -13,13 +13,6 @@ Installation: https://github.com/YosysHQ/nextpnr
 # Make Docs
 #####################################################################
 def make_docs(chip):
-    step = 'apr'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
     from tools.nextpnr.apr import setup
     setup(chip)
     return chip
