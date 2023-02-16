@@ -9,14 +9,10 @@ Sources: https://github.com/YosysHQ/nextpnr
 Installation: https://github.com/YosysHQ/nextpnr
 '''
 
-import siliconcompiler
-
 #####################################################################
 # Make Docs
 #####################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
+def make_docs(chip):
     step = 'apr'
     index = '<index>'
     flow = '<flow>'

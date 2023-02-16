@@ -1,11 +1,8 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
 
-def make_docs():
-    chip = siliconcompiler.Chip('<target>')
+def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
-    setup(chip)
-    return chip
 
 ####################################################
 # Target Setup
@@ -29,5 +26,6 @@ def setup(chip):
 
 #########################
 if __name__ == "__main__":
-    target = make_docs()
+    target = make_docs(siliconcompiler.Chip('<target>'))
+    setup(target)
     target.write_manifest('fpgaflow_demo.json')

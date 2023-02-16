@@ -6,9 +6,7 @@ from siliconcompiler.flows._common import setup_frontend
 ############################################################################
 # DOCS
 ############################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<topmodule>')
+def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40')
     return setup(chip)
 
@@ -203,5 +201,5 @@ def tool_lookup(flow, step):
 
 ##################################################
 if __name__ == "__main__":
-    flow = make_docs()
+    flow = make_docs(siliconcompiler.Chip('<flow>'))
     flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

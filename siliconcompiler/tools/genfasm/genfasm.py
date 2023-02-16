@@ -2,14 +2,10 @@
 To-Do: Add details here
 '''
 
-import siliconcompiler
-
 ######################################################################
 # Make Docs
 ######################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
+def make_docs(chip):
     step = 'bitstream'
     index = '<index>'
     flow = '<flow>'

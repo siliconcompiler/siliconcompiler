@@ -15,13 +15,10 @@ Installation: https://github.com/B-Lang-org/bsc#download
 
 import importlib
 
-import siliconcompiler
-
 ####################################################################
 # Make Docs
 ####################################################################
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
+def make_docs(chip):
     step = 'import'
     index = '0'
     flow = '<flow>'

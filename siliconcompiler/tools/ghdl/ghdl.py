@@ -19,9 +19,7 @@ import siliconcompiler
 #####################################################################
 # Make Docs
 #####################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
+def make_docs(chip):
     step = 'import'
     index = '<index>'
     flow = '<flow>'

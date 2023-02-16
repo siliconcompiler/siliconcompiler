@@ -11,15 +11,10 @@ Sources: https://github.com/steveicarus/iverilog.git
 Installation: https://github.com/steveicarus/iverilog.git
 '''
 
-import siliconcompiler
-
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-
-    chip = siliconcompiler.Chip('<design>')
+def make_docs(chip):
     step = 'compile'
     index = '<index>'
     flow = '<flow>'

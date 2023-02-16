@@ -3,8 +3,7 @@ import siliconcompiler
 ############################################################################
 # DOCS
 ############################################################################
-def make_docs():
-    chip = siliconcompiler.Chip('<topmodule>')
+def make_docs(chip):
     return setup(chip, filetype='gds', np=3)
 
 ###########################################################################
@@ -46,5 +45,5 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
 
 ##################################################
 if __name__ == "__main__":
-    flow = make_docs()
+    flow = make_docs(siliconcompiler.Chip('<flow>'))
     flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

@@ -1,18 +1,9 @@
-import siliconcompiler
+from siliconcompiler.tools.klayout import klayout
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    chip.load_target('freepdk45_demo')
-    step = 'show'
-    index = '<index>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'task', 'show')
+def make_docs(chip):
+    klayout.make_docs(chip)
     chip.set('tool', 'klayout', 'task', 'show', 'var', 'show_filepath', '<path>')
-    setup(chip)
-
-    return chip
 
 def setup(chip):
     ''' Helper method for configs specific to show tasks.

@@ -21,8 +21,7 @@ import siliconcompiler
 ######################################################################
 # Make Docs
 ######################################################################
-
-def make_docs():
+def make_docs(chip):
 
 
     chip = siliconcompiler.Chip('<design>')

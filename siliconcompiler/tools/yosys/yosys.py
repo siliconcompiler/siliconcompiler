@@ -19,27 +19,13 @@ import json
 import shutil
 import importlib
 from jinja2 import Template
-import siliconcompiler
 import siliconcompiler.tools.yosys.markDontUse as markDontUse
 
 ######################################################################
 # Make Docs
 ######################################################################
-
-def make_docs():
-
-
-    chip = siliconcompiler.Chip('<design>')
-    # TODO: docs split by task
-    step = 'syn_asic'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step', step)
-    chip.set('arg','index', index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
-    setup(chip)
-    return chip
+def make_docs(chip):
+    chip.load_target("asap7_demo")
 
 ################################
 # Setup Tool (pre executable)

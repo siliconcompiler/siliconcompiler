@@ -5,8 +5,7 @@ from siliconcompiler.flows._common import setup_frontend
 ############################################################################
 # DOCS
 ############################################################################
-def make_docs():
-    chip = siliconcompiler.Chip('<topmodule>')
+def make_docs(chip):
     n = 3
     return setup(chip, syn_np=n, floorplan_np=n, physyn_np=n, place_np=n, cts_np=n, route_np=n)
 
@@ -148,5 +147,5 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
 
 ##################################################
 if __name__ == "__main__":
-    flow = make_docs()
+    flow = make_docs(siliconcompiler.Chip('<flow>'))
     flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

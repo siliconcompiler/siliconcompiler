@@ -301,6 +301,9 @@ class DynamicGen(SphinxDirective):
     def get_make_docs_method(self, module):
         return getattr(module, 'make_docs', None)
 
+    def get_configure_docs_method(self, module):
+        return getattr(module, 'configure_docs', None)
+
     def get_setup_method(self, module):
         return getattr(module, 'setup', None)
 
@@ -310,11 +313,13 @@ class DynamicGen(SphinxDirective):
     def _handle_make_docs(self, chip, module):
         make_docs = self.get_make_docs_method(module)
         if make_docs:
-            new_chip = make_docs()
+            new_chip = make_docs(chip)
             if new_chip:
                 # make_docs returned something so it's fully configured
-                return new_chip
-        return None
+                return (new_chip, True)
+            else:
+                return (chip, False)
+        return (None, False)
 
     def _handle_setup(self, chip, module):
         setup = self.get_setup_method(module)
@@ -329,8 +334,8 @@ class DynamicGen(SphinxDirective):
 
     def configure_chip_for_docs(self, module):
         chip = self.make_chip()
-        docs_chip = self._handle_make_docs(chip, module)
-        if docs_chip:
+        docs_chip, docs_configured = self._handle_make_docs(chip, module)
+        if docs_chip and docs_configured:
             return docs_chip
 
         return self._handle_setup(chip, module)
@@ -446,10 +451,10 @@ class ToolGen(DynamicGen):
 
     def configure_chip_for_docs(self, module, toolmodule=None):
         chip = self.make_chip()
-        docs_chip = self._handle_make_docs(chip, module)
+        docs_chip, docs_configured = self._handle_make_docs(chip, module)
         if not docs_chip and toolmodule:
-            docs_chip = self._handle_make_docs(chip, toolmodule)
-        if docs_chip:
+            docs_chip, docs_configured = self._handle_make_docs(chip, toolmodule)
+        if docs_configured:
             return docs_chip
 
         # set values for current step

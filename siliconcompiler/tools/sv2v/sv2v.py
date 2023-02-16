@@ -16,13 +16,10 @@ Installation: https://github.com/zachjs/sv2v
 
 import importlib
 
-import siliconcompiler
-
 ####################################################################
 # Make Docs
 ####################################################################
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
+def make_docs(chip):
     step = '<step>'
     index = '<index>'
     flow = '<flow>'

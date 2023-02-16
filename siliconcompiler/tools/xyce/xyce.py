@@ -16,20 +16,6 @@ Status: SC integration WIP
 
 import os
 
-import siliconcompiler
-
-
-#####################################################################
-# Make Docs
-#####################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step', 'spice')
-    chip.set('arg','index', '<index>')
-    setup(chip)
-    return chip
-
 ################################
 # Setup Tool (pre executable)
 ################################

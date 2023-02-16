@@ -16,13 +16,10 @@ installed. Instructions: https://www.scala-sbt.org/download.html.
 
 import importlib
 
-import siliconcompiler
-
 ####################################################################
 # Make Docs
 ####################################################################
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
+def make_docs(chip):
     step = 'import'
     index = '0'
     flow = '<flow>'
