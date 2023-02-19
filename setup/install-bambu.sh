@@ -26,7 +26,7 @@ make -f Makefile.init
 mkdir obj
 cd obj
 
-../configure --enable-flopoco --enable-release --prefix=/opt/panda
+../configure --enable-release --prefix=/opt/panda
 make
 make install
 
