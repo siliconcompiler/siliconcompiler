@@ -3,12 +3,11 @@
 
 import re
 import gzip
-import fnmatch
 import argparse  # argument parsing
 
 def processLibertyFile(input_file, output_file, dont_use, quiet=False):
     # Convert * wildcards to regex wildcards
-    patternList = fnmatch.translate(dont_use).split()
+    patternList = [du.replace('*','.*') for du in dont_use]
 
     # Read input file
     if not quiet:
