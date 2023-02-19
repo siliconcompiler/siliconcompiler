@@ -43,11 +43,11 @@ def test_py(setup_example_test):
     # "Creating fake entries in the LUT"
     assert chip.get('metric', 'warnings', step='cts', index='0') == 2
 
-    # Missing route to pin (x77)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 77
+    # Missing route to pin (x71)
+    assert chip.get('metric', 'warnings', step='route', index='0') == 71
 
-    # Missing route to pin (x89)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 89
+    # Missing route to pin (x83)
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 83
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1
