@@ -1,5 +1,6 @@
 import siliconcompiler
 import shutil
+import os
 
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
