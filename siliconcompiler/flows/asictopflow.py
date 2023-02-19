@@ -1,10 +1,5 @@
 import siliconcompiler
 
-def make_docs():
-    chip = siliconcompiler.Chip('<topmodule>')
-    chip.set('option', 'flow', 'asictopflow')
-    return setup(chip)
-
 def setup(chip):
     '''A flow for stitching together hardened blocks without doing any automated
     place-and-route.
@@ -26,3 +21,8 @@ def setup(chip):
         flow.set('flowgraph', flow.design, step, '0', 'goal', 'errors', 0)
 
     return flow
+
+##################################################
+if __name__ == "__main__":
+    flow = setup(siliconcompiler.Chip('<flow>'))
+    flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

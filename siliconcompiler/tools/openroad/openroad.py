@@ -16,26 +16,11 @@ import os
 import json
 from jinja2 import Template
 
-import siliconcompiler
-
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-
-    chip = siliconcompiler.Chip('<design>')
-    step = '<step>'
-    index = '<index>'
-    chip.set('arg', 'step', step)
-    chip.set('arg', 'index', index)
-    # TODO: how to make it clear in docs that certain settings are
-    # target-dependent?
-    chip.load_target('freepdk45_demo')
-    chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'task', '<task>')
-    setup(chip)
-
-    return chip
+def make_docs(chip):
+    chip.load_target("asap7_demo")
 
 ################################
 # Setup Tool (pre executable)

@@ -2,14 +2,6 @@
 import os
 import siliconcompiler
 
-############################################################################
-# DOCS
-############################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('freepdk45')
-    return setup(chip)
-
 ####################################################
 # PDK Setup
 ####################################################
@@ -111,6 +103,5 @@ def setup(chip):
 
 #########################
 if __name__ == "__main__":
-
-    chip = make_docs()
-    chip.write_manifest('freepdk45.tcl')
+    pdk = setup(siliconcompiler.Chip('<pdk>'))
+    pdk.write_manifest(f'{pdk.top()}.json')

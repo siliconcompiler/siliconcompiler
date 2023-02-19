@@ -16,23 +16,10 @@ Sources: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 Installation: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 '''
 
-import siliconcompiler
-
 ######################################################################
 # Make Docs
 ######################################################################
-
-def make_docs():
-
-
-    chip = siliconcompiler.Chip('<design>')
-    step = 'apr'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+def make_docs(chip):
     from tools.vpr.apr import setup
     setup(chip)
     return chip

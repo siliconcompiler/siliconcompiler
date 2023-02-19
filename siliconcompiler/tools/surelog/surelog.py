@@ -14,20 +14,6 @@ import os
 import sys
 import shutil
 
-import siliconcompiler
-
-####################################################################
-# Make Docs
-####################################################################
-def make_docs():
-
-    chip = siliconcompiler.Chip('<design>')
-    chip.load_target('freepdk45_demo')
-    chip.set('arg','step','import')
-    chip.set('arg','index','0')
-    setup(chip)
-    return chip
-
 ################################
 # Setup Tool (pre executable)
 ################################

@@ -11,22 +11,10 @@ Sources: https://github.com/steveicarus/iverilog.git
 Installation: https://github.com/steveicarus/iverilog.git
 '''
 
-import siliconcompiler
-
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-
-    chip = siliconcompiler.Chip('<design>')
-    step = 'compile'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+def make_docs(chip):
     from tools.icarus.compile import setup
     setup(chip)
     return chip
