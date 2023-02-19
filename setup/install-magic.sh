@@ -12,6 +12,6 @@ git clone $(python3 ${src_path}/_tools.py --tool magic --field git-url) magic
 cd magic
 git checkout $(python3 ${src_path}/_tools.py --tool magic --field git-commit)
 
-./configure
+LD_FLAGS=-shared ./configure
 make
 sudo make install
