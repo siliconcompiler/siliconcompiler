@@ -782,16 +782,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         """
         self.logger.debug(f"Reading from {keypath}. Field = '{field}'")
 
-        strict = self.schema.get('option', 'strict')
-        if field == 'value' and strict:
-            pernode = self.schema.get(*keypath, field='pernode')
-            if pernode == 'optional' and (step is None or index is None):
-                raise ValueError(
-                    f'Invalid args to get() of keypath {keypath}: step and index '
-                    'are required for reading from this parameter'
-                )
-
         try:
+            strict = self.schema.get('option', 'strict')
+            if field == 'value' and strict:
+                pernode = self.schema.get(*keypath, field='pernode')
+                if pernode == 'optional' and (step is None or index is None):
+                    raise ValueError(
+                        f'Invalid args to get() of keypath {keypath}: step and '
+                        'index are required for reading from this parameter'
+                    )
+
             return self.schema.get(*keypath, field=field, job=job, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(str(e))
