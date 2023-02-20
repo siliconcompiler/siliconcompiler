@@ -54,7 +54,15 @@ def _setup_lib(chip, libname, suffix):
     lib.add('asic', 'cells', 'hold', f"BUFx2_ASAP7_75t_{suffix}")
 
     # filler
-    lib.add('asic', 'cells', 'filler', [f"FILLER_ASAP7_75t_{suffix}"])
+    lib.add('asic', 'cells', 'filler', [f"FILLER_ASAP7_75t_{suffix}",
+                                        f"FILLERxp5_ASAP7_75t_{suffix}"])
+
+    # decap
+    lib.add('asic', 'cells', 'decap', [f"DECAPx1_ASAP7_75t_{suffix}",
+                                       f"DECAPx1_ASAP7_75t_{suffix}",
+                                       f"DECAPx3_ASAP7_75t_{suffix}",
+                                       f"DECAPx6_ASAP7_75t_{suffix}",
+                                       f"DECAPx10_ASAP7_75t_{suffix}"])
 
     # Stupid small cells
     lib.add('asic', 'cells', 'dontuse', ["*x1_ASAP7*",
@@ -71,16 +79,15 @@ def _setup_lib(chip, libname, suffix):
     lib.add('asic', 'cells','endcap', f"DECAPx1_ASAP7_75t_{suffix}")
 
     # Yosys techmap
-    if libname.endswith('rvt'):
-        # TODO: write map files for other groups
-        lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
+    lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
+    lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v')
 
     # Defaults for OpenROAD tool variables
-    lib.set('option', 'var', 'openroad_place_density', '0.77')
+    lib.set('option', 'var', 'openroad_place_density', '0.60')
     lib.set('option', 'var', 'openroad_pad_global_place', '2')
     lib.set('option', 'var', 'openroad_pad_detail_place', '1')
-    lib.set('option', 'var', 'openroad_macro_place_halo', ['22.4', '15.12'])
-    lib.set('option', 'var', 'openroad_macro_place_channel', ['18.8', '19.95'])
+    lib.set('option', 'var', 'openroad_macro_place_halo', ['10', '10'])
+    lib.set('option', 'var', 'openroad_macro_place_channel', ['12', '12'])
 
     lib.set('option', 'var', 'yosys_driver_cell', f"BUFx2_ASAP7_75t_{suffix}")
     lib.set('option', 'var', 'yosys_buffer_cell', f"BUFx2_ASAP7_75t_{suffix}")
