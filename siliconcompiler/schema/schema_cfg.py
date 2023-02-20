@@ -2659,6 +2659,7 @@ def schema_option(cfg):
             sctype='enum',
             enum=["slurm", "lsf", "sge"],
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler platform",
             switch="-scheduler <str>",
             example=[
