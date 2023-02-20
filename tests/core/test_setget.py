@@ -122,7 +122,8 @@ def test_set_valid_field_to_none():
     chip = siliconcompiler.Chip('test')
     chip.set('option', 'scheduler', 'name', 'slurm')
     chip.set('option', 'scheduler', 'name', None)
-    jobscheduler = chip.get('option', 'scheduler', 'name')
+    # arbitrary step/index
+    jobscheduler = chip.get('option', 'scheduler', 'name', step='syn', index=0)
     assert jobscheduler == None
     assert chip._error == False
 
