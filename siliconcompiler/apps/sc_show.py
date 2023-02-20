@@ -51,7 +51,7 @@ def main():
     input_mode = None
     if 'layout' in chip.getkeys('input'):
         for mode in chip.getkeys('input', 'layout'):
-            if bool(chip.get('input', 'layout', mode)):
+            if chip.schema._getvals('input', 'layout', mode):
                 input_mode = mode
                 break
 
@@ -61,7 +61,8 @@ def main():
 
     filename = None
     if input_mode:
-        filename = chip.get('input', 'layout', input_mode)[-1]
+        # triple index into this structure: [([val], <step>, <index>)]
+        filename = chip.schema._getvals('input', 'layout', input_mode)[0][0][-1]
 
     if (filename is not None) and (not chip.get('option', 'cfg')):
         # only autoload manifest if user doesn't supply manually
