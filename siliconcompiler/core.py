@@ -787,10 +787,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if field == 'value' and strict:
                 pernode = self.schema.get(*keypath, field='pernode')
                 if pernode == 'optional' and (step is None or index is None):
-                    raise ValueError(
-                        f'Invalid args to get() of keypath {keypath}: step and '
-                        'index are required for reading from this parameter'
+                    self.error(
+                        f"Invalid args to get() of keypath {keypath}: step and "
+                        "index are required for reading from this parameter "
+                        "while ['option', 'strict'] is True."
                     )
+                    return None
 
             return self.schema.get(*keypath, field=field, job=job, step=step, index=index)
         except (ValueError, TypeError) as e:
@@ -1136,8 +1138,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         strict = self.get('option', 'strict')
         pernode = self.get(*keypath, field='pernode')
         if strict and pernode == 'optional' and (step is None or index is None):
-            self.error(f'Invalid args to find_files() of keypath {keypath}: step and index '
-                'are required for reading from this parameter')
+            self.error(
+                f"Invalid args to find_files() of keypath {keypath}: step and "
+                "index are required for reading from this parameter while "
+                "['option', 'strict'] is True."
+            )
             return []
         return self._find_files(*keypath, missing_ok=missing_ok, job=job, step=step, index=index)
 
