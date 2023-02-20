@@ -193,7 +193,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # we should revisit it
         self.logger.propagate = False
 
-        loglevel = self.get('option', 'loglevel', step=step, index=index)
+        loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
 
         if loglevel=='DEBUG':
             prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
@@ -4806,7 +4806,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # fatal=True before the logger exists
             step = self.get('arg', 'step')
             index = self.get('arg', 'index')
-            if self.get('option', 'continue', step=step, index=index):
+            if self.schema.get('option', 'continue', step=step, index=index):
                 self.logger.error(msg)
                 self._error = True
                 return
