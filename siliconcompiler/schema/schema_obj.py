@@ -10,7 +10,12 @@ import gzip
 import json
 import os
 import re
-import yaml
+
+try:
+    import yaml
+    _has_yaml = True
+except ImportError:
+    _has_yaml = False
 
 from .schema_cfg import schema_cfg
 from .utils import escape_val_tcl, PACKAGE_ROOT
@@ -59,6 +64,8 @@ class Schema:
             if re.search(r'(\.json|\.sup)(\.gz)*$', filepath, flags=re.IGNORECASE):
                 localcfg = json.load(fin)
             elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath, flags=re.IGNORECASE):
+                if not _has_yaml:
+                    raise ImportError('yaml package required to read YAML manifest')
                 localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
             else:
                 raise ValueError(f'File format not recognized {filepath}')
@@ -633,6 +640,8 @@ class Schema:
 
     ###########################################################################
     def write_yaml(self, fout):
+        if not _has_yaml:
+            raise ImportError('yaml package required to write YAML manifest')
         fout.write(yaml.dump(self.cfg, Dumper=YamlIndentDumper, default_flow_style=False))
 
     ###########################################################################
@@ -796,6 +805,7 @@ class Schema:
         schema.cfg = self.cfg['history'][job]
         return schema
 
-class YamlIndentDumper(yaml.Dumper):
-    def increase_indent(self, flow=False, indentless=False):
-        return super(YamlIndentDumper, self).increase_indent(flow, False)
+if _has_yaml:
+    class YamlIndentDumper(yaml.Dumper):
+        def increase_indent(self, flow=False, indentless=False):
+            return super(YamlIndentDumper, self).increase_indent(flow, False)
