@@ -4566,6 +4566,26 @@
             "type": "[str]",
             "value": []
         },
+        "strict": {
+            "defvalue": false,
+            "example": [
+                "cli: -strict true",
+                "api: chip.set('option', 'strict', True)"
+            ],
+            "help": "Enable additional strict checking in the SC Python API. When this\nparameter is set to True, users must provide step and index keyword\narguments when reading from parameters with the pernode field set to\n'optional'.",
+            "lock": false,
+            "nodevalue": {},
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "set": false,
+            "shorthelp": "Option: Strict checking",
+            "signature": null,
+            "switch": "-strict <bool>",
+            "type": "bool",
+            "value": false
+        },
         "target": {
             "defvalue": null,
             "example": [
@@ -6779,7 +6799,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.24.0",
+        "defvalue": "0.25.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6795,7 +6815,7 @@
         "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str",
-        "value": "0.24.0"
+        "value": "0.25.0"
     },
     "tool": {
         "default": {

@@ -783,6 +783,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f"Reading from {keypath}. Field = '{field}'")
 
         try:
+            strict = self.schema.get('option', 'strict')
+            if field == 'value' and strict:
+                pernode = self.schema.get(*keypath, field='pernode')
+                if pernode == 'optional' and (step is None or index is None):
+                    self.error(
+                        f"Invalid args to get() of keypath {keypath}: step and "
+                        "index are required for reading from this parameter "
+                        "while ['option', 'strict'] is True."
+                    )
+                    return None
+
             return self.schema.get(*keypath, field=field, job=job, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(str(e))
@@ -1124,6 +1135,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             the schema.
 
         """
+        strict = self.get('option', 'strict')
+        pernode = self.get(*keypath, field='pernode')
+        if strict and pernode == 'optional' and (step is None or index is None):
+            self.error(
+                f"Invalid args to find_files() of keypath {keypath}: step and "
+                "index are required for reading from this parameter while "
+                "['option', 'strict'] is True."
+            )
+            return []
+        return self._find_files(*keypath, missing_ok=missing_ok, job=job, step=step, index=index)
+
+    ###########################################################################
+    def _find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None):
+        """Internal find_files() that allows you to skip step/index for optional
+        params, regardless of [option, strict]."""
+
         copyall = self.get('option', 'copyall', job=job)
         paramtype = self.get(*keypath, field='type', job=job)
 
@@ -1138,7 +1165,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        paths = self.get(*keypath, job=job, step=step, index=index)
+        paths = self.schema.get(*keypath, job=job, step=step, index=index)
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
@@ -1165,7 +1192,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         elif keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
-            refdirs = self.find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
+            refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
             for path in paths:
                 for refdir in refdirs:
                     abspath = os.path.join(refdir, path)
@@ -1253,7 +1280,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for value, step, index in values:
                 if not value:
                     continue
-                abspaths = self.find_files(*keypath, missing_ok=True, step=step, index=index)
+                abspaths = self._find_files(*keypath, missing_ok=True, step=step, index=index)
                 if isinstance(abspaths, list) and None in abspaths:
                     # Lists may not contain None
                     schema.set(*keypath, [], step=step, index=index)
@@ -1339,29 +1366,29 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             paramtype = self.get(*keypath, field='type')
             #only do something if type is file or dir
             if ('history' not in keypath and 'library' not in keypath) and ('file' in paramtype or 'dir' in paramtype):
+                for val, step, index in self.schema._getvals(*keypath):
+                    if val is None:
+                        # skip unset values (some directories are None by default)
+                        continue
 
-                if self.get(*keypath) is None:
-                    # skip unset values (some directories are None by default)
-                    continue
+                    abspaths = self._find_files(*keypath, missing_ok=True, step=step, index=index)
+                    if not isinstance(abspaths, list):
+                        abspaths = [abspaths]
 
-                abspaths = self.find_files(*keypath, missing_ok=True)
-                if not isinstance(abspaths, list):
-                    abspaths = [abspaths]
+                    for abspath in abspaths:
+                        ok = False
 
-                for abspath in abspaths:
-                    ok = False
+                        if abspath is not None:
+                            for allowed_path in allowed_paths:
+                                if os.path.commonpath([abspath, allowed_path]) == allowed_path:
+                                    ok = True
+                                    continue
 
-                    if abspath is not None:
-                        for allowed_path in allowed_paths:
-                            if os.path.commonpath([abspath, allowed_path]) == allowed_path:
-                                ok = True
-                                continue
-
-                    if not ok:
-                        self.logger.error(f'Keypath {keypath} contains path(s) '
-                            'that do not exist or resolve to files outside of '
-                            'allowed directories.')
-                        return False
+                        if not ok:
+                            self.logger.error(f'Keypath {keypath} contains path(s) '
+                                'that do not exist or resolve to files outside of '
+                                'allowed directories.')
+                            return False
 
         return True
 
@@ -1426,16 +1453,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     paramtype = self.get(*keypath, field='type')
                     if ('file' in paramtype) or ('dir' in paramtype):
-                        abspath = self.find_files(*keypath, missing_ok=True)
-                        unresolved_paths = self.get(*keypath)
-                        if not isinstance(abspath, list):
-                            abspath = [abspath]
-                            unresolved_paths = [unresolved_paths]
-                        for i, path in enumerate(abspath):
-                            if path is None:
-                                unresolved_path = unresolved_paths[i]
-                                self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
-                                error = True
+                        for val, step, index in self.schema._getvals(*keypath):
+                            abspath = self._find_files(*keypath, missing_ok=True, step=step, index=index)
+                            unresolved_paths = val
+                            if not isinstance(abspath, list):
+                                abspath = [abspath]
+                                unresolved_paths = [unresolved_paths]
+                            for i, path in enumerate(abspath):
+                                if path is None:
+                                    unresolved_path = unresolved_paths[i]
+                                    self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
+                                    error = True
 
         # Need to run this check here since file resolution can change in
         # _runtask().
@@ -1530,10 +1558,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     error = True
 
         #2. Check libary names
-        for item in self.get('asic', 'logiclib'):
-            if item not in self.getkeys('library'):
+        libraries = set()
+        for val, step, index in self.schema._getvals('asic', 'logiclib'):
+            if step in steplist and index in indexlist[step]:
+                libraries.update(val)
+
+        for library in libraries:
+            if library not in self.getkeys('library'):
                 error = True
-                self.logger.error(f"Target library {item} not found.")
+                self.logger.error(f"Target library {library} not found.")
 
         #3. Check requirements list
         allkeys = self.allkeys()
@@ -2329,7 +2362,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 return
 
             _, step, index = vals[0]
-            filelist = self.find_files(*keypath, step=step, index=index)
+            filelist = self._find_files(*keypath, step=step, index=index)
             #cycle through all paths
             hashlist = []
             if filelist:
@@ -2755,9 +2788,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if self.get('option', 'mode') == 'asic':
             pdk = self.get('option', 'pdk')
+
+            libraries = set()
+            for val, step, _ in self.schema._getvals('asic', 'logiclib'):
+                if step in steplist:
+                    libraries.update(val)
+
             info_list.extend(["foundry : " + self.get('pdk', pdk, 'foundry'),
                               "process : " + pdk,
-                              "targetlibs : "+" ".join(self.get('asic', 'logiclib'))])
+                              "targetlibs : "+" ".join(libraries)])
         elif self.get('option', 'mode') == 'fpga':
             info_list.extend(["partname : "+self.get('fpga','partname')])
 

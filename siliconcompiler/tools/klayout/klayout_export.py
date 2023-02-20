@@ -227,7 +227,7 @@ sc_index = schema.get('arg', 'index')
 sc_pdk = schema.get('option', 'pdk')
 
 sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
-sc_mainlib = schema.get('asic', 'logiclib')[0]
+sc_mainlib = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)[0]
 
 tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
 
@@ -241,7 +241,7 @@ else:
   in_def = os.path.join('inputs', f'{design}.def')
 out_gds = os.path.join('outputs', f'{design}.gds')
 
-libs = schema.get('asic', 'logiclib')
+libs = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)
 if 'macrolib' in schema.getkeys('asic'):
   libs += schema.get('asic', 'macrolib')
 

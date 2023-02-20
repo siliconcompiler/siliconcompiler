@@ -82,7 +82,7 @@ def setup_asic(chip):
 
     if syn_corner is not None:
     # add timing library requirements
-        for lib in chip.get('asic', 'logiclib'):
+        for lib in chip.get('asic', 'logiclib', step=step, index=index):
             # mandatory for logiclibs
             chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', syn_corner, delaymodel]), step=step, index=index)
 
@@ -94,7 +94,7 @@ def setup_asic(chip):
             chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', syn_corner, delaymodel]), step=step, index=index)
 
     # set default control knobs
-    mainlib = chip.get('asic', 'logiclib')[0]
+    mainlib = chip.get('asic', 'logiclib', step=step, index=index)[0]
     for option, value, additional_require in [('flatten', "True", None),
                                               ('autoname', "True", None),
                                               ('map_adders', "False", ['library', mainlib, 'option', 'file', 'yosys_addermap'])]:
@@ -104,7 +104,7 @@ def setup_asic(chip):
             chip.add('tool', tool, 'task', task, 'require', ",".join(additional_require), step=step, index=index)
 
     # copy techmapping from libraries
-    for lib in chip.get('asic', 'logiclib') + chip.get('asic', 'macrolib'):
+    for lib in chip.get('asic', 'logiclib', step=step, index=index) + chip.get('asic', 'macrolib'):
         if not chip.valid('library', lib, 'option', 'file', 'yosys_techmap'):
             continue
         for techmap in chip.find_files('library', lib, 'option', 'file', 'yosys_techmap'):
@@ -238,7 +238,7 @@ def prepare_synthesis_libraries(chip):
     # mark dff libery file with dont use
     dff_liberty_file = chip.get('tool', tool, 'task', task, 'var', 'dff_liberty', step=step, index=index)[0]
     dff_dont_use = []
-    for lib in chip.get('asic', 'logiclib'):
+    for lib in chip.get('asic', 'logiclib', step=step, index=index):
         dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse')
         if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel):
             # if we have the exact library, use those dontuses, otherwise continue to build full list
@@ -281,7 +281,11 @@ def prepare_synthesis_libraries(chip):
         chip.add('tool', tool, 'task', task, 'var', var_name, output_file, step=step, index=index)
 
     for libtype in ('logiclib', 'macrolib'):
-        for lib in chip.get('asic', libtype):
+        # TODO: remove once macrolib implemented
+        args = {}
+        if libtype == 'logiclib': args = {'step': step, 'index': index}
+
+        for lib in chip.get('asic', libtype, **args):
             dont_use = chip.get('library', lib, 'asic', 'cells', 'dontuse')
 
             for lib_file in get_synthesis_libraries(lib):
@@ -354,7 +358,7 @@ def get_dff_liberty_file(chip):
     if dff_liberty:
         return dff_liberty[0]
 
-    mainlib = chip.get('asic', 'logiclib')[0]
+    mainlib = chip.get('asic', 'logiclib', step=step, index=index)[0]
     dff_liberty = chip.find_files('library', mainlib, 'option', 'file', 'yosys_dff_liberty')
     if dff_liberty:
         return dff_liberty[0]
@@ -365,7 +369,7 @@ def get_dff_liberty_file(chip):
 
     # if dff liberty file is not set, use the first liberty file defined
     delaymodel = chip.get('asic', 'delaymodel')
-    for lib in chip.get('asic', 'logiclib'):
+    for lib in chip.get('asic', 'logiclib', step=step, index=index):
         if not chip.valid('library', lib, 'output', corner, delaymodel):
             continue
 
@@ -427,7 +431,7 @@ def get_abc_period(chip):
     if chip.get('unit', 'time')[0] == 'n':
         period *= 1000
 
-    abc_clock_derating = chip.get('tool', tool, 'task', task, 'var', 'abc_clock_derating')
+    abc_clock_derating = chip.get('tool', tool, 'task', task, 'var', 'abc_clock_derating', step=step, index=index)
     if abc_clock_derating:
         derating = float(abc_clock_derating[0])
         if derating > 1:
@@ -452,7 +456,7 @@ def get_abc_driver(chip):
 
     abc_driver = None
     # get the first driver defined in the logic lib
-    for lib in chip.get('asic', 'logiclib'):
+    for lib in chip.get('asic', 'logiclib', step=step, index=index):
         if chip.valid('library', lib, 'option', 'var', 'yosys_driver_cell') and not abc_driver:
             abc_driver = chip.get('library', lib, 'option', 'var', 'yosys_driver_cell')[0]
 

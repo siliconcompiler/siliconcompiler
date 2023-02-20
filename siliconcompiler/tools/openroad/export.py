@@ -17,7 +17,7 @@ def setup(chip):
     stackup = chip.get('option', 'stackup')
     pdk = chip.get('option', 'pdk')
 
-    targetlibs = chip.get('asic', 'logiclib')
+    targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
     macrolibs = chip.get('asic', 'macrolib')
 
     # Determine if exporting the cdl

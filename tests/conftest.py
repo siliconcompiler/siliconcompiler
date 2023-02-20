@@ -2,6 +2,7 @@ import os
 import subprocess
 import pytest
 
+import siliconcompiler
 from tests import fixtures
 
 def pytest_addoption(parser):
@@ -30,6 +31,24 @@ def test_wrapper(tmp_path, request):
         os.chdir(topdir)
     else:
         yield
+
+@pytest.fixture(autouse=True)
+def use_strict(monkeypatch, request):
+    '''Set [option, strict] to True for all Chip objects created in test
+    session.
+
+    This helps catch bugs.
+    '''
+    if 'nostrict' in request.keywords:
+        return
+
+    old_init = siliconcompiler.Chip.__init__
+
+    def mock_init(chip, design):
+        old_init(chip, design)
+        chip.set('option', 'strict', True)
+
+    monkeypatch.setattr(siliconcompiler.Chip, '__init__', mock_init)
 
 @pytest.fixture
 def scroot():

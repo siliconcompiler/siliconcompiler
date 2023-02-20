@@ -32,7 +32,7 @@ else:
     sc_filename = f"inputs/{design}.{sc_fileext}"
 sc_pdk = schema.get('option', 'pdk')
 sc_stackup = schema.get('option', 'stackup')
-sc_mainlib = schema.get('asic', 'logiclib')[0]
+sc_mainlib = schema.get('asic', 'logiclib', step=step, index=index)[0]
 sc_libtype = schema.get('library', sc_mainlib, 'asic', 'libarch')
 
 sc_exit = schema.get('tool', 'klayout', 'task', task, 'var', 'show_exit', step=step, index=index) == ["true"]
