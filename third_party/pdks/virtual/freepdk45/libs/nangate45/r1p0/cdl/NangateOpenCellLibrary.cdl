@@ -2113,6 +2113,21 @@ M_instance_315 S net_005 VDD VDD PMOS_VTL W=0.630000U L=0.050000U
 
 ********************************************************************************
 *                                                                              *
+* Cellname:   TAPCELL_X1.                                                     *
+*                                                                              *
+* Technology: NCSU FreePDK 45nm.                                               *
+* Format:     Cdl.                                                             *
+*                                                                              *
+* Written on brazil06.nangate.com.br for user Giancarlo Franciscatto (gfr)     *
+* at 19:27:14 on Fri, 3 Dec 2010.                                              *
+*                                                                              *
+********************************************************************************
+.SUBCKT TAPCELL_X1 VDD VSS 
+*.PININFO VDD:P VSS:G 
+.ENDS 
+
+********************************************************************************
+*                                                                              *
 * Cellname:   FILLCELL_X16.                                                    *
 *                                                                              *
 * Technology: NCSU FreePDK 45nm.                                               *

@@ -76,18 +76,19 @@ def setup(chip):
                                          "OAI211_X1"])
 
     # Tapcell
-    lib.add('asic', 'cells','tap', "FILLCELL_X1")
+    lib.add('asic', 'cells','tap', "TAPCELL_X1")
 
     # Endcap
-    lib.add('asic', 'cells','endcap', "FILLCELL_X1")
+    lib.add('asic', 'cells','endcap', "TAPCELL_X1")
 
     # Techmap
     lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
+    lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v')
 
     # Defaults for OpenROAD tool variables
     lib.set('option', 'var', 'openroad_place_density', '0.35')
-    lib.set('option', 'var', 'openroad_pad_global_place', '2')
-    lib.set('option', 'var', 'openroad_pad_detail_place', '1')
+    lib.set('option', 'var', 'openroad_pad_global_place', '0')
+    lib.set('option', 'var', 'openroad_pad_detail_place', '0')
     lib.set('option', 'var', 'openroad_macro_place_halo', ['22.4', '15.12'])
     lib.set('option', 'var', 'openroad_macro_place_channel', ['18.8', '19.95'])
 
