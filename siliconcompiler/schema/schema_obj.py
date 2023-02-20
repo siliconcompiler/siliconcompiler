@@ -77,23 +77,6 @@ class Schema:
 
         See :meth:`~siliconcompiler.core.Chip.get` for detailed documentation.
         """
-        if field == 'value':
-            pernode = self.get(*keypath, field='pernode')
-            if pernode == 'optional' and (step is None or index is None):
-                raise ValueError(
-                    f'Invalid args to get() of keypath {keypath}: step and index '
-                    'are required for reading from this parameter'
-                )
-
-        return self._get(*keypath, field=field, job=job, step=step, index=index)
-
-    ###########################################################################
-    def _get(self, *keypath, field='value', job=None, step=None, index=None, step_index_optional=False):
-        """
-        Internal version of get() that doesn't require step/index be
-        set for optional parameters. Users shouldn't need this, but we need to
-        explicitly grab the default value internally.'''
-        """
         cfg = self._search(*keypath, job=job)
 
         if not Schema._is_leaf(cfg):
@@ -286,7 +269,7 @@ class Schema:
 
         vals = []
         if cfg['pernode'] != 'required' and (return_defvalue or cfg['set']):
-            vals.append((self._get(*keypath), None, None))
+            vals.append((self.get(*keypath), None, None))
 
         if cfg['pernode'] != 'never':
             for step in cfg['nodevalue']:
@@ -673,7 +656,7 @@ class Schema:
                 continue
 
             if pernode != 'never':
-                value = self._get(*key, step=step, index=index)
+                value = self.get(*key, step=step, index=index)
             else:
                 value = self.get(*key)
 
@@ -710,7 +693,7 @@ class Schema:
             if pernode == 'never':
                 value = self.get(*key)
             elif pernode == 'optional':
-                value = self._get(*key, step=None, index=None)
+                value = self.get(*key, step=None, index=None)
             elif pernode == 'required':
                 continue
 

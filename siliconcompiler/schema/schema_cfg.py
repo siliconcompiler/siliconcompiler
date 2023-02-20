@@ -2648,6 +2648,18 @@ def schema_option(cfg):
             if an operation should continue. The timeout value is also
             useed by the jobscheduler to automatically kill jobs.""")
 
+    scparam(cfg, ['option', 'strict'],
+            sctype='bool',
+            shorthelp="Option: Strict checking",
+            switch="-strict <bool>",
+            example= ["cli: -strict true",
+                    "api: chip.set('option', 'strict', True)"],
+            schelp="""
+            Enable additional strict checking in the SC Python API. When this
+            parameter is set to True, users must provide step and index keyword
+            arguments when reading from parameters with the pernode field set to
+            'optional'.""")
+
     # job scheduler
     scparam(cfg, ['option', 'scheduler', 'name'],
             sctype='enum',

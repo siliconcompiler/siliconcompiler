@@ -152,7 +152,7 @@ def test_cli_examples(monkeypatch):
             c = do_cli_test(args, monkeypatch)
 
             if expected_val:
-                assert c.schema._get(*replaced_keypath, step=step, index=index) == _cast(expected_val, typestr)
+                assert c.schema.get(*replaced_keypath, step=step, index=index) == _cast(expected_val, typestr)
             else:
                 assert typestr == 'bool', 'Implicit value only alowed for boolean'
-                assert c.schema._get(*replaced_keypath, step=step, index=index) == True
+                assert c.schema.get(*replaced_keypath, step=step, index=index) == True
