@@ -274,7 +274,8 @@ class Schema:
         if cfg['pernode'] != 'never':
             for step in cfg['nodevalue']:
                 for index in cfg['nodevalue'][step]:
-                    vals.append((cfg['nodevalue'][step][index], step, index))
+                    index_arg = None if index == 'default' else index
+                    vals.append((cfg['nodevalue'][step][index], step, index_arg))
 
         return vals
 
@@ -688,20 +689,19 @@ class Schema:
         allkeys = self.allkeys()
         for key in allkeys:
             keypath = ','.join(key)
-            # TODO: properly dump step/index values
-            pernode = self.get(*key, field='pernode')
-            if pernode == 'never':
-                value = self.get(*key)
-            elif pernode == 'optional':
-                value = self.get(*key, step=None, index=None)
-            elif pernode == 'required':
-                continue
+            for value, step, index in self._getvals(*key):
+                if step is None and index is None:
+                    keypath = ','.join(key)
+                elif index is None:
+                    keypath = ','.join(key + [step, 'default'] )
+                else:
+                    keypath = ','.join(key + [step, index])
 
-            if isinstance(value,list):
-                for item in value:
-                    csvwriter.writerow([keypath, item])
-            else:
-                csvwriter.writerow([keypath, value])
+                if isinstance(value,list):
+                    for item in value:
+                        csvwriter.writerow([keypath, item])
+                else:
+                    csvwriter.writerow([keypath, value])
 
     ###########################################################################
     def copy(self):

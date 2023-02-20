@@ -19,27 +19,13 @@ import json
 import shutil
 import importlib
 from jinja2 import Template
-import siliconcompiler
 import siliconcompiler.tools.yosys.markDontUse as markDontUse
 
 ######################################################################
 # Make Docs
 ######################################################################
-
-def make_docs():
-
-
-    chip = siliconcompiler.Chip('<design>')
-    # TODO: docs split by task
-    step = 'syn_asic'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step', step)
-    chip.set('arg','index', index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
-    setup(chip)
-    return chip
+def make_docs(chip):
+    chip.load_target("asap7_demo")
 
 ################################
 # Setup Tool (pre executable)
@@ -369,6 +355,11 @@ def get_dff_liberty_file(chip):
     task = chip._get_task(step, index)
 
     dff_liberty = chip.get('tool', tool, 'task', task, 'var', 'dff_liberty', step=step, index=index)
+    if dff_liberty:
+        return dff_liberty[0]
+
+    mainlib = chip.get('asic', 'logiclib')[0]
+    dff_liberty = chip.find_files('library', mainlib, 'option', 'file', 'yosys_dff_liberty')
     if dff_liberty:
         return dff_liberty[0]
 

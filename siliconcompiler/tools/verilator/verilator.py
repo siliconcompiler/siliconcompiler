@@ -14,27 +14,13 @@ Sources: https://github.com/verilator/verilator
 Installation: https://verilator.org/guide/latest/install.html
 '''
 
-import importlib
 import os
-
-import siliconcompiler
 
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    step = 'import'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
-    setup = getattr(importlib.import_module('tools.verilator.import'), 'setup')
-    setup(chip)
-    return chip
+def make_docs(chip):
+    chip.load_target("freepdk45_demo")
 
 def setup(chip):
     ''' Per tool function that returns a dynamic options string based on

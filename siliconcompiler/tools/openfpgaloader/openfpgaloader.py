@@ -14,19 +14,6 @@ Installation: https://github.com/trabucayre/openFPGALoader
 Status: SC integration WIP
 '''
 
-import siliconcompiler
-
-####################################################################
-# Make Docs
-####################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','program')
-    chip.set('arg','index','0')
-    setup(chip)
-    return chip
-
 ################################
 # Setup Tool (pre executable)
 ################################

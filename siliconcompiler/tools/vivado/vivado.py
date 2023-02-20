@@ -14,14 +14,9 @@ import siliconcompiler
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step', 'compile')
-    chip.set('arg','index', '<index>')
-    setup(chip)
-    return chip
-
+def make_docs(chip):
+    chip.set('fpga', 'partname', 'ice40up5k-sg48')
+    chip.load_target("fpgaflow_demo")
 
 ################################
 # Setup Tool (pre executable)

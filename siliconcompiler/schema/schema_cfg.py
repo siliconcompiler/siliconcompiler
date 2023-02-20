@@ -4,7 +4,13 @@ import copy as pycopy
 import json
 import re
 
-from .utils import trim
+# Default import must be relative, to facilitate tools with Python interfaces
+# (such as KLayout) directly importing the schema package. However, the fallback
+# allows running this script directly to generate defaults.json.
+try:
+    from .utils import trim
+except ImportError:
+    from siliconcompiler.schema.utils import trim
 
 SCHEMA_VERSION = '0.24.0'
 
@@ -2665,6 +2671,7 @@ def schema_option(cfg):
             sctype='enum',
             enum=["slurm", "lsf", "sge"],
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler platform",
             switch="-scheduler <str>",
             example=[

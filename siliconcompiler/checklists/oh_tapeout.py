@@ -1,9 +1,5 @@
 import siliconcompiler
 
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    return setup(chip)
-
 def setup(chip):
     '''Subset of OH! library tapeout checklist.
 
@@ -36,3 +32,8 @@ def setup(chip):
                   'Is there a written specification?')
 
     return checklist
+
+##################################################
+if __name__ == "__main__":
+    checklist = setup(siliconcompiler.Chip('<checklist>'))
+    checklist.write_manifest(f"{checklist.top()}.json")

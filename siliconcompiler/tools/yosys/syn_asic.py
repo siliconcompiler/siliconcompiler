@@ -1,16 +1,8 @@
 
 from siliconcompiler.tools.yosys.yosys import syn_setup, setup_asic, prepare_synthesis_libraries, create_abc_synthesis_constraints, syn_post_process
-import siliconcompiler
 
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    chip.load_target('freepdk45_demo')
-    chip.set('arg', 'step', '<step>')
-    chip.set('arg', 'index', '<index>')
-    chip.set('flowgraph', chip.get('option', 'flow'), '<step>', '<index>', 'tool', 'yosys')
-    chip.set('flowgraph', chip.get('option', 'flow'), '<step>', '<index>', 'task', 'syn_asic')
-    setup(chip)
-    return chip
+def make_docs(chip):
+    chip.load_target("asap7_demo")
 
 def setup(chip):
     ''' Helper method for configs specific to ASIC synthesis tasks.

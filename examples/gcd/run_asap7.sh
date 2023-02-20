@@ -7,15 +7,11 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 sc -design gcd \
    gcd.v \
-   gcd.sdc \
+   gcd_asap7.sdc \
    -package_version "0.0.0" \
    -package_description "GCD test package" \
    -package_license "MIT" \
    -target "asap7_demo" \
-   -constraint_outline "(0,0)" \
-   -constraint_outline "(100.13,100.8)" \
-   -constraint_corearea "(10.07,11.2)" \
-   -consrtraint_corearea "(90.25,91)" \
    -loglevel "INFO" \
    -novercheck \
    -quiet \

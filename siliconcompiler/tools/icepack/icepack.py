@@ -10,25 +10,13 @@ Sources: https://github.com/YosysHQ/icestorm
 Installation: https://github.com/YosysHQ/icestorm
 '''
 
-import siliconcompiler
-
 #####################################################################
 # Make Docs
 #####################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    step = 'bitstream'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+def make_docs(chip):
     from tools.icepack.bitstream import setup
     setup(chip)
     return chip
-
 
 ################################
 #  Custom runtime options

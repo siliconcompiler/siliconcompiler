@@ -1,21 +1,16 @@
-import siliconcompiler
 import shutil
+import os
 
+from siliconcompiler.tools.openroad import openroad
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    chip.load_target('freepdk45_demo')
-    step = 'show'
-    index = '<index>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'task', 'show')
+####################################################################
+# Make Docs
+####################################################################
+def make_docs(chip):
+    openroad.make_docs(chip)
     chip.set('tool', 'openroad', 'task', 'show', 'var', 'show_filepath', '<path>')
-    setup(chip)
-
-    return chip
 
 def setup(chip):
     ''' Helper method for configs specific to show tasks.

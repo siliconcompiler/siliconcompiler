@@ -15,20 +15,10 @@ Installation: https://github.com/B-Lang-org/bsc#download
 
 import importlib
 
-import siliconcompiler
-
 ####################################################################
 # Make Docs
 ####################################################################
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    step = 'import'
-    index = '0'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+def make_docs(chip):
     setup = getattr(importlib.import_module('tools.bluespec.import'), 'setup')
     setup(chip)
     return chip
