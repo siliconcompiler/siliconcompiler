@@ -1139,6 +1139,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f'Invalid args to find_files() of keypath {keypath}: step and index '
                 'are required for reading from this parameter')
             return []
+        return self._find_files(*keypath, missing_ok=missing_ok, job=job, step=step, index=index)
+
+    ###########################################################################
+    def _find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None):
+        """Internal find_files() that allows you to skip step/index for optional
+        params, regardless of [option, strict]."""
 
         copyall = self.get('option', 'copyall', job=job)
         paramtype = self.get(*keypath, field='type', job=job)
@@ -1181,7 +1187,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         elif keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
-            refdirs = self.find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
+            refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
             for path in paths:
                 for refdir in refdirs:
                     abspath = os.path.join(refdir, path)
@@ -1269,7 +1275,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for value, step, index in values:
                 if not value:
                     continue
-                abspaths = self.find_files(*keypath, missing_ok=True, step=step, index=index)
+                abspaths = self._find_files(*keypath, missing_ok=True, step=step, index=index)
                 if isinstance(abspaths, list) and None in abspaths:
                     # Lists may not contain None
                     schema.set(*keypath, [], step=step, index=index)
@@ -1360,7 +1366,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         # skip unset values (some directories are None by default)
                         continue
 
-                    abspaths = self.find_files(*keypath, missing_ok=True, step=step, index=index)
+                    abspaths = self._find_files(*keypath, missing_ok=True, step=step, index=index)
                     if not isinstance(abspaths, list):
                         abspaths = [abspaths]
 
@@ -1443,7 +1449,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     paramtype = self.get(*keypath, field='type')
                     if ('file' in paramtype) or ('dir' in paramtype):
                         for val, step, index in self.schema._getvals(*keypath):
-                            abspath = self.find_files(*keypath, missing_ok=True, step=step, index=index)
+                            abspath = self._find_files(*keypath, missing_ok=True, step=step, index=index)
                             unresolved_paths = val
                             if not isinstance(abspath, list):
                                 abspath = [abspath]
@@ -2351,7 +2357,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 return
 
             _, step, index = vals[0]
-            filelist = self.find_files(*keypath, step=step, index=index)
+            filelist = self._find_files(*keypath, step=step, index=index)
             #cycle through all paths
             hashlist = []
             if filelist:
