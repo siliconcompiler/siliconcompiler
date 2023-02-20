@@ -18,7 +18,7 @@ def test_read_manifest_fields():
     # fresh chip, so we don't retain anything from `chip` in-memory
     chip2 = siliconcompiler.Chip('foo')
     chip2.read_manifest('tmp.json')
-    assert chip2.get('input', 'rtl', 'verilog', field='copy', step='import', index=0) is False
+    assert chip2.get('input', 'rtl', 'verilog', field='copy') is False
 
 
 def test_read_sup():

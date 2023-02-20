@@ -60,7 +60,7 @@ tech_lefs = schema.get('pdk', sc_pdk, 'aprtech', 'klayout', sc_stackup, sc_libty
 
 # Need to check validity since there are no "default" placeholders within the
 # library schema that would allow schema.get() to get a default value.
-if schema.valid('library', sc_mainlib, 'output', sc_stackup, 'lef', step=step, index=index):
+if schema.valid('library', sc_mainlib, 'output', sc_stackup, 'lef'):
     lib_lefs = schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef', step=step, index=index)
 else:
     lib_lefs = []

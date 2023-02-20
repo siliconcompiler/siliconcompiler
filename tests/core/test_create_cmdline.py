@@ -22,7 +22,7 @@ def test_cli_multi_source(monkeypatch):
 
     chip = do_cli_test(args, monkeypatch)
 
-    sources = chip.get('input','rtl','verilog')
+    sources = chip.get('input','rtl','verilog', step='import', index=0)
     assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
     assert chip.get('option','target') == 'freepdk45_demo'
 
@@ -36,7 +36,7 @@ def test_cli_include_flag(monkeypatch):
 
     chip = do_cli_test(args, monkeypatch)
 
-    assert chip.get('input', 'rtl', 'verilog') == ['source.v']
+    assert chip.get('input', 'rtl', 'verilog', step='import', index=0) == ['source.v']
     assert chip.get('option', 'idir') == ['include/inc1', 'include/inc2']
 
 def test_optmode(monkeypatch):
