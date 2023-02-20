@@ -4501,10 +4501,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if val:
                 envvars[key] = val
 
+        nice = None
         if is_posix:
-            nice = None
-            if self.valid('option', 'nice'):
-                nice = self.get('option', 'nice')
+            nice = self.get('option', 'nice')
 
         nice_cmdlist = []
         if nice:
