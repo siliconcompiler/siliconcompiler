@@ -1178,7 +1178,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # (e.g. 'scpath', 'workdir', 'refdir'), rather than hardcoding special
         # cases.
 
-        if keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
+        if len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
             if keypath[4] == 'report':
                 io = ""
             else:
@@ -1189,7 +1189,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if os.path.isfile(abspath):
                     result.append(abspath)
             return result
-        elif keypath[0] == 'tool' and keypath[4] == 'script':
+        elif len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
             refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
