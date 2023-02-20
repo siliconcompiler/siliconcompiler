@@ -1,4 +1,5 @@
 import shutil
+import os
 
 from siliconcompiler.tools.openroad import openroad
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
