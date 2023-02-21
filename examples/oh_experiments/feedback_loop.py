@@ -4,7 +4,7 @@ import os
 import re
 import siliconcompiler
 
-def main():
+def main(limit=0):
     # Setting up the experiment
     rootdir = (os.path.dirname(os.path.abspath(__file__)) +
                "/../../third_party/designs/oh/")
@@ -25,7 +25,7 @@ def main():
     chip.set('option', 'steplist', steplist)
     chip.run()
 
-
+    itr = 0
     # Setting up the rest of the runs
     while True:
 
@@ -59,6 +59,11 @@ def main():
         if (new_area/old_area) > 2.1:
             print("Stopping, area is exploding")
             break
+
+        if limit > 0 and itr > limit:
+            break
+
+        itr += 1
 
 if __name__ == '__main__':
     main()
