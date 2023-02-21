@@ -72,7 +72,7 @@ def setup_asic(chip):
 
     chip.add('tool', tool, 'task', task, 'require', ",".join(['asic', 'logiclib']), step=step, index=index)
 
-    delaymodel = chip.get('asic', 'delaymodel')
+    delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
     syn_corner = get_synthesis_corner(chip)
 
     if syn_corner is None:
@@ -86,7 +86,7 @@ def setup_asic(chip):
             # mandatory for logiclibs
             chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', syn_corner, delaymodel]), step=step, index=index)
 
-        for lib in chip.get('asic', 'macrolib'):
+        for lib in chip.get('asic', 'macrolib', step=step, index=index):
             # optional for macrolibs
             if not chip.valid('library', lib, 'output', syn_corner, delaymodel):
                 continue
@@ -104,7 +104,8 @@ def setup_asic(chip):
             chip.add('tool', tool, 'task', task, 'require', ",".join(additional_require), step=step, index=index)
 
     # copy techmapping from libraries
-    for lib in chip.get('asic', 'logiclib', step=step, index=index) + chip.get('asic', 'macrolib'):
+    for lib in (chip.get('asic', 'logiclib', step=step, index=index) +
+                chip.get('asic', 'macrolib', step=step, index=index)):
         if not chip.valid('library', lib, 'option', 'file', 'yosys_techmap'):
             continue
         for techmap in chip.find_files('library', lib, 'option', 'file', 'yosys_techmap'):
@@ -230,7 +231,7 @@ def prepare_synthesis_libraries(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
     task = chip._get_task(step, index)
-    delaymodel = chip.get('asic', 'delaymodel')
+    delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
 
     corner = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner', step=step, index=index)[0]
 
@@ -239,7 +240,7 @@ def prepare_synthesis_libraries(chip):
     dff_liberty_file = chip.get('tool', tool, 'task', task, 'var', 'dff_liberty', step=step, index=index)[0]
     dff_dont_use = []
     for lib in chip.get('asic', 'logiclib', step=step, index=index):
-        dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse')
+        dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse', step=step, index=index)
         if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel, step=step, index=index):
             # if we have the exact library, use those dontuses, otherwise continue to build full list
             dff_dont_use = dontuse
@@ -281,12 +282,8 @@ def prepare_synthesis_libraries(chip):
         chip.add('tool', tool, 'task', task, 'var', var_name, output_file, step=step, index=index)
 
     for libtype in ('logiclib', 'macrolib'):
-        # TODO: remove once macrolib implemented
-        args = {}
-        if libtype == 'logiclib': args = {'step': step, 'index': index}
-
-        for lib in chip.get('asic', libtype, **args):
-            dont_use = chip.get('library', lib, 'asic', 'cells', 'dontuse')
+        for lib in chip.get('asic', libtype, step=step, index=index):
+            dont_use = chip.get('library', lib, 'asic', 'cells', 'dontuse', step=step, index=index)
 
             for lib_file in get_synthesis_libraries(lib):
                 process_lib_file(libtype, lib, lib_file, dont_use)
@@ -368,7 +365,7 @@ def get_dff_liberty_file(chip):
         return None
 
     # if dff liberty file is not set, use the first liberty file defined
-    delaymodel = chip.get('asic', 'delaymodel')
+    delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
     for lib in chip.get('asic', 'logiclib', step=step, index=index):
         if not chip.valid('library', lib, 'output', corner, delaymodel):
             continue

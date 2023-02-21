@@ -24,7 +24,7 @@ def setup(chip):
     stackup = chip.get('option', 'stackup')
     pdk = chip.get('option', 'pdk')
     if bool(stackup) & bool(targetlibs):
-        macrolibs = chip.get('asic', 'macrolib')
+        macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
 
         chip.add('tool', tool, 'task', task, 'require', ",".join(['asic', 'logiclib']), step=step, index=index)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['option', 'stackup']), step=step, index=index)

@@ -18,7 +18,7 @@ def setup(chip):
     pdk = chip.get('option', 'pdk')
 
     targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
-    macrolibs = chip.get('asic', 'macrolib')
+    macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
 
     # Determine if exporting the cdl
     chip.set('tool', tool, 'task', task, 'var', 'write_cdl', 'true', step=step, index=index, clobber=False)

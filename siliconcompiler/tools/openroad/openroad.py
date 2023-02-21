@@ -43,10 +43,10 @@ def setup(chip, mode='batch'):
     pdkname = chip.get('option', 'pdk')
     targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
     mainlib = targetlibs[0]
-    macrolibs = chip.get('asic', 'macrolib')
+    macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
     stackup = chip.get('option', 'stackup')
-    delaymodel = chip.get('asic', 'delaymodel')
-    libtype = chip.get('library', mainlib, 'asic', 'libarch')
+    delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
+    libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
 
     is_screenshot = mode == 'screenshot' or task == 'screenshot'
     is_show_screenshot = mode == 'show' or task == 'show' or is_screenshot

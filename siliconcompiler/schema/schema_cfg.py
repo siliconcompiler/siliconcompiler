@@ -3157,6 +3157,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'macrolib'],
             sctype='[str]',
             scope='job',
+            pernode='optional',
             shorthelp="ASIC: macro libraries",
             switch="-asic_macrolib <str>",
             example=["cli: -asic_macrolib sram64x1024",
@@ -3169,6 +3170,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'delaymodel'],
             sctype='str',
             scope='job',
+            pernode='optional',
             shorthelp="ASIC: delay model",
             switch="-asic_delaymodel <str>",
             example= ["cli: -asic_delaymodel ccs",
@@ -3198,6 +3200,7 @@ def schema_asic(cfg):
     for item in names:
         scparam(cfg, ['asic', 'cells', item],
                 sctype='[str]',
+                pernode='optional',
                 shorthelp=f"ASIC: {item} cell list",
                 switch=f"-asic_cells_{item} '<str>'",
                 example=[
@@ -3211,6 +3214,7 @@ def schema_asic(cfg):
 
     scparam(cfg,['asic', 'libarch'],
             sctype='str',
+            pernode='optional',
             shorthelp="ASIC: library architecture",
             switch="-asic_libarch '<str>'",
             example=[
@@ -3224,6 +3228,7 @@ def schema_asic(cfg):
     libarch = 'default'
     scparam(cfg,['asic', 'site', libarch],
             sctype='[str]',
+            pernode='optional',
             shorthelp="ASIC: Library sites",
             switch="-asic_site 'libarch <str>'",
             example=[
