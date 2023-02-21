@@ -75,6 +75,8 @@ def test_show_lyp(datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target(f'freepdk45_demo')
 
+    chip.set('option', 'showtool', 'def', 'klayout')
+
     # Remove the '.lyt' file
     stackup = chip.get('option', 'stackup')
     pdkname = chip.get('option', 'pdk')
