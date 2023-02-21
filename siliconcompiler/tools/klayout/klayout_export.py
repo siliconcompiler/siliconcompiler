@@ -235,8 +235,8 @@ design = schema.get('option', 'entrypoint')
 if not design:
     design = schema.get('design')
 
-if schema.valid('input', 'layout', 'def') and schema.get('input', 'layout', 'def'):
-  in_def = schema.get('input', 'layout', 'def')[0]
+if schema.valid('input', 'layout', 'def') and schema.get('input', 'layout', 'def', step=sc_step, index=sc_index):
+  in_def = schema.get('input', 'layout', 'def', step=sc_step, index=sc_index)[0]
 else:
   in_def = os.path.join('inputs', f'{design}.def')
 out_gds = os.path.join('outputs', f'{design}.gds')
@@ -247,14 +247,14 @@ if 'macrolib' in schema.getkeys('asic'):
 
 in_gds = []
 for lib in libs:
-  in_gds.extend(schema.get('library', lib, 'output', sc_stackup, 'gds'))
+  in_gds.extend(schema.get('library', lib, 'output', sc_stackup, 'gds', step=sc_step, index=sc_index))
 
-foundry_lef = os.path.dirname(schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef')[0])
+foundry_lef = os.path.dirname(schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef', step=sc_step, index=sc_index)[0])
 
 macro_lefs = []
 if 'macrolib' in schema.getkeys('asic'):
   for lib in schema.get('asic', 'macrolib'):
-    macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef'))
+    macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef', step=sc_step, index=sc_index))
 
 flow = schema.get('option', 'flow')
 

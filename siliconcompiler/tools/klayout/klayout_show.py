@@ -53,7 +53,7 @@ macro_lefs = []
 if 'macrolib' in schema.getkeys('asic'):
     sc_macrolibs = schema.get('asic', 'macrolib')
     for lib in sc_macrolibs:
-        macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef'))
+        macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef', step=step, index=index))
 
 # Tech / library LEF files are optional.
 tech_lefs = schema.get('pdk', sc_pdk, 'aprtech', 'klayout', sc_stackup, sc_libtype, 'lef')
@@ -61,7 +61,7 @@ tech_lefs = schema.get('pdk', sc_pdk, 'aprtech', 'klayout', sc_stackup, sc_libty
 # Need to check validity since there are no "default" placeholders within the
 # library schema that would allow schema.get() to get a default value.
 if schema.valid('library', sc_mainlib, 'output', sc_stackup, 'lef'):
-    lib_lefs = schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef')
+    lib_lefs = schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef', step=step, index=index)
 else:
     lib_lefs = []
 

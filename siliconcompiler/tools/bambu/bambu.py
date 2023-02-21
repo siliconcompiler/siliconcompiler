@@ -23,13 +23,16 @@ def parse_version(stdout):
 
 def runtime_options(chip):
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
     cmdlist = []
 
     for value in chip.find_files('option', 'idir'):
         cmdlist.append('-I' + value)
     for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('input', 'hll', 'c'):
+    for value in chip.find_files('input', 'hll', 'c', step=step, index=index):
         cmdlist.append(value)
 
     cmdlist.append('--top-fname=' + chip.top())

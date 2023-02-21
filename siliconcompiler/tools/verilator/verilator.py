@@ -87,10 +87,10 @@ def runtime_options(chip):
             cmdlist.append('-I' + value)
         for value in chip.find_files('option', 'cmdfile'):
             cmdlist.append('-f ' + value)
-        for value in chip.find_files('input', 'rtl', 'verilog'):
+        for value in chip.find_files('input', 'rtl', 'verilog', step=step, index=index):
             cmdlist.append(value)
     elif step == 'compile':
-        for value in chip.find_files('input', 'hll', 'c'):
+        for value in chip.find_files('input', 'hll', 'c', step=step, index=index):
             cmdlist.append(value)
         for value in chip.find_files('tool', tool, 'task', task, 'input', step=step, index=index):
             cmdlist.append(value)

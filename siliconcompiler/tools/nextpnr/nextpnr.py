@@ -24,6 +24,8 @@ def make_docs(chip):
 def runtime_options(chip):
     ''' Custom runtime options, returns list of command line options.
     '''
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     partname = chip.get('fpga', 'partname')
     topmodule = chip.top()
@@ -36,7 +38,7 @@ def runtime_options(chip):
     if partname == 'ice40up5k-sg48':
         options.append('--up5k --package sg48')
 
-    for constraint_file in chip.find_files('input', 'fpga', 'pcf'):
+    for constraint_file in chip.find_files('input', 'fpga', 'pcf', step=step, index=index):
         options.append('--pcf ' + constraint_file)
 
     return options

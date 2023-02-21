@@ -43,6 +43,9 @@ def parse_version(stdout):
 ################################
 
 def runtime_options(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
     cmdlist = []
 
     design = chip.top()
@@ -60,7 +63,7 @@ def runtime_options(chip):
     for value in chip.get('option', 'define'):
         cmdlist.append('-D ' + value)
 
-    sources = chip.find_files('input', 'hll', 'bsv')
+    sources = chip.find_files('input', 'hll', 'bsv', step=step, index=index)
     if len(sources) != 1:
         raise ValueError('Bluespec frontend only supports one source file!')
     cmdlist.append(sources[0])
