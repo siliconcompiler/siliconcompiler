@@ -46,10 +46,12 @@ def main():
         topfile = None
         for sourceset in ('rtl', 'hll'):
             for filetype in chip.getkeys('input', sourceset):
-                sources = chip.schema._getvals('input', sourceset, filetype)
-                if sources:
-                    # triple index to get first of this structure: ([val], <step>, <index>)]
-                    topfile = sources[0][0][0]
+                all_vals = chip.schema._getvals('input', sourceset, filetype)
+                if all_vals:
+                    # just look at first value
+                    sources, _, _ = all_vals[0]
+                    # grab first source
+                    topfile = sources[0]
                     break
             if topfile:
                 break
