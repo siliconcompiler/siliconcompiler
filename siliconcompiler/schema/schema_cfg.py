@@ -1987,6 +1987,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'nice'],
             sctype='int',
             scope='job',
+            pernode='optional',
             shorthelp="Tool execution scheduling priority",
             switch="-nice <int>",
             example=[
@@ -2072,6 +2073,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option','optmode'],
             sctype='str',
+            pernode='optional',
             scope='job',
             require='all',
             defvalue='O0',
@@ -2190,6 +2192,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',
             enum=["NOTSET", "INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"],
+            pernode='optional',
             scope='job',
             defvalue='INFO',
             shorthelp="Logging level",
@@ -2364,6 +2367,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'quiet'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Quiet execution",
             switch="-quiet <bool>",
@@ -2390,6 +2394,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'novercheck'],
             sctype='bool',
+            pernode='optional',
             defvalue=False,
             scope='job',
             shorthelp="Disable version checking",
@@ -2428,6 +2433,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'track'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Enable provenance tracking",
             switch="-track <bool>",
@@ -2441,6 +2447,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'trace'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Enable debug traces",
             switch="-trace <bool>",
@@ -2619,6 +2626,7 @@ def schema_option(cfg):
 
     scparam(cfg,['option', 'flowcontinue'],
             sctype='bool',
+            pernode='optional',
             shorthelp="Flow continue-on-error",
             switch='-flowcontinue',
             example=["cli: -flowcontinue",
@@ -2631,6 +2639,7 @@ def schema_option(cfg):
 
     scparam(cfg,['option', 'continue'],
             sctype='bool',
+            pernode='optional',
             shorthelp='Implementation continue-on-error',
             switch='-continue',
             example=["cli: -continue",

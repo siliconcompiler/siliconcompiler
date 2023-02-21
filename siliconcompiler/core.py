@@ -193,7 +193,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # we should revisit it
         self.logger.propagate = False
 
-        loglevel = self.get('option', 'loglevel')
+        loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
 
         if loglevel=='DEBUG':
             prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
@@ -900,7 +900,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f'Setting {keypath} to {value}')
 
         # Special case to ensure loglevel is updated ASAP
-        if keypath == ['option', 'loglevel'] and field == 'value':
+        if (
+            keypath == ['option', 'loglevel'] and field == 'value' and
+            step == self.get('arg', 'step') and index == self.get('arg', 'index')
+        ):
             self.logger.setLevel(value)
 
         try:
@@ -3449,7 +3452,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         tool = self.get('flowgraph', flow, step, index, 'tool')
         task = self._get_task(step, index, flow)
 
-        quiet = self.get('option', 'quiet') and not self.get('option', 'breakpoint', step=step, index=index)
+        quiet = (
+            self.get('option', 'quiet', step=step, index=index) and not
+            self.get('option', 'breakpoint', step=step, index=index)
+        )
 
         is_builtin = self._is_builtin(tool, task)
 
@@ -3603,7 +3609,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Check exe version
 
-        vercheck = not self.get('option', 'novercheck')
+        vercheck = not self.get('option', 'novercheck', step=step, index=index)
         veropt = self.get('tool', tool, 'vswitch')
         exe = self._getexe(tool, step, index)
         version = None
@@ -3826,7 +3832,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Make a record if tracking is enabled
-        if self.get('option', 'track'):
+        if self.get('option', 'track', step=step, index=index):
             self._make_record(step, index, wall_start, wall_end, version, toolpath, cmd_args)
 
         ##################
@@ -3838,7 +3844,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Stop if there are errors
         errors = self.get('metric', 'errors', step=step, index=index)
-        if errors and not self.get('option', 'flowcontinue'):
+        if errors and not self.get('option', 'flowcontinue', step=step, index=index):
             # TODO: should we warn if errors is not set?
             self.logger.error(f'{tool} reported {errors} errors during {step}{index}')
             self._haltstep(step, index)
@@ -4507,7 +4513,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         nice = None
         if is_posix:
-            nice = self.get('option', 'nice')
+            nice = self.get('option', 'nice', step=step, index=index)
 
         nice_cmdlist = []
         if nice:
@@ -4795,10 +4801,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             msg (str): Message associated with error
             fatal (bool): Whether error is always fatal
         '''
-        if not fatal and self.get('option', 'continue'):
-            self.logger.error(msg)
-            self._error = True
-            return
+        if not fatal:
+            # Keep all get() calls in this block so we can still call with
+            # fatal=True before the logger exists
+            step = self.get('arg', 'step')
+            index = self.get('arg', 'index')
+            if self.schema.get('option', 'continue', step=step, index=index):
+                self.logger.error(msg)
+                self._error = True
+                return
 
         raise SiliconCompilerError(msg) from None
 

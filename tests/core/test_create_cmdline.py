@@ -45,7 +45,8 @@ def test_optmode(monkeypatch):
 
     chip = do_cli_test(args, monkeypatch)
 
-    assert chip.get('option', 'optmode') == 'O3'
+    # arbitrary step/index
+    assert chip.get('option', 'optmode', step='import', index=0) == 'O3'
 
 def test_spaces_in_value(monkeypatch):
     desc = 'My package description'
@@ -59,7 +60,7 @@ def test_limited_switchlist(monkeypatch):
     args = ['sc', '-loglevel', 'DEBUG', '-var', 'foo bar']
     chip = do_cli_test(args, monkeypatch, switchlist=['-loglevel', '-var'])
 
-    assert chip.get('option', 'loglevel') == 'DEBUG'
+    assert chip.get('option', 'loglevel', step='import', index=0) == 'DEBUG'
     assert chip.get('option', 'var', 'foo') == ['bar']
 
 def test_pernode_optional(monkeypatch):
