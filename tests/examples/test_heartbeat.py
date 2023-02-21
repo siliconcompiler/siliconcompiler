@@ -5,6 +5,7 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_py(setup_example_test):
     setup_example_test('heartbeat')
 
@@ -13,6 +14,7 @@ def test_py(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_cli(setup_example_test):
     heartbeat_dir = setup_example_test('heartbeat')
 
@@ -20,6 +22,7 @@ def test_cli(setup_example_test):
     assert proc.returncode == 0
 
 @pytest.mark.eda
+@pytest.mark.timeout(600)
 def test_parallel(setup_example_test):
     setup_example_test('heartbeat')
 

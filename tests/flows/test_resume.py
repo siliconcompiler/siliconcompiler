@@ -4,6 +4,7 @@ import pytest
 import os
 
 @pytest.mark.eda
+@pytest.mark.timeout(300)
 def test_resume(gcd_chip):
     # Set a value that will cause place to break
     gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf', step='place', index='0')

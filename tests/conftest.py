@@ -44,8 +44,8 @@ def use_strict(monkeypatch, request):
 
     old_init = siliconcompiler.Chip.__init__
 
-    def mock_init(chip, design):
-        old_init(chip, design)
+    def mock_init(chip, design, **kwargs):
+        old_init(chip, design, **kwargs)
         chip.set('option', 'strict', True)
 
     monkeypatch.setattr(siliconcompiler.Chip, '__init__', mock_init)
