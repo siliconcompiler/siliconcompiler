@@ -570,6 +570,12 @@ class Schema:
         if step is None and index is not None:
             return 'if index is provided, step must be provided as well'
 
+        if step == Schema.GLOBAL_KEY:
+            return f"step may not be '{Schema.GLOBAL_KEY}'"
+
+        if index == Schema.GLOBAL_KEY:
+            return f"index may not be '{Schema.GLOBAL_KEY}'"
+
         return None
 
     def _search(self, *keypath, insert_defaults=False, job=None):

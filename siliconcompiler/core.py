@@ -3065,6 +3065,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.node('asicflow', 'place', 'openroad', index=0)
             Creates a task with step='place' and index=0 and binds it to the 'openroad' tool.
         '''
+        if step == Schema.GLOBAL_KEY:
+            self.error(f'Illegal step name: {Schema.GLOBAL_KEY} is reserved')
+            return
 
         index = str(index)
 
@@ -3099,6 +3102,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.edge('place', 'cts')
             Creates a directed edge from place to cts.
         '''
+        if head == Schema.GLOBAL_KEY or tail == Schema.GLOBAL_KEY:
+            self.error(f'Illegal step name: {Schema.GLOBAL_KEY} is reserved')
+            return
 
         # Handling connecting edges between graphs
         # Not completely name space safe, but feels like this limitation
