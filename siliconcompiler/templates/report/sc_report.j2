@@ -87,19 +87,6 @@
       var cur_manifest = {{ pruned_cfg|tojson|safe }};
 
       // Helpers to make indexing into global value less painful
-      /* function hasVal(cfg) {
-        console.log(cfg);
-        if (!('nodefield' in cfg)) {
-          return false;
-        }
-
-        return (
-          'global' in cfg['nodefield'] &&
-          'global' in cfg['nodefield']['global'] &&
-          'value' in cfg['nodefield']['global']['global']
-        );
-      } */
-
       function getVal(cfg) {
         if ('global' in cfg['nodefield'] &&
             'global' in cfg['nodefield']['global'] &&
