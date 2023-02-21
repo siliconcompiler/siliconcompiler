@@ -45,8 +45,14 @@ def test_modified_schema(datadir):
         expected = json.load(f)
 
     # special case (initialized in constructor)
-    expected['design']['value'] = 'test'
-    expected['design']['set'] = True
+    glbl_key = siliconcompiler.Schema.GLOBAL_KEY
+    expected['design']['nodefield'] = {
+        glbl_key: {
+            glbl_key: {
+                'value': 'test'
+            }
+        }
+    }
 
     assert chip.schema.cfg == expected
 
