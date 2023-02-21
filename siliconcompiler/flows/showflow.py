@@ -31,12 +31,13 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
 
     flow.node(flowname, 'import', 'builtin', 'import')
 
+    show_tool = chip.get('option', 'showtool', filetype)
+
     stepname = 'show'
     if screenshot:
         stepname = 'screenshot'
 
     for idx in range(np):
-        show_tool = chip.get('option', 'showtool', filetype)
         flow.node(flowname, stepname, show_tool, stepname, index=idx)
         flow.edge(flowname, 'import', stepname, head_index=idx, tail_index=0)
 
