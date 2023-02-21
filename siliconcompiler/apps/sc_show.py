@@ -61,8 +61,11 @@ def main():
 
     filename = None
     if input_mode:
-        # triple index into this structure: [([val], <step>, <index>)]
-        filename = chip.schema._getvals('input', 'layout', input_mode)[0][0][-1]
+        all_vals = chip.schema._getvals('input', 'layout', input_mode)
+        # Get first value, corresponds to a list of files
+        val, _, _ = all_vals[0]
+        # Get last item in list
+        filename = val[-1]
 
     if (filename is not None) and (not chip.get('option', 'cfg')):
         # only autoload manifest if user doesn't supply manually
