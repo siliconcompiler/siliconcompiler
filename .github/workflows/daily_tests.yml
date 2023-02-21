@@ -7,7 +7,7 @@ name: 'Daily CI Tests'
 
 jobs:
   daily_tests_job:
-    timeout-minutes: 30
+    timeout-minutes: 60
     runs-on: self-hosted
     name: 'All tests'
     strategy:
@@ -30,4 +30,4 @@ jobs:
           echo $VIRTUAL_ENV
           python -m pip install --upgrade pip
           python -m pip install -r $GITHUB_WORKSPACE/requirements.txt $GITHUB_WORKSPACE/.
-          pytest -n 4 --import-mode=append
+          pytest -n auto --import-mode=append
