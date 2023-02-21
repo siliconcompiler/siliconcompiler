@@ -121,18 +121,6 @@ def is_leaf(schema):
         return is_leaf(schema['default'])
     return False
 
-def flatten(cfg, prefix=()):
-    flat_cfg = {}
-
-    for key, val in cfg.items():
-        if key == 'default': continue
-        if 'defvalue' in val:
-            flat_cfg[prefix + (key,)] = val
-        else:
-            flat_cfg.update(flatten(val, prefix + (key,)))
-
-    return flat_cfg
-
 def keypath(*args):
     '''Helper function for displaying Schema keypaths.'''
     text_parts = []
