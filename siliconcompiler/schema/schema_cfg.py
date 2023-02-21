@@ -1987,6 +1987,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'nice'],
             sctype='int',
             scope='job',
+            pernode='optional',
             shorthelp="Tool execution scheduling priority",
             switch="-nice <int>",
             example=[

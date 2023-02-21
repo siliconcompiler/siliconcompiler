@@ -4513,7 +4513,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         nice = None
         if is_posix:
-            nice = self.get('option', 'nice')
+            nice = self.get('option', 'nice', step=step, index=index)
 
         nice_cmdlist = []
         if nice:
