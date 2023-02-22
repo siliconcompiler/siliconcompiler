@@ -88,17 +88,17 @@
 
       // Helpers to make indexing into global value less painful
       function getVal(cfg) {
-        if ('global' in cfg['nodefield'] &&
-            'global' in cfg['nodefield']['global'] &&
-            'value' in cfg ['nodefield']['global']['global']) {
-          return cfg['nodefield']['global']['global']['value'];
+        if ('global' in cfg['node'] &&
+            'global' in cfg['node']['global'] &&
+            'value' in cfg ['node']['global']['global']) {
+          return cfg['node']['global']['global']['value'];
         } else {
           return cfg['defvalue'];
         }
       }
 
       function setVal(cfg, val) {
-        cfg['nodefield']['global']['global']['value'] = val;
+        cfg['node']['global']['global']['value'] = val;
       }
 
       // Recursive helper for manifest generation.
@@ -106,7 +106,7 @@
         // Iterate over all elements in the given JSON dict.
         // TODO: Sort keys?
         for (const el in cfg) {
-          if (!('nodefield' in cfg[el]) && !('help' in cfg[el])) {
+          if (!('node' in cfg[el]) && !('help' in cfg[el])) {
             // Branch value.
             new_child = document.createElement("li");
             new_child.innerHTML = '<a href="#">' + el + '</a>'
@@ -115,7 +115,7 @@
             parent_list_el.appendChild(new_child);
             generateManifestBranch(cfg[el], (keypath.concat(el)), new_child_list);
           }
-          else if ('nodefield' in cfg[el]) {
+          else if ('node' in cfg[el]) {
             // Leaf value.
             new_child = document.createElement("li");
             new_child.classList.add("open");

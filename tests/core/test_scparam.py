@@ -55,7 +55,7 @@ def test_scparam():
         'defvalue': None,
         'notes': None,
         'pernode': 'never',
-        'nodefield': {},
+        'node': {},
         'shorthelp': 'Metric total warnings',
         'example': [
             "cli: -metric_warnings 'dfm 0 goal 0'",
@@ -75,7 +75,7 @@ def test_scparam():
         'defvalue': None,
         'notes': None,
         'pernode': 'never',
-        'nodefield': {},
+        'node': {},
         'shorthelp': 'Metric instance count',
         'example': [
             "cli: -metric_cells 'place 0 goal 100'",

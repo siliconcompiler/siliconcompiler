@@ -92,7 +92,7 @@ def scparam(cfg,
         cfg['notes'] = notes
         # never, optional, required
         cfg['pernode'] = pernode
-        cfg['nodefield'] = {}
+        cfg['node'] = {}
 
         if enum is not None:
             cfg['enum'] = enum

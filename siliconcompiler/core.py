@@ -1350,7 +1350,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 # update other fields that a user might modify
                 for field in src.getdict(*keylist).keys():
-                    if field in ('nodefield', 'switch', 'type', 'require', 'defvalue',
+                    if field in ('node', 'switch', 'type', 'require', 'defvalue',
                                  'shorthelp', 'example', 'help'):
                         # skip these fields (value handled above, others are static)
                         continue

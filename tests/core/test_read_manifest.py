@@ -46,7 +46,7 @@ def test_modified_schema(datadir):
 
     # special case (initialized in constructor)
     glbl_key = siliconcompiler.Schema.GLOBAL_KEY
-    expected['design']['nodefield'] = {
+    expected['design']['node'] = {
         glbl_key: {
             glbl_key: {
                 'value': 'test'
