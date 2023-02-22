@@ -49,11 +49,20 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.set('constraint', 'coremargin', 4.6)
 
     #6. Timing corners
-    corner = 'typical'
-    chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
-    chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)
-    chip.set('constraint', 'timing', 'worst', 'mode', 'func')
-    chip.add('constraint', 'timing', 'worst', 'check', ['setup','hold'])
+    chip.set('constraint', 'timing', 'slow', 'libcorner', 'slow')
+    chip.set('constraint', 'timing', 'slow', 'pexcorner', 'maximum')
+    chip.set('constraint', 'timing', 'slow', 'mode', 'func')
+    chip.set('constraint', 'timing', 'slow', 'check', ['setup', 'hold'])
+
+    chip.set('constraint', 'timing', 'fast', 'libcorner', 'fast')
+    chip.set('constraint', 'timing', 'fast', 'pexcorner', 'minimum')
+    chip.set('constraint', 'timing', 'fast', 'mode', 'func')
+    chip.set('constraint', 'timing', 'fast', 'check', ['setup', 'hold'])
+
+    chip.set('constraint', 'timing', 'typical', 'libcorner', 'typical')
+    chip.set('constraint', 'timing', 'typical', 'pexcorner', 'typical')
+    chip.set('constraint', 'timing', 'typical', 'mode', 'func')
+    chip.set('constraint', 'timing', 'typical', 'check', ['power'])
 
 #########################
 if __name__ == "__main__":

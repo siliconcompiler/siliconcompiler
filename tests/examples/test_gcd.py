@@ -45,10 +45,10 @@ def test_py(setup_example_test):
     assert chip.get('metric', 'warnings', step='cts', index='0') == 2
 
     # Missing route to pin (x71)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 71
+    assert chip.get('metric', 'warnings', step='route', index='0') == 66
 
     # Missing route to pin (x83)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 83
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 240
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1

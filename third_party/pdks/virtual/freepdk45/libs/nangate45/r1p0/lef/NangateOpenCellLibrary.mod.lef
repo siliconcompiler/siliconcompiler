@@ -1,36 +1,33 @@
-# Modified freepdk45 LEF file, with 'RECT' pad areas instead of 'POLY'/etc.
-#
-# Source: The OpenROAD Project.
-#
-# License: BSD 3-Clause.
-#
-#Copyright (c) 2018, The Regents of the University of California
-#All rights reserved.
-#
-#Redistribution and use in source and binary forms, with or without
-#modification, are permitted provided that the following conditions are met:
-#
-#* Redistributions of source code must retain the above copyright notice, this
-#  list of conditions and the following disclaimer.
-#
-#* Redistributions in binary form must reproduce the above copyright notice,
-#  this list of conditions and the following disclaimer in the documentation
-#  and/or other materials provided with the distribution.
-#
-#* Neither the name of the copyright holder nor the names of its
-#  contributors may be used to endorse or promote products derived from
-#  this software without specific prior written permission.
-#
-#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-#AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-#IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-#DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-#FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-#DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-#SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-#CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-#OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
+# ******************************************************************************
+# *                                                                            *
+# *                   Copyright (C) 2004-2010, Nangate Inc.                    *
+# *                           All rights reserved.                             *
+# *                                                                            *
+# * Nangate and the Nangate logo are trademarks of Nangate Inc.                *
+# *                                                                            *
+# * All trademarks, logos, software marks, and trade names (collectively the   *
+# * "Marks") in this program are proprietary to Nangate or other respective    *
+# * owners that have granted Nangate the right and license to use such Marks.  *
+# * You are not permitted to use the Marks without the prior written consent   *
+# * of Nangate or such third party that may own the Marks.                     *
+# *                                                                            *
+# * This file has been provided pursuant to a License Agreement containing     *
+# * restrictions on its use. This file contains valuable trade secrets and     *
+# * proprietary information of Nangate Inc., and is protected by U.S. and      *
+# * international laws and/or treaties.                                        *
+# *                                                                            *
+# * The copyright notice(s) in this file does not indicate actual or intended  *
+# * publication of this file.                                                  *
+# *                                                                            *
+# *     NGLibraryCreator, v2010.08-HR32-SP3-2010-08-05 - build 1009061800      *
+# *                                                                            *
+# ******************************************************************************
+# 
+# 
+# Running on brazil06.nangate.com.br for user Giancarlo Franciscatto (gfr).
+# Local time is now Fri, 3 Dec 2010, 19:32:18.
+# Main process id is 27821.
 
 VERSION 5.6 ;
 BUSBITCHARS "[]" ;
@@ -39,7 +36,9 @@ DIVIDERCHAR "/" ;
 UNITS
   DATABASE MICRONS 2000 ;
 END UNITS
-MANUFACTURINGGRID 0.005 ;
+
+MANUFACTURINGGRID 0.0050 ;
+
 LAYER poly
   TYPE MASTERSLICE ;
 END poly
@@ -50,18 +49,15 @@ END active
 
 LAYER metal1
   TYPE ROUTING ;
-  DIRECTION HORIZONTAL ;
-  PITCH 0.19 0.14 ;
+  SPACING 0.065 ;
   WIDTH 0.07 ;
+  PITCH 0.14 ;
+  DIRECTION HORIZONTAL ;
   OFFSET 0.095 0.07 ;
-  #SPACING 0.065 ;
-  SPACINGTABLE
-    PARALLELRUNLENGTH 0
-    WIDTH 0 0.065 ;
   RESISTANCE RPERSQ 0.38 ;
-  CAPACITANCE CPERSQDIST 7.7161e-05 ;
-  HEIGHT 0.37 ;
   THICKNESS 0.13 ;
+  HEIGHT 0.37 ;
+  CAPACITANCE CPERSQDIST 7.7161e-05 ;
   EDGECAPACITANCE 2.7365e-05 ;
 END metal1
 
@@ -74,22 +70,22 @@ END via1
 
 LAYER metal2
   TYPE ROUTING ;
-  DIRECTION VERTICAL ;
-  PITCH 0.19 0.14 ;
+  SPACINGTABLE 
+    PARALLELRUNLENGTH    0.0000     0.3000     0.9000     1.8000     2.7000     4.0000     
+      WIDTH 0.0000       0.0700     0.0700     0.0700     0.0700     0.0700     0.0700     
+      WIDTH 0.0900       0.0700     0.0900     0.0900     0.0900     0.0900     0.0900     
+      WIDTH 0.2700       0.0700     0.0900     0.2700     0.2700     0.2700     0.2700     
+      WIDTH 0.5000       0.0700     0.0900     0.2700     0.5000     0.5000     0.5000     
+      WIDTH 0.9000       0.0700     0.0900     0.2700     0.5000     0.9000     0.9000     
+      WIDTH 1.5000       0.0700     0.0900     0.2700     0.5000     0.9000     1.5000      ;
   WIDTH 0.07 ;
+  PITCH 0.19 ;
+  DIRECTION VERTICAL ;
   OFFSET 0.095 0.07 ;
-  SPACINGTABLE
-    PARALLELRUNLENGTH 0 0.3 0.9 1.8 2.7 4
-    WIDTH 0 0.07 0.07 0.07 0.07 0.07 0.07
-    WIDTH 0.09 0.07 0.09 0.09 0.09 0.09 0.09
-    WIDTH 0.27 0.07 0.09 0.27 0.27 0.27 0.27
-    WIDTH 0.5 0.07 0.09 0.27 0.5 0.5 0.5
-    WIDTH 0.9 0.07 0.09 0.27 0.5 0.9 0.9
-    WIDTH 1.5 0.07 0.09 0.27 0.5 0.9 1.5 ;
   RESISTANCE RPERSQ 0.25 ;
-  CAPACITANCE CPERSQDIST 4.0896e-05 ;
-  HEIGHT 0.62 ;
   THICKNESS 0.14 ;
+  HEIGHT 0.62 ;
+  CAPACITANCE CPERSQDIST 4.0896e-05 ;
   EDGECAPACITANCE 2.5157e-05 ;
 END metal2
 
@@ -102,22 +98,22 @@ END via2
 
 LAYER metal3
   TYPE ROUTING ;
-  DIRECTION HORIZONTAL ;
-  PITCH 0.19 0.14 ;
+  SPACINGTABLE 
+    PARALLELRUNLENGTH    0.0000     0.3000     0.9000     1.8000     2.7000     4.0000     
+      WIDTH 0.0000       0.0700     0.0700     0.0700     0.0700     0.0700     0.0700     
+      WIDTH 0.0900       0.0700     0.0900     0.0900     0.0900     0.0900     0.0900     
+      WIDTH 0.2700       0.0700     0.0900     0.2700     0.2700     0.2700     0.2700     
+      WIDTH 0.5000       0.0700     0.0900     0.2700     0.5000     0.5000     0.5000     
+      WIDTH 0.9000       0.0700     0.0900     0.2700     0.5000     0.9000     0.9000     
+      WIDTH 1.5000       0.0700     0.0900     0.2700     0.5000     0.9000     1.5000      ;
   WIDTH 0.07 ;
+  PITCH 0.14 ;
+  DIRECTION HORIZONTAL ;
   OFFSET 0.095 0.07 ;
-  SPACINGTABLE
-    PARALLELRUNLENGTH 0 0.3 0.9 1.8 2.7 4
-    WIDTH 0 0.07 0.07 0.07 0.07 0.07 0.07
-    WIDTH 0.09 0.07 0.09 0.09 0.09 0.09 0.09
-    WIDTH 0.27 0.07 0.09 0.27 0.27 0.27 0.27
-    WIDTH 0.5 0.07 0.09 0.27 0.5 0.5 0.5
-    WIDTH 0.9 0.07 0.09 0.27 0.5 0.9 0.9
-    WIDTH 1.5 0.07 0.09 0.27 0.5 0.9 1.5 ;
   RESISTANCE RPERSQ 0.25 ;
-  CAPACITANCE CPERSQDIST 2.7745e-05 ;
-  HEIGHT 0.88 ;
   THICKNESS 0.14 ;
+  HEIGHT 0.88 ;
+  CAPACITANCE CPERSQDIST 2.7745e-05 ;
   EDGECAPACITANCE 2.5157e-05 ;
 END metal3
 
@@ -130,21 +126,21 @@ END via3
 
 LAYER metal4
   TYPE ROUTING ;
-  DIRECTION VERTICAL ;
-  PITCH 0.28 0.28 ;
+  SPACINGTABLE 
+    PARALLELRUNLENGTH    0.0000     0.9000     1.8000     2.7000     4.0000     
+      WIDTH 0.0000       0.1400     0.1400     0.1400     0.1400     0.1400     
+      WIDTH 0.2700       0.1400     0.2700     0.2700     0.2700     0.2700     
+      WIDTH 0.5000       0.1400     0.2700     0.5000     0.5000     0.5000     
+      WIDTH 0.9000       0.1400     0.2700     0.5000     0.9000     0.9000     
+      WIDTH 1.5000       0.1400     0.2700     0.5000     0.9000     1.5000      ;
   WIDTH 0.14 ;
+  PITCH 0.28 ;
+  DIRECTION VERTICAL ;
   OFFSET 0.095 0.07 ;
-  SPACINGTABLE
-    PARALLELRUNLENGTH 0 0.9 1.8 2.7 4
-    WIDTH 0 0.14 0.14 0.14 0.14 0.14
-    WIDTH 0.27 0.14 0.27 0.27 0.27 0.27
-    WIDTH 0.5 0.14 0.27 0.5 0.5 0.5
-    WIDTH 0.9 0.14 0.27 0.5 0.9 0.9
-    WIDTH 1.5 0.14 0.27 0.5 0.9 1.5 ;
   RESISTANCE RPERSQ 0.21 ;
-  CAPACITANCE CPERSQDIST 2.0743e-05 ;
-  HEIGHT 1.14 ;
   THICKNESS 0.28 ;
+  HEIGHT 1.14 ;
+  CAPACITANCE CPERSQDIST 2.0743e-05 ;
   EDGECAPACITANCE 3.0908e-05 ;
 END metal4
 
@@ -157,21 +153,21 @@ END via4
 
 LAYER metal5
   TYPE ROUTING ;
-  DIRECTION HORIZONTAL ;
-  PITCH 0.28 0.28 ;
+  SPACINGTABLE 
+    PARALLELRUNLENGTH    0.0000     0.9000     1.8000     2.7000     4.0000     
+      WIDTH 0.0000       0.1400     0.1400     0.1400     0.1400     0.1400     
+      WIDTH 0.2700       0.1400     0.2700     0.2700     0.2700     0.2700     
+      WIDTH 0.5000       0.1400     0.2700     0.5000     0.5000     0.5000     
+      WIDTH 0.9000       0.1400     0.2700     0.5000     0.9000     0.9000     
+      WIDTH 1.5000       0.1400     0.2700     0.5000     0.9000     1.5000      ;
   WIDTH 0.14 ;
+  PITCH 0.28 ;
+  DIRECTION HORIZONTAL ;
   OFFSET 0.095 0.07 ;
-  SPACINGTABLE
-    PARALLELRUNLENGTH 0 0.9 1.8 2.7 4
-    WIDTH 0 0.14 0.14 0.14 0.14 0.14
-    WIDTH 0.27 0.14 0.27 0.27 0.27 0.27
-    WIDTH 0.5 0.14 0.27 0.5 0.5 0.5
-    WIDTH 0.9 0.14 0.27 0.5 0.9 0.9
-    WIDTH 1.5 0.14 0.27 0.5 0.9 1.5 ;
   RESISTANCE RPERSQ 0.21 ;
-  CAPACITANCE CPERSQDIST 1.3527e-05 ;
-  HEIGHT 1.71 ;
   THICKNESS 0.28 ;
+  HEIGHT 1.71 ;
+  CAPACITANCE CPERSQDIST 1.3527e-05 ;
   EDGECAPACITANCE 2.3863e-06 ;
 END metal5
 
@@ -184,21 +180,21 @@ END via5
 
 LAYER metal6
   TYPE ROUTING ;
-  DIRECTION VERTICAL ;
-  PITCH 0.28 0.28 ;
+  SPACINGTABLE 
+    PARALLELRUNLENGTH    0.0000     0.9000     1.8000     2.7000     4.0000     
+      WIDTH 0.0000       0.1400     0.1400     0.1400     0.1400     0.1400     
+      WIDTH 0.2700       0.1400     0.2700     0.2700     0.2700     0.2700     
+      WIDTH 0.5000       0.1400     0.2700     0.5000     0.5000     0.5000     
+      WIDTH 0.9000       0.1400     0.2700     0.5000     0.9000     0.9000     
+      WIDTH 1.5000       0.1400     0.2700     0.5000     0.9000     1.5000      ;
   WIDTH 0.14 ;
+  PITCH 0.28 ;
+  DIRECTION VERTICAL ;
   OFFSET 0.095 0.07 ;
-  SPACINGTABLE
-    PARALLELRUNLENGTH 0 0.9 1.8 2.7 4
-    WIDTH 0 0.14 0.14 0.14 0.14 0.14
-    WIDTH 0.27 0.14 0.27 0.27 0.27 0.27
-    WIDTH 0.5 0.14 0.27 0.5 0.5 0.5
-    WIDTH 0.9 0.14 0.27 0.5 0.9 0.9
-    WIDTH 1.5 0.14 0.27 0.5 0.9 1.5 ;
   RESISTANCE RPERSQ 0.21 ;
-  CAPACITANCE CPERSQDIST 1.0036e-05 ;
-  HEIGHT 2.28 ;
   THICKNESS 0.28 ;
+  HEIGHT 2.28 ;
+  CAPACITANCE CPERSQDIST 1.0036e-05 ;
   EDGECAPACITANCE 2.3863e-05 ;
 END metal6
 
@@ -211,20 +207,20 @@ END via6
 
 LAYER metal7
   TYPE ROUTING ;
-  DIRECTION HORIZONTAL ;
-  PITCH 0.8 0.8 ;
+  SPACINGTABLE 
+    PARALLELRUNLENGTH    0.0000     1.8000     2.7000     4.0000     
+      WIDTH 0.0000       0.4000     0.4000     0.4000     0.4000     
+      WIDTH 0.5000       0.4000     0.5000     0.5000     0.5000     
+      WIDTH 0.9000       0.4000     0.5000     0.9000     0.9000     
+      WIDTH 1.5000       0.4000     0.5000     0.9000     1.5000      ;
   WIDTH 0.4 ;
+  PITCH 0.8 ;
+  DIRECTION HORIZONTAL ;
   OFFSET 0.095 0.07 ;
-  SPACINGTABLE
-    PARALLELRUNLENGTH 0 1.8 2.7 4
-    WIDTH 0 0.4 0.4 0.4 0.4
-    WIDTH 0.5 0.4 0.5 0.5 0.5
-    WIDTH 0.9 0.4 0.5 0.9 0.9
-    WIDTH 1.5 0.4 0.5 0.9 1.5 ;
   RESISTANCE RPERSQ 0.075 ;
-  CAPACITANCE CPERSQDIST 7.9771e-06 ;
-  HEIGHT 2.85 ;
   THICKNESS 0.8 ;
+  HEIGHT 2.85 ;
+  CAPACITANCE CPERSQDIST 7.9771e-06 ;
   EDGECAPACITANCE 3.2577e-05 ;
 END metal7
 
@@ -237,20 +233,20 @@ END via7
 
 LAYER metal8
   TYPE ROUTING ;
-  DIRECTION VERTICAL ;
-  PITCH 0.8 0.8 ;
+  SPACINGTABLE 
+    PARALLELRUNLENGTH    0.0000     1.8000     2.7000     4.0000     
+      WIDTH 0.0000       0.4000     0.4000     0.4000     0.4000     
+      WIDTH 0.5000       0.4000     0.5000     0.5000     0.5000     
+      WIDTH 0.9000       0.4000     0.5000     0.9000     0.9000     
+      WIDTH 1.5000       0.4000     0.5000     0.9000     1.5000      ;
   WIDTH 0.4 ;
+  PITCH 0.8 ;
+  DIRECTION VERTICAL ;
   OFFSET 0.095 0.07 ;
-  SPACINGTABLE
-    PARALLELRUNLENGTH 0 1.8 2.7 4
-    WIDTH 0 0.4 0.4 0.4 0.4
-    WIDTH 0.5 0.4 0.5 0.5 0.5
-    WIDTH 0.9 0.4 0.5 0.9 0.9
-    WIDTH 1.5 0.4 0.5 0.9 1.5 ;
   RESISTANCE RPERSQ 0.075 ;
-  CAPACITANCE CPERSQDIST 5.0391e-06 ;
-  HEIGHT 4.47 ;
   THICKNESS 0.8 ;
+  HEIGHT 4.47 ;
+  CAPACITANCE CPERSQDIST 5.0391e-06 ;
   EDGECAPACITANCE 2.3932e-05 ;
 END metal8
 
@@ -263,19 +259,19 @@ END via8
 
 LAYER metal9
   TYPE ROUTING ;
-  DIRECTION HORIZONTAL ;
-  PITCH 1.6 1.6 ;
+  SPACINGTABLE 
+    PARALLELRUNLENGTH    0.0000     2.7000     4.0000     
+      WIDTH 0.0000       0.8000     0.8000     0.8000     
+      WIDTH 0.9000       0.8000     0.9000     0.9000     
+      WIDTH 1.5000       0.8000     0.9000     1.5000      ;
   WIDTH 0.8 ;
+  PITCH 1.6 ;
+  DIRECTION HORIZONTAL ;
   OFFSET 0.095 0.07 ;
-  SPACINGTABLE
-    PARALLELRUNLENGTH 0 2.7 4
-    WIDTH 0 0.8 0.8 0.8
-    WIDTH 0.9 0.8 0.9 0.9
-    WIDTH 1.5 0.8 0.9 1.5 ;
   RESISTANCE RPERSQ 0.03 ;
-  CAPACITANCE CPERSQDIST 3.6827e-06 ;
-  HEIGHT 6.09 ;
   THICKNESS 2 ;
+  HEIGHT 6.09 ;
+  CAPACITANCE CPERSQDIST 3.6827e-06 ;
   EDGECAPACITANCE 3.0803e-05 ;
 END metal9
 
@@ -288,25 +284,268 @@ END via9
 
 LAYER metal10
   TYPE ROUTING ;
-  DIRECTION VERTICAL ;
-  PITCH 1.6 1.6 ;
+  SPACINGTABLE 
+    PARALLELRUNLENGTH    0.0000     2.7000     4.0000     
+      WIDTH 0.0000       0.8000     0.8000     0.8000     
+      WIDTH 0.9000       0.8000     0.9000     0.9000     
+      WIDTH 1.5000       0.8000     0.9000     1.5000      ;
   WIDTH 0.8 ;
+  PITCH 1.6 ;
+  DIRECTION VERTICAL ;
   OFFSET 0.095 0.07 ;
-  SPACINGTABLE
-    PARALLELRUNLENGTH 0 2.7 4
-    WIDTH 0 0.8 0.8 0.8
-    WIDTH 0.9 0.8 0.9 0.9
-    WIDTH 1.5 0.8 0.9 1.5 ;
   RESISTANCE RPERSQ 0.03 ;
-  CAPACITANCE CPERSQDIST 2.2124e-06 ;
-  HEIGHT 10.09 ;
   THICKNESS 2 ;
+  HEIGHT 10.09 ;
+  CAPACITANCE CPERSQDIST 2.2124e-06 ;
   EDGECAPACITANCE 2.3667e-05 ;
 END metal10
 
 LAYER OVERLAP
   TYPE OVERLAP ;
 END OVERLAP
+
+VIA via1_4 DEFAULT
+  LAYER via1 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal1 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+  LAYER metal2 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+END via1_4
+
+VIA via1_0 DEFAULT
+  LAYER via1 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal1 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+END via1_0
+
+VIA via1_1 DEFAULT
+  LAYER via1 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal1 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal2 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+END via1_1
+
+VIA via1_2 DEFAULT
+  LAYER via1 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal1 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+END via1_2
+
+VIA via1_3 DEFAULT
+  LAYER via1 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal1 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+END via1_3
+
+VIA via1_5 DEFAULT
+  LAYER via1 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal1 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+END via1_5
+
+VIA via1_6 DEFAULT
+  LAYER via1 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal1 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+END via1_6
+
+VIA via1_7 DEFAULT
+  LAYER via1 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal1 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+  LAYER metal2 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+END via1_7
+
+VIA via1_8 DEFAULT
+  LAYER via1 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal1 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+END via1_8
+
+VIA via2_8 DEFAULT
+  LAYER via2 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+  LAYER metal3 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+END via2_8
+
+VIA via2_4 DEFAULT
+  LAYER via2 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal2 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+  LAYER metal3 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+END via2_4
+
+VIA via2_5 DEFAULT
+  LAYER via2 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal2 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+  LAYER metal3 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+END via2_5
+
+VIA via2_7 DEFAULT
+  LAYER via2 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+  LAYER metal3 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+END via2_7
+
+VIA via2_6 DEFAULT
+  LAYER via2 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+  LAYER metal3 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+END via2_6
+
+VIA via2_0 DEFAULT
+  LAYER via2 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal3 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+END via2_0
+
+VIA via2_1 DEFAULT
+  LAYER via2 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal3 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+END via2_1
+
+VIA via2_2 DEFAULT
+  LAYER via2 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal2 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal3 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+END via2_2
+
+VIA via2_3 DEFAULT
+  LAYER via2 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal2 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+  LAYER metal3 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+END via2_3
+
+VIA via3_2 DEFAULT
+  LAYER via3 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal3 ;
+    RECT -0.07 -0.035 0.07 0.035 ;
+  LAYER metal4 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+END via3_2
+
+VIA via3_0 DEFAULT
+  LAYER via3 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal3 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal4 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+END via3_0
+
+VIA via3_1 DEFAULT
+  LAYER via3 ;
+    RECT -0.035 -0.035 0.035 0.035 ;
+  LAYER metal3 ;
+    RECT -0.035 -0.07 0.035 0.07 ;
+  LAYER metal4 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+END via3_1
+
+VIA via4_0 DEFAULT
+  LAYER via4 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal4 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal5 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+END via4_0
+
+VIA via5_0 DEFAULT
+  LAYER via5 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal5 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal6 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+END via5_0
+
+VIA via6_0 DEFAULT
+  LAYER via6 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal6 ;
+    RECT -0.07 -0.07 0.07 0.07 ;
+  LAYER metal7 ;
+    RECT -0.2 -0.2 0.2 0.2 ;
+END via6_0
+
+VIA via7_0 DEFAULT
+  LAYER via7 ;
+    RECT -0.2 -0.2 0.2 0.2 ;
+  LAYER metal7 ;
+    RECT -0.2 -0.2 0.2 0.2 ;
+  LAYER metal8 ;
+    RECT -0.2 -0.2 0.2 0.2 ;
+END via7_0
+
+VIA via8_0 DEFAULT
+  LAYER via8 ;
+    RECT -0.2 -0.2 0.2 0.2 ;
+  LAYER metal8 ;
+    RECT -0.2 -0.2 0.2 0.2 ;
+  LAYER metal9 ;
+    RECT -0.4 -0.4 0.4 0.4 ;
+END via8_0
+
+VIA via9_0 DEFAULT
+  LAYER via9 ;
+    RECT -0.4 -0.4 0.4 0.4 ;
+  LAYER metal9 ;
+    RECT -0.4 -0.4 0.4 0.4 ;
+  LAYER metal10 ;
+    RECT -0.4 -0.4 0.4 0.4 ;
+END via9_0
 
 VIARULE Via1Array-0 GENERATE
   LAYER metal1 ;
@@ -489,293 +728,58 @@ VIARULE Via8Array-0 GENERATE
 END Via8Array-0
 
 VIARULE Via9Array-0 GENERATE
-  LAYER metal9 ;
-    ENCLOSURE 0 0 ;
   LAYER metal10 ;
+    ENCLOSURE 0 0 ;
+  LAYER metal9 ;
     ENCLOSURE 0 0 ;
   LAYER via9 ;
     RECT -0.4 -0.4 0.4 0.4 ;
     SPACING 1.68 BY 1.68 ;
 END Via9Array-0
 
-VIA via1_0 DEFAULT
-  LAYER via1 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal1 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-END via1_0
-
-VIA via1_1 DEFAULT
-  LAYER via1 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal1 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal2 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-END via1_1
-
-VIA via1_2 DEFAULT
-  LAYER via1 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal1 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-END via1_2
-
-VIA via1_3 DEFAULT
-  LAYER via1 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal1 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-END via1_3
-
-VIA via1_4 DEFAULT
-  LAYER via1 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal1 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-  LAYER metal2 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-END via1_4
-
-VIA via1_5 DEFAULT
-  LAYER via1 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal1 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-END via1_5
-
-VIA via1_6 DEFAULT
-  LAYER via1 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal1 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-END via1_6
-
-VIA via1_7 DEFAULT
-  LAYER via1 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal1 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-  LAYER metal2 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-END via1_7
-
-VIA via1_8 DEFAULT
-  LAYER via1 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal1 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-END via1_8
-
-VIA via2_0 DEFAULT
-  LAYER via2 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal3 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-END via2_0
-
-VIA via2_1 DEFAULT
-  LAYER via2 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal3 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-END via2_1
-
-VIA via2_2 DEFAULT
-  LAYER via2 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal3 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-END via2_2
-
-VIA via2_3 DEFAULT
-  LAYER via2 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal2 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-  LAYER metal3 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-END via2_3
-
-VIA via2_4 DEFAULT
-  LAYER via2 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal2 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-  LAYER metal3 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-END via2_4
-
-VIA via2_5 DEFAULT
-  LAYER via2 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal2 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-  LAYER metal3 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-END via2_5
-
-VIA via2_6 DEFAULT
-  LAYER via2 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-  LAYER metal3 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-END via2_6
-
-VIA via2_7 DEFAULT
-  LAYER via2 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-  LAYER metal3 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-END via2_7
-
-VIA via2_8 DEFAULT
-  LAYER via2 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal2 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-  LAYER metal3 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-END via2_8
-
-VIA via3_0 DEFAULT
-  LAYER via3 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal3 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal4 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-END via3_0
-
-VIA via3_1 DEFAULT
-  LAYER via3 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal3 ;
-    RECT -0.035 -0.07 0.035 0.07 ;
-  LAYER metal4 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-END via3_1
-
-VIA via3_2 DEFAULT
-  LAYER via3 ;
-    RECT -0.035 -0.035 0.035 0.035 ;
-  LAYER metal3 ;
-    RECT -0.07 -0.035 0.07 0.035 ;
-  LAYER metal4 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-END via3_2
-
-VIA via4_0 DEFAULT
-  LAYER via4 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal4 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal5 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-END via4_0
-
-VIA via5_0 DEFAULT
-  LAYER via5 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal5 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal6 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-END via5_0
-
-VIA via6_0 DEFAULT
-  LAYER via6 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal6 ;
-    RECT -0.07 -0.07 0.07 0.07 ;
-  LAYER metal7 ;
-    RECT -0.2 -0.2 0.2 0.2 ;
-END via6_0
-
-VIA via7_0 DEFAULT
-  LAYER via7 ;
-    RECT -0.2 -0.2 0.2 0.2 ;
-  LAYER metal7 ;
-    RECT -0.2 -0.2 0.2 0.2 ;
-  LAYER metal8 ;
-    RECT -0.2 -0.2 0.2 0.2 ;
-END via7_0
-
-VIA via8_0 DEFAULT
-  LAYER via8 ;
-    RECT -0.2 -0.2 0.2 0.2 ;
-  LAYER metal8 ;
-    RECT -0.2 -0.2 0.2 0.2 ;
-  LAYER metal9 ;
-    RECT -0.4 -0.4 0.4 0.4 ;
-END via8_0
-
-VIA via9_0 DEFAULT
-  LAYER via9 ;
-    RECT -0.4 -0.4 0.4 0.4 ;
-  LAYER metal9 ;
-    RECT -0.4 -0.4 0.4 0.4 ;
-  LAYER metal10 ;
-    RECT -0.4 -0.4 0.4 0.4 ;
-END via9_0
-
 SPACING
   SAMENET metal1 metal1 0.065 ;
-  SAMENET via1 via1 0.08 ;
   SAMENET metal2 metal2 0.07 ;
-  SAMENET via2 via2 0.09 ;
   SAMENET metal3 metal3 0.07 ;
-  SAMENET via3 via3 0.09 ;
   SAMENET metal4 metal4 0.14 ;
-  SAMENET via4 via4 0.16 ;
   SAMENET metal5 metal5 0.14 ;
-  SAMENET via5 via5 0.16 ;
   SAMENET metal6 metal6 0.14 ;
-  SAMENET via6 via6 0.16 ;
   SAMENET metal7 metal7 0.4 ;
-  SAMENET via7 via7 0.44 ;
   SAMENET metal8 metal8 0.4 ;
-  SAMENET via8 via8 0.44 ;
   SAMENET metal9 metal9 0.8 ;
-  SAMENET via9 via9 0.88 ;
   SAMENET metal10 metal10 0.8 ;
-  SAMENET via1 via2 0 STACK ;
-  SAMENET via2 via3 0 STACK ;
-  SAMENET via3 via4 0 STACK ;
-  SAMENET via4 via5 0 STACK ;
-  SAMENET via5 via6 0 STACK ;
-  SAMENET via6 via7 0 STACK ;
-  SAMENET via7 via8 0 STACK ;
-  SAMENET via8 via9 0 STACK ;
+  SAMENET via1 via1 0.08 ;
+  SAMENET via2 via2 0.09 ;
+  SAMENET via3 via3 0.09 ;
+  SAMENET via4 via4 0.16 ;
+  SAMENET via5 via5 0.16 ;
+  SAMENET via6 via6 0.16 ;
+  SAMENET via7 via7 0.44 ;
+  SAMENET via8 via8 0.44 ;
+  SAMENET via9 via9 0.88 ;
+  SAMENET via1 via2 0.0 STACK ;
+  SAMENET via2 via3 0.0 STACK ;
+  SAMENET via3 via4 0.0 STACK ;
+  SAMENET via4 via5 0.0 STACK ;
+  SAMENET via5 via6 0.0 STACK ;
+  SAMENET via6 via7 0.0 STACK ;
+  SAMENET via7 via8 0.0 STACK ;
+  SAMENET via8 via9 0.0 STACK ;
 END SPACING
 
 SITE FreePDK45_38x28_10R_NP_162NW_34O
-  CLASS CORE ;
-  SYMMETRY Y ;
+  SYMMETRY y ;
+  CLASS core ;
   SIZE 0.19 BY 1.4 ;
 END FreePDK45_38x28_10R_NP_162NW_34O
+
+END LIBRARY
+#
+# End of file
+#
+VERSION 5.6 ;
+BUSBITCHARS "[]" ;
+DIVIDERCHAR "/" ;
 
 MACRO AND2_X1
   CLASS CORE ;
@@ -1465,7 +1469,7 @@ MACRO AND4_X4
 END AND4_X4
 
 MACRO ANTENNA_X1
-  CLASS CORE ;
+  CLASS CORE ANTENNACELL ;
   ORIGIN 0 0 ;
   FOREIGN ANTENNA_X1 0 0 ;
   SIZE 0.19 BY 1.4 ;
@@ -1474,6 +1478,8 @@ MACRO ANTENNA_X1
   PIN A
     DIRECTION INPUT ;
     USE SIGNAL ;
+    # unknown
+    ANTENNADIFFAREA  0.0 ;
     PORT
       LAYER metal1 ;
         RECT 0.06 0.42 0.13 0.75 ;
@@ -5728,6 +5734,36 @@ MACRO FA_X1
   END
 END FA_X1
 
+MACRO TAPCELL_X1
+  #CLASS CORE ;
+  CLASS CORE WELLTAP ;
+  ORIGIN 0 0 ;
+  FOREIGN TAPCELL_X1 0 0 ;
+  SIZE 0.19 BY 1.4 ;
+  SYMMETRY X Y ;
+  SITE FreePDK45_38x28_10R_NP_162NW_34O ;
+  PIN VDD
+    DIRECTION INOUT ;
+    USE POWER ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER metal1 ;
+        RECT 0 1.315 0.19 1.485 ;
+        RECT 0.06 0.975 0.13 1.315 ;
+    END
+  END VDD
+  PIN VSS
+    DIRECTION INOUT ;
+    USE GROUND ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER metal1 ;
+        RECT 0 -0.085 0.19 0.085 ;
+        RECT 0.06 0.085 0.13 0.425 ;
+    END
+  END VSS
+END TAPCELL_X1
+
 MACRO FILLCELL_X1
   #CLASS CORE ;
   CLASS CORE SPACER ;
@@ -5789,7 +5825,7 @@ MACRO FILLCELL_X2
   CLASS CORE SPACER ;
   ORIGIN 0 0 ;
   FOREIGN FILLCELL_X2 0 0 ;
-  SIZE 0.19 BY 1.4 ;
+  SIZE 0.38 BY 1.4 ;
   SYMMETRY X Y ;
   SITE FreePDK45_38x28_10R_NP_162NW_34O ;
   PIN VDD
@@ -12287,3 +12323,6 @@ MACRO XOR2_X2
 END XOR2_X2
 
 END LIBRARY
+#
+# End of file
+#

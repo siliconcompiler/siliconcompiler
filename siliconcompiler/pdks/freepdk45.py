@@ -61,7 +61,7 @@ def setup(chip):
         pdk.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
                 pdkdir+'/apr/freepdk45.tech.lef')
 
-    pdk.set('pdk', process, 'minlayer', stackup, 'metal1')
+    pdk.set('pdk', process, 'minlayer', stackup, 'metal2')
     pdk.set('pdk', process, 'maxlayer', stackup, 'metal10')
 
     # Klayout setup file
@@ -74,15 +74,15 @@ def setup(chip):
     # Openroad global routing grid derating
     openroad_layer_adjustments = {
         'metal1': 1.0,
-        'metal2': 0.8,
-        'metal3': 0.7,
-        'metal4': 0.4,
-        'metal5': 0.4,
-        'metal6': 0.4,
-        'metal7': 0.4,
-        'metal8': 0.4,
-        'metal9': 0.4,
-        'metal10': 0.4
+        'metal2': 0.5,
+        'metal3': 0.5,
+        'metal4': 0.25,
+        'metal5': 0.25,
+        'metal6': 0.25,
+        'metal7': 0.25,
+        'metal8': 0.25,
+        'metal9': 0.25,
+        'metal10': 0.25
     }
     for layer, adj in openroad_layer_adjustments.items():
         pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
@@ -90,14 +90,14 @@ def setup(chip):
     pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'metal3')
     pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'metal5')
 
-    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'metal2')
-    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'metal3')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'metal4')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'metal5')
 
     # PEX
     pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
     pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, 'typical',
-        pdkdir + '/pex/openroad/rcx_patterns.rules')
+        pdkdir + '/pex/openroad/typical.rules')
 
     return pdk
 

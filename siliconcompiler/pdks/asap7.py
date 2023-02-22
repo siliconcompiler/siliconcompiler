@@ -85,7 +85,7 @@ def setup(chip):
         pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
     pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'M3')
-    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'M5')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'M3')
 
     pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'M5')
     pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'M4')
@@ -94,7 +94,7 @@ def setup(chip):
     pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
     pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, 'typical',
-        pdkdir + '/pex/openroad/rcx_patterns.rules')
+        pdkdir + '/pex/openroad/typical.rules')
 
     return pdk
 
