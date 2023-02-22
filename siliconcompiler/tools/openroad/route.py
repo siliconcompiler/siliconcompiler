@@ -3,7 +3,8 @@ from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners, post_process
 
 def setup(chip):
-    ''' Helper method for configs specific to route tasks.
+    '''
+    Performs filler insertion, global routing, antenna repair, and detailed routing
     '''
 
     # Generic tool setup.

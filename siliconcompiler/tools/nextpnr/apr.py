@@ -1,6 +1,7 @@
 
 def setup(chip):
-    ''' Sets up default settings on a per step basis
+    '''
+    Perform automated place and route on FPGAs
     '''
 
     tool = 'nextpnr'

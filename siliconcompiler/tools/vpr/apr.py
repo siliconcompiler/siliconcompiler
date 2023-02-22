@@ -3,6 +3,9 @@ import re
 import shutil
 
 def setup(chip):
+    '''
+    Perform automated place and route with VPR
+    '''
 
     tool = 'vpr'
     refdir = 'tools/'+tool

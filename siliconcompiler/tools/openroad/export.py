@@ -3,7 +3,8 @@ from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 
 def setup(chip):
-    ''' Helper method for configs specific to export tasks.
+    '''
+    Generate abstract views (LEF), timing libraries (liberty files), circuit descriptions (CDL), and parasitic annotation files (SPEF)
     '''
 
     # Generic tool setup.
@@ -22,6 +23,7 @@ def setup(chip):
 
     # Determine if exporting the cdl
     chip.set('tool', tool, 'task', task, 'var', 'write_cdl', 'true', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'write_cdl', 'true/false, when true enables writing the CDL file for the design', field='help')
     do_cdl = chip.get('tool', tool, 'task', task, 'var', 'write_cdl', step=step, index=index)[0] == 'true'
 
     if do_cdl:

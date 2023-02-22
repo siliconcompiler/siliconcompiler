@@ -5,24 +5,17 @@ def make_docs(chip):
     klayout.make_docs(chip)
     chip.set('tool', 'klayout', 'task', 'show', 'var', 'show_filepath', '<path>')
 
-def setup(chip):
-    ''' Helper method for configs specific to show tasks.
-    '''
-
+def general_gui_setup(chip, task, exit):
     # Generic tool setup.
     setup_tool(chip)
 
     tool = 'klayout'
-    refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = 'show'
     clobber = False
 
     script = 'klayout_show.py'
-    option = ['-nc', '-rm']
     chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
     pdk = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
@@ -36,7 +29,33 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'show_filetype']), step=step, index=index)
         chip.set('tool', tool, 'task', task, 'var', 'show_filetype', incoming_ext, step=step, index=index)
         chip.add('tool', tool, 'task', task, 'input', f'{chip.design}.{incoming_ext}', step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'var', 'show_exit', "false", step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'var', 'show_exit', "true" if exit else "false", step=step, index=index, clobber=False)
+
+    ## Help
+    chip.set('tool', tool, 'task', task, 'var', 'hide_layers', 'List of layers to hide', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'show_filepath', 'File to open', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'show_filetype', 'File type to look for in the inputs', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'show_exit', 'true/false: true will cause kLayout to exit when complete', field='help')
+
+def setup(chip):
+    '''
+    Show a layout in kLayout
+    '''
+
+    # Generic tool setup.
+    setup_tool(chip)
+
+    task = 'show'
+    general_gui_setup(chip, task, True)
+
+    tool = 'klayout'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    clobber = False
+
+    option = ['-nc', '-rm']
+    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
 ###############
 

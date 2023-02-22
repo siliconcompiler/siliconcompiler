@@ -4,7 +4,8 @@ from siliconcompiler.tools.surelog.surelog import setup as setup_tool
 
 ##################################################
 def setup(chip):
-    ''' Configure Surelog settings particular to the 'import' step.
+    '''
+    Import verilog files
     '''
 
     # Generic tool setup.

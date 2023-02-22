@@ -2,7 +2,8 @@
 from siliconcompiler.tools.magic.magic import setup as setup_tool
 
 def setup(chip):
-    ''' Helper method to setup configs specific to extspice tasks.
+    '''
+    Extract spice netlists from a GDS file for simulation use
     '''
 
     # Generic tool setup

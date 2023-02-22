@@ -2,7 +2,8 @@
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 
 def setup(chip):
-    ''' Helper method for configs specific to export tasks.
+    '''
+    Generate a GDSII file from an input DEF file
     '''
 
     # Generic tool setup.
@@ -42,3 +43,7 @@ def setup(chip):
         not chip.get('input', 'layout', 'def', step=step, index=index)):
         chip.add('tool', tool, 'task', task, 'input', design + '.def', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.gds', step=step, index=index)
+
+    # Export GDS with timestamps by default.
+    chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'true', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'Export GDSII with timestamps', field='help')

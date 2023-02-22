@@ -13,21 +13,24 @@ def make_docs(chip):
     chip.set('tool', 'openroad', 'task', 'show', 'var', 'show_filepath', '<path>')
 
 def setup(chip):
-    ''' Helper method for configs specific to show tasks.
+    '''
+    Show a design in openroad
     '''
 
     # Generic tool setup.
     setup_tool(chip)
 
+    generic_show_setup(chip, 'show', False)
+
+def generic_show_setup(chip, task, exit):
     tool = 'openroad'
-    task = 'show'
     design = chip.top()
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
     option = "-no_init -gui"
 
-    chip.set('tool', tool, 'task', task, 'var', 'show_exit', "false", step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'show_exit', "true" if exit else "false", step=step, index=index, clobber=False)
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
         chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']), step=step, index=index)
     else:
