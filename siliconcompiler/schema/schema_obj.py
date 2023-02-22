@@ -570,11 +570,11 @@ class Schema:
         if step is None and index is not None:
             return 'if index is provided, step must be provided as well'
 
-        if step == Schema.GLOBAL_KEY:
-            return f"step may not be '{Schema.GLOBAL_KEY}'"
+        if step in (Schema.GLOBAL_KEY, 'default'):
+            return f'illegal step name: {step} is reserved'
 
-        if index == Schema.GLOBAL_KEY:
-            return f"index may not be '{Schema.GLOBAL_KEY}'"
+        if index in (Schema.GLOBAL_KEY, 'default'):
+            return f'illegal index name: {step} is reserved'
 
         return None
 
