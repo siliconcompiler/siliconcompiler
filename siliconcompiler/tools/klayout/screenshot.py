@@ -1,5 +1,10 @@
-
+from siliconcompiler.tools.klayout import klayout
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
+from siliconcompiler.tools.klayout.show import find_incoming_ext
+
+def make_docs(chip):
+    klayout.make_docs(chip)
+    chip.set('tool', 'klayout', 'task', 'screenshot', 'var', 'show_filepath', '<path>')
 
 def setup(chip):
     ''' Helper method for configs specific to screenshot tasks.

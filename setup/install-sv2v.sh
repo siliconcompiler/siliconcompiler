@@ -1,12 +1,17 @@
 #!/bin/sh
+
+# Get directory of script
+src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
+
 mkdir -p deps
 cd deps
 
 curl -sSL https://get.haskellstack.org/ | sh
 
-git clone https://github.com/zachjs/sv2v.git
-git fetch --tags
-git checkout v0.0.9
+git clone $(python3 ${src_path}/_tools.py --tool sv2v --field git-url) sv2v
 cd sv2v
+git checkout $(python3 ${src_path}/_tools.py --tool sv2v --field git-commit)
+
 make
+
 cd -

@@ -1,35 +1,25 @@
-import importlib
+'''
+Chisel is a hardware design language that facilitates advanced circuit
+generation and design reuse for both ASIC and FPGA digital logic designs.
+Chisel adds hardware construction primitives to the Scala programming
+language, providing designers with the power of a modern programming
+language to write complex, parameterizable circuit generators that produce
+synthesizable Verilog.
 
-import siliconcompiler
+Documentation: https://www.chisel-lang.org/chisel3/docs/introduction.html
+
+Sources: https://github.com/chipsalliance/chisel3
+
+Installation: The Chisel plugin relies on having the Scala Build Tool (sbt)
+installed. Instructions: https://www.scala-sbt.org/download.html.
+'''
+
+import importlib
 
 ####################################################################
 # Make Docs
 ####################################################################
-def make_docs():
-    '''
-    Chisel is a hardware design language that facilitates advanced circuit
-    generation and design reuse for both ASIC and FPGA digital logic designs.
-    Chisel adds hardware construction primitives to the Scala programming
-    language, providing designers with the power of a modern programming
-    language to write complex, parameterizable circuit generators that produce
-    synthesizable Verilog.
-
-    Documentation: https://www.chisel-lang.org/chisel3/docs/introduction.html
-
-    Sources: https://github.com/chipsalliance/chisel3
-
-    Installation: The Chisel plugin relies on having the Scala Build Tool (sbt)
-    installed. Instructions: https://www.scala-sbt.org/download.html.
-    '''
-
-    chip = siliconcompiler.Chip('<design>')
-    step = 'import'
-    index = '0'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+def make_docs(chip):
     setup = getattr(importlib.import_module('tools.chisel.import'), 'setup')
     setup(chip)
     return chip

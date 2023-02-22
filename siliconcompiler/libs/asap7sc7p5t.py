@@ -1,13 +1,6 @@
 import os
 import siliconcompiler
 
-def make_docs():
-    '''
-    ASAP 7 7.5-track standard cell library.
-    '''
-    chip =  siliconcompiler.Chip('<design>')
-    return setup(chip)
-
 def _setup_lib(chip, libname, suffix):
     lib = siliconcompiler.Library(chip, libname)
 
@@ -19,8 +12,9 @@ def _setup_lib(chip, libname, suffix):
     stackup = '10M'
     libtype = '7p5t'
     rev = 'r1p7'
-    corner = 'typical'
-    objectives = ['setup']
+    corners = {'typical': 'tt',
+               'fast': 'ff',
+               'slow': 'ss'}
 
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
 
@@ -31,7 +25,8 @@ def _setup_lib(chip, libname, suffix):
     lib.set('option', 'pdk', 'asap7')
 
     # timing
-    lib.add('output', corner, 'nldm', libdir+'/nldm/'+libname+'_ff.lib')
+    for corner_name, lib_corner in corners.items():
+        lib.add('output', corner_name, 'nldm', libdir+'/nldm/'+libname+'_' + lib_corner + '.lib.gz')
 
     # lef
     lib.add('output', stackup, 'lef', libdir+'/lef/'+libname+'.lef')
@@ -106,6 +101,9 @@ def _setup_lib(chip, libname, suffix):
     return lib
 
 def setup(chip):
+    '''
+    ASAP 7 7.5-track standard cell library.
+    '''
     all_libs = {
         'asap7sc7p5t_rvt' : 'R',
         'asap7sc7p5t_lvt' : 'L',
@@ -117,3 +115,8 @@ def setup(chip):
         libs.append(_setup_lib(chip, libname, suffix))
 
     return libs
+
+#########################
+if __name__ == "__main__":
+    for lib in setup(siliconcompiler.Chip('<lib>')):
+        lib.write_manifest(f'{lib.top()}.json')

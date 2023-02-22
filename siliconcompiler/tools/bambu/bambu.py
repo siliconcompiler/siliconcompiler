@@ -1,22 +1,12 @@
-import importlib
+'''
+'''
 
-import siliconcompiler
+import importlib
 
 ####################################################################
 # Make Docs
 ####################################################################
-def make_docs():
-    '''
-    '''
-
-    chip = siliconcompiler.Chip('<design>')
-    step = 'import'
-    index = '0'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+def make_docs(chip):
     setup = getattr(importlib.import_module('tools.bambu.import'), 'setup')
     setup(chip)
     return chip
@@ -33,13 +23,16 @@ def parse_version(stdout):
 
 def runtime_options(chip):
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
     cmdlist = []
 
     for value in chip.find_files('option', 'idir'):
         cmdlist.append('-I' + value)
     for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('input', 'hll', 'c'):
+    for value in chip.find_files('input', 'hll', 'c', step=step, index=index):
         cmdlist.append(value)
 
     cmdlist.append('--top-fname=' + chip.top())

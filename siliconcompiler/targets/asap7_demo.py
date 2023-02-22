@@ -1,15 +1,9 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
 
-def make_docs():
-    '''
-    Demonstration target for compiling ASICs with ASAP7 and the open-source
-    asicflow.
-    '''
-
-    chip = siliconcompiler.Chip('asap7_demo')
-    setup(chip)
-    return chip
+####################################################
+# Target Setup
+####################################################
 
 def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
@@ -51,13 +45,25 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.set('constraint', 'coremargin', 0.270)
 
     #6. Timing corners
-    corner = 'typical'
-    chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
-    chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)
-    chip.set('constraint', 'timing', 'worst', 'mode', 'func')
-    chip.set('constraint', 'timing', 'worst', 'check', ['setup','hold'])
+    pex_corner = 'typical'
+
+    chip.set('constraint', 'timing', 'slow', 'libcorner', 'slow')
+    chip.set('constraint', 'timing', 'slow', 'pexcorner', pex_corner)
+    chip.set('constraint', 'timing', 'slow', 'mode', 'func')
+    chip.set('constraint', 'timing', 'slow', 'check', ['setup', 'hold'])
+
+    chip.set('constraint', 'timing', 'fast', 'libcorner', 'fast')
+    chip.set('constraint', 'timing', 'fast', 'pexcorner', pex_corner)
+    chip.set('constraint', 'timing', 'fast', 'mode', 'func')
+    chip.set('constraint', 'timing', 'fast', 'check', ['setup', 'hold'])
+
+    chip.set('constraint', 'timing', 'typical', 'libcorner', 'typical')
+    chip.set('constraint', 'timing', 'typical', 'pexcorner', pex_corner)
+    chip.set('constraint', 'timing', 'typical', 'mode', 'func')
+    chip.set('constraint', 'timing', 'typical', 'check', ['power'])
 
 #########################
 if __name__ == "__main__":
-
-    chip = make_docs()
+    target = siliconcompiler.Chip('<target>')
+    setup(target)
+    target.write_manifest('asap7_demo.json')

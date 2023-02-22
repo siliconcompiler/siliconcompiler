@@ -20,11 +20,11 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
-    targetlibs = chip.get('asic', 'logiclib')
+    targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
     stackup = chip.get('option', 'stackup')
     pdk = chip.get('option', 'pdk')
     if bool(stackup) & bool(targetlibs):
-        macrolibs = chip.get('asic', 'macrolib')
+        macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
 
         chip.add('tool', tool, 'task', task, 'require', ",".join(['asic', 'logiclib']), step=step, index=index)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['option', 'stackup']), step=step, index=index)
@@ -39,6 +39,6 @@ def setup(chip):
     # Input/Output requirements for default flow
     design = chip.top()
     if (not chip.valid('input', 'layout', 'def') or
-        not chip.get('input', 'layout', 'def')):
+        not chip.get('input', 'layout', 'def', step=step, index=index)):
         chip.add('tool', tool, 'task', task, 'input', design + '.def', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.gds', step=step, index=index)

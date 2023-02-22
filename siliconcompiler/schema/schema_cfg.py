@@ -4,9 +4,15 @@ import copy as pycopy
 import json
 import re
 
-from .utils import trim
+# Default import must be relative, to facilitate tools with Python interfaces
+# (such as KLayout) directly importing the schema package. However, the fallback
+# allows running this script directly to generate defaults.json.
+try:
+    from .utils import trim
+except ImportError:
+    from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.23.0'
+SCHEMA_VERSION = '0.25.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -86,7 +92,7 @@ def scparam(cfg,
         cfg['help'] = schelp
         cfg['signature'] = signature
         cfg['notes'] = notes
-        # none, optional, mandatory
+        # never, optional, required
         cfg['pernode'] = pernode
         cfg['nodevalue'] = {}
         cfg['set'] = False
@@ -161,6 +167,7 @@ def schema_cfg():
     for item, val in io.items():
         scparam(cfg,[item, fileset, filetype],
                 sctype='[file]',
+                pernode='optional',
                 copy=val[1],
                 shorthelp=f"{val[0]}: files",
                 switch=f"-{item} 'fileset filetype <file>'",
@@ -1201,7 +1208,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             shorthelp="Task: regex filter",
             switch="-tool_task_regex 'tool task suffix <str>'",
             example=[
-                "cli: -tool_task_regex 'openroad place errors -v ERROR'",
+                "cli: -tool_task_regex 'openroad place errors \"-v ERROR\"'",
                 "api: chip.set('tool','openroad','task','place','regex','errors','-v ERROR')"],
             schelp="""
             A list of piped together grep commands. Each entry represents a set
@@ -1288,9 +1295,9 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='required',
             shorthelp="Task: inputs",
-            switch="-tool_task_input 'task <str>'",
+            switch="-tool_task_input 'tool task step index <str>'",
             example=[
-                "cli: -tool_task_input 'openroad place oh_add.def'",
+                "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
                 "api: chip.set('tool','openroad','task','place','input','oh_add.def', step='place', index='0')"],
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
@@ -1303,9 +1310,9 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='required',
             shorthelp="Task: outputs",
-            switch="-tool_task_output 'task step index <str>'",
+            switch="-tool_task_output 'tool task step index <str>'",
             example=[
-                "cli: -tool_task_output 'openroad place oh_add.def'",
+                "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
                 "api: chip.set('tool','openroad','task','place','output','oh_add.def', step='place', index='0')"],
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
@@ -1390,9 +1397,9 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='required',
             shorthelp="Task: reports",
-            switch="-tool_task_report 'task metric <str>'",
+            switch="-tool_task_report 'task metric step index <str>'",
             example=[
-                 "cli: -tool_task_report 'openroad place holdtns place.log'",
+                 "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
                 "api: chip.set('tool','openroad','task','place','report','holdtns','place.log', step='place', index='0')"],
             schelp="""
             List of report files associated with a specific 'metric'. The file path
@@ -1980,6 +1987,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'nice'],
             sctype='int',
             scope='job',
+            pernode='optional',
             shorthelp="Tool execution scheduling priority",
             switch="-nice <int>",
             example=[
@@ -2065,6 +2073,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option','optmode'],
             sctype='str',
+            pernode='optional',
             scope='job',
             require='all',
             defvalue='O0',
@@ -2155,6 +2164,20 @@ def schema_option(cfg):
             parameter should only be used for specifying files that are
             not directly supported by the schema.""")
 
+    scparam(cfg, ['option', 'dir', key],
+            sctype='[dir]',
+            scope='job',
+            shorthelp="Custom directories",
+            switch="-dir 'key <str>'",
+            example=[
+            "cli: -dir 'openroad_tapcell ./tapcell.tcl'",
+            "api: chip.set('option', 'dir', 'openroad_files', './openroad_support/')"],
+            schelp="""
+            List of named directories specified. Certain tools and
+            reference flows require special parameters, this
+            parameter should only be used for specifying directories that are
+            not directly supported by the schema.""")
+
     scparam(cfg, ['option', 'scpath'],
             sctype='[dir]',
             scope='job',
@@ -2169,6 +2192,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',
             enum=["NOTSET", "INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"],
+            pernode='optional',
             scope='job',
             defvalue='INFO',
             shorthelp="Logging level",
@@ -2343,6 +2367,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'quiet'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Quiet execution",
             switch="-quiet <bool>",
@@ -2369,6 +2394,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'novercheck'],
             sctype='bool',
+            pernode='optional',
             defvalue=False,
             scope='job',
             shorthelp="Disable version checking",
@@ -2407,6 +2433,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'track'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Enable provenance tracking",
             switch="-track <bool>",
@@ -2420,6 +2447,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'trace'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Enable debug traces",
             switch="-trace <bool>",
@@ -2598,6 +2626,7 @@ def schema_option(cfg):
 
     scparam(cfg,['option', 'flowcontinue'],
             sctype='bool',
+            pernode='optional',
             shorthelp="Flow continue-on-error",
             switch='-flowcontinue',
             example=["cli: -flowcontinue",
@@ -2610,6 +2639,7 @@ def schema_option(cfg):
 
     scparam(cfg,['option', 'continue'],
             sctype='bool',
+            pernode='optional',
             shorthelp='Implementation continue-on-error',
             switch='-continue',
             example=["cli: -continue",
@@ -2634,11 +2664,24 @@ def schema_option(cfg):
             if an operation should continue. The timeout value is also
             useed by the jobscheduler to automatically kill jobs.""")
 
+    scparam(cfg, ['option', 'strict'],
+            sctype='bool',
+            shorthelp="Option: Strict checking",
+            switch="-strict <bool>",
+            example= ["cli: -strict true",
+                    "api: chip.set('option', 'strict', True)"],
+            schelp="""
+            Enable additional strict checking in the SC Python API. When this
+            parameter is set to True, users must provide step and index keyword
+            arguments when reading from parameters with the pernode field set to
+            'optional'.""")
+
     # job scheduler
     scparam(cfg, ['option', 'scheduler', 'name'],
             sctype='enum',
             enum=["slurm", "lsf", "sge"],
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler platform",
             switch="-scheduler <str>",
             example=[
@@ -3114,6 +3157,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'macrolib'],
             sctype='[str]',
             scope='job',
+            pernode='optional',
             shorthelp="ASIC: macro libraries",
             switch="-asic_macrolib <str>",
             example=["cli: -asic_macrolib sram64x1024",
@@ -3126,6 +3170,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'delaymodel'],
             sctype='str',
             scope='job',
+            pernode='optional',
             shorthelp="ASIC: delay model",
             switch="-asic_delaymodel <str>",
             example= ["cli: -asic_delaymodel ccs",
@@ -3155,6 +3200,7 @@ def schema_asic(cfg):
     for item in names:
         scparam(cfg, ['asic', 'cells', item],
                 sctype='[str]',
+                pernode='optional',
                 shorthelp=f"ASIC: {item} cell list",
                 switch=f"-asic_cells_{item} '<str>'",
                 example=[
@@ -3168,6 +3214,7 @@ def schema_asic(cfg):
 
     scparam(cfg,['asic', 'libarch'],
             sctype='str',
+            pernode='optional',
             shorthelp="ASIC: library architecture",
             switch="-asic_libarch '<str>'",
             example=[
@@ -3181,6 +3228,7 @@ def schema_asic(cfg):
     libarch = 'default'
     scparam(cfg,['asic', 'site', libarch],
             sctype='[str]',
+            pernode='optional',
             shorthelp="ASIC: Library sites",
             switch="-asic_site 'libarch <str>'",
             example=[
@@ -3203,6 +3251,7 @@ def schema_constraint(cfg):
 
     scparam(cfg,['constraint', 'timing', scenario, 'voltage'],
             sctype='float',
+            pernode='optional',
             unit='V',
             scope='job',
             shorthelp="Constraint: voltage level",
@@ -3213,6 +3262,7 @@ def schema_constraint(cfg):
 
     scparam(cfg,['constraint', 'timing', scenario, 'temperature'],
             sctype='float',
+            pernode='optional',
             unit='C',
             scope='job',
             shorthelp="Constraint: temperature",
@@ -3223,6 +3273,7 @@ def schema_constraint(cfg):
 
     scparam(cfg,['constraint', 'timing', scenario, 'libcorner'],
             sctype='[str]',
+            pernode='optional',
             scope='job',
             shorthelp="Constraint: library corner",
             switch="-constraint_timing_libcorner 'scenario <str>'",
@@ -3233,6 +3284,7 @@ def schema_constraint(cfg):
 
     scparam(cfg,['constraint', 'timing', scenario, 'pexcorner'],
             sctype='str',
+            pernode='optional',
             scope='job',
             shorthelp="Constraint: pex corner",
             switch="-constraint_timing_pexcorner 'scenario <str>'",
@@ -3244,6 +3296,7 @@ def schema_constraint(cfg):
 
     scparam(cfg,['constraint', 'timing', scenario, 'opcond'],
             sctype='str',
+            pernode='optional',
             scope='job',
             shorthelp="Constraint: operating condition",
             switch="-constraint_timing_opcond 'scenario <str>'",
@@ -3255,6 +3308,7 @@ def schema_constraint(cfg):
 
     scparam(cfg,['constraint', 'timing', scenario, 'mode'],
             sctype='str',
+            pernode='optional',
             scope='job',
             shorthelp="Constraint: operating mode",
             switch="-constraint_timing_mode 'scenario <str>'",
@@ -3265,6 +3319,7 @@ def schema_constraint(cfg):
 
     scparam(cfg,['constraint', 'timing', scenario, 'file'],
             sctype='[file]',
+            pernode='optional',
             scope='job',
             copy=True,
             shorthelp="Constraint: SDC files",
@@ -3279,11 +3334,12 @@ def schema_constraint(cfg):
 
     scparam(cfg,['constraint', 'timing', scenario, 'check'],
             sctype='[str]',
+            pernode='optional',
             scope='job',
             shorthelp="Constraint: timing checks",
             switch="-constraint_timing_check 'scenario <str>'",
             example=[
-                "cli: -constraint_timing_check 'worst check setup'",
+                "cli: -constraint_timing_check 'worst setup'",
                 "api: chip.add('constraint', 'timing', 'worst','check','setup')"],
             schelp="""
             List of checks for to perform for the scenario. The checks must
@@ -3298,6 +3354,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'component', inst, 'placement'],
             sctype='(float,float,float)',
+            pernode='optional',
             unit='um',
             shorthelp="Constraint: Component placement",
             switch="-constraint_component_placement 'inst <(float,float, float)>'",
@@ -3320,6 +3377,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'component', inst, 'partname'],
             sctype='str',
+            pernode='optional',
             shorthelp="Constraint: Component part name",
             switch="-constraint_component_partname 'inst <str>'",
             example=[
@@ -3332,6 +3390,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'component', inst, 'halo'],
             sctype='(float,float)',
+            pernode='optional',
             unit='um',
             shorthelp="Constraint: Component halo",
             switch="-constraint_component_halo 'inst <(float,float)>'",
@@ -3345,6 +3404,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
             sctype='float',
+            pernode='optional',
             shorthelp="Constraint: Component rotation",
             switch="-constraint_component_rotation 'inst <float>'",
             example=[
@@ -3360,6 +3420,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'component', inst, 'flip'],
             sctype='bool',
+            pernode='optional',
             shorthelp="Constraint: Component flip option",
             switch="-constraint_component_flip 'inst <bool>'",
             example=[
@@ -3377,6 +3438,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'pin', name, 'placement'],
             sctype='(float,float,float)',
+            pernode='optional',
             unit='um',
             shorthelp="Constraint: Pin placement",
             switch="-constraint_pin_placement 'name <(float,float, float)>'",
@@ -3397,6 +3459,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',
+            pernode='optional',
             shorthelp="Constraint: Pin layer",
             switch="-constraint_pin_layer 'name <str>'",
             example=[
@@ -3409,6 +3472,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'pin', name, 'side'],
             sctype='int',
+            pernode='optional',
             shorthelp="Constraint: Pin side",
             switch="-constraint_pin_side 'name <int>'",
             example=[
@@ -3424,6 +3488,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'pin', name, 'order'],
             sctype='int',
+            pernode='optional',
             shorthelp="Constraint: Pin order",
             switch="-constraint_pin_order 'name <int>'",
             example=[
@@ -3439,6 +3504,7 @@ def schema_constraint(cfg):
     # NETS
     scparam(cfg, ['constraint', 'net', name, 'maxlength'],
             sctype='float',
+            pernode='optional',
             unit='um',
             shorthelp="Constraint: Net max length",
             switch="-constraint_net_maxlength 'name <float>'",
@@ -3451,6 +3517,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'net', name, 'maxresistance'],
             sctype='float',
+            pernode='optional',
             unit='ohm',
             shorthelp="Constraint: Net max resistasnce",
             switch="-constraint_net_maxresistance 'name <float>'",
@@ -3463,6 +3530,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'net', name, 'ndr'],
             sctype='(float,float)',
+            pernode='optional',
             unit='um',
             shorthelp="Constraint: Net routing rule",
             switch="-constraint_net_ndr 'name <(float,float)>'",
@@ -3477,6 +3545,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'net', name, 'minlayer'],
             sctype='str',
+            pernode='optional',
             shorthelp="Constraint: Net minimum routing layer",
             switch="-constraint_net_minlayer 'name <str>'",
             example=[
@@ -3490,6 +3559,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'net', name, 'maxlayer'],
             sctype='str',
+            pernode='optional',
             shorthelp="Constraint: Net maximum routing layer",
             switch="-constraint_net_maxlayer 'name <str>'",
             example=[
@@ -3504,6 +3574,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'net', name, 'shield'],
             sctype='str',
+            pernode='optional',
             shorthelp="Constraint: Net shielding",
             switch="-constraint_net_shielding 'name <str>'",
             example=[
@@ -3515,6 +3586,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'net', name, 'match'],
             sctype='[str]',
+            pernode='optional',
             shorthelp="Constraint: Net matched routing",
             switch="-constraint_net_match 'name <str>'",
             example=[
@@ -3527,6 +3599,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'net', name, 'diffpair'],
             sctype='str',
+            pernode='optional',
             shorthelp="Constraint: Net diffpair",
             switch="-constraint_net_diffpair 'name <str>'",
             example=[
@@ -3538,6 +3611,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'net', name, 'sympair'],
             sctype='str',
+            pernode='optional',
             shorthelp="Constraint: Net sympair",
             switch="-constraint_net_sympair 'name <str>'",
             example=[
@@ -3551,6 +3625,7 @@ def schema_constraint(cfg):
     # AREA
     scparam(cfg, ['constraint', 'outline'],
             sctype='[(float,float)]',
+            pernode='optional',
             unit='um',
             scope='job',
             shorthelp="Constraint: Layout outline",
@@ -3565,6 +3640,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'corearea'],
             sctype='[(float,float)]',
+            pernode='optional',
             unit='um',
             scope='job',
             shorthelp="Constraint: Layout core area",
@@ -3579,6 +3655,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'coremargin'],
             sctype='float',
+            pernode='optional',
             unit='um',
             scope='job',
             shorthelp="Constraint: Layout core margin",
@@ -3592,6 +3669,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'density'],
             sctype='float',
+            pernode='optional',
             scope='job',
             shorthelp="Constraint: Layout density",
             switch="-constraint_density <float>",
@@ -3606,6 +3684,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'aspectratio'],
             sctype='float',
+            pernode='optional',
             defvalue='1.0',
             scope='job',
             shorthelp="Constraint: Layout aspect ratio",

@@ -1,14 +1,17 @@
 #!/bin/sh
 
+# Get directory of script
+src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
+
 sudo apt-get install -y build-essential m4 tcsh csh libx11-dev tcl-dev tk-dev
 
 mkdir -p deps
 cd deps
 
-git clone https://github.com/RTimothyEdwards/magic.git
+git clone $(python3 ${src_path}/_tools.py --tool magic --field git-url) magic
 cd magic
-git checkout 8.3.274
+git checkout $(python3 ${src_path}/_tools.py --tool magic --field git-commit)
 
-./configure
+LD_FLAGS=-shared ./configure
 make
 sudo make install

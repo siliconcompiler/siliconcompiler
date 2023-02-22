@@ -10,7 +10,12 @@ import gzip
 import json
 import os
 import re
-import yaml
+
+try:
+    import yaml
+    _has_yaml = True
+except ImportError:
+    _has_yaml = False
 
 from .schema_cfg import schema_cfg
 from .utils import escape_val_tcl, PACKAGE_ROOT
@@ -59,6 +64,8 @@ class Schema:
             if re.search(r'(\.json|\.sup)(\.gz)*$', filepath, flags=re.IGNORECASE):
                 localcfg = json.load(fin)
             elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath, flags=re.IGNORECASE):
+                if not _has_yaml:
+                    raise ImportError('yaml package required to read YAML manifest')
                 localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
             else:
                 raise ValueError(f'File format not recognized {filepath}')
@@ -88,8 +95,6 @@ class Schema:
 
         if isinstance(index, int):
             index = str(index)
-        if step is not None and index is None:
-            index = 'default'
 
         if field == 'value':
             if cfg['pernode'] == 'required':
@@ -100,6 +105,8 @@ class Schema:
 
             if step in cfg['nodevalue'] and index in cfg['nodevalue'][step]:
                 return cfg['nodevalue'][step][index]
+            elif step in cfg['nodevalue'] and 'default' in cfg['nodevalue'][step]:
+                return cfg['nodevalue'][step]['default']
             elif Schema._is_set(cfg):
                 return cfg['value']
             else:
@@ -269,13 +276,13 @@ class Schema:
 
         vals = []
         if cfg['pernode'] != 'required' and (return_defvalue or cfg['set']):
-            vals.append((self.get(*keypath, step=None, index=None), None, None))
+            vals.append((self.get(*keypath), None, None))
 
         if cfg['pernode'] != 'never':
             for step in cfg['nodevalue']:
                 for index in cfg['nodevalue'][step]:
-                    if index == 'default': index = None
-                    vals.append((cfg['nodevalue'][step][index], step, index))
+                    index_arg = None if index == 'default' else index
+                    vals.append((cfg['nodevalue'][step][index], step, index_arg))
 
         return vals
 
@@ -633,6 +640,8 @@ class Schema:
 
     ###########################################################################
     def write_yaml(self, fout):
+        if not _has_yaml:
+            raise ImportError('yaml package required to write YAML manifest')
         fout.write(yaml.dump(self.cfg, Dumper=YamlIndentDumper, default_flow_style=False))
 
     ###########################################################################
@@ -689,12 +698,19 @@ class Schema:
         allkeys = self.allkeys()
         for key in allkeys:
             keypath = ','.join(key)
-            value = self.get(*key)
-            if isinstance(value,list):
-                for item in value:
-                    csvwriter.writerow([keypath, item])
-            else:
-                csvwriter.writerow([keypath, value])
+            for value, step, index in self._getvals(*key):
+                if step is None and index is None:
+                    keypath = ','.join(key)
+                elif index is None:
+                    keypath = ','.join(key + [step, 'default'] )
+                else:
+                    keypath = ','.join(key + [step, index])
+
+                if isinstance(value,list):
+                    for item in value:
+                        csvwriter.writerow([keypath, item])
+                else:
+                    csvwriter.writerow([keypath, value])
 
     ###########################################################################
     def copy(self):
@@ -789,6 +805,7 @@ class Schema:
         schema.cfg = self.cfg['history'][job]
         return schema
 
-class YamlIndentDumper(yaml.Dumper):
-    def increase_indent(self, flow=False, indentless=False):
-        return super(YamlIndentDumper, self).increase_indent(flow, False)
+if _has_yaml:
+    class YamlIndentDumper(yaml.Dumper):
+        def increase_indent(self, flow=False, indentless=False):
+            return super(YamlIndentDumper, self).increase_indent(flow, False)

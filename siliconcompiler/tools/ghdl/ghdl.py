@@ -1,3 +1,17 @@
+
+'''
+GHDL is an open-source analyzer, compiler, simulator and
+(experimental) synthesizer for VHDL. It allows you to analyse
+and elaborate sources for generating machine code from your design.
+Native program execution is the only way for high speed simulation.
+
+Documentation: https://ghdl.readthedocs.io/en/latest
+
+Sources: https://github.com/ghdl/ghdl
+
+Installation: https://github.com/ghdl/ghdl
+'''
+
 import importlib
 
 import siliconcompiler
@@ -5,30 +19,7 @@ import siliconcompiler
 #####################################################################
 # Make Docs
 #####################################################################
-
-def make_docs():
-    '''
-    GHDL is an open-source analyzer, compiler, simulator and
-    (experimental) synthesizer for VHDL. It allows you to analyse
-    and elaborate sources for generating machine code from your design.
-    Native program execution is the only way for high speed simulation.
-
-    Documentation: https://ghdl.readthedocs.io/en/latest
-
-    Sources: https://github.com/ghdl/ghdl
-
-    Installation: https://github.com/ghdl/ghdl
-
-    '''
-
-    chip = siliconcompiler.Chip('<design>')
-    step = 'import'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+def make_docs(chip):
     setup = getattr(importlib.import_module('tools.ghdl.import'), 'setup')
     setup(chip)
     return chip
@@ -65,7 +56,7 @@ def runtime_options(chip):
             chip.error('Unsupported option ' + opt)
 
     # Add sources
-    for value in chip.find_files('input', 'rtl', 'vhdl'):
+    for value in chip.find_files('input', 'rtl', 'vhdl', step=step, index=index):
         options.append(value)
 
     # Set top module

@@ -1,29 +1,11 @@
 import siliconcompiler
 
-############################################################################
-# DOCS
-############################################################################
-
-def make_docs():
-    '''
-    A configurable RTL linting flow.
-
-    '''
-
-    chip = siliconcompiler.Chip('<design>')
-    chip.set('option', 'flow', 'lintflow')
-    return setup(chip)
-
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
 def setup(chip):
     '''
-    Setup function RTL linting flow
-
-    Args:
-        chip (object): SC Chip object
-
+    An RTL linting flow.
     '''
 
     flowname = 'lintflow'
@@ -44,5 +26,5 @@ def setup(chip):
 
 ##################################################
 if __name__ == "__main__":
-    chip = make_docs()
-    chip.write_flowgraph("lintflow.png")
+    flow = setup(siliconcompiler.Chip('<flow>'))
+    flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

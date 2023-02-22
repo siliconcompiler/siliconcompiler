@@ -48,8 +48,8 @@ if {[dict exists $sc_cfg input asic floorplan]} {
 ###########################
 
 # source tracks from file if found, else else use schema entries
-if {[dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks]} {
-  set tracks_file [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype tracks]]
+if {[dict exists $sc_cfg library $sc_mainlib option file openroad_tracks]} {
+  set tracks_file [lindex [dict get $sc_cfg library $sc_mainlib option file openroad_tracks] 0]
   puts "Sourcing tracks configuration: ${tracks_file}"
   source $tracks_file
 } else {

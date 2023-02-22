@@ -1,6 +1,6 @@
 import siliconcompiler
 
-def make_docs():
+def setup(chip):
     '''A flow for running LVS/DRC signoff on a GDS layout.
 
     Inputs must be passed to this flow as follows::
@@ -8,11 +8,6 @@ def make_docs():
         flow.input('<path-to-layout>.gds')
         flow.input('<path-to-netlist>.vg')
     '''
-    chip = siliconcompiler.Chip('<topmodule>')
-    chip.set('option', 'flow', 'signoffflow')
-    return setup(chip)
-
-def setup(chip):
     flowname = 'signoffflow'
 
     flow = siliconcompiler.Flow(chip, flowname)
@@ -36,3 +31,8 @@ def setup(chip):
         flow.set('flowgraph', flowname, step, '0', 'goal', 'errors', 0)
 
     return flow
+
+##################################################
+if __name__ == "__main__":
+    flow = setup(siliconcompiler.Chip('<flow>'))
+    flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

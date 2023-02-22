@@ -1,3 +1,10 @@
+'''
+Vivado is an FPGA programming tool suite from Xilinx used to
+program Xilinx devices.
+
+Documentation: https://www.xilinx.com/products/design-tools/vivado.html
+'''
+
 import json
 import os
 import re
@@ -7,22 +14,9 @@ import siliconcompiler
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-    '''
-    Vivado is an FPGA programming tool suite from Xilinx used to
-    program Xilinx devices.
-
-    Documentation: https://www.xilinx.com/products/design-tools/vivado.html
-
-    '''
-
-    chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step', 'compile')
-    chip.set('arg','index', '<index>')
-    setup(chip)
-    return chip
-
+def make_docs(chip):
+    chip.set('fpga', 'partname', 'ice40up5k-sg48')
+    chip.load_target("fpgaflow_demo")
 
 ################################
 # Setup Tool (pre executable)

@@ -1,7 +1,7 @@
 import os
 import siliconcompiler
 
-def make_docs():
+def setup(chip):
     '''
     The asap7 PDK was developed at ASU in collaboration with ARM Research.
     With funding from the DARPA IDEA program, the PDK was released
@@ -36,16 +36,6 @@ def make_docs():
 
     .. warning::
        Work in progress (not ready for use)
-
-    '''
-
-    chip = siliconcompiler.Chip('asap7')
-
-    return setup(chip)
-
-def setup(chip):
-    '''
-    TODO: Add process information
     '''
 
     foundry = 'virtual'
@@ -88,7 +78,8 @@ def setup(chip):
         'M6': 0.4,
         'M7': 0.4,
         'M8': 0.4,
-        'M9': 0.4
+        'M9': 0.4,
+        'Pad': 1.0
     }
     for layer, adj in openroad_layer_adjustments.items():
         pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
@@ -109,6 +100,5 @@ def setup(chip):
 
 #########################
 if __name__ == "__main__":
-
-    chip = make_docs()
-    chip.write_manifest('asap7.tcl')
+    pdk = setup(siliconcompiler.Chip('<pdk>'))
+    pdk.write_manifest(f'{pdk.top()}.json')

@@ -1,23 +1,8 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
 
-############################################################################
-# DOCS
-############################################################################
-
-def make_docs():
-    '''
-    Demonstration target for compiling ASICs with FreePDK45 and the open-source
-    asicflow.
-    '''
-
-    chip = siliconcompiler.Chip('<design>')
-    setup(chip)
-    return chip
-
-
 ####################################################
-# PDK Setup
+# Target Setup
 ####################################################
 
 def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
@@ -70,5 +55,6 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
 
 #########################
 if __name__ == "__main__":
-
-    chip = make_docs()
+    target = siliconcompiler.Chip('<target>')
+    setup(target)
+    target.write_manifest('freepdk45_demo.json')

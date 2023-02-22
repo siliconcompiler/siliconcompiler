@@ -77,6 +77,9 @@ def test_setget():
         elif match.group(1) == 'add':
             chip.add(*keypath, value, step=step, index=index)
 
+        if step is None and index is None and pernode == 'optional':
+            # arbitrary step/index to avoid error
+            step, index = 'syn', '0'
         result = chip.get(*keypath, step=step, index=index)
         assert result == value, f'Expected value {value} from keypath {keypath}. Got {result}.'
 
@@ -119,7 +122,8 @@ def test_set_valid_field_to_none():
     chip = siliconcompiler.Chip('test')
     chip.set('option', 'scheduler', 'name', 'slurm')
     chip.set('option', 'scheduler', 'name', None)
-    jobscheduler = chip.get('option', 'scheduler', 'name')
+    # arbitrary step/index
+    jobscheduler = chip.get('option', 'scheduler', 'name', step='syn', index=0)
     assert jobscheduler == None
     assert chip._error == False
 
@@ -189,16 +193,16 @@ def test_set_enum_fail():
         return
     assert False
 
-def test_prenode():
+def test_pernode():
     chip = siliconcompiler.Chip('test')
 
     chip.set('asic', 'logiclib', 'mylib')
     chip.set('asic', 'logiclib', 'synlib', step='syn')
     chip.set('asic', 'logiclib', 'syn0lib', step='syn', index=0)
 
-    assert chip.get('asic', 'logiclib', step='floorplan') == ['mylib']
+    assert chip.get('asic', 'logiclib', step='floorplan', index=0) == ['mylib']
     assert chip.get('asic', 'logiclib', step='syn', index=0) == ['syn0lib']
-    assert chip.get('asic', 'logiclib', step='syn') == ['synlib']
+    assert chip.get('asic', 'logiclib', step='syn', index=1) == ['synlib']
 
 #########################
 if __name__ == "__main__":

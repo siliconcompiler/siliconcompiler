@@ -3,8 +3,13 @@ import siliconcompiler
 ############################################################################
 # DOCS
 ############################################################################
+def make_docs(chip):
+    return setup(chip, filetype='gds', np=3)
 
-def make_docs():
+###########################################################################
+# Flowgraph Setup
+############################################################################
+def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
     '''
     A flow to show the output files generated from other flows.
 
@@ -16,21 +21,6 @@ def make_docs():
 
     * np : Number of parallel show jobs to launch
     * screenshot : true/false, indicate if this should be configured as a screenshot
-    '''
-
-    chip = siliconcompiler.Chip('<topmodule>')
-    return setup(chip, filetype='gds', np=3)
-
-###########################################################################
-# Flowgraph Setup
-############################################################################
-def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
-    '''
-    Setup function for 'showflow' execution flowgraph.
-
-    Args:
-        chip (object): SC Chip object
-        flowname (str): name for the flow
     '''
 
     flow = siliconcompiler.Flow(chip, flowname)
@@ -55,5 +45,5 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
 
 ##################################################
 if __name__ == "__main__":
-    chip = make_docs()
-    chip.write_flowgraph("showflow.png")
+    flow = make_docs(siliconcompiler.Chip('<flow>'))
+    flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

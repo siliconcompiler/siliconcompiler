@@ -2,16 +2,16 @@
 import os
 import siliconcompiler
 
-############################################################################
-# DOCS
-############################################################################
+####################################################
+# PDK Setup
+####################################################
 
-def make_docs():
+def setup(chip):
     '''
     The 'skywater130' Open Source PDK is a collaboration between Google and
     SkyWater Technology Foundry to provide a fully open source Process
     Design Kit and related resources, which can be used to create
-    manufacturable designs at SkyWater’s facility.
+    manufacturable designs at SkyWater's facility.
 
     Skywater130 Process Highlights:
     * 130nm process
@@ -30,20 +30,6 @@ def make_docs():
 
     Sources:
     * https://github.com/google/skywater-pdk
-
-    '''
-
-    chip = siliconcompiler.Chip('skywater130')
-
-    return setup(chip)
-
-####################################################
-# PDK Setup
-####################################################
-
-def setup(chip):
-    '''
-    Setup function for the skywater130 PDK.
     '''
 
     foundry = 'skywater'
@@ -124,6 +110,5 @@ def setup(chip):
 
 #########################
 if __name__ == "__main__":
-
-    chip = make_docs()
-    chip.write_manifest('skywater130.tcl')
+    pdk = setup(siliconcompiler.Chip('<pdk>'))
+    pdk.write_manifest(f'{pdk.top()}.json')

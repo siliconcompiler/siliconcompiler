@@ -1,32 +1,18 @@
+'''
+Surelog is a SystemVerilog pre-processor, parser, elaborator,
+and UHDM compiler that provdes IEEE design and testbench
+C/C++ VPI and a Python AST API.
+
+Documentation: https://github.com/chipsalliance/Surelog
+
+Sources: https://github.com/chipsalliance/Surelog
+
+Installation: https://github.com/chipsalliance/Surelog
+'''
+
 import os
 import sys
 import shutil
-
-import siliconcompiler
-
-####################################################################
-# Make Docs
-####################################################################
-def make_docs():
-    '''
-    Surelog is a SystemVerilog pre-processor, parser, elaborator,
-    and UHDM compiler that provdes IEEE design and testbench
-    C/C++ VPI and a Python AST API.
-
-    Documentation: https://github.com/chipsalliance/Surelog
-
-    Sources: https://github.com/chipsalliance/Surelog
-
-    Installation: https://github.com/chipsalliance/Surelog
-
-    '''
-
-    chip = siliconcompiler.Chip('<design>')
-    chip.load_target('freepdk45_demo')
-    chip.set('arg','step','import')
-    chip.set('arg','index','0')
-    setup(chip)
-    return chip
 
 ################################
 # Setup Tool (pre executable)
@@ -96,6 +82,9 @@ def runtime_options(chip):
 
     ''' Custom runtime options, returnst list of command line options.
     '''
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     cmdlist = []
 
@@ -173,7 +162,7 @@ def runtime_options(chip):
     # Sources
     #######################
 
-    src_files = chip.find_files('input', 'rtl', 'verilog')
+    src_files = chip.find_files('input', 'rtl', 'verilog', step=step, index=index)
 
     # TODO: add back later
     #for item in chip.getkeys('library'):

@@ -2,11 +2,11 @@
 import os
 import siliconcompiler
 
-############################################################################
-# DOCS
-############################################################################
+####################################################
+# PDK Setup
+####################################################
 
-def make_docs():
+def setup(chip):
     '''
     The freepdk45 PDK is a virtual PDK derived from the work done at
     NCSU (NCSU_TechLib_FreePDK45.)  It supplies techfiles, display
@@ -23,21 +23,6 @@ def make_docs():
 
     More information:
     * https://www.eda.ncsu.edu/wiki/FreePDK45:Manual
-
-    '''
-
-    chip = siliconcompiler.Chip('freepdk45')
-
-    return setup(chip)
-
-
-####################################################
-# PDK Setup
-####################################################
-
-def setup(chip):
-    '''
-    Setup function for the freepdk45 PDK.
     '''
 
     ###############################################
@@ -118,6 +103,5 @@ def setup(chip):
 
 #########################
 if __name__ == "__main__":
-
-    chip = make_docs()
-    chip.write_manifest('freepdk45.tcl')
+    pdk = setup(siliconcompiler.Chip('<pdk>'))
+    pdk.write_manifest(f'{pdk.top()}.json')

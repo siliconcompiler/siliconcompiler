@@ -1,37 +1,25 @@
+
+'''
+Klayout is a production grade viewer and editor of GDSII and
+Oasis data with customizable Python and Ruby interfaces.
+
+Documentation: https://www.klayout.de
+
+Sources: https://github.com/KLayout/klayout
+
+Installation: https://www.klayout.de/build.html
+'''
+
 import os
 from pathlib import Path
 import platform
 import shutil
 
-import siliconcompiler
-
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-    '''
-    Klayout is a production grade viewer and editor of GDSII and
-    Oasis data with customizable Python and Ruby interfaces.
-
-    Documentation: https://www.klayout.de
-
-    Sources: https://github.com/KLayout/klayout
-
-    Installation: https://www.klayout.de/build.html
-
-    '''
-
-    chip = siliconcompiler.Chip('<design>')
-    chip.load_target('freepdk45_demo')
-    step = 'export'
-    index = '<index>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'task', '<task>')
-    setup(chip)
-
-    return chip
+def make_docs(chip):
+    chip.load_target("freepdk45_demo")
 
 ####################################################################
 # Setup tool
@@ -114,23 +102,6 @@ def runtime_options(chip):
 def parse_version(stdout):
     # KLayout 0.26.11
     return stdout.split()[1]
-
-def find_incoming_ext(chip):
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    flow = chip.get('option', 'flow')
-
-    supported_ext = ('gds', 'oas', 'def')
-
-    for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
-        for ext in supported_ext:
-            show_file = chip.find_result(ext, step=input_step, index=input_index)
-            if show_file:
-                return ext
-
-    # Nothing found, just add last one
-    return supported_ext[-1]
 
 ##################################################
 if __name__ == "__main__":

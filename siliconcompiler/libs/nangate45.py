@@ -1,14 +1,10 @@
 import os
 import siliconcompiler
 
-def make_docs():
+def setup(chip):
     '''
     Nangate open standard cell library for FreePDK45.
     '''
-    chip = siliconcompiler.Chip('<design>')
-    return setup(chip)
-
-def setup(chip):
     libname = 'nangate45'
     foundry = 'virtual'
     process = 'freepdk45'
@@ -113,6 +109,5 @@ def setup(chip):
 
 #########################
 if __name__ == "__main__":
-
-    lib = make_docs()
-    lib.write_manifest('nangate45.tcl')
+    lib = setup(siliconcompiler.Chip('<lib>'))
+    lib.write_manifest(f'{lib.top()}.json')

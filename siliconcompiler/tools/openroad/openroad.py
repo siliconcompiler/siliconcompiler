@@ -1,42 +1,26 @@
+'''
+OpenROAD is an automated physical design platform for
+integrated circuit design with a complete set of features
+needed to translate a synthesized netlist to a tapeout ready
+GDSII.
+
+Documentation: https://openroad.readthedocs.io/
+
+Sources: https://github.com/The-OpenROAD-Project/OpenROAD
+
+Installation: https://github.com/The-OpenROAD-Project/OpenROAD
+'''
+
 import math
 import os
-import shutil
 import json
 from jinja2 import Template
-
-import siliconcompiler
 
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-    '''
-    OpenROAD is an automated physical design platform for
-    integrated circuit design with a complete set of features
-    needed to translate a synthesized netlist to a tapeout ready
-    GDSII.
-
-    Documentation: https://openroad.readthedocs.io/
-
-    Sources: https://github.com/The-OpenROAD-Project/OpenROAD
-
-    Installation: https://github.com/The-OpenROAD-Project/OpenROAD
-
-    '''
-
-    chip = siliconcompiler.Chip('<design>')
-    step = '<step>'
-    index = '<index>'
-    chip.set('arg', 'step', step)
-    chip.set('arg', 'index', index)
-    # TODO: how to make it clear in docs that certain settings are
-    # target-dependent?
-    chip.load_target('freepdk45_demo')
-    chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'task', '<task>')
-    setup(chip)
-
-    return chip
+def make_docs(chip):
+    chip.load_target("asap7_demo")
 
 ################################
 # Setup Tool (pre executable)
@@ -57,12 +41,12 @@ def setup(chip, mode='batch'):
     flow = chip.get('option', 'flow')
     task = chip._get_task(step, index)
     pdkname = chip.get('option', 'pdk')
-    targetlibs = chip.get('asic', 'logiclib')
+    targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
     mainlib = targetlibs[0]
-    macrolibs = chip.get('asic', 'macrolib')
+    macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
     stackup = chip.get('option', 'stackup')
-    delaymodel = chip.get('asic', 'delaymodel')
-    libtype = chip.get('library', mainlib, 'asic', 'libarch')
+    delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
+    libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
 
     is_screenshot = mode == 'screenshot' or task == 'screenshot'
     is_show_screenshot = mode == 'show' or task == 'show' or is_screenshot
@@ -353,31 +337,42 @@ def post_process(chip):
 
 def get_pex_corners(chip):
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
     corners = set()
     for constraint in chip.getkeys('constraint', 'timing'):
-        if chip.valid('constraint', 'timing', constraint, 'pexcorner'):
-            corners.add(chip.get('constraint', 'timing', constraint, 'pexcorner'))
+        pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner', step=step, index=index)
+        if pexcorner:
+            corners.add(pexcorner)
 
     return list(corners)
 
 def get_corners(chip):
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
     corners = set()
     for constraint in chip.getkeys('constraint', 'timing'):
-        if chip.valid('constraint', 'timing', constraint, 'libcorner'):
-            corners.add(chip.get('constraint', 'timing', constraint, 'libcorner')[0])
+        libcorner = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
+        if libcorner:
+            corners.update(libcorner)
 
     return list(corners)
 
 def get_corner_by_check(chip, check):
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
     for constraint in chip.getkeys('constraint', 'timing'):
-        if not chip.valid('constraint', 'timing', constraint, 'libcorner'):
+        if check not in chip.get('constraint', 'timing', constraint, 'check', step=step, index=index):
             continue
 
-        if chip.valid('constraint', 'timing', constraint, 'check'):
-            if check in chip.get('constraint', 'timing', constraint, 'check'):
-                return chip.get('constraint', 'timing', constraint, 'libcorner')[0]
+        libcorner = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
+        if libcorner:
+            return libcorner[0]
 
     # if not specified, just pick the first corner available
     return get_corners(chip)[0]
@@ -403,17 +398,12 @@ def build_pex_corners(chip):
 
     corners = {}
     for constraint in chip.getkeys('constraint', 'timing'):
-        libcorner = None
-        if chip.valid('constraint', 'timing', constraint, 'libcorner'):
-            libcorner = chip.get('constraint', 'timing', constraint, 'libcorner')[0]
-
-        pexcorner = None
-        if chip.valid('constraint', 'timing', constraint, 'pexcorner'):
-            pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner')
+        libcorner = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
+        pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner', step=step, index=index)
 
         if not libcorner or not pexcorner:
             continue
-        corners[libcorner] = pexcorner
+        corners[libcorner[0]] = pexcorner
 
     default_corner = get_setup_corner(chip)
     if default_corner in corners:
@@ -448,44 +438,6 @@ def build_pex_corners(chip):
 
                 f.write("\n")
                 f.write("{0}\n\n".format(64 * "#"))
-
-def copy_show_files(chip):
-
-    tool = 'openroad'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
-
-    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
-        show_file = chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index)[0]
-        show_type = chip.get('tool', tool, 'task', task, 'var', 'show_filetype', step=step, index=index)[0]
-        show_job = chip.get('tool', tool, 'task', task, 'var', 'show_job', step=step, index=index)[0]
-        show_step = chip.get('tool', tool, 'task', task, 'var', 'show_step', step=step, index=index)[0]
-        show_index = chip.get('tool', tool, 'task', task, 'var', 'show_index', step=step, index=index)[0]
-
-        # copy source in to keep sc_apr.tcl simple
-        dst_file = "inputs/"+chip.top()+"."+show_type
-        shutil.copy2(show_file, dst_file)
-        sdc_file = chip.find_result('sdc', show_step, jobname=show_job, index=show_index)
-        if sdc_file and os.path.exists(sdc_file):
-            shutil.copy2(sdc_file, "inputs/"+chip.top()+".sdc")
-
-def find_incoming_ext(chip):
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    flow = chip.get('option', 'flow')
-
-    supported_ext = ('odb', 'def')
-
-    for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
-        for ext in supported_ext:
-            show_file = chip.find_result(ext, step=input_step, index=input_index)
-            if show_file:
-                return ext
-
-    # Nothing found, just add last one
-    return supported_ext[-1]
 
 ##################################################
 if __name__ == "__main__":

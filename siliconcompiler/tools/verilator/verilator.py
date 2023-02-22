@@ -1,73 +1,26 @@
-import importlib
-import os
+'''
+Verilator is a free and open-source software tool which converts Verilog (a
+hardware description language) to a cycle-accurate behavioral model in C++
+or SystemC.
 
-import siliconcompiler
+For all steps, this driver runs Verilator using the ``-sv`` switch to enable
+parsing a subset of SystemVerilog features. All steps also support using
+:keypath:`option, relax` to make warnings nonfatal.
+
+Documentation: https://verilator.org/guide/latest
+
+Sources: https://github.com/verilator/verilator
+
+Installation: https://verilator.org/guide/latest/install.html
+'''
+
+import os
 
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-    '''
-    Verilator is a free and open-source software tool which converts Verilog (a
-    hardware description language) to a cycle-accurate behavioral model in C++
-    or SystemC.
-
-    Steps supported
-    ---------------
-
-    **import**
-
-    Preprocesses and pickles Verilog sources. Takes in a set of Verilog source
-    files supplied via :keypath:`input, verilog` and reads the following
-    parameters:
-
-    * :keypath:`option, ydir`
-    * :keypath:`option, vlib`
-    * :keypath:`option, idir`
-    * :keypath:`option, cmdfile`
-
-    Outputs a single Verilog file in ``outputs/<design>.v``.
-
-    **lint**
-
-    Lints Verilog source. Takes in a single pickled Verilog file from
-    ``inputs/<design>.v`` and produces no outputs. Results of linting can be
-    programatically queried using errors/warnings metrics.
-
-    **compile**
-
-    Compiles Verilog and C/C++ sources into an executable.  Takes in a single
-    pickled Verilog file from ``inputs/<design>.v`` and a set of C/C++ sources
-    from :keypath:`input, c`. Outputs an executable in
-    ``outputs/<design>.vexe``.
-
-    This step supports using the :keypath:`option, trace` parameter to enable
-    Verilator's ``--trace`` flag.
-
-    For all steps, this driver runs Verilator using the ``-sv`` switch to enable
-    parsing a subset of SystemVerilog features. All steps also support using
-    :keypath:`option, relax` to make warnings nonfatal.
-
-    Documentation: https://verilator.org/guide/latest
-
-    Sources: https://github.com/verilator/verilator
-
-    Installation: https://verilator.org/guide/latest/install.html
-
-    '''
-
-    chip = siliconcompiler.Chip('<design>')
-    step = 'import'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
-    setup = getattr(importlib.import_module('tools.verilator.import'), 'setup')
-    setup(chip)
-    return chip
+def make_docs(chip):
+    chip.load_target("freepdk45_demo")
 
 def setup(chip):
     ''' Per tool function that returns a dynamic options string based on
@@ -106,7 +59,7 @@ def setup(chip):
     #    chip.add('tool', tool, 'task', task, 'option', f'-Wno-{warning}', step=step, index=index)
 
     # User runtime option
-    if chip.get('option', 'trace'):
+    if chip.get('option', 'trace', step=step, index=index):
         chip.add('tool', tool, 'task', task, 'task', task, 'option', '--trace', step=step, index=index)
 
 ################################
@@ -134,10 +87,10 @@ def runtime_options(chip):
             cmdlist.append('-I' + value)
         for value in chip.find_files('option', 'cmdfile'):
             cmdlist.append('-f ' + value)
-        for value in chip.find_files('input', 'rtl', 'verilog'):
+        for value in chip.find_files('input', 'rtl', 'verilog', step=step, index=index):
             cmdlist.append(value)
     elif step == 'compile':
-        for value in chip.find_files('input', 'hll', 'c'):
+        for value in chip.find_files('input', 'hll', 'c', step=step, index=index):
             cmdlist.append(value)
         for value in chip.find_files('tool', tool, 'task', task, 'input', step=step, index=index):
             cmdlist.append(value)

@@ -1,4 +1,3 @@
-from siliconcompiler.floorplan import Floorplan
 import pytest
 
 @pytest.mark.skip(reason='Skipping until floorplan API has been updated.')
@@ -36,6 +35,8 @@ def test_gcd_floorplan(gcd_chip):
     gcd_chip.set('asic', 'corearea', [])
 
     def_file = 'gcd.def'
+    # Move import here to keep it despite floorplan getting removed
+    from siliconcompiler.floorplan import Floorplan
     fp = Floorplan(gcd_chip)
     setup_floorplan(fp)
     fp.write_def(def_file)

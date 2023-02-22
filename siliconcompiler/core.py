@@ -24,14 +24,12 @@ import importlib
 import textwrap
 import math
 import pandas
-import yaml
 import graphviz
 import time
 import uuid
 import shlex
 import platform
 import getpass
-import csv
 import distro
 import netifaces
 import webbrowser
@@ -40,11 +38,9 @@ import packaging.version
 import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
-from timeit import default_timer as timer
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
 from siliconcompiler.scheduler import _deferstep
-from siliconcompiler import leflib
 from siliconcompiler import utils
 from siliconcompiler import _metadata
 import psutil
@@ -193,7 +189,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # we should revisit it
         self.logger.propagate = False
 
-        loglevel = self.get('option', 'loglevel')
+        loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
 
         if loglevel=='DEBUG':
             prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
@@ -455,29 +451,58 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 num_free_keys = keypath.count('default')
 
+                switches, metavar = self._get_switches(schema, *keypath)
+                switchstr = '/'.join(switches)
+
                 if len(item.split(' ')) < num_free_keys + 1:
                     # Error out if value provided doesn't have enough words to
                     # fill in 'default' keys.
-                    switches, metavar = self._get_switches(schema, *keypath)
-                    switchstr = '/'.join(switches)
                     self.error(f'Invalid value {item} for switch {switchstr}. Expected format {metavar}.', fatal=True)
 
                 # We replace 'default' in keypath with first N words in provided
-                # value. Remainder is the actual value we want to store in the
-                # parameter.
-                *free_keys, val = item.split(' ', num_free_keys)
+                # value.
+                *free_keys, remainder = item.split(' ', num_free_keys)
                 args = [free_keys.pop(0) if key == 'default' else key for key in keypath]
 
+                # Remainder is the value we want to set, possibly with a step/index value beforehand
+                pernode = self.get(*keypath, field='pernode')
+                step, index = None, None
+                if pernode == 'required':
+                    try:
+                        step, index, val = remainder.split(' ', 2)
+                    except ValueError:
+                        self.error(f"Invalid value '{item}' for switch {switchstr}. "
+                            "Requires step and index before final value.")
+                elif pernode == 'optional':
+                    # Split on spaces, preserving items that are grouped in quotes
+                    items = shlex.split(remainder)
+                    if len(items) > 3:
+                        self.error(f"Invalid value '{item}'' for switch {switchstr}. "
+                            "Too many arguments, please wrap multiline strings in quotes.")
+                        continue
+                    elif len(items) == 3:
+                        step, index, val = items
+                    elif len(items) == 2:
+                        step, val = items
+                    else:
+                        val, = items
+                else:
+                    val = remainder
+
+                msg = f'Command line argument entered: {args} Value: {val}'
+                if step is not None: msg += f' Step: {step}'
+                if index is not None: msg += f' Index: {index}'
+                self.logger.info(msg)
+
                 # Storing in manifest
-                self.logger.info(f"Command line argument entered: {args} Value: {val}")
                 typestr = schema.get(*keypath, field='type')
                 if typestr.startswith('['):
                     if self.valid(*args):
-                        self.add(*args, val)
+                        self.add(*args, val, step=step, index=index)
                     else:
-                        self.set(*args, val, clobber=True)
+                        self.set(*args, val, step=step, index=index, clobber=True)
                 else:
-                    self.set(*args, val, clobber=True)
+                    self.set(*args, val, step=step, index=index, clobber=True)
 
     #########################################################################
     def find_function(self, modulename, funcname, moduletype=None, moduletask=None):
@@ -760,6 +785,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f"Reading from {keypath}. Field = '{field}'")
 
         try:
+            strict = self.schema.get('option', 'strict')
+            if field == 'value' and strict:
+                pernode = self.schema.get(*keypath, field='pernode')
+                if pernode == 'optional' and (step is None or index is None):
+                    self.error(
+                        f"Invalid args to get() of keypath {keypath}: step and "
+                        "index are required for reading from this parameter "
+                        "while ['option', 'strict'] is True."
+                    )
+                    return None
+
             return self.schema.get(*keypath, field=field, job=job, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(str(e))
@@ -866,7 +902,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f'Setting {keypath} to {value}')
 
         # Special case to ensure loglevel is updated ASAP
-        if keypath == ['option', 'loglevel'] and field == 'value':
+        if (
+            keypath == ['option', 'loglevel'] and field == 'value' and
+            step == self.get('arg', 'step') and index == self.get('arg', 'index')
+        ):
             self.logger.setLevel(value)
 
         try:
@@ -1101,6 +1140,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             the schema.
 
         """
+        strict = self.get('option', 'strict')
+        pernode = self.get(*keypath, field='pernode')
+        if strict and pernode == 'optional' and (step is None or index is None):
+            self.error(
+                f"Invalid args to find_files() of keypath {keypath}: step and "
+                "index are required for reading from this parameter while "
+                "['option', 'strict'] is True."
+            )
+            return []
+        return self._find_files(*keypath, missing_ok=missing_ok, job=job, step=step, index=index)
+
+    ###########################################################################
+    def _find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None):
+        """Internal find_files() that allows you to skip step/index for optional
+        params, regardless of [option, strict]."""
+
         copyall = self.get('option', 'copyall', job=job)
         paramtype = self.get(*keypath, field='type', job=job)
 
@@ -1115,7 +1170,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        paths = self.get(*keypath, job=job, step=step, index=index)
+        paths = self.schema.get(*keypath, job=job, step=step, index=index)
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
@@ -1128,7 +1183,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # (e.g. 'scpath', 'workdir', 'refdir'), rather than hardcoding special
         # cases.
 
-        if keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
+        if len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
             if keypath[4] == 'report':
                 io = ""
             else:
@@ -1139,10 +1194,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if os.path.isfile(abspath):
                     result.append(abspath)
             return result
-        elif keypath[0] == 'tool' and keypath[4] == 'script':
+        elif len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
-            refdirs = self.find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
+            refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
             for path in paths:
                 for refdir in refdirs:
                     abspath = os.path.join(refdir, path)
@@ -1230,7 +1285,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for value, step, index in values:
                 if not value:
                     continue
-                abspaths = self.find_files(*keypath, missing_ok=True, step=step, index=index)
+                abspaths = self._find_files(*keypath, missing_ok=True, step=step, index=index)
                 if isinstance(abspaths, list) and None in abspaths:
                     # Lists may not contain None
                     schema.set(*keypath, [], step=step, index=index)
@@ -1247,6 +1302,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if keypath[0] == 'flowgraph' and keypath[4] in ('select', 'status'):
             return True
         if keypath[0] == 'tool':
+            return True
+        if self.get(*keypath, field='type') in ['file', '[file]']:
             return True
         return False
 
@@ -1314,29 +1371,29 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             paramtype = self.get(*keypath, field='type')
             #only do something if type is file or dir
             if ('history' not in keypath and 'library' not in keypath) and ('file' in paramtype or 'dir' in paramtype):
+                for val, step, index in self.schema._getvals(*keypath):
+                    if val is None:
+                        # skip unset values (some directories are None by default)
+                        continue
 
-                if self.get(*keypath) is None:
-                    # skip unset values (some directories are None by default)
-                    continue
+                    abspaths = self._find_files(*keypath, missing_ok=True, step=step, index=index)
+                    if not isinstance(abspaths, list):
+                        abspaths = [abspaths]
 
-                abspaths = self.find_files(*keypath, missing_ok=True)
-                if not isinstance(abspaths, list):
-                    abspaths = [abspaths]
+                    for abspath in abspaths:
+                        ok = False
 
-                for abspath in abspaths:
-                    ok = False
+                        if abspath is not None:
+                            for allowed_path in allowed_paths:
+                                if os.path.commonpath([abspath, allowed_path]) == allowed_path:
+                                    ok = True
+                                    continue
 
-                    if abspath is not None:
-                        for allowed_path in allowed_paths:
-                            if os.path.commonpath([abspath, allowed_path]) == allowed_path:
-                                ok = True
-                                continue
-
-                    if not ok:
-                        self.logger.error(f'Keypath {keypath} contains path(s) '
-                            'that do not exist or resolve to files outside of '
-                            'allowed directories.')
-                        return False
+                        if not ok:
+                            self.logger.error(f'Keypath {keypath} contains path(s) '
+                                'that do not exist or resolve to files outside of '
+                                'allowed directories.')
+                            return False
 
         return True
 
@@ -1401,16 +1458,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     paramtype = self.get(*keypath, field='type')
                     if ('file' in paramtype) or ('dir' in paramtype):
-                        abspath = self.find_files(*keypath, missing_ok=True)
-                        unresolved_paths = self.get(*keypath)
-                        if not isinstance(abspath, list):
-                            abspath = [abspath]
-                            unresolved_paths = [unresolved_paths]
-                        for i, path in enumerate(abspath):
-                            if path is None:
-                                unresolved_path = unresolved_paths[i]
-                                self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
-                                error = True
+                        for val, step, index in self.schema._getvals(*keypath):
+                            abspath = self._find_files(*keypath, missing_ok=True, step=step, index=index)
+                            unresolved_paths = val
+                            if not isinstance(abspath, list):
+                                abspath = [abspath]
+                                unresolved_paths = [unresolved_paths]
+                            for i, path in enumerate(abspath):
+                                if path is None:
+                                    unresolved_path = unresolved_paths[i]
+                                    self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
+                                    error = True
 
         # Need to run this check here since file resolution can change in
         # _runtask().
@@ -1505,10 +1563,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     error = True
 
         #2. Check libary names
-        for item in self.get('asic', 'logiclib'):
-            if item not in self.getkeys('library'):
+        libraries = set()
+        for val, step, index in self.schema._getvals('asic', 'logiclib'):
+            if step in steplist and index in indexlist[step]:
+                libraries.update(val)
+
+        for library in libraries:
+            if library not in self.getkeys('library'):
                 error = True
-                self.logger.error(f"Target library {item} not found.")
+                self.logger.error(f"Target library {library} not found.")
 
         #3. Check requirements list
         allkeys = self.allkeys()
@@ -2304,7 +2367,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 return
 
             _, step, index = vals[0]
-            filelist = self.find_files(*keypath, step=step, index=index)
+            filelist = self._find_files(*keypath, step=step, index=index)
             #cycle through all paths
             hashlist = []
             if filelist:
@@ -2730,9 +2793,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if self.get('option', 'mode') == 'asic':
             pdk = self.get('option', 'pdk')
+
+            libraries = set()
+            for val, step, _ in self.schema._getvals('asic', 'logiclib'):
+                if step in steplist:
+                    libraries.update(val)
+
             info_list.extend(["foundry : " + self.get('pdk', pdk, 'foundry'),
                               "process : " + pdk,
-                              "targetlibs : "+" ".join(self.get('asic', 'logiclib'))])
+                              "targetlibs : "+" ".join(libraries)])
         elif self.get('option', 'mode') == 'fpga':
             info_list.extend(["partname : "+self.get('fpga','partname')])
 
@@ -3385,7 +3454,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         tool = self.get('flowgraph', flow, step, index, 'tool')
         task = self._get_task(step, index, flow)
 
-        quiet = self.get('option', 'quiet') and not self.get('option', 'breakpoint', step=step, index=index)
+        quiet = (
+            self.get('option', 'quiet', step=step, index=index) and not
+            self.get('option', 'breakpoint', step=step, index=index)
+        )
 
         is_builtin = self._is_builtin(tool, task)
 
@@ -3399,7 +3471,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # and send it to a compute node for deferred execution.
         # (Run the initial 'import' stage[s] locally)
 
-        if self.get('option', 'scheduler', 'name') and \
+        if self.get('option', 'scheduler', 'name', step=step, index=index) and \
            self.get('flowgraph', flow, step, index, 'input'):
             # Note: The _deferstep method blocks until the compute node
             # finishes processing this step, and it sets the active/error bits.
@@ -3432,6 +3504,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self._read_manifest(cfgfile, clobber=False, partial=True)
+
+        ##################
+        # Write manifest prior to step running into inputs
+
+        self.set('arg', 'step', None, clobber=True)
+        self.set('arg', 'index', None, clobber=True)
+        self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
         # Select inputs
@@ -3532,7 +3611,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Check exe version
 
-        vercheck = not self.get('option', 'novercheck')
+        vercheck = not self.get('option', 'novercheck', step=step, index=index)
         veropt = self.get('tool', tool, 'vswitch')
         exe = self._getexe(tool, step, index)
         version = None
@@ -3755,7 +3834,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Make a record if tracking is enabled
-        if self.get('option', 'track'):
+        if self.get('option', 'track', step=step, index=index):
             self._make_record(step, index, wall_start, wall_end, version, toolpath, cmd_args)
 
         ##################
@@ -3767,7 +3846,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Stop if there are errors
         errors = self.get('metric', 'errors', step=step, index=index)
-        if errors and not self.get('option', 'flowcontinue'):
+        if errors and not self.get('option', 'flowcontinue', step=step, index=index):
             # TODO: should we warn if errors is not set?
             self.logger.error(f'{tool} reported {errors} errors during {step}{index}')
             self._haltstep(step, index)
@@ -4234,12 +4313,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         views (and we probably want to prioritize final layouts like
         DEF/GDS/OAS).
         '''
-        for key in self.getkeys('output'):
-            for output in self.find_files('output', key):
-                file_ext = utils.get_file_ext(output)
-                if file_ext in self.getkeys('option', 'showtool'):
-                    if not tool or self.get('option', 'showtool', file_ext) == tool:
-                        return output
+        step = self.get('arg', 'step')
+        index = self.get('arg', 'index')
+
+        for fileset in self.getkeys('output'):
+            for filetype in self.getkeys('output', fileset):
+                for output in self.find_files('output', fileset, filetype, step=step, index=index):
+                    file_ext = utils.get_file_ext(output)
+                    if file_ext in self.getkeys('option', 'showtool'):
+                        if not tool or self.get('option', 'showtool', file_ext) == tool:
+                            return output
         return None
 
     ###########################################################################
@@ -4430,10 +4513,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if val:
                 envvars[key] = val
 
+        nice = None
         if is_posix:
-            nice = None
-            if self.valid('option', 'nice'):
-                nice = self.get('option', 'nice')
+            nice = self.get('option', 'nice', step=step, index=index)
 
         nice_cmdlist = []
         if nice:
@@ -4721,10 +4803,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             msg (str): Message associated with error
             fatal (bool): Whether error is always fatal
         '''
-        if not fatal and self.get('option', 'continue'):
-            self.logger.error(msg)
-            self._error = True
-            return
+        if not fatal:
+            # Keep all get() calls in this block so we can still call with
+            # fatal=True before the logger exists
+            step = self.get('arg', 'step')
+            index = self.get('arg', 'index')
+            if self.schema.get('option', 'continue', step=step, index=index):
+                self.logger.error(msg)
+                self._error = True
+                return
 
         raise SiliconCompilerError(msg) from None
 

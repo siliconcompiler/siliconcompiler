@@ -33,7 +33,7 @@ def checkarea(filelist, libdir, target):
 
     return 0
 
-def main():
+def main(limit=-1):
     oh_dir = (os.path.dirname(os.path.abspath(__file__)) +
                "/../../third_party/designs/oh/")
     #Checking asiclib
@@ -47,6 +47,7 @@ def main():
     for item in dontcheck:
         filelist.remove(os.path.join(libdir, item))
 
+    filelist = filelist[0:limit]
     return checkarea(filelist, libdir, 'freepdk45_demo')
 
 #########################

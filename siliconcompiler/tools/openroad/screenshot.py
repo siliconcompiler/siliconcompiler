@@ -1,6 +1,14 @@
-
+from siliconcompiler.tools.openroad import openroad
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
-from siliconcompiler.tools.openroad.openroad import build_pex_corners, copy_show_files
+from siliconcompiler.tools.openroad.openroad import build_pex_corners
+from siliconcompiler.tools.openroad.show import copy_show_files, find_incoming_ext
+
+####################################################################
+# Make Docs
+####################################################################
+def make_docs(chip):
+    openroad.make_docs(chip)
+    chip.set('tool', 'openroad', 'task', 'screenshot', 'var', 'show_filepath', '<path>')
 
 def setup(chip):
     ''' Helper method for configs specific to screenshot tasks.

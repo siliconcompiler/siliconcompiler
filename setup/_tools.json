@@ -10,5 +10,36 @@
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
     "git-commit": "ad83eedc7de32ec15a3f7b4e271c6b45ddf547eb"
+  },
+  "netgen": {
+    "git-url": "https://github.com/RTimothyEdwards/netgen.git",
+    "git-commit": "fb7876c7a6f9d58a3d88a49e302e682c1d12e00d"
+  },
+  "ghdl": {
+    "git-url": "https://github.com/ghdl/ghdl.git",
+    "git-commit": "d10b226f3d1dc302d7a95b9c2d77beaece3d3634"
+  },
+  "magic": {
+    "git-url": "https://github.com/RTimothyEdwards/magic.git",
+    "git-commit": "c7f11d2169f6af8751ae22b5d70250b331e1a667"
+  },
+  "bsc": {
+    "git-url": "https://github.com/B-Lang-org/bsc.git",
+    "git-commit": "4cac6ebae076e8b8378597aba1d2119aa29ec419"
+  },
+  "klayout": {
+    "version": "0.28.3-1"
+  },
+  "sv2v": {
+    "git-url": "https://github.com/zachjs/sv2v.git",
+    "git-commit": "c822d2e8c6806eab28a5c54cdab9f3aa4d7660bd"
+  },
+  "verilator": {
+    "git-url": "https://github.com/verilator/verilator.git",
+    "git-commit": "890cecc15b5971bd5a088ef579c048058ae6cc5d"
+  },
+  "bambu": {
+    "git-url": "https://github.com/ferrandi/PandA-bambu.git",
+    "git-commit": "eda4c22d5adaec44fd8489ae49b854b244d2cf70"
   }
 }

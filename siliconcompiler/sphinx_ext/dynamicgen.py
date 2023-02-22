@@ -36,19 +36,27 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
             'value' in val and val['value'] == '0'):
             continue
 
+        value = None
         if 'value' in val and val['value']:
+            value = val['value']
+        elif 'nodevalue' in val and val['nodevalue']:
+            value = val['nodevalue']
+            while isinstance(value, dict):
+                value = list(value.values())[0]
+
+        if value:
             # Don't display false booleans
-            if val['type'] == 'bool' and val['value'] == 'false':
+            if val['type'] == 'bool' and value == 'false':
                 continue
             if val['type'].startswith('['):
-                if len(val['value']) > 1:
-                    val_node = build_list([code(v) for v in val['value']])
-                elif len(val['value']) > 0:
-                    val_node = code(val['value'][0])
+                if len(value) > 1:
+                    val_node = build_list([code(v) for v in value])
+                elif len(value) > 0:
+                    val_node = code(value[0])
                 else:
                     val_node = para('')
             else:
-                val_node = code(val['value'])
+                val_node = code(value)
 
             # HTML builder fails if we don't make a text node the parent of the
             # reference node returned by keypath()
@@ -124,14 +132,20 @@ class DynamicGen(SphinxDirective):
 
         s = build_section_with_target(modname, f'{modname}', self.state.document)
 
-        if not hasattr(module, 'make_docs'):
+        # Attempt to use module doc string first
+        if not self.generate_documentation_from_object(module, path, s):
+            setup = self.get_setup_method(module)
+            # Then use setup doc string
+            self.generate_documentation_from_object(setup, path, s)
+
+        try:
+            chips = self.configure_chip_for_docs(module)
+        except Exception as e:
+            print("Failed:", e)
             return None
 
-        make_docs = getattr(module, 'make_docs')
-
-        self.generate_documentation_from_function(make_docs, path, s)
-
-        chips = make_docs()
+        if not chips:
+            return None
 
         if not isinstance(chips, list):
             chips = [chips]
@@ -233,7 +247,7 @@ class DynamicGen(SphinxDirective):
     def child_content(self, path, module, modname):
         return None
 
-    def generate_documentation_from_function(self, func, path, s):
+    def generate_documentation_from_object(self, func, path, s):
         # raw docstrings have funky indentation (basically, each line is already
         # indented as much as the function), so we call trim() helper function
         # to clean it up
@@ -241,6 +255,8 @@ class DynamicGen(SphinxDirective):
 
         if docstr:
             self.parse_rst(docstr, s)
+        else:
+            return False
 
         builtin = os.path.abspath(path).startswith(SC_ROOT)
 
@@ -253,6 +269,8 @@ class DynamicGen(SphinxDirective):
             p += link(gh_link, text=filename)
             s += p
 
+        return True
+
     def document_free_params(self, cfg, reference_prefix, s):
         self._document_free_params(cfg, 'var', reference_prefix, s)
         self._document_free_params(cfg, 'file', reference_prefix, s)
@@ -260,16 +278,6 @@ class DynamicGen(SphinxDirective):
     def _document_free_params(self, cfg, type, reference_prefix, s):
         if type in cfg:
             cfg = cfg[type]
-        else:
-            return
-
-        if "<step>" in cfg:
-            cfg = cfg["<step>"]
-        else:
-            return
-
-        if "<index>" in cfg:
-            cfg = cfg["<index>"]
         else:
             return
 
@@ -289,6 +297,48 @@ class DynamicGen(SphinxDirective):
             s += build_section(type_heading, f'{reference_prefix}-{type}')
             colspec = r'{|\X{1}{2}|\X{1}{2}|}'
             s += build_table(table, colspec=colspec)
+
+    def get_make_docs_method(self, module):
+        return getattr(module, 'make_docs', None)
+
+    def get_configure_docs_method(self, module):
+        return getattr(module, 'configure_docs', None)
+
+    def get_setup_method(self, module):
+        return getattr(module, 'setup', None)
+
+    def make_chip(self):
+        return siliconcompiler.Chip('<design>')
+
+    def _handle_make_docs(self, chip, module):
+        make_docs = self.get_make_docs_method(module)
+        if make_docs:
+            new_chip = make_docs(chip)
+            if new_chip:
+                # make_docs returned something so it's fully configured
+                return (new_chip, True)
+            else:
+                return (chip, False)
+        return (None, False)
+
+    def _handle_setup(self, chip, module):
+        setup = self.get_setup_method(module)
+        if not setup:
+            return None
+        new_chip = setup(chip)
+        if new_chip:
+            return new_chip
+        else:
+            # Setup didn't return anything so return the Chip object
+            return chip
+
+    def configure_chip_for_docs(self, module):
+        chip = self.make_chip()
+        docs_chip, docs_configured = self._handle_make_docs(chip, module)
+        if docs_chip and docs_configured:
+            return docs_chip
+
+        return self._handle_setup(chip, module)
 
 #########################
 # Specialized extensions
@@ -399,6 +449,50 @@ class LibGen(DynamicGen):
 class ToolGen(DynamicGen):
     PATH = 'tools'
 
+    def make_chip(self):
+        chip = super().make_chip()
+        self._setup_chip(chip, '<tool>', '<task>')
+
+        return chip
+
+    def _setup_chip(self, chip, tool_name, task_name):
+        step = chip.get('arg', 'step')
+        if not step:
+            step = '<step>'
+        index = chip.get('arg', 'index')
+        if not index:
+            index = '<index>'
+        chip.set('arg', 'step', step)
+        chip.set('arg', 'index', index)
+
+        flow = chip.get('option', 'flow')
+        if not flow:
+            flow = '<flow>'
+        chip.set('flowgraph', flow, step, index, 'tool', tool_name)
+        chip.set('flowgraph', flow, step, index, 'task', task_name)
+
+    def configure_chip_for_docs(self, module, toolmodule=None):
+        chip = self.make_chip()
+        docs_chip, docs_configured = self._handle_make_docs(chip, module)
+        if not docs_chip and toolmodule:
+            docs_chip, docs_configured = self._handle_make_docs(chip, toolmodule)
+        if docs_configured:
+            return docs_chip
+
+        # set values for current step
+        toolname = module.__name__
+        if self.__tool:
+            toolname = self.__tool
+        taskname = '<task>'
+        if self.__task:
+            taskname = self.__task
+        self._setup_chip(chip, toolname, taskname)
+
+        if toolmodule:
+            return chip
+        else:
+            return self._handle_setup(chip, module)
+
     def display_config(self, chip, modname):
         '''Display config under `eda, <modname>` in a single table.'''
         cfg = chip.getdict('tool', modname)
@@ -428,12 +522,17 @@ class ToolGen(DynamicGen):
             return []
 
     def get_modules_in_dir(self, module_dir):
+        self.__tool = None
+        self.__task = None
         '''Custom implementation for ToolGen since the tool setup modules are
         under an extra directory, and this way we don't have to force users to
         add an __init__.py to make the directory a module itself.
         '''
         modules = []
         for toolname in os.listdir(module_dir):
+            if (toolname == "template"):
+                # No need to include empty template in documentation
+                continue
             # skip over directories/files that don't match the structure of tool
             # directories (otherwise we'll get confused by Python metadata like
             # __init__.py or __pycache__/)
@@ -456,28 +555,19 @@ class ToolGen(DynamicGen):
         s = build_section_with_target(taskname, f'{toolname}-{taskname}', self.state.document)
 
         # Find setup function
-        task_setup = getattr(taskmodule, 'setup', None)
+        task_setup = self.get_setup_method(taskmodule)
         if not task_setup:
             return None
 
-        # Find make_docs function, check task module first
-        make_docs = getattr(taskmodule, 'make_docs', None)
-        if not make_docs:
-            # Then check tool module
-            make_docs = getattr(toolmodule, 'make_docs', None)
-        if not make_docs:
-            return None
-
-        chip = make_docs()
-        # set values for current step
-        chip.set('arg', 'step', '<step>')
-        chip.set('arg', 'index', '<index>')
-        chip.set('flowgraph', chip.get('option', 'flow'), '<step>', '<index>', 'tool', toolname)
-        chip.set('flowgraph', chip.get('option', 'flow'), '<step>', '<index>', 'task', taskname)
-
         print(f"Generating docs for task {toolname}/{taskname}...")
 
-        self.generate_documentation_from_function(setup, path, s)
+        self.generate_documentation_from_object(task_setup, path, s)
+
+        self.__tool = toolname
+        self.__task = taskname
+        chip = self.configure_chip_for_docs(taskmodule, toolmodule=toolmodule)
+        self.__tool = None
+        self.__task = None
 
         # Annotate the target used for default values
         if chip.valid('option', 'target') and chip.get('option', 'target'):

@@ -1,6 +1,10 @@
 
 from siliconcompiler.tools.yosys.yosys import syn_setup, create_vpr_lib, setup_fpga, syn_post_process
 
+def make_docs(chip):
+    chip.set('fpga', 'partname', 'ice40up5k-sg48')
+    chip.load_target("fpgaflow_demo")
+
 def setup(chip):
     ''' Helper method for configs specific to FPGA synthesis tasks.
     '''
