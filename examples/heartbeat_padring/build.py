@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import shutil
 
 from siliconcompiler import Chip, Library
 from siliconcompiler.libs import sky130io
@@ -28,9 +27,6 @@ def configure_chip(design):
     chip.use(sky130io)
     chip.add('asic', 'macrolib', 'sky130io')
 
-    # Configure 'show' apps, and return the Chip object.
-    chip.set('option', 'showtool', 'def', 'klayout')
-    chip.set('option', 'showtool', 'gds', 'klayout')
     return chip
 
 def build_core():
@@ -48,14 +44,20 @@ def build_core():
     # (Un-comment to display a summary report)
     core_chip.summary()
 
-    # Copy stream files for padring integration.
     design = core_chip.top()
-    gds_result = core_chip.find_result('gds', step='export')
-    vg_result = core_chip.find_result('vg', step='dfm')
-    shutil.copy(gds_result, f'{design}.gds')
-    shutil.copy(vg_result, f'{design}.vg')
 
-def build_top():
+    # Setup outputs
+    stackup = core_chip.get('option', 'stackup')
+    core_chip.set('output', stackup, 'lef', core_chip.find_result('lef', step='export', index='1'))
+    core_chip.set('output', stackup, 'cdl', core_chip.find_result('cdl', step='export', index='1'))
+    core_chip.set('output', stackup, 'gds', core_chip.find_result('gds', step='export', index='0'))
+    for scenario in core_chip.getkeys('constraint', 'timing'):
+        libcorner = core_chip.get('constraint', 'timing', scenario, 'libcorner')[0]
+        core_chip.set('output', libcorner, 'nldm', core_chip.find_result(f'{libcorner}.lib', step='export', index='1'))
+
+    return core_chip
+
+def build_top(core_chip):
     # Build the top-level design, with padring.
     chip = configure_chip('heartbeat_top')
 
@@ -63,20 +65,8 @@ def build_top():
     flow = 'asictopflow'
     chip.set('option', 'flow', flow)
 
-    # Configure inputs for the top-level design.
-    libname = 'heartbeat'
-    stackup = chip.get('option', 'stackup')
-    chip.add('asic', 'macrolib', libname)
-
-    # TODO: Find a way to simplify importing an existing Chip object as a macro.
-    class heartbeat_core:
-        def setup(chip):
-            lib = Library(chip, libname)
-            lib.set('output', stackup, 'lef', 'floorplan/heartbeat.lef')
-            lib.set('output', stackup, 'gds', 'heartbeat.gds')
-            lib.output('heartbeat.vg')
-            return lib
-    chip.use(heartbeat_core)
+    chip.use(core_chip)
+    chip.add('asic', 'macrolib', core_chip.design)
     chip.input('floorplan/heartbeat_top.def')
 
     chip.input('heartbeat_top.v')
@@ -107,9 +97,9 @@ def build_top():
 
 def main():
     # Build the core design, which gets placed inside the padring.
-    build_core()
+    core = build_core()
     # Build the top-level design by stacking the core into the middle of the padring.
-    build_top()
+    build_top(core)
 
 if __name__ == '__main__':
     main()

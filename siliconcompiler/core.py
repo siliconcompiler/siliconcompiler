@@ -604,8 +604,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ##########################################################################
     def use(self, module, **kwargs):
         '''
-        Loads a SiliconCompiler module into the current chip object by calling
-        a module.setup() method.
+        Loads a SiliconCompiler module into the current chip object.
+
+        The behavior of this function function is described in the table below
+
+        .. list-table:: Use behavior
+           :header-rows: 1
+
+           * - Input type
+             - Action
+           * - Module with setup function
+             - Call `setup()` and import returned objects
+           * - Chip
+             - Import as a library
+           * - Library
+             - Import as a library
+           * - PDK
+             - Import as a pdk
+           * - Flow
+             - Import as a flow
+           * - Checklist
+             - Import as a checklist
         '''
 
         # Load supported types here to avoid cyclic import
@@ -614,8 +633,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         from siliconcompiler import Library
         from siliconcompiler import Checklist
 
-        # Call the module setup function.
-        use_modules = module.setup(self, **kwargs)
+        setup_func = getattr(module, 'setup', None)
+        if (setup_func):
+            # Call the module setup function.
+            use_modules = setup_func(self, **kwargs)
+        else:
+            # Import directly
+            use_modules = module
 
         # Make it a list for consistency
         if not isinstance(use_modules, list):
@@ -634,7 +658,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self._loaded_modules['checklists'].append(use_module.design)
                 self._use_import('checklist', use_module)
 
-            elif isinstance(use_module, Library) or isinstance(use_module, Chip):
+            elif isinstance(use_module, (Library, Chip)):
                 self._loaded_modules['libs'].append(use_module.design)
                 self._import_library(use_module.design, use_module.schema.cfg)
 
