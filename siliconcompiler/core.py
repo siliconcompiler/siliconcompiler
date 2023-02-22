@@ -1370,8 +1370,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 # update other fields that a user might modify
                 for field in src.getdict(*keylist).keys():
-                    if field in ('value', 'nodevalue', 'switch', 'type', 'require', 'defvalue',
-                                 'shorthelp', 'example', 'help', 'set'):
+                    if field in ('node', 'switch', 'type', 'require', 'defvalue',
+                                 'shorthelp', 'example', 'help'):
                         # skip these fields (value handled above, others are static)
                         continue
                     v = src.get(*keylist, field=field)
@@ -3085,6 +3085,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.node('asicflow', 'place', 'openroad', index=0)
             Creates a task with step='place' and index=0 and binds it to the 'openroad' tool.
         '''
+        if step in (Schema.GLOBAL_KEY, 'default'):
+            self.error(f'Illegal step name: {step} is reserved')
+            return
 
         index = str(index)
 
@@ -3119,6 +3122,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.edge('place', 'cts')
             Creates a directed edge from place to cts.
         '''
+        for step in (head, tail):
+            if step in (Schema.GLOBAL_KEY, 'default'):
+                self.error(f'Illegal step name: {step} is reserved')
+                return
 
         # Handling connecting edges between graphs
         # Not completely name space safe, but feels like this limitation

@@ -24,31 +24,34 @@ from siliconcompiler.sphinx_ext.utils import *
 # We need this in a few places, so just make it global
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
-def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
+def build_schema_value_table(cfg, keypath_prefix=None, skip_zero_weight=False):
     '''Helper function for displaying values set in schema as a docutils table.'''
     table = [[strong('Keypath'), strong('Value')]]
-    flat_cfg = flatten(schema)
-    for keys, val in flat_cfg.items():
-        full_keypath = list(keypath_prefix) + list(keys)
 
-        if (skip_zero_weight and
-            len(full_keypath) == 6 and full_keypath[0] == 'flowgraph' and full_keypath[-2] == 'weight' and
-            'value' in val and val['value'] == '0'):
+    # Nest received dictionary under keypath_prefix
+    rooted_cfg = cfg
+    if keypath_prefix:
+        for key in reversed(keypath_prefix):
+            rooted_cfg = {key: rooted_cfg}
+
+    schema = Schema(rooted_cfg)
+    for kp in schema.allkeys():
+        if (
+            skip_zero_weight and
+            len(kp) == 6 and kp[0] == 'flowgraph' and kp[-2] == 'weight' and
+            schema.get(*kp) == 0
+        ):
             continue
 
-        value = None
-        if 'value' in val and val['value']:
-            value = val['value']
-        elif 'nodevalue' in val and val['nodevalue']:
-            value = val['nodevalue']
-            while isinstance(value, dict):
-                value = list(value.values())[0]
-
-        if value:
+        values = schema._getvals(*kp, return_defvalue=False)
+        if values:
+            # take first of multiple possible values
+            value, _, _ = values[0]
+            val_type = schema.get(*kp, field='type')
             # Don't display false booleans
-            if val['type'] == 'bool' and value == 'false':
+            if val_type == 'bool' and value == False:
                 continue
-            if val['type'].startswith('['):
+            if val_type.startswith('['):
                 if len(value) > 1:
                     val_node = build_list([code(v) for v in value])
                 elif len(value) > 0:
@@ -61,7 +64,7 @@ def build_schema_value_table(schema, keypath_prefix=[], skip_zero_weight=False):
             # HTML builder fails if we don't make a text node the parent of the
             # reference node returned by keypath()
             p = nodes.paragraph()
-            p += keypath(*full_keypath)
+            p += keypath(*kp)
             table.append([p, val_node])
 
     if len(table) > 1:

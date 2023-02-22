@@ -1,6 +1,5 @@
 # Copyright 2022 Silicon Compiler Authors. All Rights Reserved.
 
-import copy as pycopy
 import json
 import re
 
@@ -12,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.25.0'
+SCHEMA_VERSION = '0.26.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -81,7 +80,6 @@ def scparam(cfg,
 
         # mandatory for all
         cfg['defvalue'] = defvalue
-        cfg['value'] = pycopy.copy(defvalue)
         cfg['type'] = sctype
         cfg['scope'] = scope
         cfg['require'] = require
@@ -94,8 +92,7 @@ def scparam(cfg,
         cfg['notes'] = notes
         # never, optional, required
         cfg['pernode'] = pernode
-        cfg['nodevalue'] = {}
-        cfg['set'] = False
+        cfg['node'] = {}
 
         if enum is not None:
             cfg['enum'] = enum
