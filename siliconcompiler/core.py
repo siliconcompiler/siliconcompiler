@@ -2373,18 +2373,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         #TODO: Insert into find_files?
         if 'file' not in self.get(*keypath, field='type'):
             self.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
-        else:
-            vals = self.schema._getvals(*keypath)
-            # TODO: fix this. will require changing schema structure.
-            if len(vals) > 1:
-                self.logger.warning(
-                    'Hashing files for a parameter with multiple pernode values '
-                    'is not yet supported. Hashes for only one value will be returned.'
-                )
-            elif len(vals) == 0:
-                return
+            return
 
-            _, step, index = vals[0]
+        vals = self.schema._getvals(*keypath)
+        for val, step, index in vals:
+            if not val:
+                # don't attempt to hash empty parameters - this adds an empty
+                # 'filehash' field. Not dangerous, but there's no need.
+                continue
+
             filelist = self._find_files(*keypath, step=step, index=index)
             #cycle through all paths
             hashlist = []
@@ -2402,11 +2399,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     self.error(f"Internal hashing error, file not found")
             # compare previous hash to new hash
-            oldhash = self.get(*keypath,field='filehash')
+            oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
             for i,item in enumerate(oldhash):
                 if item != hashlist[i]:
                     self.error(f"Hash mismatch for [{keypath}]")
-            self.set(*keypath, hashlist, field='filehash', clobber=True)
+            self.set(*keypath, hashlist, step=step, index=index, field='filehash', clobber=True)
 
     ###########################################################################
     def audit_manifest(self):
