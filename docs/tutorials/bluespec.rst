@@ -1,11 +1,11 @@
 Bluespec frontend
 ===================
 
-SiliconCompiler has a Bluespec frontend that enables you to build Bluespec designs for any supported SC target.  To get started using Bluespec with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and download bsc or install it from source following the directions `here <https://github.com/B-Lang-org/bsc#download>`_. For Ubuntu 20.04, we've additionally provided a `setup script <https://github.com/siliconcompiler/siliconcompiler/blob/main/setup/install-bsc.sh>`_ to build it from source automatically.
+SiliconCompiler has a Bluespec frontend that enables you to build :ref:`Bluespec <bluespec>` designs for any supported SC target.  To get started using Bluespec with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and download bsc or install it from source following the directions `here <https://github.com/B-Lang-org/bsc#download>`_. For Ubuntu 20.04, we've additionally provided a `setup script <https://github.com/siliconcompiler/siliconcompiler/blob/main/setup/install-bsc.sh>`_ to build it from source automatically.
 
 To build a Bluespec design, the only things you need to do differently from a configuration perspective are:
 
-1) Add the Bluespec top-level package as an 'input', and add all directories containing imported modules as entries in 'ydir'. Keep in mind that the Bluespec integration only supports specifying a single top-level source file, so you must use 'ydir' for all other sources.
+1) Add the Bluespec top-level package as an 'input', and add all directories containing imported modules as entries in :keypath:`option,ydir`. Keep in mind that the Bluespec integration only supports specifying a single top-level source file, so you must use :keypath:`option,ydir` for all other sources.
 2) Set the :keypath:`option, frontend` parameter to 'bluespec'.
 
 Otherwise, you can configure the build as normal.
