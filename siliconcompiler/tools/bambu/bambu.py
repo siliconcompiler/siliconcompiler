@@ -1,4 +1,13 @@
 '''
+The primary objective of the PandA project is to develop a usable framework that will enable the research of new ideas in the HW-SW Co-Design field.
+
+The PandA framework includes methodologies supporting the research on high-level synthesis of hardware accelerators, on parallelism extraction for embedded systems, on hardware/software partitioning and mapping, on metrics for performance estimation of embedded software applications and on dynamic reconfigurable devices.
+
+Documentation: https://github.com/ferrandi/PandA-bambu.git
+
+Sources: https://github.com/ferrandi/PandA-bambu.git
+
+Installation: https://panda.dei.polimi.it/?page_id=88
 '''
 
 import importlib

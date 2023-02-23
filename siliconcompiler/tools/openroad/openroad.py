@@ -110,6 +110,7 @@ def setup(chip, mode='batch'):
             tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
         if tapfile:
             chip.set('tool', tool, 'task', task, 'var', 'ifp_tapcell', tapfile, step=step, index=index, clobber=False)
+        chip.set('tool', tool, 'task', task, 'var', 'ifp_tapcell', 'tap cell insertion script', field='help')
 
         corners = get_corners(chip)
         for lib in targetlibs:
@@ -125,9 +126,13 @@ def setup(chip, mode='batch'):
         chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
 
     chip.set('tool', tool, 'task', task, 'var', 'timing_corners', get_corners(chip), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'timing_corners', 'list of timing corners to use', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'pex_corners', get_pex_corners(chip), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'pex_corners', 'list of parasitic extraction corners to use', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'power_corner', get_power_corner(chip), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'power_corner', 'corner to use for power analysis', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'parasitics', "inputs/sc_parasitics.tcl", step=step, index=index, clobber=True)
+    chip.set('tool', tool, 'task', task, 'var', 'parasitics', 'file used to specify the parasitics for estimation', field='help')
 
     for var0, var1 in [('openroad_tiehigh_cell', 'openroad_tiehigh_port'), ('openroad_tiehigh_cell', 'openroad_tiehigh_port')]:
         key0 = ['library', mainlib, 'option', 'var', tool, var0]
@@ -165,6 +170,11 @@ def setup(chip, mode='batch'):
             chip.add('tool', tool, 'task', task, 'require', keypath, step=step, index=index)
 
         chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', variable]), step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'var', 'place_density', 'global placement density (0.0 - 1.0)', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'pad_global_place', 'global placement cell padding in number of sites', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'pad_detail_place', 'detailed placement cell padding in number of sites', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'macro_place_halo', 'macro halo to use when performing automated macro placement ([x, y] in microns)', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'macro_place_channel', 'macro channel to use when performing automated macro placement ([x, y] in microns)', field='help')
 
     # Copy values from PDK if set
     for variable in ('detailed_route_default_via',
@@ -173,48 +183,53 @@ def setup(chip, mode='batch'):
             value = chip.get('pdk', pdkname, 'var', tool, stackup, variable)
             chip.set('tool', tool, 'task', task, 'var', variable, value,
                      step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'detailed_route_default_via', 'list of default vias to use for detail routing', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'detailed_route_unidirectional_layer', 'list of layers to treat as unidirectional regardless of what the tech lef specifies', field='help')
 
     # set default values for openroad
-    for variable, value in [('ifp_tie_separation', '0'),
-                            ('pdn_enable', 'true'),
-                            ('gpl_routability_driven', 'true'),
-                            ('gpl_timing_driven', 'true'),
-                            ('dpo_enable', 'true'),
-                            ('dpo_max_displacement', '0'),
-                            ('dpl_max_displacement', '0'),
-                            ('cts_distance_between_buffers', '100'),
-                            ('cts_cluster_diameter', '100'),
-                            ('cts_cluster_size', '30'),
-                            ('cts_balance_levels', 'true'),
-                            ('ant_iterations', '3'),
-                            ('ant_margin', '0'),
-                            ('grt_use_pin_access', 'false'),
-                            ('grt_overflow_iter', '100'),
-                            ('grt_macro_extension', '2'),
-                            ('grt_allow_congestion', 'false'),
-                            ('grt_allow_overflow', 'false'),
-                            ('grt_signal_min_layer', chip.get('pdk', pdkname, 'minlayer', stackup)),
-                            ('grt_signal_max_layer', chip.get('pdk', pdkname, 'maxlayer', stackup)),
-                            ('grt_clock_min_layer', chip.get('pdk', pdkname, 'minlayer', stackup)),
-                            ('grt_clock_max_layer', chip.get('pdk', pdkname, 'maxlayer', stackup)),
-                            ('drt_disable_via_gen', 'false'),
-                            ('drt_process_node', 'false'),
-                            ('drt_via_in_pin_bottom_layer', 'false'),
-                            ('drt_via_in_pin_top_layer', 'false'),
-                            ('drt_repair_pdn_vias', 'false'),
-                            ('drt_via_repair_post_route', 'false'),
-                            ('rsz_setup_slack_margin', '0.0'),
-                            ('rsz_hold_slack_margin', '0.0'),
-                            ('rsz_slew_margin', '0.0'),
-                            ('rsz_cap_margin', '0.0'),
-                            ('rsz_buffer_inputs', 'false'),
-                            ('rsz_buffer_outputs', 'false'),
-                            ('sta_early_timing_derate', '0.0'),
-                            ('sta_late_timing_derate', '0.0'),
-                            ('fin_add_fill', 'true'),
-                            ('psm_enable', 'true')
-                            ]:
+    for variable, value, helptext in [
+        ('ifp_tie_separation', '0', 'maximum distance between tie high/low cells in microns'),
+        ('pdn_enable', 'true', 'true/false, when true enables power grid generation'),
+        ('gpl_routability_driven', 'true', 'true/false, when true global placement will consider the routability of the design'),
+        ('gpl_timing_driven', 'true', 'true/false, when true global placement will consider the timing performance of the design'),
+        ('dpo_enable', 'true', 'true/false, when true the detailed placement optimization will be performed'),
+        ('dpo_max_displacement', '0', 'maximum cell movement in detailed placement optimization in microns, 0 will result in the tool default maximum displacement'),
+        ('dpl_max_displacement', '0', 'maximum cell movement in detailed placement in microns, 0 will result in the tool default maximum displacement'),
+        ('cts_distance_between_buffers', '100', 'maximum distance between buffers during clock tree synthesis in microns'),
+        ('cts_cluster_diameter', '100', 'clusting distance to use during clock tree synthesis in microns'),
+        ('cts_cluster_size', '30', 'number of instances in a cluster to use during clock tree synthesis'),
+        ('cts_balance_levels', 'true', 'perform level balancing in clock tree synthesis'),
+        ('ant_iterations', '3', 'maximum number of repair iterations to use during antenna repairs'),
+        ('ant_margin', '0', 'adds a margin to the antenna ratios (0 - 100)'),
+        ('grt_use_pin_access', 'false', 'true, false, when true perform pin access before global routing'),
+        ('grt_overflow_iter', '100', 'maximum number of iterations to use in flobal routing when attempting to solve overflow'),
+        ('grt_macro_extension', '2', 'macro extension distance in number of gcells, this can be useful when the detailed router needs additional space to avoid DRCs'),
+        ('grt_allow_congestion', 'false', 'true/false, when true allow global routing to finish with congestion'),
+        ('grt_allow_overflow', 'false', 'true/false, when true allow global routing to finish with overflow'),
+        ('grt_signal_min_layer', chip.get('pdk', pdkname, 'minlayer', stackup), 'minimum layer to use for global routing of signals'),
+        ('grt_signal_max_layer', chip.get('pdk', pdkname, 'maxlayer', stackup), 'maximum layer to use for global routing of signals'),
+        ('grt_clock_min_layer', chip.get('pdk', pdkname, 'minlayer', stackup), 'minimum layer to use for global routing of clock nets'),
+        ('grt_clock_max_layer', chip.get('pdk', pdkname, 'maxlayer', stackup), 'maximum layer to use for global routing of clock nets'),
+        ('drt_disable_via_gen', 'false', 'true/false, when true turns off via generation in detailed router and only uses the specified tech vias'),
+        ('drt_process_node', 'false', 'false or value, when set this specifies to the detailed router the specific process node'),
+        ('drt_via_in_pin_bottom_layer', 'false', 'false or value, TODO'),
+        ('drt_via_in_pin_top_layer', 'false', 'false or value, TODO'),
+        ('drt_repair_pdn_vias', 'false', 'false or value, TODO'),
+        ('drt_via_repair_post_route', 'false', 'true/false, when true performs a via ripup step after detailed routing to remove power vias that are causing DRC violations'),
+        ('rsz_setup_slack_margin', '0.0', 'specifies the margin to apply when performing setup repair in library timing units'),
+        ('rsz_hold_slack_margin', '0.0', 'specifies the margin to apply when performing hold repair in library timing units'),
+        ('rsz_slew_margin', '0.0', 'specifies the amount of margin to apply to max slew repairs in percent (0 - 100)'),
+        ('rsz_cap_margin', '0.0', 'specifies the amount of margin to apply to max capacitance repairs in percent (0 - 100)'),
+        ('rsz_buffer_inputs', 'false', 'true/false, when true enables adding buffers to the input ports'),
+        ('rsz_buffer_outputs', 'false', 'true/false, when true enables adding buffers to the output ports'),
+        ('sta_early_timing_derate', '0.0', 'timing derating factor to use for hold corners'),
+        ('sta_late_timing_derate', '0.0', 'timing derating factor to use for setup corners'),
+        ('fin_add_fill', 'true', 'true/false, when true enables adding fill, if enabled by the PDK, to the design'),
+        ('psm_enable', 'true', 'true/false, when true enables IR drop analysis')
+        ]:
         chip.set('tool', tool, 'task', task, 'var', variable, value, step=step, index=index, clobber=False)
+        if helptext:
+            chip.set('tool', tool, 'task', task, 'var', variable, helptext, field='help')
 
     for libvar, openroadvar in [('openroad_pdngen', 'pdn_config'),
                                 ('openroad_global_connect', 'global_connect')]:
@@ -228,6 +243,8 @@ def setup(chip, mode='batch'):
             if chip.valid('library', lib, 'option', 'file', libvar):
                 for pdn_config in chip.find_files('library', lib, 'option', 'file', libvar):
                     chip.add('tool', tool, 'task', task, 'var', openroadvar, pdn_config, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'var', 'pdn_config', 'list of files to use for power grid generation', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'global_connect', 'list of files to use for specifying global connections', field='help')
 
     # basic warning and error grep check on logfile
     # print('warnings', step, index)

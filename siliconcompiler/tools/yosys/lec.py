@@ -1,10 +1,12 @@
 import re
 
 from siliconcompiler.tools.yosys.yosys import setup as setup_tool
-from siliconcompiler.tools.yosys.yosys import setup_asic, setup_fpga
+from siliconcompiler.tools.yosys.syn_asic import setup_asic
+from siliconcompiler.tools.yosys.syn_fpga import setup_fpga
 
 def setup(chip):
-    ''' Helper method for configuring LEC steps.
+    '''
+    Perform logical equivalence checks
     '''
 
     # Generic tool setup.

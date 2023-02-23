@@ -2,7 +2,8 @@ import os
 import shutil
 
 def setup(chip):
-    ''' Sets up default settings on a per step basis
+    '''
+    Performs high level synthesis to generate a verilog output
     '''
 
     tool = 'bambu'

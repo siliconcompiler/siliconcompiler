@@ -80,9 +80,6 @@ def setup(chip, mode="batch"):
 
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=clobber)
 
-    # Export GDS with timestamps by default.
-    chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'true', step=step, index=index, clobber=False)
-
     # Log file parsing
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'(WARNING|warning)', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'ERROR', step=step, index=index, clobber=False)

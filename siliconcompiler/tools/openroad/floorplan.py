@@ -3,7 +3,8 @@ from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners, post_process
 
 def setup(chip):
-    ''' Helper method for configs specific to floorplan tasks.
+    '''
+    Perform floorplanning, pin placements, macro placements and power grid generation
     '''
 
     # Generic tool setup.

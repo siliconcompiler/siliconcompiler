@@ -1,6 +1,7 @@
 
 def setup(chip):
-    ''' Sets up default settings on a per step basis
+    '''
+    Generate a bitstream for the ICE40 FPGA
     '''
     tool = 'icepack'
     step = chip.get('arg','step')
