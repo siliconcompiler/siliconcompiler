@@ -1,7 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
 import sys
-import siliconcompiler
 from pathlib import Path
 
 def main():
@@ -14,6 +13,13 @@ def main():
     about the account and remote server.
     -----------------------------------------------------------
     """
+
+    # Return early and print a help string if necessary.
+    if (len(sys.argv) > 1) and \
+       ((sys.argv[1] == '--help') or (sys.argv[1] == '-h')):
+        print('Usage: sc-configure')
+        print('Generates the remote configuration file.')
+        sys.exit(0)
 
     # Find the config file/directory path.
     cfg_dir = os.path.join(Path.home(), '.sc')
