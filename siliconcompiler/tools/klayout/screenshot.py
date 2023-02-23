@@ -21,7 +21,7 @@ def setup(chip):
     task = 'screenshot'
     clobber = False
 
-    general_gui_setup(chip, task, False)
+    general_gui_setup(chip, task, True)
 
     option = ['-nc', '-z', '-rm']
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
