@@ -27,6 +27,8 @@ def configure_chip(design):
     chip.use(sky130io)
     chip.add('asic', 'macrolib', 'sky130io')
 
+    chip.set('tool', 'openroad', 'task', 'export', 'var', 'write_cdl', 'false')
+
     return chip
 
 def build_core():
