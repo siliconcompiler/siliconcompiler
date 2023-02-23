@@ -691,10 +691,6 @@ class AppGen(DynamicGen):
     PATH = 'apps'
 
     def document_module(self, module, modname, path):
-        # TODO: Auto-documentation does not work with apps that use 'input(...)'
-        if modname in ('sc_configure'):
-            return
-
         cmd_name = modname.replace('_', '-')
         cmd = [cmd_name, '--help']
 
