@@ -2814,7 +2814,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             libraries = set()
             for val, step, _ in self.schema._getvals('asic', 'logiclib'):
-                if step in steplist:
+                if not step or step in steplist:
                     libraries.update(val)
 
             info_list.extend(["foundry : " + self.get('pdk', pdk, 'foundry'),
