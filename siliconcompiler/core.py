@@ -2344,10 +2344,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def hash_files(self, *keypath, algo='sha256', update=True):
         '''Generates hash values for a list of parameter files.
 
-        Generates a a hash value for each file found in the keypath.
-        If the  update variable is True, the has values are recorded in the
-        'filehash' field of the parameter, following the order dictated by
-        the files within the 'values' parameter field.
+        Generates a hash value for each file found in the keypath. If existing
+        hash values are stored, this method will compare hashes and trigger an
+        error if there's a mismatch. If the update variable is True, the
+        computed hash values are recorded in the 'filehash' field of the
+        parameter, following the order dictated by the files within the 'value'
+        parameter field.
 
         Files are located using the find_files() function.
 
@@ -2361,12 +2363,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             update (bool): If True, the hash values are recorded in the
                 chip object manifest.
 
-        Returns:
-            A list of hash values.
-
         Examples:
-            >>> hashlist = hash_files('sources')
-             Hashlist gets list of hash values computed from 'sources' files.
+            >>> hash_files('input', 'rtl', 'verilog)
+            Computes and stores hashes of files in :keypath:`input, rtl, verilog`
         '''
 
         keypathstr = ','.join(keypath)
@@ -2403,7 +2402,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for i,item in enumerate(oldhash):
                 if item != hashlist[i]:
                     self.error(f"Hash mismatch for [{keypath}]")
-            self.set(*keypath, hashlist, step=step, index=index, field='filehash', clobber=True)
+
+            if update:
+                self.set(*keypath, hashlist, step=step, index=index, field='filehash', clobber=True)
 
     ###########################################################################
     def audit_manifest(self):
