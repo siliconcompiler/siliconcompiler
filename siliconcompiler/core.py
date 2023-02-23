@@ -1360,20 +1360,36 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if not key_valid:
                     self.logger.warning(f'Keypath {keylist} is not valid')
             if key_valid and 'default' not in keylist:
-                # update value, handling scalars vs. lists
                 typestr = src.get(*keylist, field='type')
                 for val, step, index in src._getvals(*keylist, return_defvalue=False):
+                    # update value, handling scalars vs. lists
                     if re.match(r'\[', typestr) and not clear:
                         dest.add(*keylist, val, step=step, index=index)
+                        add = True
                     else:
                         dest.set(*keylist, val, step=step, index=index, clobber=clobber)
+                        add = False
+
+                    # update other pernode fields
+                    # TODO: only update these if clobber is successful
+                    step_key = Schema.GLOBAL_KEY if not step else step
+                    idx_key = Schema.GLOBAL_KEY if not index else index
+                    for field in src.getdict(*keylist)['node'][step_key][idx_key].keys():
+                        if field == 'value':
+                            continue
+                        v = src.get(*keylist, step=step, index=index, field=field)
+                        if add:
+                            dest.add(*keylist, v, step=step, index=index, field=field)
+                        else:
+                            dest.set(*keylist, v, step=step, index=index, field=field)
 
                 # update other fields that a user might modify
                 for field in src.getdict(*keylist).keys():
                     if field in ('node', 'switch', 'type', 'require', 'defvalue',
                                  'shorthelp', 'example', 'help'):
-                        # skip these fields (value handled above, others are static)
+                        # skip these fields (node handled above, others are static)
                         continue
+                    # TODO: should we be taking into consideration clobber for these fields?
                     v = src.get(*keylist, field=field)
                     dest.set(*keylist, v, field=field)
 
