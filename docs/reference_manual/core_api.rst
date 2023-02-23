@@ -17,6 +17,7 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.core.Chip.getdict
     ~siliconcompiler.core.Chip.valid
     ~siliconcompiler.core.Chip.help
+    ~siliconcompiler.core.Chip.use
 
 **Flowgraph execution:**
 
@@ -63,3 +64,7 @@ This chapter describes all public methods in the SiliconCompiler core Python API
 
 .. automodule:: siliconcompiler.core
     :members:
+
+.. automodule:: siliconcompiler.use
+    :members:
+
