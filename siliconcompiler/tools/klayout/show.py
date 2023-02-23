@@ -47,7 +47,7 @@ def setup(chip):
     setup_tool(chip)
 
     task = 'show'
-    general_gui_setup(chip, task, True)
+    general_gui_setup(chip, task, False)
 
     tool = 'klayout'
     step = chip.get('arg','step')
