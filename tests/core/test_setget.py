@@ -213,10 +213,12 @@ def test_pernode():
     chip.set('asic', 'logiclib', 'mylib')
     chip.set('asic', 'logiclib', 'synlib', step='syn')
     chip.set('asic', 'logiclib', 'syn0lib', step='syn', index=0)
+    chip.set('asic', 'logiclib', 'placelib', step='place', index=0, clobber=False)
 
     assert chip.get('asic', 'logiclib', step='floorplan', index=0) == ['mylib']
     assert chip.get('asic', 'logiclib', step='syn', index=0) == ['syn0lib']
     assert chip.get('asic', 'logiclib', step='syn', index=1) == ['synlib']
+    assert chip.get('asic', 'logiclib', step='place', index=0) == ['mylib']
 
 def test_pernode_fields():
     chip = siliconcompiler.Chip('test')
