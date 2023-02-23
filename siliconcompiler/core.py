@@ -2341,7 +2341,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return archive_name
 
     ###########################################################################
-    def hash_files(self, *keypath, algo='sha256', update=True):
+    def hash_files(self, *keypath, algo='sha256', update=True, step=None, index=None):
         '''Generates hash values for a list of parameter files.
 
         Generates a hash value for each file found in the keypath. If existing
@@ -2359,13 +2359,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             *keypath(str): Keypath to parameter.
-            algo (str): Algorithm to use for file hash calculation
+            algo (str): Algorithm to use for file hash calculation (currently
+                unimplemented, defaults to SHA256).
             update (bool): If True, the hash values are recorded in the
                 chip object manifest.
 
+        Returns:
+            A list of hash values.
+
         Examples:
-            >>> hash_files('input', 'rtl', 'verilog)
-            Computes and stores hashes of files in :keypath:`input, rtl, verilog`
+            >>> hashlist = hash_files('input', 'rtl', 'verilog)
+            Computes, stores, and returns hashes of files in :keypath:`input, rtl, verilog`.
         '''
 
         keypathstr = ','.join(keypath)
@@ -2374,37 +2378,35 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
             return
 
-        vals = self.schema._getvals(*keypath)
-        for val, step, index in vals:
-            if not val:
-                # don't attempt to hash empty parameters - this adds an empty
-                # 'filehash' field. Not dangerous, but there's no need.
-                continue
+        filelist = self._find_files(*keypath, step=step, index=index)
+        if not filelist:
+            return []
 
-            filelist = self._find_files(*keypath, step=step, index=index)
-            #cycle through all paths
-            hashlist = []
-            if filelist:
-                self.logger.info(f'Computing hash value for [{keypathstr}]')
-            for filename in filelist:
-                if os.path.isfile(filename):
-                    #TODO: Implement algo selection
-                    hashobj = hashlib.sha256()
-                    with open(filename, "rb") as f:
-                        for byte_block in iter(lambda: f.read(4096), b""):
-                            hashobj.update(byte_block)
-                    hash_value = hashobj.hexdigest()
-                    hashlist.append(hash_value)
-                else:
-                    self.error(f"Internal hashing error, file not found")
-            # compare previous hash to new hash
-            oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
-            for i,item in enumerate(oldhash):
-                if item != hashlist[i]:
-                    self.error(f"Hash mismatch for [{keypath}]")
+        #cycle through all paths
+        hashlist = []
+        if filelist:
+            self.logger.info(f'Computing hash value for [{keypathstr}]')
+        for filename in filelist:
+            if os.path.isfile(filename):
+                #TODO: Implement algo selection
+                hashobj = hashlib.sha256()
+                with open(filename, "rb") as f:
+                    for byte_block in iter(lambda: f.read(4096), b""):
+                        hashobj.update(byte_block)
+                hash_value = hashobj.hexdigest()
+                hashlist.append(hash_value)
+            else:
+                self.error(f"Internal hashing error, file not found")
+        # compare previous hash to new hash
+        oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
+        for i,item in enumerate(oldhash):
+            if item != hashlist[i]:
+                self.error(f"Hash mismatch for [{keypath}]")
 
-            if update:
-                self.set(*keypath, hashlist, step=step, index=index, field='filehash', clobber=True)
+        if update:
+            self.set(*keypath, hashlist, step=step, index=index, field='filehash', clobber=True)
+
+        return hashlist
 
     ###########################################################################
     def audit_manifest(self):
@@ -3840,13 +3842,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Hash files
         if (not is_builtin) and self.get('option', 'hash'):
             # hash all outputs
-            # TODO: only hash outputs from this step
-            self.hash_files('tool', tool, 'task', task, 'output')
+            self.hash_files('tool', tool, 'task', task, 'output', step=step, index=index)
             # hash all requirements
             for item in self.get('tool', tool, 'task', task, 'require', step=step, index=index):
                 args = item.split(',')
                 if 'file' in self.get(*args, field='type'):
-                    self.hash_files(*args)
+                    if self.get(*args, field='pernode') == 'never':
+                        self.hash_files(*args)
+                    else:
+                        self.hash_files(*args, step=step, index=index)
 
         ##################
         # Capture wall runtime and cpu cores

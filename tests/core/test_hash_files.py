@@ -11,10 +11,11 @@ def test_hash_files():
     allkeys = chip.allkeys()
     for keypath in allkeys:
         if 'file' in chip.get(*keypath, field='type'):
-            chip.hash_files(*keypath)
-            for val, step, index in chip.schema._getvals(*keypath):
-                hashes = chip.schema.get(*keypath, step=step, index=index)
-                assert len(hashes) == len(val)
+            for vals, step, index in chip.schema._getvals(*keypath):
+                hashes = chip.hash_files(*keypath, step=step, index=index)
+                schema_hashes = chip.schema.get(*keypath, step=step, index=index, field='filehash')
+                assert hashes == schema_hashes
+                assert len(hashes) == len(vals)
     chip.write_manifest("hashed.json")
 
 def test_err_mismatch():
