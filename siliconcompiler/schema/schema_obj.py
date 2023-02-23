@@ -108,8 +108,10 @@ class Schema:
                 if cfg['pernode'] == 'required':
                     if field == 'value':
                         return cfg['defvalue']
-                    else:
+                    elif Schema._is_list(field, self.get(*keypath, field='type')):
                         return []
+                    else:
+                        return None
 
             try:
                 return cfg['node'][step][self.GLOBAL_KEY][field]
@@ -121,8 +123,10 @@ class Schema:
             except KeyError:
                 if field == 'value':
                     return cfg['defvalue']
-                else:
+                elif Schema._is_list(field, self.get(*keypath, field='type')):
                     return []
+                else:
+                    return None
         elif field in cfg:
             return cfg[field]
         else:
