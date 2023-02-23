@@ -2,10 +2,11 @@ Installation
 ===================================
 
 
-Python
-------
+Installing Python
+-----------------
 
 Before installing the SiliconCompiler package you will need to set up a Python environment. Currently Python 3.6-3.10 is supported.
+The following sections will walk you through how to install the appropriate python dependencies and start a Python virtual environment. Note that at any time, if you need to exit the Python virtual environment, type 'deactivate' and hit enter. 
 
 Ubuntu (>=18.04)
 ^^^^^^^^^^^^^^^^
@@ -18,6 +19,8 @@ Open up a terminal and enter the following command sequence.
     sudo apt install python3-dev python3-pip python3-venv  # install dependencies
     python3 -m venv  ./venv                                # create a virtual env
     source ./venv/bin/activate                             # active virtual env (bash/zsh)
+
+Skip ahead to `SC Install`_.
 
 RHEL (>=RHEL 7)
 ^^^^^^^^^^^^^^^^^^^
@@ -38,6 +41,7 @@ Open up a terminal and enter the following command sequence.
    source ./venv/bin/activate                                         # active virtual env (bash/zsh)
    pip install --upgrade pip                                          # upgrade Pip
 
+Skip ahead to `SC Install`_.
 
 macOS (>=10.15)
 ^^^^^^^^^^^^^^^
@@ -52,6 +56,8 @@ Open up a terminal and enter the following command sequence.
    python3 --version                                      # check for Python 3.6 - 3.10
    python3 -m venv  ./venv                                # create a virtual env
    source ./venv/bin/activate                             # active virtual env
+
+Skip ahead to `SC Install`_.
 
 Windows (>= Windows 10)
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -68,10 +74,23 @@ From the command shell, enter the following sequence to create and activate a vi
   python -m venv  .\venv
   .\venv\Scripts\activate
 
-SiliconCompiler
----------------
 
-SiliconCompiler is installed directly from `pypi.org <https://pypi.org>`_ using pip. Activate your `Python Virtual Environment <https://docs.python.org/3/library/venv.html>`_ and follow the instructions below. (identical for Windows, Linux, and macOS).
+
+Installing SiliconCompiler
+--------------------------
+
+.. _SC Install:
+
+
+After you've got the python dependencies installed, you will need to install SiliconCompiler. There are a few different ways to do this:
+
+1. The recommended method is to install the last stable version published to `pypi.org <https://pypi.org>`_, or
+2. You can do an offline install with a tarball (for Linux only), or
+3. You can install directly from the git repository (best for developers).
+
+Install from pypi.org 
+^^^^^^^^^^^^^^^^^^^^^
+SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ using pip. Activate your `Python Virtual Environment <https://docs.python.org/3/library/venv.html>`_ and follow the instructions below. (identical for Windows, Linux, and macOS).
 
 .. code-block:: bash
 
@@ -79,18 +98,53 @@ SiliconCompiler is installed directly from `pypi.org <https://pypi.org>`_ using 
  (venv) pip list                                 # show installed packages in venv
  (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
  (venv) python -m pip show siliconcompiler       # will display  SiliconCompiler package information
- (venv) python -c "import siliconcompiler;print(siliconcompiler.__version__)"
 
-The expected version should be printed to the display:
+Skip to `confirm your installation`_.
 
-.. parsed-literal::
+Offline Install (Linux only)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+We also provide packages that bundle SC with all of its Python dependencies to enable installation on machines without an external internet connection. 
 
-   \ |release|
+To access them:
 
-To exit the Python virtual environment, type 'deactivate' and hit enter.
+1. Go our  `builds page <https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml>`_. 
+2. Click on the most recent, passing Wheels package. This should be the first green-colored build in the list.
+3. On the bottom of that page, you will see an "Artifacts" section. Click on the "artifact" to download it.
+4. The packages are named ``scdeps-<pyversion>.tar.gz``, depending on which Python version they are associated with.
 
-You can also install SiliconCompiler from the latest `SiliconCompiler GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_. This option is currently
-only supported on Linux/MacOS platforms.
+To install from a bundle, create a Python virtual environment following the instructions above, then perform the following commands.
+
+.. code-block:: bash
+
+   tar -xzvf scdeps-<pyversion>.tar.gz
+   pip install --upgrade pip --no-index --find-links scdeps
+   pip install siliconcompiler --no-index --find-links scdeps
+
+.. note::
+
+Note 
+This only installs the SC build system offline. Before you can start running SiliconCompiler, you will also need to make sure you have installed external PDKs and tools required to build (synthesis, place and route, etc). Typically, users of this flow have already set up their own tools and PDKs. If that is the case, you may skip ahead to  `confirm your installation`_. But if you do not have PDKs and tools set up, have an internet connection, and would like to leverage the PDKs and external tool install information from the SiliconCompiler GitHub repo, you can, by following these steps:
+
+.. code-block:: bash
+
+    git clone https://github.com/siliconcompiler/siliconcompiler
+    export SCPATH=<the full path for your siliconcompiler/siliconcompiler directory>
+
+
+Skip to `confirm your installation`_, followed by `Run local`_.
+
+Install from GitHub Repo (Linux/MacOS)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+You can also install SiliconCompiler from the latest `SiliconCompiler GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_. This option is currently only supported on Linux/MacOS platforms.
+
+**Install Dependencies, Bison and Flex**
+
+For Linux, you can use:
+
+.. code-block:: bash
+
+   sudo apt-get install flex bison
+   
 
 On MacOS, note that you must first install Bison and Flex from Homebrew.
 
@@ -103,7 +157,9 @@ Ensure that the path to the Homebrew packages takes priority over system
 packages in your ``$PATH``. Run ``brew --prefix`` to determine where Homebrew
 installs packages on your machine.
 
-Finally, to clone and install SiliconCompiler, run the following.
+**Install SiliconCompiler**
+
+Finally, to clone and install SiliconCompiler, run the following:
 
 .. code-block:: bash
 
@@ -111,22 +167,30 @@ Finally, to clone and install SiliconCompiler, run the following.
    cd siliconcompiler
    pip install -r requirements.txt
    python -m pip install -e .
+   export SCPATH=<the full path for your siliconcompiler/siliconcompiler directory>
 
-Offline Install (Linux only)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We also provide packages that bundle SC with all of its Python dependencies to enable installation on machines without an external internet connection. They can be found under the "Artifacts" section of any passing nightly or release build on our `builds page <https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml>`_. The packages are named ``scdeps-<pyversion>.tar.gz``, depending on which Python version they are associated with.
+Confirm your Installation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To install from a bundle, create a Python virtual environment following the instructions above, then perform the following commands.
+.. _confirm your installation:
 
 .. code-block:: bash
 
-   tar -xzvf scdeps-<pyversion>.tar.gz
-   pip install --upgrade pip --no-index --find-links scdeps
-   pip install siliconcompiler --no-index --find-links scdeps
+ (venv) python -c "import siliconcompiler;print(siliconcompiler.__version__)"
 
-Cloud Access
---------------
+The expected version should be printed to the display:
+
+.. parsed-literal::
+
+   \ |release|
+
+
+Running SiliconCompiler
+------------------------------
+
+Run Remote with Cloud Access
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Remote server access requires a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
 
@@ -164,6 +228,24 @@ Once you have verified that your remote configuration works, try compiling a sim
    (venv) curl https://raw.githubusercontent.com/siliconcompiler/siliconcompiler/main/docs/user_guide/examples/heartbeat.v > heartbeat.v
    (venv) sc heartbeat.v -remote
 
+
+Run Locally
+^^^^^^^^^^^
+
+.. _Run local:
+
+If you wish to run locally, you will need to install some external tool dependencies to start. Take a look at `External Tools`_ to start with Surelog, Yosys, OpenRoad and KLayout as a minimum to run.
+
+Once you have these tools installed, try compiling a simple design:
+
+.. code-block:: bash
+
+    (venv) cd $SCPATH/../examples/heartbeat
+    (venv) sc heartbeat.v heartbeat.sdc
+
+See the _`Quickstart <https://docs.siliconcompiler.com/en/latest/user_guide/quickstart.html>`_ section to get more details on what you're running.
+
+
 Layout Viewer
 -------------
 
@@ -177,6 +259,7 @@ To test the klayout installation, run the 'sc-show' to display the 'heartbeat' l
 
 External Tools
 --------------
+.. _External Tools:
 
 To run compilation locally (instead of remotely), you will need to install a number of tools. For reference, we have provided install scripts for many of these tools. Unless otherwise specified in the script name, these scripts target Ubuntu 20.04.
 
