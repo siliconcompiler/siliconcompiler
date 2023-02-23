@@ -50,7 +50,7 @@ How do I...
 ... change the logger level?
     .. code-block:: python
 
-        chip = siliconcompiler.Chip('<design>', loglevel=<INFO|WARNING|ERROR|DEBUG>)
+        chip = siliconcompiler.Chip('<design>', loglevel=<INFO|DEBUG|WARNING|ERROR>)
         chip.set('option', 'loglevel', <level>)
 
 ... check my setup before running?
