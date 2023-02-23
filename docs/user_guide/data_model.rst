@@ -138,27 +138,27 @@ The JSON structure below shows the 'design' parameter exported by the :meth:`.wr
 
     "design": {
         "defvalue": null,
-        "example": [
-            "cli: -design hello_world",
-            "api: chip.set('design', 'hello_world')"
-        ],
-        "help": "Name of the top level module or library. Required for all\nchip objects.",
-        "lock": "false",
+        "lock": false,
+        "node": {
+            "global": {
+                "global": {
+                    "value": "hello_world"
+                }
+            }
+        },
         "notes": null,
+        "pernode": "never",
         "require": "all",
         "scope": "global",
         "shorthelp": "Design top module name",
         "signature": null,
         "switch": "-design <str>",
-        "type": "str",
-        "value": "hello_world"
+        "type": "str"
     },
 
 To handle complex scenarios required by advanced PDKs, the Schema supports dynamic nested dictionaries. A 'default' keyword is used to define the dictionary structure during object creation. Populating the object dictionary with actual keys is done by the user during compilation setup. The example below illustrates how 'default' is used as a placeholder for the timing model filetype and corner. These dynamic dictionaries makes it easy to set up an arbitrary number of libraries and corners in a PDK using Python loops.
 
 .. code-block:: python
-
-
 
     corner='default'
     pdkname='default'
@@ -243,4 +243,4 @@ The SiliconCompiler Schema is roughly divided into the following major sub-group
      - 350
      -
 
-Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information. Another good resource is the single file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema.py>`_.
+Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information. Another good resource is the schema configuration file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema/schema_cfg.py>`_.

@@ -4,7 +4,7 @@ Licenses
 Software License
 ---------------------
 
-Original SiliconCompiler software is licensed under an Apache 2.0 license.
+Original SiliconCompiler software is licensed under an `Apache 2.0 license <https://github.com/siliconcompiler/siliconcompiler/blob/main/LICENSE>`_.
 
 Documentation License
 ---------------------
@@ -30,9 +30,9 @@ bundled dependencies:
     ============================================ ========================
     Name                                         License
     ============================================ ========================
-    `Si2 LEF parser`_ (distributed by OpenROAD)  Apache Software License
-    `Surelog`_                                   Apache Software License
+    `Si2 LEF parser`_ (distributed by OpenROAD)  `Apache Software License <https://github.com/The-OpenROAD-Project/OpenROAD/blob/master/src/odb/src/lef/LICENSE.TXT>`_
+    `Surelog`_                                   `Apache Software License <https://github.com/chipsalliance/Surelog/blob/master/LICENSE>`_
     ============================================ ========================
 
 .. _Si2 LEF parser: https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/src/odb/src/lef
-.. _Surelog: https://github.com/chipsalliance/Surelog/tree/0fb03574502b99f3a0ba64c9f881dd464646dcc4
+.. _Surelog: https://github.com/chipsalliance/Surelog/
