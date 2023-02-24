@@ -76,7 +76,7 @@ def build_schema_value_table(cfg, keypath_prefix=None, skip_zero_weight=False):
     else:
         return None
 
-def build_config_recursive(schema, keypath_prefix=[], sec_key_prefix=[]):
+def build_config_recursive(schema, keypath=None, sec_key_prefix=None):
     '''Helper function for displaying schema at each level as tables under nested
     sections.
 
@@ -85,31 +85,40 @@ def build_config_recursive(schema, keypath_prefix=[], sec_key_prefix=[]):
         level
     - Otherwise, recurse and collect sections of lower levels
     '''
+    if keypath is None:
+        keypath = []
+    if sec_key_prefix is None:
+        sec_key_prefix = []
+
     leaves = {}
     child_sections = []
-    for key, val in schema.items():
-        if key == 'default': continue
-        if 'help' in val:
-            if 'value' in val and val['value']:
-                leaves.update({key: val})
+    for key in schema.getkeys(*keypath):
+        if Schema._is_leaf(schema.getdict(*keypath, key)):
+            val = schema.getdict(*keypath, key)
+            leaves.update({key: val})
         else:
-            children = build_config_recursive(val, keypath_prefix=keypath_prefix+[key], sec_key_prefix=sec_key_prefix)
+            children = build_config_recursive(schema, keypath=keypath+[key], sec_key_prefix=sec_key_prefix)
             child_sections.extend(children)
 
-    # If we've found leaves, create a new section where we'll display a
-    # table plus all child sections.
+    schema_table = None
     if len(leaves) > 0:
-        keypath = ', '.join(keypath_prefix)
-        section_key = '-'.join(sec_key_prefix + keypath_prefix)
-        top = build_section(keypath, section_key)
-        top += build_schema_value_table(leaves, keypath_prefix=keypath_prefix)
+        # Might return None is none of the leaves are displayable
+        schema_table = build_schema_value_table(leaves, keypath_prefix=keypath)
+
+    if schema_table is not None:
+        # If we've found leaves, create a new section where we'll display a
+        # table plus all child sections.
+        keypathstr = ', '.join(keypath)
+        section_key = '-'.join(sec_key_prefix + keypath)
+        top = build_section(keypathstr, section_key)
+        top += schema_table
         top += child_sections
         return [top]
-    else:
-        # Otherwise, just pass on the child sections -- we don't want to
-        # create an extra level of section hierarchy for levels of the
-        # schema without leaves.
-        return child_sections
+
+    # Otherwise, just pass on the child sections -- we don't want to
+    # create an extra level of section hierarchy for levels of the
+    # schema without leaves.
+    return child_sections
 
 #############
 # Base class
@@ -410,8 +419,7 @@ class PDKGen(DynamicGen):
         section_key = '-'.join(['pdks', modname, 'configuration'])
         settings = build_section('Configuration', section_key)
 
-        cfg = chip.getdict('pdk')
-        settings += build_config_recursive(cfg, keypath_prefix=['pdk'], sec_key_prefix=['pdks', modname])
+        settings += build_config_recursive(chip.schema, keypath=['pdk'], sec_key_prefix=['pdks', modname])
 
         return settings
 
@@ -442,8 +450,7 @@ class LibGen(DynamicGen):
         settings = build_section_with_target(libname, '-'.join(section_key), self.state.document)
 
         for key in ('asic', 'output', 'option'):
-            cfg = chip.getdict(key)
-            settings += build_config_recursive(cfg, keypath_prefix=[key], sec_key_prefix=[*section_key, key])
+            settings += build_config_recursive(chip.schema, keypath=[key], sec_key_prefix=[*section_key, key])
 
         sections.append(settings)
 
