@@ -791,6 +791,7 @@ class SCDomain(sphinx.domains.std.StandardDomain):
     name = 'sc'
 
     # Override in StandardDomain so xref is literal instead of inline
+    # https://github.com/sphinx-doc/sphinx/blob/ba080286b06cb9e0cadec59a6cf1f96aa11aef5a/sphinx/domains/std.py#L789
     def build_reference_node(self, fromdocname, builder, docname, labelid, sectname, rolename, **options):
         nodeclass = options.pop('nodeclass', nodes.reference)
         newnode = nodeclass('', '', internal=True, **options)
