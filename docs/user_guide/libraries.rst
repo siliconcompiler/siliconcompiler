@@ -18,7 +18,7 @@ Here's an example of setting up and importing a macro block as a :class:`.Librar
   # ... add more library sources
 
   chip.use(lib)
-  chip.add('asic', 'macrolib', 'mylibrary')
+  chip.add('asic', 'macrolib', 'mymacro')
   chip.set('constraint', 'component', 'macro_instance1', 'placement', (20.0, 20.0, 0.0))
   chip.set('constraint', 'component', 'macro_instance2', 'placement', (40.0, 20.0, 0.0))
   chip.set('constraint', 'component', 'macro_instance2', 'rotation', 180)
