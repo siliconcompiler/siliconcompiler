@@ -100,15 +100,212 @@ The open-source Skywater130 PDK does not currently include foundry-published mem
 Once you have a GDS and LEF file for your RAM macro, create a new directory called `sram` in same location as your PicoRV32 build files, and copy the macro files there. Then, create a Python script which describes the RAM macro in a format which can be imported by SiliconCompiler::
 
     import siliconcompiler
-    # TODO
 
-Next, your core build script will need to be updated to import the new SRAM Library, and specify some extra parameters such as die size and macro placement::
+    def setup(chip):
+        # Core values.
+        design = 'sky130_sram_2k'
+        stackup = chip.get('option', 'stackup')
 
-    # TODO
+        # Create library Chip object.
+        lib = siliconcompiler.Library(chip, design)
+        lib.set('output', stackup, 'gds', f'sram/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
+        lib.set('output', stackup, 'lef', f'sram/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
+        # Set the 'copy' field to True, to pull these files
+        # into the buid directory during the 'import' task.
+        lib.set('output', stackup, 'gds', True, field='copy')
+        lib.set('output', stackup, 'lef', True, field='copy')
 
-Finally, you will need to modify the PicoRV32 Verilog source code to instantiate the RAM block and connect it the CPU's memory interface::
+    return lib
 
-    # TODO
+You will also need a "blackbox" Verilog file to assure the synthesis tools that the RAM module exists: you can call this file ``sky130_sram_2k.bb.v``. You don't need a full hardware description of the RAM block to generate an ASIC design, but the open-source workflow needs some basic information about the module::
+
+    (* blackbox *)
+    module sky130_sram_2kbyte_1rw1r_32x512_8(
+    `ifdef USE_POWER_PINS
+        vccd1,
+        vssd1,
+    `endif
+    // Port 0: RW
+        input clk0,
+        input csb0,
+        input web0,
+        input [3:0] wmask0,
+        input [8:0] addr0,
+        input [31:0] din0,
+        output reg [31:0] dout0,
+    // Port 1: R
+        input clk1,
+        input csb1,
+        input [8:0] addr1,
+        output reg [31:0] dout1
+      );
+    endmodule
+
+Next, you need to create a top-level Verilog module containing one ``picorv32`` CPU core, one ``sky130_sram_2k`` memory, and signal wiring to connect their I/O ports together::
+
+    `timescale 1 ns / 1 ps
+
+    module picorv32_top #(
+            parameter [ 0:0] ENABLE_COUNTERS = 1,
+            parameter [ 0:0] ENABLE_COUNTERS64 = 1,
+            parameter [ 0:0] ENABLE_REGS_16_31 = 1,
+            parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
+            parameter [ 0:0] LATCHED_MEM_RDATA = 0,
+            parameter [ 0:0] TWO_STAGE_SHIFT = 1,
+            parameter [ 0:0] BARREL_SHIFTER = 0,
+            parameter [ 0:0] TWO_CYCLE_COMPARE = 0,
+            parameter [ 0:0] TWO_CYCLE_ALU = 0,
+            parameter [ 0:0] COMPRESSED_ISA = 0,
+            parameter [ 0:0] CATCH_MISALIGN = 1,
+            parameter [ 0:0] CATCH_ILLINSN = 1,
+            parameter [ 0:0] ENABLE_PCPI = 0,
+            parameter [ 0:0] ENABLE_MUL = 0,
+            parameter [ 0:0] ENABLE_FAST_MUL = 0,
+            parameter [ 0:0] ENABLE_DIV = 0,
+            parameter [ 0:0] ENABLE_IRQ = 0,
+            parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
+            parameter [ 0:0] ENABLE_IRQ_TIMER = 1,
+            parameter [ 0:0] ENABLE_TRACE = 0,
+            parameter [ 0:0] REGS_INIT_ZERO = 0,
+            parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
+            parameter [31:0] LATCHED_IRQ = 32'h ffff_ffff,
+            parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
+            parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010,
+            parameter [31:0] STACKADDR = 32'h ffff_ffff
+    ) (
+            input clk, resetn,
+            output reg trap,
+
+            // Look-Ahead Interface
+            output            mem_la_read,
+            output            mem_la_write,
+            output     [31:0] mem_la_addr,
+            output reg [31:0] mem_la_wdata,
+            output reg [ 3:0] mem_la_wstrb,
+
+            // Pico Co-Processor Interface (PCPI)
+            output reg        pcpi_valid,
+            output reg [31:0] pcpi_insn,
+            output     [31:0] pcpi_rs1,
+            output     [31:0] pcpi_rs2,
+            input             pcpi_wr,
+            input      [31:0] pcpi_rd,
+            input             pcpi_wait,
+            input             pcpi_ready,
+
+            // IRQ Interface
+            input      [31:0] irq,
+            output reg [31:0] eoi,
+
+    `ifdef RISCV_FORMAL
+            output reg        rvfi_valid,
+            output reg [63:0] rvfi_order,
+            output reg [31:0] rvfi_insn,
+            output reg        rvfi_trap,
+            output reg        rvfi_halt,
+            output reg        rvfi_intr,
+            output reg [ 1:0] rvfi_mode,
+            output reg [ 1:0] rvfi_ixl,
+            output reg [ 4:0] rvfi_rs1_addr,
+            output reg [ 4:0] rvfi_rs2_addr,
+            output reg [31:0] rvfi_rs1_rdata,
+            output reg [31:0] rvfi_rs2_rdata,
+            output reg [ 4:0] rvfi_rd_addr,
+            output reg [31:0] rvfi_rd_wdata,
+            output reg [31:0] rvfi_pc_rdata,
+            output reg [31:0] rvfi_pc_wdata,
+            output reg [31:0] rvfi_mem_addr,
+            output reg [ 3:0] rvfi_mem_rmask,
+            output reg [ 3:0] rvfi_mem_wmask,
+            output reg [31:0] rvfi_mem_rdata,
+            output reg [31:0] rvfi_mem_wdata,
+
+            output reg [63:0] rvfi_csr_mcycle_rmask,
+            output reg [63:0] rvfi_csr_mcycle_wmask,
+            output reg [63:0] rvfi_csr_mcycle_rdata,
+            output reg [63:0] rvfi_csr_mcycle_wdata,
+
+            output reg [63:0] rvfi_csr_minstret_rmask,
+            output reg [63:0] rvfi_csr_minstret_wmask,
+            output reg [63:0] rvfi_csr_minstret_rdata,
+            output reg [63:0] rvfi_csr_minstret_wdata,
+    `endif
+
+            // Trace Interface
+            output reg        trace_valid,
+            output reg [35:0] trace_data
+    );
+
+        // Memory signals.
+        reg mem_valid, mem_instr, mem_ready;
+        reg [31:0] mem_addr;
+        reg [31:0] mem_wdata;
+        reg [ 3:0] mem_wstrb;
+        reg [31:0] mem_rdata;
+
+        // No 'ready' signal in sky130 SRAM macro; presumably it is single-cycle?
+        always @(posedge clk)
+            mem_ready <= mem_valid;
+
+        // (Signals have the same name as the picorv32 module: use '.*' to autofill)
+        picorv32 rv32_soc (
+          .*
+        );
+
+        // SRAM with always-active chip select and write control bits.
+        sky130_sram_2kbyte_1rw1r_32x512_8 sram (
+            .clk0(clk),
+            .csb0('b0),
+            .web0(!(mem_wstrb != 0)),
+            .wmask0(mem_wstrb),
+            .addr0(mem_addr),
+            .din0(mem_wdata),
+            .dout0(mem_rdata),
+            .clk1(clk),
+            .csb1('b1),
+            .addr1('b0),
+            .dout1()
+        );
+    endmodule
+
+Finally, your core build script will need to be updated to import the new SRAM Library, and specify some extra parameters such as die size and macro placement::
+
+    import siliconcompiler
+
+    design = 'picorv32_top'
+    die_width = 1000
+    die_height = 1000
+
+    chip = siliconcompiler.Chip(design)
+    chip.load_target('skywater130_demo')
+
+    # Set input source files.
+    chip.input(f'{design}.v')
+    chip.input('picorv32.v')
+    chip.input('sky130_sram_2k.bb.v')
+    chip.input('picorv32.sdc')
+
+    # Set die outline and core area.
+    chip.set('constraint', 'outline', [(0,0), (die_w, die_h)])
+    chip.set('constraint', 'corearea', [(10,10), (die_w-10, die_h-10)])
+
+    # Setup SRAM macro library.
+    from sram import sky130_sram_2k
+    chip.use(sky130_sram_2k)
+    chip.add('asic', 'macrolib', 'sky130_sram_2k')
+
+    # SRAM pins are inside the macro boundary; no routing blockage padding is needed.
+    chip.set('tool', 'openroad', 'task', 'route', 'var', 'grt_macro_extension', '0')
+    # Disable CDL file generation until we can find a CDL file for the SRAM block.
+    chip.set('tool', 'openroad', 'task', 'export', 'var', 'write_cdl', 'false')
+
+    # Place macro instance.
+    chip.set('constraint', 'component', 'sram', 'placement', (500.0, 250.0, 0.0))
+    chip.set('constraint', 'component', 'sram', 'rotation', 270)
+
+    # Build on a remote server.
+    chip.set('option', 'remote', True)
+    chip.run()
 
 With all of that done, your top-level build script should take about 15 minutes to run on the cloud servers if they are not too busy. As with the previous designs, you should see periodic updates on its progress, and you should receive a screenshot and metrics summary once the job is complete.
 
