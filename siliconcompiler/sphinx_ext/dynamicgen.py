@@ -767,7 +767,7 @@ class ExampleGen(DynamicGen):
 
         return section
 
-def keypath_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=None):
     # Split and clean up keypath
     keys = [key.strip() for key in text.split(',')]
     try:
