@@ -1386,7 +1386,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
                 "api: chip.set('tool','openroad', 'task','cts','require','design')"],
             schelp="""
             List of keypaths to required task parameters. The list is used
-            by check() to verify that all parameters have been set up before
+            by check_manifest() to verify that all parameters have been set up before
             step execution begins.""")
 
     metric = 'default'

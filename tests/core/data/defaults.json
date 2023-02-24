@@ -6533,7 +6533,7 @@
                             "cli: -tool_task_require 'openroad cts design'",
                             "api: chip.set('tool','openroad', 'task','cts','require','design')"
                         ],
-                        "help": "List of keypaths to required task parameters. The list is used\nby check() to verify that all parameters have been set up before\nstep execution begins.",
+                        "help": "List of keypaths to required task parameters. The list is used\nby check_manifest() to verify that all parameters have been set up before\nstep execution begins.",
                         "lock": false,
                         "node": {},
                         "notes": null,

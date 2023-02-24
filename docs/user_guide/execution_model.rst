@@ -10,7 +10,7 @@ The complete SiliconCompiler compilation is handled by a single call to the :met
 
 A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where a node is an executable tool performing some ("task"), and an edge is the connection between those tasks. SiliconCompiler defines a "task" as an atomic combination of a step and an index, where: 1.) STEP is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and 2.) INDEX is defined as variant of a step operating on identical data.  Flowgraph execution is done through the :meth:`.run()` function which checks the flowgraph for correctness and then executes all tasks in the flowgraph from start to finish.
 
-The :ref:`quickstart guide` example called the built in "`asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_" compilation flow through the target function. Custom flowgraphs can be easily created through the :meth:`.set()`/:meth:`.get()` methods or the :meth:`.node()`/:meth:`.edge()` methods (**recommended**). All flows must contain an import step that 'imports' source files into the SiliconCompiler schema. Otherwise the user is free to define any reasonable combination of steps and indices based on available tools and PDKs. The example below shows the 'heartbeat' example modified to include a simple two step (import + synthesis) compilation pipeline.
+The :ref:`quickstart guide` example called the built in "`asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_" compilation flow through the target function. Custom flowgraphs can be easily created through the :meth:`.set()`/:meth:`.get()` methods or the :meth:`.node()`/:meth:`.edge()` methods (**recommended**). All flows must contain an import task that 'imports' source files into the SiliconCompiler schema. Otherwise the user is free to define any reasonable combination of steps and indices based on available tools and PDKs. The example below shows the 'heartbeat' example modified to include a simple two step (import + synthesis) compilation pipeline.
 
 .. The built in functions are important to minimize data movement in remote processing workflows, where intermediate results may not be accessible.
 
@@ -26,7 +26,6 @@ The execution flowgraph can be rendered using :meth:`.write_flowgraph()`, which 
 The previous heartbeat example did not include any mention of index, so the index defaults to 0. While not essential to basic execution, the 'index' is fundamental to searching and optimizing tool and design options. One example use case for the index feature would be to run a design through synthesis with a range of settings and then selecting the optimal settings based on power, performance, and area. The snippet below shows how a massively parallel optimization flow can be programmed using the SiliconCompiler Python API.
 
 .. literalinclude:: examples/flowgraph_doe.py
-
 
 .. image:: _images/flowgraph_doe.svg
 
@@ -55,7 +54,7 @@ The SiliconCompiler directory structure follows the convention shown below. Each
 
 The combination of the flowgraph execution mode and file based communication enables support for distributed processing of any static execution pattern, including serial pipelines, fork-join patterns, and parallel pipelines.
 
-The ubiquitous fork-join execution pattern can be created by adding steps associated with built in function steps to the flowgraph. The built in 'asicflow' is an example of a flow that supports fork-join optimization at every step.
+The ubiquitous fork-join execution pattern can be created by adding steps associated with built in function steps to the flowgraph. The built in :ref:`asicflow <asicflow-ref>` is an example of a flow that supports fork-join optimization at every step.
 
 .. image:: ../_images/forkjoin.png
 
