@@ -100,20 +100,25 @@ def build_config_recursive(schema, keypath=None, sec_key_prefix=None):
             children = build_config_recursive(schema, keypath=keypath+[key], sec_key_prefix=sec_key_prefix)
             child_sections.extend(children)
 
-    # If we've found leaves, create a new section where we'll display a
-    # table plus all child sections.
+    schema_table = None
     if len(leaves) > 0:
+        # Might return None is none of the leaves are displayable
+        schema_table = build_schema_value_table(leaves, keypath_prefix=keypath)
+
+    if schema_table is not None:
+        # If we've found leaves, create a new section where we'll display a
+        # table plus all child sections.
         keypathstr = ', '.join(keypath)
         section_key = '-'.join(sec_key_prefix + keypath)
         top = build_section(keypathstr, section_key)
-        top += build_schema_value_table(leaves, keypath_prefix=keypath)
+        top += schema_table
         top += child_sections
         return [top]
-    else:
-        # Otherwise, just pass on the child sections -- we don't want to
-        # create an extra level of section hierarchy for levels of the
-        # schema without leaves.
-        return child_sections
+
+    # Otherwise, just pass on the child sections -- we don't want to
+    # create an extra level of section hierarchy for levels of the
+    # schema without leaves.
+    return child_sections
 
 #############
 # Base class
