@@ -178,6 +178,8 @@ class DynamicGen(SphinxDirective):
     def run(self):
         '''Main entry point of directive.'''
         sections = []
+        self.env.note_dependency(__file__)
+        self.env.note_dependency(utils.__file__)
 
         for module, modname in self.get_modules():
             path = module.__file__

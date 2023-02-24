@@ -12,6 +12,7 @@ class InstallScripts(SphinxDirective):
     def run(self):
         setup_dir = os.path.join(SC_ROOT, 'setup')
         self.env.note_dependency(setup_dir)
+        self.env.note_dependency(__file__)
 
         scripts = {}
 
