@@ -151,7 +151,7 @@ def keypath(key_path, refdoc):
     refid = get_ref_id('param-'+'-'.join(key_parts))
 
     opt = {'refdoc': refdoc,
-           'refdomain': 'std',
+           'refdomain': 'sc',
            'reftype': 'ref',
            'refexplicit': True,
            'refwarn': True}

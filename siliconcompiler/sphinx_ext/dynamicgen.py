@@ -787,7 +787,35 @@ def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=Non
         prb = inliner.problematic(rawtext, rawtext, msg)
         return [prb], [msg]
 
+class SCDomain(sphinx.domains.std.StandardDomain):
+    name = 'sc'
+
+    # Override in StandardDomain so xref is literal instead of inline
+    def build_reference_node(self, fromdocname, builder, docname, labelid, sectname, rolename, **options):
+        nodeclass = options.pop('nodeclass', nodes.reference)
+        newnode = nodeclass('', '', internal=True, **options)
+        innernode = nodes.literal(sectname, sectname)
+        if innernode.get('classes') is not None:
+            innernode['classes'].append('std')
+            innernode['classes'].append('std-' + rolename)
+        if docname == fromdocname:
+            newnode['refid'] = labelid
+        else:
+            # set more info in contnode; in case the
+            # get_relative_uri call raises NoUri,
+            # the builder will then have to resolve these
+            contnode = sphinx.addnodes.pending_xref('')
+            contnode['refdocname'] = docname
+            contnode['refsectname'] = sectname
+            newnode['refuri'] = builder.get_relative_uri(
+                fromdocname, docname)
+            if labelid:
+                newnode['refuri'] += '#' + labelid
+        newnode.append(innernode)
+        return newnode
+
 def setup(app):
+    app.add_domain(SCDomain)
     app.add_directive('flowgen', FlowGen)
     app.add_directive('pdkgen', PDKGen)
     app.add_directive('libgen', LibGen)
