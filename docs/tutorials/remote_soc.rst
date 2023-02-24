@@ -1,37 +1,39 @@
 Building Your Own SoC
 =====================
 
-SiliconCompiler supports a "zero-install" remote workflow, which lets you write hardware designs on your local machine and build them on cloud servers. We are currently running a free public beta, and the remote API is a simple collection of HTTP requests which we publish under an open-source license (TODO: link).
+SiliconCompiler supports a "zero-install" remote workflow, which lets you write hardware designs on your local machine and build them on cloud servers. We are currently running a free public beta, and the :ref:`remote API <Server API>` is a simple collection of HTTP requests which we publish under an open-source license.
 
 You can use the remote flow to try SiliconCompiler or experiment with hardware design, without going through the trouble of building and installing a full suite of open-source EDA tools on your local machine. This tutorial will walk you through the process of building an ASIC containing one PicoRV32 RISC-V CPU core and 2 kilobytes of SRAM, on an open-source 130nm Skywater process node.
 
-Note that our public beta currently only supports open-source tools and PDKs. You can access the public beta without a signup or login, and it is designed to delete your data after your jobs finish, but it is not intended to process proprietary or restricted intellectual property! Please [review our terms of service](TODO), and do not submit IP which you are not allowed to distribute.
+Note that our public beta currently only supports open-source tools and PDKs. You can access the public beta without a signup or login, and it is designed to delete your data after your jobs finish, but it is not intended to process proprietary or restricted intellectual property! Please `review our terms of service <https://www.siliconcompiler.com/terms-of-service>`_, and do not submit IP which you are not allowed to distribute.
 
-You can find complete example designs which reflect the contents of this tutorial in the public SiliconCompiler repository, with RAM and without RAM. (TODO: links)
+You can find complete example designs which reflect the contents of this tutorial in the public SiliconCompiler repository, `with RAM <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32_ram>`_ and `without RAM <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_.
+
+[TODO / CR feedback: Add a screenshot here (or at the bottom)?]
 
 Installing SiliconCompiler
 --------------------------
 
-You must have a recent version of Python v3 and its Pip package manager in order to install SiliconCompiler. We recommend that Windows users download Python from [https://python.org/downloads/](https://www.python.org/downloads/), not the Microsoft Store.
+You must have a recent version of Python3 and its Pip package manager in order to install SiliconCompiler. We recommend that Windows users download Python from `https://python.org/downloads/ <https://python.org/downloads/>`_, rather than the Microsoft Store.
 
-With that, you should be able to install SiliconCompiler directly from PyPi:
+With that, you should be able to install SiliconCompiler directly from PyPi::
 
-`pip install siliconcompiler`
+    pip install siliconcompiler
 
-If you are using an older operating system which includes Python v2 as a default, you may need to run:
+If you are using an older operating system which includes Python2 as a default, you may need to run::
 
-`pip3 install siliconcompiler`
+    pip3 install siliconcompiler
 
 (TODO: Windows check)
 
-If the installation was successful, you should be able to check which version you have with `sc -version`::
+If the installation was successful, you should be able to check which version you have with ``sc -version``::
 
     $ sc -version
     0.9.6
 
-Finally, in order to access the cloud beta, you need to tell SiliconCompiler where your remote server is located. We do not currently require login credentials for our public open-source server, so you can simply run:
+Finally, in order to access the cloud beta, you need to tell SiliconCompiler where your remote server is located. We do not currently require login credentials for our public open-source server, so you can simply run::
 
-`sc-configure https://server.siliconcompiler.com`
+    sc-configure https://server.siliconcompiler.com
 
 (Optional) Testing SiliconCompiler
 ----------------------------------
@@ -54,27 +56,27 @@ Before we start building an SoC, you can run a quick example from the command li
     
     sc heartbeat.v heartbeat.sdc -design heartbeat -target freepdk45_demo -remote
 
-The job should take a few minutes to run, printing the run's status periodically. After it completes, you should see a table of metrics printed in the command line, and you can find a screenshot of the final GDS-II results at [TODO].
+The job should take a few minutes to run, printing the run's status periodically. After it completes, you should see a table of metrics printed in the command line, and you can find a screenshot of the final GDS-II results at [TODO: serverside KLayout screenshot location after export/0].
 
 Download PicoRV32 Verilog Code
 ------------------------------
 
 The heart of any digital design is its HDL code, typically written in a language such as Verilog or VHDL. High-level synthesis languages are gaining in popularity, but most of them still output their final design sources in a traditional HDL such as Verilog.
 
-PicoRV32 is an open-source implementation of a small RISC-V CPU core, the sort you might find in a low-power microcontroller. Its source code, license, and various tooling can be found [in its GitHub repository](https://github.com/YosysHQ/picorv32)
+PicoRV32 is an open-source implementation of a small RISC-V CPU core, the sort you might find in a low-power microcontroller. Its source code, license, and various tooling can be found `in its GitHub repository <https://github.com/YosysHQ/picorv32>`_.
 
-The repository contains many files, but the core CPU design is located in a single file called `picorv32.v` at the root of the repository.
+The repository contains many files, but the core CPU design is located in a single file called ``picorv32.v`` at the root of the repository.
 
-Create a new directory for this project, and copy the `picorv32.v` file into it.
+Create a new directory for this project, and copy the ``picorv32.v`` file into it.
 
-Because we are building this design as an ASIC rather than an FPGA bitstream, you will also need a constraints file to set a reference for the core clock signal. Create a file called `picorv32.sdc` in your new build directory, containing the following line::
+Because we are building this design as an ASIC rather than an FPGA bitstream, you will also need a constraints file to set a reference for the core clock signal. Create a file called ``picorv32.sdc`` in your new build directory, containing the following line::
 
     create_clock -name clk -period 10 [get_ports {clk}]
 
 Build the PicoRV32 Core using SiliconCompiler
 ---------------------------------------------
 
-Before we add the complexity of a RAM macro block, let's build the core design using the open-source Skywater130 PDK. Copy the following build script into the same directory which you copied `picorv32.v` into::
+Before we add the complexity of a RAM macro block, let's build the core design using the open-source Skywater130 PDK. Copy the following build script into the same directory which you copied ``picorv32.v`` into::
 
     import siliconcompiler
 
@@ -86,7 +88,7 @@ Before we add the complexity of a RAM macro block, let's build the core design u
 
 If you run that example as a Python script, it should take approximately 10-15 minutes to run if the servers are not too busy. We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area. Once the job finishes, you should receive a screenshot of your final design, and a report containing metrics related to the build.
 
-For the full GDS-II results and intermediate build artifacts, you can install the EDA tools on your local system, and run the same Python build script with the `('option', 'remote')` parameter set to `False`. We are not returning the full results during this early beta period because we want to minimize bandwidth, and we believe that the open-source tools/PDKs are currently best suited for rapid prototyping and design exploration.
+For the full GDS-II results and intermediate build artifacts, you can install the EDA tools on your local system, and run the same Python build script with the :keypath:`option, remote` parameter set to ``False``. We are not returning the full results during this early beta period because we want to minimize bandwidth, and we believe that the open-source tools/PDKs are currently best suited for rapid prototyping and design exploration.
 
 Adding an SRAM block
 --------------------
@@ -95,9 +97,9 @@ A CPU core is not very useful without any memory. Indeed, a real system-on-chip 
 
 In this tutorial, we'll take the first step by adding a small (2 kilobyte) SRAM block and wiring it to the CPU's memory interface. This will teach you how to import and place a hard IP block in your design.
 
-The open-source Skywater130 PDK does not currently include foundry-published memory macros. Instead, they have a set of OpenRAM configurations which are blessed by the maintainers. You can use those configurations (TODO: link) to generate RAM macros from scratch if you are willing to install the OpenRAM utility, or you can download pre-built files which have been published under a permissive license. (TODO: link)
+The open-source Skywater130 PDK does not currently include foundry-published memory macros. Instead, they have a set of OpenRAM configurations which are blessed by the maintainers. You can use `those configurations <https://github.com/VLSIDA/OpenRAM/tree/stable/technology/sky130>`_ to generate RAM macros from scratch if you are willing to install the `OpenRAM utility <https://github.com/VLSIDA/OpenRAM>`_, or you can `download pre-built files <https://github.com/VLSIDA/sky130_sram_macros>`_ which have been published under a permissive license. We will use the ``sky130_sram_2kbyte_1rw1r_32x512_8`` block in this example.
 
-Once you have a GDS and LEF file for your RAM macro, create a new directory called `sram` in same location as your PicoRV32 build files, and copy the macro files there. Then, create a Python script which describes the RAM macro in a format which can be imported by SiliconCompiler::
+Once you have a GDS and LEF file for your RAM macro, create a new directory called ``sram`` in same location as your PicoRV32 build files, and copy the macro files there. Then, create a Python script which describes the RAM macro in a format which can be imported by SiliconCompiler::
 
     import siliconcompiler
 
@@ -141,38 +143,11 @@ You will also need a "blackbox" Verilog file to assure the synthesis tools that 
       );
     endmodule
 
-Next, you need to create a top-level Verilog module containing one ``picorv32`` CPU core, one ``sky130_sram_2k`` memory, and signal wiring to connect their I/O ports together::
+Next, you need to create a top-level Verilog module containing one ``picorv32`` CPU core, one ``sky130_sram_2k`` memory, and signal wiring to connect their I/O ports together. Note that for the sake of brevity, this module does not include some optional parameters and signals. Check `our picorv32_ram example <https://github.com/siliconcompiler/siliconcompiler/blob/main/examples/picorv32_ram/picorv32_top.v>`_ for a more complete ``picorv32_top`` declaration::
 
     `timescale 1 ns / 1 ps
 
-    module picorv32_top #(
-            parameter [ 0:0] ENABLE_COUNTERS = 1,
-            parameter [ 0:0] ENABLE_COUNTERS64 = 1,
-            parameter [ 0:0] ENABLE_REGS_16_31 = 1,
-            parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
-            parameter [ 0:0] LATCHED_MEM_RDATA = 0,
-            parameter [ 0:0] TWO_STAGE_SHIFT = 1,
-            parameter [ 0:0] BARREL_SHIFTER = 0,
-            parameter [ 0:0] TWO_CYCLE_COMPARE = 0,
-            parameter [ 0:0] TWO_CYCLE_ALU = 0,
-            parameter [ 0:0] COMPRESSED_ISA = 0,
-            parameter [ 0:0] CATCH_MISALIGN = 1,
-            parameter [ 0:0] CATCH_ILLINSN = 1,
-            parameter [ 0:0] ENABLE_PCPI = 0,
-            parameter [ 0:0] ENABLE_MUL = 0,
-            parameter [ 0:0] ENABLE_FAST_MUL = 0,
-            parameter [ 0:0] ENABLE_DIV = 0,
-            parameter [ 0:0] ENABLE_IRQ = 0,
-            parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
-            parameter [ 0:0] ENABLE_IRQ_TIMER = 1,
-            parameter [ 0:0] ENABLE_TRACE = 0,
-            parameter [ 0:0] REGS_INIT_ZERO = 0,
-            parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
-            parameter [31:0] LATCHED_IRQ = 32'h ffff_ffff,
-            parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
-            parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010,
-            parameter [31:0] STACKADDR = 32'h ffff_ffff
-    ) (
+    module picorv32_top (
             input clk, resetn,
             output reg trap,
 
@@ -196,40 +171,6 @@ Next, you need to create a top-level Verilog module containing one ``picorv32`` 
             // IRQ Interface
             input      [31:0] irq,
             output reg [31:0] eoi,
-
-    `ifdef RISCV_FORMAL
-            output reg        rvfi_valid,
-            output reg [63:0] rvfi_order,
-            output reg [31:0] rvfi_insn,
-            output reg        rvfi_trap,
-            output reg        rvfi_halt,
-            output reg        rvfi_intr,
-            output reg [ 1:0] rvfi_mode,
-            output reg [ 1:0] rvfi_ixl,
-            output reg [ 4:0] rvfi_rs1_addr,
-            output reg [ 4:0] rvfi_rs2_addr,
-            output reg [31:0] rvfi_rs1_rdata,
-            output reg [31:0] rvfi_rs2_rdata,
-            output reg [ 4:0] rvfi_rd_addr,
-            output reg [31:0] rvfi_rd_wdata,
-            output reg [31:0] rvfi_pc_rdata,
-            output reg [31:0] rvfi_pc_wdata,
-            output reg [31:0] rvfi_mem_addr,
-            output reg [ 3:0] rvfi_mem_rmask,
-            output reg [ 3:0] rvfi_mem_wmask,
-            output reg [31:0] rvfi_mem_rdata,
-            output reg [31:0] rvfi_mem_wdata,
-
-            output reg [63:0] rvfi_csr_mcycle_rmask,
-            output reg [63:0] rvfi_csr_mcycle_wmask,
-            output reg [63:0] rvfi_csr_mcycle_rdata,
-            output reg [63:0] rvfi_csr_mcycle_wdata,
-
-            output reg [63:0] rvfi_csr_minstret_rmask,
-            output reg [63:0] rvfi_csr_minstret_wmask,
-            output reg [63:0] rvfi_csr_minstret_rdata,
-            output reg [63:0] rvfi_csr_minstret_wdata,
-    `endif
 
             // Trace Interface
             output reg        trace_valid,
@@ -308,6 +249,8 @@ Finally, your core build script will need to be updated to import the new SRAM L
     chip.run()
 
 With all of that done, your top-level build script should take about 15 minutes to run on the cloud servers if they are not too busy. As with the previous designs, you should see periodic updates on its progress, and you should receive a screenshot and metrics summary once the job is complete.
+
+[TODO / CR feedback: Add a screenshot here (or near the top)?]
 
 Extending your design
 ---------------------

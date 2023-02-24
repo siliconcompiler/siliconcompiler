@@ -31,4 +31,4 @@ Our public beta servers do not prune or pre-process Schema parameters, in order 
 
 Any changes that you make to SiliconCompiler's built-in tool setup scripts on your local machine will not be reflected in jobs which are run on a remote server. Likewise, any changes that you make to the built-in open-source PDKs and standard cell libraries will not be sent to the remote servers.
 
-Please report any issues that you encounter with the remote workflow at [TODO].
+Please report any issues that you encounter with the remote workflow on `the SiliconCompiler repository's issue page <https://github.com/siliconcompiler/siliconcompiler/issues>`_.
