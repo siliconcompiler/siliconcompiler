@@ -7,7 +7,15 @@ The SiliconCompiler project supports a remote processing model that leverages th
  #. Warehouse scale elastic compute.
  #. NDA encumbered IPs, PDKs, and EDA tools.
 
-For command line compilation, remote processing is turned on with the '-remote' option. Results from a remote compilation should be identical to results from a local compilation.
+Our publicly-available beta servers only support open-source IP and tools. The remote API is capable of supporting any SiliconCompiler modules which the server operators wish to install, however, and we provide a minimal example development server which can be used as a starting point for custom server implementations. You can also find descriptions of the core remote API calls in this documentation's Server API section.
+
+You can run the ``sc-configure`` command to configure your SiliconCompiler installation with a remote endpoint. If your remote server requires authentication, you can run the utility with no arguments and fill in the address, username, and password fields that it prompts you for. If your server does not require authentication, you can simply pass the server address in as a command-line argument:
+
+``sc-configure https://server.siliconcompiler.com``
+
+If a previous credentials file already exists, you will be prompted to overwrite it. Your credentials file will be placed in ``$HOME/.sc/``, if you want to back it up or delete it.
+
+For command line compilation, remote processing is turned on with the '-remote' option. Results from a remote compilation should be identical to results from a local compilation, although the server can choose to only return a subset of result files if the operator is concerned about bandwidth usage, distributing restricted IP, etc.
 
 .. code-block:: bash
 
@@ -15,90 +23,12 @@ For command line compilation, remote processing is turned on with the '-remote' 
    always @ (posedge clk) out <= d; endmodule"> flipflop.v
    sc flipflop.v -remote
 
-Remote processing is also supported from the Python interface when the 'remote' parameter is set to 'True'. ::
+Remote processing is also supported from the Python interface when the ('option', 'remote') parameter is set to 'True'. ::
 
-  chip.set('remote', True)
+  chip.set('option', 'remote', True)
 
-For security reasons, only a subset of the full Schema parameters is currently supported. Values for disallowed keypaths will be silently dropped by the server. In addition, note that the load_target() function will be re-run on the server, to ensure targets are set up with their default configurations. The following table documents the list of supported remote parameters and any associated restrictions.
+Our public beta servers do not prune or pre-process Schema parameters, in order to make the remote processing environment as close to a local environment as possible. The jobs will be run in isolated environments with limited communication interfaces, however, so they jobs may not be able to perform network calls or meaningful filesystem access when they are run on our cloud beta servers.
 
-.. list-table::
-   :widths: 10 10
-   :header-rows: 1
+Any changes that you make to SiliconCompiler's built-in tool setup scripts on your local machine will not be reflected in jobs which are run on a remote server. Likewise, any changes that you make to the built-in open-source PDKs and standard cell libraries will not be sent to the remote servers.
 
-   * - Keypath
-     - Restrictions
-
-   * - ``design``
-     - Must only contain alphanumeric characters or underscores
-   * - ``jobname``
-     - Must only contain alphanumeric characters or underscores
-   * - ``dir``
-     - Must only contain alphanumeric characters or underscores
-   * - ``constraint``
-     - Only allowed for fpgaflow
-   * - ``target``
-     - Must be one of ``asicflow_freepdk45``, ``asicflow_skywater130``, or ``fpgaflow_ice40up5k-sg48``
-   * - ``library, ...``
-     - Allowed if key isn't the name of a built-in PDK standard cell library
-   * - ``source``
-     - None
-   * - ``testbench``
-     - None
-   * - ``waveform``
-     - None
-   * - ``clock, ...``
-     - None
-   * - ``supply, ...``
-     - None
-   * - ``param, ...``
-     - None
-   * - ``define``
-     - None
-   * - ``ydir``
-     - None
-   * - ``idir``
-     - None
-   * - ``vlib``
-     - None
-   * - ``libext``
-     - None
-   * - ``cmdfile``
-     - None
-   * - ``activityfactor``
-     - None
-   * - ``read, spef, ...``
-     - None
-   * - ``read, sdf, ...``
-     - None
-   * - ``read, saif, ...``
-     - None
-   * - ``read, gds, ...``
-     - None
-   * - ``read, def, ...``
-     - None
-   * - ``read, netlist, ...``
-     - None
-   * - ``read, pcf, ...``
-     - None
-   * - ``read, vcd, ...``
-     - None
-   * - ``asic, ...``
-     - None
-   * - ``metric, ...``
-     - None
-   * - ``fpga, ...``
-     - None
-   * - ``flowarg, ...``
-     - None
-   * - ``techarg, ...``
-     - None
-   * - ``clean``
-     - None
-   * - ``loglevel``
-     - None
-   * - ``novercheck``
-     - None
-   * - ``checkonly``
-     - None
-   * - ``eda, ..., variable, ...``
-     - None
+Please report any issues that you encounter with the remote workflow at [TODO].
