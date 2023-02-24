@@ -791,6 +791,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             field(str): Parameter field to fetch.
             job (str): Jobname to use for dictionary access in place of the
                 current active jobname.
+            step (str): Step name to access for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to access for parameters that may be specified
+                on a per-node basis.
 
         Returns:
             Value found for the keypath and field provided.
@@ -910,6 +914,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             args (list): Parameter keypath followed by a value to set.
             field (str): Parameter field to set.
             clobber (bool): Existing value is overwritten if True.
+            step (str): Step name to set for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to set for parameters that may be specified
+                on a per-node basis.
 
         Examples:
             >>> chip.set('design', 'top')
@@ -952,6 +960,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             keypath (list): Parameter keypath to clear.
+            step (str): Step name to unset for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to unset for parameters that may be specified
+                on a per-node basis.
         '''
         self.logger.debug(f'Unsetting {keypath}')
 
@@ -976,7 +988,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             args (list): Parameter keypath followed by a value to add.
-            field (str): Parameter field to set.
+            field (str): Parameter field to modify.
+            step (str): Step name to modify for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to modify for parameters that may be specified
+                on a per-node basis.
 
         Examples:
             >>> chip.add('input', 'rtl', 'verilog', 'hello.v')
@@ -1145,6 +1161,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 found. If False, print an error and set the error flag.
             job (str): Jobname to use for dictionary access in place of the
                 current active jobname.
+            step (str): Step name to access for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to access for parameters that may be specified
+                on a per-node basis.
 
         Returns:
             If keys points to a scalar entry, returns an absolute path to that
@@ -1360,20 +1380,35 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if not key_valid:
                     self.logger.warning(f'Keypath {keylist} is not valid')
             if key_valid and 'default' not in keylist:
-                # update value, handling scalars vs. lists
                 typestr = src.get(*keylist, field='type')
+                should_append = re.match(r'\[', typestr) and not clear
                 for val, step, index in src._getvals(*keylist, return_defvalue=False):
-                    if re.match(r'\[', typestr) and not clear:
+                    # update value, handling scalars vs. lists
+                    if should_append:
                         dest.add(*keylist, val, step=step, index=index)
                     else:
                         dest.set(*keylist, val, step=step, index=index, clobber=clobber)
+
+                    # update other pernode fields
+                    # TODO: only update these if clobber is successful
+                    step_key = Schema.GLOBAL_KEY if not step else step
+                    idx_key = Schema.GLOBAL_KEY if not index else index
+                    for field in src.getdict(*keylist)['node'][step_key][idx_key].keys():
+                        if field == 'value':
+                            continue
+                        v = src.get(*keylist, step=step, index=index, field=field)
+                        if should_append:
+                            dest.add(*keylist, v, step=step, index=index, field=field)
+                        else:
+                            dest.set(*keylist, v, step=step, index=index, field=field)
 
                 # update other fields that a user might modify
                 for field in src.getdict(*keylist).keys():
                     if field in ('node', 'switch', 'type', 'require', 'defvalue',
                                  'shorthelp', 'example', 'help'):
-                        # skip these fields (value handled above, others are static)
+                        # skip these fields (node handled above, others are static)
                         continue
+                    # TODO: should we be taking into consideration clobber for these fields?
                     v = src.get(*keylist, field=field)
                     dest.set(*keylist, v, field=field)
 
@@ -2341,13 +2376,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return archive_name
 
     ###########################################################################
-    def hash_files(self, *keypath, algo='sha256', update=True):
+    def hash_files(self, *keypath, algo='sha256', update=True, step=None, index=None):
         '''Generates hash values for a list of parameter files.
 
-        Generates a a hash value for each file found in the keypath.
-        If the  update variable is True, the has values are recorded in the
-        'filehash' field of the parameter, following the order dictated by
-        the files within the 'values' parameter field.
+        Generates a hash value for each file found in the keypath. If existing
+        hash values are stored, this method will compare hashes and trigger an
+        error if there's a mismatch. If the update variable is True, the
+        computed hash values are recorded in the 'filehash' field of the
+        parameter, following the order dictated by the files within the 'value'
+        parameter field.
 
         Files are located using the find_files() function.
 
@@ -2357,7 +2394,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             *keypath(str): Keypath to parameter.
-            algo (str): Algorithm to use for file hash calculation
+            algo (str): Algorithm to use for file hash calculation (currently
+                unimplemented, defaults to SHA256).
             update (bool): If True, the hash values are recorded in the
                 chip object manifest.
 
@@ -2365,48 +2403,45 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             A list of hash values.
 
         Examples:
-            >>> hashlist = hash_files('sources')
-             Hashlist gets list of hash values computed from 'sources' files.
+            >>> hashlist = hash_files('input', 'rtl', 'verilog)
+            Computes, stores, and returns hashes of files in :keypath:`input, rtl, verilog`.
         '''
 
         keypathstr = ','.join(keypath)
         #TODO: Insert into find_files?
         if 'file' not in self.get(*keypath, field='type'):
             self.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
-        else:
-            vals = self.schema._getvals(*keypath)
-            # TODO: fix this. will require changing schema structure.
-            if len(vals) > 1:
-                self.logger.warning(
-                    'Hashing files for a parameter with multiple pernode values '
-                    'is not yet supported. Hashes for only one value will be returned.'
-                )
-            elif len(vals) == 0:
-                return
+            return
 
-            _, step, index = vals[0]
-            filelist = self._find_files(*keypath, step=step, index=index)
-            #cycle through all paths
-            hashlist = []
-            if filelist:
-                self.logger.info(f'Computing hash value for [{keypathstr}]')
-            for filename in filelist:
-                if os.path.isfile(filename):
-                    #TODO: Implement algo selection
-                    hashobj = hashlib.sha256()
-                    with open(filename, "rb") as f:
-                        for byte_block in iter(lambda: f.read(4096), b""):
-                            hashobj.update(byte_block)
-                    hash_value = hashobj.hexdigest()
-                    hashlist.append(hash_value)
-                else:
-                    self.error(f"Internal hashing error, file not found")
-            # compare previous hash to new hash
-            oldhash = self.get(*keypath,field='filehash')
-            for i,item in enumerate(oldhash):
-                if item != hashlist[i]:
-                    self.error(f"Hash mismatch for [{keypath}]")
-            self.set(*keypath, hashlist, field='filehash', clobber=True)
+        filelist = self._find_files(*keypath, step=step, index=index)
+        if not filelist:
+            return []
+
+        #cycle through all paths
+        hashlist = []
+        if filelist:
+            self.logger.info(f'Computing hash value for [{keypathstr}]')
+        for filename in filelist:
+            if os.path.isfile(filename):
+                #TODO: Implement algo selection
+                hashobj = hashlib.sha256()
+                with open(filename, "rb") as f:
+                    for byte_block in iter(lambda: f.read(4096), b""):
+                        hashobj.update(byte_block)
+                hash_value = hashobj.hexdigest()
+                hashlist.append(hash_value)
+            else:
+                self.error(f"Internal hashing error, file not found")
+        # compare previous hash to new hash
+        oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
+        for i,item in enumerate(oldhash):
+            if item != hashlist[i]:
+                self.error(f"Hash mismatch for [{keypath}]")
+
+        if update:
+            self.set(*keypath, hashlist, step=step, index=index, field='filehash', clobber=True)
+
+        return hashlist
 
     ###########################################################################
     def audit_manifest(self):
@@ -3842,13 +3877,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Hash files
         if (not is_builtin) and self.get('option', 'hash'):
             # hash all outputs
-            # TODO: only hash outputs from this step
-            self.hash_files('tool', tool, 'task', task, 'output')
+            self.hash_files('tool', tool, 'task', task, 'output', step=step, index=index)
             # hash all requirements
             for item in self.get('tool', tool, 'task', task, 'require', step=step, index=index):
                 args = item.split(',')
                 if 'file' in self.get(*args, field='type'):
-                    self.hash_files(*args)
+                    if self.get(*args, field='pernode') == 'never':
+                        self.hash_files(*args)
+                    else:
+                        self.hash_files(*args, step=step, index=index)
 
         ##################
         # Capture wall runtime and cpu cores

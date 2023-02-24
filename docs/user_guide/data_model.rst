@@ -42,21 +42,13 @@ Table summarizing mandatory parameter type and value fields.
      - Default schema value
      - Type dependent
 
-   * - **value**
-     - Global schema value
-     - Type dependent
-
-   * - **nodevalue**
-     - Dictionary of values based on step & index keys
+   * - **node**
+     - Dictionary of fields based on step & index keys
      - Dictionary
 
    * - **pernode**
      - Enables/disables setting of value on a per node basis
      - 'never', 'required', 'optional'
-
-   * - **set**
-     - State indicating if parameter value has been modified by user.
-     - True / False
 
    * - **lock**
      - Enable/disable for set()/add() methods
@@ -90,7 +82,15 @@ Table summarizing mandatory parameter type and value fields.
      - User entered 'notes'/'disclaimers' about value being set.
      - String
 
-The file type parameters have the additional required fields show in the table below:
+   * - **hashalgo**
+     - Hashing algorithm used (files only)
+     - sha256,md5,...
+
+   * - **copy**
+     - Whether to copy files into build directory (files only)
+     - True / False
+
+Each parameter's node dictionary may contain some or all of the following fields, and may be set on a per-step/index based on the parameter's 'pernode' setting. Within the 'node' dictionary, the reserved keyword 'global' is used to represent a setting that applies to all steps or indices.
 
 .. list-table::
    :widths: 10 25 50
@@ -100,33 +100,53 @@ The file type parameters have the additional required fields show in the table b
      - Description
      - Legal Values
 
-   * - **author**
-     - File author
-     - String
-
-   * - **date**
-     - File date stamp
-     - String
+   * - **value**
+     - Parameter value
+     - Type dependent
 
    * - **signature**
      - Author signature key
+     - String or List of Strings, type dependent
+
+   * - **author**
+     - File author (files only)
+     - String
+
+   * - **date**
+     - File date stamp (files only)
      - String
 
    * - **filehash**
-     - File hash value
+     - File hash value (files only)
      - String
-
-   * - **hashalgo**
-     - Hashing algorithm used
-     - sha256,md5,...
-
-   * - **copy**
-     - Whether to copy files into build directory
-     - True / False
 
 Accessing schema parameters is done using the :meth:`.set()`, :meth:`.get()`, and :meth:`.add()` Python methods. The following shows how to create a chip object and manipulate a schema parameter in Python.
 
 .. literalinclude:: examples/setget.py
+
+When accessing parameters with 'optional' or 'required' pernode settings, schema accessor methods accept `step` and `index` keyword arguments.
+These arguments are optional when setting optional-pernode parameters, and when
+accessing them the most specific match is returned. For required-pernode
+parameters, these keyword arguments must always be supplied, and it is an error
+to access them with a step and index that have not yet been set.
+
+.. code-block:: python
+
+  import siliconcompiler
+  chip = siliconcompiler.Chip('hello_world')
+
+  # optional
+  chip.set('asic', 'logiclib', ['mylib_rvt'])
+  chip.set('asic', 'logiclib', ['mylib_lvt'], step='place')
+
+  chip.get('asic', 'logiclib', step='syn', index=0) # => ['mylib_rvt']
+  chip.get('asic', 'logiclib', step='place', index=1) # => ['mylib_lvt']
+
+  # required
+  chip.set('metric', 'warnings', 3, step='syn', index=0)
+
+  chip.get('metric', 'warnings', step='syn', index=0) # => 3
+  chip.get('metric', 'warnings', step='place', index=0) # => error, not set!
 
 Reading and writing the schema to and from disk is handled by the :meth:`.read_manifest()` and :meth:`.write_manifest()` Python API methods. Supported export file formats include TCL, JSON, and YAML. By default, only non-empty values are written to disk.
 

@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.26.0'
+SCHEMA_VERSION = '0.27.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -88,7 +88,6 @@ def scparam(cfg,
         cfg['shorthelp'] = shorthelp
         cfg['example'] = example
         cfg['help'] = schelp
-        cfg['signature'] = signature
         cfg['notes'] = notes
         # never, optional, required
         cfg['pernode'] = pernode
@@ -105,9 +104,6 @@ def scparam(cfg,
         if re.search(r'file',sctype):
             cfg['hashalgo'] = hashalgo
             cfg['copy'] = copy
-            cfg['filehash'] = []
-            cfg['date'] = []
-            cfg['author'] = []
 
 
 #############################################################################
