@@ -1381,14 +1381,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.warning(f'Keypath {keylist} is not valid')
             if key_valid and 'default' not in keylist:
                 typestr = src.get(*keylist, field='type')
+                should_append = re.match(r'\[', typestr) and not clear
                 for val, step, index in src._getvals(*keylist, return_defvalue=False):
                     # update value, handling scalars vs. lists
-                    if re.match(r'\[', typestr) and not clear:
+                    if should_append:
                         dest.add(*keylist, val, step=step, index=index)
-                        add = True
                     else:
                         dest.set(*keylist, val, step=step, index=index, clobber=clobber)
-                        add = False
 
                     # update other pernode fields
                     # TODO: only update these if clobber is successful
@@ -1398,7 +1397,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         if field == 'value':
                             continue
                         v = src.get(*keylist, step=step, index=index, field=field)
-                        if add:
+                        if should_append:
                             dest.add(*keylist, v, step=step, index=index, field=field)
                         else:
                             dest.set(*keylist, v, step=step, index=index, field=field)
