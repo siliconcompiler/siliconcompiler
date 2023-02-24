@@ -18,11 +18,11 @@ def setup(chip):
     License (see the file APACHE-LICENSE-2.0.txt in the root install
     directory for the complete text). This technology is intended to work
     with the 45nm BSIM4 Predictive Technology Model from Arizona State
-    University (http://www.eas.asu.edu/~ptm).  See the HSPICE Models
+    University (https://ptm.asu.edu/).  See the HSPICE Models
     section of this file for details about these models.
 
     More information:
-    * https://www.eda.ncsu.edu/wiki/FreePDK45:Manual
+    * https://eda.ncsu.edu/freepdk/freepdk45/
     '''
 
     ###############################################
