@@ -51,15 +51,15 @@ Similarly to :ref:`PDKs<PDKs>`, library modules must implement the following fun
 
    * - **setup**
      - Library setup function
-     - chip
-     - lib
+     - :class:`.Chip`
+     - :class:`.Library`
      - :meth:`.use()`
      - yes
 
    * - **make_docs**
      - Doc generator
-     - chip
-     - lib
+     - :class:`.Chip`
+     - :class:`.Library`
      - sphinx
      - no
 
