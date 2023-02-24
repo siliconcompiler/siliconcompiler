@@ -791,6 +791,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             field(str): Parameter field to fetch.
             job (str): Jobname to use for dictionary access in place of the
                 current active jobname.
+            step (str): Step name to access for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to access for parameters that may be specified
+                on a per-node basis.
 
         Returns:
             Value found for the keypath and field provided.
@@ -910,6 +914,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             args (list): Parameter keypath followed by a value to set.
             field (str): Parameter field to set.
             clobber (bool): Existing value is overwritten if True.
+            step (str): Step name to set for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to set for parameters that may be specified
+                on a per-node basis.
 
         Examples:
             >>> chip.set('design', 'top')
@@ -952,6 +960,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             keypath (list): Parameter keypath to clear.
+            step (str): Step name to unset for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to unset for parameters that may be specified
+                on a per-node basis.
         '''
         self.logger.debug(f'Unsetting {keypath}')
 
@@ -976,7 +988,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             args (list): Parameter keypath followed by a value to add.
-            field (str): Parameter field to set.
+            field (str): Parameter field to modify.
+            step (str): Step name to modify for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to modify for parameters that may be specified
+                on a per-node basis.
 
         Examples:
             >>> chip.add('input', 'rtl', 'verilog', 'hello.v')
@@ -1145,6 +1161,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 found. If False, print an error and set the error flag.
             job (str): Jobname to use for dictionary access in place of the
                 current active jobname.
+            step (str): Step name to access for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to access for parameters that may be specified
+                on a per-node basis.
 
         Returns:
             If keys points to a scalar entry, returns an absolute path to that
