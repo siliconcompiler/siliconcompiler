@@ -1,6 +1,10 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
 
+from siliconcompiler.pdks import asap7
+from siliconcompiler.flows import asicflow
+from siliconcompiler.libs import asap7sc7p5t
+
 ####################################################
 # Target Setup
 ####################################################
@@ -20,9 +24,6 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     }
 
     #1. Load PDK, flow, libs combo
-    from pdks import asap7
-    from flows import asicflow
-    from libs import asap7sc7p5t
     chip.use(asap7)
     chip.use(asicflow, **asic_flow_args)
     chip.use(asap7sc7p5t)
