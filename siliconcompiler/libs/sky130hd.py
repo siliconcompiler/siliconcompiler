@@ -1,10 +1,6 @@
 import os
 import siliconcompiler
 
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    return setup(chip)
-
 def setup(chip):
     '''
     Skywater130 standard cell library.
@@ -15,7 +11,6 @@ def setup(chip):
     version = 'v0_0_2'
     libname = 'sky130hd' # not sure if this should be something else
     libtype = 'unithd' # TODO: update this
-    corner = 'typical'
 
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, version)
 
@@ -33,7 +28,10 @@ def setup(chip):
     lib.add('asic', 'site', libtype, 'unithddbl')
 
     # model files
-    lib.add('output', corner, 'nldm', libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib')
+    lib.add('output', 'slow',    'nldm', libdir+'/lib/sky130_fd_sc_hd__ss_n40C_1v40.lib.gz')
+    lib.add('output', 'typical', 'nldm', libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib.gz')
+    lib.add('output', 'fast',    'nldm', libdir+'/lib/sky130_fd_sc_hd__ff_100C_1v95.lib.gz')
+
     lib.add('output', stackup, 'lef', libdir+'/lef/sky130_fd_sc_hd_merged.lef')
     lib.add('output', stackup, 'gds', libdir+'/gds/sky130_fd_sc_hd.gds')
     lib.add('output', stackup, 'cdl', libdir+'/cdl/sky130_fd_sc_hd.cdl')
@@ -96,7 +94,10 @@ def setup(chip):
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_1',
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_2',
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_4',
-        'sky130_fd_sc_hd__buf_16'
+        'sky130_fd_sc_hd__buf_16',
+        'sky130_fd_sc_hd__maj3_1',
+        'sky130_fd_sc_hd__maj3_2',
+        'sky130_fd_sc_hd__maj3_4'
     ])
 
     # tie cells
@@ -111,6 +112,7 @@ def setup(chip):
 
     # Yosys techmap
     lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
+    lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v')
 
     # Openroad specific files
     lib.set('option', 'file', 'openroad_pdngen', libdir+'/apr/openroad/pdngen.tcl')
@@ -131,6 +133,5 @@ def setup(chip):
 
 #########################
 if __name__ == "__main__":
-
-    lib = make_docs()
-    lib.write_manifest('sky130.tcl')
+    lib = setup(siliconcompiler.Chip('<lib>'))
+    lib.write_manifest(f'{lib.top()}.json')

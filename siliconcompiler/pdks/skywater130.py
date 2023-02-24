@@ -2,14 +2,6 @@
 import os
 import siliconcompiler
 
-############################################################################
-# DOCS
-############################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('skywater130')
-    return setup(chip)
-
 ####################################################
 # PDK Setup
 ####################################################
@@ -34,7 +26,7 @@ def setup(chip):
     * EDA support files for multiple open source and proprietary flows
 
     More information:
-    * https://skywater-pdk.readthedocs.io/en/latest/
+    * https://skywater-pdk.readthedocs.io/
 
     Sources:
     * https://github.com/google/skywater-pdk
@@ -90,16 +82,16 @@ def setup(chip):
     # Openroad global routing grid derating
     openroad_layer_adjustments = {
         'li1': 1.0,
-        'met1': 0.5,
-        'met2': 0.5,
-        'met3': 0.5,
-        'met4': 0.5,
-        'met5': 0.5,
+        'met1': 0.3,
+        'met2': 0.3,
+        'met3': 0.3,
+        'met4': 0.3,
+        'met5': 0.3,
     }
     for layer, adj in openroad_layer_adjustments.items():
         pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
-    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'met3')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'met2')
     pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'met4')
 
     pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'met2')
@@ -109,15 +101,15 @@ def setup(chip):
     pdk.set('pdk', process, 'var', 'klayout', 'hide_layers', stackup, ['areaid.standardc'])
 
     # PEX
-    pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
-        pdkdir + '/pex/openroad/typical.tcl')
-    pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, 'typical',
-        pdkdir + '/pex/openroad/rcx_patterns.rules')
+    for corner in ["minimum", "typical", "maximum"]:
+        pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, corner,
+            pdkdir + '/pex/openroad/'+corner+'.tcl')
+        pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, corner,
+            pdkdir + '/pex/openroad/'+corner+'.rules')
 
     return pdk
 
 #########################
 if __name__ == "__main__":
-
-    chip = make_docs()
-    chip.write_manifest('skywater130.tcl')
+    pdk = setup(siliconcompiler.Chip('<pdk>'))
+    pdk.write_manifest(f'{pdk.top()}.json')

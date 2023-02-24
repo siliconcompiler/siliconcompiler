@@ -7,7 +7,8 @@ def test_getdict():
     chip.load_target('freepdk45_demo')
     localcfg = chip.getdict('pdk')
 
-    assert localcfg['freepdk45']['foundry']['value'] == 'virtual'
+    glbl_key = siliconcompiler.Schema.GLOBAL_KEY
+    assert localcfg['freepdk45']['foundry']['node'][glbl_key][glbl_key]['value'] == 'virtual'
 
 #########################
 if __name__ == "__main__":

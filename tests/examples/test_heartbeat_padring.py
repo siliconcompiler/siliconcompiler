@@ -17,6 +17,7 @@ def test_heartbeat_padring_with_floorplan(setup_example_test, oh_dir):
     assert os.path.isfile('build/heartbeat_top/job0/export/0/outputs/heartbeat_top.gds')
 
 @pytest.mark.eda
+@pytest.mark.timeout(300)
 def test_heartbeat_padring_without_floorplan(setup_example_test, oh_dir):
     setup_example_test('heartbeat_padring')
 

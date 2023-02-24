@@ -3,7 +3,8 @@ import re
 from siliconcompiler.tools.magic.magic import setup as setup_tool
 
 def setup(chip):
-    ''' Helper method to setup DRC-specific configs.
+    '''
+    Perform DRC checks
     '''
 
     # Generic tool setup

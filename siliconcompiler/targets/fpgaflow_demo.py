@@ -1,23 +1,21 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
 
-def make_docs():
+from siliconcompiler.flows import fpgaflow
+
+def make_docs(chip):
+    chip.set('fpga', 'partname', 'ice40up5k-sg48')
+
+####################################################
+# Target Setup
+####################################################
+
+def setup(chip):
     '''
     Demonstration target for running the open-source fpgaflow.
     '''
 
-    chip = siliconcompiler.Chip('<design>')
-    chip.set('fpga', 'partname', 'ice40up5k-sg48')
-    setup(chip)
-    return chip
-
-def setup(chip):
-    '''
-    Target setup
-    '''
-
     #1. Load flow
-    from flows import fpgaflow
     chip.use(fpgaflow)
 
     #2. Setup default show tools
@@ -29,5 +27,6 @@ def setup(chip):
 
 #########################
 if __name__ == "__main__":
-
-    chip = make_docs()
+    target = make_docs(siliconcompiler.Chip('<target>'))
+    setup(target)
+    target.write_manifest('fpgaflow_demo.json')

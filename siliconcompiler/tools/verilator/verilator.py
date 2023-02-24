@@ -14,27 +14,13 @@ Sources: https://github.com/verilator/verilator
 Installation: https://verilator.org/guide/latest/install.html
 '''
 
-import importlib
 import os
-
-import siliconcompiler
 
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    step = 'import'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
-    setup = getattr(importlib.import_module('tools.verilator.import'), 'setup')
-    setup(chip)
-    return chip
+def make_docs(chip):
+    chip.load_target("freepdk45_demo")
 
 def setup(chip):
     ''' Per tool function that returns a dynamic options string based on
@@ -73,7 +59,7 @@ def setup(chip):
     #    chip.add('tool', tool, 'task', task, 'option', f'-Wno-{warning}', step=step, index=index)
 
     # User runtime option
-    if chip.get('option', 'trace'):
+    if chip.get('option', 'trace', step=step, index=index):
         chip.add('tool', tool, 'task', task, 'task', task, 'option', '--trace', step=step, index=index)
 
 ################################
@@ -101,10 +87,10 @@ def runtime_options(chip):
             cmdlist.append('-I' + value)
         for value in chip.find_files('option', 'cmdfile'):
             cmdlist.append('-f ' + value)
-        for value in chip.find_files('input', 'rtl', 'verilog'):
+        for value in chip.find_files('input', 'rtl', 'verilog', step=step, index=index):
             cmdlist.append(value)
     elif step == 'compile':
-        for value in chip.find_files('input', 'hll', 'c'):
+        for value in chip.find_files('input', 'hll', 'c', step=step, index=index):
             cmdlist.append(value)
         for value in chip.find_files('tool', tool, 'task', task, 'input', step=step, index=index):
             cmdlist.append(value)

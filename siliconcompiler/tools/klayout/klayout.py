@@ -15,23 +15,11 @@ from pathlib import Path
 import platform
 import shutil
 
-import siliconcompiler
-
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    chip.load_target('freepdk45_demo')
-    step = 'export'
-    index = '<index>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'task', '<task>')
-    setup(chip)
-
-    return chip
+def make_docs(chip):
+    chip.load_target("freepdk45_demo")
 
 ####################################################################
 # Setup tool
@@ -91,9 +79,6 @@ def setup(chip, mode="batch"):
     chip.set('tool', tool, 'format', 'json', clobber=clobber)
 
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=clobber)
-
-    # Export GDS with timestamps by default.
-    chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'true', step=step, index=index, clobber=False)
 
     # Log file parsing
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'(WARNING|warning)', step=step, index=index, clobber=False)

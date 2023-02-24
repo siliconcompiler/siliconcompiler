@@ -20,7 +20,7 @@ For command line compilation, remote processing is turned on with the '-remote' 
 .. code-block:: bash
 
    echo "module flipflop (input clk, d, output reg out); \
-   always @ (posedge clk) out <= d; endmodule"> flipflop.v
+   always @ (posedge clk) out <= d; endmodule" > flipflop.v
    sc flipflop.v -remote
 
 Remote processing is also supported from the Python interface when the ('option', 'remote') parameter is set to 'True'. ::

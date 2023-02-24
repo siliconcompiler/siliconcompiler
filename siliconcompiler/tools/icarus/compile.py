@@ -1,8 +1,8 @@
 import os
 
 def setup(chip):
-    ''' Per tool function that returns a dynamic options string based on
-    the dictionary settings.
+    '''
+    Compile the input verilog into a vvp file that can be simulated.
     '''
 
     # If the 'lock' bit is set, don't reconfigure.

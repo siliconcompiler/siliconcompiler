@@ -1,10 +1,6 @@
 import os
 import siliconcompiler
 
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    return setup(chip)
-
 def setup(chip):
     '''
     Skywater130 I/O library.
@@ -38,3 +34,8 @@ def setup(chip):
     lib.add('output', stackup, 'gds', os.path.join(libdir, 'sky130_ef_io__gpiov2_pad_wrapped.gds'))
 
     return lib
+
+#########################
+if __name__ == "__main__":
+    lib = setup(siliconcompiler.Chip('<lib>'))
+    lib.write_manifest(f'{lib.top()}.json')

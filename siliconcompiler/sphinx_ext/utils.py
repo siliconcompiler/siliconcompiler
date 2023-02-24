@@ -121,31 +121,19 @@ def is_leaf(schema):
         return is_leaf(schema['default'])
     return False
 
-def flatten(cfg, prefix=()):
-    flat_cfg = {}
-
-    for key, val in cfg.items():
-        if key == 'default': continue
-        if 'defvalue' in val:
-            flat_cfg[prefix + (key,)] = val
-        else:
-            flat_cfg.update(flatten(val, prefix + (key,)))
-
-    return flat_cfg
-
-def keypath(*args):
+def keypath(key_path, refdoc):
     '''Helper function for displaying Schema keypaths.'''
     text_parts = []
     key_parts = []
     cfg = Schema().cfg
-    for key in args:
+    for key in key_path:
         if list(cfg.keys()) != ['default']:
             text_parts.append(f"'{key}'")
             key_parts.append(key)
             try:
                 cfg = cfg[key]
             except KeyError:
-                raise ValueError(f'Invalid keypath {args}')
+                raise ValueError(f'Invalid keypath {key_path}')
         else:
             cfg = cfg['default']
             if key.startswith('<') and key.endswith('>'):
@@ -160,15 +148,15 @@ def keypath(*args):
         text_parts.append('...')
 
     text = f"[{', '.join(text_parts)}]"
-    refid = '-'.join(key_parts)
-    # TODO: figure out URL automatically/figure out internal ref for PDF
-    url = f'https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html#{refid}'
+    refid = get_ref_id('param-'+'-'.join(key_parts))
 
-    # Note: The literal node returned by code() must be a child of the reference
-    # node (not the other way round), otherwise the Latex builder mangles the
-    # URL.
-    ref_node = nodes.reference(internal=False, refuri=url)
-    text_node = code(text)
-    ref_node += text_node
+    opt = {'refdoc': refdoc,
+           'refdomain': 'sc',
+           'reftype': 'ref',
+           'refexplicit': True,
+           'refwarn': True}
+    refnode = sphinx.addnodes.pending_xref('keypath', **opt)
+    refnode['reftarget'] = refid
+    refnode += code(text)
 
-    return ref_node
+    return refnode

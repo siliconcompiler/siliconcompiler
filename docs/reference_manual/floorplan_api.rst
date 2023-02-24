@@ -1,8 +1,3 @@
-Floorplan API
---------------
-
-.. automodule:: siliconcompiler.floorplan
-    :members:
 
 Leflib API
 ------------

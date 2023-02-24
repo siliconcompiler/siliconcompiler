@@ -1,10 +1,12 @@
 import re
 
 from siliconcompiler.tools.yosys.yosys import setup as setup_tool
-from siliconcompiler.tools.yosys.yosys import setup_asic, setup_fpga
+from siliconcompiler.tools.yosys.syn_asic import setup_asic
+from siliconcompiler.tools.yosys.syn_fpga import setup_fpga
 
 def setup(chip):
-    ''' Helper method for configuring LEC steps.
+    '''
+    Perform logical equivalence checks
     '''
 
     # Generic tool setup.
@@ -28,7 +30,7 @@ def setup(chip):
 
     # Input/output requirements.
     if (not chip.valid('input', 'netlist', 'verilog') or
-        not chip.get('input', 'netlist', 'verilog')):
+        not chip.get('input', 'netlist', 'verilog', step=step, index=index)):
         chip.set('tool', tool, 'task', task, 'input', design + '.vg', step=step, index=index)
     #if not chip.get('input', 'rtl', 'verilog'):
         # TODO: Not sure this logic makes sense? Seems like reverse of tcl

@@ -4,7 +4,6 @@ import math
 import shutil
 
 from siliconcompiler.core import Chip
-from siliconcompiler.floorplan import Floorplan
 from siliconcompiler.libs import sky130io
 
 ###
@@ -506,6 +505,8 @@ def build_core():
     # Build the core internal design.
     core_chip = configure_chip('heartbeat')
     core_chip.write_manifest('heartbeat_manifest.json')
+    # move here until test can be rebuilt
+    from siliconcompiler.floorplan import Floorplan
     core_fp = Floorplan(core_chip)
     core_floorplan(core_fp)
     core_fp.write_def('heartbeat.def')

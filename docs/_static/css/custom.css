@@ -7,3 +7,7 @@ code.literal {
     color: #404040 !important;
     background-color: #fbfbfb !important;
 }
+
+.wy-table-responsive table td, .wy-table-responsive table th {
+    white-space: inherit;
+}

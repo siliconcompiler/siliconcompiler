@@ -1,15 +1,13 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
 
-def make_docs():
-    '''
-    Demonstration target for compiling ASICs with ASAP7 and the open-source
-    asicflow.
-    '''
+from siliconcompiler.pdks import asap7
+from siliconcompiler.flows import asicflow
+from siliconcompiler.libs import asap7sc7p5t
 
-    chip = siliconcompiler.Chip('asap7_demo')
-    setup(chip)
-    return chip
+####################################################
+# Target Setup
+####################################################
 
 def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
@@ -26,9 +24,6 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     }
 
     #1. Load PDK, flow, libs combo
-    from pdks import asap7
-    from flows import asicflow
-    from libs import asap7sc7p5t
     chip.use(asap7)
     chip.use(asicflow, **asic_flow_args)
     chip.use(asap7sc7p5t)
@@ -70,5 +65,6 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
 
 #########################
 if __name__ == "__main__":
-
-    chip = make_docs()
+    target = siliconcompiler.Chip('<target>')
+    setup(target)
+    target.write_manifest('asap7_demo.json')

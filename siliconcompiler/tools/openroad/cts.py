@@ -3,7 +3,8 @@ from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners, post_process
 
 def setup(chip):
-    ''' Helper method for configs specific to cts tasks.
+    '''
+    Perform clock tree synthesis and timing repair
     '''
 
     # Generic tool setup.

@@ -68,25 +68,26 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
 def test_csv():
     chip = siliconcompiler.Chip('test')
     chip.input('source.v')
+    chip.add('asic', 'logiclib', 'mainlib')
+    chip.add('asic', 'logiclib', 'synlib', step='syn')
+    chip.add('asic', 'logiclib', 'syn1lib', step='syn', index=1)
 
     chip.write_manifest('test.csv')
 
-    design_found = False
-    input_found = False
     with open('test.csv', 'r', newline='') as f:
         csvreader = csv.reader(f)
+        data = {}
         for row in csvreader:
             assert len(row) == 2
 
             keypath, val = row
-            if keypath == 'design':
-                assert val == 'test'
-                design_found = True
-            elif keypath == 'input,rtl,verilog':
-                assert val == 'source.v'
-                input_found = True
-    assert design_found
-    assert input_found
+            data[keypath] = val
+
+    assert data['design'] == 'test'
+    assert data['input,rtl,verilog'] == 'source.v'
+    assert data['asic,logiclib'] == 'mainlib'
+    assert data['asic,logiclib,syn,default'] == 'synlib'
+    assert data['asic,logiclib,syn,1'] == 'syn1lib'
 
 #########################
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ from sphinx.util.docutils import SphinxDirective
 import siliconcompiler
 from siliconcompiler.schema import Schema
 from siliconcompiler.sphinx_ext.utils import *
+from siliconcompiler.schema import utils
 
 # Main Sphinx plugin
 class SchemaGen(SphinxDirective):
@@ -33,7 +34,7 @@ class SchemaGen(SphinxDirective):
                 entries.append([strong(f'Example ({name.upper()})'), code(ex.strip())])
 
             table = build_table(entries)
-            body = self.parse_rst(schema['help'])
+            body = self.parse_rst(utils.trim(schema['help']))
 
             return [table, body]
         else:
@@ -43,8 +44,8 @@ class SchemaGen(SphinxDirective):
                     for n in self.process_schema(schema['default'], parents=parents):
                         sections.append(n)
                 elif key not in ('history', 'library'):
-                    section_key = '-'.join(parents) + '-' + key
-                    section = build_section(key, section_key)
+                    section_key = 'param-' + '-'.join(parents + [key])
+                    section = build_section_with_target(key, section_key, self.state.document)
                     for n in self.process_schema(schema[key], parents=parents+[key]):
                         section += n
                     sections.append(section)

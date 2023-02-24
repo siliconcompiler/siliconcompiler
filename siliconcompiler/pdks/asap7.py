@@ -1,11 +1,6 @@
 import os
 import siliconcompiler
 
-def make_docs():
-    chip = siliconcompiler.Chip('asap7')
-
-    return setup(chip)
-
 def setup(chip):
     '''
     The asap7 PDK was developed at ASU in collaboration with ARM Research.
@@ -31,13 +26,13 @@ def setup(chip):
 
     More information:
 
-    * http://asap.asu.edu/asap
+    * https://asap.asu.edu/
     * L.T. Clark, V. Vashishtha, L. Shifren, A. Gujja, S. Sinha, B. Cline,
       C. Ramamurthya, and G. Yeric, “ASAP7: A 7-nm FinFET Predictive Process
       Design Kit,” Microelectronics Journal, vol. 53, pp. 105-115, July 2016.
 
 
-    Sources: https://github.com/The-OpenROAD-Project/asap
+    Sources: https://github.com/The-OpenROAD-Project/asap7
 
     .. warning::
        Work in progress (not ready for use)
@@ -90,7 +85,7 @@ def setup(chip):
         pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
     pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'M3')
-    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'M5')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'M3')
 
     pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'M5')
     pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'M4')
@@ -99,12 +94,11 @@ def setup(chip):
     pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
         pdkdir + '/pex/openroad/typical.tcl')
     pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, 'typical',
-        pdkdir + '/pex/openroad/rcx_patterns.rules')
+        pdkdir + '/pex/openroad/typical.rules')
 
     return pdk
 
 #########################
 if __name__ == "__main__":
-
-    chip = make_docs()
-    chip.write_manifest('asap7.tcl')
+    pdk = setup(siliconcompiler.Chip('<pdk>'))
+    pdk.write_manifest(f'{pdk.top()}.json')

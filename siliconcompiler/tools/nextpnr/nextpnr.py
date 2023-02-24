@@ -9,21 +9,10 @@ Sources: https://github.com/YosysHQ/nextpnr
 Installation: https://github.com/YosysHQ/nextpnr
 '''
 
-import siliconcompiler
-
 #####################################################################
 # Make Docs
 #####################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    step = 'apr'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+def make_docs(chip):
     from tools.nextpnr.apr import setup
     setup(chip)
     return chip
@@ -35,6 +24,8 @@ def make_docs():
 def runtime_options(chip):
     ''' Custom runtime options, returns list of command line options.
     '''
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     partname = chip.get('fpga', 'partname')
     topmodule = chip.top()
@@ -47,7 +38,7 @@ def runtime_options(chip):
     if partname == 'ice40up5k-sg48':
         options.append('--up5k --package sg48')
 
-    for constraint_file in chip.find_files('input', 'fpga', 'pcf'):
+    for constraint_file in chip.find_files('input', 'fpga', 'pcf', step=step, index=index):
         options.append('--pcf ' + constraint_file)
 
     return options

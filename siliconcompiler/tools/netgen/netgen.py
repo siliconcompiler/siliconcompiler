@@ -11,25 +11,12 @@ Installation: https://github.com/RTimothyEdwards/netgen
 Sources: https://github.com/RTimothyEdwards/netgen
 '''
 
-import siliconcompiler
-
 ####################################################################
 # Make Docs
 ####################################################################
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    from pdks import skywater130
-    chip.use(skywater130)
-    step = 'lvs'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+def make_docs(chip):
     from tools.netgen.lvs import setup
     setup(chip)
-
     return chip
 
 ################################

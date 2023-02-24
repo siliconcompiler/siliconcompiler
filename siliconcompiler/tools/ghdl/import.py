@@ -1,8 +1,8 @@
 import os
 
 def setup(chip):
-    ''' Per tool function that returns a dynamic options string based on
-    the dictionary settings.
+    '''
+    Imports VHDL and converts it to verilog
     '''
 
     # Standard Setup
@@ -12,7 +12,7 @@ def setup(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
     #TODO: fix below
-    task = step
+    task = 'import'
 
     chip.set('tool', tool, 'exe', 'ghdl')
     chip.set('tool', tool, 'vswitch', '--version')

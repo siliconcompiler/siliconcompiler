@@ -1,14 +1,5 @@
 import siliconcompiler
 
-############################################################################
-# DOCS
-############################################################################
-
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    chip.set('option', 'flow', 'lintflow')
-    return setup(chip)
-
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
@@ -35,5 +26,5 @@ def setup(chip):
 
 ##################################################
 if __name__ == "__main__":
-    chip = make_docs()
-    chip.write_flowgraph("lintflow.png")
+    flow = setup(siliconcompiler.Chip('<flow>'))
+    flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

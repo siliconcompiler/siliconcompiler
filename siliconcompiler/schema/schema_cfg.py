@@ -1,12 +1,17 @@
 # Copyright 2022 Silicon Compiler Authors. All Rights Reserved.
 
-import copy as pycopy
 import json
 import re
 
-from .utils import trim
+# Default import must be relative, to facilitate tools with Python interfaces
+# (such as KLayout) directly importing the schema package. However, the fallback
+# allows running this script directly to generate defaults.json.
+try:
+    from .utils import trim
+except ImportError:
+    from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.24.0'
+SCHEMA_VERSION = '0.27.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -75,7 +80,6 @@ def scparam(cfg,
 
         # mandatory for all
         cfg['defvalue'] = defvalue
-        cfg['value'] = pycopy.copy(defvalue)
         cfg['type'] = sctype
         cfg['scope'] = scope
         cfg['require'] = require
@@ -84,12 +88,10 @@ def scparam(cfg,
         cfg['shorthelp'] = shorthelp
         cfg['example'] = example
         cfg['help'] = schelp
-        cfg['signature'] = signature
         cfg['notes'] = notes
-        # none, optional, mandatory
+        # never, optional, required
         cfg['pernode'] = pernode
-        cfg['nodevalue'] = {}
-        cfg['set'] = False
+        cfg['node'] = {}
 
         if enum is not None:
             cfg['enum'] = enum
@@ -102,9 +104,6 @@ def scparam(cfg,
         if re.search(r'file',sctype):
             cfg['hashalgo'] = hashalgo
             cfg['copy'] = copy
-            cfg['filehash'] = []
-            cfg['date'] = []
-            cfg['author'] = []
 
 
 #############################################################################
@@ -161,6 +160,7 @@ def schema_cfg():
     for item, val in io.items():
         scparam(cfg,[item, fileset, filetype],
                 sctype='[file]',
+                pernode='optional',
                 copy=val[1],
                 shorthelp=f"{val[0]}: files",
                 switch=f"-{item} 'fileset filetype <file>'",
@@ -1382,7 +1382,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
                 "api: chip.set('tool','openroad', 'task','cts','require','design')"],
             schelp="""
             List of keypaths to required task parameters. The list is used
-            by check() to verify that all parameters have been set up before
+            by check_manifest() to verify that all parameters have been set up before
             step execution begins.""")
 
     metric = 'default'
@@ -1980,6 +1980,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'nice'],
             sctype='int',
             scope='job',
+            pernode='optional',
             shorthelp="Tool execution scheduling priority",
             switch="-nice <int>",
             example=[
@@ -2065,6 +2066,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option','optmode'],
             sctype='str',
+            pernode='optional',
             scope='job',
             require='all',
             defvalue='O0',
@@ -2183,6 +2185,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',
             enum=["NOTSET", "INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"],
+            pernode='optional',
             scope='job',
             defvalue='INFO',
             shorthelp="Logging level",
@@ -2357,6 +2360,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'quiet'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Quiet execution",
             switch="-quiet <bool>",
@@ -2383,6 +2387,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'novercheck'],
             sctype='bool',
+            pernode='optional',
             defvalue=False,
             scope='job',
             shorthelp="Disable version checking",
@@ -2421,6 +2426,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'track'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Enable provenance tracking",
             switch="-track <bool>",
@@ -2434,6 +2440,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'trace'],
             sctype='bool',
+            pernode='optional',
             scope='job',
             shorthelp="Enable debug traces",
             switch="-trace <bool>",
@@ -2612,6 +2619,7 @@ def schema_option(cfg):
 
     scparam(cfg,['option', 'flowcontinue'],
             sctype='bool',
+            pernode='optional',
             shorthelp="Flow continue-on-error",
             switch='-flowcontinue',
             example=["cli: -flowcontinue",
@@ -2624,6 +2632,7 @@ def schema_option(cfg):
 
     scparam(cfg,['option', 'continue'],
             sctype='bool',
+            pernode='optional',
             shorthelp='Implementation continue-on-error',
             switch='-continue',
             example=["cli: -continue",
@@ -2648,11 +2657,24 @@ def schema_option(cfg):
             if an operation should continue. The timeout value is also
             useed by the jobscheduler to automatically kill jobs.""")
 
+    scparam(cfg, ['option', 'strict'],
+            sctype='bool',
+            shorthelp="Option: Strict checking",
+            switch="-strict <bool>",
+            example= ["cli: -strict true",
+                    "api: chip.set('option', 'strict', True)"],
+            schelp="""
+            Enable additional strict checking in the SC Python API. When this
+            parameter is set to True, users must provide step and index keyword
+            arguments when reading from parameters with the pernode field set to
+            'optional'.""")
+
     # job scheduler
     scparam(cfg, ['option', 'scheduler', 'name'],
             sctype='enum',
             enum=["slurm", "lsf", "sge"],
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler platform",
             switch="-scheduler <str>",
             example=[
@@ -3128,6 +3150,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'macrolib'],
             sctype='[str]',
             scope='job',
+            pernode='optional',
             shorthelp="ASIC: macro libraries",
             switch="-asic_macrolib <str>",
             example=["cli: -asic_macrolib sram64x1024",
@@ -3140,6 +3163,7 @@ def schema_asic(cfg):
     scparam(cfg, ['asic', 'delaymodel'],
             sctype='str',
             scope='job',
+            pernode='optional',
             shorthelp="ASIC: delay model",
             switch="-asic_delaymodel <str>",
             example= ["cli: -asic_delaymodel ccs",
@@ -3169,6 +3193,7 @@ def schema_asic(cfg):
     for item in names:
         scparam(cfg, ['asic', 'cells', item],
                 sctype='[str]',
+                pernode='optional',
                 shorthelp=f"ASIC: {item} cell list",
                 switch=f"-asic_cells_{item} '<str>'",
                 example=[
@@ -3182,6 +3207,7 @@ def schema_asic(cfg):
 
     scparam(cfg,['asic', 'libarch'],
             sctype='str',
+            pernode='optional',
             shorthelp="ASIC: library architecture",
             switch="-asic_libarch '<str>'",
             example=[
@@ -3195,6 +3221,7 @@ def schema_asic(cfg):
     libarch = 'default'
     scparam(cfg,['asic', 'site', libarch],
             sctype='[str]',
+            pernode='optional',
             shorthelp="ASIC: Library sites",
             switch="-asic_site 'libarch <str>'",
             example=[

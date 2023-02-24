@@ -2,12 +2,13 @@ import os
 import re
 
 def setup(chip):
-
+    '''
+    Generates a bitstream
+    '''
     tool = 'genfasm'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    #TODO: fix below
-    task = step
+    task = 'bitstream'
 
     chip.set('tool', tool, 'exe', tool, clobber=False)
     chip.set('tool', tool, 'version', '0.0', clobber=False)

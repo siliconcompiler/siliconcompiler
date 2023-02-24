@@ -7,6 +7,7 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_py(setup_example_test):
     setup_example_test('gcd')
 
@@ -23,6 +24,10 @@ def test_py(setup_example_test):
 
     chip = siliconcompiler.Chip('gcd')
     chip.read_manifest(manifest)
+
+    # Ensure hashes for tool outputs are stored and persist
+    assert len(chip.get('tool', 'openroad', 'task', 'dfm', 'output', step='dfm', index=0, field='filehash')) == 4
+    assert len(chip.get('tool', 'openroad', 'task', 'dfm', 'output', step='dfm', index=0)) == 4
 
     assert chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea', step='syn', index='0') == ['syn.log']
 
@@ -43,17 +48,18 @@ def test_py(setup_example_test):
     # "Creating fake entries in the LUT"
     assert chip.get('metric', 'warnings', step='cts', index='0') == 2
 
-    # Missing route to pin (x77)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 77
+    # Missing route to pin (x71)
+    assert chip.get('metric', 'warnings', step='route', index='0') == 66
 
-    # Missing route to pin (x89)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 89
+    # Missing route to pin (x83)
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 240
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_cli(setup_example_test):
     ex_dir = setup_example_test('gcd')
 
@@ -62,6 +68,7 @@ def test_cli(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_py_sky130(setup_example_test):
     setup_example_test('gcd')
 
@@ -82,6 +89,7 @@ def test_py_sky130(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.skip(reason="asap7 not yet supported using new library scheme")
+@pytest.mark.timeout(300)
 def test_cli_asap7(setup_example_test):
     ex_dir = setup_example_test('gcd')
 

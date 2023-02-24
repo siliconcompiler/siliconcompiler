@@ -10,7 +10,12 @@ import gzip
 import json
 import os
 import re
-import yaml
+
+try:
+    import yaml
+    _has_yaml = True
+except ImportError:
+    _has_yaml = False
 
 from .schema_cfg import schema_cfg
 from .utils import escape_val_tcl, PACKAGE_ROOT
@@ -32,6 +37,11 @@ class Schema:
             the schema.
         manifest (str): Initial manifest.
     """
+
+    # Special key in node dict that represents a value correponds to a
+    # global default for all steps/indices.
+    GLOBAL_KEY = 'global'
+    PERNODE_FIELDS = ('value', 'filehash', 'date', 'author', 'signature')
 
     def __init__(self, cfg=None, manifest=None):
         if cfg is not None and manifest is not None:
@@ -59,13 +69,15 @@ class Schema:
             if re.search(r'(\.json|\.sup)(\.gz)*$', filepath, flags=re.IGNORECASE):
                 localcfg = json.load(fin)
             elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath, flags=re.IGNORECASE):
+                if not _has_yaml:
+                    raise ImportError('yaml package required to read YAML manifest')
                 localcfg = yaml.load(fin, Loader=yaml.SafeLoader)
             else:
                 raise ValueError(f'File format not recognized {filepath}')
         finally:
             fin.close()
 
-        if Schema().get('schemaversion') != localcfg['schemaversion']['value']:
+        if Schema().get('schemaversion') != localcfg['schemaversion']['defvalue']:
             raise ValueError('Attempting to read manifest with incompatible schema version')
 
         return localcfg
@@ -88,22 +100,33 @@ class Schema:
 
         if isinstance(index, int):
             index = str(index)
-        if step is not None and index is None:
-            index = 'default'
 
-        if field == 'value':
-            if cfg['pernode'] == 'required':
-                try:
-                    return cfg['nodevalue'][step][index]
-                except KeyError:
+        if field in self.PERNODE_FIELDS:
+            try:
+                return cfg['node'][step][index][field]
+            except KeyError:
+                if cfg['pernode'] == 'required':
+                    if field == 'value':
+                        return cfg['defvalue']
+                    elif Schema._is_list(field, self.get(*keypath, field='type')):
+                        return []
+                    else:
+                        return None
+
+            try:
+                return cfg['node'][step][self.GLOBAL_KEY][field]
+            except KeyError:
+                pass
+
+            try:
+                return cfg['node'][self.GLOBAL_KEY][self.GLOBAL_KEY][field]
+            except KeyError:
+                if field == 'value':
                     return cfg['defvalue']
-
-            if step in cfg['nodevalue'] and index in cfg['nodevalue'][step]:
-                return cfg['nodevalue'][step][index]
-            elif Schema._is_set(cfg):
-                return cfg['value']
-            else:
-                return cfg['defvalue']
+                elif Schema._is_list(field, self.get(*keypath, field='type')):
+                    return []
+                else:
+                    return None
         elif field in cfg:
             return cfg[field]
         else:
@@ -145,18 +168,15 @@ class Schema:
 
         value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
-        if field == 'value':
-            if step is not None and index is not None:
-                if step not in cfg['nodevalue']:
-                    cfg['nodevalue'][step] = {}
-                cfg['nodevalue'][step][index] = value
-            elif step is not None:
-                if step not in cfg['nodevalue']:
-                    cfg['nodevalue'][step] = {}
-                cfg['nodevalue'][step]['default'] = value
-            else:
-                cfg['value'] = value
-                cfg['set'] = True
+        if field in self.PERNODE_FIELDS:
+            step = step if step is not None else self.GLOBAL_KEY
+            index = index if index is not None else self.GLOBAL_KEY
+
+            if step not in cfg['node']:
+                cfg['node'][step] = {}
+            if index not in cfg['node'][step]:
+                cfg['node'][step][index] = {}
+            cfg['node'][step][index][field] = value
         else:
             cfg[field] = value
 
@@ -200,22 +220,17 @@ class Schema:
 
         value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
-        if field == 'value':
-            if step is not None and index is not None:
-                if step not in cfg['nodevalue']:
-                    cfg['nodevalue'][step] = {}
-                if index not in cfg['nodevalue'][step]:
-                    cfg['nodevalue'][step][index] = []
-                cfg['nodevalue'][step][index].extend(value)
-            elif step is not None:
-                if step not in cfg['nodevalue']:
-                    cfg['nodevalue'][step] = {}
-                if 'default' not in cfg['nodevalue'][step]:
-                    cfg['nodevalue'][step]['default'] = []
-                cfg['nodevalue'][step]['default'].extend(value)
-            else:
-                cfg['value'].extend(value)
-                cfg['set'] = True
+        if field in self.PERNODE_FIELDS:
+            step = step if step is not None else self.GLOBAL_KEY
+            index = index if index is not None else self.GLOBAL_KEY
+
+            if step not in cfg['node']:
+                cfg['node'][step] = {}
+            if index not in cfg['node'][step]:
+                cfg['node'][step][index] = {}
+            if field not in cfg['node'][step][index]:
+                cfg['node'][step][index][field] = []
+            cfg['node'][step][index][field].extend(value)
         else:
             cfg[field].extend(value)
 
@@ -241,18 +256,16 @@ class Schema:
             # TODO: log here
             return False
 
-        if step is None and index is None:
-            cfg['nodevalue'] = {}
-            cfg['value'] = cfg['defvalue']
-            cfg['set'] = False
-        else:
-            if index is None:
-                index = 'default'
-            try:
-                del cfg['nodevalue'][step][index]
-            except KeyError:
-                # If this key doesn't exist, silently continue - it was never set
-                pass
+        if step is None:
+            step = Schema.GLOBAL_KEY
+        if index is None:
+            index = Schema.GLOBAL_KEY
+
+        try:
+            del cfg['node'][step][index]
+        except KeyError:
+            # If this key doesn't exist, silently continue - it was never set
+            pass
 
         return True
 
@@ -260,7 +273,10 @@ class Schema:
         """
         Returns all values (global and pernode) associated with a particular parameter.
 
-        Returns a list of tuples of the form (value, step, index).
+        Returns a list of tuples of the form (value, step, index). The list is
+        in no particular order. For the global value, step and index are None.
+        If return_defvalue is True, the default parameter value is added to the
+        list in place of a global value if a global value is not set.
         """
         cfg = self._search(*keypath)
 
@@ -268,14 +284,18 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: _getvals() must be called on a complete keypath')
 
         vals = []
-        if cfg['pernode'] != 'required' and (return_defvalue or cfg['set']):
-            vals.append((self.get(*keypath, step=None, index=None), None, None))
+        has_global = False
+        for step in cfg['node']:
+            for index in cfg['node'][step]:
+                step_arg = None if step == self.GLOBAL_KEY else step
+                index_arg = None if index == self.GLOBAL_KEY else index
+                if 'value' in cfg['node'][step][index]:
+                    if step_arg is None and index_arg is None:
+                        has_global = True
+                    vals.append((cfg['node'][step][index]['value'], step_arg, index_arg))
 
-        if cfg['pernode'] != 'never':
-            for step in cfg['nodevalue']:
-                for index in cfg['nodevalue'][step]:
-                    if index == 'default': index = None
-                    vals.append((cfg['nodevalue'][step][index], step, index))
+        if (cfg['pernode'] != 'required') and not has_global and return_defvalue:
+            vals.append((cfg['defvalue'], None, None))
 
         return vals
 
@@ -453,6 +473,9 @@ class Schema:
         def error_msg(t):
             return f'Invalid value {value} for field {field} of keypath {keypath}: expected {t}'
 
+        if field in ('author', 'filehash', 'date', 'hashalgo', 'copy') and ('file' not in sc_type):
+            raise TypeError(f'Invalid field {field} for keypath {keypath}: this field only exists for file parameters')
+
         if Schema._is_list(field, sc_type):
             if not isinstance(value, list):
                 value = [value]
@@ -481,13 +504,13 @@ class Schema:
                 raise TypeError(error_msg('str'))
             return value
 
-        if field in ('require', 'lock', 'copy', 'set'):
+        if field in ('require', 'lock', 'copy'):
             if value == 'true': return True
             if value == 'false': return False
             if isinstance(value, bool): return value
             else: raise TypeError(error_msg('bool'))
 
-        if field in ('nodevalue',):
+        if field in ('node',):
             if isinstance(value, dict): return value
             else: raise TypeError(f'Invalid value {value} for field {field}: expected dict')
 
@@ -500,14 +523,25 @@ class Schema:
         A value counts as set if a user has set a global value OR a value for
         the provided step/index.
         '''
-        node_value_exists = False
-        if step in cfg['nodevalue']:
-            if index is None:
-                node_value_exists = 'default' in cfg['nodevalue'][step]
-            else:
-                node_value_exists = index in cfg['nodevalue'][step]
+        if (
+            Schema.GLOBAL_KEY in cfg['node'] and
+            Schema.GLOBAL_KEY in cfg['node'][Schema.GLOBAL_KEY] and
+            'value' in cfg['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]
+        ):
+            # global value is set
+            return True
 
-        return cfg['set'] or node_value_exists
+        if step is None:
+            return False
+        if index is None:
+            index = Schema.GLOBAL_KEY
+
+        return (
+            step in cfg['node'] and
+            index in cfg['node'][step] and
+            'value' in cfg['node'][step][index]
+        )
+
 
     @staticmethod
     def _is_leaf(cfg):
@@ -536,7 +570,7 @@ class Schema:
         Returns an error message if there's a problem with the arguments,
         otherwise None.
         '''
-        if field != 'value':
+        if field not in Schema.PERNODE_FIELDS:
             if step is not None or index is not None:
                 return 'step and index are only valid for value fields'
             return None
@@ -549,6 +583,12 @@ class Schema:
 
         if step is None and index is not None:
             return 'if index is provided, step must be provided as well'
+
+        if step in (Schema.GLOBAL_KEY, 'default'):
+            return f'illegal step name: {step} is reserved'
+
+        if index in (Schema.GLOBAL_KEY, 'default'):
+            return f'illegal index name: {step} is reserved'
 
         return None
 
@@ -633,6 +673,8 @@ class Schema:
 
     ###########################################################################
     def write_yaml(self, fout):
+        if not _has_yaml:
+            raise ImportError('yaml package required to write YAML manifest')
         fout.write(yaml.dump(self.cfg, Dumper=YamlIndentDumper, default_flow_style=False))
 
     ###########################################################################
@@ -689,12 +731,19 @@ class Schema:
         allkeys = self.allkeys()
         for key in allkeys:
             keypath = ','.join(key)
-            value = self.get(*key)
-            if isinstance(value,list):
-                for item in value:
-                    csvwriter.writerow([keypath, item])
-            else:
-                csvwriter.writerow([keypath, value])
+            for value, step, index in self._getvals(*key):
+                if step is None and index is None:
+                    keypath = ','.join(key)
+                elif index is None:
+                    keypath = ','.join(key + [step, 'default'] )
+                else:
+                    keypath = ','.join(key + [step, index])
+
+                if isinstance(value,list):
+                    for item in value:
+                        csvwriter.writerow([keypath, item])
+                else:
+                    csvwriter.writerow([keypath, value])
 
     ###########################################################################
     def copy(self):
@@ -789,6 +838,7 @@ class Schema:
         schema.cfg = self.cfg['history'][job]
         return schema
 
-class YamlIndentDumper(yaml.Dumper):
-    def increase_indent(self, flow=False, indentless=False):
-        return super(YamlIndentDumper, self).increase_indent(flow, False)
+if _has_yaml:
+    class YamlIndentDumper(yaml.Dumper):
+        def increase_indent(self, flow=False, indentless=False):
+            return super(YamlIndentDumper, self).increase_indent(flow, False)

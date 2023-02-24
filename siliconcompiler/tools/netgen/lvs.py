@@ -3,7 +3,8 @@ import os
 from siliconcompiler.tools.netgen import count_lvs
 
 def setup(chip):
-    ''' Setup function for 'magic' tool
+    '''
+    Perform LVS on the supplied netlists
     '''
 
     tool = 'netgen'

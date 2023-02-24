@@ -45,12 +45,14 @@ def main():
     if chip.get('design') == UNSET_DESIGN:
         topfile = None
         for sourceset in ('rtl', 'hll'):
-            if chip.valid('input', sourceset):
-                for filetype in chip.getkeys('input', sourceset):
-                    sources = chip.get('input', sourceset, filetype)
-                    if sources:
-                        topfile = sources[0]
-                        break
+            for filetype in chip.getkeys('input', sourceset):
+                all_vals = chip.schema._getvals('input', sourceset, filetype)
+                if all_vals:
+                    # just look at first value
+                    sources, _, _ = all_vals[0]
+                    # grab first source
+                    topfile = sources[0]
+                    break
             if topfile:
                 break
 

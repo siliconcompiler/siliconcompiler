@@ -6,6 +6,7 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_py(setup_example_test):
     setup_example_test('fibone')
 

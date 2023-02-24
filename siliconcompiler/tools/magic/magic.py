@@ -9,33 +9,13 @@ Installation: https://github.com/RTimothyEdwards/magic
 Sources: https://github.com/RTimothyEdwards/magic
 '''
 
-import siliconcompiler
+import os
 
 ####################################################################
 # Make Docs
 ####################################################################
-def make_docs():
-    chip = siliconcompiler.Chip('<design>')
-    from pdks import skywater130
-    chip.use(skywater130)
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-
-    # check drc
-    from tools.magic.drc import setup as setup_drc
-    chip.set('arg','step', 'drc')
-    chip.set('flowgraph', flow, 'drc', index, 'task', 'drc')
-    setup_drc(chip)
-
-    # check lvs
-    from tools.magic.extspice import setup as setup_extspice
-    chip.set('arg','step', 'extspice')
-    chip.set('flowgraph', flow, 'extspice', index, 'task', 'extspice')
-    setup(chip)
-
-    return chip
+def make_docs(chip):
+    chip.load_target("freepdk45_demo")
 
 ################################
 # Setup Tool (pre executable)
@@ -61,7 +41,7 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=8.3.196', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    chip.set('tool', tool, 'task', task, 'threads',  4, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'refdir',  refdir, step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'script',  script, step=step, index=index, clobber=False)
 

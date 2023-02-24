@@ -4,29 +4,17 @@ Icarus is a verilog simulator with full support for Verilog
 IEEE-1364. Icarus can simulate synthesizable as well as
 behavioral Verilog.
 
-Documentation: http://iverilog.icarus.com
+Documentation: https://steveicarus.github.io/iverilog/
 
-Sources: https://github.com/steveicarus/iverilog.git
+Sources: https://github.com/steveicarus/iverilog
 
-Installation: https://github.com/steveicarus/iverilog.git
+Installation: https://github.com/steveicarus/iverilog
 '''
-
-import siliconcompiler
 
 ####################################################################
 # Make Docs
 ####################################################################
-
-def make_docs():
-
-    chip = siliconcompiler.Chip('<design>')
-    step = 'compile'
-    index = '<index>'
-    flow = '<flow>'
-    chip.set('arg','step',step)
-    chip.set('arg','index',index)
-    chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, step, index, 'task', '<task>')
+def make_docs(chip):
     from tools.icarus.compile import setup
     setup(chip)
     return chip
@@ -37,8 +25,11 @@ def make_docs():
 
 def runtime_options(chip):
 
-    ''' Custom runtime options, returnst list of command line options.
+    ''' Custom runtime options, returns list of command line options.
     '''
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     cmdlist = []
 
@@ -53,7 +44,7 @@ def runtime_options(chip):
         cmdlist.append('-D' + value)
     for value in chip.find_files('option','cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('input', 'rtl', 'verilog'):
+    for value in chip.find_files('input', 'rtl', 'verilog', step=step, index=index):
         cmdlist.append(value)
 
     return cmdlist

@@ -58,6 +58,7 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.core.Chip.read_manifest
     ~siliconcompiler.core.Chip.show
     ~siliconcompiler.core.Chip.summary
+    ~siliconcompiler.core.Chip.use
     ~siliconcompiler.core.Chip.write_manifest
     ~siliconcompiler.core.Chip.write_flowgraph
 

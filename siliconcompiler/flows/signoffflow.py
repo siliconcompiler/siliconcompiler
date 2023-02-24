@@ -1,10 +1,5 @@
 import siliconcompiler
 
-def make_docs():
-    chip = siliconcompiler.Chip('<topmodule>')
-    chip.set('option', 'flow', 'signoffflow')
-    return setup(chip)
-
 def setup(chip):
     '''A flow for running LVS/DRC signoff on a GDS layout.
 
@@ -36,3 +31,8 @@ def setup(chip):
         flow.set('flowgraph', flowname, step, '0', 'goal', 'errors', 0)
 
     return flow
+
+##################################################
+if __name__ == "__main__":
+    flow = setup(siliconcompiler.Chip('<flow>'))
+    flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
