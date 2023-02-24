@@ -51,7 +51,6 @@ def build_core():
     # Setup outputs
     stackup = core_chip.get('option', 'stackup')
     core_chip.set('output', stackup, 'lef', core_chip.find_result('lef', step='export', index='1'))
-    core_chip.set('output', stackup, 'cdl', core_chip.find_result('cdl', step='export', index='1'))
     core_chip.set('output', stackup, 'gds', core_chip.find_result('gds', step='export', index='0'))
     for scenario in core_chip.getkeys('constraint', 'timing'):
         libcorner = core_chip.get('constraint', 'timing', scenario, 'libcorner')[0]
