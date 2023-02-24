@@ -148,7 +148,7 @@ def keypath(*args):
         text_parts.append('...')
 
     text = f"[{', '.join(text_parts)}]"
-    refid = '-'.join(key_parts)
+    refid = get_ref_id('-'.join(key_parts))
     # TODO: figure out URL automatically/figure out internal ref for PDF
     url = f'https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html#{refid}'
 

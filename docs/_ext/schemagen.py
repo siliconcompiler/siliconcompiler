@@ -6,6 +6,7 @@ from sphinx.util.docutils import SphinxDirective
 import siliconcompiler
 from siliconcompiler.schema import Schema
 from siliconcompiler.sphinx_ext.utils import *
+from siliconcompiler.schema import utils
 
 # Main Sphinx plugin
 class SchemaGen(SphinxDirective):
@@ -33,7 +34,7 @@ class SchemaGen(SphinxDirective):
                 entries.append([strong(f'Example ({name.upper()})'), code(ex.strip())])
 
             table = build_table(entries)
-            body = self.parse_rst(schema['help'])
+            body = self.parse_rst(utils.trim(schema['help']))
 
             return [table, body]
         else:
