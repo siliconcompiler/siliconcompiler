@@ -88,7 +88,7 @@ Before we add the complexity of a RAM macro block, let's build the core design u
 
 If you run that example as a Python script, it should take approximately 10-15 minutes to run if the servers are not too busy. We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area. Once the job finishes, you should receive a screenshot of your final design, and a report containing metrics related to the build.
 
-For the full GDS-II results and intermediate build artifacts, you can install the EDA tools on your local system, and run the same Python build script with the :keypath:`option, remote` parameter set to ``False``. We are not returning the full results during this early beta period because we want to minimize bandwidth, and we believe that the open-source tools/PDKs are currently best suited for rapid prototyping and design exploration.
+For the full GDS-II results and intermediate build artifacts, you can install the EDA tools on your local system, and run the same Python build script with the :keypath:`option, remote` parameter set to ``False``. We are not returning the full results during this early beta period because we want to minimize bandwidth, and we believe that our public beta is currently best suited for rapid prototyping and design exploration.
 
 Adding an SRAM block
 --------------------
@@ -113,7 +113,7 @@ Once you have a GDS and LEF file for your RAM macro, create a new directory call
         lib.set('output', stackup, 'gds', f'sram/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
         lib.set('output', stackup, 'lef', f'sram/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
         # Set the 'copy' field to True, to pull these files
-        # into the buid directory during the 'import' task.
+        # into the build directory during the 'import' task.
         lib.set('output', stackup, 'gds', True, field='copy')
         lib.set('output', stackup, 'lef', True, field='copy')
 
