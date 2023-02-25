@@ -234,7 +234,7 @@ def setup(chip, mode='batch'):
     for libvar, openroadvar in [('openroad_pdngen', 'pdn_config'),
                                 ('openroad_global_connect', 'global_connect')]:
         if chip.valid('tool', tool, 'task', task, 'var', openroadvar) and \
-           not chip.get('tool', tool, 'task', task, 'var', openroadvar, step=step, index=index):
+           chip.get('tool', tool, 'task', task, 'var', openroadvar, step=step, index=index):
             # value already set
             continue
 

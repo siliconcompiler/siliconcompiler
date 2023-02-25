@@ -22,7 +22,7 @@ def setup(chip):
     macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
 
     # Determine if exporting the cdl
-    chip.set('tool', tool, 'task', task, 'var', 'write_cdl', 'true', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'write_cdl', 'false', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'write_cdl', 'true/false, when true enables writing the CDL file for the design', field='help')
     do_cdl = chip.get('tool', tool, 'task', task, 'var', 'write_cdl', step=step, index=index)[0] == 'true'
 
