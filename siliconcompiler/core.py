@@ -16,6 +16,7 @@ import sys
 import gzip
 import re
 import json
+import inspect
 import logging
 import hashlib
 import shutil
@@ -1121,7 +1122,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             entry, depending on whether it is found.
 
         Examples:
-            >>> chip.find_files('input', 'verilog')
+            >>> chip.find_files('input', 'rtl', 'verilog')
             Returns a list of absolute paths to source files, as specified in
             the schema.
 
@@ -1602,10 +1603,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             error = True
                             self.logger.error(f"Value empty for [{keypath}] for {tool}.")
 
+                    taskmodule = self._get_task_module(step, index, flow=flow)
                     if (self.schema._is_empty('tool', tool, 'exe') and
-                        self.find_function(tool, 'run', 'tools') is None):
+                        taskmodule and getattr(taskmodule, 'run', None) is None):
                         error = True
-                        self.logger.error(f'No executable or run() function specified for tool {tool}')
+                        self.logger.error(f'No executable or run() function specified for {tool}/{task}')
 
         if 'SC_VALID_PATHS' in os.environ:
             if not self._check_files():
@@ -3047,29 +3049,45 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         The method modifies the following schema parameters:
 
-        ['flowgraph', flow, step, index, 'tool', tool]
-        ['flowgraph', flow, step, index, 'task', task]
-        ['flowgraph', flow, step, index, 'weight', metric]
+        * ['flowgraph', flow, step, index, 'tool', tool]
+        * ['flowgraph', flow, step, index, 'module', tool]
+        * ['flowgraph', flow, step, index, 'task', task]
+        * ['flowgraph', flow, step, index, 'weight', metric]
 
         Args:
             flow (str): Flow name
             step (str): Step name
             task (str): Task name, built in or tool specific
-            tool (str): Tool to associate with task.
+            tool (module): Tool to associate with task.
             index (int): Step index
 
         Examples:
-            >>> chip.node('asicflow', 'place', 'openroad', index=0)
-            Creates a task with step='place' and index=0 and binds it to the 'openroad' tool.
+            >>> import siliconcomiler.tools.openroad.openroad as openroad
+            >>> chip.node('asicflow', 'apr_place', openroad, 'place', index=0)
+            Creates a 'place' task with step='apr_place' and index=0 and binds it to the 'openroad' tool.
         '''
+
         if step in (Schema.GLOBAL_KEY, 'default'):
             self.error(f'Illegal step name: {step} is reserved')
             return
 
         index = str(index)
 
+        if (not inspect.ismodule(tool)):
+            self.error(f"{tool} is not a module and cannot be used to setup a tool.", fatal=True)
+
+        module_name = tool.__name__
+
+        import siliconcompiler as sc
+        if (tool == sc):
+            tool_name = 'builtin'
+        else:
+            # Name is the last part of the module name
+            tool_name = module_name.split('.')[-1]
+
         # bind tool to node
-        self.set('flowgraph', flow, step, index, 'tool', tool)
+        self.set('flowgraph', flow, step, index, 'tool', tool_name)
+        self.set('flowgraph', flow, step, index, 'module', module_name)
         self.set('flowgraph', flow, step, index, 'task', task)
 
         # set default weights
@@ -3456,6 +3474,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         tool = self.get('flowgraph', flow, step, index, 'tool')
         task = self._get_task(step, index, flow)
 
+        tool_module = self._get_tool_module(step, index, flow=flow)
+        task_module = self._get_task_module(step, index, flow=flow)
+
         quiet = (
             self.get('option', 'quiet', step=step, index=index) and not
             self.get('option', 'breakpoint', step=step, index=index)
@@ -3584,7 +3605,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Run preprocess step for tool
         if not is_builtin:
-            func = self.find_function(tool, "pre_process", 'tools', task)
+            func = getattr(task_module, "pre_process", None)
             if func:
                 func(self)
                 if self._error:
@@ -3608,7 +3629,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         run_func = None
         if not is_builtin:
-            run_func = self.find_function(tool, 'run', 'tools')
+            run_func = getattr(task_module, "run", None)
 
         ##################
         # Check exe version
@@ -3624,7 +3645,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 cmdlist = [exe]
                 cmdlist.extend(veropt)
                 proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-                parse_version = self.find_function(tool, 'parse_version', 'tools')
+                parse_version = getattr(tool_module, 'parse_version', None)
                 if parse_version is None:
                     self.logger.error(f'{tool} does not implement parse_version.')
                     self._haltstep(step, index)
@@ -3794,7 +3815,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Post process
         if (not is_builtin) and (not self.get('option', 'skipall')) :
-            func = self.find_function(tool, 'post_process', 'tools', task)
+            func = getattr(task_module, 'post_process', None)
             if func:
                 func(self)
 
@@ -3901,21 +3922,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ###########################################################################
     def _setup_tool(self, tool, task, step, index):
 
+        flow = self.get('option', 'flow')
         self.set('arg','step', step)
         self.set('arg','index', index)
 
         # Run task setup.
-        try:
-            task = self.get('flowgraph', self.get('option', 'flow'), step, index, 'task')
-            setup_step = self.find_function(tool, 'setup', 'tools', task)
-        except SiliconCompilerError:
-            setup_step = None
+        task = self.get('flowgraph', flow, step, index, 'task')
+        taskmodule = self._get_task_module(step, index, flow=flow)
+        if not taskmodule:
+            self.error(f'Task module not found for tool {tool}, task {task} in {step}{index}', fatal=True)
+
+        setup_step = getattr(taskmodule, 'setup', None)
+
         if setup_step:
             setup_step(self)
         else:
-            # TODO: Should we update this to 'self.error(..., fatal=True)'?
-            self.logger.error(f'setup() not found for tool {tool}, task {task}')
-            sys.exit(1)
+            self.error(f'setup() not found for tool {tool}, task {task}', fatal=True)
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.
@@ -4464,6 +4486,41 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         return fullexe
 
+    def _get_tool_module(self, step, index, flow=None):
+        if not flow:
+            flow = self.get('option', 'flow')
+        toolmodule = self.get('flowgraph', flow, step, index, 'module')
+
+        try:
+            return importlib.import_module(toolmodule)
+        except ModuleNotFoundError:
+            pass
+
+        return None
+
+    def _get_task_module(self, step, index, flow=None):
+        if not flow:
+            flow = self.get('option', 'flow')
+
+        toolmodule = self._get_tool_module(step, index, flow=flow)
+        taskname = self.get('flowgraph', flow, step, index, 'task')
+
+        toolname = toolmodule.__name__
+        packagepath = toolname.split('.')
+
+        taskmodule = None
+        while (len(packagepath) != 0):
+            task_path = '.'.join(packagepath + [taskname])
+
+            try:
+                return importlib.import_module(task_path)
+            except ModuleNotFoundError:
+                pass
+
+            packagepath.pop()
+
+        return None
+
     #######################################
     def _makecmd(self, tool, task, step, index, extra_options=None):
         '''
@@ -4493,7 +4550,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             cmdlist.extend(extra_options)
         cmdlist.extend(options)
         cmdlist.extend(scripts)
-        runtime_options = self.find_function(tool, 'runtime_options', 'tools')
+
+        runtime_options = None
+        for module in [self._get_task_module(step, index), self._get_tool_module(step, index)]:
+            runtime_options = getattr(module, 'runtime_options', None)
+            if runtime_options:
+                break
+
         if runtime_options:
             for option in runtime_options(self):
                 cmdlist.extend(shlex.split(option, posix=is_posix))
@@ -4734,7 +4797,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             """
         _regex = re.compile(r"^\s*" + _regex_str + r"\s*$", re.VERBOSE | re.IGNORECASE)
 
-        normalize_version = self.find_function(tool, 'normalize_version', 'tools')
+        toolmodule = self._get_tool_module(step, index)
+        normalize_version = getattr(toolmodule, 'normalize_version', None)
         # Version is good if it matches any of the specifier sets in this list.
         spec_sets = self.get('tool', tool, 'version', step=step, index=index)
         if not spec_sets:
