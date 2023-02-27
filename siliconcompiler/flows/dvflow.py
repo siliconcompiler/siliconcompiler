@@ -40,8 +40,7 @@ def setup(chip, np=1):
                 'testgen',
                 'refsim',
                 'sim',
-                'compare',
-                'signoff']
+                'compare']
 
     tools = {
         'import': (verilator, 'import'),

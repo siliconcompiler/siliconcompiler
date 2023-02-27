@@ -2,6 +2,12 @@ import siliconcompiler
 import re
 
 from siliconcompiler.flows._common import setup_frontend
+from siliconcompiler.tools.yosys import yosys
+from siliconcompiler.tools.nextpnr import nextpnr
+from siliconcompiler.tools.icepack import icepack
+from siliconcompiler.tools.vpr import vpr
+from siliconcompiler.tools.vivado import vivado
+from siliconcompiler.tools.genfasm import genfasm
 
 ############################################################################
 # DOCS
@@ -175,27 +181,22 @@ def tool_lookup(flow, step):
     # open source ice40 flow
     if flow == "yosys-nextpnr":
         if step == "syn_fpga":
-            tool = "yosys"
+            tool = yosys
         elif step == "apr":
-            tool = "nextpnr"
+            tool = nextpnr
         elif step == "bitstream":
-            tool = "icepack"
-        elif step == "program":
-            tool = "iceprog"
-    # intel/quartus
-    elif flow == "quartus":
-        tool = 'quartus'
+            tool = icepack
     # xilinx/vivado
     elif flow == "vivado":
-        tool = 'vivado'
+        tool = vivado
     # open source vpr flow
     elif flow == 'vpr':
         if step == "syn_vpr":
-            tool = "yosys"
+            tool = yosys
         elif step == "apr":
-            tool = "vpr"
+            tool = vpr
         else:
-            tool = "genfasm"
+            tool = genfasm
 
     return tool
 
