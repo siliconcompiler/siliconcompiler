@@ -509,8 +509,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         """
         Loads a target module and runs the setup() function.
 
-        The function searches the $SCPATH for targets/<name>.py and runs
-        the setup function in that module if found.
+        The function searches the PYTHON_PATH for <name> and siliconcompiler.targets.<name>
+        and runs the setup function in that module if found.
 
         Args:
             name (str): Module name
@@ -521,11 +521,33 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
+        # Search order "{name}", and "siliconcompiler.targets.{name}"
+        modules = []
+        for module_name in [name, f'siliconcompiler.targets.{name}']:
+            try:
+                module = importlib.import_module(module_name)
+                modules.append(module)
+            except ModuleNotFoundError:
+                pass
+
+        if len(modules) == 0:
+            self.error(f'Could not find module {name}')
+            return
+
+        # Check for setup in modules
+        load_function = None
+        for module in modules:
+            load_function = getattr(module, 'setup', None)
+            if load_function:
+                break
+
+        if not load_function:
+            self.error(f'Could not find setup function for {name} target')
+            return
+
+        load_function(self, **kwargs)
         # Record target
         self.set('option', 'target', name)
-
-        load_function = self.find_function(name, 'setup', 'targets')
-        load_function(self, **kwargs)
 
     ##########################################################################
     def use(self, module, **kwargs):
