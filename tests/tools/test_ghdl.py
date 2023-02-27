@@ -3,6 +3,8 @@ import os
 import siliconcompiler
 import pytest
 
+from siliconcompiler.tools.ghdl import ghdl
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_ghdl(datadir):
@@ -14,7 +16,7 @@ def test_ghdl(datadir):
     chip.input(design_src)
     chip.set('option', 'mode', 'sim')
 
-    chip.node('ghdl', 'import', 'ghdl', 'import')
+    chip.node('ghdl', 'import', ghdl, 'import')
     chip.set('option', 'flow', 'ghdl')
 
     chip.run()

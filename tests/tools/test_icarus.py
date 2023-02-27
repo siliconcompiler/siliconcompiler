@@ -3,6 +3,8 @@ import os
 import siliconcompiler
 import pytest
 
+from siliconcompiler.tools.icarus import icarus
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_icarus(oh_dir):
@@ -18,8 +20,8 @@ def test_icarus(oh_dir):
     chip.set('option', 'mode', 'sim')
 
     flow = 'sim'
-    chip.node(flow, 'import', 'builtin', 'import')
-    chip.node(flow, 'compile', 'icarus', 'compile')
+    chip.node(flow, 'import', siliconcompiler, 'import')
+    chip.node(flow, 'compile', icarus, 'compile')
     chip.edge(flow, 'import', 'compile')
     chip.set('option', 'flow', flow)
 

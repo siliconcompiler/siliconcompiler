@@ -4,6 +4,8 @@ import pytest
 
 import siliconcompiler
 
+from siliconcompiler.tools.klayout import klayout
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.skip(reason='writing to library not allowed')
@@ -24,8 +26,8 @@ def test_klayout(datadir):
     chip.set('library', 'heartbeat', 'gds', '10M', library_gds)
 
     flow = 'export'
-    chip.node(flow, 'import', 'nop', 'nop')
-    chip.node(flow, 'export', 'klayout', 'export')
+    chip.node(flow, 'import', siliconcompiler, 'nop')
+    chip.node(flow, 'export', klayout, 'export')
     chip.edge(flow, 'import', 'export')
     chip.set('option', 'flow', flow)
 

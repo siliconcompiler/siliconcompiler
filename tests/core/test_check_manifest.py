@@ -5,6 +5,11 @@ import os
 
 import pytest
 
+from tests.core.tools import foo
+from tests.core.tools import bar
+from tests.core.tools import baz
+from tests.core.tools.echo import echo
+
 def test_check_manifest():
 
     chip = siliconcompiler.Chip('gcd')
@@ -14,10 +19,9 @@ def test_check_manifest():
     index = "0"
     steps = ['import', 'syn']
     for step in steps:
-        tool = chip.get('flowgraph', flow, step, index, 'tool')
         chip.set('arg', 'step', step)
         chip.set('arg', 'index', index)
-        setup = chip.find_function(tool, 'setup', 'tools')
+        setup = getattr(chip._get_task_module(step, index), 'setup', None)
         assert setup is not None
         setup(chip)
 
@@ -102,13 +106,13 @@ def merge_flow_chip():
     chip = siliconcompiler.Chip('test')
 
     flow = 'test'
-    chip.node(flow, 'import', 'builtin', 'import')
-    chip.node(flow, 'parallel1', 'foo', 'parallel1')
-    chip.node(flow, 'parallel2', 'bar', 'parallel2')
+    chip.node(flow, 'import', siliconcompiler, 'import')
+    chip.node(flow, 'parallel1', foo, 'parallel1')
+    chip.node(flow, 'parallel2', bar, 'parallel2')
     chip.edge(flow, 'import', 'parallel1')
     chip.edge(flow, 'import', 'parallel2')
 
-    chip.node(flow, 'export', 'baz', 'export')
+    chip.node(flow, 'export', baz, 'export')
     chip.edge(flow, 'parallel1', 'export')
     chip.edge(flow, 'parallel2', 'export')
     chip.set('option', 'flow', flow)
@@ -130,11 +134,11 @@ def test_merged_graph_good(merge_flow_chip):
 def test_merged_graph_good_steplist():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
-    chip.node(flow, 'import', 'builtin', 'import')
-    chip.node(flow, 'parallel1', 'echo', 'parallel1')
-    chip.node(flow, 'parallel2', 'echo', 'parallel2')
-    chip.node(flow, 'merge', 'echo', 'merge')
-    chip.node(flow, 'export', 'echo', 'export')
+    chip.node(flow, 'import', siliconcompiler, 'import')
+    chip.node(flow, 'parallel1', echo, 'parallel1')
+    chip.node(flow, 'parallel2', echo, 'parallel2')
+    chip.node(flow, 'merge', echo, 'merge')
+    chip.node(flow, 'export', echo, 'export')
     chip.edge(flow, 'import', 'parallel1')
     chip.edge(flow, 'import', 'parallel2')
     chip.edge(flow, 'parallel1', 'merge')

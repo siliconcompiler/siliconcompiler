@@ -7,6 +7,8 @@ import time
 
 import pytest
 
+from siliconcompiler.tools.openroad import openroad
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.parametrize('steplist', [
@@ -32,10 +34,10 @@ def test_flowstatus(scroot, steplist):
 
     flow = 'test'
     # no-op import since we're not preprocessing source files
-    chip.node(flow, 'import', 'builtin', 'import')
+    chip.node(flow, 'import', siliconcompiler, 'import')
 
-    chip.node(flow, 'place', 'openroad', 'place', index='0')
-    chip.node(flow, 'place', 'openroad', 'place', index='1')
+    chip.node(flow, 'place', openroad, 'place', index='0')
+    chip.node(flow, 'place', openroad, 'place', index='1')
 
     chip.edge(flow, 'import', 'place', head_index='0')
     chip.edge(flow, 'import', 'place', head_index='1')
@@ -46,11 +48,11 @@ def test_flowstatus(scroot, steplist):
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5', step='place', index='1')
 
     # Perform minimum
-    chip.node(flow, 'placemin', 'builtin', 'minimum')
+    chip.node(flow, 'placemin', siliconcompiler, 'minimum')
     chip.edge(flow, 'place', 'placemin', tail_index='0')
     chip.edge(flow, 'place', 'placemin', tail_index='1')
 
-    chip.node(flow, 'cts', 'openroad', 'cts')
+    chip.node(flow, 'cts', openroad, 'cts')
     chip.edge(flow, 'placemin', 'cts')
 
     chip.set('option', 'steplist', steplist)
@@ -89,10 +91,10 @@ def test_long_branch(scroot):
 
     flow = 'test'
     # no-op import since we're not preprocessing source files
-    chip.node(flow, 'import', 'builtin', 'import')
+    chip.node(flow, 'import', siliconcompiler, 'import')
 
-    chip.node(flow, 'place', 'openroad', 'place', index='0')
-    chip.node(flow, 'place', 'openroad', 'place', index='1')
+    chip.node(flow, 'place', openroad, 'place', index='0')
+    chip.node(flow, 'place', openroad, 'place', index='1')
 
     chip.edge(flow, 'import', 'place', head_index='0')
     chip.edge(flow, 'import', 'place', head_index='1')
@@ -102,8 +104,8 @@ def test_long_branch(scroot):
     # Legal value, so this branch should succeed
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5', step='place', index='1')
 
-    chip.node(flow, 'cts', 'openroad', 'cts', index='0')
-    chip.node(flow, 'cts', 'openroad', 'cts', index='1')
+    chip.node(flow, 'cts', openroad, 'cts', index='0')
+    chip.node(flow, 'cts', openroad, 'cts', index='1')
     chip.edge(flow, 'place', 'cts', tail_index='0', head_index='0')
     chip.edge(flow, 'place', 'cts', tail_index='1', head_index='1')
 

@@ -2,6 +2,7 @@
 import siliconcompiler
 import pytest
 
+from siliconcompiler.tools.surelog import surelog
 
 ##################################
 def test_nop():
@@ -11,9 +12,9 @@ def test_nop():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target('freepdk45_demo')
     chip.set('option', 'flow', 'test')
-    chip.node('test', 'import', 'surelog', 'import')
-    chip.node('test', 'nop1', 'nop', 'nop')
-    chip.node('test', 'nop2', 'nop', 'nop')
+    chip.node('test', 'import', surelog, 'import')
+    chip.node('test', 'nop1', siliconcompiler, 'nop')
+    chip.node('test', 'nop2', siliconcompiler, 'nop')
     chip.edge('test', 'import', 'nop1')
     chip.edge('test', 'nop1', 'nop2')
     chip.check_manifest()

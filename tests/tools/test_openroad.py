@@ -2,7 +2,8 @@
 import os
 import siliconcompiler
 import pytest
-import sys
+
+from siliconcompiler.tools.openroad import openroad
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -25,8 +26,8 @@ def test_openroad(scroot):
 
     # set up tool for floorplan
     flow = 'floorplan'
-    chip.node(flow, 'import', 'builtin', 'import')
-    chip.node(flow, 'floorplan', 'openroad', 'floorplan')
+    chip.node(flow, 'import', siliconcompiler, 'import')
+    chip.node(flow, 'floorplan', openroad, 'floorplan')
     chip.edge(flow, 'import', 'floorplan')
     chip.set('option', 'flow', flow)
 

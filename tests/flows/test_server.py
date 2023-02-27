@@ -8,6 +8,8 @@ import time
 
 from unittest.mock import Mock
 
+from siliconcompiler.tools.surelog import surelog
+
 @pytest.fixture
 def gcd_remote_test(gcd_chip, request):
     # Get the port number; avoid re-use to enable parallel tests.
@@ -170,7 +172,7 @@ def test_gcd_server_error(gcd_remote_test):
     gcd_chip = gcd_remote_test
 
     # Set an extra import step after the export step, to create an invalid flowgraph.
-    gcd_chip.node('asicflow', 'importt', 'surelog', 'import', index='0')
+    gcd_chip.node('asicflow', 'importt', surelog, 'import', index='0')
     gcd_chip.edge('asicflow', 'export', 'importt', head_index='0')
 
     # Run the remote job.

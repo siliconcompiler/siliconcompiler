@@ -1948,6 +1948,23 @@
                         "switch": "-flowgraph_input 'flow step index <(str,str)>'",
                         "type": "[(str,str)]"
                     },
+                    "module": {
+                        "defvalue": null,
+                        "example": [
+                            "cli: -flowgraph_module 'asicflow place 0 openroad'",
+                            "api: chip.set('flowgraph','asicflow','place','0','module','siliconcompiler.tools.openroad.openroad')"
+                        ],
+                        "help": "Full python module name of the tool name used for task execution.",
+                        "lock": false,
+                        "node": {},
+                        "notes": null,
+                        "pernode": "never",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: tool module",
+                        "switch": "-flowgraph_module 'flow step <str>'",
+                        "type": "str"
+                    },
                     "select": {
                         "defvalue": [],
                         "example": [
@@ -2028,7 +2045,7 @@
                             "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                             "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"
                         ],
-                        "help": "Name of the tool name used for task execution. The 'tool' parameter\nis ignored for builtin tasks.",
+                        "help": "Name of the tool name used for task execution. For builtin tools the\nparameter should be 'builtin'",
                         "lock": false,
                         "node": {},
                         "notes": null,
@@ -5743,7 +5760,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.27.0",
+        "defvalue": "0.28.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],

@@ -2,14 +2,20 @@ import siliconcompiler
 
 import pytest
 
+from siliconcompiler.tools.surelog import surelog
+from siliconcompiler.tools.yosys import yosys
+
+from tests.core.tools import fake_out
+from tests.core.tools import fake_in
+
 @pytest.mark.skip(reason='complains since synthesis corner not set')
 def test_check_flowgraph():
     chip = siliconcompiler.Chip('foo')
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'import', 'surelog', 'import')
-    chip.node(flow, 'syn', 'yosys', 'syn_asic')
+    chip.node(flow, 'import', surelog, 'import')
+    chip.node(flow, 'syn', yosys, 'syn_asic')
     chip.edge(flow, 'import', 'syn')
     chip.set('asic', 'logiclib', 'dummylib')
 
@@ -29,10 +35,10 @@ def test_check_flowgraph_join():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'prejoin1', 'fake_out', 'prejoin1')
-    chip.node(flow, 'prejoin2', 'fake_out', 'prejoin2')
-    chip.node(flow, 'dojoin', 'builtin', 'join')
-    chip.node(flow, 'postjoin', 'fake_in', 'postjoin')
+    chip.node(flow, 'prejoin1', fake_out, 'prejoin1')
+    chip.node(flow, 'prejoin2', fake_out, 'prejoin2')
+    chip.node(flow, 'dojoin', siliconcompiler, 'join')
+    chip.node(flow, 'postjoin', fake_in, 'postjoin')
 
     chip.edge(flow, 'prejoin1', 'dojoin')
     chip.edge(flow, 'prejoin2', 'dojoin')
@@ -50,10 +56,10 @@ def test_check_flowgraph_min():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'premin', 'fake_out', 'premin', index=0)
-    chip.node(flow, 'premin', 'fake_out', 'premin', index=1)
-    chip.node(flow, 'domin', 'builtin', 'minimum')
-    chip.node(flow, 'postmin', 'fake_in', 'postmin')
+    chip.node(flow, 'premin', fake_out, 'premin', index=0)
+    chip.node(flow, 'premin', fake_out, 'premin', index=1)
+    chip.node(flow, 'domin', siliconcompiler, 'minimum')
+    chip.node(flow, 'postmin', fake_in, 'postmin')
 
     chip.edge(flow, 'premin', 'domin', tail_index=0)
     chip.edge(flow, 'premin', 'domin', tail_index=1)
@@ -71,10 +77,10 @@ def test_check_flowgraph_min_fail():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'premin', 'fake_out', 'premin', index=0)
-    chip.node(flow, 'premin', 'fake_out', 'premin', index=1)
-    chip.node(flow, 'domin', 'builtin', 'minimum')
-    chip.node(flow, 'postmin', 'fake_in', 'postmin')
+    chip.node(flow, 'premin', fake_out, 'premin', index=0)
+    chip.node(flow, 'premin', fake_out, 'premin', index=1)
+    chip.node(flow, 'domin', siliconcompiler, 'minimum')
+    chip.node(flow, 'postmin', fake_in, 'postmin')
 
     chip.edge(flow, 'premin', 'domin', tail_index=0)
     chip.edge(flow, 'premin', 'domin', tail_index=1)
