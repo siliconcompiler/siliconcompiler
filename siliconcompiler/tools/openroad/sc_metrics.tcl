@@ -42,7 +42,10 @@ report_worst_slack -min
 report_worst_slack_metric -hold
 
 puts "$PREFIX power"
-report_power -corner $sc_power_corner
+foreach corner [sta::corners] {
+  puts "Power for corner: [$corner name]"
+  report_power -corner [$corner name]
+}
 report_power_metric -corner $sc_power_corner
 
 puts "$PREFIX cellarea"
