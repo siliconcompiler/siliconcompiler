@@ -8,6 +8,8 @@ Installing Python
 Before installing the SiliconCompiler package you will need to set up a Python environment. Currently Python 3.6-3.10 is supported.
 The following sections will walk you through how to install the appropriate python dependencies and start a Python virtual environment. Note that at any time, if you need to exit the Python virtual environment, type 'deactivate' and hit enter. 
 
+.. _Python install:
+
 Ubuntu (>=18.04)
 ^^^^^^^^^^^^^^^^
 Open up a terminal and enter the following command sequence.
@@ -75,22 +77,25 @@ From the command shell, enter the following sequence to create and activate a vi
   .\venv\Scripts\activate
 
 
+.. _SC Install:
+
 
 Installing SiliconCompiler
 --------------------------
 
-.. _SC Install:
 
 
 After you've got the python dependencies installed, you will need to install SiliconCompiler. There are a few different ways to do this:
 
-1. The recommended method is to install the last stable version published to `pypi.org <https://pypi.org>`_, or
-2. You can do an offline install with a tarball (for Linux only), or
-3. You can install directly from the git repository (best for developers).
+1. The `recommended method`_ is to install the last stable version published to `pypi.org <https://pypi.org>`_, or
+2. You can do an `offline install`_ with a tarball (for Linux only), or
+3. You can install `directly from the git repository`_ (best for developers).
+
+.. _recommended method:
 
 Install from pypi.org 
 ^^^^^^^^^^^^^^^^^^^^^
-SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ using pip. Activate your `Python Virtual Environment <https://docs.python.org/3/library/venv.html>`_ and follow the instructions below. (identical for Windows, Linux, and macOS).
+SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ using pip. Activate your `Python Virtual Environment <https://docs.python.org/3/library/venv.html>`_ and follow the instructions below. 
 
 .. code-block:: bash
 
@@ -100,6 +105,8 @@ SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ us
  (venv) python -m pip show siliconcompiler       # will display  SiliconCompiler package information
 
 Skip to `confirm your installation`_.
+
+.. _offline install:
 
 Offline Install (Linux only)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -112,7 +119,7 @@ To access them:
 3. On the bottom of that page, you will see an "Artifacts" section. Click on the "artifact" to download it.
 4. The packages are named ``scdeps-<pyversion>.tar.gz``, depending on which Python version they are associated with.
 
-To install from a bundle, create a Python virtual environment following the instructions above, then perform the following commands.
+To install from a bundle, create a Python virtual environment following the instructions in `Python install`_ above, then perform the following commands.
 
 .. code-block:: bash
 
@@ -122,8 +129,7 @@ To install from a bundle, create a Python virtual environment following the inst
 
 .. note::
 
-Note 
-This only installs the SC build system offline. Before you can start running SiliconCompiler, you will also need to make sure you have installed external PDKs and tools required to build (synthesis, place and route, etc). Typically, users of this flow have already set up their own tools and PDKs. If that is the case, you may skip ahead to  `confirm your installation`_. But if you do not have PDKs and tools set up, have an internet connection, and would like to leverage the PDKs and external tool install information from the SiliconCompiler GitHub repo, you can, by following these steps:
+   This only installs the SC build system offline. Before you can start running SiliconCompiler, you will also need to make sure you have installed external PDKs and tools required to build (synthesis, place and route, etc). Typically, users of this flow have already set up their own tools and PDKs. If that is the case, you may skip ahead to  `confirm your installation`_. But if you do not have PDKs and tools set up, have an internet connection, and would like to leverage the PDKs and external tool install information from the SiliconCompiler GitHub repo, you can, by following these steps:
 
 .. code-block:: bash
 
@@ -132,6 +138,8 @@ This only installs the SC build system offline. Before you can start running Sil
 
 
 Skip to `confirm your installation`_, followed by `Run local`_.
+
+.. _directly from the git repository:
 
 Install from GitHub Repo (Linux/MacOS)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -173,8 +181,6 @@ Finally, to clone and install SiliconCompiler, run the following:
 Confirm your Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. _confirm your installation:
-
 .. code-block:: bash
 
  (venv) python -c "import siliconcompiler;print(siliconcompiler.__version__)"
@@ -192,7 +198,7 @@ Running SiliconCompiler
 Run Remote with Cloud Access
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Remote server access requires a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
+Remote server access requires a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password. 
 
 .. code-block:: json
 
@@ -202,7 +208,7 @@ Remote server access requires a credentials text file located at ~/.sc/credentia
    "password": "your-key"
    }
 
-Use a text editor to create the credentials file. Alternatively you can use 'sc-configure' app to generate it from the command line.
+Use a text editor to create the credentials file. Alternatively you can use :ref:`sc-configure` app to generate it from the command line.
 
 .. code-block:: console
 
@@ -212,7 +218,7 @@ Use a text editor to create the credentials file. Alternatively you can use 'sc-
   Remote password: your-key
   Remote configuration saved to: /home/<USER>/.sc/credentials
 
-To verify that your credentials file and server is configured correctly, run the `sc-ping` command.
+To verify that your credentials file and server is configured correctly, run the :ref:`sc-ping` command.
 
 .. code-block:: console
 
@@ -228,13 +234,14 @@ Once you have verified that your remote configuration works, try compiling a sim
    (venv) curl https://raw.githubusercontent.com/siliconcompiler/siliconcompiler/main/docs/user_guide/examples/heartbeat.v > heartbeat.v
    (venv) sc heartbeat.v -remote
 
+For more information, see :ref:`Remote Processing`.
+
+.. _Run local:
 
 Run Locally
 ^^^^^^^^^^^
 
-.. _Run local:
-
-If you wish to run locally, you will need to install some external tool dependencies to start. Take a look at `External Tools`_ to start with Surelog, Yosys, OpenRoad and KLayout as a minimum to run.
+If you wish to run locally, you will need to install some external tool dependencies to start. Take a look at `External Tools`_ for a list of tools which you may want to have. The minimum set of tools required for an ASIC flow are: Surelog, Yosys, OpenRoad and KLayout.
 
 Once you have these tools installed, try compiling a simple design:
 
@@ -243,13 +250,13 @@ Once you have these tools installed, try compiling a simple design:
     (venv) cd $SCPATH/../examples/heartbeat
     (venv) sc heartbeat.v heartbeat.sdc
 
-See the _`Quickstart <https://docs.siliconcompiler.com/en/latest/user_guide/quickstart.html>`_ section to get more details on what you're running.
+See the :ref:`Quickstart guide <quickstart guide>` section to get more details on what you're running.
 
 
 Layout Viewer
 -------------
 
-To view IC layout files (DEF, GDSII) we recommend installing the open source multi-platform 'klayout' viewer (available for Windows, Linux, and macOS). Installation instructions for klayout can be found `HERE <https://www.klayout.de/build.html>`_.
+To view IC layout files (DEF, GDSII) we recommend installing the open source multi-platform 'klayout' viewer (available for Windows, Linux, and macOS). Installation instructions for klayout can be found in the :ref:`tools directory <klayout>`.
 
 To test the klayout installation, run the 'sc-show' to display the 'heartbeat' layout:
 
@@ -257,11 +264,16 @@ To test the klayout installation, run the 'sc-show' to display the 'heartbeat' l
 
    (venv) sc-show -design heartbeat
 
-External Tools
---------------
 .. _External Tools:
 
+External Tools
+--------------
+
 To run compilation locally (instead of remotely), you will need to install a number of tools. For reference, we have provided install scripts for many of these tools. Unless otherwise specified in the script name, these scripts target Ubuntu 20.04.
+
+.. note::
+
+   These install scripts are a reference for installation. If you should run into issues, please consult the official download instructions for the tool itself. All official tool documentation links can be found in the :ref:`tools directory`
 
 .. installscripts::
 
