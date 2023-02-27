@@ -704,7 +704,7 @@ class Schema:
                 value = self.get(*key)
 
             #create a TCL dict
-            keystr = ' '.join(key)
+            keystr = ' '.join([escape_val_tcl(keypart, 'str') for keypart in key])
 
             valstr = escape_val_tcl(value, typestr)
 
