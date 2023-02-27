@@ -1,5 +1,7 @@
 import siliconcompiler
 
+from siliconcompiler.tools.verilator import verilator
+
 ############################################################################
 # DOCS
 ############################################################################
@@ -42,13 +44,12 @@ def setup(chip, np=1):
                 'signoff']
 
     tools = {
-        'import': ('verilator', 'import'),
-        'compile': ('verilator', 'compile'),
-        'testgen': ('verilator', 'testgen'),
-        'refsim': ('verilator', 'refsim'),
-        'sim': ('verilator', 'sim'),
-        'compare': ('verilator', 'compare'),
-        'signoff': ('verify', 'signoff')
+        'import': (verilator, 'import'),
+        'compile': (verilator, 'compile'),
+        'testgen': (verilator, 'testgen'),
+        'refsim': (verilator, 'refsim'),
+        'sim': (verilator, 'sim'),
+        'compare': (verilator, 'compare')
     }
 
     # Flow setup

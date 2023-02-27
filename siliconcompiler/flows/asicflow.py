@@ -2,6 +2,10 @@ import siliconcompiler
 
 from siliconcompiler.flows._common import setup_frontend
 
+from siliconcompiler.tools.yosys import yosys
+from siliconcompiler.tools.openroad import openroad
+from siliconcompiler.tools.klayout import klayout
+
 ############################################################################
 # DOCS
 ############################################################################
@@ -64,20 +68,19 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
 
     #step -->(tool, task)
     tools = {
-        'import' : ['surelog', 'import'],
-        'syn' : ['yosys','syn_asic'],
-        'synmin' : ['builtin','minimum'],
-        'floorplan' : ['openroad','floorplan'],
-        'floorplanmin' : ['builtin','minimum'],
-        'physyn' : ['openroad','physyn'],
-        'physynmin' : ['builtin','minimum'],
-        'place' : ['openroad','place'],
-        'placemin' : ['builtin','minimum'],
-        'cts' : ['openroad','cts'],
-        'ctsmin' : ['builtin','minimum'],
-        'route' : ['openroad','route'],
-        'routemin' : ['builtin','minimum'],
-        'dfm' : ['openroad','dfm']
+        'syn' : [yosys,'syn_asic'],
+        'synmin' : [siliconcompiler,'minimum'],
+        'floorplan' : [openroad,'floorplan'],
+        'floorplanmin' : [siliconcompiler,'minimum'],
+        'physyn' : [openroad,'physyn'],
+        'physynmin' : [siliconcompiler,'minimum'],
+        'place' : [openroad,'place'],
+        'placemin' : [siliconcompiler,'minimum'],
+        'cts' : [openroad,'cts'],
+        'ctsmin' : [siliconcompiler,'minimum'],
+        'route' : [openroad,'route'],
+        'routemin' : [siliconcompiler,'minimum'],
+        'dfm' : [openroad,'dfm']
     }
 
     np = {
@@ -92,7 +95,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
     #Remove built in steps where appropriate
     flowpipe = []
     for step in longpipe:
-        if tools[step][0] == 'builtin':
+        if tools[step][0] == siliconcompiler:
             if prevstep in np and np[prevstep] > 1:
                 flowpipe.append(step)
         else:
@@ -113,7 +116,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
             # nodes
             flow.node(flowname, step, tool, task, index=index)
             # edges
-            if tool == 'builtin':
+            if tool == siliconcompiler:
                 fanin = 1
                 if prevstep in np:
                     fanin = np[prevstep]
@@ -138,8 +141,8 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
         prevstep = step
 
     # add export
-    flow.node(flowname, 'export', 'klayout', 'export', index=0)
-    flow.node(flowname, 'export', 'openroad', 'export', index=1)
+    flow.node(flowname, 'export', klayout, 'export', index=0)
+    flow.node(flowname, 'export', openroad, 'export', index=1)
     flow.edge(flowname, prevstep, 'export', head_index=0)
     flow.edge(flowname, prevstep, 'export', head_index=1)
 
