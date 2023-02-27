@@ -39,6 +39,8 @@ def configure_chip(design):
     chip.use(sky130io)
     chip.add('asic', 'macrolib', 'sky130io')
 
+    chip.set('tool', 'openroad', 'task', 'export', 'var', 'write_cdl', 'false')
+
     # Configure 'show' apps, and return the Chip object.
     chip.set('option', 'showtool', 'def', 'klayout')
     chip.set('option', 'showtool', 'gds', 'klayout')
