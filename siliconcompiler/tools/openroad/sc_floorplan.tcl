@@ -149,6 +149,9 @@ foreach pin $pin_placement {
 }
 
 dict for {side pins} $pin_order {
+  if { [dict size $pins] == 0 } {
+    continue
+  }
   set ordered_pins []
   dict for {index pin} $pins {
     lappend ordered_pins {*}$pin
