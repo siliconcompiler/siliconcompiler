@@ -2897,8 +2897,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # Call 'show()' to generate a low-res PNG of the design.
             img_data = None
-            # Need to be able to search for something showable by KLayout,
-            # otherwise the extra_options don't make sense.
             if not self.get('option', 'nodisplay'):
                 result_file = self.show(filename=None, screenshot=True)
                 # Result might not exist if there is no display
@@ -4425,7 +4423,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             taskname = 'screenshot'
 
         try:
-            from flows import showflow
+            from siliconcompiler.flows import showflow
             self.use(showflow, filetype=filetype, screenshot=screenshot)
         except:
             # restore environment
@@ -4519,6 +4517,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             packagepath.pop()
 
+        return None
+
+    def _lookup_toolmodule_by_name(self, name):
+        for flow in self.getkeys('flowgraph'):
+            for step in self.getkeys('flowgraph', flow):
+                for index in self.getkeys('flowgraph', flow, step):
+                    if name == self.get('flowgraph', flow, step, index, 'tool'):
+                        return self._get_tool_module(step, index, flow=flow)
         return None
 
     #######################################

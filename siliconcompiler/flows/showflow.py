@@ -1,4 +1,5 @@
 import siliconcompiler
+from siliconcompiler import SiliconCompilerError
 
 ############################################################################
 # DOCS
@@ -29,16 +30,22 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
     if not filetype:
         raise ValueError('filetype is a required argument')
 
-    flow.node(flowname, 'import', 'builtin', 'import')
+    flow.node(flowname, 'import', siliconcompiler, 'import')
 
+    if filetype not in chip.getkeys('option', 'showtool'):
+        raise SiliconCompilerError(f'Show tool for {filetype} is not defined.')
     show_tool = chip.get('option', 'showtool', filetype)
+
+    show_tool_module = chip._lookup_toolmodule_by_name(show_tool)
+    if not show_tool_module:
+        raise SiliconCompilerError(f'Cannot determine tool module for {show_tool}.')
 
     stepname = 'show'
     if screenshot:
         stepname = 'screenshot'
 
     for idx in range(np):
-        flow.node(flowname, stepname, show_tool, stepname, index=idx)
+        flow.node(flowname, stepname, show_tool_module, stepname, index=idx)
         flow.edge(flowname, 'import', stepname, head_index=idx, tail_index=0)
 
     return flow
