@@ -150,7 +150,7 @@ foreach pin $pin_placement {
 
 dict for {side pins} $pin_order {
   set ordered_pins []
-  dict for {index pin} $$pins {
+  dict for {index pin} $pins {
     lappend ordered_pins {*}$pin
   }
 
