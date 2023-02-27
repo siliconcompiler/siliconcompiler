@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.27.0'
+SCHEMA_VERSION = '0.28.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -980,8 +980,17 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             example=[
                 "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                 "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"],
-            schelp="""Name of the tool name used for task execution. The 'tool' parameter
-            is ignored for builtin tasks.""")
+            schelp="""Name of the tool name used for task execution. For builtin tools the
+            parameter should be 'builtin'""")
+
+    scparam(cfg,['flowgraph', flow, step, index, 'module'],
+            sctype='str',
+            shorthelp="Flowgraph: tool module",
+            switch="-flowgraph_module 'flow step <str>'",
+            example=[
+                "cli: -flowgraph_module 'asicflow place 0 openroad'",
+                "api: chip.set('flowgraph','asicflow','place','0','module','siliconcompiler.tools.openroad.openroad')"],
+            schelp="""Full python module name of the tool name used for task execution.""")
 
     # task (belonging to tool)
     scparam(cfg,['flowgraph', flow, step, index, 'task'],
