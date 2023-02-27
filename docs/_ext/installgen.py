@@ -1,7 +1,9 @@
 from sphinx.util.docutils import SphinxDirective
 import docutils.nodes
-from docutils.parsers.rst import directives
 import os
+
+from sphinx.util.nodes import nested_parse_with_titles
+from docutils.statemachine import ViewList
 
 from siliconcompiler.sphinx_ext.utils import *
 
@@ -12,6 +14,7 @@ class InstallScripts(SphinxDirective):
     def run(self):
         setup_dir = os.path.join(SC_ROOT, 'setup')
         self.env.note_dependency(setup_dir)
+        self.env.note_dependency(__file__)
 
         scripts = {}
 
@@ -29,19 +32,25 @@ class InstallScripts(SphinxDirective):
                 else:
                     scripts[tool].append(script)
 
-        bullet_list = docutils.nodes.bullet_list()
+        blist = []
         for tool, scripts in scripts.items():
-            item = docutils.nodes.list_item(text=tool)
-            p = nodes.paragraph(text=f'{tool}: ')
-            for script in scripts[:-1]:
-                script_url = f'https://github.com/siliconcompiler/siliconcompiler/blob/main/setup/{script}'
-                p += link(script_url, text=script)
-                p += docutils.nodes.inline(text=', ')
+            links = [f'`{script} <https://github.com/siliconcompiler/siliconcompiler/blob/main/setup/{script}>`_' for script in scripts]
+            link_text = ', '.join(links)
 
-            script_url = f'https://github.com/siliconcompiler/siliconcompiler/blob/main/setup/{scripts[-1]}'
-            p += link(script_url, text=scripts[-1])
+            item = docutils.nodes.list_item(text=tool)
+            p = nodes.inline()
+
+            rst = ViewList()
+            # use fake filename 'inline' for error # reporting
+            rst.append(f':ref:`{tool} <{tool}>`: {link_text}', 'inline', 0)
+            nested_parse_with_titles(self.state, rst, p)
 
             item += p
+
+            blist.append((tool, item))
+
+        bullet_list = docutils.nodes.bullet_list()
+        for _, item in sorted(blist, key=lambda t: t[0]):
             bullet_list += item
 
         return [bullet_list]
