@@ -57,6 +57,28 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
 
 @pytest.mark.eda
 @pytest.mark.quick
+def test_check_missing_tool_module():
+    chip = siliconcompiler.Chip('gcd')
+
+    chip.load_target("freepdk45_demo")
+
+    chip.set('flowgraph', chip.get('option', 'flow'), 'place', '0', 'toolmodule', 'missing.tool')
+
+    assert not chip.check_manifest()
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_check_missing_task_module():
+    chip = siliconcompiler.Chip('gcd')
+
+    chip.load_target("freepdk45_demo")
+
+    chip.set('flowgraph', chip.get('option', 'flow'), 'place', '0', 'taskmodule', 'missing.place')
+
+    assert not chip.check_manifest()
+
+@pytest.mark.eda
+@pytest.mark.quick
 def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip = siliconcompiler.Chip('gcd')
 
