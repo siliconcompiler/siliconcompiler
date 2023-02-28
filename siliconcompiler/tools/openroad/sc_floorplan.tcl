@@ -57,15 +57,16 @@ if {[dict exists $sc_cfg library $sc_mainlib option file openroad_tracks]} {
 }
 
 set do_automatic_pins 1
-if { 0 } {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task file padring] && \
+     [llength [dict get $sc_cfg tool $sc_tool task $sc_task file padring]] > 0 } {
   set do_automatic_pins 0
 
   ###########################
   # Generate pad ring
   ###########################
-  # TODO: implement this if needed
-  # source library config, pad ring config
-  #initialize_padring
+  set padring_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task file padring] 0]
+  puts "Sourcing padring configuration: ${padring_file}"
+  source $padring_file
 }
 
 ###########################

@@ -23,5 +23,9 @@ def setup(chip):
         not chip.get('input', 'netlist', 'verilog', step=step, index=index)):
         chip.add('tool', tool, 'task', task, 'input', design +'.vg', step=step, index=index)
 
+    if chip.valid('tool', tool, 'task', task, 'file', 'padring'):
+        chip.add('tool', tool, 'task', task, 'require', ','.join(['tool', tool, 'task', task, 'file', 'padring']))
+    chip.set('tool', tool, 'task', task, 'file', 'padring', 'script to insert the padring', field='help')
+
 def pre_process(chip):
     build_pex_corners(chip)
