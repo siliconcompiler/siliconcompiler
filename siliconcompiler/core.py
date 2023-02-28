@@ -164,20 +164,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return entrypoint
 
     ###########################################################################
+    def _get_tool(self, step, index='0', flow=None):
+        '''
+        Helper function to get the name of the tool associated with a given step/index.
+        '''
+        if not flow:
+            flow = self.get('option', 'flow')
+        return self.get('flowgraph', flow, step, index, 'tool')
+
     def _get_task(self, step, index='0', flow=None):
         '''
         Helper function to get the name of the task associated with a given step/index.
-        The flowgraph step name may be descriptive for disambiguation pruposes, while the
+        The flowgraph step name may be descriptive for disambiguation putposes, while the
         task name defines how the associated tool should be configured and run.
-
-        TODO: Is this sort of schema shortcut worth adding?
-              If so should we also add 'get_tool'?
-              Should it be called 'get_step_task'?
         '''
         if not flow:
             flow = self.get('option', 'flow')
         return self.get('flowgraph', flow, step, index, 'task')
-
 
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
@@ -1438,9 +1441,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         error = False
 
-        flow = self.get('option', 'flow')
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
+        tool = self._get_tool(step, index)
+        task = self._get_task(step, index)
 
         required_inputs = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
         input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
@@ -1518,7 +1520,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         design = self.get('design')
         flow = self.get('option', 'flow')
-        jobname = self.get('option', 'jobname')
         steplist = self.get('option', 'steplist')
         if not steplist:
             steplist = self.list_steps()
@@ -1592,8 +1593,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         #4. Check per tool parameter requirements (when tool exists)
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
-                tool = self.get('flowgraph', flow, step, index, 'tool')
-                task = self.get('flowgraph', flow, step, index, 'task')
+                tool = self._get_tool(step, index, flow=flow)
+                task = self._get_task(step, index, flow=flow)
                 if (not self._is_builtin(tool, task)) and (tool in self.getkeys('tool')):
                     # checking that requirements are set
                     all_required = self.get('tool', tool, 'task', task, 'require', step=step, index=index)
@@ -1624,8 +1625,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         directory after a successful run of step/index.'''
 
         flow = self.get('option', 'flow')
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
+        tool = self._get_tool(step, index, flow=flow)
+        task = self._get_task(step, index, flow=flow)
 
         outputs = set()
         if self._is_builtin(tool, task):
@@ -1667,8 +1668,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 # For each task, check input requirements.
-                tool = self.get('flowgraph', flow, step, index, 'tool')
-                task = self.get('flowgraph', flow, step, index, 'task')
+                tool = self._get_tool(step, index, flow=flow)
+                task = self._get_task(step, index, flow=flow)
 
                 if self._is_builtin(tool, task):
                     # We can skip builtins since they don't have any particular
@@ -2176,7 +2177,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 index = str(i)
                 node = step+index
                 # create step node
-                tool = self.get('flowgraph', flow, step, index, 'tool')
+                tool = self._get_tool(step, index, flow=flow)
                 task = self._get_task(step, index, flow=flow)
                 if self._is_builtin(tool, task):
                     labelname = step
@@ -2651,8 +2652,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             logfile = os.path.join(self._getworkdir(jobname=jobname, step=step, index=index),
                                    f'{step}.log')
 
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
+        tool = self._get_tool(step, index, flow=flow)
+        task = self._get_task(step, index, flow=flow)
 
         # Creating local dictionary (for speed)
         # self.get is slow
@@ -2763,7 +2764,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # only report tool based steps functions
         for step in steplist.copy():
-            tool = self.get('flowgraph', flow, step, '0', 'tool')
+            tool = self._get_tool(step, '0', flow=flow)
             task = self._get_task(step, '0', flow=flow)
             if self._is_builtin(tool, task):
                 index = steplist.index(step)
@@ -2842,7 +2843,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 value = self.get('metric', metric, step=step, index=index)
                 if value is not None:
                     show_metric = True
-                tool = self.get('flowgraph', flow, step, index, 'tool')
+                tool = self._get_tool(step, index, flow=flow)
                 task = self._get_task(step, index, flow=flow)
                 rpts = self.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)
 
@@ -3469,8 +3470,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         design = self.get('design')
         top = self.top()
         flow = self.get('option', 'flow')
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self._get_task(step, index, flow)
+        tool = self._get_tool(step, index, flow=flow)
+        task = self._get_task(step, index, flow=flow)
 
         tool_module = self._get_tool_module(step, index, flow=flow)
         task_module = self._get_task_module(step, index, flow=flow)
@@ -3925,7 +3926,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg','index', index)
 
         # Run task setup.
-        task = self.get('flowgraph', flow, step, index, 'task')
+        task = self._get_task(step, index, flow=flow)
         taskmodule = self._get_task_module(step, index, flow=flow)
         if not taskmodule:
             self.error(f'Task module not found for tool {tool}, task {task} in {step}{index}', fatal=True)
@@ -4177,7 +4178,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for step in steplist:
                 for index in indexlist[step]:
                     # Setting up tool is optional
-                    tool = self.get('flowgraph', flow, step, index, 'tool')
+                    tool = self._get_tool(step, index, flow=flow)
                     task = self._get_task(step, index, flow=flow)
                     if not self._is_builtin(tool, task):
                         self._setup_tool(tool, task, step, index)
@@ -4442,7 +4443,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Setup in step/index variables
         steps = self._get_steps_by_task(flow='showflow')[taskname]
         for step, index in steps:
-            show_tool = self.get('flowgraph', 'showflow', step, index, 'tool')
+            show_tool = self._get_tool(step, index, flow='showflow')
             self.set('tool', show_tool, 'task', taskname , 'var', 'show_filetype', filetype, step=step, index=index)
             self.set('tool', show_tool, 'task', taskname , 'var', 'show_filepath', filepath, step=step, index=index)
             self.set('tool', show_tool, 'task', taskname , 'var', 'show_step', sc_step, step=step, index=index)
@@ -4501,7 +4502,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             flow = self.get('option', 'flow')
 
         toolmodule = self._get_tool_module(step, index, flow=flow)
-        taskname = self.get('flowgraph', flow, step, index, 'task')
+        taskname = self._get_task(step, index, flow=flow)
 
         toolname = toolmodule.__name__
         packagepath = toolname.split('.')
@@ -4523,7 +4524,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for flow in self.getkeys('flowgraph'):
             for step in self.getkeys('flowgraph', flow):
                 for index in self.getkeys('flowgraph', flow, step):
-                    if name == self.get('flowgraph', flow, step, index, 'tool'):
+                    if name == self._get_tool(step, index, flow=flow):
                         return self._get_tool_module(step, index, flow=flow)
         return None
 
