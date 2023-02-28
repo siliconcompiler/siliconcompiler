@@ -13,6 +13,7 @@ Welcome to SiliconCompiler's documentation!
 
    user_guide/introduction
    user_guide/installation
+   user_guide/running_sc
    user_guide/quickstart
    user_guide/glossary
    user_guide/data_model
