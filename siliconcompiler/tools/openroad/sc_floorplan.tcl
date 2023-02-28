@@ -13,6 +13,14 @@ proc design_has_unplaced_macros {} {
   return false
 }
 
+proc design_has_unplaced_ios {} {
+  foreach inst [[ord::get_db_block] getInsts] {
+    if {[$inst isPad] && ![$inst isFixed]} {
+      return true
+    }
+  }
+  return false
+}
 
 ###########################
 # Initialize floorplan
@@ -67,6 +75,15 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task file padring] && \
   set padring_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task file padring] 0]
   puts "Sourcing padring configuration: ${padring_file}"
   source $padring_file
+
+  if { [design_has_unplaced_ios] } {
+    foreach inst [[ord::get_db_block] getInsts] {
+      if {[$inst isPad] && ![$inst isFixed]} {
+        utl::warn FLW 1 "[$inst getName] has not been placed"
+      }
+    }
+    utl::error FLW 1 "Design contains unplaced IOs"
+  }
 }
 
 ###########################
