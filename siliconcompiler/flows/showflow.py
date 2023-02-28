@@ -1,4 +1,5 @@
 import siliconcompiler
+import importlib
 from siliconcompiler import SiliconCompilerError
 
 ############################################################################
@@ -38,6 +39,17 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
     show_tool = chip.get('option', 'showtool', filetype)
 
     show_tool_module = chip._lookup_toolmodule_by_name(show_tool)
+    if not show_tool_module:
+        # Search for module
+        for search_module in [f'siliconcompiler.tools.{show_tool}.{show_tool}',
+                              f'siliconcompiler.tools.{show_tool}',
+                              show_tool]:
+            try:
+               show_tool_module = importlib.import_module(search_module)
+               break
+            except ModuleNotFoundError:
+                pass
+
     if not show_tool_module:
         raise SiliconCompilerError(f'Cannot determine tool module for {show_tool}.')
 
