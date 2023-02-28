@@ -5,7 +5,10 @@ import os
 
 import pytest
 
-from tests.core.tools import echo
+from tests.core.tools import foo
+from tests.core.tools import bar
+from tests.core.tools import baz
+from tests.core.tools.echo import echo
 
 def test_check_manifest():
 
@@ -104,12 +107,12 @@ def merge_flow_chip():
 
     flow = 'test'
     chip.node(flow, 'import', siliconcompiler, 'import')
-    chip.node(flow, 'parallel1', echo, 'parallel1')
-    chip.node(flow, 'parallel2', echo, 'parallel2')
+    chip.node(flow, 'parallel1', foo, 'parallel1')
+    chip.node(flow, 'parallel2', bar, 'parallel2')
     chip.edge(flow, 'import', 'parallel1')
     chip.edge(flow, 'import', 'parallel2')
 
-    chip.node(flow, 'export', echo, 'export')
+    chip.node(flow, 'export', baz, 'export')
     chip.edge(flow, 'parallel1', 'export')
     chip.edge(flow, 'parallel2', 'export')
     chip.set('option', 'flow', flow)
