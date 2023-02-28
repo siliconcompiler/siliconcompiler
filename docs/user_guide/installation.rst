@@ -104,8 +104,12 @@ SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ us
  (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
  (venv) python -m pip show siliconcompiler       # will display  SiliconCompiler package information
 
-Skip to `confirm your installation`_.
+.. include:: installation_confirm_version.rst
 
+.. include:: installation_prep_path.rst 
+
+Skip to `Running SiliconCompiler`_.
+	     
 .. _offline install:
 
 Offline Install (Linux only)
@@ -119,31 +123,31 @@ To access them:
 3. On the bottom of that page, you will see an "Artifacts" section. Click on the "artifact" to download it.
 4. The packages are named ``scdeps-<pyversion>.tar.gz``, depending on which Python version they are associated with.
 
-To install from a bundle, create a Python virtual environment following the instructions in `Python install`_ above, then perform the following commands.
+Then untar the package and install SiliconCompiler:
 
 .. code-block:: bash
 
-   tar -xzvf scdeps-<pyversion>.tar.gz
-   pip install --upgrade pip --no-index --find-links scdeps
-   pip install siliconcompiler --no-index --find-links scdeps
+   (venv) tar -xzvf scdeps-<pyversion>.tar.gz
+   (venv) pip install --upgrade pip --no-index --find-links scdeps
+   (venv) pip install siliconcompiler --no-index --find-links scdeps
+
+.. include:: installation_confirm_version.rst
 
 .. note::
 
-   This only installs the SC build system offline. Before you can start running SiliconCompiler, you will also need to make sure you have installed external PDKs and tools required to build (synthesis, place and route, etc). Typically, users of this flow have already set up their own tools and PDKs. If that is the case, you may skip ahead to  `confirm your installation`_. But if you do not have PDKs and tools set up, have an internet connection, and would like to leverage the PDKs and external tool install information from the SiliconCompiler GitHub repo, you can, by following these steps:
+   Before you can start running SiliconCompiler, you will also need to make sure you have installed external PDKs and tools required to build (synthesis, place and route, etc). Typically, users of this flow have already set up their own tools and PDKs.
+   If you need to set up PDKs and tools and have an internet connection, you can run the following steps.
 
-.. code-block:: bash
-
-    git clone https://github.com/siliconcompiler/siliconcompiler
-    export SCPATH=<the full path for your siliconcompiler/siliconcompiler directory>
+   .. include:: installation_prep_path.rst
 
 
-Skip to `confirm your installation`_, followed by `Run local`_.
+Skip to `Run local`_.
 
 .. _directly from the git repository:
 
 Install from GitHub Repo (Linux/MacOS)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-You can also install SiliconCompiler from the latest `SiliconCompiler GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_. This option is currently only supported on Linux/MacOS platforms.
+You can also install SiliconCompiler from the latest `SiliconCompiler GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_. 
 
 **Install Dependencies, Bison and Flex**
 
@@ -177,23 +181,15 @@ Finally, to clone and install SiliconCompiler, run the following:
    python -m pip install -e .
    export SCPATH=<the full path for your siliconcompiler/siliconcompiler directory>
 
+.. include:: installation_confirm_version.rst
+	     
 
-Confirm your Installation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: bash
-
- (venv) python -c "import siliconcompiler;print(siliconcompiler.__version__)"
-
-The expected version should be printed to the display:
-
-.. parsed-literal::
-
-   \ |release|
-
+.. _Running SiliconCompiler:
 
 Running SiliconCompiler
 ------------------------------
+
+You can either run remotely in the cloud, or run locally on your machine.
 
 Run Remote with Cloud Access
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -277,4 +273,3 @@ To run compilation locally (instead of remotely), you will need to install a num
 
 .. installscripts::
 
-In addition, links to installation documentation written by the original authors of all supported tools can be found in the tools directory of the reference manual :ref:`here<Tools directory>`.
