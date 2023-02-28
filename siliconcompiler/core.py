@@ -1590,14 +1590,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         #4. Check if tool/task modules exists
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
+                tool_name, task_name = self._get_tool_task(step, index, flow=flow)
+                if self._is_builtin(tool_name, task_name):
+                    continue
+
                 if not self._get_tool_module(step, index, flow=flow):
                     error = True
-                    tool_name, _ = self._get_tool_task(step, index, flow=flow)
                     tool_module = self.get('flowgraph', flow, step, index, 'toolmodule')
                     self.logger.error(f"Tool module {tool_module} for {tool_name} could not be found or loaded for {step}{index}.")
                 if not self._get_task_module(step, index, flow=flow):
                     error = True
-                    tool_name, task_name = self._get_tool_task(step, index, flow=flow)
                     task_module = self.get('flowgraph', flow, step, index, 'taskmodule')
                     self.logger.error(f"Task module {task_module} for {tool_name}/{task_name} could not be found or loaded for {step}{index}.")
 
