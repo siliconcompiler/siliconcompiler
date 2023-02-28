@@ -1948,23 +1948,6 @@
                         "switch": "-flowgraph_input 'flow step index <(str,str)>'",
                         "type": "[(str,str)]"
                     },
-                    "module": {
-                        "defvalue": null,
-                        "example": [
-                            "cli: -flowgraph_module 'asicflow place 0 openroad'",
-                            "api: chip.set('flowgraph','asicflow','place','0','module','siliconcompiler.tools.openroad.openroad')"
-                        ],
-                        "help": "Full python module name of the tool name used for task execution.",
-                        "lock": false,
-                        "node": {},
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Flowgraph: tool module",
-                        "switch": "-flowgraph_module 'flow step <str>'",
-                        "type": "str"
-                    },
                     "select": {
                         "defvalue": [],
                         "example": [
@@ -2021,6 +2004,23 @@
                         "switch": "-flowgraph_task 'flow step <str>'",
                         "type": "str"
                     },
+                    "taskmodule": {
+                        "defvalue": null,
+                        "example": [
+                            "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
+                            "api: chip.set('flowgraph','asicflow','place','0','taskmodule','siliconcompiler.tools.openroad.place')"
+                        ],
+                        "help": "Full python module name of the tool name used for task setup and execution.",
+                        "lock": false,
+                        "node": {},
+                        "notes": null,
+                        "pernode": "never",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: task module",
+                        "switch": "-flowgraph_taskmodule 'flow step <str>'",
+                        "type": "str"
+                    },
                     "timeout": {
                         "defvalue": null,
                         "example": [
@@ -2054,6 +2054,23 @@
                         "scope": "job",
                         "shorthelp": "Flowgraph: tool selection",
                         "switch": "-flowgraph_tool 'flow step <str>'",
+                        "type": "str"
+                    },
+                    "toolmodule": {
+                        "defvalue": null,
+                        "example": [
+                            "cli: -flowgraph_toolmodule 'asicflow place 0 siliconcompiler.tools.openroad.openroad'",
+                            "api: chip.set('flowgraph','asicflow','place','0','toolmodule','siliconcompiler.tools.openroad.openroad')"
+                        ],
+                        "help": "Full python module name of the tool name used for tool setup and execution.",
+                        "lock": false,
+                        "node": {},
+                        "notes": null,
+                        "pernode": "never",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: tool module",
+                        "switch": "-flowgraph_toolmodule 'flow step <str>'",
                         "type": "str"
                     },
                     "valid": {

@@ -1587,7 +1587,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     error = True
                     self.logger.error(f"Mode requirement missing for [{keypath}].")
 
-        #4. Check per tool parameter requirements (when tool exists)
+        #4. Check if tool/task modules exists
+        for step in steplist:
+            for index in self.getkeys('flowgraph', flow, step):
+                if not self._get_tool_module(step, index, flow=flow):
+                    error = True
+                    tool_name, _ = self._get_tool_task(step, index, flow=flow)
+                    tool_module = self.get('flowgraph', flow, step, index, 'toolmodule')
+                    self.logger.error(f"Tool module {tool_module} for {tool_name} could not be found or loaded for {step}{index}.")
+                if not self._get_task_module(step, index, flow=flow):
+                    error = True
+                    tool_name, task_name = self._get_tool_task(step, index, flow=flow)
+                    task_module = self.get('flowgraph', flow, step, index, 'taskmodule')
+                    self.logger.error(f"Task module {task_module} for {tool_name}/{task_name} could not be found or loaded for {step}{index}.")
+
+        #5. Check per tool parameter requirements (when tool exists)
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool, task = self._get_tool_task(step, index, flow=flow)
@@ -3039,20 +3053,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         The method modifies the following schema parameters:
 
         * ['flowgraph', flow, step, index, 'tool', tool]
-        * ['flowgraph', flow, step, index, 'module', tool]
+        * ['flowgraph', flow, step, index, 'toolmodule', tool_module]
         * ['flowgraph', flow, step, index, 'task', task]
+        * ['flowgraph', flow, step, index, 'taskmodule', task_module]
         * ['flowgraph', flow, step, index, 'weight', metric]
 
         Args:
             flow (str): Flow name
             step (str): Step name
-            task (str): Task name, built in or tool specific
-            tool (module): Tool to associate with task.
+            tool (module/str): Tool to associate with task.
+            task (module/str): Task to associate with this node
             index (int): Step index
 
         Examples:
             >>> import siliconcomiler.tools.openroad.openroad as openroad
             >>> chip.node('asicflow', 'apr_place', openroad, 'place', index=0)
+            Creates a 'place' task with step='apr_place' and index=0 and binds it to the 'openroad' tool.
+
+            >>> import siliconcomiler.tools.openroad.openroad as openroad
+            >>> import siliconcomiler.tools.openroad.place as place
+            >>> chip.node('asicflow', 'apr_place', openroad, place, index=0)
             Creates a 'place' task with step='apr_place' and index=0 and binds it to the 'openroad' tool.
         '''
 
@@ -3062,22 +3082,41 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         index = str(index)
 
-        if (not inspect.ismodule(tool)):
-            self.error(f"{tool} is not a module and cannot be used to setup a tool.", fatal=True)
-
-        module_name = tool.__name__
-
-        import siliconcompiler as sc
-        if (tool == sc):
-            tool_name = 'builtin'
+        # Determine tool name and module
+        tool_module = None
+        if (isinstance(tool, str)):
+            tool_module = tool
+        elif inspect.ismodule(tool):
+            tool_module = tool.__name__
         else:
-            # Name is the last part of the module name
-            tool_name = module_name.split('.')[-1]
+            self.error(f"{tool} is not a string or module and cannot be used to setup a tool.", fatal=True)
+
+        tool_name = tool_module.split('.')[-1]
+
+        if (tool_name == 'siliconcompiler'):
+            tool_name = 'builtin'
+
+        # Determine task name and module
+        task_module = None
+        if (isinstance(task, str)):
+            if '.' in task:
+                # Full module name provided
+                task_module = task
+            else:
+                # Tool subtask provided
+                task_module = '.'.join(tool_module.split('.')[0:-1] + [task])
+        elif inspect.ismodule(task):
+            task_module = task.__name__
+        else:
+            self.error(f"{task} is not a string or module and cannot be used to setup a task.", fatal=True)
+
+        task_name = task_module.split('.')[-1]
 
         # bind tool to node
         self.set('flowgraph', flow, step, index, 'tool', tool_name)
-        self.set('flowgraph', flow, step, index, 'module', module_name)
-        self.set('flowgraph', flow, step, index, 'task', task)
+        self.set('flowgraph', flow, step, index, 'toolmodule', tool_module)
+        self.set('flowgraph', flow, step, index, 'task', task_name)
+        self.set('flowgraph', flow, step, index, 'taskmodule', task_module)
 
         # set default weights
         for metric in self.getkeys('metric'):
@@ -4476,7 +4515,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _get_tool_module(self, step, index, flow=None):
         if not flow:
             flow = self.get('option', 'flow')
-        toolmodule = self.get('flowgraph', flow, step, index, 'module')
+        toolmodule = self.get('flowgraph', flow, step, index, 'toolmodule')
 
         try:
             return importlib.import_module(toolmodule)
@@ -4488,23 +4527,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _get_task_module(self, step, index, flow=None):
         if not flow:
             flow = self.get('option', 'flow')
+        taskmodule = self.get('flowgraph', flow, step, index, 'taskmodule')
 
-        toolmodule = self._get_tool_module(step, index, flow=flow)
-        taskname = self._get_task(step, index, flow=flow)
-
-        toolname = toolmodule.__name__
-        packagepath = toolname.split('.')
-
-        taskmodule = None
-        while (len(packagepath) != 0):
-            task_path = '.'.join(packagepath + [taskname])
-
-            try:
-                return importlib.import_module(task_path)
-            except ModuleNotFoundError:
-                pass
-
-            packagepath.pop()
+        try:
+            return importlib.import_module(taskmodule)
+        except ModuleNotFoundError:
+            pass
 
         return None
 

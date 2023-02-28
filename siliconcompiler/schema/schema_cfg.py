@@ -983,14 +983,14 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             schelp="""Name of the tool name used for task execution. For builtin tools the
             parameter should be 'builtin'""")
 
-    scparam(cfg,['flowgraph', flow, step, index, 'module'],
+    scparam(cfg,['flowgraph', flow, step, index, 'toolmodule'],
             sctype='str',
             shorthelp="Flowgraph: tool module",
-            switch="-flowgraph_module 'flow step <str>'",
+            switch="-flowgraph_toolmodule 'flow step <str>'",
             example=[
-                "cli: -flowgraph_module 'asicflow place 0 openroad'",
-                "api: chip.set('flowgraph','asicflow','place','0','module','siliconcompiler.tools.openroad.openroad')"],
-            schelp="""Full python module name of the tool name used for task execution.""")
+                "cli: -flowgraph_toolmodule 'asicflow place 0 siliconcompiler.tools.openroad.openroad'",
+                "api: chip.set('flowgraph','asicflow','place','0','toolmodule','siliconcompiler.tools.openroad.openroad')"],
+            schelp="""Full python module name of the tool name used for tool setup and execution.""")
 
     # task (belonging to tool)
     scparam(cfg,['flowgraph', flow, step, index, 'task'],
@@ -1002,6 +1002,15 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
                 "api: chip.set('flowgraph','asicflow','myplace','0','task','place')"],
             schelp="""Name of the tool associated task used for step execution. Builtin
             task names include: minimum, maximum, join, verify, mux. """)
+
+    scparam(cfg,['flowgraph', flow, step, index, 'taskmodule'],
+            sctype='str',
+            shorthelp="Flowgraph: task module",
+            switch="-flowgraph_taskmodule 'flow step <str>'",
+            example=[
+                "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
+                "api: chip.set('flowgraph','asicflow','place','0','taskmodule','siliconcompiler.tools.openroad.place')"],
+            schelp="""Full python module name of the tool name used for task setup and execution.""")
 
     # flowgraph arguments
     scparam(cfg,['flowgraph', flow, step, index, 'args'],
