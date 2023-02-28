@@ -104,9 +104,9 @@ SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ us
  (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
  (venv) python -m pip show siliconcompiler       # will display  SiliconCompiler package information
 
-.. include:: installation_confirm_version.rst
+.. include:: installation/installation_confirm_version.rst
 
-.. include:: installation_prep_path.rst 
+.. include:: installation/installation_prep_path.rst 
 
 Skip to `Running SiliconCompiler`_.
 	     
@@ -131,14 +131,14 @@ Then untar the package and install SiliconCompiler:
    (venv) pip install --upgrade pip --no-index --find-links scdeps
    (venv) pip install siliconcompiler --no-index --find-links scdeps
 
-.. include:: installation_confirm_version.rst
+.. include:: installation/installation_confirm_version.rst
 
 .. note::
 
    Before you can start running SiliconCompiler, you will also need to make sure you have installed external PDKs and tools required to build (synthesis, place and route, etc). Typically, users of this flow have already set up their own tools and PDKs.
    If you need to set up PDKs and tools and have an internet connection, you can run the following steps.
 
-   .. include:: installation_prep_path.rst
+   .. include:: installation/installation_prep_path.rst
 
 
 Skip to `Run local`_.
@@ -181,7 +181,7 @@ Finally, to clone and install SiliconCompiler, run the following:
    python -m pip install -e .
    export SCPATH=<the full path for your siliconcompiler/siliconcompiler directory>
 
-.. include:: installation_confirm_version.rst
+.. include:: installation/installation_confirm_version.rst
 	     
 
 .. _Running SiliconCompiler:
