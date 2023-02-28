@@ -107,12 +107,12 @@ def merge_flow_chip():
 
     flow = 'test'
     chip.node(flow, 'import', siliconcompiler, 'import')
-    chip.node(flow, 'parallel1', foo, 'parallel1')
-    chip.node(flow, 'parallel2', bar, 'parallel2')
+    chip.node(flow, 'parallel1', foo, 'foo')
+    chip.node(flow, 'parallel2', bar, 'bar')
     chip.edge(flow, 'import', 'parallel1')
     chip.edge(flow, 'import', 'parallel2')
 
-    chip.node(flow, 'export', baz, 'export')
+    chip.node(flow, 'export', baz, 'baz')
     chip.edge(flow, 'parallel1', 'export')
     chip.edge(flow, 'parallel2', 'export')
     chip.set('option', 'flow', flow)
@@ -121,13 +121,13 @@ def merge_flow_chip():
     chip.set('tool', 'bar', 'exe', 'foo')
     chip.set('tool', 'baz', 'exe', 'baz')
 
-    chip.set('tool', 'baz', 'task', 'export', 'input', ['foo.out', 'bar.out'], step='export', index='0')
+    chip.set('tool', 'baz', 'task', 'baz', 'input', ['foo.out', 'bar.out'], step='export', index='0')
 
     return chip
 
 def test_merged_graph_good(merge_flow_chip):
-    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'bar.out', step='parallel1', index='0')
-    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'foo.out', step='parallel2', index='0')
+    merge_flow_chip.set('tool', 'foo', 'task', 'foo', 'output', 'bar.out', step='parallel1', index='0')
+    merge_flow_chip.set('tool', 'bar', 'task', 'bar', 'output', 'foo.out', step='parallel2', index='0')
 
     assert merge_flow_chip.check_manifest()
 
@@ -135,10 +135,10 @@ def test_merged_graph_good_steplist():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
     chip.node(flow, 'import', siliconcompiler, 'import')
-    chip.node(flow, 'parallel1', echo, 'parallel1')
-    chip.node(flow, 'parallel2', echo, 'parallel2')
-    chip.node(flow, 'merge', echo, 'merge')
-    chip.node(flow, 'export', echo, 'export')
+    chip.node(flow, 'parallel1', echo, 'echo')
+    chip.node(flow, 'parallel2', echo, 'echo')
+    chip.node(flow, 'merge', echo, 'echo')
+    chip.node(flow, 'export', echo, 'echo')
     chip.edge(flow, 'import', 'parallel1')
     chip.edge(flow, 'import', 'parallel2')
     chip.edge(flow, 'parallel1', 'merge')
@@ -158,14 +158,14 @@ def test_merged_graph_good_steplist():
 
 def test_merged_graph_bad_same(merge_flow_chip):
     # Two merged steps can't output the same thing
-    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'foo.out', step='parallel1', index='0')
-    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'foo.out', step='parallel2', index='0')
+    merge_flow_chip.set('tool', 'foo', 'task', 'foo', 'output', 'foo.out', step='parallel1', index='0')
+    merge_flow_chip.set('tool', 'bar', 'task', 'bar', 'output', 'foo.out', step='parallel2', index='0')
 
     assert not merge_flow_chip.check_manifest()
 
 def test_merged_graph_bad_missing(merge_flow_chip):
     # bar doesn't provide necessary output
-    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'foo.out', step='parallel1', index='0')
+    merge_flow_chip.set('tool', 'foo', 'task', 'foo', 'output', 'foo.out', step='parallel1', index='0')
 
     assert not merge_flow_chip.check_manifest()
 
