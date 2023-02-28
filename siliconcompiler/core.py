@@ -510,8 +510,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         """
         Loads a target module and runs the setup() function.
 
-        The function searches the PYTHON_PATH for <name> and siliconcompiler.targets.<name>
-        and runs the setup function in that module if found.
+        The function searches the installed Python packages for <name> and
+        siliconcompiler.targets.<name> and runs the setup function in that module
+        if found.
 
         Args:
             name (str): Module name
