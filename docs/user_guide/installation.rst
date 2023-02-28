@@ -102,13 +102,13 @@ SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ us
  (venv) pip install --upgrade pip                # upgrade pip in virtual env
  (venv) pip list                                 # show installed packages in venv
  (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
- (venv) python -m pip show siliconcompiler       # will display  SiliconCompiler package information
+ (venv) python -m pip show siliconcompiler       # will display SiliconCompiler package information
 
 .. include:: installation/installation_confirm_version.rst
 
 .. include:: installation/installation_prep_path.rst 
 
-Skip to `Running SiliconCompiler`_.
+Skip to :ref:`Running SiliconCompiler`.
 	     
 .. _offline install:
 
@@ -133,15 +133,10 @@ Then untar the package and install SiliconCompiler:
 
 .. include:: installation/installation_confirm_version.rst
 
-.. note::
-
-   Before you can start running SiliconCompiler, you will also need to make sure you have installed external PDKs and tools required to build (synthesis, place and route, etc). Typically, users of this flow have already set up their own tools and PDKs.
-   If you need to set up PDKs and tools and have an internet connection, you can run the following steps.
-
-   .. include:: installation/installation_prep_path.rst
+.. include:: installation/installation_prep_path.rst
 
 
-Skip to `Run local`_.
+Skip to :ref:`Running SiliconCompiler`.
 
 .. _directly from the git repository:
 
@@ -183,82 +178,6 @@ Finally, to clone and install SiliconCompiler, run the following:
 
 .. include:: installation/installation_confirm_version.rst
 	     
-
-.. _Running SiliconCompiler:
-
-Running SiliconCompiler
-------------------------------
-
-You can either run remotely in the cloud, or run locally on your machine.
-
-Run Remote with Cloud Access
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Remote server access requires a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password. 
-
-.. code-block:: json
-
-   {
-   "address": "your-server",
-   "username": "your-username",
-   "password": "your-key"
-   }
-
-Use a text editor to create the credentials file. Alternatively you can use :ref:`sc-configure` app to generate it from the command line.
-
-.. code-block:: console
-
-  (venv) sc-configure
-  Remote server address: your-server
-  Remote username: your-username
-  Remote password: your-key
-  Remote configuration saved to: /home/<USER>/.sc/credentials
-
-To verify that your credentials file and server is configured correctly, run the :ref:`sc-ping` command.
-
-.. code-block:: console
-
-  (venv) sc-ping
-  User myname validated successfully!
-  Remaining compute time: 1440.00 minutes
-  Remaining results bandwidth: 5242880 KiB
-
-Once you have verified that your remote configuration works, try compiling a simple design:
-
-.. code-block:: bash
-
-   (venv) curl https://raw.githubusercontent.com/siliconcompiler/siliconcompiler/main/docs/user_guide/examples/heartbeat.v > heartbeat.v
-   (venv) sc heartbeat.v -remote
-
-For more information, see :ref:`Remote Processing`.
-
-.. _Run local:
-
-Run Locally
-^^^^^^^^^^^
-
-If you wish to run locally, you will need to install some external tool dependencies to start. Take a look at `External Tools`_ for a list of tools which you may want to have. The minimum set of tools required for an ASIC flow are: Surelog, Yosys, OpenRoad and KLayout.
-
-Once you have these tools installed, try compiling a simple design:
-
-.. code-block:: bash
-
-    (venv) cd $SCPATH/../examples/heartbeat
-    (venv) sc heartbeat.v heartbeat.sdc
-
-See the :ref:`Quickstart guide <quickstart guide>` section to get more details on what you're running.
-
-
-Layout Viewer
--------------
-
-To view IC layout files (DEF, GDSII) we recommend installing the open source multi-platform 'klayout' viewer (available for Windows, Linux, and macOS). Installation instructions for klayout can be found in the :ref:`tools directory <klayout>`.
-
-To test the klayout installation, run the 'sc-show' to display the 'heartbeat' layout:
-
-.. code-block:: bash
-
-   (venv) sc-show -design heartbeat
 
 .. _External Tools:
 

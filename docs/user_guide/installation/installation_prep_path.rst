@@ -1,4 +1,4 @@
-To prepare your path and get set up with examples and PDKs to run:
+If you don't already have PDKs and tools set up, prepare your path to get set up with examples and PDKs to run:
 
 .. code-block:: bash
 
