@@ -67,7 +67,7 @@ See the :ref:`Quickstart guide <quickstart guide>` section to get more details o
 
 
 View Design
--------------
+^^^^^^^^^^^
 
 To view IC layout files (DEF, GDSII) we recommend installing the open source multi-platform 'klayout' viewer (available for Windows, Linux, and macOS). Installation instructions for klayout can be found in the :ref:`tools directory <klayout>`.
 

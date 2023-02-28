@@ -192,3 +192,5 @@ To run compilation locally (instead of remotely), you will need to install a num
 
 .. installscripts::
 
+
+Go to :ref:`Running SiliconCompiler`.
