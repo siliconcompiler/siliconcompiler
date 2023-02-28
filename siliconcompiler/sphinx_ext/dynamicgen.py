@@ -24,7 +24,7 @@ from siliconcompiler.sphinx_ext.utils import *
 # We need this in a few places, so just make it global
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
-def build_schema_value_table(cfg, keypath_prefix=None, skip_zero_weight=False):
+def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=False):
     '''Helper function for displaying values set in schema as a docutils table.'''
     table = [[strong('Keypath'), strong('Value')]]
 
@@ -64,7 +64,7 @@ def build_schema_value_table(cfg, keypath_prefix=None, skip_zero_weight=False):
             # HTML builder fails if we don't make a text node the parent of the
             # reference node returned by keypath()
             p = nodes.paragraph()
-            p += keypath(*kp)
+            p += keypath(kp, refdoc)
             table.append([p, val_node])
 
     if len(table) > 1:
@@ -76,7 +76,7 @@ def build_schema_value_table(cfg, keypath_prefix=None, skip_zero_weight=False):
     else:
         return None
 
-def build_config_recursive(schema, keypath_prefix=[], sec_key_prefix=[]):
+def build_config_recursive(schema, refdoc, keypath=None, sec_key_prefix=None):
     '''Helper function for displaying schema at each level as tables under nested
     sections.
 
@@ -85,31 +85,40 @@ def build_config_recursive(schema, keypath_prefix=[], sec_key_prefix=[]):
         level
     - Otherwise, recurse and collect sections of lower levels
     '''
+    if keypath is None:
+        keypath = []
+    if sec_key_prefix is None:
+        sec_key_prefix = []
+
     leaves = {}
     child_sections = []
-    for key, val in schema.items():
-        if key == 'default': continue
-        if 'help' in val:
-            if 'value' in val and val['value']:
-                leaves.update({key: val})
+    for key in schema.getkeys(*keypath):
+        if Schema._is_leaf(schema.getdict(*keypath, key)):
+            val = schema.getdict(*keypath, key)
+            leaves.update({key: val})
         else:
-            children = build_config_recursive(val, keypath_prefix=keypath_prefix+[key], sec_key_prefix=sec_key_prefix)
+            children = build_config_recursive(schema, refdoc, keypath=keypath+[key], sec_key_prefix=sec_key_prefix)
             child_sections.extend(children)
 
-    # If we've found leaves, create a new section where we'll display a
-    # table plus all child sections.
+    schema_table = None
     if len(leaves) > 0:
-        keypath = ', '.join(keypath_prefix)
-        section_key = '-'.join(sec_key_prefix + keypath_prefix)
-        top = build_section(keypath, section_key)
-        top += build_schema_value_table(leaves, keypath_prefix=keypath_prefix)
+        # Might return None is none of the leaves are displayable
+        schema_table = build_schema_value_table(leaves, refdoc, keypath_prefix=keypath)
+
+    if schema_table is not None:
+        # If we've found leaves, create a new section where we'll display a
+        # table plus all child sections.
+        keypathstr = ', '.join(keypath)
+        section_key = '-'.join(sec_key_prefix + keypath)
+        top = build_section(keypathstr, section_key)
+        top += schema_table
         top += child_sections
         return [top]
-    else:
-        # Otherwise, just pass on the child sections -- we don't want to
-        # create an extra level of section hierarchy for levels of the
-        # schema without leaves.
-        return child_sections
+
+    # Otherwise, just pass on the child sections -- we don't want to
+    # create an extra level of section hierarchy for levels of the
+    # schema without leaves.
+    return child_sections
 
 #############
 # Base class
@@ -169,6 +178,8 @@ class DynamicGen(SphinxDirective):
     def run(self):
         '''Main entry point of directive.'''
         sections = []
+        self.env.note_dependency(__file__)
+        self.env.note_dependency(utils.__file__)
 
         for module, modname in self.get_modules():
             path = module.__file__
@@ -384,7 +395,7 @@ class FlowGen(DynamicGen):
                     step_cfg[prefix] = {}
                 step_cfg[prefix][step] = pruned
 
-            section += build_schema_value_table(step_cfg, skip_zero_weight=True)
+            section += build_schema_value_table(step_cfg, self.env.docname, skip_zero_weight=True)
             settings += section
 
         # Build table for non-step items (just showtool for now)
@@ -394,7 +405,7 @@ class FlowGen(DynamicGen):
         schema = Schema(cfg=cfg)
         schema.prune()
         pruned = schema.cfg
-        table = build_schema_value_table(pruned, keypath_prefix=['option', 'showtool'])
+        table = build_schema_value_table(pruned, self.env.docname, keypath_prefix=['option', 'showtool'])
         if table is not None:
             section += table
             settings += section
@@ -410,8 +421,7 @@ class PDKGen(DynamicGen):
         section_key = '-'.join(['pdks', modname, 'configuration'])
         settings = build_section('Configuration', section_key)
 
-        cfg = chip.getdict('pdk')
-        settings += build_config_recursive(cfg, keypath_prefix=['pdk'], sec_key_prefix=['pdks', modname])
+        settings += build_config_recursive(chip.schema, self.env.docname, keypath=['pdk'], sec_key_prefix=['pdks', modname])
 
         return settings
 
@@ -442,8 +452,7 @@ class LibGen(DynamicGen):
         settings = build_section_with_target(libname, '-'.join(section_key), self.state.document)
 
         for key in ('asic', 'output', 'option'):
-            cfg = chip.getdict(key)
-            settings += build_config_recursive(cfg, keypath_prefix=[key], sec_key_prefix=[*section_key, key])
+            settings += build_config_recursive(chip.schema, self.env.docname, keypath=[key], sec_key_prefix=[*section_key, key])
 
         sections.append(settings)
 
@@ -506,7 +515,7 @@ class ToolGen(DynamicGen):
             # Remove task specific items since they will be documented
             # by the task documentation
             del pruned['task']
-        table = build_schema_value_table(pruned, keypath_prefix=['tool', modname])
+        table = build_schema_value_table(pruned, self.env.docname, keypath_prefix=['tool', modname])
         if table is not None:
             return table
         else:
@@ -518,7 +527,7 @@ class ToolGen(DynamicGen):
         schema = Schema(cfg=cfg)
         schema.prune()
         pruned = schema.cfg
-        table = build_schema_value_table(pruned, keypath_prefix=['tool', toolname, 'task', taskname])
+        table = build_schema_value_table(pruned, self.env.docname, keypath_prefix=['tool', toolname, 'task', taskname])
         if table is not None:
             return table
         else:
@@ -682,7 +691,7 @@ class TargetGen(DynamicGen):
 
         if len(pruned_cfg) > 0:
             schema_section = build_section('Configuration', key=f'{modname}-config')
-            schema_section += build_schema_value_table(pruned_cfg)
+            schema_section += build_schema_value_table(pruned_cfg, self.env.docname)
             sections.append(schema_section)
 
         return sections
@@ -722,7 +731,7 @@ class ChecklistGen(DynamicGen):
             if key == 'default':
                 continue
             settings += build_section(key, section_prefix+'-'+key)
-            settings += build_schema_value_table(cfg[key], keypath_prefix=[*section_key, key])
+            settings += build_schema_value_table(cfg[key], self.env.docname, keypath_prefix=[*section_key, key])
 
         sections.append(settings)
 
@@ -767,17 +776,49 @@ class ExampleGen(DynamicGen):
 
         return section
 
-def keypath_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=None):
+    doc = inliner.document
+    env = doc.settings.env
+
     # Split and clean up keypath
     keys = [key.strip() for key in text.split(',')]
     try:
-        return [keypath(*keys)], []
+        return [keypath(keys, env.docname)], []
     except ValueError as e:
         msg = inliner.reporter.error(f'{rawtext}: {e}', line=lineno)
         prb = inliner.problematic(rawtext, rawtext, msg)
         return [prb], [msg]
 
+class SCDomain(sphinx.domains.std.StandardDomain):
+    name = 'sc'
+
+    # Override in StandardDomain so xref is literal instead of inline
+    # https://github.com/sphinx-doc/sphinx/blob/ba080286b06cb9e0cadec59a6cf1f96aa11aef5a/sphinx/domains/std.py#L789
+    def build_reference_node(self, fromdocname, builder, docname, labelid, sectname, rolename, **options):
+        nodeclass = options.pop('nodeclass', nodes.reference)
+        newnode = nodeclass('', '', internal=True, **options)
+        innernode = nodes.literal(sectname, sectname)
+        if innernode.get('classes') is not None:
+            innernode['classes'].append('std')
+            innernode['classes'].append('std-' + rolename)
+        if docname == fromdocname:
+            newnode['refid'] = labelid
+        else:
+            # set more info in contnode; in case the
+            # get_relative_uri call raises NoUri,
+            # the builder will then have to resolve these
+            contnode = sphinx.addnodes.pending_xref('')
+            contnode['refdocname'] = docname
+            contnode['refsectname'] = sectname
+            newnode['refuri'] = builder.get_relative_uri(
+                fromdocname, docname)
+            if labelid:
+                newnode['refuri'] += '#' + labelid
+        newnode.append(innernode)
+        return newnode
+
 def setup(app):
+    app.add_domain(SCDomain)
     app.add_directive('flowgen', FlowGen)
     app.add_directive('pdkgen', PDKGen)
     app.add_directive('libgen', LibGen)

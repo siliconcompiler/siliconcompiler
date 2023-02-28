@@ -92,33 +92,33 @@ def test_set_field_bool():
     chip.set('input', 'doc', 'txt', False, field='copy')
     assert chip.get('input', 'doc', 'txt', field='copy') is False
 
-def test_getkeys_invalid_field():
+def test_getkeys_invalid_keypath():
     chip = siliconcompiler.Chip('test')
     with pytest.raises(siliconcompiler.core.SiliconCompilerError):
         chip.getkeys('option', None)
 
-def test_add_invalid_field():
+def test_add_invalid_keypath():
     chip = siliconcompiler.Chip('test')
     with pytest.raises(siliconcompiler.core.SiliconCompilerError):
         chip.add('option', None, 'test_val')
 
-def test_set_invalid_field():
+def test_set_invalid_keypath():
     chip = siliconcompiler.Chip('test')
     with pytest.raises(siliconcompiler.core.SiliconCompilerError):
         chip.set('option', None, 'test_val')
 
-def test_get_invalid_field():
+def test_get_invalid_keypath():
     chip = siliconcompiler.Chip('test')
     with pytest.raises(siliconcompiler.core.SiliconCompilerError):
         chip.get('option', None)
 
-def test_get_invalid_field_continue():
+def test_get_invalid_keypath_continue():
     chip = siliconcompiler.Chip('test')
     chip.set('option', 'continue', True)
     ret_val = chip.get('option', None)
     assert ret_val == None
 
-def test_set_valid_field_to_none():
+def test_set_valid_keypath_to_none():
     chip = siliconcompiler.Chip('test')
     chip.set('option', 'scheduler', 'name', 'slurm')
     chip.set('option', 'scheduler', 'name', None)
@@ -134,6 +134,11 @@ def test_set_field_error():
     # expect copy flag unchanged and error triggered
     assert chip.get('input', 'doc', 'txt', field='copy') is True
     assert chip._error == True
+
+def test_set_invalid_field():
+    chip = siliconcompiler.Chip('test')
+    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+        chip.set('input', 'doc', 'txt', 'bar', field='foo')
 
 def test_set_add_field_list():
     chip = siliconcompiler.Chip('test')
@@ -178,6 +183,15 @@ def test_unset():
     chip.set('option', 'remote', True, clobber=False)
     assert chip.get('option', 'remote') == True
 
+    # Make sure unset() clears values and pernode field
+    chip.set('input', 'doc', 'txt', 'foo.txt')
+    chip.set('input', 'doc', 'txt', 'abc123', field='filehash')
+    chip.unset('input', 'doc', 'txt')
+
+    # arbitrary step/index to avoid error
+    assert chip.get('input', 'doc', 'txt', step='syn', index=0) == []
+    assert chip.get('input', 'doc', 'txt', step='syn', index=0, field='filehash') == []
+
 def test_set_enum_success():
     chip = siliconcompiler.Chip('test')
     chip.add('option', 'mode', 'asic_new', field='enum')
@@ -199,10 +213,45 @@ def test_pernode():
     chip.set('asic', 'logiclib', 'mylib')
     chip.set('asic', 'logiclib', 'synlib', step='syn')
     chip.set('asic', 'logiclib', 'syn0lib', step='syn', index=0)
+    chip.set('asic', 'logiclib', 'placelib', step='place', index=0, clobber=False)
 
     assert chip.get('asic', 'logiclib', step='floorplan', index=0) == ['mylib']
     assert chip.get('asic', 'logiclib', step='syn', index=0) == ['syn0lib']
     assert chip.get('asic', 'logiclib', step='syn', index=1) == ['synlib']
+    assert chip.get('asic', 'logiclib', step='place', index=0) == ['mylib']
+
+def test_pernode_fields():
+    chip = siliconcompiler.Chip('test')
+    chip.set('input', 'rtl', 'verilog', 'abcd', field='filehash')
+
+    # Fallback to global
+    assert chip.get('input', 'rtl', 'verilog', field='filehash') == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', field='filehash') == ['abcd']
+
+    # Can override global
+    chip.set('input', 'rtl', 'verilog', '1234', step='syn', field='filehash')
+    assert chip.get('input', 'rtl', 'verilog', field='filehash') == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', field='filehash') == ['1234']
+
+    # error, step/index required
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
+        chip.set('tool', 'openroad', 'task', 'place', 'output', 'abc123', field='filehash')
+    chip.set('tool', 'openroad', 'task', 'place', 'output', 'def456', field='filehash', step='place', index=0)
+    chip.get('tool', 'openroad', 'task', 'place', 'output', field='filehash', step='place', index=0) == 'def456'
+
+def test_signature_type():
+    '''Test that whether signature field is a list or scalar corresponds to
+    parameter's type.'''
+    chip = siliconcompiler.Chip('test')
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
+        chip.set('option', 'quiet', ['xyz'], field='signature')
+    assert chip.get('option', 'quiet', field='signature') == None
+
+    chip.set('option', 'quiet', 'xyz', field='signature')
+    assert chip.get('option', 'quiet', field='signature') == 'xyz'
+
+    chip.set('asic', 'logiclib', ['xyz'], field='signature')
+    assert chip.get('asic', 'logiclib', field='signature') == ['xyz']
 
 #########################
 if __name__ == "__main__":

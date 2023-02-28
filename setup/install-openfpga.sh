@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 mkdir -p deps
 cd deps
 

@@ -21,7 +21,7 @@ Once the chip object has been created, functions and data are all contained with
 
 The snippet of code below shows the basic principles. ::
 
-  chip.set('input', 'verilog', 'rtl', '<file>.v')
+  chip.set('input', 'rtl', 'verilog', '<file>.v')
 
 
 Run

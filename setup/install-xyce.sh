@@ -1,4 +1,7 @@
 #!/bin/sh
+
+set -e
+
 # Install core dependencies.
 sudo apt-get install -y build-essential gcc g++ cmake automake autoconf bison flex git libblas-dev liblapack-dev liblapack64-dev libfftw3-dev libsuitesparse-dev libopenmpi-dev libboost-all-dev libnetcdf-dev libmatio-dev
 

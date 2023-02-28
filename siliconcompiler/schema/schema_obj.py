@@ -41,6 +41,7 @@ class Schema:
     # Special key in node dict that represents a value correponds to a
     # global default for all steps/indices.
     GLOBAL_KEY = 'global'
+    PERNODE_FIELDS = ('value', 'filehash', 'date', 'author', 'signature')
 
     def __init__(self, cfg=None, manifest=None):
         if cfg is not None and manifest is not None:
@@ -100,12 +101,17 @@ class Schema:
         if isinstance(index, int):
             index = str(index)
 
-        if field == 'value':
+        if field in self.PERNODE_FIELDS:
             try:
                 return cfg['node'][step][index][field]
             except KeyError:
                 if cfg['pernode'] == 'required':
-                    return cfg['defvalue']
+                    if field == 'value':
+                        return cfg['defvalue']
+                    elif Schema._is_list(field, self.get(*keypath, field='type')):
+                        return []
+                    else:
+                        return None
 
             try:
                 return cfg['node'][step][self.GLOBAL_KEY][field]
@@ -115,7 +121,12 @@ class Schema:
             try:
                 return cfg['node'][self.GLOBAL_KEY][self.GLOBAL_KEY][field]
             except KeyError:
-                return cfg['defvalue']
+                if field == 'value':
+                    return cfg['defvalue']
+                elif Schema._is_list(field, self.get(*keypath, field='type')):
+                    return []
+                else:
+                    return None
         elif field in cfg:
             return cfg[field]
         else:
@@ -157,7 +168,7 @@ class Schema:
 
         value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
-        if field == 'value':
+        if field in self.PERNODE_FIELDS:
             step = step if step is not None else self.GLOBAL_KEY
             index = index if index is not None else self.GLOBAL_KEY
 
@@ -165,7 +176,7 @@ class Schema:
                 cfg['node'][step] = {}
             if index not in cfg['node'][step]:
                 cfg['node'][step][index] = {}
-            cfg['node'][step][index]['value'] = value
+            cfg['node'][step][index][field] = value
         else:
             cfg[field] = value
 
@@ -209,7 +220,7 @@ class Schema:
 
         value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
-        if field == 'value':
+        if field in self.PERNODE_FIELDS:
             step = step if step is not None else self.GLOBAL_KEY
             index = index if index is not None else self.GLOBAL_KEY
 
@@ -217,9 +228,9 @@ class Schema:
                 cfg['node'][step] = {}
             if index not in cfg['node'][step]:
                 cfg['node'][step][index] = {}
-            if 'value' not in cfg['node'][step][index]:
-                cfg['node'][step][index]['value'] = []
-            cfg['node'][step][index]['value'].extend(value)
+            if field not in cfg['node'][step][index]:
+                cfg['node'][step][index][field] = []
+            cfg['node'][step][index][field].extend(value)
         else:
             cfg[field].extend(value)
 
@@ -251,7 +262,7 @@ class Schema:
             index = Schema.GLOBAL_KEY
 
         try:
-            del cfg['node'][step][index]['value']
+            del cfg['node'][step][index]
         except KeyError:
             # If this key doesn't exist, silently continue - it was never set
             pass
@@ -462,6 +473,9 @@ class Schema:
         def error_msg(t):
             return f'Invalid value {value} for field {field} of keypath {keypath}: expected {t}'
 
+        if field in ('author', 'filehash', 'date', 'hashalgo', 'copy') and ('file' not in sc_type):
+            raise TypeError(f'Invalid field {field} for keypath {keypath}: this field only exists for file parameters')
+
         if Schema._is_list(field, sc_type):
             if not isinstance(value, list):
                 value = [value]
@@ -556,7 +570,7 @@ class Schema:
         Returns an error message if there's a problem with the arguments,
         otherwise None.
         '''
-        if field != 'value':
+        if field not in Schema.PERNODE_FIELDS:
             if step is not None or index is not None:
                 return 'step and index are only valid for value fields'
             return None
@@ -690,7 +704,7 @@ class Schema:
                 value = self.get(*key)
 
             #create a TCL dict
-            keystr = ' '.join(key)
+            keystr = ' '.join([escape_val_tcl(keypart, 'str') for keypart in key])
 
             valstr = escape_val_tcl(value, typestr)
 

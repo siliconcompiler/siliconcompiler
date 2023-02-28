@@ -25,6 +25,10 @@ def test_py(setup_example_test):
     chip = siliconcompiler.Chip('gcd')
     chip.read_manifest(manifest)
 
+    # Ensure hashes for tool outputs are stored and persist
+    assert len(chip.get('tool', 'openroad', 'task', 'dfm', 'output', step='dfm', index=0, field='filehash')) == 4
+    assert len(chip.get('tool', 'openroad', 'task', 'dfm', 'output', step='dfm', index=0)) == 4
+
     assert chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea', step='syn', index='0') == ['syn.log']
 
     # "No timescale set..."

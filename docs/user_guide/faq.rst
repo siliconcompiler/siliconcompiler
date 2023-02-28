@@ -18,6 +18,13 @@ How do I...
 
     See :ref:`PDKs`
 
+... set up a new library?
+
+    See :ref:`Libraries`
+
+... set up a new target?
+
+    See :ref:`Targets`
 
 ... create a chip object?
    .. code-block:: python
@@ -43,14 +50,15 @@ How do I...
 ... change the logger level?
     .. code-block:: python
 
-        chip = siliconcompiler.Chip('<design>', loglevel=<INFO|ERROR|DEBUG>)
+        chip = siliconcompiler.Chip('<design>', loglevel=<INFO|DEBUG|WARNING|ERROR>)
+        chip.set('option', 'loglevel', <level>)
 
 ... check my setup before running?
     .. code-block:: python
 
-        chip.check()
+        chip.check_manifest()
 
-... relax the parse contraints on import?
+... relax the parse constraints on import?
     .. code-block:: python
 
        chip.set('option', 'relax', True)
@@ -68,13 +76,18 @@ How do I...
 ... drive custom TCL code into the a target EDA flow?
     .. code-block:: python
 
-       chip.set('tool', <tool>, 'prescript', <step>, <index>, <file>)
-       chip.set('tool', <tool>, 'postscript',<step>, <index>,  <file>)
+       chip.set('tool', <tool>, 'task', <task>, 'prescript', <file>, step=<step>, index=<index>)
+       chip.set('tool', <tool>, 'task', <task>, 'postscript', <file>, step=<step>, index=<index>)
 
 ... control the thread parallelism for a tool?
     .. code-block:: python
 
-       chip.set('tool', <tool>, 'threads', <step>, <index>, <n>)
+       chip.set('tool', <tool>, 'task', <task>, 'threads', <n>, step=<step>, index=<index>)
+
+... resume a previous run?
+    .. code-block:: python
+
+       chip.set('option', 'resume', True)
 
 ... print the description of a parameter?
     .. code-block:: python

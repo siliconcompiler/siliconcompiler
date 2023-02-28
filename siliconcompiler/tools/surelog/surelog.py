@@ -78,6 +78,15 @@ def parse_version(stdout):
 #  Custom runtime options
 ################################
 
+def _remove_dups(chip, type, file_set):
+    new_files = []
+    for f in file_set:
+        if f not in new_files:
+            new_files.append(f)
+        else:
+            chip.logger.warning(f"Removing duplicate '{type}' inputs: {f}")
+    return new_files
+
 def runtime_options(chip):
 
     ''' Custom runtime options, returnst list of command line options.
@@ -98,9 +107,7 @@ def runtime_options(chip):
         ydir_files.extend(chip.find_files('library', item, 'option', 'ydir'))
 
     # Deduplicated source files
-    if len(ydir_files) != len(set(ydir_files)):
-        chip.logger.warning(f"Removing duplicate 'ydir' inputs from: {ydir_files}")
-    for value in set(ydir_files):
+    for value in _remove_dups(chip, 'ydir', ydir_files):
         cmdlist.append('-y ' + value)
 
     #####################
@@ -112,9 +119,7 @@ def runtime_options(chip):
     for item in chip.getkeys('library'):
         vlib_files.extend(chip.find_files('library', item, 'option', 'vlib'))
 
-    if len(vlib_files) != len(set(vlib_files)):
-        chip.logger.warning(f"Removing duplicate 'vlib' inputs from: {vlib_files}")
-    for value in set(vlib_files):
+    for value in _remove_dups(chip, 'vlib', vlib_files):
         cmdlist.append('-v ' + value)
 
     #####################
@@ -126,9 +131,7 @@ def runtime_options(chip):
     for item in chip.getkeys('library'):
         idir_files.extend(chip.find_files('library', item, 'option', 'idir'))
 
-    if len(idir_files) != len(set(idir_files)):
-        chip.logger.warning(f"Removing duplicate 'idir' inputs from: {idir_files}")
-    for value in set(idir_files):
+    for value in _remove_dups(chip, 'idir', idir_files):
         cmdlist.append('-I' + value)
 
     #######################
@@ -153,9 +156,7 @@ def runtime_options(chip):
     for item in chip.getkeys('library'):
         cmd_files.extend(chip.find_files('library', item, 'option', 'cmdfile'))
 
-    if len(cmd_files) != len(set(cmd_files)):
-        chip.logger.warning(f"Removing duplicate 'cmdfile' inputs from: {cmd_files}")
-    for value in set(cmd_files):
+    for value in _remove_dups(chip, 'cmdfile', cmd_files):
         cmdlist.append('-f ' + value)
 
     #######################
@@ -168,9 +169,7 @@ def runtime_options(chip):
     #for item in chip.getkeys('library'):
     #    src_files.extend(chip.find_files('library', item, 'input', 'verilog'))
 
-    if len(src_files) != len(set(src_files)):
-        chip.logger.warning(f"Removing duplicate source file inputs from: {src_files}")
-    for value in set(src_files):
+    for value in _remove_dups(chip, 'source', src_files):
         cmdlist.append(value)
 
     #######################

@@ -1,6 +1,10 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
 
+from siliconcompiler.pdks import freepdk45
+from siliconcompiler.flows import lintflow, asicflow, asictopflow
+from siliconcompiler.libs import nangate45
+
 ####################################################
 # Target Setup
 ####################################################
@@ -20,9 +24,6 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     }
 
     #1. Load PDK, flow, libs combo
-    from pdks import freepdk45
-    from flows import lintflow, asicflow, asictopflow
-    from libs import nangate45
     chip.use(freepdk45)
     chip.use(lintflow)
     chip.use(asicflow, **asic_flow_args)

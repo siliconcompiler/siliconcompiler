@@ -14,7 +14,6 @@
             "require": null,
             "scope": "scratch",
             "shorthelp": "ARG: Index argument",
-            "signature": null,
             "switch": "-arg_index <str>",
             "type": "str"
         },
@@ -32,7 +31,6 @@
             "require": null,
             "scope": "scratch",
             "shorthelp": "ARG: Step argument",
-            "signature": null,
             "switch": "-arg_step <str>",
             "type": "str"
         }
@@ -53,7 +51,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: antenna cell list",
-                "signature": [],
                 "switch": "-asic_cells_antenna '<str>'",
                 "type": "[str]"
             },
@@ -71,7 +68,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkbuf cell list",
-                "signature": [],
                 "switch": "-asic_cells_clkbuf '<str>'",
                 "type": "[str]"
             },
@@ -89,7 +85,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkdelay cell list",
-                "signature": [],
                 "switch": "-asic_cells_clkdelay '<str>'",
                 "type": "[str]"
             },
@@ -107,7 +102,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkgate cell list",
-                "signature": [],
                 "switch": "-asic_cells_clkgate '<str>'",
                 "type": "[str]"
             },
@@ -125,7 +119,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkicg cell list",
-                "signature": [],
                 "switch": "-asic_cells_clkicg '<str>'",
                 "type": "[str]"
             },
@@ -143,7 +136,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkinv cell list",
-                "signature": [],
                 "switch": "-asic_cells_clkinv '<str>'",
                 "type": "[str]"
             },
@@ -161,7 +153,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clklogic cell list",
-                "signature": [],
                 "switch": "-asic_cells_clklogic '<str>'",
                 "type": "[str]"
             },
@@ -179,7 +170,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: decap cell list",
-                "signature": [],
                 "switch": "-asic_cells_decap '<str>'",
                 "type": "[str]"
             },
@@ -197,7 +187,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: delay cell list",
-                "signature": [],
                 "switch": "-asic_cells_delay '<str>'",
                 "type": "[str]"
             },
@@ -215,7 +204,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: dontuse cell list",
-                "signature": [],
                 "switch": "-asic_cells_dontuse '<str>'",
                 "type": "[str]"
             },
@@ -233,7 +221,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: endcap cell list",
-                "signature": [],
                 "switch": "-asic_cells_endcap '<str>'",
                 "type": "[str]"
             },
@@ -251,7 +238,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: filler cell list",
-                "signature": [],
                 "switch": "-asic_cells_filler '<str>'",
                 "type": "[str]"
             },
@@ -269,7 +255,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: hold cell list",
-                "signature": [],
                 "switch": "-asic_cells_hold '<str>'",
                 "type": "[str]"
             },
@@ -287,7 +272,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: tap cell list",
-                "signature": [],
                 "switch": "-asic_cells_tap '<str>'",
                 "type": "[str]"
             },
@@ -305,7 +289,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: tie cell list",
-                "signature": [],
                 "switch": "-asic_cells_tie '<str>'",
                 "type": "[str]"
             }
@@ -324,7 +307,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: delay model",
-            "signature": null,
             "switch": "-asic_delaymodel <str>",
             "type": "str"
         },
@@ -342,7 +324,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: library architecture",
-            "signature": null,
             "switch": "-asic_libarch '<str>'",
             "type": "str"
         },
@@ -360,7 +341,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: logic libraries",
-            "signature": [],
             "switch": "-asic_logiclib <str>",
             "type": "[str]"
         },
@@ -378,7 +358,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: macro libraries",
-            "signature": [],
             "switch": "-asic_macrolib <str>",
             "type": "[str]"
         },
@@ -397,7 +376,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: Library sites",
-                "signature": [],
                 "switch": "-asic_site 'libarch <str>'",
                 "type": "[str]"
             }
@@ -420,7 +398,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item criteria",
-                    "signature": [],
                     "switch": "-checklist_criteria 'standard item <float>'",
                     "type": "[str]"
                 },
@@ -438,7 +415,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item data format",
-                    "signature": null,
                     "switch": "-checklist_dataformat 'standard item <float>'",
                     "type": "str"
                 },
@@ -456,7 +432,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item description",
-                    "signature": null,
                     "switch": "-checklist_description 'standard item <str>",
                     "type": "str"
                 },
@@ -474,7 +449,6 @@
                     "require": "all",
                     "scope": "global",
                     "shorthelp": "Checklist: item ok",
-                    "signature": null,
                     "switch": "-checklist_ok 'standard item <str>'",
                     "type": "bool"
                 },
@@ -492,20 +466,16 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item rational",
-                    "signature": [],
                     "switch": "-checklist_rationale 'standard item <str>",
                     "type": "[str]"
                 },
                 "report": {
-                    "author": [],
                     "copy": false,
-                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -checklist_report 'ISO D000 my.rpt'",
                         "api: chip.set('checklist','ISO','D000','report','my.rpt')"
                     ],
-                    "filehash": [],
                     "hashalgo": "sha256",
                     "help": "Filepath to report(s) of specified type documenting the successful\nvalidation of the checklist item.",
                     "lock": false,
@@ -515,7 +485,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item report",
-                    "signature": [],
                     "switch": "-checklist_report 'standard item <file>'",
                     "type": "[file]"
                 },
@@ -533,7 +502,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item requirement",
-                    "signature": null,
                     "switch": "-checklist_requirement 'standard item <str>",
                     "type": "str"
                 },
@@ -551,21 +519,17 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item task",
-                    "signature": [],
                     "switch": "-checklist_task 'standard item <(str, str, str)>'",
                     "type": "[(str,str,str)]"
                 },
                 "waiver": {
                     "default": {
-                        "author": [],
                         "copy": false,
-                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -checklist_waiver 'ISO D000 bold my.txt'",
                             "api: chip.set('checklist','ISO','D000','waiver','hold', 'my.txt')"
                         ],
-                        "filehash": [],
                         "hashalgo": "sha256",
                         "help": "Filepath to report(s) documenting waivers for the checklist\nitem specified on a per metric basis.",
                         "lock": false,
@@ -575,7 +539,6 @@
                         "require": null,
                         "scope": "global",
                         "shorthelp": "Checklist: item metric waivers",
-                        "signature": [],
                         "switch": "-checklist_waiver 'standard item metric <file>'",
                         "type": "[file]"
                     }
@@ -598,7 +561,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Constraint: Layout aspect ratio",
-            "signature": null,
             "switch": "-constraint_aspectratio <float>",
             "type": "float"
         },
@@ -618,7 +580,6 @@
                     "require": "all",
                     "scope": "job",
                     "shorthelp": "Constraint: Component flip option",
-                    "signature": null,
                     "switch": "-constraint_component_flip 'inst <bool>'",
                     "type": "bool"
                 },
@@ -636,7 +597,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Component halo",
-                    "signature": null,
                     "switch": "-constraint_component_halo 'inst <(float,float)>'",
                     "type": "(float,float)",
                     "unit": "um"
@@ -655,7 +615,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Component part name",
-                    "signature": null,
                     "switch": "-constraint_component_partname 'inst <str>'",
                     "type": "str"
                 },
@@ -673,7 +632,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Component placement",
-                    "signature": null,
                     "switch": "-constraint_component_placement 'inst <(float,float, float)>'",
                     "type": "(float,float,float)",
                     "unit": "um"
@@ -692,7 +650,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Component rotation",
-                    "signature": null,
                     "switch": "-constraint_component_rotation 'inst <float>'",
                     "type": "float"
                 }
@@ -712,7 +669,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Constraint: Layout core area",
-            "signature": [],
             "switch": "-constraint_corearea <[(float,float)]>",
             "type": "[(float,float)]",
             "unit": "um"
@@ -731,7 +687,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Constraint: Layout core margin",
-            "signature": null,
             "switch": "-constraint_coremargin <float>",
             "type": "float",
             "unit": "um"
@@ -750,7 +705,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Constraint: Layout density",
-            "signature": null,
             "switch": "-constraint_density <float>",
             "type": "float"
         },
@@ -770,7 +724,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net diffpair",
-                    "signature": null,
                     "switch": "-constraint_net_diffpair 'name <str>'",
                     "type": "str"
                 },
@@ -788,7 +741,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net matched routing",
-                    "signature": [],
                     "switch": "-constraint_net_match 'name <str>'",
                     "type": "[str]"
                 },
@@ -806,7 +758,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net maximum routing layer",
-                    "signature": null,
                     "switch": "-constraint_net_maxlayer 'name <str>'",
                     "type": "str"
                 },
@@ -824,7 +775,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net max length",
-                    "signature": null,
                     "switch": "-constraint_net_maxlength 'name <float>'",
                     "type": "float",
                     "unit": "um"
@@ -843,7 +793,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net max resistasnce",
-                    "signature": null,
                     "switch": "-constraint_net_maxresistance 'name <float>'",
                     "type": "float",
                     "unit": "ohm"
@@ -862,7 +811,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net minimum routing layer",
-                    "signature": null,
                     "switch": "-constraint_net_minlayer 'name <str>'",
                     "type": "str"
                 },
@@ -880,7 +828,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net routing rule",
-                    "signature": null,
                     "switch": "-constraint_net_ndr 'name <(float,float)>'",
                     "type": "(float,float)",
                     "unit": "um"
@@ -899,7 +846,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net shielding",
-                    "signature": null,
                     "switch": "-constraint_net_shielding 'name <str>'",
                     "type": "str"
                 },
@@ -917,7 +863,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net sympair",
-                    "signature": null,
                     "switch": "-constraint_net_sympair 'name <str>'",
                     "type": "str"
                 }
@@ -937,7 +882,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Constraint: Layout outline",
-            "signature": [],
             "switch": "-constraint_outline <[(float,float)]>",
             "type": "[(float,float)]",
             "unit": "um"
@@ -958,7 +902,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin layer",
-                    "signature": null,
                     "switch": "-constraint_pin_layer 'name <str>'",
                     "type": "str"
                 },
@@ -976,7 +919,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin order",
-                    "signature": null,
                     "switch": "-constraint_pin_order 'name <int>'",
                     "type": "int"
                 },
@@ -994,7 +936,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin placement",
-                    "signature": null,
                     "switch": "-constraint_pin_placement 'name <(float,float, float)>'",
                     "type": "(float,float,float)",
                     "unit": "um"
@@ -1013,7 +954,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin side",
-                    "signature": null,
                     "switch": "-constraint_pin_side 'name <int>'",
                     "type": "int"
                 }
@@ -1035,20 +975,16 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: timing checks",
-                    "signature": [],
                     "switch": "-constraint_timing_check 'scenario <str>'",
                     "type": "[str]"
                 },
                 "file": {
-                    "author": [],
                     "copy": true,
-                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -constraint_timing_file 'worst hello.sdc'",
                         "api: chip.set('constraint', 'timing', 'worst','file', 'hello.sdc')"
                     ],
-                    "filehash": [],
                     "hashalgo": "sha256",
                     "help": "List of timing constraint files to use for the scenario. The\nvalues are combined with any constraints specified by the design\n'constraint' parameter. If no constraints are found, a default\nconstraint file is used based on the clock definitions.",
                     "lock": false,
@@ -1058,7 +994,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: SDC files",
-                    "signature": [],
                     "switch": "-constraint_timing_file 'scenario <file>'",
                     "type": "[file]"
                 },
@@ -1076,7 +1011,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: library corner",
-                    "signature": [],
                     "switch": "-constraint_timing_libcorner 'scenario <str>'",
                     "type": "[str]"
                 },
@@ -1094,7 +1028,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: operating mode",
-                    "signature": null,
                     "switch": "-constraint_timing_mode 'scenario <str>'",
                     "type": "str"
                 },
@@ -1112,7 +1045,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: operating condition",
-                    "signature": null,
                     "switch": "-constraint_timing_opcond 'scenario <str>'",
                     "type": "str"
                 },
@@ -1130,7 +1062,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: pex corner",
-                    "signature": null,
                     "switch": "-constraint_timing_pexcorner 'scenario <str>'",
                     "type": "str"
                 },
@@ -1148,7 +1079,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: temperature",
-                    "signature": null,
                     "switch": "-constraint_timing_temperature 'scenario <float>'",
                     "type": "float",
                     "unit": "C"
@@ -1167,7 +1097,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: voltage level",
-                    "signature": null,
                     "switch": "-constraint_timing_voltage 'scenario <float>'",
                     "type": "float",
                     "unit": "V"
@@ -1192,7 +1121,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Datasheet: device features",
-                    "signature": null,
                     "switch": "-datasheet_feature 'design name <float>'",
                     "type": "float"
                 }
@@ -1211,7 +1139,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Datasheet: device footprint",
-                "signature": [],
                 "switch": "-datasheet_footprint 'design <str>'",
                 "type": "[str]"
             },
@@ -1230,7 +1157,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Datasheet: absolute junction temperature limits",
-                    "signature": null,
                     "switch": "-datasheet_junctiontemp 'design <(float,float)>'",
                     "type": "(float,float)"
                 },
@@ -1248,7 +1174,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Datasheet: absolute storage temperature limits",
-                    "signature": null,
                     "switch": "-datasheet_storagetemp 'design <(float,float)>'",
                     "type": "(float,float)"
                 },
@@ -1267,7 +1192,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Datasheet: absolute voltage limits",
-                        "signature": null,
                         "switch": "-datasheet_limits_voltage 'design pin <(float,float)>'",
                         "type": "(float,float)"
                     }
@@ -1290,7 +1214,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin capacitance",
-                            "signature": null,
                             "switch": "-datasheet_pin_capacitance 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "F"
@@ -1311,7 +1234,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin related clock",
-                            "signature": null,
                             "switch": "-datasheet_pin_clk 'design name mode <str>'",
                             "type": "str"
                         }
@@ -1331,7 +1253,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin complement",
-                            "signature": null,
                             "switch": "-datasheet_pin_complement 'design name mode <str>'",
                             "type": "str"
                         }
@@ -1351,7 +1272,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin direction",
-                            "signature": null,
                             "switch": "-datasheet_pin_dir 'design name mode <str>'",
                             "type": "str"
                         }
@@ -1371,7 +1291,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin duty cycle",
-                            "signature": null,
                             "switch": "-datasheet_pin_dutycycle 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "%"
@@ -1392,7 +1311,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin related ground",
-                            "signature": null,
                             "switch": "-datasheet_pin_ground 'design name mode <str>'",
                             "type": "str"
                         }
@@ -1412,7 +1330,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin drive current",
-                            "signature": null,
                             "switch": "-datasheet_pin_idrive 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "A"
@@ -1433,7 +1350,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin injection current",
-                            "signature": null,
                             "switch": "-datasheet_pin_iinject 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "A"
@@ -1454,7 +1370,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin leakage current",
-                            "signature": null,
                             "switch": "-datasheet_pin_ileakage 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "A"
@@ -1475,7 +1390,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin map",
-                            "signature": null,
                             "switch": "-datasheet_pin_map 'design name package <str>'",
                             "type": "str"
                         }
@@ -1495,7 +1409,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin differential pair resistance",
-                            "signature": null,
                             "switch": "-datasheet_pin_rdiff 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "ohm"
@@ -1516,7 +1429,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin reset value",
-                            "signature": [],
                             "switch": "-datasheet_pin_resetvalue 'design name mode <str>'",
                             "type": "[str]"
                         }
@@ -1536,7 +1448,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin pulldown resistance",
-                            "signature": null,
                             "switch": "-datasheet_pin_rpulldown 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "ohm"
@@ -1557,7 +1468,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin pullup resistance",
-                            "signature": null,
                             "switch": "-datasheet_pin_rpullup 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "ohm"
@@ -1578,7 +1488,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin standard",
-                            "signature": [],
                             "switch": "-datasheet_pin_standard 'design name mode <str>'",
                             "type": "[str]"
                         }
@@ -1598,7 +1507,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin related power supply",
-                            "signature": null,
                             "switch": "-datasheet_pin_supply 'design name mode <str>'",
                             "type": "str"
                         }
@@ -1618,7 +1526,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin fall transition",
-                            "signature": null,
                             "switch": "-datasheet_pin_tfall 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "s"
@@ -1639,7 +1546,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin hold time",
-                            "signature": null,
                             "switch": "-datasheet_pin_thold 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "s"
@@ -1660,7 +1566,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin rms jitter",
-                            "signature": null,
                             "switch": "-datasheet_pin_tjitter 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "s"
@@ -1681,7 +1586,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin minimum period",
-                            "signature": null,
                             "switch": "-datasheet_pin_tperiod 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "s"
@@ -1702,7 +1606,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin pulse width",
-                            "signature": null,
                             "switch": "-datasheet_pin_tpulse 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "s"
@@ -1723,7 +1626,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin rise transition",
-                            "signature": null,
                             "switch": "-datasheet_pin_trise 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "s"
@@ -1744,7 +1646,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin setup time",
-                            "signature": null,
                             "switch": "-datasheet_pin_tsetup 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "s"
@@ -1765,7 +1666,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin type",
-                            "signature": null,
                             "switch": "-datasheet_pin_type 'design name mode <str>'",
                             "type": "str"
                         }
@@ -1785,7 +1685,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin CDM ESD tolerance",
-                            "signature": null,
                             "switch": "-datasheet_pin_vcdm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V"
@@ -1806,7 +1705,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin common mode voltage",
-                            "signature": null,
                             "switch": "-datasheet_pin_vcm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V"
@@ -1827,7 +1725,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin differential voltage",
-                            "signature": null,
                             "switch": "-datasheet_pin_vdiff 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V"
@@ -1848,7 +1745,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin HBM ESD tolerance",
-                            "signature": null,
                             "switch": "-datasheet_pin_vhbm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V"
@@ -1869,7 +1765,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin high input voltage level",
-                            "signature": null,
                             "switch": "-datasheet_pin_vih 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V"
@@ -1890,7 +1785,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin low input voltage level",
-                            "signature": null,
                             "switch": "-datasheet_pin_vil 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V"
@@ -1911,7 +1805,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin MM ESD tolerance",
-                            "signature": null,
                             "switch": "-datasheet_pin_vmm 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V"
@@ -1932,7 +1825,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin random voltage noise",
-                            "signature": null,
                             "switch": "-datasheet_pin_vnoise 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V"
@@ -1953,7 +1845,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin high output voltage level",
-                            "signature": null,
                             "switch": "-datasheet_pin_voh 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V"
@@ -1974,7 +1865,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin low output voltage level",
-                            "signature": null,
                             "switch": "-datasheet_pin_vol 'design pin mode <(float,float,float)>'",
                             "type": "(float,float,float)",
                             "unit": "V"
@@ -1998,7 +1888,6 @@
         "require": "all",
         "scope": "global",
         "shorthelp": "Design top module name",
-        "signature": null,
         "switch": "-design <str>",
         "type": "str"
     },
@@ -2020,7 +1909,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: setup arguments",
-                        "signature": [],
                         "switch": "-flowgraph_args 'flow step index <str>'",
                         "type": "[str]"
                     },
@@ -2039,7 +1927,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Flowgraph: metric goals",
-                            "signature": null,
                             "switch": "-flowgraph_goal 'flow step index metric <float>'",
                             "type": "float"
                         }
@@ -2058,7 +1945,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: step input",
-                        "signature": [],
                         "switch": "-flowgraph_input 'flow step index <(str,str)>'",
                         "type": "[(str,str)]"
                     },
@@ -2076,7 +1962,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task select record",
-                        "signature": [],
                         "switch": "-flowgraph_select 'flow step index <(str,str)>'",
                         "type": "[(str,str)]"
                     },
@@ -2099,7 +1984,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task status",
-                        "signature": null,
                         "switch": "-flowgraph_status 'flow step index <str>'",
                         "type": "enum"
                     },
@@ -2117,7 +2001,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task selection",
-                        "signature": null,
                         "switch": "-flowgraph_task 'flow step <str>'",
                         "type": "str"
                     },
@@ -2135,7 +2018,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task timeout value",
-                        "signature": null,
                         "switch": "-flowgraph_timeout 'flow step 0 <float>'",
                         "type": "float",
                         "unit": "s"
@@ -2154,7 +2036,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: tool selection",
-                        "signature": null,
                         "switch": "-flowgraph_tool 'flow step <str>'",
                         "type": "str"
                     },
@@ -2172,7 +2053,6 @@
                         "require": "all",
                         "scope": "job",
                         "shorthelp": "Flowgraph: task valid bit",
-                        "signature": null,
                         "switch": "-flowgraph_valid 'flow step index <str>'",
                         "type": "bool"
                     },
@@ -2191,7 +2071,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Flowgraph: metric weights",
-                            "signature": null,
                             "switch": "-flowgraph_weight 'flow step index metric <float>'",
                             "type": "float"
                         }
@@ -2202,15 +2081,12 @@
     },
     "fpga": {
         "arch": {
-            "author": [],
             "copy": true,
-            "date": [],
             "defvalue": [],
             "example": [
                 "cli: -fpga_arch myfpga.xml",
                 "api:  chip.set('fpga', 'arch', 'myfpga.xml')"
             ],
-            "filehash": [],
             "hashalgo": "sha256",
             "help": "Architecture definition file for FPGA place and route\ntool. For the VPR tool, the file is a required XML based description,\nallowing targeting a large number of virtual and commercial\narchitectures. For most commercial tools, the fpga part name provides\nenough information to enable compilation and the 'arch' parameter is\noptional.",
             "lock": false,
@@ -2220,7 +2096,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "FPGA: architecture file",
-            "signature": [],
             "switch": "-fpga_arch <file>",
             "type": "[file]"
         },
@@ -2238,7 +2113,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "FPGA: board name",
-            "signature": null,
             "switch": "-fpga_board <str>",
             "type": "str"
         },
@@ -2256,7 +2130,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "FPGA: flash enable",
-            "signature": null,
             "switch": "-fpga_flash <bool>",
             "type": "bool"
         },
@@ -2274,7 +2147,6 @@
             "require": "fpga",
             "scope": "job",
             "shorthelp": "FPGA: part name",
-            "signature": null,
             "switch": "-fpga_partname <str>",
             "type": "str"
         },
@@ -2292,7 +2164,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "FPGA: program enable",
-            "signature": null,
             "switch": "-fpga_program <bool>",
             "type": "bool"
         },
@@ -2310,7 +2181,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "FPGA: vendor name",
-            "signature": null,
             "switch": "-fpga_vendor <str>",
             "type": "str"
         }
@@ -2319,15 +2189,12 @@
     "input": {
         "default": {
             "default": {
-                "author": [],
                 "copy": true,
-                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -input 'rtl verilog hello_world.v'",
                     "api: chip.set(input, 'rtl','verilog','hello_world.v')"
                 ],
-                "filehash": [],
                 "hashalgo": "sha256",
                 "help": "List of files of type ('filetype') grouped as a named set ('fileset').\nThe exact names of filetypes and filesets must match the string names\nused by the tasks called during flowgraph execution. By convention,\nthe fileset names should match the the name of the flowgraph being\nexecuted.",
                 "lock": false,
@@ -2337,7 +2204,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Input: files",
-                "signature": [],
                 "switch": "-input 'fileset filetype <file>'",
                 "type": "[file]"
             }
@@ -2359,7 +2225,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: averagepower",
-            "signature": null,
             "switch": "-metric_averagepower 'step index <float>'",
             "type": "float",
             "unit": "mw"
@@ -2378,7 +2243,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: FPGA BRAM tiles",
-            "signature": null,
             "switch": "-metric_brams 'step index <int>'",
             "type": "int"
         },
@@ -2396,7 +2260,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: buffers",
-            "signature": null,
             "switch": "-metric_buffers 'step index <float>'",
             "type": "int"
         },
@@ -2414,7 +2277,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: cellarea",
-            "signature": null,
             "switch": "-metric_cellarea 'step index <float>'",
             "type": "float",
             "unit": "um^2"
@@ -2433,7 +2295,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: cells",
-            "signature": null,
             "switch": "-metric_cells 'step index <float>'",
             "type": "int"
         },
@@ -2451,7 +2312,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: coverage",
-            "signature": null,
             "switch": "-metric_coverage 'step index <float>'",
             "type": "float",
             "unit": "%"
@@ -2470,7 +2330,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: dozepower",
-            "signature": null,
             "switch": "-metric_dozepower 'step index <float>'",
             "type": "float",
             "unit": "mw"
@@ -2489,7 +2348,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: total drvs",
-            "signature": null,
             "switch": "-metric_drvs 'step index <int>'",
             "type": "int"
         },
@@ -2507,7 +2365,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: FPGA DSP slices",
-            "signature": null,
             "switch": "-metric_dsps 'step index <int>'",
             "type": "int"
         },
@@ -2525,7 +2382,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: total errors",
-            "signature": null,
             "switch": "-metric_errors 'step index <int>'",
             "type": "int"
         },
@@ -2543,7 +2399,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: exetime",
-            "signature": null,
             "switch": "-metric_exetime 'step index <float>'",
             "type": "float",
             "unit": "s"
@@ -2562,7 +2417,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: holdpaths",
-            "signature": null,
             "switch": "-metric_holdpaths 'step index <float>'",
             "type": "int"
         },
@@ -2580,7 +2434,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: holdslack",
-            "signature": null,
             "switch": "-metric_holdslack 'step index <float>'",
             "type": "float",
             "unit": "ns"
@@ -2599,7 +2452,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: holdtns",
-            "signature": null,
             "switch": "-metric_holdtns 'step index <float>'",
             "type": "float",
             "unit": "ns"
@@ -2618,7 +2470,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: holdwns",
-            "signature": null,
             "switch": "-metric_holdwns 'step index <float>'",
             "type": "float",
             "unit": "ns"
@@ -2637,7 +2488,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: idlepower",
-            "signature": null,
             "switch": "-metric_idlepower 'step index <float>'",
             "type": "float",
             "unit": "mw"
@@ -2656,7 +2506,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: peak IR drop",
-            "signature": null,
             "switch": "-metric_irdrop 'step index <float>'",
             "type": "float",
             "unit": "mv"
@@ -2675,7 +2524,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: leakagepower",
-            "signature": null,
             "switch": "-metric_leakagepower 'step index <float>'",
             "type": "float",
             "unit": "mw"
@@ -2694,7 +2542,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: FPGA LUTs",
-            "signature": null,
             "switch": "-metric_luts 'step index <int>'",
             "type": "int"
         },
@@ -2712,7 +2559,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: macros",
-            "signature": null,
             "switch": "-metric_macros 'step index <float>'",
             "type": "int"
         },
@@ -2730,7 +2576,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: memory",
-            "signature": null,
             "switch": "-metric_memory 'step index <float>'",
             "type": "float",
             "unit": "B"
@@ -2749,7 +2594,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: nets",
-            "signature": null,
             "switch": "-metric_nets 'step index <float>'",
             "type": "int"
         },
@@ -2767,7 +2611,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: overflow",
-            "signature": null,
             "switch": "-metric_overflow 'step index <float>'",
             "type": "int"
         },
@@ -2785,7 +2628,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: peakpower",
-            "signature": null,
             "switch": "-metric_peakpower 'step index <float>'",
             "type": "float",
             "unit": "mw"
@@ -2804,7 +2646,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: pins",
-            "signature": null,
             "switch": "-metric_pins 'step index <float>'",
             "type": "int"
         },
@@ -2822,7 +2663,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: registers",
-            "signature": null,
             "switch": "-metric_registers 'step index <float>'",
             "type": "int"
         },
@@ -2840,7 +2680,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: security",
-            "signature": null,
             "switch": "-metric_security 'step index <float>'",
             "type": "float",
             "unit": "%"
@@ -2859,7 +2698,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: setuppaths",
-            "signature": null,
             "switch": "-metric_setuppaths 'step index <float>'",
             "type": "int"
         },
@@ -2877,7 +2715,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: setupslack",
-            "signature": null,
             "switch": "-metric_setupslack 'step index <float>'",
             "type": "float",
             "unit": "ns"
@@ -2896,7 +2733,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: setuptns",
-            "signature": null,
             "switch": "-metric_setuptns 'step index <float>'",
             "type": "float",
             "unit": "ns"
@@ -2915,7 +2751,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: setupwns",
-            "signature": null,
             "switch": "-metric_setupwns 'step index <float>'",
             "type": "float",
             "unit": "ns"
@@ -2934,7 +2769,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: sleeppower",
-            "signature": null,
             "switch": "-metric_sleeppower 'step index <float>'",
             "type": "float",
             "unit": "mw"
@@ -2953,7 +2787,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: tasktime",
-            "signature": null,
             "switch": "-metric_tasktime 'step index <float>'",
             "type": "float",
             "unit": "s"
@@ -2972,7 +2805,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: totalarea",
-            "signature": null,
             "switch": "-metric_totalarea 'step index <float>'",
             "type": "float",
             "unit": "um^2"
@@ -2991,7 +2823,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: totaltime",
-            "signature": null,
             "switch": "-metric_totaltime 'step index <float>'",
             "type": "float",
             "unit": "s"
@@ -3010,7 +2841,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: transistors",
-            "signature": null,
             "switch": "-metric_transistors 'step index <float>'",
             "type": "int"
         },
@@ -3028,7 +2858,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: total unconstrained",
-            "signature": null,
             "switch": "-metric_unconstrained 'step index <int>'",
             "type": "int"
         },
@@ -3046,7 +2875,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: area utilization",
-            "signature": null,
             "switch": "-metric_utilization step index <float>",
             "type": "float",
             "unit": "%"
@@ -3065,7 +2893,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: vias",
-            "signature": null,
             "switch": "-metric_vias 'step index <float>'",
             "type": "int"
         },
@@ -3083,7 +2910,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: total warnings",
-            "signature": null,
             "switch": "-metric_warnings 'step index <int>'",
             "type": "int"
         },
@@ -3101,7 +2927,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: wirelength",
-            "signature": null,
             "switch": "-metric_wirelength 'step index <float>'",
             "type": "float",
             "unit": "um"
@@ -3122,7 +2947,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Option: auto install packages",
-            "signature": null,
             "switch": "-autoinstall <bool>",
             "type": "bool"
         },
@@ -3140,7 +2964,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Breakpoint list",
-            "signature": null,
             "switch": "-breakpoint <bool>",
             "type": "bool"
         },
@@ -3158,20 +2981,16 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Build directory",
-            "signature": null,
             "switch": "-builddir <dir>",
             "type": "dir"
         },
         "cfg": {
-            "author": [],
             "copy": false,
-            "date": [],
             "defvalue": [],
             "example": [
                 "cli: -cfg mypdk.json",
                 "api: chip.set('option','cfg','mypdk.json')"
             ],
-            "filehash": [],
             "hashalgo": "sha256",
             "help": "List of filepaths to JSON formatted schema configuration\nmanifests. The files are read in automatically when using the\n'sc' command line application. In Python programs, JSON manifests\ncan be merged into the current working manifest using the\nread_manifest() method.",
             "lock": false,
@@ -3181,7 +3000,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Configuration manifest",
-            "signature": [],
             "switch": "-cfg <file>",
             "type": "[file]"
         },
@@ -3199,20 +3017,16 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Clean up after run",
-            "signature": null,
             "switch": "-clean <bool>",
             "type": "bool"
         },
         "cmdfile": {
-            "author": [],
             "copy": false,
-            "date": [],
             "defvalue": [],
             "example": [
                 "cli: -f design.f",
                 "api: chip.set('option', 'cmdfile','design.f')"
             ],
-            "filehash": [],
             "hashalgo": "sha256",
             "help": "Read the specified file, and act as if all text inside it was specified\nas command line parameters. Supported by most verilog simulators\nincluding Icarus and Verilator. The format of the file is not strongly\nstandardized. Support for comments and environment variables within\nthe file varies and depends on the tool used. SC simply passes on\nthe filepath toe the tool executable.",
             "lock": false,
@@ -3222,7 +3036,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Design compilation command file",
-            "signature": [],
             "switch": "-f <file>",
             "type": "[file]"
         },
@@ -3240,7 +3053,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Implementation continue-on-error",
-            "signature": null,
             "switch": "-continue",
             "type": "bool"
         },
@@ -3258,20 +3070,16 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Copy all inputs to build directory",
-            "signature": null,
             "switch": "-copyall <bool>",
             "type": "bool"
         },
         "credentials": {
-            "author": [],
             "copy": false,
-            "date": [],
             "defvalue": [],
             "example": [
                 "cli: -credentials /home/user/.sc/credentials",
                 "api: chip.set('option', 'credentials','/home/user/.sc/credentials')"
             ],
-            "filehash": [],
             "hashalgo": "sha256",
             "help": "Filepath to credentials used for remote processing. If the\ncredentials parameter is empty, the remote processing client program\ntries to access the \".sc/credentials\" file in the user's home\ndirectory. The file supports the following fields:\n\nuserid=<user id>\nsecret_key=<secret key used for authentication>\nserver=<ipaddr or url>",
             "lock": false,
@@ -3281,7 +3089,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "User credentials file",
-            "signature": [],
             "switch": "-credentials <file>'",
             "type": "[file]"
         },
@@ -3299,7 +3106,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Design pre-processor symbol",
-            "signature": [],
             "switch": "-D<str>",
             "type": "[str]"
         },
@@ -3318,7 +3124,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Custom directories",
-                "signature": [],
                 "switch": "-dir 'key <str>'",
                 "type": "[dir]"
             }
@@ -3337,7 +3142,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Program entry point",
-            "signature": null,
             "switch": "-entrypoint <str>",
             "type": "str"
         },
@@ -3356,22 +3160,18 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Environment variables",
-                "signature": null,
                 "switch": "-env 'key <str>'",
                 "type": "str"
             }
         },
         "file": {
             "default": {
-                "author": [],
                 "copy": false,
-                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -file 'openroad_tapcell ./tapcell.tcl'",
                     "api: chip.set('option', 'file', 'openroad_tapcell', './tapcell.tcl')"
                 ],
-                "filehash": [],
                 "hashalgo": "sha256",
                 "help": "List of named files specified. Certain tools and\nreference flows require special parameters, this\nparameter should only be used for specifying files that are\nnot directly supported by the schema.",
                 "lock": false,
@@ -3381,7 +3181,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Custom files",
-                "signature": [],
                 "switch": "-file 'key <str>'",
                 "type": "[file]"
             }
@@ -3400,7 +3199,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Flow target",
-            "signature": null,
             "switch": "-flow <str>",
             "type": "str"
         },
@@ -3418,7 +3216,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Flow continue-on-error",
-            "signature": null,
             "switch": "-flowcontinue",
             "type": "bool"
         },
@@ -3436,7 +3233,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation frontend",
-            "signature": null,
             "switch": "-frontend <frontend>",
             "type": "str"
         },
@@ -3454,7 +3250,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Enable file hashing",
-            "signature": null,
             "switch": "-hash <bool>",
             "type": "bool"
         },
@@ -3472,7 +3267,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Design search paths",
-            "signature": [],
             "switch": [
                 "+incdir+<dir>",
                 "-I <dir>"
@@ -3493,7 +3287,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation index list",
-            "signature": [],
             "switch": "-indexlist <index>",
             "type": "[str]"
         },
@@ -3511,7 +3304,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Autoincrement jobname",
-            "signature": null,
             "switch": "-jobincr <bool>",
             "type": "bool"
         },
@@ -3531,7 +3323,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Input job name",
-                    "signature": null,
                     "switch": "-jobinput 'step index <str>'",
                     "type": "str"
                 }
@@ -3551,7 +3342,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Job name",
-            "signature": null,
             "switch": "-jobname <str>",
             "type": "str"
         },
@@ -3569,7 +3359,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Design file extensions",
-            "signature": [],
             "switch": "+libext+<str>",
             "type": "[str]"
         },
@@ -3595,7 +3384,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Logging level",
-            "signature": null,
             "switch": "-loglevel <str>",
             "type": "enum"
         },
@@ -3613,7 +3401,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric summary filter",
-            "signature": [],
             "switch": "-metricoff '<str>'",
             "type": "[str]"
         },
@@ -3636,7 +3423,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation mode",
-            "signature": null,
             "switch": "-mode <str>",
             "type": "enum"
         },
@@ -3654,7 +3440,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Tool execution scheduling priority",
-            "signature": null,
             "switch": "-nice <int>",
             "type": "int"
         },
@@ -3672,7 +3457,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Headless execution",
-            "signature": null,
             "switch": "-nodisplay <bool>",
             "type": "bool"
         },
@@ -3690,7 +3474,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Disable version checking",
-            "signature": null,
             "switch": "-novercheck <bool>",
             "type": "bool"
         },
@@ -3708,7 +3491,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Optimization mode",
-            "signature": null,
             "switch": "-O<str>",
             "type": "str"
         },
@@ -3727,7 +3509,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Design parameter",
-                "signature": null,
                 "switch": "-param 'name <str>'",
                 "type": "str"
             }
@@ -3746,7 +3527,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "PDK target",
-            "signature": null,
             "switch": "-pdk <str>",
             "type": "str"
         },
@@ -3764,7 +3544,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Quiet execution",
-            "signature": null,
             "switch": "-quiet <bool>",
             "type": "bool"
         },
@@ -3782,7 +3561,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Option: package registry",
-            "signature": [],
             "switch": "-registry <dir>",
             "type": "[dir]"
         },
@@ -3800,7 +3578,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Relax design checking",
-            "signature": null,
             "switch": "-relax <bool>",
             "type": "bool"
         },
@@ -3818,7 +3595,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Enable remote processing",
-            "signature": null,
             "switch": "-remote <bool>",
             "type": "bool"
         },
@@ -3836,7 +3612,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Resume build",
-            "signature": null,
             "switch": "-resume <bool>",
             "type": "bool"
         },
@@ -3855,7 +3630,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler core constraint",
-                "signature": null,
                 "switch": "-cores <int>",
                 "type": "int"
             },
@@ -3873,7 +3647,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler start time",
-                "signature": null,
                 "switch": "-defer <str>",
                 "type": "str"
             },
@@ -3891,7 +3664,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler memory constraint",
-                "signature": null,
                 "switch": "-memory <str>",
                 "type": "int",
                 "unit": "MB"
@@ -3910,7 +3682,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Message contact",
-                "signature": [],
                 "switch": "-msgcontact <str>",
                 "type": "[str]"
             },
@@ -3928,7 +3699,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Message event trigger",
-                "signature": null,
                 "switch": "-msgevent <str>",
                 "type": "str"
             },
@@ -3951,7 +3721,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler platform",
-                "signature": null,
                 "switch": "-scheduler <str>",
                 "type": "enum"
             },
@@ -3969,7 +3738,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler arguments",
-                "signature": [],
                 "switch": "-scheduler_options <str>",
                 "type": "[str]"
             },
@@ -3987,7 +3755,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler queue",
-                "signature": null,
                 "switch": "-queue <str>",
                 "type": "str"
             }
@@ -4006,7 +3773,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Search path",
-            "signature": [],
             "switch": "-scpath <dir>",
             "type": "[dir]"
         },
@@ -4024,7 +3790,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Show layout",
-            "signature": null,
             "switch": "-show <bool>",
             "type": "bool"
         },
@@ -4043,7 +3808,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Select data display tool",
-                "signature": null,
                 "switch": "-showtool 'filetype <tool>'",
                 "type": "str"
             }
@@ -4062,7 +3826,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Skip all tasks",
-            "signature": null,
             "switch": "-skipall <bool>",
             "type": "bool"
         },
@@ -4080,7 +3843,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Skip manifest check",
-            "signature": null,
             "switch": "-skipcheck <bool>",
             "type": "bool"
         },
@@ -4098,7 +3860,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Skip step list",
-            "signature": [],
             "switch": "-skipstep <str>",
             "type": "[str]"
         },
@@ -4116,7 +3877,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Stackup target",
-            "signature": null,
             "switch": "-stackup <str>",
             "type": "str"
         },
@@ -4134,7 +3894,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation step list",
-            "signature": [],
             "switch": "-steplist <step>",
             "type": "[str]"
         },
@@ -4152,7 +3911,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Option: Strict checking",
-            "signature": null,
             "switch": "-strict <bool>",
             "type": "bool"
         },
@@ -4170,7 +3928,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation target",
-            "signature": null,
             "switch": "-target <str>",
             "type": "str"
         },
@@ -4188,7 +3945,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Option: Timeout value",
-            "signature": null,
             "switch": "-timeout <str>",
             "type": "float",
             "unit": "s"
@@ -4207,7 +3963,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Enable debug traces",
-            "signature": null,
             "switch": "-trace <bool>",
             "type": "bool"
         },
@@ -4225,7 +3980,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Enable provenance tracking",
-            "signature": null,
             "switch": "-track <bool>",
             "type": "bool"
         },
@@ -4243,7 +3997,6 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Use lambda scaling",
-            "signature": null,
             "switch": "-uselambda <bool>",
             "type": "bool"
         },
@@ -4262,21 +4015,17 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Custom variables",
-                "signature": [],
                 "switch": "-var 'key <str>'",
                 "type": "[str]"
             }
         },
         "vlib": {
-            "author": [],
             "copy": false,
-            "date": [],
             "defvalue": [],
             "example": [
                 "cli: -v './mylib.v'",
                 "api: chip.set('option', 'vlib','./mylib.v')"
             ],
-            "filehash": [],
             "hashalgo": "sha256",
             "help": "List of library files to be read in. Modules found in the\nlibraries are not interpreted as root modules.",
             "lock": false,
@@ -4286,7 +4035,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Design libraries",
-            "signature": [],
             "switch": "-v <file>",
             "type": "[file]"
         },
@@ -4304,7 +4052,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Design module search paths",
-            "signature": [],
             "switch": "-y <dir>",
             "type": "[dir]"
         }
@@ -4312,15 +4059,12 @@
     "output": {
         "default": {
             "default": {
-                "author": [],
                 "copy": false,
-                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -output 'rtl verilog hello_world.v'",
                     "api: chip.set(output, 'rtl','verilog','hello_world.v')"
                 ],
-                "filehash": [],
                 "hashalgo": "sha256",
                 "help": "List of files of type ('filetype') grouped as a named set ('fileset').\nThe exact names of filetypes and filesets must match the string names\nused by the tasks called during flowgraph execution. By convention,\nthe fileset names should match the the name of the flowgraph being\nexecuted.",
                 "lock": false,
@@ -4330,7 +4074,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Output: files",
-                "signature": [],
                 "switch": "-output 'fileset filetype <file>'",
                 "type": "[file]"
             }
@@ -4353,7 +4096,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author email",
-                    "signature": null,
                     "switch": "-package_author_email 'userid <str>'",
                     "type": "str"
                 },
@@ -4371,7 +4113,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author location",
-                    "signature": null,
                     "switch": "-package_author_location 'userid <str>'",
                     "type": "str"
                 },
@@ -4389,7 +4130,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author name",
-                    "signature": null,
                     "switch": "-package_author_name 'userid <str>'",
                     "type": "str"
                 },
@@ -4407,7 +4147,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author organization",
-                    "signature": null,
                     "switch": "-package_author_organization 'userid <str>'",
                     "type": "str"
                 },
@@ -4425,7 +4164,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author publickey",
-                    "signature": null,
                     "switch": "-package_author_publickey 'userid <str>'",
                     "type": "str"
                 },
@@ -4443,7 +4181,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author username",
-                    "signature": null,
                     "switch": "-package_author_username 'userid <str>'",
                     "type": "str"
                 }
@@ -4464,7 +4201,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: version dependencies",
-                "signature": [],
                 "switch": "-package_dependency 'module <str>'",
                 "type": "[str]"
             }
@@ -4484,7 +4220,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: dependency list",
-                "signature": [],
                 "switch": "-package_depgraph 'module <(str,str)>'",
                 "type": "[(str,str)]"
             }
@@ -4503,21 +4238,17 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: description",
-            "signature": null,
             "switch": "-package_description <str>",
             "type": "str"
         },
         "doc": {
             "datasheet": {
-                "author": [],
                 "copy": false,
-                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_datasheet datasheet.pdf",
                     "api: chip.set('package','doc',datasheet,'datasheet.pdf')"
                 ],
-                "filehash": [],
                 "hashalgo": "sha256",
                 "help": "Package list of datasheet documents.",
                 "lock": false,
@@ -4527,7 +4258,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: datasheet document",
-                "signature": [],
                 "switch": "-package_doc_datasheet <str",
                 "type": "[file]"
             },
@@ -4545,20 +4275,16 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: documentation homepage",
-                "signature": null,
                 "switch": "-package_doc_homepage <str>",
                 "type": "str"
             },
             "quickstart": {
-                "author": [],
                 "copy": false,
-                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_quickstart quickstart.pdf",
                     "api: chip.set('package','doc',quickstart,'quickstart.pdf')"
                 ],
-                "filehash": [],
                 "hashalgo": "sha256",
                 "help": "Package list of quickstart documents.",
                 "lock": false,
@@ -4568,20 +4294,16 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: quickstart document",
-                "signature": [],
                 "switch": "-package_doc_quickstart <str",
                 "type": "[file]"
             },
             "reference": {
-                "author": [],
                 "copy": false,
-                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_reference reference.pdf",
                     "api: chip.set('package','doc',reference,'reference.pdf')"
                 ],
-                "filehash": [],
                 "hashalgo": "sha256",
                 "help": "Package list of reference documents.",
                 "lock": false,
@@ -4591,20 +4313,16 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: reference document",
-                "signature": [],
                 "switch": "-package_doc_reference <str",
                 "type": "[file]"
             },
             "releasenotes": {
-                "author": [],
                 "copy": false,
-                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_releasenotes releasenotes.pdf",
                     "api: chip.set('package','doc',releasenotes,'releasenotes.pdf')"
                 ],
-                "filehash": [],
                 "hashalgo": "sha256",
                 "help": "Package list of releasenotes documents.",
                 "lock": false,
@@ -4614,20 +4332,16 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: releasenotes document",
-                "signature": [],
                 "switch": "-package_doc_releasenotes <str",
                 "type": "[file]"
             },
             "signoff": {
-                "author": [],
                 "copy": false,
-                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_signoff signoff.pdf",
                     "api: chip.set('package','doc',signoff,'signoff.pdf')"
                 ],
-                "filehash": [],
                 "hashalgo": "sha256",
                 "help": "Package list of signoff documents.",
                 "lock": false,
@@ -4637,20 +4351,16 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: signoff document",
-                "signature": [],
                 "switch": "-package_doc_signoff <str",
                 "type": "[file]"
             },
             "testplan": {
-                "author": [],
                 "copy": false,
-                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_testplan testplan.pdf",
                     "api: chip.set('package','doc',testplan,'testplan.pdf')"
                 ],
-                "filehash": [],
                 "hashalgo": "sha256",
                 "help": "Package list of testplan documents.",
                 "lock": false,
@@ -4660,20 +4370,16 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: testplan document",
-                "signature": [],
                 "switch": "-package_doc_testplan <str",
                 "type": "[file]"
             },
             "tutorial": {
-                "author": [],
                 "copy": false,
-                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_tutorial tutorial.pdf",
                     "api: chip.set('package','doc',tutorial,'tutorial.pdf')"
                 ],
-                "filehash": [],
                 "hashalgo": "sha256",
                 "help": "Package list of tutorial documents.",
                 "lock": false,
@@ -4683,20 +4389,16 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: tutorial document",
-                "signature": [],
                 "switch": "-package_doc_tutorial <str",
                 "type": "[file]"
             },
             "userguide": {
-                "author": [],
                 "copy": false,
-                "date": [],
                 "defvalue": [],
                 "example": [
                     "cli: -package_doc_userguide userguide.pdf",
                     "api: chip.set('package','doc',userguide,'userguide.pdf')"
                 ],
-                "filehash": [],
                 "hashalgo": "sha256",
                 "help": "Package list of userguide documents.",
                 "lock": false,
@@ -4706,7 +4408,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: userguide document",
-                "signature": [],
                 "switch": "-package_doc_userguide <str",
                 "type": "[file]"
             }
@@ -4725,7 +4426,6 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: project homepage",
-            "signature": null,
             "switch": "-package_homepage <str>",
             "type": "str"
         },
@@ -4743,7 +4443,6 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: keyword",
-            "signature": null,
             "switch": "-package_keyword <str>",
             "type": "str"
         },
@@ -4761,20 +4460,16 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: license identifiers",
-            "signature": [],
             "switch": "-package_license <str>",
             "type": "[str]"
         },
         "licensefile": {
-            "author": [],
             "copy": false,
-            "date": [],
             "defvalue": [],
             "example": [
                 "cli: -package_licensefile './LICENSE'",
                 "api: chip.set('package','licensefile','./LICENSE')"
             ],
-            "filehash": [],
             "hashalgo": "sha256",
             "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).list of SPDX license identifiers.",
             "lock": false,
@@ -4784,7 +4479,6 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: license files",
-            "signature": [],
             "switch": "-package_licensefile <file>",
             "type": "[file]"
         },
@@ -4802,7 +4496,6 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: location",
-            "signature": [],
             "switch": "-package_location <file>",
             "type": "[str]"
         },
@@ -4820,7 +4513,6 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: name",
-            "signature": null,
             "switch": "-package_name <str>",
             "type": "str"
         },
@@ -4838,7 +4530,6 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: sponsoring organization",
-            "signature": [],
             "switch": "-package_organization <str>",
             "type": "[str]"
         },
@@ -4856,7 +4547,6 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: public key",
-            "signature": null,
             "switch": "-package_publickey <str>",
             "type": "str"
         },
@@ -4874,7 +4564,6 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: code repository",
-            "signature": [],
             "switch": "-package_repo <str>",
             "type": "[str]"
         },
@@ -4892,7 +4581,6 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: qualified targets",
-            "signature": [],
             "switch": "-package_target <str>",
             "type": "[str]"
         },
@@ -4910,7 +4598,6 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: version",
-            "signature": null,
             "switch": "-package_version <str>",
             "type": "str"
         }
@@ -4922,15 +4609,12 @@
                     "default": {
                         "default": {
                             "default": {
-                                "author": [],
                                 "copy": false,
-                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -pdk_aprtech 'asap7 openroad M10 12t lef tech.lef'",
                                     "api: chip.set('pdk','asap7','aprtech','openroad','M10','12t','lef','tech.lef')"
                                 ],
-                                "filehash": [],
                                 "hashalgo": "sha256",
                                 "help": "Technology file containing setup information needed to enable DRC clean APR\nfor the specified stackup, libarch, and format. The 'libarch' specifies the\nlibrary architecture (e.g. library height). For example a PDK with support\nfor 9 and 12 track libraries might have 'libarchs' called 9t and 12t.\nThe standard filetype for specifying place and route design rules for a\nprocess node is through a 'lef' format technology file. The\n'filetype' used in the aprtech is used by the tool specific APR TCL scripts\nto set up the technology parameters. Some tools may require additional\nfiles beyond the tech.lef file. Examples of extra file types include\nantenna, tracks, tapcell, viarules, em.",
                                 "lock": false,
@@ -4940,7 +4624,6 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: APR technology files",
-                                "signature": [],
                                 "switch": "-pdk_aprtech 'pdkname tool stackup libarch filetype <file>'",
                                 "type": "[file]"
                             }
@@ -4962,7 +4645,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: process defect density",
-                "signature": null,
                 "switch": "-pdk_d0 'pdkname <float>'",
                 "type": "float"
             },
@@ -4980,7 +4662,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: transistor density",
-                "signature": null,
                 "switch": "-pdk_density 'pdkname <float>'",
                 "type": "float"
             },
@@ -4988,15 +4669,12 @@
                 "default": {
                     "default": {
                         "default": {
-                            "author": [],
                             "copy": false,
-                            "date": [],
                             "defvalue": [],
                             "example": [
                                 "cli: -pdk_devmodel 'asap7 xyce spice M10 asap7.sp'",
                                 "api: chip.set('pdk','asap7','devmodel','xyce','spice','M10','asap7.sp')"
                             ],
-                            "filehash": [],
                             "hashalgo": "sha256",
                             "help": "List of filepaths to PDK device models for different simulation\npurposes and for different tools. Examples of device model types\ninclude spice, aging, electromigration, radiation. An example of a\n'spice' tool is xyce. Device models are specified on a per metal stack\nbasis. Process nodes with a single device model across all stacks will\nhave a unique parameter record per metal stack pointing to the same\ndevice model file.  Device types and tools are dynamic entries\nthat depend on the tool setup and device technology. Pseud-standardized\ndevice types include spice, em (electromigration), and aging.",
                             "lock": false,
@@ -5006,7 +4684,6 @@
                             "require": null,
                             "scope": "global",
                             "shorthelp": "PDK: device models",
-                            "signature": [],
                             "switch": "-pdk_devmodel 'pdkname tool simtype stackup <file>'",
                             "type": "[file]"
                         }
@@ -5030,7 +4707,6 @@
                             "require": null,
                             "scope": "global",
                             "shorthelp": "PDK: special directory",
-                            "signature": [],
                             "switch": "-pdk_directory 'pdkname tool key stackup <file>'",
                             "type": "[dir]"
                         }
@@ -5040,15 +4716,12 @@
             "display": {
                 "default": {
                     "default": {
-                        "author": [],
                         "copy": false,
-                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -pdk_display 'asap7 klayout M10 display.lyt'",
                             "api: chip.set('pdk','asap7','display','klayout','M10','display.cfg')"
                         ],
-                        "filehash": [],
                         "hashalgo": "sha256",
                         "help": "Display configuration files describing colors and pattern schemes for\nall layers in the PDK. The display configuration file is entered on a\nstackup and tool basis.",
                         "lock": false,
@@ -5058,7 +4731,6 @@
                         "require": null,
                         "scope": "global",
                         "shorthelp": "PDK: display file",
-                        "signature": [],
                         "switch": "-pdk_display 'pdkname tool stackup <file>'",
                         "type": "[file]"
                     }
@@ -5066,15 +4738,12 @@
             },
             "doc": {
                 "datasheet": {
-                    "author": [],
                     "copy": false,
-                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -pdk_doc_datasheet 'asap7 datasheet.pdf'",
                         "api: chip.set('pdk','asap7','doc',datasheet,'datasheet.pdf')"
                     ],
-                    "filehash": [],
                     "hashalgo": "sha256",
                     "help": "Filepath to datasheet document.",
                     "lock": false,
@@ -5084,20 +4753,16 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: datasheet",
-                    "signature": [],
                     "switch": "-pdk_doc_datasheet 'pdkname <file>'",
                     "type": "[file]"
                 },
                 "homepage": {
-                    "author": [],
                     "copy": false,
-                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -pdk_doc_homepage 'asap7 index.html'",
                         "api: chip.set('pdk','asap7','doc','homepage','index.html')"
                     ],
-                    "filehash": [],
                     "hashalgo": "sha256",
                     "help": "Filepath to PDK docs homepage. Modern PDKs can include tens or\nhundreds of individual documents. A single html entry point can\nbe used to present an organized documentation dashboard to the\ndesigner.",
                     "lock": false,
@@ -5107,20 +4772,16 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: documentation homepage",
-                    "signature": [],
                     "switch": "-pdk_doc_homepage 'pdkname <file>'",
                     "type": "[file]"
                 },
                 "install": {
-                    "author": [],
                     "copy": false,
-                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -pdk_doc_install 'asap7 install.pdf'",
                         "api: chip.set('pdk','asap7','doc',install,'install.pdf')"
                     ],
-                    "filehash": [],
                     "hashalgo": "sha256",
                     "help": "Filepath to install document.",
                     "lock": false,
@@ -5130,20 +4791,16 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: install",
-                    "signature": [],
                     "switch": "-pdk_doc_install 'pdkname <file>'",
                     "type": "[file]"
                 },
                 "quickstart": {
-                    "author": [],
                     "copy": false,
-                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -pdk_doc_quickstart 'asap7 quickstart.pdf'",
                         "api: chip.set('pdk','asap7','doc',quickstart,'quickstart.pdf')"
                     ],
-                    "filehash": [],
                     "hashalgo": "sha256",
                     "help": "Filepath to quickstart document.",
                     "lock": false,
@@ -5153,20 +4810,16 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: quickstart",
-                    "signature": [],
                     "switch": "-pdk_doc_quickstart 'pdkname <file>'",
                     "type": "[file]"
                 },
                 "reference": {
-                    "author": [],
                     "copy": false,
-                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -pdk_doc_reference 'asap7 reference.pdf'",
                         "api: chip.set('pdk','asap7','doc',reference,'reference.pdf')"
                     ],
-                    "filehash": [],
                     "hashalgo": "sha256",
                     "help": "Filepath to reference document.",
                     "lock": false,
@@ -5176,20 +4829,16 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: reference",
-                    "signature": [],
                     "switch": "-pdk_doc_reference 'pdkname <file>'",
                     "type": "[file]"
                 },
                 "releasenotes": {
-                    "author": [],
                     "copy": false,
-                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -pdk_doc_releasenotes 'asap7 releasenotes.pdf'",
                         "api: chip.set('pdk','asap7','doc',releasenotes,'releasenotes.pdf')"
                     ],
-                    "filehash": [],
                     "hashalgo": "sha256",
                     "help": "Filepath to releasenotes document.",
                     "lock": false,
@@ -5199,20 +4848,16 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: releasenotes",
-                    "signature": [],
                     "switch": "-pdk_doc_releasenotes 'pdkname <file>'",
                     "type": "[file]"
                 },
                 "tutorial": {
-                    "author": [],
                     "copy": false,
-                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -pdk_doc_tutorial 'asap7 tutorial.pdf'",
                         "api: chip.set('pdk','asap7','doc',tutorial,'tutorial.pdf')"
                     ],
-                    "filehash": [],
                     "hashalgo": "sha256",
                     "help": "Filepath to tutorial document.",
                     "lock": false,
@@ -5222,20 +4867,16 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: tutorial",
-                    "signature": [],
                     "switch": "-pdk_doc_tutorial 'pdkname <file>'",
                     "type": "[file]"
                 },
                 "userguide": {
-                    "author": [],
                     "copy": false,
-                    "date": [],
                     "defvalue": [],
                     "example": [
                         "cli: -pdk_doc_userguide 'asap7 userguide.pdf'",
                         "api: chip.set('pdk','asap7','doc',userguide,'userguide.pdf')"
                     ],
-                    "filehash": [],
                     "hashalgo": "sha256",
                     "help": "Filepath to userguide document.",
                     "lock": false,
@@ -5245,7 +4886,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: userguide",
-                    "signature": [],
                     "switch": "-pdk_doc_userguide 'pdkname <file>'",
                     "type": "[file]"
                 }
@@ -5255,15 +4895,12 @@
                     "default": {
                         "default": {
                             "default": {
-                                "author": [],
                                 "copy": false,
-                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -pdk_drc_runset 'asap7 magic M10 basic $PDK/drc.rs'",
                                     "api: chip.set('pdk', 'asap7','drc','runset','magic','M10','basic','$PDK/drc.rs')"
                                 ],
-                                "filehash": [],
                                 "hashalgo": "sha256",
                                 "help": "Runset files for DRC task.",
                                 "lock": false,
@@ -5273,7 +4910,6 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: DRC runset files",
-                                "signature": [],
                                 "switch": "-pdk_drc_runset 'pdkname tool stackup name <file>'",
                                 "type": "[file]"
                             }
@@ -5284,15 +4920,12 @@
                     "default": {
                         "default": {
                             "default": {
-                                "author": [],
                                 "copy": false,
-                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -pdk_drc_waiver 'asap7 magic M10 basic $PDK/drc.txt'",
                                     "api: chip.set('pdk', 'asap7','drc','waiver','magic','M10','basic','$PDK/drc.txt')"
                                 ],
-                                "filehash": [],
                                 "hashalgo": "sha256",
                                 "help": "Waiver files for DRC task.",
                                 "lock": false,
@@ -5302,7 +4935,6 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: DRC waiver files",
-                                "signature": [],
                                 "switch": "-pdk_drc_waiver 'tool stackup name <file>'",
                                 "type": "[file]"
                             }
@@ -5324,7 +4956,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: wafer edge keep-out margin",
-                "signature": null,
                 "switch": "-pdk_edgemargin 'pdkname <float>'",
                 "type": "float",
                 "unit": "mm"
@@ -5334,15 +4965,12 @@
                     "default": {
                         "default": {
                             "default": {
-                                "author": [],
                                 "copy": false,
-                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -pdk_erc_runset 'asap7 magic M10 basic $PDK/erc.rs'",
                                     "api: chip.set('pdk', 'asap7','erc','runset','magic','M10','basic','$PDK/erc.rs')"
                                 ],
-                                "filehash": [],
                                 "hashalgo": "sha256",
                                 "help": "Runset files for ERC task.",
                                 "lock": false,
@@ -5352,7 +4980,6 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: ERC runset files",
-                                "signature": [],
                                 "switch": "-pdk_erc_runset 'pdkname tool stackup name <file>'",
                                 "type": "[file]"
                             }
@@ -5363,15 +4990,12 @@
                     "default": {
                         "default": {
                             "default": {
-                                "author": [],
                                 "copy": false,
-                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -pdk_erc_waiver 'asap7 magic M10 basic $PDK/erc.txt'",
                                     "api: chip.set('pdk', 'asap7','erc','waiver','magic','M10','basic','$PDK/erc.txt')"
                                 ],
-                                "filehash": [],
                                 "hashalgo": "sha256",
                                 "help": "Waiver files for ERC task.",
                                 "lock": false,
@@ -5381,7 +5005,6 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: ERC waiver files",
-                                "signature": [],
                                 "switch": "-pdk_erc_waiver 'tool stackup name <file>'",
                                 "type": "[file]"
                             }
@@ -5393,15 +5016,12 @@
                 "default": {
                     "default": {
                         "default": {
-                            "author": [],
                             "copy": false,
-                            "date": [],
                             "defvalue": [],
                             "example": [
                                 "cli: -pdk_file 'asap7 xyce spice M10 asap7.sp'",
                                 "api: chip.set('pdk','asap7','file','xyce','spice','M10','asap7.sp')"
                             ],
-                            "filehash": [],
                             "hashalgo": "sha256",
                             "help": "List of named files specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying files that are\nnot directly  supported by the SiliconCompiler PDK schema.",
                             "lock": false,
@@ -5411,7 +5031,6 @@
                             "require": null,
                             "scope": "global",
                             "shorthelp": "PDK: special file",
-                            "signature": [],
                             "switch": "-pdk_file 'pdkname tool key stackup <file>'",
                             "type": "[file]"
                         }
@@ -5423,15 +5042,12 @@
                     "default": {
                         "default": {
                             "default": {
-                                "author": [],
                                 "copy": false,
-                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -pdk_fill_runset 'asap7 magic M10 basic $PDK/fill.rs'",
                                     "api: chip.set('pdk', 'asap7','fill','runset','magic','M10','basic','$PDK/fill.rs')"
                                 ],
-                                "filehash": [],
                                 "hashalgo": "sha256",
                                 "help": "Runset files for FILL task.",
                                 "lock": false,
@@ -5441,7 +5057,6 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: FILL runset files",
-                                "signature": [],
                                 "switch": "-pdk_fill_runset 'pdkname tool stackup name <file>'",
                                 "type": "[file]"
                             }
@@ -5452,15 +5067,12 @@
                     "default": {
                         "default": {
                             "default": {
-                                "author": [],
                                 "copy": false,
-                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -pdk_fill_waiver 'asap7 magic M10 basic $PDK/fill.txt'",
                                     "api: chip.set('pdk', 'asap7','fill','waiver','magic','M10','basic','$PDK/fill.txt')"
                                 ],
-                                "filehash": [],
                                 "hashalgo": "sha256",
                                 "help": "Waiver files for FILL task.",
                                 "lock": false,
@@ -5470,7 +5082,6 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: FILL waiver files",
-                                "signature": [],
                                 "switch": "-pdk_fill_waiver 'tool stackup name <file>'",
                                 "type": "[file]"
                             }
@@ -5492,7 +5103,6 @@
                 "require": "asic",
                 "scope": "global",
                 "shorthelp": "PDK: foundry name",
-                "signature": null,
                 "switch": "-pdk_foundry 'pdkname <str>'",
                 "type": "str"
             },
@@ -5510,7 +5120,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: horizontal scribe line width",
-                "signature": null,
                 "switch": "-pdk_hscribe 'pdkname <float>'",
                 "type": "float",
                 "unit": "mm"
@@ -5529,7 +5138,6 @@
                 "require": "asic",
                 "scope": "global",
                 "shorthelp": "PDK: Lambda value",
-                "signature": null,
                 "switch": "-pdk_lambda 'pdkname <float>",
                 "type": "float"
             },
@@ -5538,15 +5146,12 @@
                     "default": {
                         "default": {
                             "default": {
-                                "author": [],
                                 "copy": false,
-                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -pdk_layermap 'asap7 klayout db gds M10 asap7.map'",
                                     "api: chip.set('pdk','asap7','layermap','klayout','db','gds','M10','asap7.map')"
                                 ],
-                                "filehash": [],
                                 "hashalgo": "sha256",
                                 "help": "Files describing input/output mapping for streaming layout data from\none format to another. A foundry PDK will include an official layer\nlist for all user entered and generated layers supported in the GDS\naccepted by the foundry for processing, but there is no standardized\nlayer definition format that can be read and written by all EDA tools.\nTo ensure mask layer matching, key/value type mapping files are needed\nto convert EDA databases to/from GDS and to convert between different\ntypes of EDA databases. Layer maps are specified on a per metal\nstackup basis. The 'src' and 'dst' can be names of SC supported tools\nor file formats (like 'gds').",
                                 "lock": false,
@@ -5556,7 +5161,6 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: layer map file",
-                                "signature": [],
                                 "switch": "-pdk_layermap 'pdkname tool src dst stackup <file>'",
                                 "type": "[file]"
                             }
@@ -5569,15 +5173,12 @@
                     "default": {
                         "default": {
                             "default": {
-                                "author": [],
                                 "copy": false,
-                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -pdk_lvs_runset 'asap7 magic M10 basic $PDK/lvs.rs'",
                                     "api: chip.set('pdk', 'asap7','lvs','runset','magic','M10','basic','$PDK/lvs.rs')"
                                 ],
-                                "filehash": [],
                                 "hashalgo": "sha256",
                                 "help": "Runset files for LVS task.",
                                 "lock": false,
@@ -5587,7 +5188,6 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: LVS runset files",
-                                "signature": [],
                                 "switch": "-pdk_lvs_runset 'pdkname tool stackup name <file>'",
                                 "type": "[file]"
                             }
@@ -5598,15 +5198,12 @@
                     "default": {
                         "default": {
                             "default": {
-                                "author": [],
                                 "copy": false,
-                                "date": [],
                                 "defvalue": [],
                                 "example": [
                                     "cli: -pdk_lvs_waiver 'asap7 magic M10 basic $PDK/lvs.txt'",
                                     "api: chip.set('pdk', 'asap7','lvs','waiver','magic','M10','basic','$PDK/lvs.txt')"
                                 ],
-                                "filehash": [],
                                 "hashalgo": "sha256",
                                 "help": "Waiver files for LVS task.",
                                 "lock": false,
@@ -5616,7 +5213,6 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: LVS waiver files",
-                                "signature": [],
                                 "switch": "-pdk_lvs_waiver 'tool stackup name <file>'",
                                 "type": "[file]"
                             }
@@ -5639,7 +5235,6 @@
                     "require": "asic",
                     "scope": "global",
                     "shorthelp": "PDK: maximum routing layer",
-                    "signature": null,
                     "switch": "-pdk_maxlayer 'pdk stackup <str>'",
                     "type": "str"
                 }
@@ -5659,7 +5254,6 @@
                     "require": "asic",
                     "scope": "global",
                     "shorthelp": "PDK: minimum routing layer",
-                    "signature": null,
                     "switch": "-pdk_minlayer 'pdk stackup <str>'",
                     "type": "str"
                 }
@@ -5678,7 +5272,6 @@
                 "require": "asic",
                 "scope": "global",
                 "shorthelp": "PDK: process node",
-                "signature": null,
                 "switch": "-pdk_node 'pdkname <float>'",
                 "type": "float"
             },
@@ -5696,7 +5289,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: panel size",
-                "signature": [],
                 "switch": "-pdk_panelsize 'pdkname <float>'",
                 "type": "[(float,float)]",
                 "unit": "mm"
@@ -5705,15 +5297,12 @@
                 "default": {
                     "default": {
                         "default": {
-                            "author": [],
                             "copy": false,
-                            "date": [],
                             "defvalue": [],
                             "example": [
                                 "cli: -pdk_pexmodel 'asap7 fastcap M10 max wire.mod'",
                                 "api: chip.set('pdk','asap7','pexmodel','fastcap','M10','max','wire.mod')"
                             ],
-                            "filehash": [],
                             "hashalgo": "sha256",
                             "help": "List of filepaths to PDK wire TCAD models used during automated\nsynthesis, APR, and signoff verification. Pexmodels are specified on\na per metal stack basis. Corner values depend on the process being\nused, but typically include nomenclature such as min, max, nominal.\nFor exact names, refer to the DRM. Pexmodels are generally not\nstandardized and specified on a per tool basis. An example of pexmodel\ntype is 'fastcap'.",
                             "lock": false,
@@ -5723,7 +5312,6 @@
                             "require": null,
                             "scope": "global",
                             "shorthelp": "PDK: parasitic TCAD models",
-                            "signature": [],
                             "switch": "-pdk_pexmodel 'pdkname tool stackup corner <file>'",
                             "type": "[file]"
                         }
@@ -5744,7 +5332,6 @@
                 "require": "asic",
                 "scope": "global",
                 "shorthelp": "PDK: metal stackups",
-                "signature": [],
                 "switch": "-pdk_stackup 'pdkname <str>'",
                 "type": "[str]"
             },
@@ -5763,7 +5350,6 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: unit thickness",
-                    "signature": null,
                     "switch": "-pdk_thickness 'pdkname stackup <float>'",
                     "type": "float",
                     "unit": "mm"
@@ -5783,7 +5369,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: unit cost",
-                "signature": null,
                 "switch": "-pdk_unitcost 'pdkname <float>'",
                 "type": "float",
                 "unit": "USD"
@@ -5805,7 +5390,6 @@
                             "require": null,
                             "scope": "global",
                             "shorthelp": "PDK: special variable",
-                            "signature": [],
                             "switch": "-pdk_var 'pdkname tool stackup key <str>'",
                             "type": "[str]"
                         }
@@ -5826,7 +5410,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: version",
-                "signature": null,
                 "switch": "-pdk_version 'pdkname <str>'",
                 "type": "str"
             },
@@ -5844,7 +5427,6 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: vertical scribe line width",
-                "signature": null,
                 "switch": "-pdk_vscribe 'pdkname <float>'",
                 "type": "float",
                 "unit": "mm"
@@ -5863,7 +5445,6 @@
                 "require": "asic",
                 "scope": "global",
                 "shorthelp": "PDK: wafer size",
-                "signature": null,
                 "switch": "-pdk_wafersize 'pdkname <float>'",
                 "type": "float",
                 "unit": "mm"
@@ -5885,7 +5466,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: hardware architecture",
-            "signature": null,
             "switch": "-record_arch 'step index <str>'",
             "type": "str"
         },
@@ -5903,7 +5483,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: distro name",
-            "signature": null,
             "switch": "-record_distro 'step index <str>'",
             "type": "str"
         },
@@ -5921,7 +5500,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: end time",
-            "signature": null,
             "switch": "-record_endtime 'step index <str>'",
             "type": "str"
         },
@@ -5939,7 +5517,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: IP address",
-            "signature": null,
             "switch": "-record_ipaddr 'step index <str>'",
             "type": "str"
         },
@@ -5957,7 +5534,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: O/S kernel version",
-            "signature": null,
             "switch": "-record_kernelversion 'step index <str>'",
             "type": "str"
         },
@@ -5975,7 +5551,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: MAC address",
-            "signature": null,
             "switch": "-record_macaddr 'step index <str>'",
             "type": "str"
         },
@@ -5993,7 +5568,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: machine name",
-            "signature": null,
             "switch": "-record_machine 'step index <str>'",
             "type": "str"
         },
@@ -6011,7 +5585,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: O/S version",
-            "signature": null,
             "switch": "-record_osversion 'step index <str>'",
             "type": "str"
         },
@@ -6029,7 +5602,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: platform name",
-            "signature": null,
             "switch": "-record_platform 'step index <str>'",
             "type": "str"
         },
@@ -6047,7 +5619,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: public key",
-            "signature": null,
             "switch": "-record_publickey 'step index <str>'",
             "type": "str"
         },
@@ -6065,7 +5636,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: cloud region",
-            "signature": null,
             "switch": "-record_region 'step index <str>'",
             "type": "str"
         },
@@ -6083,7 +5653,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: software version",
-            "signature": null,
             "switch": "-record_scversion 'step index <str>'",
             "type": "str"
         },
@@ -6101,7 +5670,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: start time",
-            "signature": null,
             "switch": "-record_starttime 'step index <str>'",
             "type": "str"
         },
@@ -6119,7 +5687,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: tool CLI arguments",
-            "signature": null,
             "switch": "-record_toolargs 'step index <str>'",
             "type": "str"
         },
@@ -6137,7 +5704,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: tool path",
-            "signature": null,
             "switch": "-record_toolpath 'step index <str>'",
             "type": "str"
         },
@@ -6155,7 +5721,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: tool version",
-            "signature": null,
             "switch": "-record_toolversion 'step index <str>'",
             "type": "str"
         },
@@ -6173,13 +5738,12 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: userid",
-            "signature": null,
             "switch": "-record_userid 'step index <str>'",
             "type": "str"
         }
     },
     "schemaversion": {
-        "defvalue": "0.26.0",
+        "defvalue": "0.27.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6191,7 +5755,6 @@
         "require": "all",
         "scope": "global",
         "shorthelp": "Schema version number",
-        "signature": null,
         "switch": "-schemaversion <str>",
         "type": "str"
     },
@@ -6211,7 +5774,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: executable name",
-                "signature": null,
                 "switch": "-tool_exe 'tool <str>'",
                 "type": "str"
             },
@@ -6229,7 +5791,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: file format",
-                "signature": null,
                 "switch": "-tool_format 'tool <file>'",
                 "type": "str"
             },
@@ -6248,7 +5809,6 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Tool: license servers",
-                    "signature": [],
                     "switch": "-tool_licenseserver 'name key <str>'",
                     "type": "[str]"
                 }
@@ -6267,7 +5827,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: executable path",
-                "signature": null,
                 "switch": "-tool_path 'tool <dir>'",
                 "type": "dir"
             },
@@ -6287,7 +5846,6 @@
                         "require": "all",
                         "scope": "job",
                         "shorthelp": "Task: continue option",
-                        "signature": null,
                         "switch": "-tool_task_continue 'tool task <bool>'",
                         "type": "bool"
                     },
@@ -6306,22 +5864,18 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: environment variables",
-                            "signature": null,
                             "switch": "-tool_task_env 'tool task step index name <str>'",
                             "type": "str"
                         }
                     },
                     "file": {
                         "default": {
-                            "author": [],
                             "copy": false,
-                            "date": [],
                             "defvalue": [],
                             "example": [
                                 "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
                                 "api: chip.set('tool','openroad','task','floorplan','file','macroplace', 'macroplace.tcl')"
                             ],
-                            "filehash": [],
                             "hashalgo": "sha256",
                             "help": "Paths to user supplied files mapped to keys. Keys and filetypes must\nmatch what's expected by the task/reference script consuming the\nfile.",
                             "lock": false,
@@ -6331,21 +5885,17 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: setup files",
-                            "signature": [],
                             "switch": "-tool_task_file 'tool task key <file>'",
                             "type": "[file]"
                         }
                     },
                     "input": {
-                        "author": [],
                         "copy": false,
-                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
                             "api: chip.set('tool','openroad','task','place','input','oh_add.def', step='place', index='0')"
                         ],
-                        "filehash": [],
                         "hashalgo": "sha256",
                         "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key ['flowgraph', step, index, 'input'].\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
                         "lock": false,
@@ -6355,7 +5905,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: inputs",
-                        "signature": [],
                         "switch": "-tool_task_input 'tool task step index <str>'",
                         "type": "[file]"
                     },
@@ -6373,7 +5922,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: files to keep",
-                        "signature": [],
                         "switch": "-tool_task_keep 'task <str>'",
                         "type": "[str]"
                     },
@@ -6391,20 +5939,16 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: executable options",
-                        "signature": [],
                         "switch": "-tool_task_option 'tool task <str>'",
                         "type": "[str]"
                     },
                     "output": {
-                        "author": [],
                         "copy": false,
-                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
                             "api: chip.set('tool','openroad','task','place','output','oh_add.def', step='place', index='0')"
                         ],
-                        "filehash": [],
                         "hashalgo": "sha256",
                         "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key ['flowgraph', step, index, 'output'].\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
                         "lock": false,
@@ -6414,20 +5958,16 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: outputs",
-                        "signature": [],
                         "switch": "-tool_task_output 'tool task step index <str>'",
                         "type": "[file]"
                     },
                     "postscript": {
-                        "author": [],
                         "copy": false,
-                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -tool_task_postscript 'yosys syn syn_post.tcl'",
                             "api: chip.set('tool','yosys','task','syn_asic','postscript','syn_post.tcl')"
                         ],
-                        "filehash": [],
                         "hashalgo": "sha256",
                         "help": "Path to a user supplied script to execute after the main execution\nstage of the step but before the design is saved.\nExact entry point depends on the step and main script being\nexecuted. An example of a postscript entry point would be immediately\nafter global placement.",
                         "lock": false,
@@ -6437,20 +5977,16 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: post-step script",
-                        "signature": [],
                         "switch": "-tool_task_postscript 'task <file>'",
                         "type": "[file]"
                     },
                     "prescript": {
-                        "author": [],
                         "copy": false,
-                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -tool_task_prescript 'yosys syn syn_pre.tcl'",
                             "api: chip.set('tool','yosys','task','syn_asic','prescript','syn_pre.tcl')"
                         ],
-                        "filehash": [],
                         "hashalgo": "sha256",
                         "help": "Path to a user supplied script to execute after reading in the design\nbut before the main execution stage of the step. Exact entry point\ndepends on the step and main script being executed. An example\nof a prescript entry point would be immediately before global\nplacement.",
                         "lock": false,
@@ -6460,7 +5996,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: pre-step script",
-                        "signature": [],
                         "switch": "-tool_task_prescript 'task <file>'",
                         "type": "[file]"
                     },
@@ -6478,7 +6013,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: script directory",
-                        "signature": [],
                         "switch": "-tool_task_refdir 'task <dir>'",
                         "type": "[dir]"
                     },
@@ -6497,22 +6031,18 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: regex filter",
-                            "signature": [],
                             "switch": "-tool_task_regex 'tool task suffix <str>'",
                             "type": "[str]"
                         }
                     },
                     "report": {
                         "default": {
-                            "author": [],
                             "copy": false,
-                            "date": [],
                             "defvalue": [],
                             "example": [
                                 "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
                                 "api: chip.set('tool','openroad','task','place','report','holdtns','place.log', step='place', index='0')"
                             ],
-                            "filehash": [],
                             "hashalgo": "sha256",
                             "help": "List of report files associated with a specific 'metric'. The file path\nspecified is relative to the run directory of the current task.",
                             "lock": false,
@@ -6522,7 +6052,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: reports",
-                            "signature": [],
                             "switch": "-tool_task_report 'task metric step index <str>'",
                             "type": "[file]"
                         }
@@ -6533,7 +6062,7 @@
                             "cli: -tool_task_require 'openroad cts design'",
                             "api: chip.set('tool','openroad', 'task','cts','require','design')"
                         ],
-                        "help": "List of keypaths to required task parameters. The list is used\nby check() to verify that all parameters have been set up before\nstep execution begins.",
+                        "help": "List of keypaths to required task parameters. The list is used\nby check_manifest() to verify that all parameters have been set up before\nstep execution begins.",
                         "lock": false,
                         "node": {},
                         "notes": null,
@@ -6541,20 +6070,16 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: parameter requirements",
-                        "signature": [],
                         "switch": "-tool_task_require 'task step index <str>'",
                         "type": "[str]"
                     },
                     "script": {
-                        "author": [],
                         "copy": false,
-                        "date": [],
                         "defvalue": [],
                         "example": [
                             "cli: -tool_task_script 'yosys syn syn.tcl'",
                             "api: chip.set('tool','yosys','task','syn_asic','script','syn.tcl')"
                         ],
-                        "filehash": [],
                         "hashalgo": "sha256",
                         "help": "Path to the entry script called by the executable specified\non a per task and per step basis.",
                         "lock": false,
@@ -6564,7 +6089,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: entry script",
-                        "signature": [],
                         "switch": "-tool_task_script 'task step index <file>'",
                         "type": "[file]"
                     },
@@ -6583,7 +6107,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: Destination for stderr",
-                            "signature": null,
                             "switch": "-tool_task_stderr_destination 'task [log|output|none]'",
                             "type": "str"
                         },
@@ -6601,7 +6124,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: File suffix for redirected stderr",
-                            "signature": null,
                             "switch": "-tool_task_stderr_suffix 'task <str>'",
                             "type": "str"
                         }
@@ -6621,7 +6143,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: Destination for stdout",
-                            "signature": null,
                             "switch": "-tool_task_stdout_destination 'task [log|output|none]'",
                             "type": "str"
                         },
@@ -6639,7 +6160,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: File suffix for redirected stdout",
-                            "signature": null,
                             "switch": "-tool_task_stdout_suffix 'task <str>'",
                             "type": "str"
                         }
@@ -6658,7 +6178,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: thread parallelism",
-                        "signature": null,
                         "switch": "-tool_task_threads 'task <int>'",
                         "type": "int"
                     },
@@ -6677,7 +6196,6 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: script variables",
-                            "signature": [],
                             "switch": "-tool_task_variable 'tool task key <str>'",
                             "type": "[str]"
                         }
@@ -6696,7 +6214,6 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: warning filter",
-                        "signature": [],
                         "switch": "-tool_task_warningoff 'tool task <str>'",
                         "type": "[str]"
                     }
@@ -6716,7 +6233,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: vendor",
-                "signature": null,
                 "switch": "-tool_vendor 'tool <str>'",
                 "type": "str"
             },
@@ -6734,7 +6250,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: version",
-                "signature": [],
                 "switch": "-tool_version 'tool <str>'",
                 "type": "[str]"
             },
@@ -6752,7 +6267,6 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: executable version switch",
-                "signature": [],
                 "switch": "-tool_vswitch 'tool <str>'",
                 "type": "[str]"
             }
@@ -6773,7 +6287,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: capacitance",
-            "signature": null,
             "switch": "-unit_capacitance '<str>'",
             "type": "str"
         },
@@ -6791,7 +6304,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: current",
-            "signature": null,
             "switch": "-unit_current '<str>'",
             "type": "str"
         },
@@ -6809,7 +6321,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: energy",
-            "signature": null,
             "switch": "-unit_energy '<str>'",
             "type": "str"
         },
@@ -6827,7 +6338,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: inductance",
-            "signature": null,
             "switch": "-unit_inductance '<str>'",
             "type": "str"
         },
@@ -6845,7 +6355,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: length",
-            "signature": null,
             "switch": "-unit_length '<str>'",
             "type": "str"
         },
@@ -6863,7 +6372,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: mass",
-            "signature": null,
             "switch": "-unit_mass '<str>'",
             "type": "str"
         },
@@ -6881,7 +6389,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: power",
-            "signature": null,
             "switch": "-unit_power '<str>'",
             "type": "str"
         },
@@ -6899,7 +6406,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: resistance",
-            "signature": null,
             "switch": "-unit_resistance '<str>'",
             "type": "str"
         },
@@ -6917,7 +6423,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: temperature",
-            "signature": null,
             "switch": "-unit_temperature '<str>'",
             "type": "str"
         },
@@ -6935,7 +6440,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: time",
-            "signature": null,
             "switch": "-unit_time '<str>'",
             "type": "str"
         },
@@ -6953,7 +6457,6 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: voltage",
-            "signature": null,
             "switch": "-unit_voltage '<str>'",
             "type": "str"
         }

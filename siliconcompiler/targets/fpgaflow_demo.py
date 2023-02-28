@@ -1,6 +1,8 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
 
+from siliconcompiler.flows import fpgaflow
+
 def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
 
@@ -14,7 +16,6 @@ def setup(chip):
     '''
 
     #1. Load flow
-    from flows import fpgaflow
     chip.use(fpgaflow)
 
     #2. Setup default show tools

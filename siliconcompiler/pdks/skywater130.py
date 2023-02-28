@@ -26,7 +26,7 @@ def setup(chip):
     * EDA support files for multiple open source and proprietary flows
 
     More information:
-    * https://skywater-pdk.readthedocs.io/en/latest/
+    * https://skywater-pdk.readthedocs.io/
 
     Sources:
     * https://github.com/google/skywater-pdk

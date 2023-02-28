@@ -6,12 +6,15 @@ from sphinx.util.docutils import SphinxDirective
 import siliconcompiler
 from siliconcompiler.schema import Schema
 from siliconcompiler.sphinx_ext.utils import *
+from siliconcompiler.schema import utils
 
 # Main Sphinx plugin
 class SchemaGen(SphinxDirective):
 
     def run(self):
         self.env.note_dependency('siliconcompiler/schema/schema_cfg.py')
+        self.env.note_dependency(__file__)
+        self.env.note_dependency(utils.__file__)
 
         schema = Schema().cfg
 
@@ -33,7 +36,7 @@ class SchemaGen(SphinxDirective):
                 entries.append([strong(f'Example ({name.upper()})'), code(ex.strip())])
 
             table = build_table(entries)
-            body = self.parse_rst(schema['help'])
+            body = self.parse_rst(utils.trim(schema['help']))
 
             return [table, body]
         else:
@@ -43,8 +46,8 @@ class SchemaGen(SphinxDirective):
                     for n in self.process_schema(schema['default'], parents=parents):
                         sections.append(n)
                 elif key not in ('history', 'library'):
-                    section_key = '-'.join(parents) + '-' + key
-                    section = build_section(key, section_key)
+                    section_key = 'param-' + '-'.join(parents + [key])
+                    section = build_section_with_target(key, section_key, self.state.document)
                     for n in self.process_schema(schema[key], parents=parents+[key]):
                         section += n
                     sections.append(section)
@@ -70,7 +73,7 @@ class CategorySummary(SphinxDirective):
     option_spec = {'category': str}
 
     def run(self):
-
+        self.env.note_dependency(__file__)
         category = self.options['category']
 
         # List of documentation objects to return.
@@ -87,11 +90,13 @@ class CategorySummary(SphinxDirective):
             prefix.append('default')
 
         for item in chip.getkeys(*prefix):
+            key = para('')
+            key += keypath([*prefix, item], self.env.docname)
             if 'shorthelp' in chip.getkeys(*prefix, item):
                 shorthelp = chip.get(*prefix, item, field='shorthelp')
-                table.append([para(item),para(shorthelp)])
+                table.append([key, para(shorthelp)])
             else:
-                table.append([para(item),para("See Schema")])
+                table.append([key, para("See Schema")])
         section += build_table(table)
         new_doc += section
 

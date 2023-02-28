@@ -117,13 +117,13 @@ Design
 * `ESD <https://en.wikipedia.org/wiki/Electrostatic_discharge>`_: Electrostatic discharge is the sudden flow of electricity between two electrically charged objects.
 * `Fabless <https://en.wikipedia.org/wiki/Fabless_manufacturing>`_: The design and sale of semiconductor devices while outsourcing the manufacturing to 3rd party.
 * `FEOL <https://en.wikipedia.org/wiki/Front_end_of_line>`_: Front end of line processing. Includes all chip processing up to but not including metal interconnect layers.
-* `Flip-flop <https://en.wikipedia.org/wiki/Flip-flop_(electronics>`_:: A clocked circuit that has two stable states and can be used to store state information.
+* `Flip-flop <https://en.wikipedia.org/wiki/Flip-flop_%28electronics%29>`_:: A clocked circuit that has two stable states and can be used to store state information.
 * `Foundry <https://en.wikipedia.org/wiki/Semiconductor_fabrication_plant>`_: Semiconductor company offering manufacturing services.
 * `Full custom design <https://en.wikipedia.org/wiki/Full_custom>`_: Design methodology involving layout and interconnection of individual transistors.
 * `GDSII <https://en.wikipedia.org/wiki/GDSII>`_: Binary format of design database sent to foundry.
 * `Hardware Emulation <https://en.wikipedia.org/wiki/Hardware_emulation>`_: Process of imitating the behavior a system under design with another piece of hardware.
 * `HDL <https://en.wikipedia.org/wiki/Hardware_description_language>`_: Specialized hardware description lanaguage for describing electronic circuits.
-* `Hold time <https://en.wikipedia.org/wiki/Flip-flop_%28electronics%29#Setup.2C_hold.2C_recovery.2C_removal_times>`_: Minimum time synchronous input should hold steady after clock event.
+* `Hold time <https://en.wikipedia.org/wiki/Flip-flop_%28electronics%29#Timing_parameters>`_: Minimum time synchronous input should hold steady after clock event.
 * `IP <https://en.wikipedia.org/wiki/Semiconductor_intellectual_property_core>`_: Semiconductor reusable design blocks containing author's Intellectual Property.
 * `IP Vendors <https://en.wikipedia.org/wiki/List_of_semiconductor_IP_core_vendors>`_: List of commercial semiconductor IP vendors.
 * `ISI <https://en.wikipedia.org/wiki/Intersymbol_interference>`_: Intersymbol interference
@@ -153,7 +153,7 @@ Design
 * `PVT Corners <https://en.wikipedia.org/wiki/Process_corners>`_: Represents the extreme process, voltage, temperature that could occur in a given semiconductor process.
 * `Radiation Hardening <https://en.wikipedia.org/wiki/Radiation_hardening>`_: Act of making devices resistant to damage caused by ionizing radiation.
 * `RTL <https://en.wikipedia.org/wiki/Register-transfer_level>`_: Design abstraction for digital circuit design.
-* `Setup time <https://en.wikipedia.org/wiki/Flip-flop_%28electronics%29#Setup.2C_hold.2C_recovery.2C_removal_times>`_: Minimum time synchronous input should be ready before clock event.
+* `Setup time <https://en.wikipedia.org/wiki/Flip-flop_%28electronics%29#Timing_parameters>`_: Minimum time synchronous input should be ready before clock event.
 * `SEU <https://en.wikipedia.org/wiki/Single_event_upset>`_: Change of state caused by one single ionizing particle (ions, electrons, photons...).
 * `Signoff <https://en.wikipedia.org/wiki/Signoff_%28electronic_design_automation%29>`_: The final approval that the design is ready to be sent to foundry for manufacturing.
 * `SOC <https://en.wikipedia.org/wiki/System_on_a_chip>`_: System On Chip
@@ -186,7 +186,7 @@ Manufacturing
 * `Silicon on insulator <https://en.wikipedia.org/wiki/Silicon_on_insulator>`_: Layered silicon–insulator–silicon with reduced parasitic capacitance.
 * `Stepper <https://en.wikipedia.org/wiki/Stepper>`_: Machine that passes light through reticle onto the silicon wafer being processed.
 * `TSV <https://en.wikipedia.org/wiki/Through-silicon_via>`_: Vertical electrical connection (via) passing completely through a silicon wafer or die.
-* `Wafer <https://en.wikipedia.org/wiki/Wafer_(electronics>`_:: Thin slice of semiconductor material used in electronics for the fabrication of integrated circuits.
+* `Wafer <https://en.wikipedia.org/wiki/Wafer_(electronics)>`_:: Thin slice of semiconductor material used in electronics for the fabrication of integrated circuits.
 * `Wafer thinning <https://en.wikipedia.org/wiki/Wafer_backgrinding>`_: Wafer thickness reduction to allow for stacking and high density packaging.
 
 Packaging
@@ -196,7 +196,7 @@ Packaging
 * `BGA <https://en.wikipedia.org/wiki/Ball_grid_array>`_: Ball grid array is a type of surface-mount packaging (a chip carrier) used for integrated circuits.
 * `BGA substrate <https://en.wikipedia.org/wiki/Ball_grid_array>`_: A miniaturized PCB that mates the silicon die to BGA pins. 
 * `Bumping <https://en.wikipedia.org/wiki/Flip_chip>`_: Placing of bumps on wafer/dies in preparation for package assembly.
-* `DIMM <http://whatis.techtarget.com/definition/DIMM-dual-in-line-memory-module>`_: Dual in line memory module.
+* `DIMM <https://www.techtarget.com/searchstorage/definition/DIMM>`_: Dual in line memory module.
 * `Flip-chip <https://en.wikipedia.org/wiki/Flip_chip>`_: Method of bonding a silicon die to package using solder bumps.
 * `IC Assembly <https://en.wikipedia.org/wiki/Integrated_circuit_packaging>`_: Semiconductor die is encased in a supporting case "package".
 * `Interposer <https://en.wikipedia.org/wiki/Interposer>`_: Electrical interface used to spread a connection to a wider pitch.

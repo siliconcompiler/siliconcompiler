@@ -106,7 +106,7 @@
         // Iterate over all elements in the given JSON dict.
         // TODO: Sort keys?
         for (const el in cfg) {
-          if (!('node' in cfg[el]) && !('help' in cfg[el])) {
+         if (!('shorthelp' in cfg[el])) {
             // Branch value.
             new_child = document.createElement("li");
             new_child.innerHTML = '<a href="#">' + el + '</a>'
@@ -124,45 +124,67 @@
             shorthelp_li = document.createElement("li");
             shorthelp_li.innerHTML = cfg[el]['shorthelp'];
             new_child_list.appendChild(shorthelp_li);
-            if (keypath.indexOf('checklist') > -1) {
-              if (el == 'ok') {
-                // Provide a checkbox for acceptance of the checklist item.
-                ok_li = document.createElement("li");
-                ok_id = 'ok_' + keypath.join('_');
-                checked = '';
-                if (getVal(cfg[el]) && (['false', 'False'].indexOf(getVal(cfg[el])) <= -1)) {
-                  checked = 'checked';
-                }
-                ok_li.innerHTML = '<b>Item Accepted:</b> <input id="' + ok_id + '" type="checkbox" ' + checked + '/>';
-                new_child_list.appendChild(ok_li);
+
+            var has_val = false;
+            if (keypath.indexOf('checklist') > -1 && el == 'ok') {
+              // Provide a checkbox for acceptance of the checklist item.
+              ok_li = document.createElement("li");
+              ok_id = 'ok_' + keypath.join('_');
+              checked = '';
+              if (getVal(cfg[el]) && (['false', 'False'].indexOf(getVal(cfg[el])) <= -1)) {
+                checked = 'checked';
               }
-              /* TODO: Optional free-text entry, but the 'report' parameter is intended for file paths.
-              else if (el == 'report') {
-                // Provide a text input field for arbitrary checklist item metadata.
-                rpt_li = document.createElement("li");
-                rpt_id = 'report_' + keypath.join('_');
-                rpt_content = '';
-                if ((getVal(cfg[el]).length > 0) && (getVal(cfg[el])[0])) {
-                  rpt_content = getVal(cfg[el])[0];
-                }
-                rpt_li.innerHTML = '<b>Item Reporting Metadata:</b><br/><textarea id="' + rpt_id + '" rows="3" cols="32">' + rpt_content + '</textarea>';
-                new_child_list.appendChild(rpt_li);
-              }
-              */
-              else {
-                // Display other keys' values.
-                val_li = document.createElement("li");
-                val_li.innerHTML = '<b>Value:</b> ' + getVal(cfg[el]);
-                new_child_list.appendChild(val_li);
-              }
+              ok_li.innerHTML = '<b>Item Accepted:</b> <input id="' + ok_id + '" type="checkbox" ' + checked + '/>';
+              new_child_list.appendChild(ok_li);
+              has_val = true;
             }
+            // TODO: Add a checklist parameter that facilitates free-text entry.
             else {
-              val_li = document.createElement("li");
-              val_li.innerHTML = '<b>Value:</b> ' + getVal(cfg[el]);
-              new_child_list.appendChild(val_li);
+              // Come up with list of values to possibly display
+              var vals = [];
+              var has_global = false;
+              for (var step in cfg[el]['node']) {
+                for (var index in cfg[el]['node'][step]) {
+                  if (step == 'global' && index == 'global')
+                    has_global = true;
+
+                  if (!('value' in cfg[el]['node'][step][index]))
+                    continue;
+
+                  var val = cfg[el]['node'][step][index]['value'];
+                  vals.push({'value': val, 'step': step, 'index': index});
+                }
+              }
+              // add default value if no global set
+              if (!has_global && cfg[el]['pernode'] != 'required')
+                vals.push({'value': cfg[el]['defvalue'], 'step': 'global', 'index': 'global'});
+
+              for (var i=0; i<vals.length; i++) {
+                var val = vals[i]['value'];
+                var step = vals[i]['step'];
+                var index = vals[i]['index'];
+
+                // Don't display value if it doesn't exist, if it's null, or if it's an empty list.
+                if (val == null || (Array.isArray(val) && val.length == 0))
+                  continue;
+
+                val_li = document.createElement("li");
+                var node = '';
+                if (step != 'global') {
+                  node += ' (' + step;
+                  if (index != 'global')
+                    node += index
+                  node += ')'
+                }
+                val_li.innerHTML  = '<b>Value' + node + ':</b> ' + val;
+                new_child_list.appendChild(val_li);
+                has_val = true;
+              }
             }
-            new_child.appendChild(new_child_list);
-            parent_list_el.appendChild(new_child);
+            if (has_val) {
+              new_child.appendChild(new_child_list);
+              parent_list_el.appendChild(new_child);
+            }
           }
         }
       };

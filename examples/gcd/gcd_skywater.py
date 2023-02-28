@@ -17,7 +17,7 @@ def main():
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 
-    chip.clock('clk', period=15)
+    chip.clock('clk', period=20)
 
     chip.load_target("skywater130_demo")
 

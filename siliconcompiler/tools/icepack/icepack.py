@@ -3,7 +3,7 @@
 Icepack converts an ASCII bitstream file to a .bin file for the
 ICE40 FPGA.
 
-Documentation: http://bygone.clairexen.net/icestorm/
+Documentation: https://clifford.at/icestorm
 
 Sources: https://github.com/YosysHQ/icestorm
 
