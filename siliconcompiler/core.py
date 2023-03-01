@@ -3000,49 +3000,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     ))
 
             if generate_pdf:
-                run_stat = '{\color{OliveGreen} SUCCESS}'
-                tblf = '||c'
-                for i in range(len(nodes)):
-                    tblf += '|c'
-                tblf += '||'
-                tbl_str = ''
-                for step, index in nodes:
-                    tbl_str += ' & \\textbf{%s%s}'%(step, index)
-                    if self.get('flowgraph', flow, step, index, 'status') in [None, TaskStatus.ERROR] and 'SUCCESS' in run_stat:
-                        run_stat = '{\color{Mahogany} BUILD FAILED: Error in %s%s task}'%(step, index)
-                tbl_str += '\\\\\n\\hline\n'
-                for mname in metrics_to_show:
-                    tbl_str += '\\textbf{%s}'%mname
-                    for step, index in nodes:
-                        mval = metrics[step, index][mname]
-                        if mval is None:
-                            tbl_str += ' & - '
-                        else:
-                            tbl_str += ' & ' + str(mval)
-                    tbl_str += '\\\\\n'
-                with open(results_pdfsrc, 'w', encoding='utf-8') as wf:
-                    wf.write(env.get_template('sc_texreport.j2').render(
-                        design = design,
-                        datetime = datetime.datetime.now().strftime("%B %d, %Y %H:%M:%S %Z"),
-                        scroot = os.path.join(self.scroot, '..'),
-                        run_stat = run_stat,
-                        img_render = img_tex,
-                        table_format = tblf,
-                        table_contents = tbl_str,
-                    ))
-                subprocess.run(['pdflatex', '-interaction=nonstopmode', f'-output-directory={web_dir}', results_pdfsrc])
+                # TODO: Add LaTeX generation logic or find a way to create similar PDFs with Sphinx/RST.
+                pass
 
             # Try to open the results and layout only if '-nodisplay' is not set.
             # Prioritize PDF, followed by HTML.
+            self.logger.warning(results_pdf)
             if (not self.get('option', 'nodisplay')) and ('DISPLAY' in os.environ):
                 if os.path.isfile(results_pdf):
+                    self.logger.warning('EXISTS')
                     # Open results with whatever application is associated with PDFs on the local system.
                     if sys.platform == 'win32':
                         os.startfile(results_pdf)
                     elif sys.platform == 'darwin':
-                        subprocess.Popen(['open', results_pdf], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        subprocess.Popen(['open', results_pdf])
                     else:
-                        subprocess.Popen(['xdg-open', results_pdf], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        subprocess.Popen(['xdg-open', results_pdf])
                 elif os.path.isfile(results_html):
                     try:
                         webbrowser.get(results_html)
@@ -4205,7 +4178,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                            fatal=True)
             pre_remote_steplist = {
                 'steplist': self.get('option', 'steplist'),
-                'set': self.get('option', 'steplist', field='set'),
+                'set': self.schema._is_set(self.schema._search('option', 'steplist')),
             }
             remote_preprocess(self, steplist)
 
