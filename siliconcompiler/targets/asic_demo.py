@@ -1,4 +1,5 @@
 import os
+import shutil
 import siliconcompiler
 
 def setup(chip):
@@ -11,32 +12,18 @@ def setup(chip):
     '''
 
     # Load the Sky130 PDK/standard cell library target.
+    design = 'heartbeat'
     chip.load_target('skywater130_demo')
 
-    # Create temporary source files. (Examples are not currently included in the wheel build)
-    build_dir = chip.get('option', 'builddir')
-    os.makedirs(build_dir, exist_ok=True)
-    with open(f'{build_dir}/heartbeat.v', 'w') as hdl:
-        hdl.write('''\
-module heartbeat #(parameter N = 8)
-   (input clk, input nreset, output reg out);
-   reg [N-1:0] counter_reg;
-   always @ (posedge clk or negedge nreset)
-     if(!nreset) begin
-        counter_reg <= 'b0;
-        out <= 1'b0;
-     end else begin
-        counter_reg[N-1:0] <= counter_reg[N-1:0] + 1'b1;
-        out <= (counter_reg[N-1:0]=={(N){1'b1}});
-     end
-endmodule''')
-    with open(f'{build_dir}/heartbeat.sdc', 'w') as constraints:
-        constraints.write('create_clock -name clk -period 10 [get_ports {clk}]')
+    # Set die area.
+    chip.set('constraint', 'outline', [(0, 0), (50, 50)])
+    chip.set('constraint', 'corearea', [(5, 5), (45, 45)])
 
     # Set design name and source files.
-    chip.set('design', 'heartbeat')
-    chip.input(f'{build_dir}/heartbeat.v')
-    chip.input(f'{build_dir}/heartbeat.sdc')
+    chip.set('design', design)
+    src_prefix = os.path.join(os.path.dirname(__file__), 'asic_demo', design)
+    for suffix in ['.v', '.sdc']:
+        chip.input(f'{src_prefix}{suffix}')
 
 #########################
 if __name__ == "__main__":
