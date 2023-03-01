@@ -4139,8 +4139,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.status['remote_cfg'] = json.loads(cfgf.read())
             else:
                 self.logger.warning('Could not find remote server configuration: defaulting to '
-                                    'https://server.siliconcompiler.com')
-                self.status['remote_cfg'] = { "address": "https://server.siliconcompiler.com" }
+                                    _metadata.default_server)
+                self.status['remote_cfg'] = { "address": _metadata.default_server }
             if (not 'address' in self.status['remote_cfg']):
                 self.error('Improperly formatted remote server configuration - '
                     'please run "sc-configure" and enter your server address and '
