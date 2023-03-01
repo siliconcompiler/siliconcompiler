@@ -6,23 +6,22 @@ def setup(chip):
     "Self-test" target which builds a small 8-bit counter design as an ASIC,
     targeting the Skywater130 PDK.
 
-    This target is not intended for general-purpose use.
-    It is intended to quickly verify that SiliconCompiler is installed and configured correctly.
+    This target is intended for testing purposes only,
+    to verify that SiliconCompiler is installed and configured correctly.
     '''
 
     # Load the Sky130 PDK/standard cell library target.
     design = 'heartbeat'
     chip.load_target('skywater130_demo')
 
-    # Set die area.
+    # Set die area and clock constraint.
     chip.set('constraint', 'outline', [(0, 0), (50, 50)])
     chip.set('constraint', 'corearea', [(5, 5), (45, 45)])
+    chip.clock('clk', period=10)
 
     # Set design name and source files.
     chip.set('design', design)
-    src_prefix = os.path.join(os.path.dirname(__file__), 'asic_demo', design)
-    for suffix in ['.v', '.sdc']:
-        chip.input(f'{src_prefix}{suffix}')
+    chip.input(os.path.join(os.path.dirname(__file__), 'asic_demo', f'{design}.v'))
 
 #########################
 if __name__ == "__main__":
