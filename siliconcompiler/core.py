@@ -2772,7 +2772,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     ###########################################################################
     def summary(self, steplist=None, show_all_indices=False,
-                generate_screenshot=True, generate_html=True, generate_pdf=False):
+                generate_screenshot=True, generate_html=True):
         '''
         Prints a summary of the compilation manifest.
 
@@ -2967,9 +2967,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             results_html = os.path.join(web_dir, 'report.html')
             results_pdfsrc = os.path.join(web_dir, 'report.tex')
             results_pdf = os.path.join(web_dir, 'report.pdf')
-            if generate_html or generate_pdf:
-                env = Environment(loader=FileSystemLoader(templ_dir))
             if generate_html:
+                env = Environment(loader=FileSystemLoader(templ_dir))
                 schema = self.schema.copy()
                 schema.prune()
                 pruned_cfg = schema.cfg
@@ -2995,16 +2994,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         img_data = img_data,
                     ))
 
-            if generate_pdf:
-                # TODO: Add LaTeX generation logic or find a way to create similar PDFs with Sphinx/RST.
-                pass
-
             # Try to open the results and layout only if '-nodisplay' is not set.
             # Prioritize PDF, followed by HTML.
-            self.logger.warning(results_pdf)
             if (not self.get('option', 'nodisplay')) and ('DISPLAY' in os.environ):
                 if os.path.isfile(results_pdf):
-                    self.logger.warning('EXISTS')
                     # Open results with whatever application is associated with PDFs on the local system.
                     if sys.platform == 'win32':
                         os.startfile(results_pdf)
@@ -3494,13 +3487,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Execution flow:
         - Start wall timer
-        - Defer job to compute node if using job scheduler
         - Set up working directory + chdir
         - Merge manifests from all input dependancies
         - Write manifest to input directory for convenience
         - Select inputs
         - Copy data from previous step outputs into inputs
         - Check manifest
+        - Defer job to compute node if using job scheduler
         - Run pre_process() function
         - Set environment variables
         - Check EXE version
@@ -4327,7 +4320,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 index_succeeded = False
                 for index in indexlist[step]:
                     stepstr = step + index
-                    if stepstr in status and status[stepstr] != TaskStatus.ERROR:
+                    if status[stepstr] != TaskStatus.ERROR:
                         index_succeeded = True
                         break
 
