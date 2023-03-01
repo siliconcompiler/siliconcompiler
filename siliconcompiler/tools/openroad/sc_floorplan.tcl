@@ -23,6 +23,17 @@ proc design_has_unplaced_ios {} {
 }
 
 ###########################
+# Setup Global Connections
+###########################
+
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} global_connect] } {
+  foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {var} global_connect] {
+    puts "Sourcing global connect configuration: ${global_connect}"
+    source $global_connect
+  }
+}
+
+###########################
 # Initialize floorplan
 ###########################
 
@@ -83,17 +94,6 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task file padring] && \
       }
     }
     utl::error FLW 1 "Design contains unplaced IOs"
-  }
-}
-
-###########################
-# Setup Global Connections
-###########################
-
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} global_connect] } {
-  foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {var} global_connect] {
-    puts "Sourcing global connect configuration: ${global_connect}"
-    source $global_connect
   }
 }
 
