@@ -1,62 +1,13 @@
 Building Your Own SoC
 =====================
 
-SiliconCompiler supports a "zero-install" remote workflow, which lets you write hardware designs on your local machine and build them on cloud servers. We are currently running a free public beta, and the :ref:`remote API <Server API>` is a simple collection of HTTP requests which we publish under an open-source license.
-
-You can use the remote flow to try SiliconCompiler or experiment with hardware design, without going through the trouble of building and installing a full suite of open-source EDA tools on your local machine. This tutorial will walk you through the process of building an ASIC containing one PicoRV32 RISC-V CPU core and 2 kilobytes of SRAM, on an open-source 130nm Skywater process node.
-
-Note that our public beta currently only supports open-source tools and PDKs. You can access the public beta without a signup or login, and it is designed to delete your data after your jobs finish, but it is not intended to process proprietary or restricted intellectual property! Please `review our terms of service <https://www.siliconcompiler.com/terms-of-service>`_, and do not submit IP which you are not allowed to distribute.
+This tutorial will walk you through the process of building an ASIC containing one PicoRV32 RISC-V CPU core and 2 kilobytes of SRAM, on an open-source 130nm Skywater process node.
 
 You can find complete example designs which reflect the contents of this tutorial in the public SiliconCompiler repository, `with RAM <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32_ram>`_ and `without RAM <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_.
 
+See the :ref:`Installation <Installation>` section for information on how to install SiliconCompiler, and the :ref:`Remote Processing <Remote Processing>` section for instructions on setting up the remote workflow.
+
 [TODO / CR feedback: Add a screenshot here (or at the bottom)?]
-
-Installing SiliconCompiler
---------------------------
-
-You must have a recent version of Python3 and its Pip package manager in order to install SiliconCompiler. We recommend that Windows users download Python from `https://python.org/downloads/ <https://python.org/downloads/>`_, rather than the Microsoft Store.
-
-With that, you should be able to install SiliconCompiler directly from PyPi::
-
-    pip install siliconcompiler
-
-If you are using an older operating system which includes Python2 as a default, you may need to run::
-
-    pip3 install siliconcompiler
-
-(TODO: Windows check)
-
-If the installation was successful, you should be able to check which version you have with ``sc -version``::
-
-    $ sc -version
-    0.9.6
-
-Finally, in order to access the cloud beta, you need to tell SiliconCompiler where your remote server is located. We do not currently require login credentials for our public open-source server, so you can simply run::
-
-    sc-configure https://server.siliconcompiler.com
-
-(Optional) Testing SiliconCompiler
-----------------------------------
-
-Before we start building an SoC, you can run a quick example from the command line to check that everything is working::
-
-    echo "module heartbeat #(parameter N = 8)
-       (input clk, input nreset, output reg out);
-       reg [N-1:0] counter_reg;
-       always @ (posedge clk or negedge nreset)
-         if(!nreset) begin
-            counter_reg <= 'b0;
-            out <= 1'b0;
-         end else begin
-            counter_reg[N-1:0] <= counter_reg[N-1:0] + 1'b1;
-            out <= (counter_reg[N-1:0]=={(N){1'b1}});
-         end
-    endmodule" > heartbeat.v
-    echo "create_clock -name clk -period 10 [get_ports {clk}]" > heartbeat.sdc
-    
-    sc heartbeat.v heartbeat.sdc -design heartbeat -target freepdk45_demo -remote
-
-The job should take a few minutes to run, printing the run's status periodically. After it completes, you should see a table of metrics printed in the command line, and you can find a screenshot of the final GDS-II results at [TODO: serverside KLayout screenshot location after export/0].
 
 Download PicoRV32 Verilog Code
 ------------------------------
@@ -248,7 +199,7 @@ Finally, your core build script will need to be updated to import the new SRAM L
     chip.set('option', 'remote', True)
     chip.run()
 
-With all of that done, your top-level build script should take about 15 minutes to run on the cloud servers if they are not too busy. As with the previous designs, you should see periodic updates on its progress, and you should receive a screenshot and metrics summary once the job is complete.
+With all of that done, your top-level build script should take about 20 minutes to run on the cloud servers if they are not too busy, with most of that time spent in the routing task. As with the previous designs, you should see periodic updates on its progress, and you should receive a screenshot and metrics summary once the job is complete.
 
 [TODO / CR feedback: Add a screenshot here (or near the top)?]
 
