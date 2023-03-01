@@ -125,10 +125,19 @@ To install from a bundle, create a Python virtual environment following the inst
    pip install --upgrade pip --no-index --find-links scdeps
    pip install siliconcompiler --no-index --find-links scdeps
 
-Cloud Access
---------------
+Cloud Access (Public)
+---------------------
 
-Remote server access requires a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
+By default, SiliconCompiler will send remote jobs to our public beta servers, after printing a brief reminder that the job is being uploaded to a public server.
+
+You do not need to configure anything to use the :keypath:`option, remote` flag with these public servers, but you can use the ``sc-configure`` command to formalize the configuration or point your installation to a different public server::
+
+    sc-configure https://server.siliconcompiler.com
+
+Cloud Access (Private)
+----------------------
+
+SiliconCompiler also supports private servers which require authentication to access. If you have such a server to connect to, you will need a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
 
 .. code-block:: json
 
@@ -161,8 +170,7 @@ Once you have verified that your remote configuration works, try compiling a sim
 
 .. code-block:: bash
 
-   (venv) curl https://raw.githubusercontent.com/siliconcompiler/siliconcompiler/main/docs/user_guide/examples/heartbeat.v > heartbeat.v
-   (venv) sc heartbeat.v -remote
+   (venv) sc -target asic_demo -remote
 
 Layout Viewer
 -------------
