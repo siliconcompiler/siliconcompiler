@@ -2955,15 +2955,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Call 'show()' to generate a low-res PNG of the design.
             # Need to be able to search for something showable by KLayout,
             # otherwise the extra_options don't make sense.
-            img_tex = '(Design screenshot could not be generated)'
             img_data = None
             if (not self.get('option', 'nodisplay')) and generate_screenshot:
                 screenshot_path = self.show(filename=None, screenshot=True)
                 # Result might not exist if there is no display
                 if screenshot_path and os.path.isfile(screenshot_path):
-                    img_tex = '\\includegraphics[width=\\textwidth]{' \
-                              '%s/_screenshot_job0_export0/screenshot/0/outputs/%s.png}' \
-                              %(os.path.join(web_dir, '..'), self.top())
                     with open(screenshot_path, 'rb') as img_file:
                         img_data = base64.b64encode(img_file.read()).decode('utf-8')
 
