@@ -286,10 +286,11 @@ class DynamicGen(SphinxDirective):
         return True
 
     def document_free_params(self, cfg, reference_prefix, s):
-        self._document_free_params(cfg, 'var', reference_prefix, s)
-        self._document_free_params(cfg, 'file', reference_prefix, s)
+        key_path = ['tool', '<tool>', 'task', '<task>']
+        self._document_free_params(cfg, 'var', key_path+['var'], reference_prefix, s)
+        self._document_free_params(cfg, 'file', key_path+['file'], reference_prefix, s)
 
-    def _document_free_params(self, cfg, type, reference_prefix, s):
+    def _document_free_params(self, cfg, type, key_path, reference_prefix, s):
         if type in cfg:
             cfg = cfg[type]
         else:
@@ -300,12 +301,14 @@ class DynamicGen(SphinxDirective):
         elif type == "file":
             type_heading = "Files"
 
-        table = [[strong('Parameter'), strong('Help')]]
+        table = [[strong('Parameters'), strong('Help')]]
         for key, params in cfg.items():
             if key == "default":
                 continue
 
-            table.append([code(key), para(params["help"])])
+            key_node = nodes.paragraph()
+            key_node += keypath(key_path + [key], self.env.docname, key_text=["...", f"'{type}'", f"'{key}'"])
+            table.append([key_node, para(params["help"])])
 
         if len(table) > 1:
             s += build_section(type_heading, f'{reference_prefix}-{type}')
