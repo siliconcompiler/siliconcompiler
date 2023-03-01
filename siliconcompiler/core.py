@@ -2771,7 +2771,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return all_tasks.difference(non_leaf_tasks)
 
     ###########################################################################
-    def summary(self, steplist=None, show_all_indices=False):
+    def summary(self, steplist=None, show_all_indices=False,
+                generate_screenshot=True, generate_html=True, generate_pdf=False):
         '''
         Prints a summary of the compilation manifest.
 
@@ -2952,57 +2953,107 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             design = self.top()
 
             # Call 'show()' to generate a low-res PNG of the design.
-            img_data = None
             # Need to be able to search for something showable by KLayout,
             # otherwise the extra_options don't make sense.
-            if not self.get('option', 'nodisplay'):
-                result_file = self.show(filename=None, screenshot=True)
+            img_tex = '(Design screenshot could not be generated)'
+            img_data = None
+            if (not self.get('option', 'nodisplay')) and generate_screenshot:
+                screenshot_path = self.show(filename=None, screenshot=True)
                 # Result might not exist if there is no display
-                if result_file and os.path.isfile(result_file):
-                    with open(result_file, 'rb') as img_file:
+                if screenshot_path and os.path.isfile(screenshot_path):
+                    img_tex = '\\includegraphics[width=\\textwidth]{' \
+                              '%s/_screenshot_job0_export0/screenshot/0/outputs/%s.png}' \
+                              %(os.path.join(web_dir, '..'), self.top())
+                    with open(screenshot_path, 'rb') as img_file:
                         img_data = base64.b64encode(img_file.read()).decode('utf-8')
 
-            # Generate results page by passing the Chip manifest into the Jinja2 template.
-            env = Environment(loader=FileSystemLoader(templ_dir))
-            results_page = os.path.join(web_dir, 'report.html')
+            # Generate reports by passing the Chip manifest into the Jinja2 template.
+            results_html = os.path.join(web_dir, 'report.html')
+            results_pdfsrc = os.path.join(web_dir, 'report.tex')
+            results_pdf = os.path.join(web_dir, 'report.pdf')
+            if generate_html or generate_pdf:
+                env = Environment(loader=FileSystemLoader(templ_dir))
+            if generate_html:
+                schema = self.schema.copy()
+                schema.prune()
+                pruned_cfg = schema.cfg
+                if 'history' in pruned_cfg:
+                    del pruned_cfg['history']
+                if 'library' in pruned_cfg:
+                    del pruned_cfg['library']
 
-            schema = self.schema.copy()
-            schema.prune()
-            pruned_cfg = schema.cfg
-            if 'history' in pruned_cfg:
-                del pruned_cfg['history']
-            if 'library' in pruned_cfg:
-                del pruned_cfg['library']
+                # Hardcode the encoding, since there's a Unicode character in a
+                # Bootstrap CSS file inlined in this template. Without this setting,
+                # this write may raise an encoding error on machines where the
+                # default encoding is not UTF-8.
+                with open(results_html, 'w', encoding='utf-8') as wf:
+                    wf.write(env.get_template('sc_report.j2').render(
+                        design = design,
+                        nodes = nodes,
+                        errors = errors,
+                        metrics = metrics,
+                        reports = reports,
+                        manifest = self.schema.cfg,
+                        pruned_cfg = pruned_cfg,
+                        metric_keys = metrics_to_show,
+                        img_data = img_data,
+                    ))
 
-            # Hardcode the encoding, since there's a Unicode character in a
-            # Bootstrap CSS file inlined in this template. Without this setting,
-            # this write may raise an encoding error on machines where the
-            # default encoding is not UTF-8.
-            with open(results_page, 'w', encoding='utf-8') as wf:
-                wf.write(env.get_template('sc_report.j2').render(
-                    design = design,
-                    nodes = nodes,
-                    errors = errors,
-                    metrics = metrics,
-                    reports = reports,
-                    manifest = self.schema.cfg,
-                    pruned_cfg = pruned_cfg,
-                    metric_keys = metrics_to_show,
-                    img_data = img_data,
-                ))
+            if generate_pdf:
+                run_stat = '{\color{OliveGreen} SUCCESS}'
+                tblf = '||c'
+                for i in range(len(nodes)):
+                    tblf += '|c'
+                tblf += '||'
+                tbl_str = ''
+                for step, index in nodes:
+                    tbl_str += ' & \\textbf{%s%s}'%(step, index)
+                    if self.get('flowgraph', flow, step, index, 'status') in [None, TaskStatus.ERROR] and 'SUCCESS' in run_stat:
+                        run_stat = '{\color{Mahogany} BUILD FAILED: Error in %s%s task}'%(step, index)
+                tbl_str += '\\\\\n\\hline\n'
+                for mname in metrics_to_show:
+                    tbl_str += '\\textbf{%s}'%mname
+                    for step, index in nodes:
+                        mval = metrics[step, index][mname]
+                        if mval is None:
+                            tbl_str += ' & - '
+                        else:
+                            tbl_str += ' & ' + str(mval)
+                    tbl_str += '\\\\\n'
+                with open(results_pdfsrc, 'w', encoding='utf-8') as wf:
+                    wf.write(env.get_template('sc_texreport.j2').render(
+                        design = design,
+                        datetime = datetime.datetime.now().strftime("%B %d, %Y %H:%M:%S %Z"),
+                        scroot = os.path.join(self.scroot, '..'),
+                        run_stat = run_stat,
+                        img_render = img_tex,
+                        table_format = tblf,
+                        table_contents = tbl_str,
+                    ))
+                subprocess.run(['pdflatex', '-interaction=nonstopmode', f'-output-directory={web_dir}', results_pdfsrc])
 
             # Try to open the results and layout only if '-nodisplay' is not set.
-            if not self.get('option', 'nodisplay'):
-                try:
-                    webbrowser.get(results_page)
-                except webbrowser.Error:
-                    # Python 'webbrowser' module includes a limited number of popular defaults.
-                    # Depending on the platform, the user may have defined their own with $BROWSER.
-                    if 'BROWSER' in os.environ:
-                        subprocess.run([os.environ['BROWSER'], results_page])
+            # Prioritize PDF, followed by HTML.
+            if (not self.get('option', 'nodisplay')) and ('DISPLAY' in os.environ):
+                if os.path.isfile(results_pdf):
+                    # Open results with whatever application is associated with PDFs on the local system.
+                    if sys.platform == 'win32':
+                        os.startfile(results_pdf)
+                    elif sys.platform == 'darwin':
+                        subprocess.Popen(['open', results_pdf], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     else:
-                        self.logger.warning('Unable to open results page in web browser:\n' +
-                                            os.path.abspath(os.path.join(web_dir, "report.html")))
+                        subprocess.Popen(['xdg-open', results_pdf], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                elif os.path.isfile(results_html):
+                    try:
+                        webbrowser.get(results_html)
+                    except webbrowser.Error:
+                        # Python 'webbrowser' module includes a limited number of popular defaults.
+                        # Depending on the platform, the user may have defined their own with $BROWSER.
+                        if 'BROWSER' in os.environ:
+                            subprocess.Popen([os.environ['BROWSER'], os.path.relpath(results_html)])
+                        else:
+                            self.logger.warning('Unable to open results page in web browser:\n' +
+                                                os.path.abspath(os.path.join(web_dir, "report.html")))
 
     ###########################################################################
     def list_steps(self, flow=None):
@@ -3526,19 +3577,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         wall_start = time.time()
 
         ##################
-        # Defer job to compute node
-        # If the job is configured to run on a cluster, collect the schema
-        # and send it to a compute node for deferred execution.
-        # (Run the initial 'import' stage[s] locally)
-
-        if self.get('option', 'scheduler', 'name', step=step, index=index) and \
-           self.get('flowgraph', flow, step, index, 'input'):
-            # Note: The _deferstep method blocks until the compute node
-            # finishes processing this step, and it sets the active/error bits.
-            _deferstep(self, step, index, status)
-            return
-
-        ##################
         # Directory setup
         in_job = self._get_in_job(step, index)
 
@@ -3638,6 +3676,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if not self.check_manifest():
                 self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
                 self._haltstep(step, index)
+
+        ##################
+        # Defer job to compute node
+        # If the job is configured to run on a cluster, collect the schema
+        # and send it to a compute node for deferred execution.
+        # (Run the initial 'import' stage[s] locally)
+        if self.get('option', 'scheduler', 'name', step=step, index=index) and \
+           self.get('flowgraph', flow, step, index, 'input'):
+            # Note: The _deferstep method blocks until the compute node
+            # finishes processing this step, and it sets the active/error bits.
+            _deferstep(self, step, index, status)
+            return
 
         ##################
         # Run preprocess step for tool
@@ -4308,7 +4358,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 index_succeeded = False
                 for index in indexlist[step]:
                     stepstr = step + index
-                    if status[stepstr] != TaskStatus.ERROR:
+                    if stepstr in status and status[stepstr] != TaskStatus.ERROR:
                         index_succeeded = True
                         break
 

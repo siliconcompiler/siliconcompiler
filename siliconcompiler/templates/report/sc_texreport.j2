@@ -1,0 +1,70 @@
+% Use 'memoir' document class for its large font sizes, to allow hi-res image in the PDF.
+\documentclass[extrafontsizes,60pt]{memoir}
+\usepackage{adjustbox}          % Package which can resize tablular data to fit in an area.
+\usepackage[utf8]{inputenc}     % Package which can handle UTF-8 encoding.
+\usepackage{graphicx}           % Extended interface for graphics inclusion.
+\usepackage[dvipsnames]{xcolor} % Allow a variety of named colors for text, etc.
+\usepackage{geometry}           % Package for setting page dimensions.
+
+% Set page width large enough to show screenshot details.
+\geometry{
+  paperwidth=8192px,
+  margin=42pt
+}
+
+% Start with an empty page.
+\pagestyle{empty}
+\begin{document}
+\hoffset=-1in
+\voffset=-1in
+
+% Use a vertical box to auto-fit the page to the content.
+\setbox0\vbox{\begin{center}
+
+  % Minipages can be used to quickly place blocks of content horizontally.
+  \begin{minipage}{0.7\textwidth}
+    % Top-left: display basic information about the build.
+    \begin{Large}
+      Design: \verb|{{ design }}|
+      \newline \newline
+      Built: {{ datetime }}
+      \newline \newline
+      Result: {{ run_stat }}
+    \end{Large}
+  \end{minipage}
+
+  \begin{minipage}{0.25\textwidth}
+    % Upper-right: SiliconCompiler logo.
+    \includegraphics[width=\textwidth]{ {{ scroot }}/docs/_images/sc_logo_with_text.png}
+  \end{minipage}
+
+  % Linebreak
+  \newline \vspace{0.25in} \newline
+
+  % Screenshot (or message, if the build failed)
+  \begin{minipage}{0.35\textwidth}
+    \begin{center}
+      \begin{adjustbox}{width=0.95\textwidth}
+        {{ img_render }}
+      \end{adjustbox}
+    \end{center}
+  \end{minipage}
+
+  % For vertical rendering, remove ^/v minipages, adjust page/table width, and un-comment.
+  %\newline \vspace{0.25in}
+
+  \begin{adjustbox}{width=0.6\textwidth}
+    % Metrics table.
+    \begin{tabular}{ {{ table_format }} }
+      {{ table_contents }}
+    \end{tabular}
+  \end{adjustbox}
+
+\end{center}}
+
+% In place of an 'end' statement, these lines auto-size the document's height to fit the box's contents.
+% Might only work with pdflatex.
+\pdfpageheight=\dimexpr\ht0+\dp0\relax
+\pdfpagewidth=\wd0
+\shipout\box0
+\stop
