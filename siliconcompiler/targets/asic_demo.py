@@ -1,5 +1,4 @@
 import os
-import shutil
 import siliconcompiler
 
 def setup(chip):
