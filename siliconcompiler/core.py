@@ -4156,7 +4156,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             cur_steplist = self.get('option', 'steplist')
             pre_remote_steplist = {
                 'steplist': cur_steplist,
-                'set': self.get('option', 'steplist', field='set') if cur_steplist else False,
+                'set': self.schema._is_set(self.schema._search('option', 'steplist')),
             }
             remote_preprocess(self, steplist)
 

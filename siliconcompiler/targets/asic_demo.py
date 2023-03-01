@@ -21,7 +21,7 @@ def setup(chip):
 
     # Set design name and source files.
     chip.set('design', design)
-    chip.input(os.path.join(os.path.dirname(__file__), 'asic_demo', f'{design}.v'))
+    chip.input(os.path.join(os.path.dirname(__file__), '..', 'data', f'{design}.v'))
 
 #########################
 if __name__ == "__main__":
