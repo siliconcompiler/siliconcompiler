@@ -2,7 +2,9 @@
 Running SiliconCompiler
 ------------------------------
 
-You can either run remotely in the cloud, or run locally on your machine.
+You can either `run remotely`_ in the cloud, or `run locally`_ on your machine.
+
+.. _run remotely:
 
 Run Remote with Cloud Access
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -45,7 +47,7 @@ Once you have verified that your remote configuration works, try compiling a sim
 
 For more information, see :ref:`Remote Processing`.
 
-.. _Run local:
+.. _run locally:
 
 Run Locally
 ^^^^^^^^^^^
