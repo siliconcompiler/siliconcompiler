@@ -135,7 +135,7 @@ If you find that having all the tool-specific information printed to the screen 
    chip.set('option','quiet',True)
    
 
-Even if you use the :ref:`quiet option <quiet>`, you will still be able to access the tool-specific output from the log file that is saved for each tool. You can find the log files associated with each tool in: ``build/<design>/<jobname>/<tool>/<step>/<logfile>``
+Even if you use the :ref:`quiet option <quiet>`, you will still be able to access the tool-specific output from the log file that is saved for each tool. You can find the log files associated with each tool in: ``build/<design>/<jobname>/<step>/<index>/<step>.log``
 
 
 By default, all SiliconCompiler outputs are placed in the ``build/<design>`` directory.
