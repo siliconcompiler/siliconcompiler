@@ -67,7 +67,7 @@ def setup(chip, mode='batch'):
     # Fixed for tool
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-6445', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-7069', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
 
     # normalizing thread count based on parallelism and local

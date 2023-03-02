@@ -345,7 +345,7 @@ END sky130_ef_io__analog_pad
 #--------EOF---------
 
 MACRO sky130_ef_io__bare_pad
-  CLASS BLOCK ;
+  CLASS COVER ;
   FOREIGN sky130_ef_io__bare_pad ;
   ORIGIN 2.700 2.700 ;
   SIZE 65.400 BY 75.400 ;

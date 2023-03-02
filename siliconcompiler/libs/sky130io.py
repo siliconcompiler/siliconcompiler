@@ -34,6 +34,11 @@ def setup(chip):
     lib.add('output', stackup, 'gds', os.path.join(libdir, 'sky130_fd_io.gds'))
     lib.add('output', stackup, 'gds', os.path.join(libdir, 'sky130_ef_io__gpiov2_pad_wrapped.gds'))
 
+    lib.set('asic', 'cells', 'filler', ['sky130_ef_io__com_bus_slice_1um',
+                                        'sky130_ef_io__com_bus_slice_5um',
+                                        'sky130_ef_io__com_bus_slice_10um',
+                                        'sky130_ef_io__com_bus_slice_20um'])
+
     return lib
 
 #########################
