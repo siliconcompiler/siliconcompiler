@@ -1960,16 +1960,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         waivers = []
 
                     criteria_str = f'{metric}{op}{goal}'
+                    step_desc = f'job {job} with step {step}{index} and task {task}'
                     if not criteria_ok and waivers:
-                        self.logger.warning(f'{item} criteria {criteria_str} unmet by step {step}{index} with task {task}, but found waivers.')
+                        self.logger.warning(f'{item} criteria {criteria_str} unmet by {step_desc}, but found waivers.')
                     elif not criteria_ok:
-                        self.logger.error(f'{item} criteria {criteria_str} unmet by step {step}{index} with task {task}.')
+                        self.logger.error(f'{item} criteria {criteria_str} unmet by {step_desc}.')
                         error = True
 
                     eda_reports = self.find_files('tool', tool, 'task', task, 'report', metric, job=job, step=step, index=index)
 
                     if not eda_reports:
-                        self.logger.error(f'No EDA reports generated for metric {metric} in step {step}{index} with task {task}')
+                        self.logger.error(f'No EDA reports generated for metric {metric} in {step_desc}')
                         error = True
 
                     for report in eda_reports:

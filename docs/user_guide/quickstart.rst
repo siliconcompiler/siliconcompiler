@@ -53,9 +53,9 @@ Directory`, and :ref:`Targets Directory` sections of the reference manual and re
    environment variable ``SCPATH`` pointing at the ``siliconcompiler/``
    directory inside of it:
 
-   .. code-block:: bash
+   .. parsed-literal::
 
-     git clone https://github.com/siliconcompiler/siliconcompiler
+     git clone -b v\ |release| https://github.com/siliconcompiler/siliconcompiler
      export SCPATH=$PWD/siliconcompiler/siliconcompiler
 
    To simplify tool/PDK installation and job scheduling, SiliconCompiler supports a

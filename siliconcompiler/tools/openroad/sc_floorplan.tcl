@@ -13,6 +13,25 @@ proc design_has_unplaced_macros {} {
   return false
 }
 
+proc design_has_unplaced_ios {} {
+  foreach inst [[ord::get_db_block] getInsts] {
+    if {[$inst isPad] && ![$inst isFixed]} {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
+# Setup Global Connections
+###########################
+
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} global_connect] } {
+  foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {var} global_connect] {
+    puts "Sourcing global connect configuration: ${global_connect}"
+    source $global_connect
+  }
+}
 
 ###########################
 # Initialize floorplan
@@ -57,15 +76,25 @@ if {[dict exists $sc_cfg library $sc_mainlib option file openroad_tracks]} {
 }
 
 set do_automatic_pins 1
-if { 0 } {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task file padring] && \
+     [llength [dict get $sc_cfg tool $sc_tool task $sc_task file padring]] > 0 } {
   set do_automatic_pins 0
 
   ###########################
   # Generate pad ring
   ###########################
-  # TODO: implement this if needed
-  # source library config, pad ring config
-  #initialize_padring
+  set padring_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task file padring] 0]
+  puts "Sourcing padring configuration: ${padring_file}"
+  source $padring_file
+
+  if { [design_has_unplaced_ios] } {
+    foreach inst [[ord::get_db_block] getInsts] {
+      if {[$inst isPad] && ![$inst isFixed]} {
+        utl::warn FLW 1 "[$inst getName] has not been placed"
+      }
+    }
+    utl::error FLW 1 "Design contains unplaced IOs"
+  }
 }
 
 ###########################
@@ -73,7 +102,7 @@ if { 0 } {
 ###########################
 
 # Build pin ordering if specified
-set pin_order [dict create]
+set pin_order [dict create 1 [dict create] 2 [dict create] 3 [dict create] 4 [dict create]]
 set pin_placement [list ]
 if {[dict exists $sc_cfg constraint pin]} {
   dict for {name params} [dict get $sc_cfg constraint pin] {
@@ -98,7 +127,7 @@ if {[dict exists $sc_cfg constraint pin]} {
         utl::error FLW 1 "Pin $name doesn't have enough information to perform placement."
       }
 
-      dict append pin_order [lindex $side 0] [lindex $order 0] $name
+      dict lappend pin_order [lindex $side 0] [lindex $order 0] $name
     }
   }
 }
@@ -131,15 +160,18 @@ foreach pin $pin_placement {
   set x_loc [lindex $place 0]
   set y_loc [lindex $place 1]
 
-  # TODO: snapping to grid and extend to edge
   place_pin -pin_name $name \
     -layer $layer \
-    -location "$x_loc $y_loc"
+    -location "$x_loc $y_loc" \
+    -force_to_die_boundary
 }
 
 dict for {side pins} $pin_order {
+  if { [dict size $pins] == 0 } {
+    continue
+  }
   set ordered_pins []
-  dict for {index pin} $$pins {
+  dict for {index pin} $pins {
     lappend ordered_pins {*}$pin
   }
 
@@ -178,13 +210,35 @@ dict for {side pins} $pin_order {
 
   set spacing [expr $edge_length / ([llength $ordered_pins] + 1)]
 
-  set x_loc [lindex $place 0]
-  set y_loc [lindex $place 1]
+  for {set i 0} { $i < [llength $ordered_pins] } { incr i } {
+    set name [lindex $ordered_pins $i]
+    switch -regexp $side {
+      "1" {
+        set x_loc [lindex [ord::get_die_area] 1]
+        set y_loc [expr ($i + 1) * $spacing]
+      }
+      "2" {
+        set x_loc [expr ($i + 1) * $spacing]
+        set y_loc [lindex [ord::get_die_area] 3]
+      }
+      "3" {
+        set x_loc [lindex [ord::get_die_area] 2]
+        set y_loc [expr ($i + 1) * $spacing]
+      }
+      "4" {
+        set x_loc [expr ($i + 1) * $spacing]
+        set y_loc [lindex [ord::get_die_area] 1]
+      }
+      default {
+        utl::error FLW 1 "Side number ($side) is not supported."
+      }
+    }
 
-  # TODO: snapping to grid and extend to edge
-  place_pin -pin_name $name \
-    -layer $layer \
-    -location "$x_loc $y_loc"
+    place_pin -pin_name $name \
+      -layer $layer \
+      -location "$x_loc $y_loc" \
+      -force_to_die_boundary
+  }
 }
 
 ###########################
@@ -298,6 +352,7 @@ foreach tie_type "high low" {
     insert_tiecells [get_tie_cell $tie_type]
   }
 }
+global_connect
 
 ###########################
 # Tap Cells
@@ -307,17 +362,7 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} ifp_tapcell] } {
   set tapcell_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ifp_tapcell] 0]
   puts "Sourcing tapcell file: ${tapcell_file}"
   source $tapcell_file
-}
-
-###########################
-# Global Connections
-###########################
-
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} global_connect] } {
-  foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {var} global_connect] {
-    puts "Sourcing global connect configuration: ${global_connect}"
-    source $global_connect
-  }
+  global_connect
 }
 
 ###########################

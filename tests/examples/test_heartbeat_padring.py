@@ -11,8 +11,8 @@ def test_heartbeat_padring_with_floorplan(setup_example_test, oh_dir):
     from floorplan_build import build_core, build_top
 
     # Run the build, and verify its outputs.
-    build_core()
-    build_top()
+    core = build_core()
+    build_top(core)
     assert os.path.isfile('build/heartbeat/job0/export/0/outputs/heartbeat.gds')
     assert os.path.isfile('build/heartbeat_top/job0/export/0/outputs/heartbeat_top.gds')
 
@@ -24,8 +24,8 @@ def test_heartbeat_padring_without_floorplan(setup_example_test, oh_dir):
     from build import build_core, build_top
 
     # Run the build, and verify its outputs.
-    build_core()
-    build_top()
+    core = build_core()
+    build_top(core)
     assert os.path.isfile('build/heartbeat/job0/export/0/outputs/heartbeat.gds')
     assert os.path.isfile('build/heartbeat_top/job0/export/0/outputs/heartbeat_top.gds')
 

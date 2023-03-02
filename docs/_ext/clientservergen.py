@@ -51,6 +51,7 @@ def add_table_row(prop, tbody):
 class RemoteAPIGen(SphinxDirective):
     def run(self):
         logger = logging.getLogger(__name__)
+        self.env.note_dependency(__file__)
 
         # List of documentation objects to return.
         new_doc = []
