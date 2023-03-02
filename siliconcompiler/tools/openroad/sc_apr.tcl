@@ -314,8 +314,12 @@ if {$sc_task != "floorplan"} {
     }
 
     set layername [$layer getName]
-    set adjustment [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] 0]
-    set_global_routing_layer_adjustment $layername $adjustment
+    if { ![dict exists $sc_cfg pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] } {
+      utl::warn FLW 1 "Missing global routing adjustment for ${layername}"
+    } else {
+      set adjustment [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] 0]
+      set_global_routing_layer_adjustment $layername $adjustment
+    }
   }
 
   set_macro_extension $openroad_grt_macro_extension

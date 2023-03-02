@@ -15,6 +15,7 @@ class Requirements(SphinxDirective):
     def run(self):
         reqs_file = f'{SC_ROOT}/requirements.txt'
         self.env.note_dependency(reqs_file)
+        self.env.note_dependency(__file__)
 
         requirements = []
 
@@ -55,6 +56,7 @@ class RequirementsLicenses(SphinxDirective):
 
     def run(self):
         show_version = 'version' in self.options
+        self.env.note_dependency(__file__)
 
         self.env.note_dependency(f'{SC_ROOT}/setup.py')
         pkgs = pkg_resources.require('siliconcompiler')

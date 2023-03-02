@@ -13,6 +13,8 @@ class SchemaGen(SphinxDirective):
 
     def run(self):
         self.env.note_dependency('siliconcompiler/schema/schema_cfg.py')
+        self.env.note_dependency(__file__)
+        self.env.note_dependency(utils.__file__)
 
         schema = Schema().cfg
 
@@ -71,7 +73,7 @@ class CategorySummary(SphinxDirective):
     option_spec = {'category': str}
 
     def run(self):
-
+        self.env.note_dependency(__file__)
         category = self.options['category']
 
         # List of documentation objects to return.
@@ -88,11 +90,13 @@ class CategorySummary(SphinxDirective):
             prefix.append('default')
 
         for item in chip.getkeys(*prefix):
+            key = para('')
+            key += keypath([*prefix, item], self.env.docname)
             if 'shorthelp' in chip.getkeys(*prefix, item):
                 shorthelp = chip.get(*prefix, item, field='shorthelp')
-                table.append([para(item),para(shorthelp)])
+                table.append([key, para(shorthelp)])
             else:
-                table.append([para(item),para("See Schema")])
+                table.append([key, para("See Schema")])
         section += build_table(table)
         new_doc += section
 
