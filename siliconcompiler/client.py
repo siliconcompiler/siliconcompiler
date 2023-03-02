@@ -15,6 +15,7 @@ import time
 import urllib.parse
 import uuid
 
+from siliconcompiler._metadata import default_server_name
 from siliconcompiler.crypto import *
 from siliconcompiler import utils
 
@@ -175,10 +176,11 @@ def request_remote_run(chip):
     upload_file = os.path.abspath(os.path.join(local_build_dir, 'import.tar.gz'))
 
     # Print a reminder for public beta runs.
-    if 'server.siliconcompiler.com' in remote_run_url:
-        chip.logger.warning("Your job will be uploaded to a public beta server for processing in 5 seconds.\n" \
-                            "WARNING: Please remember that the SiliconCompiler beta is not intended to process proprietary intellectual property. SiliconCompiler beta is not responsible for any proprietary intellectual property that may be uploaded." \
-                           f"Your job's reference ID is: {chip.status['jobhash']}")
+    if default_server_name in remote_run_url:
+        chip.logger.warning("Your job will be uploaded to a public server for processing in 5 seconds.\n")
+        chip.logger.warning("WARNING: Please remember that the SiliconCompiler public servers are not intended to process proprietary intellectual property.")
+        chip.logger.warning("SiliconCompiler is not responsible for any proprietary intellectual property that may be uploaded.\n")
+        chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
         time.sleep(5)
 
     # Make the actual request, streaming the bulk data as a multipart file.

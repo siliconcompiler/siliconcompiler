@@ -3,6 +3,7 @@ version = '0.9.6'
 
 # Default server address for remote runs, if unspecified.
 default_server = 'https://server.siliconcompiler.com'
+default_server_name = default_server.replace('https://', '').strip('/')
 
 # This is the list of significant contributors to SiliconCompiler in
 # chronological order.
