@@ -4135,12 +4135,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # Use the default config file path.
                 cfg_dir = os.path.join(Path.home(), '.sc')
                 cfg_file = os.path.join(cfg_dir, 'credentials')
-            if (not os.path.isdir(cfg_dir)) or (not os.path.isfile(cfg_file)):
-                self.error('Could not find remote server configuration - '
-                    'please run "sc-configure" and enter your server address and '
-                    'credentials.', fatal=True)
-            with open(cfg_file, 'r') as cfgf:
-                self.status['remote_cfg'] = json.loads(cfgf.read())
+            if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
+                with open(cfg_file, 'r') as cfgf:
+                    self.status['remote_cfg'] = json.loads(cfgf.read())
+            else:
+                self.logger.warning('Could not find remote server configuration: defaulting to ' + \
+                                    _metadata.default_server)
+                self.status['remote_cfg'] = { "address": _metadata.default_server }
             if (not 'address' in self.status['remote_cfg']):
                 self.error('Improperly formatted remote server configuration - '
                     'please run "sc-configure" and enter your server address and '
