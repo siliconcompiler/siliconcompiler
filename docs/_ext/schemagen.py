@@ -102,9 +102,83 @@ class CategorySummary(SphinxDirective):
 
         return new_doc
 
+class CategoryGroupTable(SphinxDirective):
+
+    def count_keys(self, schema, *keypath):
+        cfgs = schema.getdict(*keypath)
+        count = 0
+        for key, cfg in cfgs.items():
+            if schema._is_leaf(cfg):
+                count += 1
+            else:
+                count += self.count_keys(schema, *keypath, key)
+
+        return count
+
+    def run(self):
+        self.env.note_dependency(__file__)
+
+        desc = {
+            "option": "Compilation options",
+            "tool": "Individual tool settings",
+            "flowgraph": "Execution flow definition",
+            "pdk": "PDK related settings",
+            "asic": "ASIC related settings",
+            "fpga": "FPGA related settings",
+            "checklist": "Checklist related settings",
+            "constraint": "Design constraint settings",
+            "metric": "Metric tracking",
+            "record": "Compilation history tracking",
+            "package": "Packaging manifest",
+            "datasheet": "Design interface specifications",
+            "unit": "Global units",
+
+            # Nothing to document
+            "library": "",
+            "history": "",
+            "input": "",
+            "output": "",
+            "schemaversion": "",
+            "design": "",
+            "arg": "",
+        }
+
+        schema = Schema()
+
+        # Check if all groups have desc
+        for group in schema.getkeys():
+            if group not in desc:
+                raise ValueError(f"{group} not found in group descriptions")
+
+        # Check if all groups have schema
+        for group in desc.keys():
+            if group not in schema.getkeys():
+                raise ValueError(f"{group} not found in schema")
+
+        table = [[strong('Group'), strong('Parameters'), strong('Description')]]
+
+        total = 0
+        for group in schema.getkeys():
+            text = desc[group]
+            if len(text) == 0:
+                continue
+
+            key = para('')
+            key += keypath([group], self.env.docname)
+
+            count = self.count_keys(schema, group)
+            total += count
+
+            table.append([key, para(f'{count}'), para(text)])
+
+        table.append([strong('Total'), para(f'{total}'), para('')])
+
+        return build_table(table)
+
 def setup(app):
     app.add_directive('schemagen', SchemaGen)
     app.add_directive('schema_category_summary', CategorySummary)
+    app.add_directive('schema_group_summary', CategoryGroupTable)
 
     return {
         'version': '0.1',

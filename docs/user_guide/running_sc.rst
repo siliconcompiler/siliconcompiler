@@ -6,10 +6,21 @@ You can either `run remotely`_ in the cloud, or `run locally`_ on your machine.
 
 .. _run remotely:
 
-Run Remote with Cloud Access
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Cloud Access (Public)
+^^^^^^^^^^^^^^^^^^^^^
 
-Remote server access requires a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password. 
+By default, SiliconCompiler will send remote jobs to our public beta servers, after printing a brief reminder that the job is being uploaded to a public server. You can run a quick self-test to verify that SiliconCompiler was installed successfully::
+
+    sc -target asic_demo -remote
+
+You do not need to configure anything to use the :keypath:`option, remote` flag with these public servers, but you can use the ``sc-configure`` command to specify where SiliconCompiler should send remote jobs::
+
+    sc-configure https://server.siliconcompiler.com
+
+Cloud Access (Private)
+^^^^^^^^^^^^^^^^^^^^^^
+
+SiliconCompiler also supports private servers which require authentication to access. If you have such a server to connect to, you will need a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
 
 .. code-block:: json
 
@@ -42,8 +53,7 @@ Once you have verified that your remote configuration works, try compiling a sim
 
 .. code-block:: bash
 
-   (venv) curl https://raw.githubusercontent.com/siliconcompiler/siliconcompiler/main/docs/user_guide/examples/heartbeat.v > heartbeat.v
-   (venv) sc heartbeat.v -remote
+   (venv) sc -target asic_demo -remote
 
 For more information, see :ref:`Remote Processing`.
 

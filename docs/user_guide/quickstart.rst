@@ -17,7 +17,7 @@ favorite text editor (vim, emacs, atom, notepad, etc) and save it to disk as
    :language: verilog
 
 To constrain the design,  we need to also define a constraints file. Save the
-following snippet as heartbeat.sdc. If you are not familiar with timing constraints,
+following snippet as "heartbeat.sdc". If you are not familiar with timing constraints,
 don't worry about how this will be used in the design for now.
 
 .. literalinclude:: examples/heartbeat/heartbeat.sdc
@@ -80,6 +80,7 @@ your Python virtual environment.
    python heartbeat.py
 
 Alternatively, you can also invoke SiliconCompiler directly from the command line, with the minimum design requirements and PDK as an input, shown below:
+=======
 
 .. literalinclude:: examples/heartbeat/run.sh
    :language: bash

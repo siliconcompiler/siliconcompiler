@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "5e7c6c4294ca9e337d8aa6270e503ff9cf6a8f5c"
+    "git-commit": "9813cb58ac0a854ac28c32e3d0634c628ff49245"
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",

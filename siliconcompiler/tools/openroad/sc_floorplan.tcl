@@ -13,6 +13,25 @@ proc design_has_unplaced_macros {} {
   return false
 }
 
+proc design_has_unplaced_ios {} {
+  foreach inst [[ord::get_db_block] getInsts] {
+    if {[$inst isPad] && ![$inst isFixed]} {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
+# Setup Global Connections
+###########################
+
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} global_connect] } {
+  foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {var} global_connect] {
+    puts "Sourcing global connect configuration: ${global_connect}"
+    source $global_connect
+  }
+}
 
 ###########################
 # Initialize floorplan
@@ -57,25 +76,24 @@ if {[dict exists $sc_cfg library $sc_mainlib option file openroad_tracks]} {
 }
 
 set do_automatic_pins 1
-if { 0 } {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task file padring] && \
+     [llength [dict get $sc_cfg tool $sc_tool task $sc_task file padring]] > 0 } {
   set do_automatic_pins 0
 
   ###########################
   # Generate pad ring
   ###########################
-  # TODO: implement this if needed
-  # source library config, pad ring config
-  #initialize_padring
-}
+  set padring_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task file padring] 0]
+  puts "Sourcing padring configuration: ${padring_file}"
+  source $padring_file
 
-###########################
-# Setup Global Connections
-###########################
-
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} global_connect] } {
-  foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {var} global_connect] {
-    puts "Sourcing global connect configuration: ${global_connect}"
-    source $global_connect
+  if { [design_has_unplaced_ios] } {
+    foreach inst [[ord::get_db_block] getInsts] {
+      if {[$inst isPad] && ![$inst isFixed]} {
+        utl::warn FLW 1 "[$inst getName] has not been placed"
+      }
+    }
+    utl::error FLW 1 "Design contains unplaced IOs"
   }
 }
 
