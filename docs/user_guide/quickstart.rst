@@ -79,8 +79,7 @@ your Python virtual environment.
 
    python heartbeat.py
 
-Alternatively, you can also invoke SiliconCompiler directly from the command line, with the minimum design requirements and PDK as an input, shown below:
-=======
+Alternatively, you can also invoke SiliconCompiler directly from the command line with :ref:`sc`, with the minimum design requirements and PDK as an input, shown below:
 
 .. literalinclude:: examples/heartbeat/run.sh
    :language: bash
@@ -136,20 +135,19 @@ If you find that having all the tool-specific information printed to the screen 
    chip.set('option','quiet',True)
    
 
-Even if you use the :ref:`quiet option <quiet>`, you will still be able to access the tool-specific output from the log file that is saved for each tool. You can find your log files by running:
-
-.. code-block:: bash
-
-   find build/<design>/<jobname>/* -name "\*.log\*"
+Even if you use the :ref:`quiet option <quiet>`, you will still be able to access the tool-specific output from the log file that is saved for each tool. You can find the log files associated with each tool in: ``build/<design>/<jobname>/<tool>/<step>/<logfile>``
 
 
 By default, all SiliconCompiler outputs are placed in the ``build/<design>`` directory.
 
+.. note::
+
+   If you used the :ref:`remote` option, you will only see the summary information and not the detailed results for every tool; this includes a summary pdf with a screenshot of your design and a summary table.
    
 View layout
 ------------
 
-If you have Klayout installed, you can view the output from the :ref:`asicflow` by
+If you have Klayout installed, and not running the remote flow, you can view the output from the :ref:`asicflow` by
 calling :meth:`chip.show() <.show>` from your Python program or by calling the
 :ref:`sc-show` program from the command line as shown below:
 
