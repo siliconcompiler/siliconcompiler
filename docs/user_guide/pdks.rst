@@ -1,34 +1,9 @@
 PDKs
-===================================
+=====
 
-Process Design Kits (PDKs) for leading process nodes generally include hundreds of files, documents, and configuration parameters, resulting in significant startup times in porting a design to a new node. The SiliconCompiler project minimizes per design PDK setup efforts by packaging PDKs as standardized reusable objects and making them available as named modules by the :meth:`.load_pdk()` function. A complete set of supported open PDKs can be found in the :ref:`PDK Directory`. The table below shows the function interfaces supported in setting up PDKs.
+Process Design Kits (PDKs) for leading process nodes generally include hundreds of files, documents, and configuration parameters, resulting in significant startup times in porting a design to a new node. The SiliconCompiler project minimizes per design PDK setup efforts by offering a way to package PDKs as standardized reusable objects, and making them available as named modules which can be loaded by the :meth:`.use()` function.
 
-
-.. list-table::
-   :widths: 10 10 10 10 10 10
-   :header-rows: 1
-
-   * - Function
-     - Description
-     - Arg
-     - Returns
-     - Used by
-     - Required
-
-   * - **setup**
-     - PDK setup function
-     - chip
-     - chip
-     - load_pdk()
-     - yes
-
-   * - **make_docs**
-     - Doc generator
-     - None
-     - chip
-     - sphinx
-     - yes
-
+A complete set of supported open PDKs can be found in the :ref:`PDK Directory`. The table below shows the function interfaces supported in setting up PDKs.
 
 setup(chip)
 -----------------
@@ -45,33 +20,53 @@ An example of some of the fundamental settings are shown below.
     chip.set('pdk', process, 'node', <node_geometry>)
     chip.set('pdk', process, 'version', <version>)
     chip.set('pdk', process, 'stackup', <stackuplist>)
-    chip.set('pdk', process, 'drc', <tool>, <stackup>, 'runset', <file>)
-    chip.set('pdk', process, 'lvs', <tool>, <stackup>, 'runset', <file>)
-    chip.set('pdk', process, 'devmodel', <stackup>, <modeltype>, <tool>, <file>)
+    chip.set('pdk', process, 'drc', 'runset', <tool>, <stackup>, <runset_type>, <file>)
+    chip.set('pdk', process, 'lvs', 'runset', <tool>, <stackup>, <runset_type> <file>)
+    chip.set('pdk', process, 'devmodel', <tool>, <modeltype>, <stackup>, <file>)
 
 To support standard RTL2GDS flows, the PDK setup will also need to specify pointers to routing technology rules, layout abstractions, layer maps, and routing grids as shown in the below example. For a complete set of available PDK parameters, see the :ref:`Schema<SiliconCompiler Schema>`. ::
 
-    chip.set('pdk', process, 'aprtech', <stackup>, <libtype>, 'lef', <file>)
-    chip.set('pdk', process, 'layermap', <stackup>, 'def', 'gds', <file>)
-
-    #Per layer grid setup
-    chip.set('pdk', process, 'grid', <stackup>, <sc_name>, 'name',    <pdk_name>)
-    chip.set('pdk', process, 'grid', <stackup>, <sc_name>, 'xoffset', 0.095)
-    chip.set('pdk', process, 'grid', <stackup>, <sc_name>, 'xpitch',  0.19)
-    chip.set('pdk', process, 'grid', <stackup>, <sc_name>, 'yoffset', 0.07)
-    chip.set('pdk', process, 'grid', <stackup>, <sc_name>, 'ypitch',  0.14)
-    chip.set('pdk', process, 'grid', <stackup>, <sc_name>, 'adj',     1.0)
+    chip.set('pdk', process, 'aprtech', <tool>, <stackup>, <libtype>, 'lef', <file>)
+    chip.set('pdk', process, 'layermap', <tool>, 'def', 'gds', <stackup>, <file>)
 
 make_docs()
 -----------------
-The make_docs() function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup function to populate the schema with all settings::
+The ``make_docs()`` function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup function to populate the schema with all settings::
 
-  def make_docs():
+  def make_docs(chip):
     '''
     PDK description
     '''
 
-    chip = siliconcompiler.Chip('freepdk45')
     setup(chip)
-
     return chip
+
+PDK Modules
+-----------
+
+The table below shows the function interfaces for setting up PDK objects.
+
+.. list-table::
+   :widths: 10 10 10 10 10 10
+   :header-rows: 1
+
+   * - Function
+     - Description
+     - Arg
+     - Returns
+     - Used by
+     - Required
+
+   * - **setup**
+     - PDK setup function
+     - :class:`.Chip`
+     - :class:`.PDK`
+     - :meth:`.use()`
+     - yes
+
+   * - **make_docs**
+     - Doc generator
+     - :class:`.Chip`
+     - :class:`.PDK`
+     - sphinx
+     - no

@@ -29,7 +29,8 @@ For a complete working example, see the `asicflow <https://github.com/siliconcom
 
 make_docs()
 -----------------
-The make_docs() function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup function that populates the appropriate schema settings. ::
+
+The ``make_docs()`` function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup function that populates the appropriate schema settings. ::
 
   def make_docs(chip):
     '''
@@ -42,7 +43,7 @@ The make_docs() function is used by the projects auto-doc generation. The functi
 Flow Modules
 ------------
 
-The table below shows the function interfaces for setting up flows.
+The table below shows the function interfaces for setting up Flow objects.
 
 .. list-table::
    :widths: 10 10 10 10 10 10
@@ -65,7 +66,7 @@ The table below shows the function interfaces for setting up flows.
    * - **make_docs**
      - Doc generator
      - :class:`.Chip`
-     - :class:`.Library`
+     - :class:`.Flow`
      - sphinx
      - no
 
