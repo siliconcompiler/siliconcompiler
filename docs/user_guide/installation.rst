@@ -168,13 +168,13 @@ installs packages on your machine.
 
 Finally, to clone and install SiliconCompiler, run the following:
 
-.. code-block:: bash
+.. parsed-literal::
 
-   git clone https://github.com/siliconcompiler/siliconcompiler
-   cd siliconcompiler
-   pip install -r requirements.txt
-   python -m pip install -e .
-   export SCPATH=<the full path for your siliconcompiler/siliconcompiler directory>
+   (venv) git clone -b v\ |release| https://github.com/siliconcompiler/siliconcompiler
+   (venv) cd siliconcompiler
+   (venv) pip install -r requirements.txt
+   (venv) python -m pip install -e .
+   (venv) export SCPATH=<the full path for your siliconcompiler/siliconcompiler directory>
 
 .. include:: installation/installation_confirm_version.rst
 	     
