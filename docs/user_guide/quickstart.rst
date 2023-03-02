@@ -3,7 +3,7 @@ Quickstart guide
 
 In this quickstart guide, we will illustrate core concepts of the project by
 translating a simple Verilog based design into a GDSII IC layout database using
-the freepdk45 virtual PDK.
+the :ref:`freepdk45` virtual PDK.
 
 Design
 -------
@@ -17,7 +17,7 @@ favorite text editor (vim, emacs, atom, notepad, etc) and save it to disk as
    :language: verilog
 
 To constrain the design,  we need to also define a constraints file. Save the
-following snippet as heartbeat.sdc. If you are not familiar with timing constraints,
+following snippet as "heartbeat.sdc". If you are not familiar with timing constraints,
 don't worry about it for now.
 
 .. literalinclude:: examples/heartbeat/heartbeat.sdc
@@ -80,7 +80,7 @@ your Python virtual environment.
    python heartbeat.py
 
 Alternatively, the simple heartbeat example can be run calling the
-SiliconCompiler 'sc' program directly from the command line.
+SiliconCompiler :ref:`sc` program directly from the command line.
 
 .. literalinclude:: examples/heartbeat/run.sh
    :language: bash

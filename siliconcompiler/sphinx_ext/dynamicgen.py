@@ -233,8 +233,6 @@ class DynamicGen(SphinxDirective):
         directory.'''
         modules = []
         for importer, modname, _ in pkgutil.iter_modules([module_dir]):
-            if modname in ('sc_floorplan'):
-                continue
             module = importer.find_module(modname).load_module(modname)
             modules.append((module, modname))
 

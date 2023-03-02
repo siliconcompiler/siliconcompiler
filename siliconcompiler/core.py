@@ -4155,8 +4155,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error('Cannot pass "-step" parameter into remote flow. A steplist including '
                            'an "import" task and at least one EDA task is required.',
                            fatal=True)
+            cur_steplist = self.get('option', 'steplist')
             pre_remote_steplist = {
-                'steplist': self.get('option', 'steplist'),
+                'steplist': cur_steplist,
                 'set': self.schema._is_set(self.schema._search('option', 'steplist')),
             }
             remote_preprocess(self, steplist)
