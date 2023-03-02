@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Get directory of setup scripts
+src_path=$(cd -- "$(dirname "$0")/../../../" >/dev/null 2>&1 ; pwd -P)
+
 # Install dependencies
 yum --disablerepo=epel -y update ca-certificates
 yum install -y libuuid-devel zlib-devel java-11-openjdk-devel graphviz xorg-x11-server-Xvfb wget
@@ -13,9 +16,9 @@ rpm -i klayout-0.28.3-0.x86_64.rpm
 pip3 install orderedmultidict
 
 # Build surelog (install prefix defined outside file)
-git clone $(python3 setup/_tools.py --tool surelog --field git-url) surelog
+git clone $(python3 ${src_path}/setup/_tools.py --tool surelog --field git-url) surelog
 cd surelog
-git checkout $(python3 setup/_tools.py --tool surelog --field git-commit)
+git checkout $(python3 ${src_path}/setup/_tools.py --tool surelog --field git-commit)
 git submodule update --init --recursive
 
 export LDFLAGS="-lrt"
