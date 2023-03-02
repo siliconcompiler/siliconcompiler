@@ -1,7 +1,7 @@
 Quickstart guide
 ===================================
 
-In this quickstart guide, we will illustrate core concepts of the project by
+In this quickstart guide, we will illustrate core concepts of this chip implementation build flow by
 translating a simple Verilog based design into a GDSII IC layout database using
 the :ref:`freepdk45` virtual PDK.
 
@@ -18,7 +18,7 @@ favorite text editor (vim, emacs, atom, notepad, etc) and save it to disk as
 
 To constrain the design,  we need to also define a constraints file. Save the
 following snippet as "heartbeat.sdc". If you are not familiar with timing constraints,
-don't worry about it for now.
+don't worry about how this will be used in the design for now.
 
 .. literalinclude:: examples/heartbeat/heartbeat.sdc
 
@@ -44,7 +44,7 @@ Directory`, and :ref:`Targets Directory` sections of the reference manual and re
 
 .. note::
 
-   The example assumes that :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>` are all correctly
+   This example assumes that :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>` are all correctly
    installed. Links to individual tool installation instructions and platform
    limitations can be found in the :ref:`Tools directory`.
 
@@ -79,17 +79,12 @@ your Python virtual environment.
 
    python heartbeat.py
 
-Alternatively, the simple heartbeat example can be run calling the
-SiliconCompiler :ref:`sc` program directly from the command line.
+Alternatively, you can also invoke SiliconCompiler directly from the command line with :ref:`sc`, with the minimum design requirements and PDK as an input, shown below:
 
 .. literalinclude:: examples/heartbeat/run.sh
    :language: bash
 
-If the compilation was successful, you should see a flood of tool specific
-information printed to the screen followed by a summary resembling the summary
-shown below. Set the :keypath:`option,quiet` parameter to True of you want to
-redirect this information to a log file. By default, all SiliconCompiler outputs
-are placed in the ``build/<design>`` directory.
+If the compilation was successful, you should see a flood of tool-specific information printed to the screen, followed by a summary resembling the summary shown below.
 
 ::
 
@@ -133,10 +128,26 @@ are placed in the ``build/<design>`` directory.
    tasktime            0.35         1.4           0.83          0.6           0.8           1.71          2.69          0.66          2.2          0.74
 
 
+If you find that having all the tool-specific information printed to the screen is too noisy, you can set the :keypath:`option,quiet` parameter to True.
+
+.. code-block:: bash
+
+   chip.set('option','quiet',True)
+   
+
+Even if you use the :ref:`quiet option <quiet>`, you will still be able to access the tool-specific output from the log file that is saved for each tool. You can find the log files associated with each tool in: ``build/<design>/<jobname>/<step>/<index>/<step>.log``
+
+
+By default, all SiliconCompiler outputs are placed in the ``build/<design>`` directory.
+
+.. note::
+
+   If you used the :ref:`remote` option, you will only see the summary information and not the detailed results for every tool; this includes a summary pdf with a screenshot of your design and a summary table.
+   
 View layout
 ------------
 
-If you have Klayout installed, you can view the output from the :ref:`asicflow` by
+If you have Klayout installed, and not running the remote flow, you can view the output from the :ref:`asicflow` by
 calling :meth:`chip.show() <.show>` from your Python program or by calling the
 :ref:`sc-show` program from the command line as shown below:
 
