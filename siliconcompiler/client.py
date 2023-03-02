@@ -178,7 +178,7 @@ def request_remote_run(chip):
     # Print a reminder for public beta runs.
     if default_server_name in remote_run_url:
         chip.logger.warning("Your job will be uploaded to a public server for processing in 5 seconds.\n")
-        chip.logger.warning("WARNING: Please remember that the SiliconCompiler public servers are not intended to process proprietary intellectual property.")
+        chip.logger.warning("Please remember that the SiliconCompiler public servers are not intended to process proprietary intellectual property.")
         chip.logger.warning("SiliconCompiler is not responsible for any proprietary intellectual property that may be uploaded.\n")
         chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
         time.sleep(5)
