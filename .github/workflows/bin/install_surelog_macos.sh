@@ -9,6 +9,7 @@ cd surelog
 git checkout $(python3 setup/_tools.py --tool surelog --field git-commit)
 git submodule update --init --recursive
 
-export ADDITIONAL_CMAKE_OPTIONS=-DPython3_ROOT_DIR=${pythonLocation}
+# Point to Python, build universal binary (supporting Intel and Apple Silicon-based Macs)
+export ADDITIONAL_CMAKE_OPTIONS="-DPython3_ROOT_DIR=${pythonLocation} -DCMAKE_OSX_ARCHITECTURES=x86_64;arm64"
 make
 make install PREFIX=$GITHUB_WORKSPACE/siliconcompiler/tools/surelog
