@@ -8,7 +8,7 @@ synthesizable Verilog.
 
 Documentation: https://www.chisel-lang.org/chisel3/docs/introduction.html
 
-Sources: https://github.com/chipsalliance/chisel3
+Sources: https://github.com/chipsalliance/chisel
 
 Installation: The Chisel plugin relies on having the Scala Build Tool (sbt)
 installed. Instructions: https://www.scala-sbt.org/download.html.
