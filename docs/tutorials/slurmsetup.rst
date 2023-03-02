@@ -197,8 +197,3 @@ There are a few restrictions to be aware of if you decide to set up a more compl
 * Clustered jobs must be run from a host which is acting as the "control node" for a Slurm cluster.
 
 * The build directory must be placed in a location which is accessible to all hosts in the cluster. If you have multiple hosts in your cluster, they will need to share a networked storage drive using a protocol such as NFS.
-
-Troubleshooting
-+++++++++++++++
-
-**TODO**
