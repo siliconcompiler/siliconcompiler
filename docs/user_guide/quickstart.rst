@@ -3,7 +3,7 @@ Quickstart guide
 
 In this quickstart guide, we will illustrate core concepts of the project by
 translating a simple Verilog based design into a GDSII IC layout database using
-the freepdk45 virtual PDK.
+the :ref:`freepdk45` virtual PDK.
 
 Design
 -------
