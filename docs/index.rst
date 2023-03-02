@@ -37,7 +37,6 @@ Welcome to SiliconCompiler's documentation!
    :caption: Tutorials
    :numbered:
 
-   tutorials/zerosoc
    tutorials/contribution
    tutorials/parallel
    tutorials/slurmsetup
@@ -45,6 +44,7 @@ Welcome to SiliconCompiler's documentation!
    tutorials/chisel
    tutorials/bambu
    tutorials/bluespec
+   tutorials/hierarchical_flow
 
 .. toctree::
    :maxdepth: 3
