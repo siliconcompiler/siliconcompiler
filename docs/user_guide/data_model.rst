@@ -201,66 +201,8 @@ To handle complex scenarios required by advanced PDKs, the Schema supports dynam
             standardized and specified on a per tool basis. An example of pexmodel
             type is 'fastcap'.""")
 
-The SiliconCompiler Schema is roughly divided into the following major sub-groups:
+The SiliconCompiler Schema is divided into the following major sub-groups:
 
-.. list-table::
-   :widths: 10 10 50
-   :header-rows: 1
-
-   * - Group
-     - Parameters
-     - Description
-
-   * - **option**
-     - 30
-     - Compilation options
-
-   * - **tool**
-     - 24
-     - Individual tool settings
-
-   * - **flowgraph**
-     - 10
-     - Execution flow definition
-
-   * - **pdk**
-     - 42
-     - PDK related settings
-
-   * - **asic**
-     - 20
-     - ASIC related settings
-
-   * - **fpga**
-     - 6
-     - FPGA related settings
-
-   * - **constraint**
-     - 33
-     - Advanced timing analysis settings
-
-   * - **metric**
-     - 45
-     - Metric tracking
-
-   * - **record**
-     - 18
-     - Compilation history tracking
-
-   * - **package**
-     - 31
-     - Packaging manifest
-
-   * - **datasheet**
-     - 41
-     - Design interface specifications
-
-   * - **units**
-     - 9
-     - Global units
-
-   * - **total**
-     - 350
-     -
+.. schema_group_summary::
 
 Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information. Another good resource is the schema configuration file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema/schema_cfg.py>`_.
