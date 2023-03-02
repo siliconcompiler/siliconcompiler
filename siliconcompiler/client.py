@@ -126,7 +126,7 @@ def remote_run(chip):
                   chip.logger.info("Job is still running (%d seconds, step: %s)."%(
                                    int(time.monotonic() - step_start), cur_step))
                   if cur_log:
-                      chip.logger.info(f"Last 10 lines of logfile:\n{cur_log}\n")
+                      chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
               else:
                   chip.logger.info(f"Job is still running (%d seconds, step: unknown)"%(
                                    int(time.monotonic() - step_start)))
@@ -173,6 +173,13 @@ def request_remote_run(chip):
                    stderr=subprocess.STDOUT,
                    cwd=local_build_dir)
     upload_file = os.path.abspath(os.path.join(local_build_dir, 'import.tar.gz'))
+
+    # Print a reminder for public beta runs.
+    if 'server.siliconcompiler.com' in remote_run_url:
+        chip.logger.warning("Your job will be uploaded to a public beta server for processing in 5 seconds.\n" \
+                            "WARNING: Please remember that the SiliconCompiler beta is not intended to process proprietary intellectual property. SiliconCompiler beta is not responsible for any proprietary intellectual property that may be uploaded." \
+                           f"Your job's reference ID is: {chip.status['jobhash']}")
+        time.sleep(5)
 
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
