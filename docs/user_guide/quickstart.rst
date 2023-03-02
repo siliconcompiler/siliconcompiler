@@ -1,13 +1,13 @@
 Quickstart guide
 ===================================
 
-In this quickstart guide, we will illustrate core concepts of the project by
+In this quickstart guide, we will illustrate core concepts of this chip implementation build flow by
 translating a simple Verilog based design into a GDSII IC layout database using
 the freepdk45 virtual PDK.
 
 Design
 -------
-As a case study we will use the simple "heartbeat" design shown below. The heartbeat
+As a case study we will use the toy "heartbeat" design shown below. The heartbeat
 module is a free running counter that creates a single clock cycle pulse
 ("heartbeat") every time the counter rolls over. Copy paste the code into your
 favorite text editor (vim, emacs, atom, notepad, etc) and save it to disk as
@@ -18,7 +18,7 @@ favorite text editor (vim, emacs, atom, notepad, etc) and save it to disk as
 
 To constrain the design,  we need to also define a constraints file. Save the
 following snippet as heartbeat.sdc. If you are not familiar with timing constraints,
-don't worry about it for now.
+don't worry about how this will be used in the design for now.
 
 .. literalinclude:: examples/heartbeat/heartbeat.sdc
 
@@ -26,7 +26,7 @@ Setup
 -----------------
 
 To address the complex process of modern hardware compilation, the SiliconCompiler
-schema includes over 300 parameters. For this simple example, we only need a small
+schema includes over 300 parameters. For this toy example, we only need a small
 fraction of these parameters. The code snippet below illustrates the use of the
 :ref:`Python API<Core API>` to set up and run a compilation. To run the example,
 copy paste the code into your text editor and save it to disk as "heartbeat.py".
@@ -44,7 +44,7 @@ Directory`, and :ref:`Targets Directory` sections of the reference manual and re
 
 .. note::
 
-   The example assumes that :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>` are all correctly
+   This example assumes that :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>` are all correctly
    installed. Links to individual tool installation instructions and platform
    limitations can be found in the :ref:`Tools directory`.
 
@@ -79,17 +79,12 @@ your Python virtual environment.
 
    python heartbeat.py
 
-Alternatively, the simple heartbeat example can be run calling the
-SiliconCompiler 'sc' program directly from the command line.
+Alternatively, you can also invoke SiliconCompiler directly from the command line, with the minimum design requirements and PDK as an input, shown below:
 
 .. literalinclude:: examples/heartbeat/run.sh
    :language: bash
 
-If the compilation was successful, you should see a flood of tool specific
-information printed to the screen followed by a summary resembling the summary
-shown below. Set the :keypath:`option,quiet` parameter to True of you want to
-redirect this information to a log file. By default, all SiliconCompiler outputs
-are placed in the ``build/<design>`` directory.
+If the compilation was successful, you should see a flood of tool-specific information printed to the screen, followed by a summary resembling the summary shown below.
 
 ::
 
@@ -133,6 +128,23 @@ are placed in the ``build/<design>`` directory.
    tasktime            0.35         1.4           0.83          0.6           0.8           1.71          2.69          0.66          2.2          0.74
 
 
+If you find that having all the tool-specific information printed to the screen is too noisy, you can set the :keypath:`option,quiet` parameter to True.
+
+.. code-block:: bash
+
+   chip.set('option','quiet',True)
+   
+
+Even if you use the :ref:`quiet option <quiet>`, you will still be able to access the tool-specific output from the log file that is saved for each tool. You can find your log files by running:
+
+.. code-block:: bash
+
+   find build/<design>/<jobname>/* -name "\*.log\*"
+
+
+By default, all SiliconCompiler outputs are placed in the ``build/<design>`` directory.
+
+   
 View layout
 ------------
 
