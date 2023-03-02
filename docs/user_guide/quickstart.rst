@@ -3,11 +3,11 @@ Quickstart guide
 
 In this quickstart guide, we will illustrate core concepts of this chip implementation build flow by
 translating a simple Verilog based design into a GDSII IC layout database using
-the freepdk45 virtual PDK.
+the :ref:`freepdk45` virtual PDK.
 
 Design
 -------
-As a case study we will use the toy "heartbeat" design shown below. The heartbeat
+As a case study we will use the simple "heartbeat" design shown below. The heartbeat
 module is a free running counter that creates a single clock cycle pulse
 ("heartbeat") every time the counter rolls over. Copy paste the code into your
 favorite text editor (vim, emacs, atom, notepad, etc) and save it to disk as
@@ -26,7 +26,7 @@ Setup
 -----------------
 
 To address the complex process of modern hardware compilation, the SiliconCompiler
-schema includes over 300 parameters. For this toy example, we only need a small
+schema includes over 300 parameters. For this simple example, we only need a small
 fraction of these parameters. The code snippet below illustrates the use of the
 :ref:`Python API<Core API>` to set up and run a compilation. To run the example,
 copy paste the code into your text editor and save it to disk as "heartbeat.py".
