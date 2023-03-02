@@ -26,67 +26,67 @@ Table summarizing mandatory parameter type and value fields.
      - Description
      - Values
 
-   * - **type**
+   * - :term:`type`
      - Parameter type
      - file, dir, str, float, bool, int, [], enum, tuple
 
-   * - **enum**
+   * - :term:`enum`
      - List of legal strings for enum type
      - List of Strings
 
-   * - **unit**
+   * - :term:`unit`
      - Implied unit for parameter value
      - String
 
-   * - **defvalue**
+   * - :term:`defvalue`
      - Default schema value
      - Type dependent
 
-   * - **node**
+   * - :term:`node`
      - Dictionary of fields based on step & index keys
      - Dictionary
 
-   * - **pernode**
+   * - :term:`pernode`
      - Enables/disables setting of value on a per node basis
      - 'never', 'required', 'optional'
 
-   * - **lock**
+   * - :term:`lock`
      - Enable/disable for set()/add() methods
      - True / False
 
-   * - **scope**
+   * - :term:`scope`
      - Scope of parameter in schema
      - 'global', 'job'
 
-   * - **require**
+   * - :term:`require`
      - Flow based use requirements
      - String
 
-   * - **switch**
+   * - :term:`switch`
      - Mapping of parameter to a CLI switch
      - String
 
-   * - **shorthelp**
+   * - :term:`shorthelp`
      - Short single line help string.
      - String
 
-   * - **help**
+   * - :term:`help`
      - Multi-line documentation string
      - String
 
-   * - **example**
+   * - :term:`example`
      - Usage examples for CLI and API
      - String
 
-   * - **notes**
+   * - :term:`notes`
      - User entered 'notes'/'disclaimers' about value being set.
      - String
 
-   * - **hashalgo**
+   * - :term:`hashalgo`
      - Hashing algorithm used (files only)
      - sha256,md5,...
 
-   * - **copy**
+   * - :term:`copy`
      - Whether to copy files into build directory (files only)
      - True / False
 
@@ -100,23 +100,23 @@ Each parameter's node dictionary may contain some or all of the following fields
      - Description
      - Legal Values
 
-   * - **value**
+   * - :term:`value`
      - Parameter value
      - Type dependent
 
-   * - **signature**
+   * - :term:`signature`
      - Author signature key
      - String or List of Strings, type dependent
 
-   * - **author**
+   * - :term:`author`
      - File author (files only)
      - String
 
-   * - **date**
+   * - :term:`date`
      - File date stamp (files only)
      - String
 
-   * - **filehash**
+   * - :term:`filehash`
      - File hash value (files only)
      - String
 
