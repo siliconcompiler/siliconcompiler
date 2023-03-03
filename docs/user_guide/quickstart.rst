@@ -2,13 +2,13 @@
 Quickstart guide
 ================
 
-After following the :ref:`installation` instructions, you can either `run remotely`_ in the cloud, or `run locally`_ on your machine. The run instructions below will use a simple :ref:`asic_demo` using the :ref:`skywater130` PDK (set up from  :ref:`installation`).
+After following the :ref:`installation` instructions, you can either `run remotely`_ in the cloud, or `run locally`_ on your machine. The run instructions below will use :ref:`asic_demo`, a simple design run in an ASIC flow, using the :ref:`skywater130` PDK (set up from  :ref:`installation`).
 
 .. _run remotely:
 
 Remote Run
 -----------
-You can run in the cloud with either `private`_ or `public`_ beta servers. To see the details of how remote processing works, see :ref:`here <remote processing>`.
+SiliconCompiler supports running jobs in the cloud on either `private`_ or `public`_ servers. We are currently running a public beta server which anybody can use. To see the details of how remote processing works, see :ref:`here <remote processing>`.
 
 
 .. _public:
@@ -42,7 +42,7 @@ SiliconCompiler also supports private servers which require authentication to ac
    "password": "your-key"
    }
 
-Use a text editor to create the credentials file. Alternatively you can use :ref:`sc-configure` app to generate it from the command line.
+You can use a text editor to create the credentials file, or you can run :ref:`sc-configure` from the command line and follow the prompts.
 
 .. code-block:: console
 
