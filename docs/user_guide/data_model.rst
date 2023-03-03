@@ -19,7 +19,7 @@ The SiliconCompiler Schema is a data structure that stores all configurations an
 Table summarizing mandatory parameter type and value fields.
 
 .. list-table::
-   :widths: 10 25 50
+   :widths: 20 50 30
    :header-rows: 1
 
    * - Field
@@ -93,7 +93,7 @@ Table summarizing mandatory parameter type and value fields.
 Each parameter's node dictionary may contain some or all of the following fields, and may be set on a per-step/index based on the parameter's 'pernode' setting. Within the 'node' dictionary, the reserved keyword 'global' is used to represent a setting that applies to all steps or indices.
 
 .. list-table::
-   :widths: 10 25 50
+   :widths: 20 50 30
    :header-rows: 1
 
    * - Field
