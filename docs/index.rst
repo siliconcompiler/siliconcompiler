@@ -40,7 +40,7 @@ Welcome to SiliconCompiler's documentation!
    tutorials/zerosoc
    tutorials/contribution
    tutorials/parallel
-   tutorials/remote_soc
+   tutorials/picorv32_ram
    tutorials/slurmsetup
    tutorials/migen
    tutorials/chisel
