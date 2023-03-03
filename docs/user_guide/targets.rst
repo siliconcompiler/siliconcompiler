@@ -7,7 +7,7 @@ The :meth:`.load_target()` function takes in a string ``targetname``. Similar to
 
 All target modules must contain a function called ``setup()``, which takes in a :class:`.Chip` object and can modify the Chip's schema parameters in any way. It's common for targets to load at least one flow, a PDK and at least one standard cell library if the design is being built as an ASIC. They can also set up default design parameters and tool options. Targets should also include a ``make_docs()`` function which provides a descriptive docstring and returns a :class:`.Chip` object with the target loaded.
 
-SC supports additional levels of encapsulation through PDK, library, and flow modules. Unlike targets, these modules are imported as Python libraries and pulled into the :class:`.Chip` object with the :ref:`.use()` method. See the :ref:`PDK<PDKs>`, :ref:`Library<Libraries>`, and :ref:`Flow<Flows>` User Guide pages to learn more about what is expected to be configured in each of these modules.
+SC supports additional levels of encapsulation through PDK, library, and flow modules. Unlike targets, these modules are imported as Python libraries and pulled into the :class:`.Chip` object with the :meth:`.use()` method. See the :ref:`PDK<PDKs>`, :ref:`Library<Libraries>`, and :ref:`Flow<Flows>` User Guide pages to learn more about what is expected to be configured in each of these modules.
 
 Generally, these functions will be called by targets, and then a user will only have to call :meth:`.load_target()` in their build script.  However, the :meth:`run()` function requires all mandatory flowgraph, pdk, and tool settings to be defined prior to execution, so if a partial target is loaded, additional setup may be required.
 

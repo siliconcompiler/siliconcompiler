@@ -24,7 +24,7 @@ An example of some of the fundamental settings are shown below.
     chip.set('pdk', process, 'lvs', 'runset', <tool>, <stackup>, <runset_type> <file>)
     chip.set('pdk', process, 'devmodel', <tool>, <modeltype>, <stackup>, <file>)
 
-To support standard RTL2GDS flows, the PDK setup will also need to specify pointers to routing technology rules, layout abstractions, layer maps, and routing grids as shown in the below example. For a complete set of available PDK parameters, see the :keypath:`pdk` section of the :class:`.Schema`. ::
+To support standard RTL2GDS flows, the PDK setup will also need to specify pointers to routing technology rules, layout abstractions, layer maps, and routing grids as shown in the below example. For a complete set of available PDK parameters, see the :keypath:`pdk` section of the :ref:`Schema <SiliconCompiler Schema>`. ::
 
     chip.set('pdk', process, 'aprtech', <tool>, <stackup>, <libtype>, 'lef', <file>)
     chip.set('pdk', process, 'layermap', <tool>, 'def', 'gds', <stackup>, <file>)
