@@ -1,7 +1,7 @@
 Chisel frontend
 ================
 
-SiliconCompiler has a :ref:`Chisel <chisel>` frontend that enables you to build Chisel designs for any supported SC target.  To get started using Chisel with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and install sbt from `here <https://www.scala-sbt.org/download.html>`_.
+SiliconCompiler has a :ref:`Chisel <chisel>` frontend that enables you to build Chisel designs for any supported SC target.  To get started using Chisel with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and install sbt from `here <https://www.scala-sbt.org/download.html>`_. For Ubuntu 20.04, we've additionally provided a `setup script <https://github.com/siliconcompiler/siliconcompiler/blob/main/setup/install-chisel.sh>`_.
 
 To build a Chisel design, the only things you need to do differently from a configuration perspective are:
 

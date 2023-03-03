@@ -8,7 +8,6 @@ def setup(chip):
     process = 'skywater130'
     libname = 'sky130io'
     stackup = '5M1LI'
-    corner = 'typical'
 
     lib = siliconcompiler.Library(chip, libname)
 
@@ -25,13 +24,20 @@ def setup(chip):
     # pdk
     lib.set('option', 'pdk', 'skywater130')
 
-    lib.set('output', corner, 'nldm', os.path.join(libdir, 'sky130_dummy_io.lib'))
+    for corner in ['slow', 'typical', 'fast']:
+        # Only one corner provided
+        lib.set('output', corner, 'nldm', os.path.join(libdir, 'sky130_dummy_io.lib'))
     lib.set('output', stackup, 'lef', os.path.join(libdir, 'sky130_ef_io.lef'))
 
     # Need both GDS files: ef relies on fd one
     lib.add('output', stackup, 'gds', os.path.join(libdir, 'sky130_ef_io.gds'))
     lib.add('output', stackup, 'gds', os.path.join(libdir, 'sky130_fd_io.gds'))
     lib.add('output', stackup, 'gds', os.path.join(libdir, 'sky130_ef_io__gpiov2_pad_wrapped.gds'))
+
+    lib.set('asic', 'cells', 'filler', ['sky130_ef_io__com_bus_slice_1um',
+                                        'sky130_ef_io__com_bus_slice_5um',
+                                        'sky130_ef_io__com_bus_slice_10um',
+                                        'sky130_ef_io__com_bus_slice_20um'])
 
     return lib
 

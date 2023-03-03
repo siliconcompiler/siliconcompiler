@@ -13,6 +13,8 @@ class SchemaGen(SphinxDirective):
 
     def run(self):
         self.env.note_dependency('siliconcompiler/schema/schema_cfg.py')
+        self.env.note_dependency(__file__)
+        self.env.note_dependency(utils.__file__)
 
         schema = Schema().cfg
 
@@ -71,7 +73,7 @@ class CategorySummary(SphinxDirective):
     option_spec = {'category': str}
 
     def run(self):
-
+        self.env.note_dependency(__file__)
         category = self.options['category']
 
         # List of documentation objects to return.
@@ -88,19 +90,95 @@ class CategorySummary(SphinxDirective):
             prefix.append('default')
 
         for item in chip.getkeys(*prefix):
+            key = para('')
+            key += keypath([*prefix, item], self.env.docname)
             if 'shorthelp' in chip.getkeys(*prefix, item):
                 shorthelp = chip.get(*prefix, item, field='shorthelp')
-                table.append([para(item),para(shorthelp)])
+                table.append([key, para(shorthelp)])
             else:
-                table.append([para(item),para("See Schema")])
+                table.append([key, para("See Schema")])
         section += build_table(table)
         new_doc += section
 
         return new_doc
 
+class CategoryGroupTable(SphinxDirective):
+
+    def count_keys(self, schema, *keypath):
+        cfgs = schema.getdict(*keypath)
+        count = 0
+        for key, cfg in cfgs.items():
+            if schema._is_leaf(cfg):
+                count += 1
+            else:
+                count += self.count_keys(schema, *keypath, key)
+
+        return count
+
+    def run(self):
+        self.env.note_dependency(__file__)
+
+        desc = {
+            "option": "Compilation options",
+            "tool": "Individual tool settings",
+            "flowgraph": "Execution flow definition",
+            "pdk": "PDK related settings",
+            "asic": "ASIC related settings",
+            "fpga": "FPGA related settings",
+            "checklist": "Checklist related settings",
+            "constraint": "Design constraint settings",
+            "metric": "Metric tracking",
+            "record": "Compilation history tracking",
+            "package": "Packaging manifest",
+            "datasheet": "Design interface specifications",
+            "unit": "Global units",
+
+            # Nothing to document
+            "library": "",
+            "history": "",
+            "input": "",
+            "output": "",
+            "schemaversion": "",
+            "design": "",
+            "arg": "",
+        }
+
+        schema = Schema()
+
+        # Check if all groups have desc
+        for group in schema.getkeys():
+            if group not in desc:
+                raise ValueError(f"{group} not found in group descriptions")
+
+        # Check if all groups have schema
+        for group in desc.keys():
+            if group not in schema.getkeys():
+                raise ValueError(f"{group} not found in schema")
+
+        table = [[strong('Group'), strong('Parameters'), strong('Description')]]
+
+        total = 0
+        for group in schema.getkeys():
+            text = desc[group]
+            if len(text) == 0:
+                continue
+
+            key = para('')
+            key += keypath([group], self.env.docname)
+
+            count = self.count_keys(schema, group)
+            total += count
+
+            table.append([key, para(f'{count}'), para(text)])
+
+        table.append([strong('Total'), para(f'{total}'), para('')])
+
+        return build_table(table)
+
 def setup(app):
     app.add_directive('schemagen', SchemaGen)
     app.add_directive('schema_category_summary', CategorySummary)
+    app.add_directive('schema_group_summary', CategoryGroupTable)
 
     return {
         'version': '0.1',

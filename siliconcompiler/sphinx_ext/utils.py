@@ -121,7 +121,7 @@ def is_leaf(schema):
         return is_leaf(schema['default'])
     return False
 
-def keypath(key_path, refdoc):
+def keypath(key_path, refdoc, key_text=None):
     '''Helper function for displaying Schema keypaths.'''
     text_parts = []
     key_parts = []
@@ -147,6 +147,8 @@ def keypath(key_path, refdoc):
         # Not leaf
         text_parts.append('...')
 
+    if key_text:
+        text_parts = key_text
     text = f"[{', '.join(text_parts)}]"
     refid = get_ref_id('param-'+'-'.join(key_parts))
 
