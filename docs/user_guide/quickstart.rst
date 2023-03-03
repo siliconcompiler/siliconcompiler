@@ -1,158 +1,131 @@
-Quickstart guide
-===================================
 
-In this quickstart guide, we will illustrate core concepts of this chip implementation build flow by
-translating a simple Verilog based design into a GDSII IC layout database using
-the :ref:`freepdk45` virtual PDK.
+Quickstart
+==========
 
-Design
--------
-As a case study we will use the simple "heartbeat" design shown below. The heartbeat
-module is a free running counter that creates a single clock cycle pulse
-("heartbeat") every time the counter rolls over. Copy paste the code into your
-favorite text editor (vim, emacs, atom, notepad, etc) and save it to disk as
-"heartbeat.v".
+After following the :ref:`installation` instructions, you can either `run remotely`_ in the cloud, or `run locally`_ on your machine. The run instructions below will use a simple :ref:`asic demo` using the :ref:`freepdk45` virtual PDK (set up from  :ref:`installation`).
 
-.. literalinclude:: examples/heartbeat/heartbeat.v
-   :language: verilog
+.. _run remotely:
 
-To constrain the design,  we need to also define a constraints file. Save the
-following snippet as "heartbeat.sdc". If you are not familiar with timing constraints,
-don't worry about how this will be used in the design for now.
+Remote Run
+-----------
+You can run in the cloud with either `private`_ or `public`_ beta servers. To see the details of how remote processing works, see :ref:`here <remote processing>`.
 
-.. literalinclude:: examples/heartbeat/heartbeat.sdc
 
-Setup
------------------
+.. _public:
 
-To address the complex process of modern hardware compilation, the SiliconCompiler
-schema includes over 300 parameters. For this simple example, we only need a small
-fraction of these parameters. The code snippet below illustrates the use of the
-:ref:`Python API<Core API>` to set up and run a compilation. To run the example,
-copy paste the code into your text editor and save it to disk as "heartbeat.py".
+Public Cloud Access
+^^^^^^^^^^^^^^^^^^^^
 
-.. literalinclude:: examples/heartbeat/heartbeat.py
+By default, SiliconCompiler will send remote jobs to our public beta servers, after printing a brief reminder that the job is being uploaded to a public server. You can run a quick self-test to verify that SiliconCompiler was installed successfully::
 
-Much of the complexity of setting up a hardware compilation flow is abstracted away
-from the user through the :meth:`.load_target` function which sets up a large number of PDK,
-flow, and tool parameters based on a target setup module. To understand the
-complete target configuration, see the :ref:`Flows Directory`, :ref:`PDK
-Directory`, and :ref:`Targets Directory` sections of the reference manual and read the source code for
-`asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_,
-`freepdk45 <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/pdks/freepdk45.py>`_, and
-`freepdk45_demo <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/freepdk45_demo.py>`_.
+    sc -target asic_demo -remote
+
+Skip to `remote run results`_ to see the expected output.
+
+You do not need to configure anything to use the :ref:`remote` flag with these public servers, but you can use the :ref:`sc-configure` command to specify where SiliconCompiler should send remote jobs::
+
+    sc-configure https://server.siliconcompiler.com
+
+
+.. _private:
+
+Private Cloud Access
+^^^^^^^^^^^^^^^^^^^^^
+
+SiliconCompiler also supports private servers which require authentication to access. If you have such a server to connect to, you will need a credentials text file located at `~/.sc/credentials` on Linux or macOS, or at `C:\\Users\\USERNAME\\.sc\\credentials` on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
+
+.. code-block:: json
+
+   {
+   "address": "your-server",
+   "username": "your-username",
+   "password": "your-key"
+   }
+
+Use a text editor to create the credentials file. Alternatively you can use :ref:`sc-configure` app to generate it from the command line.
+
+.. code-block:: console
+
+  (venv) sc-configure
+  Remote server address: your-server
+  Remote username: your-username
+  Remote password: your-key
+  Remote configuration saved to: /home/<USER>/.sc/credentials
+
+
+To verify that your credentials file and server is configured correctly, run the :ref:`sc-ping` command.
+
+.. code-block:: console
+
+  (venv) sc-ping
+  User myname validated successfully!
+  Remaining compute time: 1440.00 minutes
+  Remaining results bandwidth: 5242880 KiB
+
+
+Once you have verified that your remote configuration works, try compiling a simple design:
+
+.. code-block:: bash
+
+   (venv) sc -target asic_demo -remote
+
+
+.. _remote run results:
+
+Remote Run Results
+^^^^^^^^^^^^^^^^^^
+
+.. include:: quickstart/quickstart_banner.rst
+
+As run goes through each step of the flow, a message will be printed to the screen every 30 seconds.
+
+.. include:: quickstart/quickstart_summary.rst
+
+All design outputs are located in ``build/<design>/<jobname>``, and you will be able to find a report with a screenshot of the demo design and the summary table.
+
+   
+.. _run locally:
+
+Local Run
+----------
+
+If you wish to run locally, you will need to install some external tool dependencies to start. Take a look at :ref:`External Tools` for a list of tools which you may want to have.
 
 .. note::
 
-   This example assumes that :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>` are all correctly
-   installed. Links to individual tool installation instructions and platform
+   The minimum set of tools required for an ASIC flow are: :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>`. Links to individual tool installation instructions and platform
    limitations can be found in the :ref:`Tools directory`.
 
-   It also requires downloading and pointing SC to :ref:`FreePDK45 <freepdk45>`, which is bundled
-   with the SiliconCompiler repo. To install, clone the repo and set up an
-   environment variable ``SCPATH`` pointing at the ``siliconcompiler/``
-   directory inside of it:
-
-   .. parsed-literal::
-
-     git clone -b v\ |release| https://github.com/siliconcompiler/siliconcompiler
-     export SCPATH=$PWD/siliconcompiler/siliconcompiler
-
-   To simplify tool/PDK installation and job scheduling, SiliconCompiler supports a
-   "-remote" option, which directs the compiler to send all steps to a remote
-   server for processing. The "-remote" option relies on a credentials file
-   located at ``~/.sc/credentials`` on Linux or macOS, or
-   at ``C:\\Users\\USERNAME\\.sc\\credentials`` on Windows, which is generated using :ref:`sc-configure`.
-
-   Remote processing option is enabled by setting the :keypath:`option,remote`
-   parameter to True. ::
-
-     chip.set('option', 'remote', True)
-
-Compilation
-------------
-
-To compile the example, simply execute the 'heartbeat.py' program from
-your Python virtual environment.
+Once you have these tools installed, try compiling a simple design:
 
 .. code-block:: bash
 
-   python heartbeat.py
-
-Alternatively, you can also invoke SiliconCompiler directly from the command line with :ref:`sc`, with the minimum design requirements and PDK as an input, shown below:
-
-.. literalinclude:: examples/heartbeat/run.sh
-   :language: bash
-
-If the compilation was successful, you should see a flood of tool-specific information printed to the screen, followed by a summary resembling the summary shown below.
-
-::
-
-   SUMMARY:
-
-   design : heartbeat
-   params : None
-   jobdir : <...>
-   foundry : virtual
-   process : freepdk45
-   targetlibs : nangate45
-
-                     import0        syn0      floorplan0      physyn0        place0         cts0         route0         dfm0        export0      export1
-   errors               0            0             0             0             0             0             0             0             0            0
-   warnings             1            75            16            0             0             2             7             18            1            0
-   drvs                ---          ---            0             0             0             0             0             0            ---          ---
-   unconstrained       ---          ---            1             1             1             1             1             1            ---          ---
-   cellarea            ---          67.0         76.076        76.076         79.8         85.386        85.386        85.386         ---          ---
-   totalarea           ---          ---         614.992       614.992       614.992       614.992       614.992       614.992         ---          ---
-   utilization         ---          ---         0.123702      0.123702      0.129758      0.138841      0.138841      0.138841        ---          ---
-   peakpower           ---          ---      6.93981e-06   6.93981e-06   7.74635e-06   1.54335e-05   1.53541e-05   1.47438e-05        ---          ---
-   leakagepower        ---          ---      1.18215e-06   1.18215e-06   1.38328e-06   1.64165e-06   1.64165e-06   1.64165e-06        ---          ---
-   holdpaths           ---          ---            0             0             0             0             0             0            ---          ---
-   setuppaths          ---          ---            0             0             0             0             0             0            ---          ---
-   holdslack           ---          ---        0.0575973     0.0575973     0.0656163     0.0665752     0.0670199      0.06596         ---          ---
-   holdwns             ---          ---           0.0           0.0           0.0           0.0           0.0           0.0           ---          ---
-   holdtns             ---          ---           0.0           0.0           0.0           0.0           0.0           0.0           ---          ---
-   setupslack          ---          ---         9.68597       9.68597       9.67944       9.67789       9.67996       9.68388         ---          ---
-   setupwns            ---          ---           0.0           0.0           0.0           0.0           0.0           0.0           ---          ---
-   setuptns            ---          ---           0.0           0.0           0.0           0.0           0.0           0.0           ---          ---
-   macros              ---          ---            0             0             0             0             0             0            ---          ---
-   cells               ---           24            58            58            58            61            61            61           ---          ---
-   registers           ---           9             9             9             9             9             9             9            ---          ---
-   buffers             ---          ---            1             1             1             4             4             4            ---          ---
-   pins                ---          ---            3             3             3             3             3             3            ---          ---
-   nets                ---          ---            37            37            37            40            40            40           ---          ---
-   vias                ---          ---           ---           ---           ---           ---           185           ---           ---          ---
-   wirelength          ---          ---           ---           ---           ---           ---          212.0          ---           ---          ---
-   memory          27222016.0   30126080.0    95330304.0    89309184.0   127594496.0   102363136.0   708177920.0    97525760.0   395513856.0   81055744.0
-   exetime             0.21         0.51          0.41          0.31          0.51          1.42          2.36          0.31          1.24         0.41
-   tasktime            0.35         1.4           0.83          0.6           0.8           1.71          2.69          0.66          2.2          0.74
+    (venv) cd $SCPATH/../examples/heartbeat
+    (venv) sc -target asic_demo
 
 
-If you find that having all the tool-specific information printed to the screen is too noisy, you can set the :keypath:`option,quiet` parameter to True.
+.. include:: quickstart/quickstart_banner.rst
 
-.. code-block:: bash
-
-   chip.set('option','quiet',True)
-   
-
-Even if you use the :ref:`quiet option <quiet>`, you will still be able to access the tool-specific output from the log file that is saved for each tool. You can find the log files associated with each tool in: ``build/<design>/<jobname>/<step>/<index>/<step>.log``
+.. include:: quickstart/quickstart_summary.rst
 
 
-By default, all SiliconCompiler outputs are placed in the ``build/<design>`` directory.
+By default, only the summary of each step is printed, in order to not clutter up the screen with tool-specific output. If you wish to see the output from each tool, you can find the log files associated with each tool in: ``build/<design>/<jobname>/<step>/<index>/<step>.log``
 
-.. note::
+If you wish to see all the tool-specific information printed onto the screen, you can turn the :ref:`quiet` option off.
 
-   If you used the :ref:`remote` option, you will only see the summary information and not the detailed results for every tool; this includes a summary pdf with a screenshot of your design and a summary table.
-   
-View layout
-------------
+View Design
+^^^^^^^^^^^^
+For viewing IC layout files (DEF, GDSII) we recommend installing the open source multi-platform Klayout viewer (available for Windows, Linux, and macOS). Installation instructions for klayout can be found in the :ref:`tools directory <klayout>`.
 
-If you have Klayout installed, and not running the remote flow, you can view the output from the :ref:`asicflow` by
-calling :meth:`chip.show() <.show>` from your Python program or by calling the
-:ref:`sc-show` program from the command line as shown below:
+
+If you have :ref:`Klayout <klayout>` installed, at the end of your run, a Klayout window should have popped up with your completed design.
+
+If you have closed that window and want to reference it again, you can view the output from the :ref:`asicflow` by
+by calling :ref:`sc-show` directly from the command line as shown below:
 
 .. code-block:: bash
 
    (venv) sc-show -design heartbeat
 
 .. image:: _images/heartbeat.png
+
