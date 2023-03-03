@@ -22,6 +22,7 @@ def setup(chip):
     section of this file for details about these models.
 
     More information:
+
     * https://eda.ncsu.edu/freepdk/freepdk45/
     '''
 

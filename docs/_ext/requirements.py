@@ -71,6 +71,7 @@ class RequirementsLicenses(SphinxDirective):
         else:
             entries = [[strong('Name'), strong('License')]]
 
+        packages = {}
         for pkg in pkg_data:
             name = pkg['Name']
             if name not in requirements:
@@ -81,9 +82,12 @@ class RequirementsLicenses(SphinxDirective):
             version = pkg['Version']
             license = pkg['License']
             if show_version:
-                entries.append([p, para(version), para(license)])
+                packages[name] = [p, para(version), para(license)]
             else:
-                entries.append([p, para(license)])
+                packages[name] = [p, para(license)]
+
+        for pkg in sorted(packages.keys()):
+            entries.append(packages[pkg])
 
         body = build_table(entries)
         return body
