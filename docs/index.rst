@@ -20,7 +20,6 @@ Welcome to SiliconCompiler's documentation!
    user_guide/programming_model
    user_guide/execution_model
    user_guide/remote_processing
-   user_guide/package_management
    user_guide/tools
    user_guide/pdks
    user_guide/flows
@@ -37,7 +36,6 @@ Welcome to SiliconCompiler's documentation!
    :caption: Tutorials
    :numbered:
 
-   tutorials/zerosoc
    tutorials/contribution
    tutorials/parallel
    tutorials/slurmsetup
@@ -53,7 +51,6 @@ Welcome to SiliconCompiler's documentation!
 
    reference_manual/schema
    reference_manual/core_api
-   reference_manual/sup_api
    reference_manual/server_api
    reference_manual/floorplan_api
    reference_manual/apps
