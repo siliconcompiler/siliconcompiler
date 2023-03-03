@@ -21,7 +21,7 @@ We have a copy of the core CPU module's Verilog at `examples/picorv32/picorv32.v
 Build the PicoRV32 Core using SiliconCompiler
 ---------------------------------------------
 
-Before we add the complexity of a RAM macro block, let's build the core design using the open-source :ref:`Skywater 130<skywater130-demo>` PDK. Copy the following build script into the same directory which you copied ``picorv32.v`` into:
+Before we add the complexity of a RAM macro block, let's build the core design using the open-source :ref:`Skywater 130 <skywater130_demo>` PDK. Copy the following build script into the same directory which you copied ``picorv32.v`` into:
 
 .. code-block:: python
     :caption: <project_dir>/picorv32.py
@@ -83,7 +83,7 @@ Once you have a GDS and LEF file for your RAM macro, create a new directory call
 
 You will also need a "blackbox" Verilog file to assure the synthesis tools that the RAM module exists: you can call this file ``sky130_sram_2k.bb.v``, and place it in your ``sram/`` directory. You don't need a full hardware description of the RAM block to generate an ASIC design, but the open-source workflow needs some basic information about the module:
 
-.. code-block:: python
+.. code-block:: verilog
     :caption: <project_dir>/sram/sky130_sram_2k.bb.v
 
     (* blackbox *)
@@ -110,7 +110,7 @@ You will also need a "blackbox" Verilog file to assure the synthesis tools that 
 
 Next, you need to create a top-level Verilog module containing one ``picorv32`` CPU core, one ``sky130_sram_2k`` memory, and signal wiring to connect their I/O ports together. Note that for the sake of brevity, this module does not include some optional parameters and signals. Check `our picorv32_ram example <https://github.com/siliconcompiler/siliconcompiler/blob/main/examples/picorv32_ram/picorv32_top.v>`_ for a more complete ``picorv32_top`` declaration:
 
-.. code-block:: python
+.. code-block:: verilog
     :caption: <project_dir>/picorv32_top.v
 
     `timescale 1 ns / 1 ps
