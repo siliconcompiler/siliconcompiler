@@ -37,9 +37,9 @@ Welcome to SiliconCompiler's documentation!
    :numbered:
 
    tutorials/zerosoc
-   tutorials/remote_soc
    tutorials/contribution
    tutorials/parallel
+   tutorials/remote_soc
    tutorials/slurmsetup
    tutorials/migen
    tutorials/chisel

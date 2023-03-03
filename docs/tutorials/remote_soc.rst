@@ -16,14 +16,12 @@ The heart of any digital design is its HDL code, typically written in a language
 
 PicoRV32 is an open-source implementation of a small RISC-V CPU core, the sort you might find in a low-power microcontroller. Its source code, license, and various tooling can be found `in its GitHub repository <https://github.com/YosysHQ/picorv32>`_.
 
-The repository contains many files, but the core CPU design is located in a single file called ``picorv32.v`` at the root of the repository.
-
-Create a new directory for this project, and copy the ``picorv32.v`` file into it.
+We have a copy of the core CPU module's Verilog at `examples/picorv32/picorv32.v <https://github.com/siliconcompiler/siliconcompiler/blob/main/examples/picorv32/picorv32.v>`_. Create a new directory for this project, and copy the ``picorv32.v`` file into it.
 
 Build the PicoRV32 Core using SiliconCompiler
 ---------------------------------------------
 
-Before we add the complexity of a RAM macro block, let's build the core design using the open-source Skywater130 PDK. Copy the following build script into the same directory which you copied ``picorv32.v`` into::
+Before we add the complexity of a RAM macro block, let's build the core design using the open-source :ref:`Skywater 130<skywater130-demo>` PDK. Copy the following build script into the same directory which you copied ``picorv32.v`` into::
 
     import siliconcompiler
 
@@ -35,7 +33,11 @@ Before we add the complexity of a RAM macro block, let's build the core design u
 
 If you run that example as a Python script, it should take approximately 10-15 minutes to run if the servers are not too busy. We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area. Once the job finishes, you should receive a screenshot of your final design, and a report containing metrics related to the build in the ``build/picorv32/job0/`` directory.
 
-For the full GDS-II results and intermediate build artifacts, you can install the EDA tools on your local system, and run the same Python build script with the :keypath:`option, remote` parameter set to ``False``. We are not returning the full results during this early beta period because we want to minimize bandwidth, and we believe that our public beta is currently best suited for rapid prototyping and design exploration.
+For the full GDS-II results and intermediate build artifacts, you can install the EDA tools on your local system, and run the same Python build script with the :keypath:`option, remote` parameter set to ``False``.
+
+.. note::
+
+    We are not returning the full results during this early beta period because we want to minimize bandwidth, and we believe that our public beta is currently best suited for rapid prototyping and design exploration.
 
 Adding an SRAM block
 --------------------
@@ -44,7 +46,7 @@ A CPU core is not very useful without any memory. Indeed, a real system-on-chip 
 
 In this tutorial, we'll take the first step by adding a small (2 kilobyte) SRAM block and wiring it to the CPU's memory interface. This will teach you how to import and place a hard IP block in your design.
 
-The open-source Skywater130 PDK does not currently include foundry-published memory macros. Instead, they have a set of OpenRAM configurations which are blessed by the maintainers. You can use `those configurations <https://github.com/VLSIDA/OpenRAM/tree/stable/technology/sky130>`_ to generate RAM macros from scratch if you are willing to install the `OpenRAM utility <https://github.com/VLSIDA/OpenRAM>`_, or you can `download pre-built files <https://github.com/VLSIDA/sky130_sram_macros>`_ which have been published under a permissive license. We will use the ``sky130_sram_2kbyte_1rw1r_32x512_8`` block in this example.
+The open-source Skywater130 PDK does not currently include foundry-published memory macros. Instead, they have a set of OpenRAM configurations which are blessed by the maintainers. You can use `those configurations <https://github.com/VLSIDA/OpenRAM/tree/stable/technology/sky130>`_ to generate RAM macros from scratch if you are willing to install the `OpenRAM utility <https://github.com/VLSIDA/OpenRAM>`_, or you can `download pre-built files <https://github.com/VLSIDA/sky130_sram_macros>`_. We will use the `sky130_sram_2kbyte_1rw1r_32x512_8 <https://github.com/VLSIDA/sky130_sram_macros/tree/main/sky130_sram_2kbyte_1rw1r_32x512_8>` block in `this example.
 
 Once you have a GDS and LEF file for your RAM macro, create a new directory called ``sram/`` in same location as your PicoRV32 build files, and copy the macro files there. Then, create a Python script called ``sky130_sram_2k.py`` in that ``sram/`` directory to describe the RAM macro in a format which can be imported by SiliconCompiler::
 
