@@ -3,7 +3,7 @@ Building Your Own SoC
 
 This tutorial will walk you through the process of building an ASIC containing one PicoRV32 RISC-V CPU core and 2 kilobytes of SRAM, on an open-source 130nm Skywater process node, with SiliconCompiler's remote workflow:
 
-.. image:: _images/picorv32_ram_report.png
+.. image:: ../_images/picorv32_ram_report.png
 
 We will walk through the process of downloading the design files and writing a build script, but for your reference, you can find complete example designs which reflect the contents of this tutorial in the public SiliconCompiler repository. The first part of the tutorial will cover building the CPU core `without RAM <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_, and the second part will describe how to `add an SRAM block <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_.
 
@@ -21,7 +21,10 @@ We have a copy of the core CPU module's Verilog at `examples/picorv32/picorv32.v
 Build the PicoRV32 Core using SiliconCompiler
 ---------------------------------------------
 
-Before we add the complexity of a RAM macro block, let's build the core design using the open-source :ref:`Skywater 130<skywater130-demo>` PDK. Copy the following build script into the same directory which you copied ``picorv32.v`` into::
+Before we add the complexity of a RAM macro block, let's build the core design using the open-source :ref:`Skywater 130<skywater130-demo>` PDK. Copy the following build script into the same directory which you copied ``picorv32.v`` into:
+
+.. code-block:: python
+    :caption: <project_dir>/picorv32.py
 
     import siliconcompiler
 
@@ -33,7 +36,7 @@ Before we add the complexity of a RAM macro block, let's build the core design u
 
 If you run that example as a Python script, it should take approximately 20 minutes to run if the servers are not too busy. We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area. Once the job finishes, you should receive a screenshot of your final design, and a report containing metrics related to the build in ``build/picorv32/job0/report.pdf``. SiliconCompiler will try to open the file after the job completes, but it may not be able to do so if you are running in a headless environment.
 
-.. image:: _images/picorv32_render.png
+.. image:: ../_images/picorv32_report.png
 
 For the full GDS-II results and intermediate build artifacts, you can install the EDA tools on your local system, and run the same Python build script with the :keypath:`option, remote` parameter set to ``False``.
 
@@ -50,12 +53,15 @@ In this tutorial, we'll take the first step by adding a small (2 kilobyte) SRAM 
 
 The open-source Skywater130 PDK does not currently include foundry-published memory macros. Instead, they have a set of OpenRAM configurations which are blessed by the maintainers. You can use `those configurations <https://github.com/VLSIDA/OpenRAM/tree/stable/technology/sky130>`_ to generate RAM macros from scratch if you are willing to install the `OpenRAM utility <https://github.com/VLSIDA/OpenRAM>`_, or you can `download pre-built files <https://github.com/VLSIDA/sky130_sram_macros>`_.
 
-We will use the `sky130_sram_2kbyte_1rw1r_32x512_8 <https://github.com/VLSIDA/sky130_sram_macros/tree/main/sky130_sram_2kbyte_1rw1r_32x512_8>` block in this example. You can download the required files through GitHub's website, or using a tool like  ``curl``::
+We will use the `sky130_sram_2kbyte_1rw1r_32x512_8 <https://github.com/VLSIDA/sky130_sram_macros/tree/main/sky130_sram_2kbyte_1rw1r_32x512_8>`_ block in this example. You can download the required files through GitHub's website, or using a tool like  ``curl``::
 
     curl https://raw.githubusercontent.com/VLSIDA/sky130_sram_macros/main/sky130_sram_2kbyte_1rw1r_32x512_8/sky130_sram_2kbyte_1rw1r_32x512_8.gds > sky130_sram_2kbyte_1rw1r_32x512_8.gds
     curl https://raw.githubusercontent.com/VLSIDA/sky130_sram_macros/main/sky130_sram_2kbyte_1rw1r_32x512_8/sky130_sram_2kbyte_1rw1r_32x512_8.lef > sky130_sram_2kbyte_1rw1r_32x512_8.lef
 
-Once you have a GDS and LEF file for your RAM macro, create a new directory called ``sram/`` in same location as your PicoRV32 build files, and move the macro files there. Then, create a Python script called ``sky130_sram_2k.py`` in that ``sram/`` directory to describe the RAM macro in a format which can be imported by SiliconCompiler::
+Once you have a GDS and LEF file for your RAM macro, create a new directory called ``sram/`` in same location as your PicoRV32 build files, and move the macro files there. Then, create a Python script called ``sky130_sram_2k.py`` in that ``sram/`` directory to describe the RAM macro in a format which can be imported by SiliconCompiler:
+
+.. code-block:: python
+    :caption: <project_dir>/sram/sky130_sram_2k.py
 
     import siliconcompiler
 
@@ -75,7 +81,10 @@ Once you have a GDS and LEF file for your RAM macro, create a new directory call
 
         return lib
 
-You will also need a "blackbox" Verilog file to assure the synthesis tools that the RAM module exists: you can call this file ``sky130_sram_2k.bb.v``, and place it in your ``sram/`` directory. You don't need a full hardware description of the RAM block to generate an ASIC design, but the open-source workflow needs some basic information about the module::
+You will also need a "blackbox" Verilog file to assure the synthesis tools that the RAM module exists: you can call this file ``sky130_sram_2k.bb.v``, and place it in your ``sram/`` directory. You don't need a full hardware description of the RAM block to generate an ASIC design, but the open-source workflow needs some basic information about the module:
+
+.. code-block:: python
+    :caption: <project_dir>/sram/sky130_sram_2k.bb.v
 
     (* blackbox *)
     module sky130_sram_2kbyte_1rw1r_32x512_8(
@@ -99,7 +108,10 @@ You will also need a "blackbox" Verilog file to assure the synthesis tools that 
       );
     endmodule
 
-Next, you need to create a top-level Verilog module containing one ``picorv32`` CPU core, one ``sky130_sram_2k`` memory, and signal wiring to connect their I/O ports together. Note that for the sake of brevity, this module does not include some optional parameters and signals. Check `our picorv32_ram example <https://github.com/siliconcompiler/siliconcompiler/blob/main/examples/picorv32_ram/picorv32_top.v>`_ for a more complete ``picorv32_top`` declaration::
+Next, you need to create a top-level Verilog module containing one ``picorv32`` CPU core, one ``sky130_sram_2k`` memory, and signal wiring to connect their I/O ports together. Note that for the sake of brevity, this module does not include some optional parameters and signals. Check `our picorv32_ram example <https://github.com/siliconcompiler/siliconcompiler/blob/main/examples/picorv32_ram/picorv32_top.v>`_ for a more complete ``picorv32_top`` declaration:
+
+.. code-block:: python
+    :caption: <project_dir>/picorv32_top.v
 
     `timescale 1 ns / 1 ps
 
@@ -165,7 +177,10 @@ Next, you need to create a top-level Verilog module containing one ``picorv32`` 
         );
     endmodule
 
-Finally, your core build script will need to be updated to import the new SRAM Library, and specify some extra parameters such as die size and macro placement::
+Finally, your core build script will need to be updated to import the new SRAM Library, and specify some extra parameters such as die size and macro placement:
+
+.. code-block:: python
+    :caption: <project_dir>/picorv32_top.py
 
     import siliconcompiler
 
@@ -221,7 +236,7 @@ With all of that done, your project directory tree should look something like th
 
 Your ``picorv32_top.py`` build script should take about 20 minutes to run on the cloud servers if they are not too busy, with most of that time spent in the routing task. As with the previous designs, you should see periodic updates on its progress, and you should receive a screenshot and metrics summary once the job is complete:
 
-.. image:: _images/picorv32_ram_report.png
+.. image:: ../_images/picorv32_ram_report.png
 
 Extending your design
 ---------------------
