@@ -1,6 +1,6 @@
 
-Quickstart
-==========
+Quickstart guide
+================
 
 After following the :ref:`installation` instructions, you can either `run remotely`_ in the cloud, or `run locally`_ on your machine. The run instructions below will use a simple :ref:`asic_demo` using the :ref:`freepdk45` virtual PDK (set up from  :ref:`installation`).
 
