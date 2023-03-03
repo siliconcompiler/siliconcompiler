@@ -23,7 +23,9 @@ To perform a minimal self-test using the remote flow, you can run the following 
     pip install siliconcompiler
     sc -target asic_demo -remote
 
-The job should only take a few minutes to run if the servers aren't too busy, and once it completes, you should receive a PDF file containing a screenshot and metrics for the build results. The self-test design is a simple 8-bit counter, so your results should look like a small block of digital logic.
+The job should only take a few minutes to run if the servers aren't too busy, and once it completes, you should receive a PDF file containing a screenshot and metrics for the build results. The self-test design is a simple 8-bit counter, so your results should look something like this:
+
+.. image:: _images/selftest_report.png
 
 Configuring a Different Remote Server
 -------------------------------------

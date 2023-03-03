@@ -1,13 +1,13 @@
 Building Your Own SoC
 =====================
 
-This tutorial will walk you through the process of building an ASIC containing one PicoRV32 RISC-V CPU core and 2 kilobytes of SRAM, on an open-source 130nm Skywater process node, with SiliconCompiler's remote workflow.
+This tutorial will walk you through the process of building an ASIC containing one PicoRV32 RISC-V CPU core and 2 kilobytes of SRAM, on an open-source 130nm Skywater process node, with SiliconCompiler's remote workflow:
+
+.. image:: _images/picorv32_ram_report.png
 
 We will walk through the process of downloading the design files and writing a build script, but for your reference, you can find complete example designs which reflect the contents of this tutorial in the public SiliconCompiler repository. The first part of the tutorial will cover building the CPU core `without RAM <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_, and the second part will describe how to `add an SRAM block <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_.
 
 See the :ref:`Installation <Installation>` section for information on how to install SiliconCompiler, and the :ref:`Remote Processing <Remote Processing>` section for instructions on setting up the remote workflow.
-
-[TODO / CR feedback: Add a screenshot here (or at the bottom)?]
 
 Download PicoRV32 Verilog Code
 ------------------------------
@@ -31,7 +31,9 @@ Before we add the complexity of a RAM macro block, let's build the core design u
     chip.set('option', 'remote', True)
     chip.run()
 
-If you run that example as a Python script, it should take approximately 10-15 minutes to run if the servers are not too busy. We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area. Once the job finishes, you should receive a screenshot of your final design, and a report containing metrics related to the build in the ``build/picorv32/job0/`` directory.
+If you run that example as a Python script, it should take approximately 20 minutes to run if the servers are not too busy. We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area. Once the job finishes, you should receive a screenshot of your final design, and a report containing metrics related to the build in ``build/picorv32/job0/report.pdf``. SiliconCompiler will try to open the file after the job completes, but it may not be able to do so if you are running in a headless environment.
+
+.. image:: _images/picorv32_render.png
 
 For the full GDS-II results and intermediate build artifacts, you can install the EDA tools on your local system, and run the same Python build script with the :keypath:`option, remote` parameter set to ``False``.
 
@@ -46,9 +48,14 @@ A CPU core is not very useful without any memory. Indeed, a real system-on-chip 
 
 In this tutorial, we'll take the first step by adding a small (2 kilobyte) SRAM block and wiring it to the CPU's memory interface. This will teach you how to import and place a hard IP block in your design.
 
-The open-source Skywater130 PDK does not currently include foundry-published memory macros. Instead, they have a set of OpenRAM configurations which are blessed by the maintainers. You can use `those configurations <https://github.com/VLSIDA/OpenRAM/tree/stable/technology/sky130>`_ to generate RAM macros from scratch if you are willing to install the `OpenRAM utility <https://github.com/VLSIDA/OpenRAM>`_, or you can `download pre-built files <https://github.com/VLSIDA/sky130_sram_macros>`_. We will use the `sky130_sram_2kbyte_1rw1r_32x512_8 <https://github.com/VLSIDA/sky130_sram_macros/tree/main/sky130_sram_2kbyte_1rw1r_32x512_8>` block in `this example.
+The open-source Skywater130 PDK does not currently include foundry-published memory macros. Instead, they have a set of OpenRAM configurations which are blessed by the maintainers. You can use `those configurations <https://github.com/VLSIDA/OpenRAM/tree/stable/technology/sky130>`_ to generate RAM macros from scratch if you are willing to install the `OpenRAM utility <https://github.com/VLSIDA/OpenRAM>`_, or you can `download pre-built files <https://github.com/VLSIDA/sky130_sram_macros>`_.
 
-Once you have a GDS and LEF file for your RAM macro, create a new directory called ``sram/`` in same location as your PicoRV32 build files, and copy the macro files there. Then, create a Python script called ``sky130_sram_2k.py`` in that ``sram/`` directory to describe the RAM macro in a format which can be imported by SiliconCompiler::
+We will use the `sky130_sram_2kbyte_1rw1r_32x512_8 <https://github.com/VLSIDA/sky130_sram_macros/tree/main/sky130_sram_2kbyte_1rw1r_32x512_8>` block in this example. You can download the required files through GitHub's website, or using a tool like  ``curl``::
+
+    curl https://raw.githubusercontent.com/VLSIDA/sky130_sram_macros/main/sky130_sram_2kbyte_1rw1r_32x512_8/sky130_sram_2kbyte_1rw1r_32x512_8.gds > sky130_sram_2kbyte_1rw1r_32x512_8.gds
+    curl https://raw.githubusercontent.com/VLSIDA/sky130_sram_macros/main/sky130_sram_2kbyte_1rw1r_32x512_8/sky130_sram_2kbyte_1rw1r_32x512_8.lef > sky130_sram_2kbyte_1rw1r_32x512_8.lef
+
+Once you have a GDS and LEF file for your RAM macro, create a new directory called ``sram/`` in same location as your PicoRV32 build files, and move the macro files there. Then, create a Python script called ``sky130_sram_2k.py`` in that ``sram/`` directory to describe the RAM macro in a format which can be imported by SiliconCompiler::
 
     import siliconcompiler
 
@@ -212,9 +219,9 @@ With all of that done, your project directory tree should look something like th
     ├── picorv32_top.py
     └── picorv32_top.v
 
-Your ``picorv32_top.py`` build script should take about 20 minutes to run on the cloud servers if they are not too busy, with most of that time spent in the routing task. As with the previous designs, you should see periodic updates on its progress, and you should receive a screenshot and metrics summary once the job is complete.
+Your ``picorv32_top.py`` build script should take about 20 minutes to run on the cloud servers if they are not too busy, with most of that time spent in the routing task. As with the previous designs, you should see periodic updates on its progress, and you should receive a screenshot and metrics summary once the job is complete:
 
-[TODO / CR feedback: Add a screenshot here (or near the top)?]
+.. image:: _images/picorv32_ram_report.png
 
 Extending your design
 ---------------------
