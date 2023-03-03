@@ -269,7 +269,7 @@ The table below shows the function interfaces supported in setting up tool and t
      - :class:`.Chip`
      - n/a
      - run()
-     - yes
+     - no
 
    * - **make_docs**
      - Doc generator
