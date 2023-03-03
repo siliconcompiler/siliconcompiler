@@ -2964,10 +2964,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     with open(screenshot_path, 'rb') as img_file:
                         img_data = base64.b64encode(img_file.read()).decode('utf-8')
 
-            # Generate reports by passing the Chip manifest into the Jinja2 template.
+            # Mark file paths where the reports can be found if they were generated.
             results_html = os.path.join(web_dir, 'report.html')
-            results_pdfsrc = os.path.join(web_dir, 'report.tex')
             results_pdf = os.path.join(web_dir, 'report.pdf')
+
+            # Generate reports by passing the Chip manifest into the Jinja2 template.
             if generate_html:
                 env = Environment(loader=FileSystemLoader(templ_dir))
                 schema = self.schema.copy()
@@ -2997,7 +2998,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # Try to open the results and layout only if '-nodisplay' is not set.
             # Prioritize PDF, followed by HTML.
-            if (not self.get('option', 'nodisplay')) and ('DISPLAY' in os.environ):
+            if (not self.get('option', 'nodisplay')):
                 if os.path.isfile(results_pdf):
                     # Open results with whatever application is associated with PDFs on the local system.
                     if sys.platform == 'win32':
