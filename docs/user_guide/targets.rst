@@ -3,14 +3,7 @@ Targets
 
 To facilitate encapsulation and reuse of schema parameters related to design targets, SiliconCompiler implements a :meth:`.load_target()` function which can run scripts that set up common combinations of :class:`.Flow`, :class:`.PDK`, :class:`.Library`, and :class:`.Checklist` modules.
 
-The :meth:`.load_target()` function takes in a string ``targetname``, and it will search for the path ``targets/<targetname>.py`` in the following locations, in this order:
-
-  #. The working directory from where the CLI app was called or the :class:`.Chip()` object instantiated.
-  #. Paths specified in the :keypath:`option, scpath` schema parameter, separated by the OS-specific path separator (``:`` on Linux/macOS, ``;`` on Windows).
-  #. Paths specified in the $SCPATH environment variable, separated by the OS-specific path separator.
-  #. The root of the SiliconCompiler Python package, wherever it is installed.
-
-The ability to configure the search paths via a schema parameter or environment variable enables users to create custom targets and place them anywhere on their filesystem. Most other types of modules are imported as Python libraries, which SiliconCompiler will look for in the system's Python search path.
+The :meth:`.load_target()` function takes in a string ``targetname``. Similar to most other SiliconCompiler modules, it will search for a ``targets.targetname`` module in the current directory and Python search path. A full list of built-in targets can be found on the :ref:`Targets directory` page.
 
 All target modules must contain a function called ``setup()``, which takes in a :class:`.Chip` object and can modify the Chip's schema parameters in any way. It's common for targets to load at least one flow, a PDK and at least one standard cell library if the design is being built as an ASIC. They can also set up default design parameters and tool options. Targets should also include a ``make_docs()`` function which provides a descriptive docstring and returns a :class:`.Chip` object with the target loaded.
 
