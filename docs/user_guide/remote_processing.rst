@@ -69,6 +69,8 @@ To verify that your credentials file and server is configured correctly, run the
   Remaining compute time: 1440.00 minutes
   Remaining results bandwidth: 5242880 KiB
 
+Once you've configured SiliconCompiler to run on your remote endpoint, see the :ref:`Quickstart guide` for instructions on running a simple example, along with expected outputs.
+
 Troubleshooting
 ---------------
 
