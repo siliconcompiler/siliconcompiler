@@ -14,21 +14,25 @@ def setup(chip):
     manufacturable designs at SkyWater's facility.
 
     Skywater130 Process Highlights:
+
     * 130nm process
     * support for internal 1.8V with 5.0V I/Os (operable at 2.5V)
     * 1 level of local interconnect
     * 5 levels of metal
 
     PDK content:
+
     * An open source design rule manual
     * multiple standard digital cell libraries
     * primitive cell libraries and models for creating analog designs
     * EDA support files for multiple open source and proprietary flows
 
     More information:
+
     * https://skywater-pdk.readthedocs.io/
 
     Sources:
+
     * https://github.com/google/skywater-pdk
     '''
 

@@ -543,7 +543,7 @@ def schema_pdk(cfg, stackup='default'):
             basis. Process nodes with a single device model across all stacks will
             have a unique parameter record per metal stack pointing to the same
             device model file.  Device types and tools are dynamic entries
-            that depend on the tool setup and device technology. Pseud-standardized
+            that depend on the tool setup and device technology. Pseudo-standardized
             device types include spice, em (electromigration), and aging.""")
 
     corner='default'

@@ -35,7 +35,7 @@ class SchemaGen(SphinxDirective):
                 name, ex = example.split(':', 1)
                 entries.append([strong(f'Example ({name.upper()})'), code(ex.strip())])
 
-            table = build_table(entries)
+            table = build_table(entries, colwidths=[25, 75])
             body = self.parse_rst(utils.trim(schema['help']))
 
             return [table, body]

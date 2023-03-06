@@ -14,6 +14,9 @@ def setup(chip):
     design = 'heartbeat'
     chip.load_target('skywater130_demo')
 
+    # Set quiet flag
+    chip.set('option', 'quiet', True)
+
     # Set die area and clock constraint.
     chip.set('constraint', 'outline', [(0, 0), (50, 50)])
     chip.set('constraint', 'corearea', [(5, 5), (45, 45)])

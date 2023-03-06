@@ -11,7 +11,7 @@ from siliconcompiler.libs import nangate45
 
 def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
-    Target setup
+    FreePDK45 demo target
     '''
 
     asic_flow_args = {

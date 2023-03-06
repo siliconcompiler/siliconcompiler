@@ -108,7 +108,7 @@ SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ us
 
 .. include:: installation/installation_prep_path.rst 
 
-Skip to :ref:`Running SiliconCompiler`.
+Skip to :ref:`Quickstart guide`.
 	     
 .. _offline install:
 
@@ -136,7 +136,7 @@ Then untar the package and install SiliconCompiler:
 .. include:: installation/installation_prep_path.rst
 
 
-Skip to :ref:`Running SiliconCompiler`.
+Skip to :ref:`Quickstart guide`.
 
 .. _directly from the git repository:
 
@@ -193,4 +193,4 @@ To run compilation locally (instead of remotely), you will need to install a num
 .. installscripts::
 
 
-Go to :ref:`Running SiliconCompiler`.
+Go to :ref:`Quickstart guide`.

@@ -4676,7 +4676,7 @@
                                 "api: chip.set('pdk','asap7','devmodel','xyce','spice','M10','asap7.sp')"
                             ],
                             "hashalgo": "sha256",
-                            "help": "List of filepaths to PDK device models for different simulation\npurposes and for different tools. Examples of device model types\ninclude spice, aging, electromigration, radiation. An example of a\n'spice' tool is xyce. Device models are specified on a per metal stack\nbasis. Process nodes with a single device model across all stacks will\nhave a unique parameter record per metal stack pointing to the same\ndevice model file.  Device types and tools are dynamic entries\nthat depend on the tool setup and device technology. Pseud-standardized\ndevice types include spice, em (electromigration), and aging.",
+                            "help": "List of filepaths to PDK device models for different simulation\npurposes and for different tools. Examples of device model types\ninclude spice, aging, electromigration, radiation. An example of a\n'spice' tool is xyce. Device models are specified on a per metal stack\nbasis. Process nodes with a single device model across all stacks will\nhave a unique parameter record per metal stack pointing to the same\ndevice model file.  Device types and tools are dynamic entries\nthat depend on the tool setup and device technology. Pseudo-standardized\ndevice types include spice, em (electromigration), and aging.",
                             "lock": false,
                             "node": {},
                             "notes": null,
