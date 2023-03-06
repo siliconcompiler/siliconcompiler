@@ -82,6 +82,12 @@ def remote_preprocess(chip, steplist):
         # step should have none.
         chip._runtask(local_step, index, {})
 
+        # Collect inputs into import directory only for remote runs, since
+        # we need to send inputs up to the server. Otherwise, it's simpler
+        # for debugging to leave inputs in place.
+        # TODO: if more than one import is present this might not work
+        chip._collect(local_step, index)
+
     # Set 'steplist' to only the remote steps, for the future server-side run.
     chip.unset('arg', 'step')
     chip.unset('arg', 'index')
