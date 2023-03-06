@@ -37,11 +37,12 @@ Welcome to SiliconCompiler's documentation!
 
    tutorials/contribution
    tutorials/parallel
-   tutorials/slurmsetup
    tutorials/migen
    tutorials/chisel
    tutorials/bambu
    tutorials/bluespec
+   tutorials/picorv32_ram
+   tutorials/slurmsetup
 
 .. toctree::
    :maxdepth: 3
