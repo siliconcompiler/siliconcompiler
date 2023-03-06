@@ -17,7 +17,7 @@ The SiliconCompiler project supports a remote processing model that leverages th
 
 Even though our publicly-available servers only support open-source IP and tools, the remote API is capable of supporting any SiliconCompiler modules which the server operators wish to install, and we provide a minimal example development server which can be used as a starting point for custom server implementations. You can also find descriptions of the core remote API calls in the :ref:`remote API <Server API>` section.
 
-For a quickstart guide, see the :ref:`Running SiliconCompiler` section.
+For a quickstart guide, see the :ref:`Quickstart guide` section.
 
 Configuring a Different Remote Server
 -------------------------------------
