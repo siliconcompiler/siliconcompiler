@@ -10,8 +10,11 @@ def setup(chip):
     to verify that SiliconCompiler is installed and configured correctly.
     '''
 
-    # Load the Sky130 PDK/standard cell library target.
+    # Set design name
     design = 'heartbeat'
+    chip.set('design', design)
+
+    # Load the Sky130 PDK/standard cell library target.
     chip.load_target('skywater130_demo')
 
     # Set quiet flag
@@ -22,8 +25,7 @@ def setup(chip):
     chip.set('constraint', 'corearea', [(5, 5), (45, 45)])
     chip.clock('clk', period=10)
 
-    # Set design name and source files.
-    chip.set('design', design)
+    # Add source files.
     chip.input(os.path.join(os.path.dirname(__file__), '..', 'data', f'{design}.v'))
 
 #########################
