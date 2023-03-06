@@ -256,7 +256,7 @@ def setup(chip, mode='batch'):
     for metric in ('vias', 'wirelength', 'cellarea', 'totalarea', 'utilization', 'setuptns', 'holdtns',
                    'setupslack', 'holdslack', 'setuppaths', 'holdpaths', 'unconstrained', 'peakpower',
                    'leakagepower', 'pins', 'cells', 'macros', 'nets', 'registers', 'buffers', 'drvs',
-                   'setupwns', 'holdwns'):
+                   'setupwns', 'holdwns', 'fmax'):
         chip.set('tool', tool, 'task', task, 'report', metric, "reports/metrics.json", step=step, index=index)
 
 ################################
@@ -311,6 +311,7 @@ def post_process(chip):
                                         ('holdtns', 'sc__metric__timing__hold__tns'),
                                         ('setupslack', 'sc__metric__timing__setup__ws'),
                                         ('holdslack', 'sc__metric__timing__hold__ws'),
+                                        ('fmax', 'sc__metric__timing__fmax'),
                                         ('setuppaths', 'sc__metric__timing__drv__setup_violation_count'),
                                         ('holdpaths', 'sc__metric__timing__drv__hold_violation_count'),
                                         ('unconstrained', 'sc__metric__timing__unconstrained'),

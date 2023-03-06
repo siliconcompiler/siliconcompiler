@@ -41,6 +41,21 @@ puts "$PREFIX holdslack"
 report_worst_slack -min
 report_worst_slack_metric -hold
 
+if { [llength [all_clocks]] == 1 } {
+  # Based on
+  # https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/34f853f2d2344b6f9198cbeadb1e08e46dde6c09/flow/scripts/write_ref_sdc.tcl
+  puts "$PREFIX fmax"
+  set period [get_property [lindex [all_clocks] 0] "period"]
+  set slack [sta::time_sta_ui [sta::worst_slack_cmd "max"]]
+  if { $slack < 1e30 } {
+    # Guard against unconstrained designs
+    set ref_period [sta::time_ui_sta [expr $period - $slack]]
+    set fmax [expr 1.0 / $ref_period]
+    utl::metric_float "timing__fmax" $fmax
+    puts "[expr $fmax / 1e6] MHz"
+  }
+}
+
 puts "$PREFIX power"
 foreach corner [sta::corners] {
   puts "Power for corner: [$corner name]"

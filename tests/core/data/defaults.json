@@ -2403,6 +2403,24 @@
             "type": "float",
             "unit": "s"
         },
+        "fmax": {
+            "defvalue": null,
+            "example": [
+                "cli: -metric_fmax 'place 0 0.01'",
+                "api: chip.set('metric', 'fmax', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the maximum clock frequency on a per step and index basis.",
+            "lock": false,
+            "node": {},
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Metric: fmax",
+            "switch": "-metric_fmax 'step index <float>'",
+            "type": "float",
+            "unit": "Hz"
+        },
         "holdpaths": {
             "defvalue": null,
             "example": [
@@ -5743,7 +5761,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.27.0",
+        "defvalue": "0.28.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
