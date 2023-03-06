@@ -13,49 +13,11 @@ By default, SiliconCompiler will send remote jobs to our public beta servers, af
 
     sc -target asic_demo -remote
 
-You do not need to configure anything to use the :keypath:`option, remote` flag with these public servers, but you can use the ``sc-configure`` command to specify where SiliconCompiler should send remote jobs::
+The job should only take a few minutes to run if the servers aren't too busy, and once it completes, you should receive a PDF file containing a screenshot and metrics for the build results. The self-test design is a simple 8-bit counter, so your results should look something like this:
 
-    sc-configure https://server.siliconcompiler.com
+.. image:: ../_images/selftest_report.png
 
-Cloud Access (Private)
-^^^^^^^^^^^^^^^^^^^^^^
-
-SiliconCompiler also supports private servers which require authentication to access. If you have such a server to connect to, you will need a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
-
-.. code-block:: json
-
-   {
-   "address": "your-server",
-   "username": "your-username",
-   "password": "your-key"
-   }
-
-Use a text editor to create the credentials file. Alternatively you can use :ref:`sc-configure` app to generate it from the command line.
-
-.. code-block:: console
-
-  (venv) sc-configure
-  Remote server address: your-server
-  Remote username: your-username
-  Remote password: your-key
-  Remote configuration saved to: /home/<USER>/.sc/credentials
-
-To verify that your credentials file and server is configured correctly, run the :ref:`sc-ping` command.
-
-.. code-block:: console
-
-  (venv) sc-ping
-  User myname validated successfully!
-  Remaining compute time: 1440.00 minutes
-  Remaining results bandwidth: 5242880 KiB
-
-Once you have verified that your remote configuration works, try compiling a simple design:
-
-.. code-block:: bash
-
-   (venv) sc -target asic_demo -remote
-
-For more information, see :ref:`Remote Processing`.
+You do not need to configure anything to use the :keypath:`option, remote` flag with these public servers, but you can use the ``sc-configure`` command to specify where SiliconCompiler should send remote jobs. For more information, see the :ref:`Configuring a Different Remote Server` section.
 
 .. _run locally:
 
