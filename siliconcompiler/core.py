@@ -2293,7 +2293,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        indir = 'inputs'
+        indir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
 
         if not os.path.exists(indir):
             os.makedirs(indir)
@@ -3608,12 +3608,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Copy (link) output data from previous steps
-
-        if task == 'import' and self.get('option', 'remote'):
-            # Collect inputs into import directory only for remote runs, since
-            # we need to send inputs up to the server. Otherwise, it's simpler
-            # for debugging to leave inputs in place.
-            self._collect(step, index)
 
         if not self.get('flowgraph', flow, step, index,'input'):
             all_inputs = []
