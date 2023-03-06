@@ -40,7 +40,7 @@ Private Server
 
 If your custom remote server requires authentication, you can run ``sc-configure`` with no arguments and fill in the address, username, and password fields that it prompts you for.
 
-SiliconCompiler also supports private servers which require authentication to access. If you have such a server to connect to, you will need a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
+SiliconCompiler also supports private servers which require authentication to access. If you have such a server to connect to, you will need a credentials text file located at ``~/.sc/credentials`` on Linux or macOS, or at ``C:\\Users\\USERNAME\\.sc\\credentials`` on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
 
 .. code-block:: json
 
