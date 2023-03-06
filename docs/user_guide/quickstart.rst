@@ -8,7 +8,7 @@ After following the :ref:`installation` instructions, you can either `run remote
 
 Remote Run
 -----------
-SiliconCompiler supports running jobs in the cloud on either `private`_ or `public`_ servers. We are currently running a public beta server which anybody can use. To see the details of how remote processing works, see :ref:`here <remote processing>`.
+SiliconCompiler supports running jobs in the cloud on either :ref:`private <private-server>` or `public`_ servers. We are currently running a public beta server which anybody can use. To see the details of how remote processing works, see :ref:`here <remote processing>`.
 
 
 .. _public:
@@ -23,8 +23,6 @@ By default, SiliconCompiler will send remote jobs to our public beta servers, af
 The job should only take a few minutes to run if the servers aren't too busy. Skip to `remote run results`_ to see the expected output.
 
 You do not need to configure anything to use the :ref:`remote` flag with these public servers, but you can use the :ref:`sc-configure` command to specify where SiliconCompiler should send remote jobs. For more information, see the :ref:`Configuring a Different Remote Server` section.
-
-.. _private:
 
 Remote Run Results
 ^^^^^^^^^^^^^^^^^^

@@ -24,11 +24,19 @@ Configuring a Different Remote Server
 
 If you have a custom remote endpoint that you wish to use with SiliconCompiler, you can run the :ref:`sc-configure` command to set that up with your SiliconCompiler installation.
 
+Public Server
+^^^^^^^^^^^^^
+
 If your remote server does not require authentication, you can simply pass its address in as a command-line argument:
 
 ``sc-configure https://server.siliconcompiler.com``
 
 If a previous credentials file already exists, you will be prompted to overwrite it. Your credentials file will be placed in ``$HOME/.sc/``, if you want to back it up or delete it. SiliconCompiler will default to using our public beta address if you have not configured anything, and it will remind you that your design is being uploaded to a public service for processing before starting each remote job.
+
+.. _private-server:
+
+Private Server
+^^^^^^^^^^^^^^
 
 If your custom remote server requires authentication, you can run ``sc-configure`` with no arguments and fill in the address, username, and password fields that it prompts you for.
 
