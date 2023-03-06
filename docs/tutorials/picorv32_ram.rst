@@ -38,11 +38,11 @@ If you run that example as a Python script, it should take approximately 20 minu
 
 .. image:: ../_images/picorv32_report.png
 
-For the full GDS-II results and intermediate build artifacts, you can install the EDA tools on your local system, and run the same Python build script with the :keypath:`option, remote` parameter set to ``False``.
+For the full GDS-II results and intermediate build artifacts, you can run the build locally. See the :ref:`local run` section for more information.
 
 .. note::
 
-    We are not returning the full results during this early beta period because we want to minimize bandwidth, and we believe that our public beta is currently best suited for rapid prototyping and design exploration.
+    We are not returning the full results during this early beta period because we want to minimize bandwidth, and we believe that our public beta is currently best suited for rapid prototyping and design exploration. See the :ref:`remote processing` section for more information.
 
 Adding an SRAM block
 --------------------
@@ -58,7 +58,7 @@ We will use the `sky130_sram_2kbyte_1rw1r_32x512_8 <https://github.com/VLSIDA/sk
     curl https://raw.githubusercontent.com/VLSIDA/sky130_sram_macros/main/sky130_sram_2kbyte_1rw1r_32x512_8/sky130_sram_2kbyte_1rw1r_32x512_8.gds > sky130_sram_2kbyte_1rw1r_32x512_8.gds
     curl https://raw.githubusercontent.com/VLSIDA/sky130_sram_macros/main/sky130_sram_2kbyte_1rw1r_32x512_8/sky130_sram_2kbyte_1rw1r_32x512_8.lef > sky130_sram_2kbyte_1rw1r_32x512_8.lef
 
-Once you have a GDS and LEF file for your RAM macro, create a new directory called ``sram/`` in same location as your PicoRV32 build files, and move the macro files there. Then, create a Python script called ``sky130_sram_2k.py`` in that ``sram/`` directory to describe the RAM macro in a format which can be imported by SiliconCompiler:
+We will need a GDS and LEF file to provide basic placement and routing information for the RAM macro. Once you have those files, create a new directory called ``sram/`` in same location as your PicoRV32 build files, and move the macro files there. Then, create a Python script called ``sky130_sram_2k.py`` in that ``sram/`` directory to describe the RAM macro in a format which can be imported by SiliconCompiler:
 
 .. code-block:: python
     :caption: <project_dir>/sram/sky130_sram_2k.py
@@ -234,7 +234,7 @@ With all of that done, your project directory tree should look something like th
     ├── picorv32_top.py
     └── picorv32_top.v
 
-Your ``picorv32_top.py`` build script should take about 20 minutes to run on the cloud servers if they are not too busy, with most of that time spent in the routing task. As with the previous designs, you should see periodic updates on its progress, and you should receive a screenshot and metrics summary once the job is complete:
+Your ``picorv32_top.py`` build script should take about 20 minutes to run on the cloud servers if they are not too busy, with most of that time spent in the routing task. As with the previous designs, you should see updates on its progress printed every 30 seconds, and you should receive a screenshot and metrics summary once the job is complete:
 
 .. image:: ../_images/picorv32_ram_report.png
 
