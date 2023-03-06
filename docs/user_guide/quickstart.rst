@@ -8,7 +8,7 @@ After following the :ref:`installation` instructions, you can either `run remote
 
 Remote Run
 -----------
-SiliconCompiler supports running jobs in the cloud on either `private`_ or `public`_ servers. We are currently running a public beta server which anybody can use. To see the details of how remote processing works, see :ref:`here <remote processing>`.
+SiliconCompiler supports running jobs in the cloud on either :ref:`private <private-server>` or `public`_ servers. We are currently running a public beta server which anybody can use. To see the details of how remote processing works, see :ref:`here <remote processing>`.
 
 
 .. _public:
@@ -20,57 +20,9 @@ By default, SiliconCompiler will send remote jobs to our public beta servers, af
 
     sc -target asic_demo -remote
 
-Skip to `remote run results`_ to see the expected output.
+The job should only take a few minutes to run if the servers aren't too busy. Skip to `remote run results`_ to see the expected output.
 
-You do not need to configure anything to use the :ref:`remote` flag with these public servers, but you can use the :ref:`sc-configure` command to specify where SiliconCompiler should send remote jobs::
-
-    sc-configure https://server.siliconcompiler.com
-
-
-.. _private:
-
-Private Cloud Access
-^^^^^^^^^^^^^^^^^^^^^
-
-SiliconCompiler also supports private servers which require authentication to access. If you have such a server to connect to, you will need a credentials text file located at `~/.sc/credentials` on Linux or macOS, or at `C:\\Users\\USERNAME\\.sc\\credentials` on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
-
-.. code-block:: json
-
-   {
-   "address": "your-server",
-   "username": "your-username",
-   "password": "your-key"
-   }
-
-You can use a text editor to create the credentials file, or you can run :ref:`sc-configure` from the command line and follow the prompts.
-
-.. code-block:: console
-
-  (venv) sc-configure
-  Remote server address: your-server
-  Remote username: your-username
-  Remote password: your-key
-  Remote configuration saved to: /home/<USER>/.sc/credentials
-
-
-To verify that your credentials file and server is configured correctly, run the :ref:`sc-ping` command.
-
-.. code-block:: console
-
-  (venv) sc-ping
-  User myname validated successfully!
-  Remaining compute time: 1440.00 minutes
-  Remaining results bandwidth: 5242880 KiB
-
-
-Once you have verified that your remote configuration works, try compiling a simple design:
-
-.. code-block:: bash
-
-   (venv) sc -target asic_demo -remote
-
-
-.. _remote run results:
+You do not need to configure anything to use the :ref:`remote` flag with these public servers, but you can use the :ref:`sc-configure` command to specify where SiliconCompiler should send remote jobs. For more information, see the :ref:`Configuring a Different Remote Server` section.
 
 Remote Run Results
 ^^^^^^^^^^^^^^^^^^
@@ -83,7 +35,9 @@ Then, at the end of the run, a summary table will be printed similar to the one 
 
 .. image:: ../_images/summary_table.png
 
-All design outputs are located in ``build/<design>/<jobname>``. When running remote, you will not get all the tool-specific output that you would with a local run, but you will be able to find a report with a screenshot of the demo design and the design statistics summary table.
+All design outputs are located in ``build/<design>/<jobname>``. When running remote, you will not get all the tool-specific output that you would with a local run, but you will be able to find a report with a screenshot of the demo design and the design statistics summary table:
+
+.. image:: ../_images/selftest_report.png
 
    
 .. _run locally:
