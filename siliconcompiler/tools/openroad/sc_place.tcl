@@ -28,8 +28,8 @@ if {[dict exists $sc_cfg tool $sc_tool task $sc_task var pin_thickness_v]} {
   set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var pin_thickness_v] 0]
   set_pin_thick_multiplier -ver_multiplier $v_mult
 }
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var ppl_constraints]} {
-  foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task var ppl_constraints] {
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task {var} ppl_constraints]} {
+  foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task {var} ppl_constraints] {
     puts "Sourcing pin constraints: ${pin_constraint}"
     source $pin_constraint
   }

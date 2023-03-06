@@ -109,8 +109,8 @@ def setup(chip, mode='batch'):
         elif chip.valid('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells'):
             tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
         if tapfile:
-            chip.set('tool', tool, 'task', task, 'var', 'ifp_tapcell', tapfile, step=step, index=index, clobber=False)
-        chip.set('tool', tool, 'task', task, 'var', 'ifp_tapcell', 'tap cell insertion script', field='help')
+            chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell', tapfile, step=step, index=index, clobber=False)
+        chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell', 'tap cell insertion script', field='help')
 
         corners = get_corners(chip)
         for lib in targetlibs:
@@ -125,14 +125,14 @@ def setup(chip, mode='batch'):
     else:
         chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
 
-    chip.set('tool', tool, 'task', task, 'var', 'timing_corners', get_corners(chip), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'timing_corners', sorted(get_corners(chip)), step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'timing_corners', 'list of timing corners to use', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'pex_corners', get_pex_corners(chip), step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'pex_corners', 'list of parasitic extraction corners to use', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'power_corner', get_power_corner(chip), step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'power_corner', 'corner to use for power analysis', field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'parasitics', "inputs/sc_parasitics.tcl", step=step, index=index, clobber=True)
-    chip.set('tool', tool, 'task', task, 'var', 'parasitics', 'file used to specify the parasitics for estimation', field='help')
+    chip.set('tool', tool, 'task', task, 'file', 'parasitics', os.path.join(chip._getworkdir(step=step, index=index), 'inputs', 'sc_parasitics.tcl'), step=step, index=index, clobber=True)
+    chip.set('tool', tool, 'task', task, 'file', 'parasitics', 'file used to specify the parasitics for estimation', field='help')
 
     for var0, var1 in [('openroad_tiehigh_cell', 'openroad_tiehigh_port'), ('openroad_tiehigh_cell', 'openroad_tiehigh_port')]:
         key0 = ['library', mainlib, 'option', 'var', tool, var0]
@@ -233,18 +233,20 @@ def setup(chip, mode='batch'):
 
     for libvar, openroadvar in [('openroad_pdngen', 'pdn_config'),
                                 ('openroad_global_connect', 'global_connect')]:
-        if chip.valid('tool', tool, 'task', task, 'var', openroadvar) and \
-           chip.get('tool', tool, 'task', task, 'var', openroadvar, step=step, index=index):
+        if chip.valid('tool', tool, 'task', task, 'file', openroadvar) and \
+           chip.get('tool', tool, 'task', task, 'file', openroadvar, step=step, index=index):
             # value already set
             continue
 
         # copy from libs
         for lib in targetlibs + macrolibs:
             if chip.valid('library', lib, 'option', 'file', libvar):
-                for pdn_config in chip.find_files('library', lib, 'option', 'file', libvar):
-                    chip.add('tool', tool, 'task', task, 'var', openroadvar, pdn_config, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'var', 'pdn_config', 'list of files to use for power grid generation', field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'global_connect', 'list of files to use for specifying global connections', field='help')
+                for vfile in chip.find_files('library', lib, 'option', 'file', libvar):
+                    chip.add('tool', tool, 'task', task, 'file', openroadvar, vfile, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'file', 'pdn_config', 'list of files to use for power grid generation', field='help')
+    chip.set('tool', tool, 'task', task, 'file', 'global_connect', 'list of files to use for specifying global connections', field='help')
+    chip.set('tool', tool, 'task', task, 'file', 'padring', 'script to generate a padring using ICeWall in OpenROAD', field='help')
+    chip.set('tool', tool, 'task', task, 'file', 'ppl_constraints', 'script constrain pin placement', field='help')
 
     # basic warning and error grep check on logfile
     # print('warnings', step, index)
@@ -426,7 +428,7 @@ def build_pex_corners(chip):
     if default_corner in corners:
         corners[None] = corners[default_corner]
 
-    with open(chip.get('tool', tool, 'task', task, 'var', 'parasitics', step=step, index=index)[0], 'w') as f:
+    with open(chip.get('tool', tool, 'task', task, 'file', 'parasitics', step=step, index=index)[0], 'w') as f:
         for libcorner, pexcorner in corners.items():
             if chip.valid('pdk', pdkname, 'pexmodel', tool, stackup, pexcorner):
                 pex_source_file = chip.find_files('pdk', pdkname, 'pexmodel', tool, stackup, pexcorner)[0]
