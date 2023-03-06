@@ -15,20 +15,22 @@ The SiliconCompiler project supports a remote processing model that leverages th
 
     In the event that our servers are busy processing a large number of jobs, your job may get queued and experience delays in processing. We appreciate your patience during this public beta period.
 
-Even though our publicly-available servers only support open-source IP and tools, the remote API is capable of supporting any SiliconCompiler modules which the server operators wish to install, and we provide a minimal example development server which can be used as a starting point for custom server implementations. You can also find descriptions of the core remote API calls in the :ref:`remote API <Server API>` section.
+Even though our publicly-available servers only support open-source IP and tools, the remote API is capable of supporting any SiliconCompiler modules which the server operators wish to install. If you are interested in creating a custom server implementation, we provide a minimal example development server which can be used as a starting point. You can also find descriptions of the core remote API calls in the :ref:`remote API <Server API>` section.
 
 See the :ref:`Quickstart guide` for instructions on running a simple example on our public servers.
 
 Configuring a Different Remote Server
 -------------------------------------
 
-You can run the :ref:`sc-configure` command to configure your SiliconCompiler installation with a custom remote endpoint, if you have one. If your remote server requires authentication, you can run the utility with no arguments and fill in the address, username, and password fields that it prompts you for. If your server does not require authentication, you can simply pass its address in as a command-line argument:
+If you have a custom remote endpoint that you wish to use with SiliconCompiler, you can run the :ref:`sc-configure` command to set that up with your SiliconCompiler installation.
+
+If your remote server does not require authentication, you can simply pass its address in as a command-line argument:
 
 ``sc-configure https://server.siliconcompiler.com``
 
-If a previous credentials file already exists, you will be prompted to overwrite it. Your credentials file will be placed in ``$HOME/.sc/``, if you want to back it up or delete it.
+If a previous credentials file already exists, you will be prompted to overwrite it. Your credentials file will be placed in ``$HOME/.sc/``, if you want to back it up or delete it. SiliconCompiler will default to using our public beta address if you have not configured anything, and it will remind you that your design is being uploaded to a public service for processing before starting each remote job.
 
-SiliconCompiler will default to using our public beta address if you have not configured anything, and it will remind you that your design is being uploaded to a public service for processing before starting each remote job.
+If your custom remote server requires authentication, you can run ``sc-configure`` with no arguments and fill in the address, username, and password fields that it prompts you for.
 
 SiliconCompiler also supports private servers which require authentication to access. If you have such a server to connect to, you will need a credentials text file located at ~/.sc/credentials on Linux or macOS, or at C:\\Users\\USERNAME\\.sc\\credentials on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
 
