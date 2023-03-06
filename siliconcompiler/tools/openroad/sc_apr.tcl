@@ -109,6 +109,21 @@ if {[dict exists $sc_cfg tool $sc_tool task $sc_task {var} dont_touch]} {
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 
 ###############################
+# Setup debugging if requested
+###############################
+
+if { [llength [dict get $sc_cfg tool $sc_tool task $sc_task {var} debug_level]] > 0 } {
+  foreach debug [dict get $sc_cfg tool $sc_tool task $sc_task {var} debug_level] {
+    set debug_setting [split $debug " "]
+    set debug_tool [lindex $debug_setting 0]
+    set debug_category [lindex $debug_setting 1]
+    set debug_level [lindex $debug_setting 2]
+    utl::info FLW 1 "Setting debugging for $debug_tool/$debug_category/$debug_level"
+    set_debug_level $debug_tool $debug_category $debug_level
+  }
+}
+
+###############################
 # Read Files
 ###############################
 
