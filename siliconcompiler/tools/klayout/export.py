@@ -10,14 +10,13 @@ def setup(chip):
     setup_tool(chip)
 
     tool = 'klayout'
-    refdir = 'tools/'+tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
     task = 'export'
     clobber = False
 
     script = 'klayout_export.py'
-    option = ['-b', '-r']
+    option = ['-z', '-nc', '-rx', '-r']
     chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
@@ -47,3 +46,10 @@ def setup(chip):
     # Export GDS with timestamps by default.
     chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'true', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'Export GDSII with timestamps', field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', '4096', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '4096', step=step, index=index, clobber=False)
+
+    # Help
+    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', 'Horizontal resolution in pixels', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', 'Vertical resolution in pixels', field='help')

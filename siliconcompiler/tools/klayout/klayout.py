@@ -74,8 +74,8 @@ def setup(chip, mode="batch"):
     # common to all
     chip.set('tool', tool, 'exe', klayout_exe)
     chip.set('tool', tool, 'vswitch', ['-zz', '-v'])
-    # Versions < 0.27.6 may be bundled with an incompatible version of Python.
-    chip.set('tool', tool, 'version', '>=0.27.6', clobber=clobber)
+    # Version 0.28 and up allows us to take screenshots on headless systems.
+    chip.set('tool', tool, 'version', '>=0.28', clobber=clobber)
     chip.set('tool', tool, 'format', 'json', clobber=clobber)
 
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=clobber)

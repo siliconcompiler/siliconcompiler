@@ -44,6 +44,7 @@ import sys
 sys.path.append(SC_ROOT)
 
 from schema import Schema
+from tools.klayout.klayout_show import show
 
 def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
               macro_lefs, config_file='', seal_file='', timestamps=True):
@@ -268,3 +269,6 @@ else:
 
 gds_export(design, in_def, in_gds, out_gds, tech_file, foundry_lef, macro_lefs,
            config_file='', seal_file='', timestamps=sc_timestamps)
+
+# Generate screenshot
+show(schema, out_gds, f'outputs/{design}.png', screenshot=True)
