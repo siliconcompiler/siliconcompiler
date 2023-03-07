@@ -15,7 +15,7 @@ if {[dict exists $sc_cfg datasheet] && [dict exists $sc_cfg datasheet $sc_design
             set jittertuple [dict get $sc_cfg datasheet $sc_design pin $pin tjitter global]
             set jitter [sta::time_sta_ui [lindex $jittertuple 1]]
 
-            utl::info FLW 1 "Creating clock $pin with [sta::format_time [sta::capacitance_ui_sta $period] 3][sta::unit_scale_abreviation time]s period and [sta::format_time [sta::capacitance_ui_sta $jitter] 3][sta::unit_scale_abreviation time]s jitter."
+            utl::info FLW 1 "Creating clock $pin with [sta::format_time [sta::time_ui_sta $period] 3][sta::unit_scale_abreviation time]s period and [sta::format_time [sta::time_ui_sta $jitter] 3][sta::unit_scale_abreviation time]s jitter."
             create_clock -name $pin -period $period $pin
             set_clock_uncertainty $jitter [get_clock $pin]
         }
