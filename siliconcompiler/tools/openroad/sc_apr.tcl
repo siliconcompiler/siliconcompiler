@@ -312,7 +312,7 @@ if { [llength [all_clocks]] == 0} {
 
 set_dont_use $sc_dontuse
 
-set sc_parasitics [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} parasitics] 0]
+set sc_parasitics [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} parasitics] 0]
 source $sc_parasitics
 set_wire_rc -clock  -layer $sc_rc_clk
 set_wire_rc -signal -layer $sc_rc_signal

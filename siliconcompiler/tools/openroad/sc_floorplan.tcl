@@ -26,8 +26,8 @@ proc design_has_unplaced_ios {} {
 # Setup Global Connections
 ###########################
 
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} global_connect] } {
-  foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {var} global_connect] {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} global_connect] } {
+  foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {file} global_connect] {
     puts "Sourcing global connect configuration: ${global_connect}"
     source $global_connect
   }
@@ -83,7 +83,7 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task file padring] && \
   ###########################
   # Generate pad ring
   ###########################
-  set padring_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task file padring] 0]
+  set padring_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} padring] 0]
   puts "Sourcing padring configuration: ${padring_file}"
   source $padring_file
 
@@ -307,8 +307,8 @@ if { $do_automatic_pins } {
     set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var pin_thickness_v] 0]
     set_pin_thick_multiplier -ver_multiplier $v_mult
   }
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var ppl_constraints]} {
-    foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task var ppl_constraints] {
+  if {[dict exists $sc_cfg tool $sc_tool task $sc_task {file} ppl_constraints]} {
+    foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task {file} ppl_constraints] {
       puts "Sourcing pin constraints: ${pin_constraint}"
       source $pin_constraint
     }
@@ -358,8 +358,8 @@ global_connect
 # Tap Cells
 ###########################
 
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} ifp_tapcell] } {
-  set tapcell_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ifp_tapcell] 0]
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} ifp_tapcell] } {
+  set tapcell_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} ifp_tapcell] 0]
   puts "Sourcing tapcell file: ${tapcell_file}"
   source $tapcell_file
   global_connect
@@ -370,8 +370,8 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} ifp_tapcell] } {
 ###########################
 
 if {$openroad_pdn_enable == "true" && \
-    [dict exists $sc_cfg tool $sc_tool task $sc_task {var} pdn_config]} {
-  foreach pdnconfig [dict get $sc_cfg tool $sc_tool task $sc_task {var} pdn_config] {
+    [dict exists $sc_cfg tool $sc_tool task $sc_task {file} pdn_config]} {
+  foreach pdnconfig [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] {
     puts "Sourcing PDNGEN configuration: ${pdnconfig}"
     source $pdnconfig
   }
