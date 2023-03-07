@@ -2791,7 +2791,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # "final" metrics regardless of flow would be handy
         totalarea = self.get('metric', 'totalarea', step='export', index='1')
         if totalarea:
-            metrics['Area'] = f'{totalarea:.2f} um^2'
+            # SI-ify
+            if totalarea < 1e3:
+                metrics['Area'] = f'{totalarea:.2f} um^2'
+            else:
+                metrics['Area'] = f'{totalarea / 1e3:.2f} mm^2'
 
         fmax = self.get('metric', 'fmax', step='export', index='1')
         if fmax:

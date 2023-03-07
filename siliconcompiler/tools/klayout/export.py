@@ -48,7 +48,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'Export GDSII with timestamps', field='help')
 
     chip.set('tool', tool, 'task', task, 'var', 'screenshot', 'true', step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'screenshot', 'Whether to generate a screenshot of layout', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'screenshot', 'true/false: true will cause KLayout to generate a screenshot of the layout', field='help')
     if chip.get('tool', tool, 'task', task, 'var', 'screenshot', step=step, index=index) != ['true']:
         chip.add('tool', tool, 'task', task, 'output', design + '.png', step=step, index=index)
 
