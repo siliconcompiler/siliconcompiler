@@ -2406,8 +2406,8 @@
         "fmax": {
             "defvalue": null,
             "example": [
-                "cli: -metric_fmax 'place 0 0.01'",
-                "api: chip.set('metric', 'fmax', 0.01, step='place', index=0)"
+                "cli: -metric_fmax 'place 0 100e6'",
+                "api: chip.set('metric', 'fmax', 100e6, step='place', index=0)"
             ],
             "help": "Metric tracking the maximum clock frequency on a per step and index basis.",
             "lock": false,

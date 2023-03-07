@@ -1705,8 +1705,8 @@ def schema_metric(cfg, step='default', index='default'):
                 shorthelp=f"Metric: {item}",
                 switch=f"-metric_{item} 'step index <float>'",
                 example=[
-                    f"cli: -metric_{item} 'place 0 0.01'",
-                    f"api: chip.set('metric', '{item}', 0.01, step='place', index=0)"],
+                    f"cli: -metric_{item} 'place 0 100e6'",
+                    f"api: chip.set('metric', '{item}', 100e6, step='place', index=0)"],
                 pernode='required',
                 schelp=f"""
                 Metric tracking the {val} on a per step and index basis.""")
