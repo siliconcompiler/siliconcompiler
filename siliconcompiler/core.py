@@ -2810,13 +2810,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Generate design
 
-        WIDTH = 512
-        BORDER = 16
-        LINE_SPACING = 4
-        TEXT_INDENT = 8
+        WIDTH = 1024
+        BORDER = 32
+        LINE_SPACING = 8
+        TEXT_INDENT = 16
 
         FONT_PATH = os.path.join(self.scroot, 'data', 'RobotoMono', 'RobotoMono-Regular.ttf')
-        FONT_SIZE = 24
+        FONT_SIZE = 40
 
         # matches dark gray background color configured in klayout_show.py
         BG_COLOR = (33, 33, 33)
