@@ -2791,17 +2791,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # "final" metrics regardless of flow would be handy
         totalarea = self.get('metric', 'totalarea', step='export', index='1')
         if totalarea:
-            metrics['Area'] = f'{int(totalarea)} um^2'
+            metrics['Area'] = f'{totalarea:.2f} um^2'
 
         fmax = self.get('metric', 'fmax', step='export', index='1')
         if fmax:
             # SI-ify
             if fmax < 1e6:
-                fmax = f'{round(fmax / 1e3, 2)} KHz'
+                fmax = f'{(fmax / 1e3):.2f} KHz'
             elif fmax < 1e9:
-                fmax = f'{round(fmax / 1e6, 2)} MHz'
+                fmax = f'{(fmax / 1e6):.2f} MHz'
             else:
-                fmax = f'{round(fmax / 1e9, 2)} GHz'
+                fmax = f'{(fmax / 1e9):.2f} GHz'
             metrics['Fmax'] = fmax
 
         # Generate design
@@ -2814,25 +2814,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         FONT_PATH = os.path.join(self.scroot, 'data', 'RobotoMono', 'RobotoMono-Regular.ttf')
         FONT_SIZE = 24
 
-        # harcoded to match BG color configured in klayout_show.py
+        # matches dark gray background color configured in klayout_show.py
         BG_COLOR = (33, 33, 33)
+
+        # near-white
         TEXT_COLOR = (224, 224, 224)
 
         original_layout = Image.open(input_path)
-        orig_width, orig_height =original_layout.size
+        orig_width, orig_height = original_layout.size
 
         aspect_ratio = orig_height / orig_width
 
         # inset by border left and right
         thumbnail_width = WIDTH - 2 * BORDER
-        thumbnail_height = int(thumbnail_width * aspect_ratio)
+        thumbnail_height = round(thumbnail_width * aspect_ratio)
         layout_thumbnail = original_layout.resize((thumbnail_width, thumbnail_height))
 
         font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
-        _, descent = font.getmetrics()
 
         # Get max height of any ASCII character in font, so we can consistently space each line
-        line_height = font.getmask(string.printable).getbbox()[3] + descent
+        _, descent = font.getmetrics()
+        _, bb_top, _, bb_bottom = font.getmask(string.printable).getbbox()
+        line_height = (bb_bottom - bb_top) + descent
 
         text = []
         x = BORDER + TEXT_INDENT
@@ -2849,7 +2852,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 cropped_line = cropped_line[:-1]
 
             if cropped_line != line:
-                print(f'WARNING: cropped {line} to {cropped_line} to fit')
+                self.logger.warning(f'Cropped {line} to {cropped_line} to fit in design summary image')
 
             # Stash line to write and coords to write it at
             text.append(((x, y), cropped_line))
@@ -2882,11 +2885,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 indices.
             generate_image (bool): If True, generates a summary image featuring
                 a layout screenshot and a subset of metrics. Requires that the
-                current job has an export0 node with a PNG file output.
+                current job has an export0 node with a PNG file output. If the
+                image already exists, it will not be regenerated.
             generate_html (bool): If True, generates an HTML report featuring a
                 metrics summary table and manifest tree view. The report will
                 include a layout screenshot if the current job has an export0
-                node with a PNG file output.
+                node with a PNG file output. If the report already exists, it
+                will not be regenerated.
 
         Examples:
             >>> chip.summary()
@@ -3062,11 +3067,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # TODO: we should generalize where we look for the png (perhaps [output, layout, png])
             layout_img = self.find_result('png', step='export', index='0')
 
-            if generate_image and layout_img:
+            if generate_image and layout_img and not os.path.isfile(results_img):
                 self._generate_summary_image(layout_img, results_img)
+                self.logger.info(f'Generated summary image at {results_img}')
 
             # Generate reports by passing the Chip manifest into the Jinja2 template.
-            if generate_html:
+            if generate_html and not os.path.isfile(results_html):
                 env = Environment(loader=FileSystemLoader(templ_dir))
                 schema = self.schema.copy()
                 schema.prune()
@@ -3099,10 +3105,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         img_data = img_data,
                     ))
 
+                self.logger.info(f'Generated HTML report at {results_html}')
+
             # Try to open the results and layout only if '-nodisplay' is not set.
-            # Prioritize PDF, followed by HTML.
+            # Priority: PNG, PDF, HTML.
             if (not self.get('option', 'nodisplay')):
-                if os.path.isfile(results_pdf):
+                if os.path.isfile(results_img):
+                    Image.open(results_img).show()
+                elif os.path.isfile(results_pdf):
                     # Open results with whatever application is associated with PDFs on the local system.
                     if sys.platform == 'win32':
                         os.startfile(results_pdf)

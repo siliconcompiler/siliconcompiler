@@ -47,9 +47,19 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'true', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'Export GDSII with timestamps', field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'screenshot', 'true', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'screenshot', 'Whether to generate a screenshot of layout', field='help')
+    if chip.get('tool', tool, 'task', task, 'var', 'screenshot', step=step, index=index) != ['true']:
+        chip.add('tool', tool, 'task', task, 'output', design + '.png', step=step, index=index)
+
+    pdk = chip.get('option', 'pdk')
+    stackup = chip.get('option', 'stackup')
+    if chip.valid('pdk', pdk, 'var', 'klayout', 'hide_layers', stackup):
+        layers_to_hide = chip.get('pdk', pdk, 'var', 'klayout', 'hide_layers', stackup)
+        chip.add('tool', tool, 'task', task, 'var', 'hide_layers', layers_to_hide, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'var', 'hide_layers', 'List of layers to hide', field='help')
+
     chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', '4096', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '4096', step=step, index=index, clobber=False)
-
-    # Help
-    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', 'Horizontal resolution in pixels', field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', 'Vertical resolution in pixels', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', 'Screenshot horizontal resolution in pixels', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', 'Screenshot vertical resolution in pixels', field='help')

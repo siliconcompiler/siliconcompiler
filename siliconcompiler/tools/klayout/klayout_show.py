@@ -108,10 +108,8 @@ def show(schema, input_path, output_path, screenshot=False):
     # If 'screenshot' mode is set, save image and exit.
     if screenshot:
         # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
-        # horizontal_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var', 'show_horizontal_resolution', step=step, index=index)[0])
-        # vertical_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var', 'show_vertical_resolution', step=step, index=index)[0])
-        horizontal_resolution = 4096
-        vertical_resolution = 4096
+        horizontal_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var', 'show_horizontal_resolution', step=step, index=index)[0])
+        vertical_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var', 'show_vertical_resolution', step=step, index=index)[0])
 
         gds_img = layout_view.get_image(horizontal_resolution, vertical_resolution)
         gds_img.save(output_path, 'PNG')
