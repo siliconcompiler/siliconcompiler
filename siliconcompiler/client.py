@@ -143,7 +143,7 @@ def remote_run(chip):
           # Retrying ensures that jobs don't break off when the connection drops.
           is_busy = True
           chip.logger.info("Unknown network error encountered: retrying.")
-    chip.logger.info("Remote job run completed!")
+    chip.logger.info("Remote job run completed! Fetching results...")
 
 ###################################
 def request_remote_run(chip):
@@ -346,3 +346,6 @@ def fetch_results(chip):
                    local_dir,
                    dirs_exist_ok = True)
     shutil.rmtree(job_hash)
+
+    # Print a message pointing to the results.
+    chip.logger.info(f"Your job results are located in: {os.path.abspath(chip._getworkdir())}")
