@@ -34,7 +34,7 @@ Before we add the complexity of a RAM macro block, let's build the core design u
     chip.set('option', 'remote', True)
     chip.run()
 
-If you run that example as a Python script, it should take approximately 20 minutes to run if the servers are not too busy. We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area. Once the job finishes, you should receive a screenshot of your final design, and a report containing metrics related to the build in ``build/picorv32/job0/report.pdf``. SiliconCompiler will try to open the file after the job completes, but it may not be able to do so if you are running in a headless environment.
+Note in the code snippet above that :ref:`remote` is set to ``True``. This means it is set up for :ref:`remote processing`, and if you run this example as a Python script, it should take approximately 20 minutes to run if the servers are not too busy. We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area. Once the job finishes, you should receive a screenshot of your final design, and a report containing metrics related to the build in ``build/picorv32/job0/report.pdf``. SiliconCompiler will try to open the file after the job completes, but it may not be able to do so if you are running in a headless environment.
 
 .. image:: ../_images/picorv32_report.png
 
