@@ -2851,7 +2851,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if cropped_line != line:
                 print(f'WARNING: cropped {line} to {cropped_line} to fit')
 
-            # Stash line to write and y-coord to write it at
+            # Stash line to write and coords to write it at
             text.append(((x, y), cropped_line))
 
             y += line_height + LINE_SPACING
