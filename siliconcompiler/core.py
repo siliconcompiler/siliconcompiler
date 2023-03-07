@@ -2792,10 +2792,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         totalarea = self.get('metric', 'totalarea', step='export', index='1')
         if totalarea:
             # SI-ify
-            if totalarea < 1e3:
+            if totalarea < 1e4:
                 metrics['Area'] = f'{totalarea:.2f} um^2'
             else:
-                metrics['Area'] = f'{totalarea / 1e3:.2f} mm^2'
+                metrics['Area'] = f'{totalarea / 1e4:.2f} mm^2'
 
         fmax = self.get('metric', 'fmax', step='export', index='1')
         if fmax:
