@@ -25,8 +25,14 @@ class SchemaGen(SphinxDirective):
             entries = [[strong('Description'),   para(schema['shorthelp'])],
                        [strong('Type'),          para(schema['type'])]]
 
+            if schema['pernode'] != 'never':
+                entries.append([strong('Per step/index'), para(schema['pernode'])])
+
             if schema['type'] == 'enum':
                 entries.append([strong('Allowed Values'), code(", ".join([f'"{val}"' for val in schema['enum']]))])
+
+            if 'unit' in schema:
+                entries.append([strong('Unit'), para(schema['unit'])])
 
             entries.extend([[strong('Default Value'), para(schema['defvalue'])],
                             [strong('CLI Switch'),    code(schema['switch'])]])
