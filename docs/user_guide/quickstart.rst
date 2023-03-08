@@ -35,11 +35,11 @@ Then, at the end of the run, a summary table will be printed similar to the one 
 
 .. image:: ../_images/summary_table.png
 
-All design outputs are located in ``build/<design>/<jobname>``. When running remote, you will not get all the tool-specific output that you would with a local run, but you will be able to find a report with a screenshot of the demo design and the design statistics summary table:
+All design outputs are located in ``build/<design>/<jobname>``. When running remote, you will not get all the tool-specific output that you would with a local run, but you will be able to find a screenshot of the demo design ``heartbeat.png`` and a summary report in ``report.html``:
 
-.. image:: ../_images/selftest_report.png
+.. image:: ../_images/selftest_screenshot.png
 
-   
+
 .. _run locally:
 
 Local Run
