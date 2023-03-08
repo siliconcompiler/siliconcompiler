@@ -44,6 +44,7 @@ import sys
 sys.path.append(SC_ROOT)
 
 from schema import Schema
+from tools.klayout.klayout_show import show
 
 def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
               macro_lefs, config_file='', seal_file='', timestamps=True):
@@ -266,5 +267,13 @@ if 'timestamps' in sc_klayout_vars:
 else:
   sc_timestamps = False
 
+if 'screenshot' in sc_klayout_vars:
+  sc_screenshot = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'screenshot', step=sc_step, index=sc_index) == ['true']
+else:
+  sc_screenshot = True
+
 gds_export(design, in_def, in_gds, out_gds, tech_file, foundry_lef, macro_lefs,
            config_file='', seal_file='', timestamps=sc_timestamps)
+
+if sc_screenshot:
+  show(schema, out_gds, f'outputs/{design}.png', screenshot=True)

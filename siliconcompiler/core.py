@@ -34,10 +34,12 @@ import distro
 import netifaces
 import webbrowser
 import codecs
+import string
 import packaging.version
 import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
+from PIL import Image, ImageFont, ImageDraw
 from siliconcompiler.client import *
 from siliconcompiler.schema import *
 from siliconcompiler.scheduler import _deferstep
@@ -2772,8 +2774,107 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return all_tasks.difference(non_leaf_tasks)
 
     ###########################################################################
+    def _generate_summary_image(self, input_path, output_path):
+        '''Takes a layout screenshot and generates a design summary image
+        featuring a layout thumbnail and several metrics.'''
+
+        # Extract metrics for display
+
+        metrics = {
+            'Chip': self.get('design'),
+        }
+
+        if self.get('option', 'pdk'):
+            metrics['Node'] = self.get('option', 'pdk')
+
+        # TODO: a bit hardcoded to asicflow assumptions... a way to query
+        # "final" metrics regardless of flow would be handy
+        totalarea = self.get('metric', 'totalarea', step='export', index='1')
+        if totalarea:
+            # SI-ify
+            if totalarea < 1e7:
+                metrics['Area'] = f'{totalarea:.2f} um^2'
+            else:
+                metrics['Area'] = f'{totalarea / 1e6:.2f} mm^2'
+
+        fmax = self.get('metric', 'fmax', step='export', index='1')
+        if fmax:
+            # SI-ify
+            if fmax < 1e6:
+                fmax = f'{(fmax / 1e3):.2f} KHz'
+            elif fmax < 1e9:
+                fmax = f'{(fmax / 1e6):.2f} MHz'
+            else:
+                fmax = f'{(fmax / 1e9):.2f} GHz'
+            metrics['Fmax'] = fmax
+
+        # Generate design
+
+        WIDTH = 1024
+        BORDER = 32
+        LINE_SPACING = 8
+        TEXT_INDENT = 16
+
+        FONT_PATH = os.path.join(self.scroot, 'data', 'RobotoMono', 'RobotoMono-Regular.ttf')
+        FONT_SIZE = 40
+
+        # matches dark gray background color configured in klayout_show.py
+        BG_COLOR = (33, 33, 33)
+
+        # near-white
+        TEXT_COLOR = (224, 224, 224)
+
+        original_layout = Image.open(input_path)
+        orig_width, orig_height = original_layout.size
+
+        aspect_ratio = orig_height / orig_width
+
+        # inset by border left and right
+        thumbnail_width = WIDTH - 2 * BORDER
+        thumbnail_height = round(thumbnail_width * aspect_ratio)
+        layout_thumbnail = original_layout.resize((thumbnail_width, thumbnail_height))
+
+        font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
+
+        # Get max height of any ASCII character in font, so we can consistently space each line
+        _, descent = font.getmetrics()
+        _, bb_top, _, bb_bottom = font.getmask(string.printable).getbbox()
+        line_height = (bb_bottom - bb_top) + descent
+
+        text = []
+        x = BORDER + TEXT_INDENT
+        y = thumbnail_height + 2 * BORDER
+        for metric, value in metrics.items():
+            line = f'{metric}: {value}'
+
+            # shorten line till it fits
+            cropped_line = line
+            while True:
+                line_width = font.getmask(cropped_line).getbbox()[2] + TEXT_INDENT
+                if x + line_width < (WIDTH - BORDER):
+                    break
+                cropped_line = cropped_line[:-1]
+
+            if cropped_line != line:
+                self.logger.warning(f'Cropped {line} to {cropped_line} to fit in design summary image')
+
+            # Stash line to write and coords to write it at
+            text.append(((x, y), cropped_line))
+
+            y += line_height + LINE_SPACING
+
+        design_summary = Image.new('RGB', (WIDTH, y + BORDER), color=BG_COLOR)
+        design_summary.paste(layout_thumbnail, (BORDER, BORDER))
+
+        draw = ImageDraw.Draw(design_summary)
+        for coords, line in text:
+            draw.text(coords, line, TEXT_COLOR, font=font)
+
+        design_summary.save(output_path)
+
+    ###########################################################################
     def summary(self, steplist=None, show_all_indices=False,
-                generate_screenshot=True, generate_html=True):
+                generate_image=True, generate_html=True):
         '''
         Prints a summary of the compilation manifest.
 
@@ -2786,6 +2887,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             show_all_indices (bool): If True, displays metrics for all indices
                 of each step. If False, displays metrics only for winning
                 indices.
+            generate_image (bool): If True, generates a summary image featuring
+                a layout screenshot and a subset of metrics. Requires that the
+                current job has an export0 node with a PNG file output. If the
+                image already exists, it will not be regenerated.
+            generate_html (bool): If True, generates an HTML report featuring a
+                metrics summary table and manifest tree view. The report will
+                include a layout screenshot if the current job has an export0
+                node with a PNG file output. If the report already exists, it
+                will not be regenerated.
 
         Examples:
             >>> chip.summary()
@@ -2953,23 +3063,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             templ_dir = os.path.join(self.scroot, 'templates', 'report')
             design = self.top()
 
-            # Call 'show()' to generate a low-res PNG of the design.
-            # Need to be able to search for something showable by KLayout,
-            # otherwise the extra_options don't make sense.
-            img_data = None
-            if (not self.get('option', 'nodisplay')) and generate_screenshot:
-                screenshot_path = self.show(filename=None, screenshot=True)
-                # Result might not exist if there is no display
-                if screenshot_path and os.path.isfile(screenshot_path):
-                    with open(screenshot_path, 'rb') as img_file:
-                        img_data = base64.b64encode(img_file.read()).decode('utf-8')
-
             # Mark file paths where the reports can be found if they were generated.
             results_html = os.path.join(web_dir, 'report.html')
             results_pdf = os.path.join(web_dir, 'report.pdf')
+            results_img = os.path.join(web_dir, f'{self.design}.png')
+
+            # TODO: we should generalize where we look for the png (perhaps [output, layout, png])
+            layout_img = self.find_result('png', step='export', index='0')
+
+            if generate_image and layout_img and not os.path.isfile(results_img):
+                self._generate_summary_image(layout_img, results_img)
+                self.logger.info(f'Generated summary image at {results_img}')
 
             # Generate reports by passing the Chip manifest into the Jinja2 template.
-            if generate_html:
+            if generate_html and not os.path.isfile(results_html):
                 env = Environment(loader=FileSystemLoader(templ_dir))
                 schema = self.schema.copy()
                 schema.prune()
@@ -2978,6 +3085,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     del pruned_cfg['history']
                 if 'library' in pruned_cfg:
                     del pruned_cfg['library']
+
+                img_data = None
+                # Base64-encode layout for inclusion in HTML report
+                if layout_img and os.path.isfile(layout_img):
+                    with open(layout_img, 'rb') as img_file:
+                        img_data = base64.b64encode(img_file.read()).decode('utf-8')
 
                 # Hardcode the encoding, since there's a Unicode character in a
                 # Bootstrap CSS file inlined in this template. Without this setting,
@@ -2996,10 +3109,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         img_data = img_data,
                     ))
 
+                self.logger.info(f'Generated HTML report at {results_html}')
+
             # Try to open the results and layout only if '-nodisplay' is not set.
-            # Prioritize PDF, followed by HTML.
+            # Priority: PNG, PDF, HTML.
             if (not self.get('option', 'nodisplay')):
-                if os.path.isfile(results_pdf):
+                if os.path.isfile(results_img):
+                    Image.open(results_img).show()
+                elif os.path.isfile(results_pdf):
                     # Open results with whatever application is associated with PDFs on the local system.
                     if sys.platform == 'win32':
                         os.startfile(results_pdf)
