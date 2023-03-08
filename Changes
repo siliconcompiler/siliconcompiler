@@ -15,11 +15,11 @@ SiliconCompiler 0.10.0 (2023-03-08)
 
 * Schema overhauled (see `schema documentation <https://docs.siliconcompiler.com/en/stable/reference_manual/schema.html>`_ for details):
 
-  * added ability to override certain schema parameters on a per-step/index basis.
-  * added step and index to schema access methods.
-  * expanded constraints category to include component and pin placement.
-  * cleaned up parameters which were duplicated in other categories.
-  * implemented ['input', ...] and ['output', ...] filesets along with ``.input()`` and ``.output()`` helper functions
+  * Added ability to override certain schema parameters on a per-step/index basis.
+  * Added step and index to schema access methods.
+  * Expanded constraints category to include component and pin placement.
+  * Cleaned up parameters which were duplicated in other categories.
+  * Implemented ['input', ...] and ['output', ...] filesets along with ``.input()`` and ``.output()`` helper functions
 * Added tasks to tools prevent step name from getting used for task identification.
 * Implemented ``.use()`` in favor of ``.load_pdk()``, ``.load_flow()``, etc. to take in Python modules instead of strings.
 * Changed libraries, flows, checklists, and pdks to expliciently return a particular class object.
