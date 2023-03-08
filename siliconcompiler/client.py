@@ -186,7 +186,7 @@ def request_remote_run(chip):
         chip.logger.warning("""Your job will be uploaded to a public server for processing in 5 seconds.
 ---------------------------------------------------------------------------------------------------
   DISCLAIMER:
-  - The open SiliconCompiler remote server is a free service. Don't abuse it!
+  - The open SiliconCompiler remote server is a free service. Please don't abuse it.
   - Submitted designs must be open source. SiliconCompiler is not responsible for any proprietary IP that may be uploaded.
   - Only send one run at a time (or you may be temporarily blocked).
   - Do not send large designs (machines have limited resources).
