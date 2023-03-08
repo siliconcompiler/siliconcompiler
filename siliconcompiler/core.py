@@ -2795,7 +2795,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if totalarea < 1e7:
                 metrics['Area'] = f'{totalarea:.2f} um^2'
             else:
-                metrics['Area'] = f'{totalarea / 1e7:.2f} mm^2'
+                metrics['Area'] = f'{totalarea / 1e6:.2f} mm^2'
 
         fmax = self.get('metric', 'fmax', step='export', index='1')
         if fmax:
