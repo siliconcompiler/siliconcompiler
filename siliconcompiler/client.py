@@ -183,9 +183,16 @@ def request_remote_run(chip):
 
     # Print a reminder for public beta runs.
     if default_server_name in remote_run_url:
-        chip.logger.warning("Your job will be uploaded to a public server for processing in 5 seconds.\n")
-        chip.logger.warning("Please remember that the SiliconCompiler public servers are not intended to process proprietary intellectual property.")
-        chip.logger.warning("SiliconCompiler is not responsible for any proprietary intellectual property that may be uploaded.\n")
+        chip.logger.warning("""Your job will be uploaded to a public server for processing in 5 seconds.
+---------------------------------------------------------------------------------------------------
+  DISCLAIMER:
+  - The open SiliconCompiler remote server is a free service. Don't abuse it!
+  - Submitted designs must be open source. SiliconCompiler is not responsible for any proprietary IP that may be uploaded.
+  - Only send one run at a time (or you may be temporarily blocked).
+  - Do not send large designs (machines have limited resources).
+  - We are currently only returning metrics and renderings of the results. For a full GDS-II layout, please run your design locally.
+  - For full TOS, see https://www.siliconcompiler.com/terms-of-service
+-------------------------------------------------------------------------------------------------""")
         chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
         time.sleep(5)
 
