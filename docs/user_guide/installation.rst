@@ -22,6 +22,9 @@ Open up a terminal and enter the following command sequence.
     python3 -m venv  ./venv                                # create a virtual env
     source ./venv/bin/activate                             # active virtual env (bash/zsh)
 
+.. note::
+   Currently Ubuntu on ARM64 is not supported. It is planned to be included as part of the next release.
+   
 Skip ahead to `SC Install`_.
 
 RHEL (>=RHEL 7)
