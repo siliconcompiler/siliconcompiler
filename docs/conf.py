@@ -16,11 +16,13 @@ sys.path.insert(0, os.path.abspath('../siliconcompiler'))
 import siliconcompiler
 sys.path.append(os.path.abspath('./_ext'))
 
+from datetime import date
+
 
 # -- Project information -----------------------------------------------------
 
 project = 'SiliconCompiler'
-copyright = '2020, Zero ASIC'
+copyright = f'2020-{date.today().year}, Zero ASIC'
 author = 'SiliconCompiler Authors'
 
 version = siliconcompiler.__version__
