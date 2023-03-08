@@ -3,7 +3,7 @@ Building Your Own SoC
 
 This tutorial will walk you through the process of building an ASIC containing one PicoRV32 RISC-V CPU core and 2 kilobytes of SRAM, on an open-source 130nm Skywater process node, with SiliconCompiler's remote workflow:
 
-.. image:: ../_images/picorv32_ram_report.png
+.. image:: ../_images/picorv32_ram_screenshot.png
 
 We will walk through the process of downloading the design files and writing a build script, but for your reference, you can find complete example designs which reflect the contents of this tutorial in the public SiliconCompiler repository. The first part of the tutorial will cover building the CPU core `without RAM <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_, and the second part will describe how to `add an SRAM block <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_.
 
@@ -34,9 +34,9 @@ Before we add the complexity of a RAM macro block, let's build the core design u
     chip.set('option', 'remote', True)
     chip.run()
 
-Note in the code snippet above that :ref:`remote` is set to ``True``. This means it is set up for :ref:`remote processing`, and if you run this example as a Python script, it should take approximately 20 minutes to run if the servers are not too busy. We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area. Once the job finishes, you should receive a screenshot of your final design, and a report containing metrics related to the build in ``build/picorv32/job0/report.pdf``. SiliconCompiler will try to open the file after the job completes, but it may not be able to do so if you are running in a headless environment.
+Note in the code snippet above that :ref:`remote` is set to ``True``. This means it is set up for :ref:`remote processing`, and if you run this example as a Python script, it should take approximately 20 minutes to run if the servers are not too busy. We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area. Once the job finishes, you should receive a screenshot of your final design, and a report containing metrics related to the build in ``build/picorv32/job0/report.html``. SiliconCompiler will try to open the file after the job completes, but it may not be able to do so if you are running in a headless environment.
 
-.. image:: ../_images/picorv32_report.png
+.. image:: ../_images/picorv32_screenshot.png
 
 For the full GDS-II results and intermediate build artifacts, you can run the build locally. See the :ref:`local run` section for more information.
 
@@ -72,8 +72,8 @@ We will need a GDS and LEF file to provide basic placement and routing informati
 
         # Create Library object to represent the macro.
         lib = siliconcompiler.Library(chip, design)
-        lib.set('output', stackup, 'gds', f'sram/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
-        lib.set('output', stackup, 'lef', f'sram/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
+        lib.set('output', stackup, 'gds', 'sram/sky130_sram_2kbyte_1rw1r_32x512_8.gds')
+        lib.set('output', stackup, 'lef', 'sram/sky130_sram_2kbyte_1rw1r_32x512_8.lef')
         # Set the 'copy' field to True to pull these files into the build directory during
         # the 'import' task, which makes them available for the remote workflow to use.
         lib.set('output', stackup, 'gds', True, field='copy')
@@ -234,9 +234,9 @@ With all of that done, your project directory tree should look something like th
     ├── picorv32_top.py
     └── picorv32_top.v
 
-Your ``picorv32_top.py`` build script should take about 20 minutes to run on the cloud servers if they are not too busy, with most of that time spent in the routing task. As with the previous designs, you should see updates on its progress printed every 30 seconds, and you should receive a screenshot and metrics summary once the job is complete:
+Your ``picorv32_top.py`` build script should take about 20 minutes to run on the cloud servers if they are not too busy, with most of that time spent in the routing task. As with the previous designs, you should see updates on its progress printed every 30 seconds, and you should receive a screenshot once the job is complete and a report in the build directory:
 
-.. image:: ../_images/picorv32_ram_report.png
+.. image:: ../_images/picorv32_ram_screenshot.png
 
 Extending your design
 ---------------------
