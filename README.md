@@ -51,7 +51,7 @@ SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
 Linux platforms. For working Python 3.6-3.10 environment, just use pip.
 
 ```sh
-python -m pip upgrade siliconcompiler
+python -m pip install --upgrade siliconcompiler
 ```
 
 
