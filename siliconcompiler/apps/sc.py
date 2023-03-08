@@ -22,7 +22,7 @@ def main():
 
     1. Read command line arguments
     2. If not set, 'design' is set to base of first source file.
-    3. If not set, 'target' is set to 'asicflow_freepdk45.
+    3. If not set, 'target' is set to 'skywater130_demo'.
     4. Run compilation
     5. Display summary
 
