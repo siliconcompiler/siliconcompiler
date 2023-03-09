@@ -15,7 +15,7 @@ import time
 import urllib.parse
 import uuid
 
-from siliconcompiler._metadata import default_server_name
+from siliconcompiler._metadata import default_server
 from siliconcompiler.crypto import *
 from siliconcompiler import utils
 
@@ -182,6 +182,7 @@ def request_remote_run(chip):
     upload_file = os.path.abspath(os.path.join(local_build_dir, 'import.tar.gz'))
 
     # Print a reminder for public beta runs.
+    default_server_name = urllib.parse.urlparse(default_server).hostname
     if default_server_name in remote_run_url:
         chip.logger.warning("""Your job will be uploaded to a public server for processing in 5 seconds.
 ---------------------------------------------------------------------------------------------------
