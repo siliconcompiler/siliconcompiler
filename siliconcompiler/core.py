@@ -2889,13 +2889,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 indices.
             generate_image (bool): If True, generates a summary image featuring
                 a layout screenshot and a subset of metrics. Requires that the
-                current job has an export0 node with a PNG file output. If the
-                image already exists, it will not be regenerated.
+                current job has an export0 node with a PNG file output.
             generate_html (bool): If True, generates an HTML report featuring a
                 metrics summary table and manifest tree view. The report will
                 include a layout screenshot if the current job has an export0
-                node with a PNG file output. If the report already exists, it
-                will not be regenerated.
+                node with a PNG file output.
 
         Examples:
             >>> chip.summary()
@@ -3071,12 +3069,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # TODO: we should generalize where we look for the png (perhaps [output, layout, png])
             layout_img = self.find_result('png', step='export', index='0')
 
-            if generate_image and layout_img and not os.path.isfile(results_img):
+            if generate_image and layout_img:
                 self._generate_summary_image(layout_img, results_img)
                 self.logger.info(f'Generated summary image at {results_img}')
 
             # Generate reports by passing the Chip manifest into the Jinja2 template.
-            if generate_html and not os.path.isfile(results_html):
+            if generate_html:
                 env = Environment(loader=FileSystemLoader(templ_dir))
                 schema = self.schema.copy()
                 schema.prune()
