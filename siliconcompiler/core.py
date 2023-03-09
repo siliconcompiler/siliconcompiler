@@ -2889,13 +2889,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 indices.
             generate_image (bool): If True, generates a summary image featuring
                 a layout screenshot and a subset of metrics. Requires that the
-                current job has an export0 node with a PNG file output. If the
-                image already exists, it will not be regenerated.
+                current job has an export0 node with a PNG file output.
             generate_html (bool): If True, generates an HTML report featuring a
                 metrics summary table and manifest tree view. The report will
                 include a layout screenshot if the current job has an export0
-                node with a PNG file output. If the report already exists, it
-                will not be regenerated.
+                node with a PNG file output.
 
         Examples:
             >>> chip.summary()
