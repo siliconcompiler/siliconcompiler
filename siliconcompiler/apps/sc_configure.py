@@ -2,8 +2,9 @@
 import os
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
-from siliconcompiler._metadata import default_server_name
+from siliconcompiler._metadata import default_server
 
 tos_str = '''Please review the SiliconCompiler cloud beta's terms of service:
 
@@ -33,6 +34,8 @@ def main():
     about the account and remote server.
     -----------------------------------------------------------
     """
+
+    default_server_name = urlparse(default_server).hostname
 
     # Return early and print a help string if necessary.
     if (len(sys.argv) > 1) and \
