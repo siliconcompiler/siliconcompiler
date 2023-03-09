@@ -3071,12 +3071,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # TODO: we should generalize where we look for the png (perhaps [output, layout, png])
             layout_img = self.find_result('png', step='export', index='0')
 
-            if generate_image and layout_img and not os.path.isfile(results_img):
+            if generate_image and layout_img:
                 self._generate_summary_image(layout_img, results_img)
                 self.logger.info(f'Generated summary image at {results_img}')
 
             # Generate reports by passing the Chip manifest into the Jinja2 template.
-            if generate_html and not os.path.isfile(results_html):
+            if generate_html:
                 env = Environment(loader=FileSystemLoader(templ_dir))
                 schema = self.schema.copy()
                 schema.prune()
