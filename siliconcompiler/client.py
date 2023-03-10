@@ -279,6 +279,10 @@ def delete_job(chip):
 ###################################
 def fetch_results_request(chip):
     '''Helper method to fetch job results from a remote compute cluster.
+
+       Returns:
+       * 0 if no error was encountered.
+       * 1 if the results could not be retrieved.
     '''
 
     # Set the request URL.
@@ -312,13 +316,13 @@ def fetch_results_request(chip):
             elif resp.status_code == 200:
                 shutil.copyfileobj(resp.raw, zipf)
                 return 0
-            elif int(resp.status_code / 100) in [4, 5]:
+            else:
                 msg = '.'
                 try: # (An unexpected server error may not return JSON with a message)
                     msg = f': {resp.json()["message"]}'
                 except:
                     pass
-                chip.logger.warning(f'Error fetching results{msg}')
+                chip.logger.warning(f'Could not fetch results{msg}')
                 return 1
 
 ###################################
