@@ -44,6 +44,7 @@ from siliconcompiler.client import *
 from siliconcompiler.schema import *
 from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils
+from siliconcompiler import units
 from siliconcompiler import _metadata
 import psutil
 
@@ -3969,8 +3970,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
-        self.set('metric', 'exetime', cputime, step=step, index=index)
-        self.set('metric', 'memory', max_mem_bytes, step=step, index=index)
+        self._record_metric(step, index, 'exetime', cputime, None, source_unit='s')
+        self._record_metric(step, index, 'memory', max_mem_bytes, None, source_unit='B')
 
         ##################
         # Post process
@@ -3982,19 +3983,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Check log file (must be after post-process)
         if (not is_builtin) and (not self.get('option', 'skipall')) and (run_func is None):
-            matches = self.check_logfile(step=step, index=index, display=not quiet)
+            log_file = os.path.join(self._getworkdir(step=step, index=index), f'{step}.log')
+            matches = self.check_logfile(step=step, index=index, display=not quiet, logfile=log_file)
             if 'errors' in matches:
                 errors = self.get('metric', 'errors', step=step, index=index)
                 if errors is None:
                     errors = 0
                 errors += matches['errors']
-                self.set('metric', 'errors', errors, step=step, index=index)
+                self._record_metric(step, index, 'errors', errors, log_file)
             if 'warnings' in matches:
                 warnings = self.get('metric', 'warnings', step=step, index=index)
                 if warnings is None:
                     warnings = 0
                 warnings += matches['warnings']
-                self.set('metric', 'warnings', warnings, step=step, index=index)
+                self._record_metric(step, index, 'warnings', warnings, log_file)
 
         ##################
         # Hash files
@@ -4218,7 +4220,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                     # Reset metrics and records
                     for metric in self.getkeys('metric'):
-                        self.unset('metric', metric, step=step, index=index)
+                        self._clear_metric(step, index, metric)
                     for record in self.getkeys('record'):
                         self.unset('record', record, step=step, index=index)
                 elif os.path.isfile(cfg):
@@ -4234,7 +4236,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     if index in indexlist[step]:
                         self.set('flowgraph', flow, step, index, 'status', None)
                         for metric in self.getkeys('metric'):
-                            self.unset('metric', metric, step=step, index=index)
+                            self._clear_metric(step, index, metric)
                         for record in self.getkeys('record'):
                             self.unset('record', record, step=step, index=index)
 
@@ -5001,6 +5003,60 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 return
 
         raise SiliconCompilerError(msg) from None
+
+
+    #######################################
+    def _record_metric(self, step, index, metric, value, source, source_unit=None):
+        '''
+        Records a metric from a given step and index.
+
+        This function ensures the metrics are recorded in the correct units
+        as specified in the schema, additionally, this will record the source
+        of the value if provided.
+
+        Args:
+            step (str): step to record the metric into
+            index (str): index to record the metric into
+            metric (str): metric to record
+            value (float/int): value of the metric that is being recorded
+            source (str): file the value came from
+            source_unit (str): unit of the value, if not provided it is assumed to have no units
+
+        Examples:
+            >>> chip._record_metric('floorplan', '0', 'cellarea', 500.0, 'reports/metrics.json', source_units='um^2')
+            Records the metric cell area under 'floorplan0' and notes the source as 'reports/metrics.json'
+        '''
+        metric_unit = None
+        try:
+            metric_unit = self.get('metric', metric, field='unit')
+        except SiliconCompilerError:
+            pass
+
+        if metric_unit:
+            value = units.convert(value, from_unit=source_unit, to_unit=metric_unit)
+
+        self.set('metric', metric, value, step=step, index=index)
+
+        if source:
+            flow = self.get('option', 'flow')
+            tool = self.get('flowgraph', flow, step, index, 'tool')
+            task = self.get('flowgraph', flow, step, index, 'task')
+
+            self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
+
+
+    #######################################
+    def _clear_metric(self, step, index, metric):
+        '''
+        Helper function to clear metrics records
+        '''
+        flow = self.get('option', 'flow')
+        tool = self.get('flowgraph', flow, step, index, 'tool')
+        task = self.get('flowgraph', flow, step, index, 'task')
+
+        self.unset('metric', metric, step=step, index=index)
+        self.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
+
 
 ###############################################################################
 # Package Customization classes
