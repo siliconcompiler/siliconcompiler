@@ -31,6 +31,7 @@ Before we add the complexity of a RAM macro block, let's build the core design u
     chip = siliconcompiler.Chip('picorv32')
     chip.load_target('skywater130_demo')
     chip.input('picorv32.v')
+    chip.clock('clk', period=10)
     chip.set('option', 'remote', True)
     chip.run()
 
