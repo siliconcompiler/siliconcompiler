@@ -2792,22 +2792,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # "final" metrics regardless of flow would be handy
         totalarea = self.get('metric', 'totalarea', step='export', index='1')
         if totalarea:
-            # SI-ify
-            if totalarea < 1e7:
-                metrics['Area'] = f'{totalarea:.2f} um^2'
+            metric_unit = self.get('metric', 'totalarea', field='unit')
+            prefix = units.get_si_prefix(metric_unit)
+            mm_area = units.convert(totalarea, from_unit=prefix, to_unit='mm^2')
+            if mm_area < 10:
+                metrics['Area'] = units.format_si(totalarea, 'um') + 'um^2'
             else:
-                metrics['Area'] = f'{totalarea / 1e6:.2f} mm^2'
+                metrics['Area'] = units.format_si(mm_area, 'mm') + 'mm^2'
 
         fmax = self.get('metric', 'fmax', step='export', index='1')
         if fmax:
-            # SI-ify
-            if fmax < 1e6:
-                fmax = f'{(fmax / 1e3):.2f} KHz'
-            elif fmax < 1e9:
-                fmax = f'{(fmax / 1e6):.2f} MHz'
-            else:
-                fmax = f'{(fmax / 1e9):.2f} GHz'
-            metrics['Fmax'] = fmax
+            fmax = units.convert(fmax, from_unit=self.get('metric', 'fmax', field='unit'))
+            metrics['Fmax'] = units.format_si(fmax, 'Hz') + 'Hz'
 
         # Generate design
 
