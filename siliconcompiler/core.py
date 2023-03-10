@@ -2873,8 +2873,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         design_summary.save(output_path)
 
     ###########################################################################
-    def summary(self, steplist=None, show_all_indices=False,
-                generate_image=True, generate_html=True):
+    def summary(self, steplist=None, show_all_indices=False, generate_html=True):
         '''
         Prints a summary of the compilation manifest.
 
@@ -2887,9 +2886,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             show_all_indices (bool): If True, displays metrics for all indices
                 of each step. If False, displays metrics only for winning
                 indices.
-            generate_image (bool): If True, generates a summary image featuring
-                a layout screenshot and a subset of metrics. Requires that the
-                current job has an export0 node with a PNG file output.
             generate_html (bool): If True, generates an HTML report featuring a
                 metrics summary table and manifest tree view. The report will
                 include a layout screenshot if the current job has an export0
@@ -3061,17 +3057,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             templ_dir = os.path.join(self.scroot, 'templates', 'report')
             design = self.top()
 
+            # TODO: we should generalize where we look for the png (perhaps [output, layout, png])
+            layout_img = self.find_result('png', step='export', index='0')
             # Mark file paths where the reports can be found if they were generated.
             results_html = os.path.join(web_dir, 'report.html')
             results_pdf = os.path.join(web_dir, 'report.pdf')
             results_img = os.path.join(web_dir, f'{self.design}.png')
-
-            # TODO: we should generalize where we look for the png (perhaps [output, layout, png])
-            layout_img = self.find_result('png', step='export', index='0')
-
-            if generate_image and layout_img:
-                self._generate_summary_image(layout_img, results_img)
-                self.logger.info(f'Generated summary image at {results_img}')
 
             # Generate reports by passing the Chip manifest into the Jinja2 template.
             if generate_html:
@@ -4484,6 +4475,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Storing manifest in job root directory
         filepath =  os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
+
+        # Finally, attempt to generate an image-based summary of the run.
+        # TODO: we should generalize where we look for the png (perhaps [output, layout, png])
+        layout_img = self.find_result('png', step='export', index='0')
+        results_img = os.path.join(self._getworkdir(), f'{self.design}.png')
+        if layout_img:
+            self._generate_summary_image(layout_img, results_img)
+            self.logger.info(f'Generated summary image at {results_img}')
 
     ###########################################################################
     def _find_showable_output(self, tool=None):
