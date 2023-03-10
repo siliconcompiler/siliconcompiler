@@ -2975,6 +2975,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         nodes = []
         errors = {}
         metrics = {}
+        metrics_unit = {}
         reports = {}
 
         # Build ordered list of nodes in flowgraph
@@ -2994,6 +2995,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if metric in self.get('option', 'metricoff'):
                 continue
 
+            # Get the unit associated with the metric
+            metric_unit = None
+            try:
+                metric_unit = self.get('metric', metric, field='unit')
+            except SiliconCompilerError:
+                # Metric does not have a unit associated
+                pass
+            metric_type = self.get('metric', metric, field='type')
+
             show_metric = False
             for step, index in nodes:
                 if (
@@ -3010,11 +3020,24 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 rpts = self.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)
 
                 errors[step, index] = self.get('flowgraph', flow, step, index, 'status') == TaskStatus.ERROR
+
+                if value is not None:
+                    if metric == 'memory':
+                        value = units.format_binary(value, metric_unit)
+                    elif metric in ['exetime', 'tasktime']:
+                        metric_unit = None
+                        value = units.format_time(value)
+                    elif metric_type == 'int':
+                        value = str(value)
+                    else:
+                        value = units.format_si(value, metric_unit)
+
                 metrics[step, index][metric] = value
                 reports[step, index][metric] = rpts
 
             if show_metric:
                 metrics_to_show.append(metric)
+                metrics_unit[metric] = metric_unit if metric_unit else ''
 
         # Display data
         pandas.set_option('display.max_rows', 500)
@@ -3029,16 +3052,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         colwidth = 8 # minimum col width
         row_labels = [' ' + metric for metric in metrics_to_show]
         column_labels = [f'{step}{index}'.center(colwidth) for step, index in nodes_to_show]
+        column_labels.insert(0, 'units')
 
         data = []
         for metric in metrics_to_show:
             row = []
+            row.append(metrics_unit[metric])
             for node in nodes_to_show:
                 value = metrics[node][metric]
                 if value is None:
                     value = '---'
-                else:
-                    value = str(value)
                 value = ' ' + value.center(colwidth)
                 row.append(value)
             data.append(row)
@@ -3097,6 +3120,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         nodes = nodes,
                         errors = errors,
                         metrics = metrics,
+                        metrics_unit = metrics_unit,
                         reports = reports,
                         manifest = self.schema.cfg,
                         pruned_cfg = pruned_cfg,
