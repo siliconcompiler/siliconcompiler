@@ -251,17 +251,8 @@ def setup(chip, mode='batch'):
     chip.set('tool', tool, 'task', task, 'file', 'ppl_constraints', 'script constrain pin placement', field='help')
 
     # basic warning and error grep check on logfile
-    # print('warnings', step, index)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WARNING|^Warning', step=step, index=index, clobber=False)
-    # print(chip.getdict('tool', tool, 'task', task, 'regex', 'warnings'))
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[ERROR', step=step, index=index, clobber=False)
-
-    # reports
-    for metric in ('vias', 'wirelength', 'cellarea', 'totalarea', 'utilization', 'setuptns', 'holdtns',
-                   'setupslack', 'holdslack', 'setuppaths', 'holdpaths', 'unconstrained', 'peakpower',
-                   'leakagepower', 'pins', 'cells', 'macros', 'nets', 'registers', 'buffers', 'drvs',
-                   'setupwns', 'holdwns', 'fmax'):
-        chip.set('tool', tool, 'task', task, 'report', metric, "reports/metrics.json", step=step, index=index)
 
 ################################
 # Version Check
@@ -306,38 +297,64 @@ def post_process(chip):
     with open("reports/metrics.json", 'r') as f:
         metrics = json.load(f)
 
-        for metric, openroad_metric in [('vias', 'sc__step__route__vias'),
-                                        ('wirelength', 'sc__step__route__wirelength'),
-                                        ('cellarea', 'sc__metric__design__instance__area'),
-                                        ('totalarea', 'sc__metric__design__core__area'),
-                                        ('utilization', 'sc__metric__design__instance__utilization'),
-                                        ('setuptns', 'sc__metric__timing__setup__tns'),
-                                        ('holdtns', 'sc__metric__timing__hold__tns'),
-                                        ('setupslack', 'sc__metric__timing__setup__ws'),
-                                        ('holdslack', 'sc__metric__timing__hold__ws'),
-                                        ('fmax', 'sc__metric__timing__fmax'),
-                                        ('setuppaths', 'sc__metric__timing__drv__setup_violation_count'),
-                                        ('holdpaths', 'sc__metric__timing__drv__hold_violation_count'),
-                                        ('unconstrained', 'sc__metric__timing__unconstrained'),
-                                        ('peakpower', 'sc__metric__power__total'),
-                                        ('leakagepower', 'sc__metric__power__leakage__total'),
-                                        ('pins', 'sc__metric__design__io'),
-                                        ('cells', 'sc__metric__design__instance__count'),
-                                        ('macros', 'sc__metric__design__instance__count__macros'),
-                                        ('nets', 'sc__metric__design__nets'),
-                                        ('registers', 'sc__metric__design__registers'),
-                                        ('buffers', 'sc__metric__design__buffers')]:
-            if openroad_metric in metrics:
-                chip.set('metric', metric, metrics[openroad_metric], step=step, index=index)
+        or_units = {}
+        for unit, or_unit in [('time', 'run__flow__platform__time_units'),
+                              ('capacitance', 'run__flow__platform__capacitance_units'),
+                              ('resistance', 'run__flow__platform__resistance_units'),
+                              ('volt', 'run__flow__platform__voltage_units'),
+                              ('amp', 'run__flow__platform__current_units'),
+                              ('power', 'run__flow__platform__power_units'),
+                              ('distance', 'run__flow__platform__distance_units')]:
+            if or_unit in metrics:
+                # Remove first digit
+                metric_unit = metrics[or_unit][1:]
+                or_units[unit] = metric_unit
+
+        or_units['distance'] = 'um'  # always microns
+        or_units['power'] = 'W'  # always watts
+        or_units['area'] = or_units['distance']+'^2'
+        or_units['frequency'] = 'Hz'  # always hertz
+
+        for metric, or_metric, or_unit in [('vias', 'sc__step__route__vias', None),
+                                           ('wirelength', 'sc__step__route__wirelength', 'distance'),
+                                           ('cellarea', 'sc__metric__design__instance__area', 'area'),
+                                           ('totalarea', 'sc__metric__design__core__area', 'area'),
+                                           ('utilization', 'sc__metric__design__instance__utilization', 100.0),
+                                           ('setuptns', 'sc__metric__timing__setup__tns', 'time'),
+                                           ('holdtns', 'sc__metric__timing__hold__tns', 'time'),
+                                           ('setupslack', 'sc__metric__timing__setup__ws', 'time'),
+                                           ('holdslack', 'sc__metric__timing__hold__ws', 'time'),
+                                           ('fmax', 'sc__metric__timing__fmax', 'frequency'),
+                                           ('setuppaths', 'sc__metric__timing__drv__setup_violation_count', None),
+                                           ('holdpaths', 'sc__metric__timing__drv__hold_violation_count', None),
+                                           ('unconstrained', 'sc__metric__timing__unconstrained', None),
+                                           ('peakpower', 'sc__metric__power__total', 'power'),
+                                           ('leakagepower', 'sc__metric__power__leakage__total', 'power'),
+                                           ('pins', 'sc__metric__design__io', None),
+                                           ('cells', 'sc__metric__design__instance__count', None),
+                                           ('macros', 'sc__metric__design__instance__count__macros', None),
+                                           ('nets', 'sc__metric__design__nets', None),
+                                           ('registers', 'sc__metric__design__registers', None),
+                                           ('buffers', 'sc__metric__design__buffers', None)]:
+            if or_metric in metrics:
+                value = metrics[or_metric]
+                if or_unit:
+                    if or_unit in or_units:
+                        or_unit = or_units[or_unit]
+                    else:
+                        value *= or_unit
+                        or_unit = None
+
+                chip._record_metric(step, index, metric, value, "reports/metrics.json", source_unit=or_unit)
 
         # setup wns and hold wns can be computed from setup slack and hold slack
         if 'sc__metric__timing__setup__ws' in metrics:
-            wns = min(0.0, float(metrics['sc__metric__timing__setup__ws']))
-            chip.set('metric', 'setupwns', wns, step=step, index=index)
+            wns = min(0.0, chip.get('metric', 'setupslack', step=step, index=index))
+            chip._record_metric(step, index, 'setupwns', wns, "reports/metrics.json", source_unit=or_units['time'])
 
         if 'sc__metric__timing__hold__ws' in metrics:
-            wns = min(0.0, float(metrics['sc__metric__timing__hold__ws']))
-            chip.set('metric', 'holdwns', wns, step=step, index=index)
+            wns = min(0.0, chip.get('metric', 'holdslack', step=step, index=index))
+            chip._record_metric(step, index, 'holdwns', wns, "reports/metrics.json", source_unit=or_units['time'])
 
         drvs = None
         for metric in ['sc__metric__timing__drv__max_slew',
@@ -353,7 +370,7 @@ def post_process(chip):
                     drvs += int(metrics[metric])
 
         if drvs is not None:
-            chip.set('metric', 'drvs', drvs, step=step, index=index)
+            chip._record_metric(step, index, 'drvs', drvs, "reports/metrics.json")
 
 ######
 

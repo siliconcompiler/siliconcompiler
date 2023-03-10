@@ -42,13 +42,8 @@ def setup(chip):
     # does print all errors to stderr, so we can redirect them to <step>.errors
     # and use that file to count errors.
     chip.set('tool', tool, 'task', task, 'stderr', 'suffix', 'errors', step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'report', 'errors', f'{step}.errors', step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', '^Warning:', step=step, index=index, clobber=False)
-
-    report_path = f'reports/{design}.lvs.out'
-    chip.set('tool', tool, 'task', task, 'report', 'drvs', report_path, step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'report', 'warnings', report_path, step=step, index=index)
 
 ################################
 # Post_process (post executable)
@@ -65,7 +60,7 @@ def post_process(chip):
 
     with open(f'{step}.errors', 'r') as f:
         errors = len(f.readlines())
-    chip.set('metric', 'errors', errors, step=step, index=index)
+    chip._record_metric(step, index, 'errors', errors, f'{step}.errors')
 
     # Export metrics
     lvs_report = f'reports/{design}.lvs.json'
@@ -81,5 +76,5 @@ def post_process(chip):
     # details.
     pin_failures = lvs_failures[3]
     errors = lvs_failures[0] - pin_failures
-    chip.set('metric', 'drvs', errors, step=step, index=index)
-    chip.set('metric', 'warnings', pin_failures, step=step, index=index)
+    chip._record_metric(step, index, 'drvs', errors, lvs_report)
+    chip._record_metric(step, index, 'warnings', pin_failures, lvs_report)

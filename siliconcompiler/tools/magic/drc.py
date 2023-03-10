@@ -16,9 +16,6 @@ def setup(chip):
     task = 'drc'
     design = chip.top()
 
-    report_path = f'reports/{design}.drc'
-    chip.set('tool', tool, 'task', task, 'report', 'drvs', report_path, step=step, index=index)
-
 ################################
 # Post_process (post executable)
 ################################
@@ -34,12 +31,14 @@ def post_process(chip):
     design = chip.top()
 
     report_path = f'reports/{design}.drc'
+    drvs = 0
     with open(report_path, 'r') as f:
         for line in f:
             errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
 
             if errors:
-                chip.set('metric', 'drvs', errors.group(1), step=step, index=index)
+                drvs = errors.group(1)
+    chip._record_metric(step, index, 'drvs', drvs, report_path)
 
     #TODO: return error code
     return 0
