@@ -56,12 +56,12 @@ def convert(value, from_unit=None, to_unit=None):
     Convert a value to from one SI power to another SI power
 
     Args:
-        value (double): value to convert
+        value (float): value to convert
         from_unit (str): unit of the value, default is None and assumes no magnitude
         to_unit (str): unit of the return, default is None and assumes no magnitude
 
     Returns:
-        double: scaled value
+        float: scaled value
     '''
     value = float(value)
 
@@ -157,7 +157,7 @@ def format_si(value, unit, margin = 3, digits = 3):
     Format a number as an SI number.
 
     Args:
-        value (double): value to convert
+        value (float): value to convert
         unit (str): unit of the value
         margin (int): number of extra digits to ensure are preserved
             when picking the right magnitude
@@ -186,7 +186,7 @@ def format_binary(value, unit, digits = 3):
     Format a number as a binary number.
 
     Args:
-        value (double): value to convert
+        value (float): value to convert
         unit (str): unit of the value
         digits (int): number of digits to print after .
     '''
@@ -209,10 +209,10 @@ def format_binary(value, unit, digits = 3):
 def format_time(value):
     '''
     Format a number as time.
-    Prints as hh:mm:ss:ms (hours:minutes:seconds:milliseconds)
+    Prints as hh:mm:ss.ms (hours:minutes:seconds.milliseconds)
 
     Args:
-        value (double): number of seconds to convert
+        value (float): number of seconds to convert
     '''
     # Report as hh:mm::ss.ms
     value, miliseconds = divmod(value, 1)
