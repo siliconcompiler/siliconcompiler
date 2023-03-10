@@ -309,9 +309,17 @@ def fetch_results_request(chip):
             elif resp.status_code == 303:
                 redirect_url = resp.headers['Location']
                 can_redirect = True
-            else:
+            elif resp.status_code == 200:
                 shutil.copyfileobj(resp.raw, zipf)
-                return
+                return 0
+            elif int(resp.status_code / 100) in [4, 5]:
+                msg = '.'
+                try: # (An unexpected server error may not return JSON with a message)
+                    msg = f': {resp.json()["message"]}'
+                except:
+                    pass
+                chip.logger.warning(f'Error fetching results{msg}')
+                return 1
 
 ###################################
 def fetch_results(chip):
@@ -319,7 +327,7 @@ def fetch_results(chip):
     '''
 
     # Fetch the remote archive after the export stage.
-    fetch_results_request(chip)
+    results_failed = fetch_results_request(chip)
 
     # Call 'delete_job' to remove the run from the server.
     delete_job(chip)
@@ -329,7 +337,10 @@ def fetch_results(chip):
     job_hash = chip.status['jobhash']
     local_dir = chip.get('option', 'builddir')
 
-    # Authenticated jobs get a zip file full of other zip files.
+    if results_failed:
+        chip.error("Sorry, something went wrong and your job results could not be retrieved.", fatal=True)
+
+    # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
     # So we need to extract and delete those.
     subprocess.run(['tar', '-xzf', f'{job_hash}.tar.gz'])
     # Remove the results archive after it is extracted.
