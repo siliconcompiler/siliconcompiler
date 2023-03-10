@@ -15,10 +15,24 @@ Welcome to SiliconCompiler's documentation!
    user_guide/installation
    user_guide/quickstart
    user_guide/glossary
+   user_guide/remote_processing
+   user_guide/faq
+   user_guide/licenses
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Flow Basics
+   :numbered:
+
    user_guide/data_model
    user_guide/programming_model
    user_guide/execution_model
-   user_guide/remote_processing
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Reference Manual
+   :numbered:
+      
    user_guide/tools
    user_guide/pdks
    user_guide/flows
@@ -27,8 +41,6 @@ Welcome to SiliconCompiler's documentation!
    user_guide/records
    user_guide/libraries
    user_guide/packages
-   user_guide/faq
-   user_guide/licenses
 
 .. toctree::
    :maxdepth: 3
@@ -36,17 +48,17 @@ Welcome to SiliconCompiler's documentation!
    :numbered:
 
    tutorials/contribution
+   tutorials/picorv32_ram
    tutorials/parallel
    tutorials/migen
    tutorials/chisel
    tutorials/bambu
    tutorials/bluespec
-   tutorials/picorv32_ram
    tutorials/slurmsetup
 
 .. toctree::
    :maxdepth: 3
-   :caption: Reference Manual
+   :caption: Developer Manual
    :numbered:
 
    reference_manual/schema
