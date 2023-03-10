@@ -287,6 +287,10 @@ def delete_job(chip):
 ###################################
 def fetch_results_request(chip):
     '''Helper method to fetch job results from a remote compute cluster.
+
+       Returns:
+       * 0 if no error was encountered.
+       * [response code] if the results could not be retrieved.
     '''
 
     # Set the request URL.
@@ -317,9 +321,18 @@ def fetch_results_request(chip):
             elif resp.status_code == 303:
                 redirect_url = resp.headers['Location']
                 can_redirect = True
-            else:
+            elif resp.status_code == 200:
                 shutil.copyfileobj(resp.raw, zipf)
-                return
+                return 0
+            else:
+                msg_json = {}
+                try: # (An unexpected server error may not return JSON with a message)
+                    msg_json = resp.json()
+                    msg = f': {msg_json["message"]}' if 'message' in msg_json else '.'
+                except requests.exceptions.JSONDecodeError:
+                    msg = '.'
+                chip.logger.warning(f'Could not fetch results{msg}')
+                return resp.status_code
 
 ###################################
 def fetch_results(chip):
@@ -327,7 +340,12 @@ def fetch_results(chip):
     '''
 
     # Fetch the remote archive after the export stage.
-    fetch_results_request(chip)
+    results_code = fetch_results_request(chip)
+
+    # Note: the server should eventually delete the results as they age out (~8h), but this will
+    # give us a brief period to look at failed results.
+    if results_code:
+        chip.error(f"Sorry, something went wrong and your job results could not be retrieved. (Response code: {results_code})", fatal=True)
 
     # Call 'delete_job' to remove the run from the server.
     delete_job(chip)
@@ -337,7 +355,7 @@ def fetch_results(chip):
     job_hash = chip.status['jobhash']
     local_dir = chip.get('option', 'builddir')
 
-    # Authenticated jobs get a zip file full of other zip files.
+    # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
     # So we need to extract and delete those.
     subprocess.run(['tar', '-xzf', f'{job_hash}.tar.gz'])
     # Remove the results archive after it is extracted.
