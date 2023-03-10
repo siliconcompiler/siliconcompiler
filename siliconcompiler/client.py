@@ -320,7 +320,7 @@ def fetch_results_request(chip):
                 msg_json = {}
                 try: # (An unexpected server error may not return JSON with a message)
                     msg_json = resp.json()
-                    msg = f': {msg_json["message"]}'
+                    msg = f': {msg_json["message"]}' if 'message' in msg_json else '.'
                 except requests.exceptions.JSONDecodeError:
                     msg = '.'
                 chip.logger.warning(f'Could not fetch results{msg}')
