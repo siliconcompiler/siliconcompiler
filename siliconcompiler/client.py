@@ -282,7 +282,7 @@ def fetch_results_request(chip):
 
        Returns:
        * 0 if no error was encountered.
-       * 1 if the results could not be retrieved.
+       * [response code] if the results could not be retrieved.
     '''
 
     # Set the request URL.
@@ -317,13 +317,14 @@ def fetch_results_request(chip):
                 shutil.copyfileobj(resp.raw, zipf)
                 return 0
             else:
-                msg = '.'
+                msg_json = {}
                 try: # (An unexpected server error may not return JSON with a message)
-                    msg = f': {resp.json()["message"]}'
-                except:
-                    pass
+                    msg_json = resp.json()
+                    msg = f': {msg_json["message"]}'
+                except requests.exceptions.JSONDecodeError:
+                    msg = '.'
                 chip.logger.warning(f'Could not fetch results{msg}')
-                return 1
+                return resp.status_code
 
 ###################################
 def fetch_results(chip):
@@ -331,7 +332,12 @@ def fetch_results(chip):
     '''
 
     # Fetch the remote archive after the export stage.
-    results_failed = fetch_results_request(chip)
+    results_code = fetch_results_request(chip)
+
+    # Note: the server should eventually delete the results as they age out (~8h), but this will
+    # give us a brief period to look at failed results.
+    if results_code:
+        chip.error(f"Sorry, something went wrong and your job results could not be retrieved. (Response code: {results_code})", fatal=True)
 
     # Call 'delete_job' to remove the run from the server.
     delete_job(chip)
@@ -340,9 +346,6 @@ def fetch_results(chip):
     top_design = chip.get('design')
     job_hash = chip.status['jobhash']
     local_dir = chip.get('option', 'builddir')
-
-    if results_failed:
-        chip.error("Sorry, something went wrong and your job results could not be retrieved.", fatal=True)
 
     # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
     # So we need to extract and delete those.
