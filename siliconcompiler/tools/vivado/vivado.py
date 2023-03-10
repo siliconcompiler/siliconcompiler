@@ -9,38 +9,34 @@ import json
 import os
 import re
 
-import siliconcompiler
-
-####################################################################
-# Make Docs
-####################################################################
 def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
     chip.load_target("fpgaflow_demo")
 
-################################
-# Setup Tool (pre executable)
-################################
+tool = 'vivado'
 
 def setup(chip):
-
-    # default tool settings, note, not additive!
-    tool = 'vivado'
     vendor = 'xilinx'
-    refdir = 'tools/'+tool
-    script = 'compile.tcl'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    #TODO: fix below
-    task = step
 
-    option = "-nolog -nojournal -mode batch -source"
-
-    # General settings
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vendor', vendor)
-    chip.set('tool', tool, 'vswitch', '-version', clobber=False)
-    chip.set('tool', tool, 'format', 'tcl', clobber=False)
+    chip.set('tool', tool, 'vswitch', '-version')
+    chip.set('tool', tool, 'format', 'tcl')
+
+    # report_design_analysis -json flag requires Vivado 2021 or greater
+    chip.set('tool', tool, 'version', '>=2021', clobber=False)
+
+def setup_task(chip, task):
+    setup(chip)
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    # Common script that implements all tasks
+    script = 'compile.tcl'
+
+    refdir = 'tools/'+tool
+    option = ['-nolog', '-nojournal', '-mode', 'batch', '-source']
 
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=False)
