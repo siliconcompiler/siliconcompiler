@@ -44,6 +44,7 @@ from siliconcompiler.client import *
 from siliconcompiler.schema import *
 from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils
+from siliconcompiler import units
 from siliconcompiler import _metadata
 import psutil
 
@@ -2791,22 +2792,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # "final" metrics regardless of flow would be handy
         totalarea = self.get('metric', 'totalarea', step='export', index='1')
         if totalarea:
-            # SI-ify
-            if totalarea < 1e7:
-                metrics['Area'] = f'{totalarea:.2f} um^2'
+            metric_unit = self.get('metric', 'totalarea', field='unit')
+            prefix = units.get_si_prefix(metric_unit)
+            mm_area = units.convert(totalarea, from_unit=prefix, to_unit='mm^2')
+            if mm_area < 10:
+                metrics['Area'] = units.format_si(totalarea, 'um') + 'um^2'
             else:
-                metrics['Area'] = f'{totalarea / 1e6:.2f} mm^2'
+                metrics['Area'] = units.format_si(mm_area, 'mm') + 'mm^2'
 
         fmax = self.get('metric', 'fmax', step='export', index='1')
         if fmax:
-            # SI-ify
-            if fmax < 1e6:
-                fmax = f'{(fmax / 1e3):.2f} KHz'
-            elif fmax < 1e9:
-                fmax = f'{(fmax / 1e6):.2f} MHz'
-            else:
-                fmax = f'{(fmax / 1e9):.2f} GHz'
-            metrics['Fmax'] = fmax
+            fmax = units.convert(fmax, from_unit=self.get('metric', 'fmax', field='unit'))
+            metrics['Fmax'] = units.format_si(fmax, 'Hz') + 'Hz'
 
         # Generate design
 
@@ -2978,6 +2975,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         nodes = []
         errors = {}
         metrics = {}
+        metrics_unit = {}
         reports = {}
 
         # Build ordered list of nodes in flowgraph
@@ -2997,6 +2995,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if metric in self.get('option', 'metricoff'):
                 continue
 
+            # Get the unit associated with the metric
+            metric_unit = None
+            try:
+                metric_unit = self.get('metric', metric, field='unit')
+            except SiliconCompilerError:
+                # Metric does not have a unit associated
+                pass
+            metric_type = self.get('metric', metric, field='type')
+
             show_metric = False
             for step, index in nodes:
                 if (
@@ -3013,11 +3020,24 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 rpts = self.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)
 
                 errors[step, index] = self.get('flowgraph', flow, step, index, 'status') == TaskStatus.ERROR
+
+                if value is not None:
+                    if metric == 'memory':
+                        value = units.format_binary(value, metric_unit)
+                    elif metric in ['exetime', 'tasktime']:
+                        metric_unit = None
+                        value = units.format_time(value)
+                    elif metric_type == 'int':
+                        value = str(value)
+                    else:
+                        value = units.format_si(value, metric_unit)
+
                 metrics[step, index][metric] = value
                 reports[step, index][metric] = rpts
 
             if show_metric:
                 metrics_to_show.append(metric)
+                metrics_unit[metric] = metric_unit if metric_unit else ''
 
         # Display data
         pandas.set_option('display.max_rows', 500)
@@ -3032,16 +3052,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         colwidth = 8 # minimum col width
         row_labels = [' ' + metric for metric in metrics_to_show]
         column_labels = [f'{step}{index}'.center(colwidth) for step, index in nodes_to_show]
+        column_labels.insert(0, 'units')
 
         data = []
         for metric in metrics_to_show:
             row = []
+            row.append(metrics_unit[metric])
             for node in nodes_to_show:
                 value = metrics[node][metric]
                 if value is None:
                     value = '---'
-                else:
-                    value = str(value)
                 value = ' ' + value.center(colwidth)
                 row.append(value)
             data.append(row)
@@ -3100,6 +3120,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         nodes = nodes,
                         errors = errors,
                         metrics = metrics,
+                        metrics_unit = metrics_unit,
                         reports = reports,
                         manifest = self.schema.cfg,
                         pruned_cfg = pruned_cfg,
@@ -3969,8 +3990,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start),2)
-        self.set('metric', 'exetime', cputime, step=step, index=index)
-        self.set('metric', 'memory', max_mem_bytes, step=step, index=index)
+        self._record_metric(step, index, 'exetime', cputime, None, source_unit='s')
+        self._record_metric(step, index, 'memory', max_mem_bytes, None, source_unit='B')
 
         ##################
         # Post process
@@ -3982,19 +4003,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Check log file (must be after post-process)
         if (not is_builtin) and (not self.get('option', 'skipall')) and (run_func is None):
-            matches = self.check_logfile(step=step, index=index, display=not quiet)
+            log_file = os.path.join(self._getworkdir(step=step, index=index), f'{step}.log')
+            matches = self.check_logfile(step=step, index=index, display=not quiet, logfile=log_file)
             if 'errors' in matches:
                 errors = self.get('metric', 'errors', step=step, index=index)
                 if errors is None:
                     errors = 0
                 errors += matches['errors']
-                self.set('metric', 'errors', errors, step=step, index=index)
+                self._record_metric(step, index, 'errors', errors, log_file)
             if 'warnings' in matches:
                 warnings = self.get('metric', 'warnings', step=step, index=index)
                 if warnings is None:
                     warnings = 0
                 warnings += matches['warnings']
-                self.set('metric', 'warnings', warnings, step=step, index=index)
+                self._record_metric(step, index, 'warnings', warnings, log_file)
 
         ##################
         # Hash files
@@ -4218,7 +4240,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                     # Reset metrics and records
                     for metric in self.getkeys('metric'):
-                        self.unset('metric', metric, step=step, index=index)
+                        self._clear_metric(step, index, metric)
                     for record in self.getkeys('record'):
                         self.unset('record', record, step=step, index=index)
                 elif os.path.isfile(cfg):
@@ -4234,7 +4256,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     if index in indexlist[step]:
                         self.set('flowgraph', flow, step, index, 'status', None)
                         for metric in self.getkeys('metric'):
-                            self.unset('metric', metric, step=step, index=index)
+                            self._clear_metric(step, index, metric)
                         for record in self.getkeys('record'):
                             self.unset('record', record, step=step, index=index)
 
@@ -5001,6 +5023,60 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 return
 
         raise SiliconCompilerError(msg) from None
+
+
+    #######################################
+    def _record_metric(self, step, index, metric, value, source, source_unit=None):
+        '''
+        Records a metric from a given step and index.
+
+        This function ensures the metrics are recorded in the correct units
+        as specified in the schema, additionally, this will record the source
+        of the value if provided.
+
+        Args:
+            step (str): step to record the metric into
+            index (str): index to record the metric into
+            metric (str): metric to record
+            value (float/int): value of the metric that is being recorded
+            source (str): file the value came from
+            source_unit (str): unit of the value, if not provided it is assumed to have no units
+
+        Examples:
+            >>> chip._record_metric('floorplan', '0', 'cellarea', 500.0, 'reports/metrics.json', source_units='um^2')
+            Records the metric cell area under 'floorplan0' and notes the source as 'reports/metrics.json'
+        '''
+        metric_unit = None
+        try:
+            metric_unit = self.get('metric', metric, field='unit')
+        except SiliconCompilerError:
+            pass
+
+        if metric_unit:
+            value = units.convert(value, from_unit=source_unit, to_unit=metric_unit)
+
+        self.set('metric', metric, value, step=step, index=index)
+
+        if source:
+            flow = self.get('option', 'flow')
+            tool = self.get('flowgraph', flow, step, index, 'tool')
+            task = self.get('flowgraph', flow, step, index, 'task')
+
+            self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
+
+
+    #######################################
+    def _clear_metric(self, step, index, metric):
+        '''
+        Helper function to clear metrics records
+        '''
+        flow = self.get('option', 'flow')
+        tool = self.get('flowgraph', flow, step, index, 'tool')
+        task = self.get('flowgraph', flow, step, index, 'task')
+
+        self.unset('metric', metric, step=step, index=index)
+        self.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
+
 
 ###############################################################################
 # Package Customization classes

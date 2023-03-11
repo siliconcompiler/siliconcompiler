@@ -47,12 +47,6 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=False)
 
-    for metric in ('setupwns', 'setuptns', 'holdwns', 'holdtns'):
-        chip.set('tool', tool, 'task', task, 'report', metric, 'reports/timing_summary.rpt', step=step, index=index)
-
-    for metric in ('luts', 'registers', 'bram', 'uram'):
-        chip.set('tool', tool, 'task', task, 'report', metric, 'reports/total_utilization.rpt', step=step, index=index)
-
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^ERROR:', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^(CRITICAL )?WARNING:', step=step, index=index, clobber=False)
 
@@ -80,13 +74,13 @@ def _parse_qor_summary(chip, step, index):
         hold_tns = task['Ths(ns)']
 
         if setup_wns:
-            chip.set('metric', 'setupwns', setup_wns, step=step, index=index)
+            chip._record_metric(step, index, 'setupwns', setup_wns, 'qor_summary.json', source_unit='ns')
         if setup_tns:
-            chip.set('metric', 'setuptns', setup_tns, step=step, index=index)
+            chip._record_metric(step, index, 'setuptns', setup_tns, 'qor_summary.json', source_unit='ns')
         if hold_wns:
-            chip.set('metric', 'holdwns', hold_wns, step=step, index=index)
+            chip._record_metric(step, index, 'holdwns', hold_wns, 'qor_summary.json', source_unit='ns')
         if hold_tns:
-            chip.set('metric', 'holdtns', hold_tns, step=step, index=index)
+            chip._record_metric(step, index, 'holdtns', hold_tns, 'qor_summary.json', source_unit='ns')
 
 def _parse_utilization(chip, step, index):
     if not os.path.isfile('reports/total_utilization.rpt'):
@@ -112,15 +106,15 @@ def _parse_utilization(chip, step, index):
                     continue
 
         if 'luts' in vals:
-            chip.set('metric', 'luts', vals['luts'], step=step, index=index)
+            chip._record_metric(step, index, 'luts', vals['luts'], 'reports/total_utilization.rpt')
         if 'regs' in vals:
-            chip.set('metric', 'registers', vals['regs'], step=step, index=index)
+            chip._record_metric(step, index, 'registers', vals['regs'], 'reports/total_utilization.rpt')
 
         total_bram = 0
         if 'bram' in vals: total_bram += vals['bram']
         if 'uram' in vals: total_bram += vals['uram']
         if 'bram' in vals or 'uram' in vals:
-            chip.set('metric', 'brams', total_bram, step=step, index=index)
+            chip._record_metric(step, index, 'brams', total_bram, 'reports/total_utilization.rpt')
 
 def post_process(chip):
     step = chip.get('arg', 'step')

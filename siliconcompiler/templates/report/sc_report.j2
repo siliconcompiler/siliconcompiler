@@ -331,6 +331,7 @@
         <table id="metrics_table" class="table table-dark table-striped table-bordered">
             <tr>
               <th>-</th>
+              <th>units</th>
               {% for step, index in nodes %}
                 <th>{{ step }}{{ index }}</th>
               {% endfor %}
@@ -338,6 +339,7 @@
             {% for metric in metric_keys %}
               <tr>
                 <th>{{ metric }}</th>
+                <th>{{ metrics_unit[metric] }}</th>
                 {% for step, index in nodes %}
                   {% if errors[step, index] %}
                     <td>(failed)</td>
@@ -387,17 +389,19 @@
                     <td>(failed)</td>
                   {% else %}
                     {% set value = metrics[step, index][metric] %}
+                    {% set unit = metrics_unit[metric] %}
                     {% if value is not none %}
                       {% set valuestr = value %}
                     {% else %}
                       {% set valuestr = "---" %}
+                      {% set unit = "" %}
                     {% endif %}
 
                     {% if reports[step, index][metric] %}
                       {% set href_id = [step + index, metric, "ddmetlink"] | join("_") %}
-                      <td><a href="#" class="link-success" id="{{ href_id }}">{{ valuestr }}</a></td>
+                      <td><a href="#" class="link-success" id="{{ href_id }}">{{ valuestr }}{{ unit }}</a></td>
                     {% else %}
-                      <td>{{ valuestr }}</td>
+                      <td>{{ valuestr }}{{ unit }}</td>
                     {% endif %}
                   {% endif %}
                 {% endfor %}

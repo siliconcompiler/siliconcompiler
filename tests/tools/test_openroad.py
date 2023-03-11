@@ -35,6 +35,10 @@ def test_openroad(scroot):
     # check that compilation succeeded
     assert chip.find_result('def', step='floorplan') is not None
 
+    # check that metrics were recorded
+    assert chip.get('metric', 'cellarea', step='floorplan', index='0') is not None
+    assert chip.get('tool', 'openroad', 'task', 'floorplan', 'report', 'cellarea', step='floorplan', index='0') == ['reports/metrics.json']
+
 #########################
 if __name__ == "__main__":
     from tests.fixtures import scroot

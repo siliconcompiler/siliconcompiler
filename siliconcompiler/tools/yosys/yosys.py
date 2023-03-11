@@ -50,11 +50,6 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', "Warning:", step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'errors', "^ERROR", step=step, index=index, clobber=False)
-    for metric in ('cells', 'nets', 'pins'):
-        chip.set('tool', tool, 'task', task, 'report', metric, "reports/stat.json", step=step, index=index)
-    for metric in ('cellarea', 'errors', 'warnings', 'cellarea', 'drvs', 'coverage', 'security',
-                   'luts', 'dsps', 'brams', 'registers', 'buffers'):
-        chip.set('tool', tool, 'task', task, 'report', metric, f"{step}.log", step=step, index=index)
 
 ################################
 # Version Check
@@ -98,31 +93,29 @@ def syn_post_process(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    #TODO: looks like Yosys exits on error, so no need to check metric
-    chip.set('metric', 'errors', 0, step=step, index=index)
     with open("reports/stat.json", 'r') as f:
         metrics = json.load(f)
         if "design" in metrics:
             metrics = metrics["design"]
 
         if "area" in metrics:
-            chip.set('metric', 'cellarea', float(metrics["area"]), step=step, index=index)
+            chip._record_metric(step, index, 'cellarea', float(metrics["area"]), "reports/stat.json", source_unit='um^2')
         if "num_cells" in metrics:
-            chip.set('metric', 'cells', int(metrics["num_cells"]), step=step, index=index)
+            chip._record_metric(step, index, 'cells', int(metrics["num_cells"]), "reports/stat.json")
 
     registers = None
     with open(f"{step}.log", 'r') as f:
         for line in f:
             area_metric = re.findall(r"^SC_METRIC: area: ([0-9.]+)", line)
             if area_metric:
-                chip.set('metric', 'cellarea', float(area_metric[0]), step=step, index=index)
+                chip._record_metric(step, index, 'cellarea', float(area_metric[0]), f"{step}.log", source_unit='um^2')
             line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
             if line_registers:
                 if registers is None:
                     registers = 0
                 registers += int(line_registers[0])
     if registers is not None:
-        chip.set('metric', 'registers', registers, step=step, index=index)
+        chip._record_metric(step, index, 'registers', registers, f"{step}.log")
 
 ##################################################
 if __name__ == "__main__":
