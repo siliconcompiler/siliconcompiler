@@ -48,10 +48,10 @@ def post_process(chip):
     with open(step + ".log") as f:
         for line in f:
             if line.endswith('Equivalence successfully proven!\n'):
-                chip.set('metric', 'drvs', 0, step=step, index=index)
+                chip._record_metric(step, index, 'drvs', 0, step + ".log")
                 continue
 
             errors = re.search(r'Found a total of (\d+) unproven \$equiv cells.', line)
             if errors is not None:
                 num_errors = int(errors.group(1))
-                chip.set('metric', 'drvs', num_errors, step=step, index=index)
+                chip._record_metric(step, index, 'drvs', num_errors, step + ".log")
