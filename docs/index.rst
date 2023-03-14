@@ -3,15 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to SiliconCompiler's documentation!
+Welcome to SiliconCompiler's Documentation!
 ============================================
+
+.. include:: user_guide/introduction.rst
 
 .. toctree::
    :maxdepth: 3
    :caption: User Guide
    :numbered:
 
-   user_guide/introduction
    user_guide/installation
    user_guide/quickstart
    user_guide/glossary
@@ -33,12 +34,9 @@ Welcome to SiliconCompiler's documentation!
    :caption: Tutorials
    :numbered:
 
-   tutorials/picorv32_ram
    tutorials/parallel
-   tutorials/migen
-   tutorials/chisel
-   tutorials/bambu
-   tutorials/bluespec
+   tutorials/hw_frontends.rst
+   tutorials/picorv32_ram
    tutorials/slurmsetup
 
 .. toctree::
@@ -81,7 +79,7 @@ Welcome to SiliconCompiler's documentation!
    resources/glossary
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
