@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.10.1 (2023-03-11)
+=========================================
+
+**Major:**
+
+* Adding ``._record_metric()`` for tool drivers to use when recording metrics to ensure they honor the schema units and record the source of the metric at the same time.
+
+**Minor:**
+
+* Improved error handling and messaging for remote jobs.
+* Fixed HTML summary report and PNG summary image not getting rebuilt when calling ``.summary()``
+* Updated ``.summary()`` table to display units and format numbers accordingly.
+
 SiliconCompiler 0.10.0 (2023-03-08)
 =========================================
 
@@ -22,7 +35,7 @@ SiliconCompiler 0.10.0 (2023-03-08)
   * Implemented ['input', ...] and ['output', ...] filesets along with ``.input()`` and ``.output()`` helper functions
 * Added tasks to tools prevent step name from getting used for task identification.
 * Implemented ``.use()`` in favor of ``.load_pdk()``, ``.load_flow()``, etc. to take in Python modules instead of strings.
-* Changed libraries, flows, checklists, and pdks to expliciently return a particular class object.
+* Changed libraries, flows, checklists, and pdks to explicitly return a particular class object.
 * Generate a summary PNG.
 * Removed Floorplanning API.
 * Added support for custom macros and scripts in the remote workflow.

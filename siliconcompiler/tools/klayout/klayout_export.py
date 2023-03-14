@@ -159,20 +159,23 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
   main_layout = pya.Layout()
   main_layout.read(in_def, layoutOptions)
 
-  # Clear cells
-  top_cell_index = main_layout.cell(design_name).cell_index()
-
-  print("[INFO] Clearing cells...")
-  for i in main_layout.each_cell():
-    if i.cell_index() != top_cell_index:
-      if not i.name.startswith("VIA"):
-        i.clear()
+  # List cells
+  def_cells = []
+  for def_cell in main_layout.each_cell():
+    def_cells.append(def_cell.name)
+  print(f"[INFO] Read in {len(def_cells)} cells")
 
   # Load in the gds to merge
   print("[INFO] Merging GDS/OAS files...")
   for fil in in_files:
     print("\t{0}".format(fil))
-    main_layout.read(fil)
+    macro_layout = pya.Layout()
+    macro_layout.read(fil)
+    for fil_cell in macro_layout.top_cells():
+      subcell = main_layout.cell(fil_cell.name)
+      if subcell:
+        print(f"[INFO] Merging in {fil_cell.name}")
+        subcell.copy_tree(fil_cell)
 
   # Copy the top level only to a new layout
   print("[INFO] Copying toplevel cell '{0}'".format(design_name))
@@ -185,8 +188,8 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
 
   print("[INFO] Checking for missing GDS/OAS...")
   missing_cell = False
-  for i in top_only_layout.each_cell():
-    if i.is_empty():
+  for check_cell in top_only_layout.each_cell():
+    if check_cell.is_empty() and check_cell.name in def_cells:
       missing_cell = True
       print("[ERROR] LEF Cell '{0}' has no matching GDS/OAS cell. Cell will be empty".format(i.name))
 
