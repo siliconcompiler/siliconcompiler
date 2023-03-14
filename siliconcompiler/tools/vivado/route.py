@@ -1,10 +1,9 @@
 from siliconcompiler.tools import vivado
+from siliconcompiler.tools.vivado import tool
 
 def setup(chip):
     '''Performs routing.'''
-    tool = vivado.tool
     task = 'route'
-
     vivado.setup_task(chip, task)
 
     design = chip.top()

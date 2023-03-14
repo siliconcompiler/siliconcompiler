@@ -1,10 +1,9 @@
 from siliconcompiler.tools import vivado
+from siliconcompiler.tools.vivado import tool
 
 def setup(chip):
     '''Generates bitstream of implemented design.'''
-    tool = vivado.tool
     task = 'bitstream'
-
     vivado.setup_task(chip, task)
 
     design = chip.top()

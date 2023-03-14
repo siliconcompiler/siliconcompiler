@@ -32,10 +32,9 @@ def setup_task(chip, task):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    # Common script that implements all tasks
-    script = 'compile.tcl'
+    script = 'sc_run.tcl'
 
-    refdir = 'tools/'+tool
+    refdir = f'tools/{tool}/scripts'
     option = ['-nolog', '-nojournal', '-mode', 'batch', '-source']
 
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
