@@ -24,30 +24,15 @@ Welcome to SiliconCompiler's documentation!
    :caption: Flow Basics
    :numbered:
 
-   user_guide/data_model
-   user_guide/programming_model
    user_guide/execution_model
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Reference Manual
-   :numbered:
-      
-   user_guide/tools
-   user_guide/pdks
-   user_guide/flows
-   user_guide/targets
-   user_guide/metrics
-   user_guide/records
-   user_guide/libraries
-   user_guide/packages
+   user_guide/programming_model
+   user_guide/data_model
 
 .. toctree::
    :maxdepth: 3
    :caption: Tutorials
    :numbered:
 
-   tutorials/contribution
    tutorials/picorv32_ram
    tutorials/parallel
    tutorials/migen
@@ -59,6 +44,21 @@ Welcome to SiliconCompiler's documentation!
 .. toctree::
    :maxdepth: 3
    :caption: Developer Manual
+   :numbered:
+      
+   tutorials/contribution
+   user_guide/tools
+   user_guide/pdks
+   user_guide/flows
+   user_guide/targets
+   user_guide/metrics
+   user_guide/records
+   user_guide/libraries
+   user_guide/packages
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Reference Manual
    :numbered:
 
    reference_manual/schema
