@@ -24,7 +24,7 @@
 
         "key": {
             "title": "Authentication Key",
-            "description": "Password or Base64-encoded decryption key for the user account, depending on how the server's authentication scheme.",
+            "description": "Password or Base64-encoded decryption key for the user account, depending on the server's authentication scheme.",
             "examples": ["PHlvdXJfa2V5X2hlcmU+"],
 
             "type": "string"
