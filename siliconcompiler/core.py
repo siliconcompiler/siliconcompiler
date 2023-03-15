@@ -4690,11 +4690,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Add scripts files
         scripts = self.find_files('tool', tool, 'task', task, 'script', step=step, index=index)
-        unresolved_scripts = self.get('tool', tool, 'task', task, 'script', step=step, index=index)
-        if unresolved_scripts and not scripts:
-            refdir = self.get('tool', tool, 'task', task, 'refdir', step=step, index=index)
-            self.error(f'Failed to find script for tool {tool}, task {task}: '
-                f'script(s): {unresolved_scripts}, refdir(s): {refdir}', fatal=True)
 
         cmdlist = [fullexe]
         if extra_options:
