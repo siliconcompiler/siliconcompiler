@@ -8,7 +8,7 @@ def setup(chip):
 
     design = chip.top()
     step = chip.get('arg', 'step')
-    index = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     chip.set('tool', tool, 'task', task, 'input', f'{design}_checkpoint.dcp', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'output', f'{design}_checkpoint.dcp', step=step, index=index)
 
