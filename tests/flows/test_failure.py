@@ -63,3 +63,23 @@ def test_failure_quiet(chip):
     assert chip.find_result('v', step='import') is None
     # Expect that synthesis doesn't run
     assert not os.path.isdir('build/bad/job0/syn/0/syn.log')
+
+@pytest.mark.quick
+def test_incomplete_flowgraph():
+    '''Test that SC exits early when flowgraph is incomplete
+    '''
+
+    chip = siliconcompiler.Chip('gcd')
+    chip.load_target("freepdk45_demo")
+
+    flow = chip.get('option', 'flow')
+
+    chip.edge(flow, 'export', 'dummy_step')
+
+    # Expect that command exits early
+    try:
+        chip.run()
+    except siliconcompiler.SiliconCompilerError as e:
+        assert str(e).startswith(flow)
+    else:
+        assert False
