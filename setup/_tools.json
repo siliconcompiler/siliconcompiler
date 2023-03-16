@@ -23,7 +23,7 @@
     "git-url": "https://github.com/RTimothyEdwards/magic.git",
     "git-commit": "c7f11d2169f6af8751ae22b5d70250b331e1a667"
   },
-  "bsc": {
+  "bluespec": {
     "git-url": "https://github.com/B-Lang-org/bsc.git",
     "git-commit": "4cac6ebae076e8b8378597aba1d2119aa29ec419"
   },
@@ -40,6 +40,18 @@
   },
   "bambu": {
     "git-url": "https://github.com/ferrandi/PandA-bambu.git",
-    "git-commit": "eda4c22d5adaec44fd8489ae49b854b244d2cf70"
+    "git-commit": "04336c437a53bc96ae90b74052c455629946ec8b"
+  },
+  "vpr": {
+    "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
+    "git-commit": "2031f1f4f8a50b0eb18d37385f5bb39036618f79"
+  },
+  "icepack": {
+    "git-url": "https://github.com/YosysHQ/icestorm.git",
+    "git-commit": "d20a5e9001f46262bf0cef220f1a6943946e421d"
+  },
+  "nextpnr": {
+    "git-url": "https://github.com/YosysHQ/nextpnr.git",
+    "git-commit": "f89b959b5f56ba8d91e1e7f8a645b267a5a7bb89"
   }
 }
