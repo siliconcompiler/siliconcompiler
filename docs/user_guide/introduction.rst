@@ -1,5 +1,13 @@
 SiliconCompiler is an open source build system that automates translation from source code to silicon.
 
+Getting Started
+----------------
+
+If you're a **user** who would like to get started using SiliconCompiler to automate your design prototyping and experiment with optimizing different steps, hop on over to tool :ref:`installation`, followed by the :ref:`Quickstart guide` to get a quick tutorial on the run experience. Anchor yourself with the :ref:`Glossary` and :ref:`FAQ` and by searching through the Reference Manual.
+
+If you're a **developer** who's interested in adding functionality in addition to using the tool as-is to run hardware design flows, you may also be interested in the Developer Manual. Also, please consider :ref:`contributing modules`.
+
+
 Motivation
 -----------
 
@@ -26,11 +34,5 @@ Authors
 
 SiliconCompiler project authors in chronological order: |authors|.
 
-Getting Started
-----------------
-
-If you're a **user** who would like to get started using SiliconCompiler to automate your design prototyping and experiment with optimizing different steps, hop on over to tool :ref:`installation`, followed by the :ref:`Quickstart guide` to get a quick tutorial on the run experience. Anchor yourself with the :ref:`Glossary` and :ref:`FAQ` and by searching through the Reference Manual.
-
-If you're a **developer** who's interested in adding functionality in addition to using the tool as-is to run hardware design flows, you may also be interested in the Developer Manual. Also, please consider :ref:`contributing modules`.
 
 

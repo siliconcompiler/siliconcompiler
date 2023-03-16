@@ -25,9 +25,9 @@ Welcome to SiliconCompiler's Documentation!
    :caption: Flow Basics
    :numbered:
 
-   user_guide/execution_model
-   user_guide/programming_model
    user_guide/data_model
+   user_guide/programming_model
+   user_guide/execution_model
 
 .. toctree::
    :maxdepth: 3
