@@ -14,6 +14,11 @@ git clone $(python3 ${src_path}/_tools.py --tool magic --field git-url) magic
 cd magic
 git checkout $(python3 ${src_path}/_tools.py --tool magic --field git-commit)
 
-LD_FLAGS=-shared ./configure
-make
+args=
+if [ ! -z ${PREFIX} ]; then
+    args=--prefix="$PREFIX"
+fi
+
+LD_FLAGS=-shared ./configure $args
+make -j
 sudo make install

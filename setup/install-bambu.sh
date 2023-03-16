@@ -11,7 +11,8 @@ sudo apt-get install -y autoconf autoconf-archive automake libtool g++ \
     gfortran-8 gfortran-8-multilib libclang-6.0-dev clang-6.0 libclang-6.0-dev \
     clang-7 libclang-7-dev libbdd-dev libboost-all-dev libmpc-dev libmpfr-dev \
     libxml2-dev liblzma-dev libmpfi-dev zlib1g-dev libicu-dev bison doxygen flex \
-    graphviz iverilog verilator make libsuitesparse-dev libglpk-dev libgmp-dev
+    graphviz iverilog verilator make libsuitesparse-dev libglpk-dev libgmp-dev \
+    libfl-dev
 
 mkdir -p deps
 cd deps
@@ -28,8 +29,8 @@ make -f Makefile.init
 mkdir obj
 cd obj
 
-../configure --enable-release --prefix=/opt/panda
-make
+../configure --enable-release --disable-flopoco --prefix=/opt/panda
+make -j
 make install
 
 cd -
