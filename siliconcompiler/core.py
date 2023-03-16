@@ -1088,7 +1088,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.add(category, use_fileset, use_filetype, filename)
 
     ###########################################################################
-    def _find_sc_file(self, filename, missing_ok=False):
+    def _find_sc_file(self, filename, missing_ok=False, search_paths=None):
         """
         Returns the absolute path for the filename provided.
 
@@ -1101,6 +1101,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             filename (str): Relative or absolute filename.
+            missing_ok (bool): If False, error out if no valid absolute path
+                found, rather than returning None.
+            search_paths (list): List of directories to search under instead of
+                the defaults.
 
         Returns:
             Returns absolute path of 'filename' if found, otherwise returns
@@ -1120,11 +1124,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return filename
 
         # Otherwise, search relative to scpaths
-        scpaths = [self.cwd]
-        scpaths.extend(self.get('option', 'scpath'))
-        if 'SCPATH' in os.environ:
-            scpaths.extend(os.environ['SCPATH'].split(os.pathsep))
-        scpaths.append(self.scroot)
+        if search_paths is not None:
+            scpaths = search_paths
+        else:
+            scpaths = [self.cwd]
+            scpaths.extend(self.get('option', 'scpath'))
+            if 'SCPATH' in os.environ:
+                scpaths.extend(os.environ['SCPATH'].split(os.pathsep))
+            scpaths.append(self.scroot)
 
         searchdirs = ', '.join(scpaths)
         self.logger.debug(f"Searching for file {filename} in {searchdirs}")
@@ -1218,39 +1225,29 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         result = []
 
-        # Special cases for various ['eda', ...] files that may be implicitly
+        # Special cases for various ['tool', ...] files that may be implicitly
         # under the workdir (or refdir in the case of scripts).
         # TODO: it may be cleaner to have a file resolution scope flag in schema
         # (e.g. 'scpath', 'workdir', 'refdir'), rather than hardcoding special
         # cases.
 
+        search_paths = None
         if len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
             if keypath[4] == 'report':
                 io = ""
             else:
                 io = keypath[4] + 's'
             iodir = os.path.join(self._getworkdir(jobname=job, step=step, index=index), io)
-            for path in paths:
-                abspath = os.path.join(iodir, path)
-                if os.path.isfile(abspath):
-                    result.append(abspath)
-            return result
+            search_paths = [iodir]
         elif len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
             refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
-            for path in paths:
-                for refdir in refdirs:
-                    abspath = os.path.join(refdir, path)
-                    if os.path.isfile(abspath):
-                        result.append(abspath)
-                        break
-
-            return result
+            search_paths = refdirs
 
         import_steps = self._get_steps_by_task()['import']
         for path in paths:
-            if (copyall or copy) and ('file' in paramtype):
+            if (copyall or copy) and ('file' in paramtype) and not search_paths:
                 name = self._get_imported_filename(path)
                 found = False
                 for step, index in import_steps:
@@ -1264,7 +1261,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         break
                 if found:
                     continue
-            result.append(self._find_sc_file(path, missing_ok=missing_ok))
+            result.append(self._find_sc_file(path, missing_ok=missing_ok, search_paths=search_paths))
         # Convert back to scalar if that was original type
         if not is_list:
             return result[0]
@@ -4116,9 +4113,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if setup_step:
             setup_step(self)
         else:
-            # TODO: Should we update this to 'self.error(..., fatal=True)'?
-            self.logger.error(f'setup() not found for tool {tool}, task {task}')
-            sys.exit(1)
+            self.logger.error(f'setup() not found for tool {tool}, task {task}', fatal=True)
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.
