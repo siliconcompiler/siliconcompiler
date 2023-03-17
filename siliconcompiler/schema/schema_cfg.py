@@ -2073,7 +2073,7 @@ def schema_option(cfg):
             scope='job',
             shorthelp="Flow target",
             switch="-flow <str>",
-            example=["cli: -flow asicfow",
+            example=["cli: -flow asicflow",
                      "api: chip.set('option','flow','asicflow')"],
             schelp="""
             Sets the flow for the current run. The flow name

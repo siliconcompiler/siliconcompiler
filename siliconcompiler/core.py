@@ -319,7 +319,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Creates a command line interface for 'sc-show' app.
 
             >>> chip.create_cmdline(progname='sc', input_map={'v': ('rtl', 'verilog')})
-            All sources ending in .v will be stored in ['input', 'rtl', verilog']
+            All sources ending in .v will be stored in ['input', 'rtl', 'verilog']
         """
 
         # Argparse
@@ -2439,7 +2439,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             A list of hash values.
 
         Examples:
-            >>> hashlist = hash_files('input', 'rtl', 'verilog)
+            >>> hashlist = hash_files('input', 'rtl', 'verilog')
             Computes, stores, and returns hashes of files in :keypath:`input, rtl, verilog`.
         '''
 
@@ -3264,7 +3264,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             jitter (float): Clock jitter specified in ns.
 
         Examples:
-            >>> chip.clock('clk, period=1.0)
+            >>> chip.clock('clk', period=1.0)
            Create a clock named 'clk' with a 1.0ns period.
         """
         design = self.top()
