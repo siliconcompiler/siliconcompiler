@@ -1702,6 +1702,41 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return outputs
 
     ###########################################################################
+    def _check_flowgraph(self, flow=None):
+        '''
+        Check if flowgraph is valid.
+
+        * Checks if all edges have valid nodes
+
+        Returns True if valid, False otherwise.
+        '''
+
+        if not flow:
+            flow = self.get('option', 'flow')
+
+        nodes = set()
+        for step in self.getkeys('flowgraph', flow):
+            for index in self.getkeys('flowgraph', flow, step):
+                nodes.add((step, index))
+                nodes.update(self.get('flowgraph', flow, step, index, 'input'))
+
+        error = False
+        for step, index in nodes:
+            # For each task, check input requirements.
+            tool = self.get('flowgraph', flow, step, index, 'tool')
+            task = self.get('flowgraph', flow, step, index, 'task')
+
+            if not tool:
+                self.logger.error(f'{step}{index} is missing a tool definition in the {flow} flowgraph')
+                error = True
+
+            if not task:
+                self.logger.error(f'{step}{index} is missing a task definition in the {flow} flowgraph')
+                error = True
+
+        return not error
+
+    ###########################################################################
     def _check_flowgraph_io(self):
         '''Check if flowgraph is valid in terms of input and output files.
 
@@ -4188,6 +4223,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
+
+        # Check if flowgraph is complete and valid
+        if not self._check_flowgraph(flow=flow):
+            self.error(f"{flow} flowgraph contains errors and cannot be run.",
+                       fatal=True)
 
         # Run steps if set, otherwise run whole graph
         if self.get('arg', 'step'):
