@@ -18,7 +18,7 @@ def test_slurm_local_py(gcd_chip):
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
 
 @pytest.mark.eda
-def test_slurm_local_py_prefix(gcd_chip):
+def test_slurm_local_py_script_override(gcd_chip):
     '''Basic Python API test: build the GCD example using only Python code.
        Note: Requires that the test runner be connected to a cluster, or configured
        as a single-machine "cluster".
@@ -26,43 +26,16 @@ def test_slurm_local_py_prefix(gcd_chip):
 
     # Inserting value into configuration
     gcd_chip.set('option', 'scheduler', 'slurm')
-    gcd_chip.status['syn0_sched_preprocess'] = '''
-touch inputs/extrafile.txt
-'''
+    os.makedirs('build/configs')
+    gcd_chip.write_manifest('build/configs/import0.json')
+    with open('build/configs/import0.sh', 'w') as slurm_script:
+        slurm_script.write('#!/bin/bash\ntouch inputs/extrafile.txt\n')
 
-    # Run the chip's build process synchronously.
-    gcd_chip.run()
-
-    # Verify that GDS file was generated.
-    assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
-    assert os.path.isfile('build/gcd/job0/syn/0/inputs/extrafile.txt')
-
-@pytest.mark.eda
-def test_slurm_local_py_suffix(gcd_chip):
-    '''Basic Python API test: build the GCD example using only Python code.
-       Note: Requires that the test runner be connected to a cluster, or configured
-       as a single-machine "cluster".
-    '''
-
-    # Inserting value into configuration
-    gcd_chip.set('option', 'scheduler', 'slurm')
-    gcd_chip.status['sched_postprocess'] = '''
-touch outputs/extrafile.txt
-'''
-    gcd_chip.status['place0_sched_postprocess'] = '''
-touch outputs/placefile.txt
-'''
-
-    # Run the chip's build process synchronously.
-    gcd_chip.run()
+    # Defer the import0 task to the cluster, which should run the overridden task script.
+    gcd_chip._defertask('import', '0', {'job_hash': '1234abcd'})
 
     # Verify that GDS file was generated.
-    assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
-    # Verify that post-process blocks ran correctly.
-    assert os.path.isfile('build/gcd/job0/syn/0/outputs/extrafile.txt')
-    assert os.path.isfile('build/gcd/job0/floorplan/0/outputs/extrafile.txt')
-    assert os.path.isfile('build/gcd/job0/place/0/outputs/extrafile.txt')
-    assert os.path.isfile('build/gcd/job0/place/0/outputs/placefile.txt')
+    assert os.path.isfile('build/gcd/job0/import/0/inputs/extrafile.txt')
 
 if __name__ == "__main__":
     from tests.fixtures import gcd_chip

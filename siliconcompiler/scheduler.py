@@ -61,37 +61,26 @@ def _deferstep(chip, step, index, status):
             username = chip.status['slurm_account']
             schedule_cmd.extend(['--acount', username])
         # Only delay the starting time if the 'defer' Schema option is specified.
-        defer_time = self.get('option', 'scheduler', 'defer')
+        defer_time = self.get('option', 'scheduler', 'defer', step=step, index=index)
         if defer_time:
             schedule_cmd.extend(['--begin', defer_time])
     elif scheduler_type == 'lsf':
         # TODO: LSF support is untested and currently unsupported.
         schedule_cmd = ['lsrun']
 
-    # User-defined pre/post-processing steps for the Slurm script.
-    # Unlike most other scheduler parameters, we should keep these pre/post-process blocks in the
-    # ephemeral status dictionary, so that they cannot persist across remote connections.
-    # The best place to set these values would be a custom target created by the cluster administrator.
-    script_prefix, script_suffix = '\n', '\n'
-    for pfx in ['sched', f'{step}{index}_sched']:
-        if f'{pfx}_preprocess' in chip.status:
-            script_prefix += chip.status[f'{pfx}_preprocess']
-        if f'{pfx}_postprocess' in chip.status:
-            script_suffix += chip.status[f'{pfx}_postprocess']
-
-    # Create a command to defer execution to a compute node.
+    # Allow user-defined compute node execution script if it already exists on the filesystem.
+    # Otherwise, create a minimal script to run the task using the SiliconCompiler CLI.
     script_path = f'{cfg_dir}/{step}{index}.sh'
-    with open(script_path, 'w') as sf:
-        sf.write('#!/bin/bash\n')
-        sf.write(script_prefix)
-        sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
-                    f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
-                    f"-design {shlex.quote(chip.top())}\n")
-        sf.write(script_suffix)
-        # In case of error(s) which prevents the SC build script from completing, ensure the
-        # file mutex for job completion is set in shared storage. This lockfile signals the server
-        # to mark the job done, without putting load on the cluster reporting/accounting system.
-        sf.write(f'touch {os.path.dirname(output_file)}/done')
+    if not os.path.isfile(script_path):
+        with open(script_path, 'w') as sf:
+            sf.write('#!/bin/bash\n')
+            sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
+                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
+                     f"-design {shlex.quote(chip.top())}\n")
+            # In case of error(s) which prevents the SC build script from completing, ensure the
+            # file mutex for job completion is set in shared storage. This lockfile signals the server
+            # to mark the job done, without putting load on the cluster reporting/accounting system.
+            sf.write(f'touch {os.path.dirname(output_file)}/done')
 
     # This is Python for: `chmod +x [script_path]`
     fst = os.stat(script_path)
