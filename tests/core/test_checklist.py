@@ -32,6 +32,16 @@ def test_checklist():
     chip.set('checklist', 'iso', 'd1', 'ok', True)
     assert chip.check_checklist('iso', ['d1'], check_ok=True)
 
+def test_missing_checklist():
+    '''
+    Check if check_checklist fails when checklist has not been loaded.
+    '''
+
+    chip = siliconcompiler.Chip('test')
+    chip.load_target('freepdk45_demo')
+
+    assert not chip.check_checklist('iso')
+
 #########################
 if __name__ == "__main__":
     test_checklist()

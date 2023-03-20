@@ -1958,12 +1958,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.logger.info(f'Checking checklist {standard}')
 
+        if standard not in self.getkeys('checklist'):
+            self.logger.error(f'{standard} has not been loaded.')
+            return False
+
         if items is None:
             items = self.getkeys('checklist', standard)
 
         flow = self.get('option', 'flow')
-
-
 
         for item in items:
             all_criteria = self.get('checklist', standard, item, 'criteria')
