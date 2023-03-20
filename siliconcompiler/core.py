@@ -1968,6 +1968,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         flow = self.get('option', 'flow')
 
         for item in items:
+            if item not in self.getkeys('checklist', standard):
+                self.logger.error(f'{item} is not a check in {standard}.')
+                error = True
+                continue
+
             all_criteria = self.get('checklist', standard, item, 'criteria')
             for criteria in all_criteria:
                 m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
