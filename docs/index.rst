@@ -3,22 +3,48 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to SiliconCompiler's documentation!
+Welcome to SiliconCompiler's Documentation!
 ============================================
+
+.. include:: user_guide/introduction.rst
 
 .. toctree::
    :maxdepth: 3
    :caption: User Guide
    :numbered:
 
-   user_guide/introduction
    user_guide/installation
    user_guide/quickstart
    user_guide/glossary
+   user_guide/remote_processing
+   user_guide/faq
+   user_guide/licenses
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Flow Basics
+   :numbered:
+
    user_guide/data_model
    user_guide/programming_model
    user_guide/execution_model
-   user_guide/remote_processing
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Tutorials
+   :numbered:
+
+   tutorials/parallel
+   tutorials/hw_frontends.rst
+   tutorials/picorv32_ram
+   tutorials/slurmsetup
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Developer Manual
+   :numbered:
+      
+   tutorials/contribution
    user_guide/tools
    user_guide/pdks
    user_guide/flows
@@ -27,22 +53,6 @@ Welcome to SiliconCompiler's documentation!
    user_guide/records
    user_guide/libraries
    user_guide/packages
-   user_guide/faq
-   user_guide/licenses
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Tutorials
-   :numbered:
-
-   tutorials/contribution
-   tutorials/parallel
-   tutorials/migen
-   tutorials/chisel
-   tutorials/bambu
-   tutorials/bluespec
-   tutorials/picorv32_ram
-   tutorials/slurmsetup
 
 .. toctree::
    :maxdepth: 3
@@ -69,7 +79,7 @@ Welcome to SiliconCompiler's documentation!
    resources/glossary
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
