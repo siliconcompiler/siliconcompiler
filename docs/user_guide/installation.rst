@@ -111,7 +111,7 @@ SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ us
 
 .. include:: installation/installation_prep_path.rst 
 
-Skip to :ref:`Quickstart guide`.
+Skip to `asic demo`_.
 	     
 .. _offline install:
 
@@ -139,7 +139,7 @@ Then untar the package and install SiliconCompiler:
 .. include:: installation/installation_prep_path.rst
 
 
-Skip to :ref:`Quickstart guide`.
+Skip to `asic demo`_.
 
 .. _directly from the git repository:
 
@@ -182,18 +182,32 @@ Finally, to clone and install SiliconCompiler, run the following:
 .. include:: installation/installation_confirm_version.rst
 	     
 
+.. _asic demo:
+
+ASIC Demo
+-----------------
+Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow in the :ref:`cloud <Remote Run>`::
+  
+    sc -target asic_demo -remote
+
+
+Your remote job should only take a few minutes to run if the servers aren't too busy. It should end with a results directory where you can find ``png`` file which displays your results.
+
+See :ref:`Quickstart guide` next to go through the design and run details of the quick demo above.
+
 .. _External Tools:
 
 External Tools
 --------------
 
-To run compilation locally (instead of remotely), you will need to install a number of tools. For reference, we have provided install scripts for many of these tools. Unless otherwise specified in the script name, these scripts target Ubuntu 20.04.
+If you wish to run on your machine instead of remotely in the cloud as in the quick `asic demo`_ target above, there will be some tools you need to install first.
 
 .. note::
 
-   These install scripts are a reference for installation. If you should run into issues, please consult the official download instructions for the tool itself. All official tool documentation links can be found in the :ref:`tools directory`
+   The minimum set of tools required for an ASIC flow are: :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>`. Links to individual tool installation instructions and platform limitations can be found in the :ref:`Tools directory`.
+
+   We have provided the following helper install scripts for this minimum toolset for the ASIC flow as well as other external tools, but keep in mind that they are for reference only. If you should run into issues, please consult the official download instructions for the tool itself. All official tool documentation links can be found in the :ref:`tools directory`.
+
+   Unless otherwise specified in the script name, these scripts target Ubuntu 20.04.
 
 .. installscripts::
-
-
-Go to :ref:`Quickstart guide`.
