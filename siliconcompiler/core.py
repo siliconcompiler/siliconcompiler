@@ -2284,7 +2284,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         try:
             dot.render(filename=fileroot, cleanup=True)
         except graphviz.ExecutableNotFound as e:
-            self.logger.error(f'Unable to same flowgraph: {e}')
+            self.logger.error(f'Unable to save flowgraph: {e}')
 
     ########################################################################
     def _collect_paths(self):
