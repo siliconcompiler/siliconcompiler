@@ -609,7 +609,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         Loads a SiliconCompiler module into the current chip object.
 
-        The behavior of this function function is described in the table below
+        The behavior of this function is described in the table below
 
         .. list-table:: Use behavior
            :header-rows: 1
