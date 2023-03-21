@@ -2260,13 +2260,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         dot = graphviz.Digraph(format=fileformat)
         dot.graph_attr['rankdir'] = rankdir
         dot.attr(bgcolor='transparent')
-        for step in self.getkeys('flowgraph',flow):
-            irange = 0
+        for step in self.getkeys('flowgraph', flow):
             for index in self.getkeys('flowgraph', flow, step):
-                irange = irange +1
-            for i in range(irange):
-                index = str(i)
-                node = step+index
+                node = f'{step}{index}'
                 # create step node
                 tool = self.get('flowgraph', flow, step, index, 'tool')
                 task = self._get_task(step, index, flow=flow)
@@ -2285,7 +2281,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     all_inputs.append(in_step + in_index)
                 for item in all_inputs:
                     dot.edge(item, node)
-        dot.render(filename=fileroot, cleanup=True)
+        try:
+            dot.render(filename=fileroot, cleanup=True)
+        except graphviz.ExecutableNotFound as e:
+            self.logger.error(f'Unable to save flowgraph: {e}')
 
     ########################################################################
     def _collect_paths(self):
