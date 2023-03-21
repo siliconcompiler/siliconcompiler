@@ -186,12 +186,14 @@ Finally, to clone and install SiliconCompiler, run the following:
 
 ASIC Demo
 -----------------
-Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow in the cloud.
+Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow in the cloud.::
   
     sc -target asic_demo -remote
 
 
-Your remote job should only take a few minutes to run if the servers aren't too busy. It should end with a results directory where you can find ``png`` file which displays your results.
+Your remote job should only take a few minutes to run if the servers aren't too busy. It should end with a results directory where you can find ``png`` file which displays your results. It should look something like this:
+
+.. image:: ../_images/selftest_screenshot.png
 
 See :ref:`Quickstart guide` next to go through the design and run details of the quick demo above.
 
@@ -211,3 +213,6 @@ If you wish to run on your machine instead of remotely in the cloud as in the qu
    Unless otherwise specified in the script name, these scripts target Ubuntu 20.04.
 
 .. installscripts::
+
+
+See :ref:`Quickstart guide` next to see how to run locally on your machine with these tools.
