@@ -186,7 +186,7 @@ Finally, to clone and install SiliconCompiler, run the following:
 
 ASIC Demo
 -----------------
-Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow in the :ref:`cloud <Remote Run>`::
+Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow in the cloud.
   
     sc -target asic_demo -remote
 

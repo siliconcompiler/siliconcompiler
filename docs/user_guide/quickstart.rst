@@ -19,7 +19,7 @@ The design that was used in the demo target is a simple design of a free-running
 Run Setup
 -----------------
 
-The following python script snippet shows how easily this design is loaded in and run through the :ref:`asic flow`.
+The following python script snippet shows how easily this design is loaded in and run through the :ref:`asicflow`.
 
 .. code-block:: python
 	:caption: heartbeat.py (remote run)
@@ -37,7 +37,7 @@ The following python script snippet shows how easily this design is loaded in an
         chip.summary()                            # print results summary
 
     
-Notice that in the example above, :keypath:`option,remote` is set to ``True``. This means it's run in the cloud. If you were to remove this, it would run on your :ref:`local machine <Local Runs>`. 
+Notice that in the example above, :keypath:`option,remote` is set to ``True``. This means it's run in the cloud. If you were to remove this, it would run on your :ref:`local machine <Local Run>`. 
 
 Run Flow
 -----------
@@ -83,7 +83,7 @@ The :ref:`ASIC Demo` was run in public beta server in the cloud. SiliconCompiler
 See :ref:`remote processing` to see details on how to run on a private server, and see :ref:`external tools` to see the additional tool installation requirements for running on your machine locally.
 
 
-Local Runs
+Local Run
 -----------------------------
 If you have the :ref:`prerequisite tools <External Tools>` installed for a local run, you can also give that a try. Local runs are useful if you're interested in more detailed logs and reports for each step run and the ability to browse a gds at the end.
 
