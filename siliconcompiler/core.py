@@ -3981,7 +3981,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             # Gather subprocess memory usage.
                             try:
                                 pproc = psutil.Process(proc.pid)
-                                max_mem_bytes = max(max_mem_bytes, pproc.memory_full_info().uss)
+                                proc_mem_bytes = pproc.memory_full_info().uss
+                                for child in pproc.children(recursive=True):
+                                    proc_mem_bytes += child.memory_full_info().uss
+                                max_mem_bytes = max(max_mem_bytes, proc_mem_bytes)
                             except psutil.Error:
                                 # Process may have already terminated or been killed.
                                 # Retain existing memory usage statistics in this case.
