@@ -1,0 +1,37 @@
+# This is a basic workflow to help you get started with Actions
+name: Jira Integration
+
+# Controls when the workflow will run
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  create-jira-ticket:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Login and Create a Jira Ticket
+      - name: Login
+        uses: atlassian/gajira-login@master
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_TOKEN }}
+
+      - name: Create
+        id: create
+        uses: atlassian/gajira-create@v3
+        with:
+          project: SC
+          issuetype: Task
+          summary: "[GitHub/${{ github.repository }}] ${{ github.event.issue.title }}"
+          description: "This ticket was automatically created by a GitHub Actions Workflow.\n\n
+            *GitHub Issue Link*: ${{ github.event.issue.html_url }}\n\n
+            *GitHub Issues Description*:\n\n
+            ${{ github.event.issue.body }}\n\n
+            *Created By:* ${{ github.event.issue.user.html_url }}"
+
+      - name: Log created issue
+        run: echo "Issue ${{ steps.create.outputs.issue }} was created"
