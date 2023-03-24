@@ -80,7 +80,7 @@ jobs:
       if: matrix.os == 'macos-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
       run: .github/workflows/bin/install_surelog_macos.sh
 
-    - uses: pypa/cibuildwheel@v2.12.1
+    - uses: pypa/cibuildwheel@v2.9.0
       env:
         CIBW_BEFORE_ALL_LINUX: >
           export PREFIX={package}/siliconcompiler/tools/surelog &&
