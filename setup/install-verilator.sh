@@ -28,7 +28,7 @@ if [ ! -z ${PREFIX} ]; then
 fi
 
 ./configure $args
-make -j
+make -j$(nproc)
 sudo make install
 
 cd -

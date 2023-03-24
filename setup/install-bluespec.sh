@@ -6,9 +6,9 @@ set -e
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
 
 # Install Haskell build tools
-sudo add-apt-repository -y ppa:hvr/ghc
-sudo apt-get update
-sudo apt-get install -y cabal-install ghc
+#sudo add-apt-repository -y ppa:hvr/ghc
+#sudo apt-get update
+#sudo apt-get install -y cabal-install ghc
 
 sudo apt-get install -y ghc libghc-regex-compat-dev libghc-syb-dev \
     libghc-old-time-dev libghc-split-dev tcl-dev build-essential pkg-config \
@@ -22,7 +22,7 @@ cd bluespec
 git checkout $(python3 ${src_path}/_tools.py --tool bluespec --field git-commit)
 git submodule update --init --recursive
 
-make -j install-src
+make -j$(nproc) install-src
 
 if [ -z ${PREFIX} ]; then
     # install

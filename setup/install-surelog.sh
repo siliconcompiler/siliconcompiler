@@ -17,7 +17,7 @@ cd surelog
 git checkout $(python3 ${src_path}/_tools.py --tool surelog --field git-commit)
 git submodule update --init --recursive
 
-make -j
+make -j$(nproc)
 sudo make install
 
 cd -

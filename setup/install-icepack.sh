@@ -17,6 +17,6 @@ git clone $(python3 ${src_path}/_tools.py --tool icepack --field git-url) icepac
 cd icepack
 git checkout $(python3 ${src_path}/_tools.py --tool icepack --field git-commit)
 
-make -j
+make -j$(nproc)
 sudo make install
 cd -

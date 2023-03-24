@@ -5,6 +5,11 @@ import argparse
 import json
 import os
 
+tools = None
+data_file = os.path.join(os.path.dirname(__file__), "_tools.json")
+with open(data_file, "r") as f:
+    tools = json.load(f)
+
 def bump_commit(tools, tool):
     if "git-url" not in tools[tool]:
         return None
@@ -18,13 +23,19 @@ def bump_commit(tools, tool):
 
     return None
 
-if __name__ == "__main__":
-    tools = None
-    data_file = os.path.join(os.path.dirname(__file__), "_tools.json")
-    with open(data_file, "r") as f:
-        tools = json.load(f)
+def has_tool(tool):
+    return tool in tools
 
-    supported_tools = ", ".join(tools.keys())
+def get_field(tool, field):
+    if field not in tools[tool]:
+        return None
+    return tools[tool][field]
+
+def get_tools():
+    return list(tools.keys())
+
+if __name__ == "__main__":
+    supported_tools = ", ".join(get_tools())
     supported_fields = set()
     for tool, fields in tools.items():
         for field in fields:
@@ -41,7 +52,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.tool not in tools:
+    if not has_tool(args.tool):
         print(f"{args.tool} is not a supported tool.")
         print(f"Supported tools are: {supported_tools}")
         exit(1)
