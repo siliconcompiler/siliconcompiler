@@ -41,7 +41,7 @@ def setup(chip):
     # Standard Setup
     chip.set('tool', tool, 'exe', 'yosys')
     chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=0.24', clobber=False)
+    chip.set('tool', tool, 'version', '>=0.25+58', clobber=False)
     chip.set('tool', tool, 'format', 'tcl', clobber=False)
 
     # Task Setup
@@ -106,9 +106,6 @@ def syn_post_process(chip):
     registers = None
     with open(f"{step}.log", 'r') as f:
         for line in f:
-            area_metric = re.findall(r"^SC_METRIC: area: ([0-9.]+)", line)
-            if area_metric:
-                chip._record_metric(step, index, 'cellarea', float(area_metric[0]), f"{step}.log", source_unit='um^2')
             line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
             if line_registers:
                 if registers is None:
