@@ -100,6 +100,7 @@ def _cast(val, sctype):
         # everything else (str, file, dir) is treated like a string
         return val.strip('"')
 
+@pytest.mark.timeout(500)
 def test_cli_examples(monkeypatch):
     # Need to mock this function, since our cfg CLI example will try to call it
     # on a fake manifest.

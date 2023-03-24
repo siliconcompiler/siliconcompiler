@@ -5,6 +5,7 @@ import shutil
 import os
 import sys
 
+@pytest.mark.timeout(180)
 def test_sup():
     ''' SUP basic test
     '''
