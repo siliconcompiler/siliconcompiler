@@ -88,11 +88,9 @@ jobs:
         CIBW_ENVIRONMENT_MACOS: >
           LDFLAGS="-L/usr/local/opt/bison/lib -L/usr/local/opt/flex/lib"
           CPPFLAGS="-I/usr/local/opt/flex/include"
-        CIBW_ENVIRONMENT_WINDOWS: >
-          SC_CMAKEARGS="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake."
-          PIP_USE_DEPRECATED=out-of-tree-build
+        CIBW_ENVIRONMENT_WINDOWS: SC_CMAKEARGS="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake."
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-        CIBW_SKIP: "pp* *win32 *i686 *-musllinux_*"
+        CIBW_SKIP: "pp* *win32 *i686 *-musllinux_* *cp36*win*"
         MACOSX_DEPLOYMENT_TARGET: "10.15"
         CIBW_ARCHS_MACOS: x86_64 arm64
         CIBW_TEST_SKIP: "*_arm64"
