@@ -2,7 +2,8 @@
 
 FROM ubuntu:20.04
 
-LABEL description="SiliconCompiler container with all supported OpenSource tools"
+LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
+LABEL org.opencontainers.image.description="SiliconCompiler container with all supported OpenSource tools"
 
 ARG SC_PREFIX=/sc_tools
 ARG SC_BUILD=/sc_build

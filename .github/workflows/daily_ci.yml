@@ -1,0 +1,87 @@
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *'
+
+name: 'Daily CI Tests'
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  docker_image:
+    name: 'Get docker sc_tools image'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: read
+
+    outputs:
+      sc_tools: ${{ steps.docker.outputs.sc_tools }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get image name
+        id: docker
+        run: |
+          pip install -r setup/docker/requirements.txt
+          sc_tools_name=$(python3 setup/docker/builder.py --tool tools --registry ${{ env.REGISTRY }})
+          echo "sc_tools=${sc_tools_name}" >> $GITHUB_OUTPUT
+
+  daily_tests_job:
+    needs: docker_image
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.docker_image.outputs.sc_tools }}
+      credentials:
+        username: ${{ secrets.PACKAGES_ACTOR }}
+        password: ${{ secrets.PACKAGES_TOKEN }}
+
+    name: 'All tests'
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+    steps:
+      - name: Install pyenv and Python ${{ matrix.python-version }}
+        run: |
+          sudo apt-get install -y build-essential zlib1g-dev libffi-dev libssl-dev \
+            libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
+
+          curl https://pyenv.run | bash
+
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PATH"
+          eval "$(pyenv init -)"
+
+          pyenv install ${{ matrix.python-version }}
+
+      - name: Checkout SiliconCompiler
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Run tests with Python ${{ matrix.python-version }}
+        run: |
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PATH"
+          eval "$(pyenv init -)"
+
+          pyenv shell ${{ matrix.python-version }}
+
+          python3 --version
+          python3 -m venv clean_env
+          source clean_env/bin/activate
+          cd $GITHUB_WORKSPACE
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+          python3 -m pip install -e .
+          pytest -n auto --import-mode=append
