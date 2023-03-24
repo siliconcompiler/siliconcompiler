@@ -1,4 +1,4 @@
-on: [workflow_dispatch]
+on: [workflow_dispatch, push]
 
 name: 'Quick CI Tests'
 

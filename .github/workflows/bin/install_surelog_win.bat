@@ -11,7 +11,6 @@ set CC=cl
 set CXX=cl
 set NO_TCMALLOC=On
 set PREFIX=%GITHUB_WORKSPACE%\siliconcompiler\tools\surelog
-set PREFIX=%GITHUB_WORKSPACE%\siliconcompiler\tools\surelog
 set CPU_CORES=%NUMBER_OF_PROCESSORS%
 
 set MAKE_DIR=C:\make\bin
@@ -41,4 +40,5 @@ git submodule update --init --recursive
 
 make
 make install
+
 python3 %GITHUB_WORKSPACE%\.github\workflows\bin\clean_surelog_build.py

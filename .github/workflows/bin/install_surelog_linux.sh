@@ -3,10 +3,6 @@ ls /github/workspace/siliconcompiler/tools/surelog
 # Get directory of setup scripts
 src_path=$(cd -- "$(dirname "$0")/../../../" >/dev/null 2>&1 ; pwd -P)
 
-# mkdir -p setup
-# mv _tools.py setup/_tools.py
-# mv _tools.json setup/_tools.json
-
 yum install -y libuuid-devel java-11-openjdk-devel python3
 
 python3 -m venv .venv
