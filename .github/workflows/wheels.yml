@@ -85,6 +85,7 @@ jobs:
         CIBW_BEFORE_ALL_LINUX: >
           export PREFIX={package}/siliconcompiler/tools/surelog &&
           {package}/.github/workflows/bin/setup_wheel_env_linux.sh
+        CIBW_BEFORE_BUILD_WINDOWS: Remove-Item _skbuild -Force  -Recurse -ErrorAction SilentlyContinue
         CIBW_ENVIRONMENT_MACOS: >
           LDFLAGS="-L/usr/local/opt/bison/lib -L/usr/local/opt/flex/lib"
           CPPFLAGS="-I/usr/local/opt/flex/include"
