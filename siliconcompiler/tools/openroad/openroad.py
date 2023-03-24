@@ -315,27 +315,32 @@ def post_process(chip):
         or_units['area'] = or_units['distance']+'^2'
         or_units['frequency'] = 'Hz'  # always hertz
 
-        for metric, or_metric, or_unit in [('vias', 'sc__step__route__vias', None),
-                                           ('wirelength', 'sc__step__route__wirelength', 'distance'),
-                                           ('cellarea', 'sc__metric__design__instance__area', 'area'),
-                                           ('totalarea', 'sc__metric__design__core__area', 'area'),
-                                           ('utilization', 'sc__metric__design__instance__utilization', 100.0),
-                                           ('setuptns', 'sc__metric__timing__setup__tns', 'time'),
-                                           ('holdtns', 'sc__metric__timing__hold__tns', 'time'),
-                                           ('setupslack', 'sc__metric__timing__setup__ws', 'time'),
-                                           ('holdslack', 'sc__metric__timing__hold__ws', 'time'),
-                                           ('fmax', 'sc__metric__timing__fmax', 'frequency'),
-                                           ('setuppaths', 'sc__metric__timing__drv__setup_violation_count', None),
-                                           ('holdpaths', 'sc__metric__timing__drv__hold_violation_count', None),
-                                           ('unconstrained', 'sc__metric__timing__unconstrained', None),
-                                           ('peakpower', 'sc__metric__power__total', 'power'),
-                                           ('leakagepower', 'sc__metric__power__leakage__total', 'power'),
-                                           ('pins', 'sc__metric__design__io', None),
-                                           ('cells', 'sc__metric__design__instance__count', None),
-                                           ('macros', 'sc__metric__design__instance__count__macros', None),
-                                           ('nets', 'sc__metric__design__nets', None),
-                                           ('registers', 'sc__metric__design__registers', None),
-                                           ('buffers', 'sc__metric__design__buffers', None)]:
+        has_timing = True
+        if 'sc__metric__timing__clocks' in metrics:
+            has_timing = metrics['sc__metric__timing__clocks'] > 0
+
+        for metric, or_metric, or_use, or_unit in [
+            ('vias', 'sc__step__route__vias', True, None),
+            ('wirelength', 'sc__step__route__wirelength', True, 'distance'),
+            ('cellarea', 'sc__metric__design__instance__area', True, 'area'),
+            ('totalarea', 'sc__metric__design__core__area', True, 'area'),
+            ('utilization', 'sc__metric__design__instance__utilization', True, 100.0),
+            ('setuptns', 'sc__metric__timing__setup__tns', has_timing, 'time'),
+            ('holdtns', 'sc__metric__timing__hold__tns', has_timing, 'time'),
+            ('setupslack', 'sc__metric__timing__setup__ws', has_timing, 'time'),
+            ('holdslack', 'sc__metric__timing__hold__ws', has_timing, 'time'),
+            ('fmax', 'sc__metric__timing__fmax', has_timing, 'frequency'),
+            ('setuppaths', 'sc__metric__timing__drv__setup_violation_count', True, None),
+            ('holdpaths', 'sc__metric__timing__drv__hold_violation_count', True, None),
+            ('unconstrained', 'sc__metric__timing__unconstrained', True, None),
+            ('peakpower', 'sc__metric__power__total', True, 'power'),
+            ('leakagepower', 'sc__metric__power__leakage__total', True, 'power'),
+            ('pins', 'sc__metric__design__io', True, None),
+            ('cells', 'sc__metric__design__instance__count', True, None),
+            ('macros', 'sc__metric__design__instance__count__macros', True, None),
+            ('nets', 'sc__metric__design__nets', True, None),
+            ('registers', 'sc__metric__design__registers', True, None),
+            ('buffers', 'sc__metric__design__buffers', True, None)]:
             if or_metric in metrics:
                 value = metrics[or_metric]
                 if or_unit:
@@ -345,14 +350,15 @@ def post_process(chip):
                         value *= or_unit
                         or_unit = None
 
-                chip._record_metric(step, index, metric, value, "reports/metrics.json", source_unit=or_unit)
+                if or_use:
+                    chip._record_metric(step, index, metric, value, "reports/metrics.json", source_unit=or_unit)
 
         # setup wns and hold wns can be computed from setup slack and hold slack
-        if 'sc__metric__timing__setup__ws' in metrics:
+        if 'sc__metric__timing__setup__ws' in metrics and has_timing:
             wns = min(0.0, chip.get('metric', 'setupslack', step=step, index=index))
             chip._record_metric(step, index, 'setupwns', wns, "reports/metrics.json", source_unit=or_units['time'])
 
-        if 'sc__metric__timing__hold__ws' in metrics:
+        if 'sc__metric__timing__hold__ws' in metrics and has_timing:
             wns = min(0.0, chip.get('metric', 'holdslack', step=step, index=index))
             chip._record_metric(step, index, 'holdwns', wns, "reports/metrics.json", source_unit=or_units['time'])
 
