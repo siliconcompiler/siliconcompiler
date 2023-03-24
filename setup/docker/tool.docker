@@ -1,0 +1,26 @@
+# Copyright (C) 2023 Zero ASIC
+
+FROM {{ base_build_image }}
+
+LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
+LABEL org.opencontainers.image.description "SiliconCompiler {{ tool }} tool"
+
+# Copy in support files
+COPY _tools.py $SC_BUILD
+COPY _tools.json $SC_BUILD
+
+# Copy and run install script
+# The final remove in the same RUN command
+# is important to keep the docker image size low
+COPY {{ install_script }} $SC_BUILD
+WORKDIR $SC_BUILD
+RUN chmod +x ./{{ install_script }} && \
+    ./{{ install_script }} && \
+    rm -rf $SC_BUILD/deps && \
+    apt-get clean
+
+# Generate list of installed programs
+RUN apt list --installed | grep "\[installed\]" | sed 's/\/.*//' > $SC_PREFIX/apt.txt
+
+# Run additional commands needed by tool build, if needed by tool
+{{ extra_commands }}
