@@ -38,7 +38,7 @@
   },
   "bambu": {
     "git-url": "https://github.com/ferrandi/PandA-bambu.git",
-    "git-commit": "04336c437a53bc96ae90b74052c455629946ec8b"
+    "git-commit": "7c5d0f140911d19e1b5c5a1b7cbc466e0fa66d0f"
   },
   "vpr": {
     "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
