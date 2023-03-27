@@ -643,7 +643,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         setup_func = getattr(module, 'setup', None)
         if (setup_func):
             # Call the module setup function.
-            use_modules = setup_func(self, **kwargs)
+            try:
+                use_modules = setup_func(self, **kwargs)
+            except Exception as e:
+                self.logger.error(f'Unable to run setup() for {module.__name__}')
+                raise e
         else:
             # Import directly
             use_modules = module
