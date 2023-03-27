@@ -35,7 +35,7 @@ make -f Makefile.init
 mkdir obj
 cd obj
 
-../configure --enable-release --disable-flopoco $args
+../configure --enable-release --disable-flopoco --with-opt-level=2 $args
 make -j$(nproc)
 make install
 
