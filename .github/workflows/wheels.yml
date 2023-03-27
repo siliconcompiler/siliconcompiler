@@ -80,17 +80,18 @@ jobs:
       if: matrix.os == 'macos-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
       run: .github/workflows/bin/install_surelog_macos.sh
 
-    - uses: pypa/cibuildwheel@v2.1.1
+    - uses: pypa/cibuildwheel@v2.12.1
       env:
         CIBW_BEFORE_ALL_LINUX: >
           export PREFIX={package}/siliconcompiler/tools/surelog &&
           {package}/.github/workflows/bin/setup_wheel_env_linux.sh
+        CIBW_BEFORE_BUILD_WINDOWS: if exist "_skbuild\" rd /q /s  "_skbuild"
         CIBW_ENVIRONMENT_MACOS: >
           LDFLAGS="-L/usr/local/opt/bison/lib -L/usr/local/opt/flex/lib"
           CPPFLAGS="-I/usr/local/opt/flex/include"
         CIBW_ENVIRONMENT_WINDOWS: SC_CMAKEARGS="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake."
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-        CIBW_SKIP: "pp* *win32 *i686"
+        CIBW_SKIP: "pp* *win32 *i686 *-musllinux_*"
         MACOSX_DEPLOYMENT_TARGET: "10.15"
         CIBW_ARCHS_MACOS: x86_64 arm64
         CIBW_TEST_SKIP: "*_arm64"
@@ -133,7 +134,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: [cp36-cp36m, cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310]
+        python: [cp36-cp36m, cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
     steps:
     - uses: actions/download-artifact@v3
       with:
