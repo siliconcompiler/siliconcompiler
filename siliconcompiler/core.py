@@ -3872,6 +3872,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 cmdlist = [exe]
                 cmdlist.extend(veropt)
                 proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                if proc.returncode != 0:
+                    self.logger.error(f'Version check on {tool} failed with code {retcode}.')
+                    self._haltstep(step, index)
                 parse_version = self.find_function(tool, 'parse_version', 'tools')
                 if parse_version is None:
                     self.logger.error(f'{tool} does not implement parse_version.')
