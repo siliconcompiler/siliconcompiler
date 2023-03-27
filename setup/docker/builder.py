@@ -162,18 +162,18 @@ def make_sc_tools_docker(tools, output_dir):
     '''
     name, tag, docker_file = tools_image_details(tools)
 
-    skip_tools = []
+    skip_build = []
     for tool in _tools.get_tools():
         if _tools.get_field(tool, 'docker-skip'):
-           skip_tools.append(tool) 
+           skip_build.append(tool)
 
     template_opts = {
         'tools': tools,
-        'skip_tools': skip_tools
+        'skip_build': skip_build
     }
 
     copy_files = ['_tools.json', '_tools.py']
-    for tool in skip_tools:
+    for tool in skip_build:
         copy_files.append(f'install-{tool}.sh')
     cp_files = []
     for f in copy_files:

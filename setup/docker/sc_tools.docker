@@ -44,7 +44,7 @@ WORKDIR $SC_BUILD
 COPY _tools.py $SC_BUILD
 COPY _tools.json $SC_BUILD
 
-{% for tool in skip_tools %}
+{% for tool in skip_build %}
 COPY install-{{ tool }}.sh $SC_BUILD
 RUN chmod +x $SC_BUILD/install-{{ tool }}.sh && \
     $SC_BUILD/install-{{ tool }}.sh && \
