@@ -602,7 +602,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('option', 'target', name)
 
         load_function = self.find_function(name, 'setup', 'targets')
-        load_function(self, **kwargs)
+        try:
+            load_function(self, **kwargs)
+        except Exception as e:
+            self.logger.error(f'Failed to load target {name}')
+            raise e
 
     ##########################################################################
     def use(self, module, **kwargs):
@@ -3826,9 +3830,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not is_builtin:
             func = self.find_function(tool, "pre_process", 'tools', task)
             if func:
-                func(self)
+                try:
+                    func(self)
+                except Exception as e:
+                    self.logger.error(f"Pre-processing failed for '{tool}/{task}'.")
+                    raise e
                 if self._error:
-                    self.logger.error(f"Pre-processing failed for '{tool}'")
+                    self.logger.error(f"Pre-processing failed for '{tool}/{task}'")
                     self._haltstep(step, index)
 
         ##################
@@ -3868,7 +3876,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if parse_version is None:
                     self.logger.error(f'{tool} does not implement parse_version.')
                     self._haltstep(step, index)
-                version = parse_version(proc.stdout)
+                try:
+                    version = parse_version(proc.stdout)
+                except Exception as e:
+                    self.logger.error(f'{tool} failed to parse version string: {proc.stdout}')
+                    raise e
 
                 self.logger.info(f"Tool '{exe_base}' found with version '{version}' in directory '{exe_path}'")
                 if vercheck and not self._check_version(version, tool, step, index):
@@ -3904,7 +3916,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
         elif run_func and not self.get('option', 'skipall'):
             logfile = None
-            retcode = run_func(self)
+            try:
+                retcode = run_func(self)
+            except Exception as e:
+                self.logger.error(f'Failed in run() for {tool}/{task}')
+                raise e
         elif not self.get('option', 'skipall'):
             cmdlist, printable_cmd, _, cmd_args = self._makecmd(tool, task, step, index)
             self.logger.info('Running in %s', workdir)
@@ -4039,7 +4055,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if (not is_builtin) and (not self.get('option', 'skipall')) :
             func = self.find_function(tool, 'post_process', 'tools', task)
             if func:
-                func(self)
+                try:
+                    func(self)
+                except Exception as e:
+                    self.logger.error(f'Failed to run post-process for {tool}/{task}.')
+                    raise e
 
         ##################
         # Check log file (must be after post-process)
@@ -4155,7 +4175,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except SiliconCompilerError:
             setup_step = None
         if setup_step:
-            setup_step(self)
+            try:
+                setup_step(self)
+            except Exception as e:
+                self.logger.error(f'Failed to run setup() for {tool}/{task}')
+                raise e
         else:
             self.logger.error(f'setup() not found for tool {tool}, task {task}', fatal=True)
 
@@ -4744,7 +4768,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         cmdlist.extend(scripts)
         runtime_options = self.find_function(tool, 'runtime_options', 'tools')
         if runtime_options:
-            for option in runtime_options(self):
+            try:
+                options = runtime_options(self)
+            except Exception as e:
+                self.logger.error(f'Failed to get runtime options for {tool}/{task}')
+                raise e
+            for option in options:
                 cmdlist.extend(shlex.split(option, posix=is_posix))
 
         envvars = {}
@@ -5007,7 +5036,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 normalized_version = reported_version
                 normalized_specs = ','.join([f'{op}{ver}' for op, ver in specs_list])
             else:
-                normalized_version = normalize_version(reported_version)
+                try:
+                    normalized_version = normalize_version(reported_version)
+                except Exception as e:
+                    self.logger.error(f'Unable to normalize version for {tool}: {reported_version}')
+                    raise e
                 normalized_specs = ','.join([f'{op}{normalize_version(ver)}' for op, ver in specs_list])
 
             try:
