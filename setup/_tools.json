@@ -1,11 +1,8 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "6de104daffe029fd717645b21f3e6ed6aad1042b"
-  },
-  "yosys": {
-    "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "956c4e485a9463863f60c4dd03372db3fa8332a4"
+    "git-commit": "81c846f4049a1232c69ab56b9b786dff6e71fb02",
+    "docker-cmds": ["RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"]
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
@@ -28,7 +25,8 @@
     "git-commit": "4cac6ebae076e8b8378597aba1d2119aa29ec419"
   },
   "klayout": {
-    "version": "0.28.3-1"
+    "version": "0.28.3-1",
+    "docker-skip": true
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
@@ -40,11 +38,11 @@
   },
   "bambu": {
     "git-url": "https://github.com/ferrandi/PandA-bambu.git",
-    "git-commit": "04336c437a53bc96ae90b74052c455629946ec8b"
+    "git-commit": "7c5d0f140911d19e1b5c5a1b7cbc466e0fa66d0f"
   },
   "vpr": {
     "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
-    "git-commit": "2031f1f4f8a50b0eb18d37385f5bb39036618f79"
+    "git-commit": "a80248dc4fef1c62af2d32091c82a846e5fc5c92"
   },
   "icepack": {
     "git-url": "https://github.com/YosysHQ/icestorm.git",
@@ -52,6 +50,18 @@
   },
   "nextpnr": {
     "git-url": "https://github.com/YosysHQ/nextpnr.git",
-    "git-commit": "f89b959b5f56ba8d91e1e7f8a645b267a5a7bb89"
+    "git-commit": "f89b959b5f56ba8d91e1e7f8a645b267a5a7bb89",
+    "docker-depends": "icepack"
+  },
+  "chisel": {
+    "docker-skip": true
+  },
+  "icarus": {
+    "git-url": "https://github.com/steveicarus/iverilog.git",
+    "git-commit": "01441687235135d1c12eeef920f75d97995da333"
+  },
+  "yosys": {
+    "git-url": "https://github.com/YosysHQ/yosys.git",
+    "git-commit": "956c4e485a9463863f60c4dd03372db3fa8332a4"
   }
 }

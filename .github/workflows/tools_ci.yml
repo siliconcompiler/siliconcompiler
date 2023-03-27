@@ -1,0 +1,200 @@
+name: 'Tools CI'
+
+on:
+  workflow_dispatch:
+  push:
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build_tool_builder:
+    name: 'Build base tool builder image'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
+
+    outputs:
+      tools_matrix: ${{ steps.docker.outputs.tools_matrix }}
+      tools_with_deps_matrix: ${{ steps.docker.outputs.tools_with_deps_matrix }}
+      sc_tools: ${{ steps.docker.outputs.sc_tools }}
+      has_sc_tools: ${{ steps.docker.outputs.has_sc_tools }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.PACKAGES_ACTOR }}
+          password: ${{ secrets.PACKAGES_TOKEN }}
+
+      - name: Generate tool docker files
+        id: docker
+        run: |
+          pip install -r setup/docker/requirements.txt
+          builder_name=$(python3 setup/docker/builder.py --tool builder --registry ${{ env.REGISTRY }})
+          sc_tools_name=$(python3 setup/docker/builder.py --tool tools --registry ${{ env.REGISTRY }})
+          echo "builder=${builder_name}" >> $GITHUB_OUTPUT
+          echo "has_builder=$(python3 setup/docker/builder.py --check_image ${builder_name})" >> $GITHUB_OUTPUT
+          echo "sc_tools=${sc_tools_name}" >> $GITHUB_OUTPUT
+          echo "has_sc_tools=$(python3 setup/docker/builder.py --check_image ${sc_tools_name})" >> $GITHUB_OUTPUT
+          echo "tools_matrix=$(python3 setup/docker/builder.py --json_tools --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
+          echo "tools_with_deps_matrix=$(python3 setup/docker/builder.py --json_tools --with_dependencies --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
+          python3 setup/docker/builder.py --generate_files --registry ${{ env.REGISTRY }} --output_dir docker
+
+      - name: Upload docker artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: tools
+          path: docker/
+          retention-days: 1
+
+      - name: Build and Push SiliconCompiler Builder Docker image
+        if: steps.docker.outputs.has_builder != 'true'
+        uses: docker/build-push-action@v3
+        with:
+          context: docker/sc_tool_builder
+          push: true
+          tags: ${{ steps.docker.outputs.builder }}
+
+  build_tool:
+    if: ${{ needs.build_tool_builder.outputs.tools_matrix != '{}' }}
+
+    name: Build ${{ matrix.tool }} tool
+    runs-on: ubuntu-latest
+    needs: build_tool_builder
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+        fail-fast: false
+        matrix: ${{ fromJson(needs.build_tool_builder.outputs.tools_matrix) }}
+
+    steps:
+      - name: Download docker artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: tools
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.PACKAGES_ACTOR }}
+          password: ${{ secrets.PACKAGES_TOKEN }}
+
+      - name: Build and Push Tool Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./sc_${{ matrix.tool }}/
+          push: true
+          tags: |
+            ${{ matrix.name }}
+            ${{ matrix.check_name }}
+
+  build_tool_with_deps:
+    if: ${{ needs.build_tool_builder.outputs.tools_with_deps_matrix != '{}' }}
+
+    name: Build ${{ matrix.tool }} tool
+    runs-on: ubuntu-latest
+    needs: [build_tool_builder, build_tool]
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+        fail-fast: false
+        matrix: ${{ fromJson(needs.build_tool_builder.outputs.tools_with_deps_matrix) }}
+
+    steps:
+      - name: Download docker artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: tools
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.PACKAGES_ACTOR }}
+          password: ${{ secrets.PACKAGES_TOKEN }}
+
+      - name: Build and Push Tool Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./sc_${{ matrix.tool }}/
+          push: true
+          tags: |
+            ${{ matrix.name }}
+            ${{ matrix.check_name }}
+
+  build_sc_tools:
+    if: always() && needs.build_tool_builder.outputs.has_sc_tools != 'true'
+    name: Build SC Tools
+    runs-on: ubuntu-latest
+    needs: [build_tool_builder, build_tool, build_tool_with_deps]
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Download docker artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: tools
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.PACKAGES_ACTOR }}
+          password: ${{ secrets.PACKAGES_TOKEN }}
+
+      - name: Build and Push Tool Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./sc_tools/
+          push: true
+          tags: ${{ needs.build_tool_builder.outputs.sc_tools }}
+
+  tool_based_tests:
+    if: always()
+    needs: [build_tool_builder, build_sc_tools]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.build_tool_builder.outputs.sc_tools }}
+      credentials:
+        username: ${{ secrets.PACKAGES_ACTOR }}
+        password: ${{ secrets.PACKAGES_TOKEN }}
+
+    timeout-minutes: 30
+    name: 'Tool-based tests'
+    steps:
+      - name: Checkout current SiliconCompiler
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Run tests
+        run: |
+          python3 -m venv clean_env
+          source clean_env/bin/activate
+          cd $GITHUB_WORKSPACE
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+          python3 -m pip install -e .
+          pytest -n auto --import-mode=append -m "eda and quick"

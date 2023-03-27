@@ -1,21 +1,10 @@
-on: [workflow_dispatch, push]
+name: 'Python CI Tests'
 
-name: 'Quick CI Tests'
+on:
+  workflow_dispatch:
+  push:
 
 jobs:
-  self_hosted_tests:
-    timeout-minutes: 15
-    runs-on: self-hosted
-    name: 'Tool-based tests'
-    steps:
-      - uses: actions/checkout@v3
-      - run: |
-          python3 -m venv create $GITHUB_WORKSPACE/clean_env --clear
-          source $GITHUB_WORKSPACE/clean_env/bin/activate
-          echo $VIRTUAL_ENV
-          pip3 install -r $GITHUB_WORKSPACE/requirements.txt $GITHUB_WORKSPACE/.
-          pytest -n auto --import-mode=append -m "eda and quick"
-
   python_test_job:
     timeout-minutes: 15
     runs-on: ${{ matrix.version.os }}
@@ -29,6 +18,7 @@ jobs:
           - {python: "3.8", os: "ubuntu-latest"}
           - {python: "3.9", os: "ubuntu-latest"}
           - {python: "3.10", os: "ubuntu-latest"}
+          - {python: "3.11", os: "ubuntu-latest"}
     steps:
       - uses: actions/checkout@v3
 

@@ -20,5 +20,5 @@ if [ ! -z ${PREFIX} ]; then
 fi
 
 LD_FLAGS=-shared ./configure $args
-make -j
+make -j$(nproc)
 sudo make install

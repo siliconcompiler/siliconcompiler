@@ -14,7 +14,7 @@ git clone $(python3 ${src_path}/_tools.py --tool sv2v --field git-url) sv2v
 cd sv2v
 git checkout $(python3 ${src_path}/_tools.py --tool sv2v --field git-commit)
 
-make -j
+make -j$(nproc)
 
 if [ ! -z ${PREFIX} ]; then
     sudo mkdir -p ${PREFIX}/bin/

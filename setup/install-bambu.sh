@@ -21,18 +21,26 @@ git clone $(python3 ${src_path}/_tools.py --tool bambu --field git-url) bambu
 cd bambu
 git checkout $(python3 ${src_path}/_tools.py --tool bambu --field git-commit)
 
-sudo mkdir -p /opt/panda
-sudo chown $USER:$USER /opt/panda
+if [ ! -z ${PREFIX} ]; then
+    args=--prefix="$PREFIX"
+else
+    args=--prefix=/opt/panda
+
+    sudo mkdir -p /opt/panda
+    sudo chown $USER:$USER /opt/panda
+fi
 
 make -f Makefile.init
 
 mkdir obj
 cd obj
 
-../configure --enable-release --disable-flopoco --prefix=/opt/panda
-make -j
+../configure --enable-release --disable-flopoco --with-opt-level=2 $args
+make -j$(nproc)
 make install
 
 cd -
 
-echo "Please add \"export PATH="/opt/panda/bin:\$PATH"\" to your .bashrc"
+if [ -z ${PREFIX} ]; then
+    echo "Please add \"export PATH="/opt/panda/bin:\$PATH"\" to your .bashrc"
+fi

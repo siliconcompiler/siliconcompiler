@@ -27,6 +27,6 @@ if [ ! -z ${PREFIX} ]; then
 fi
 
 cmake -DARCH=ice40 $args .
-make -j
+make -j$(nproc)
 sudo make install
 cd -
