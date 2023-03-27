@@ -21,9 +21,5 @@ def test_version():
 
     chip.load_target('asic_demo')
 
-    try:
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.run()
-    except siliconcompiler.SiliconCompilerError:
-        assert True
-        return
-    assert False
