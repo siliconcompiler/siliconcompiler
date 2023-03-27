@@ -4157,7 +4157,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if setup_step:
             setup_step(self)
         else:
-            self.logger.error(f'setup() not found for tool {tool}, task {task}', fatal=True)
+            self.error(f'setup() not found for tool {tool}, task {task}', fatal=True)
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.
