@@ -6,7 +6,6 @@ import siliconcompiler
 
 def do_cli_test(args, monkeypatch, switchlist=None, input_map=None):
     chip = siliconcompiler.Chip('test')
-    print(chip.get('constraint', 'timing', 'worst', 'libcorner', step='syn', index='0'))
     monkeypatch.setattr('sys.argv', args)
     chip.create_cmdline('sc', switchlist=switchlist, input_map=input_map)
     return chip
