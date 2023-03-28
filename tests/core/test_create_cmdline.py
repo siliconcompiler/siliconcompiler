@@ -1,3 +1,4 @@
+import logging
 import re
 import pytest
 
@@ -5,6 +6,7 @@ import siliconcompiler
 
 def do_cli_test(args, monkeypatch, switchlist=None, input_map=None):
     chip = siliconcompiler.Chip('test')
+    print(chip.get('constraint', 'timing', 'worst', 'libcorner', step='syn', index='0'))
     monkeypatch.setattr('sys.argv', args)
     chip.create_cmdline('sc', switchlist=switchlist, input_map=input_map)
     return chip
@@ -100,7 +102,6 @@ def _cast(val, sctype):
         # everything else (str, file, dir) is treated like a string
         return val.strip('"')
 
-@pytest.mark.timeout(500)
 def test_cli_examples(monkeypatch):
     # Need to mock this function, since our cfg CLI example will try to call it
     # on a fake manifest.
@@ -110,6 +111,8 @@ def test_cli_examples(monkeypatch):
     monkeypatch.setattr(siliconcompiler.Chip, 'read_manifest', _mock_read_manifest)
 
     chip = siliconcompiler.Chip('test')
+    args = ['sc']
+    expected_data = []
     for keypath in chip.allkeys():
         examples = chip.get(*keypath, field='example')
         for example in examples:
@@ -147,14 +150,25 @@ def test_cli_examples(monkeypatch):
             elif switch.startswith('+libext+'):
                 expected_val = switch[len('+libext+'):]
 
-            args = ['sc', switch]
+            # Handle target specially since it affects other values
+            if keypath == ['option', 'target']:
+                c = do_cli_test(['sc', switch, value], monkeypatch)
+                assert c.schema.get(*replaced_keypath, step=step, index=index) == expected_val
+                continue
+
+            args.append(switch)
             if value:
                 args.append(value)
 
-            c = do_cli_test(args, monkeypatch)
-
             if expected_val:
-                assert c.schema.get(*replaced_keypath, step=step, index=index) == _cast(expected_val, typestr)
+                expected = (replaced_keypath, step, index, _cast(expected_val, typestr))
             else:
                 assert typestr == 'bool', 'Implicit value only alowed for boolean'
-                assert c.schema.get(*replaced_keypath, step=step, index=index) == True
+                expected = (replaced_keypath, step, index, True)
+
+            expected_data.append(expected)
+
+    c = do_cli_test(args, monkeypatch)
+
+    for kp, step, index, val in expected_data:
+        assert c.schema.get(*kp, step=step, index=index) == val
