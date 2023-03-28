@@ -1,4 +1,4 @@
-name: 'Tools CI'
+name: 'Tools CI Tests'
 
 on:
   workflow_dispatch:
