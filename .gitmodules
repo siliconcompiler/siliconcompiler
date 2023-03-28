@@ -4,3 +4,6 @@
 [submodule "third_party/designs/microwatt"]
 	path = third_party/designs/microwatt
 	url = https://github.com/antonblanchard/microwatt
+[submodule "third_party/designs/picorv32"]
+	path = third_party/designs/picorv32
+	url = https://github.com/cliffordwolf/picorv32
