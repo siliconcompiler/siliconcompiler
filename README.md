@@ -9,6 +9,7 @@
 
 # What is SiliconCompiler?
 
+foo
 
 A modular build system for hardware ("make for silicon"). The project philosophy is to "make the complex possible while keeping the simple simple".
 
