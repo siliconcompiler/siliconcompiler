@@ -140,7 +140,7 @@ jobs:
           if command -v klayout; then pytest --import-mode=append {package}/tests/flows/test_show.py -k "not openroad"; fi
 
     # "if: always()" ensures that we always upload any wheels that have
-    # been created, even if a test fails
+    # been created, even if cibuildwheel action fails
     - name: Upload wheels
       if: always()
       uses: actions/upload-artifact@v3
