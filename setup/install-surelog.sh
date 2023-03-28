@@ -12,6 +12,11 @@ pip3 install orderedmultidict
 mkdir -p deps
 cd deps
 
+# Update cmake to 3.20+
+wget -O cmake.sh https://cmake.org/files/v3.24/cmake-3.24.2-linux-x86_64.sh
+chmod +x cmake.sh
+./cmake.sh --skip-license --prefix=/usr/local
+
 git clone $(python3 ${src_path}/_tools.py --tool surelog --field git-url) surelog
 cd surelog
 git checkout $(python3 ${src_path}/_tools.py --tool surelog --field git-commit)
