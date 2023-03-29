@@ -12,7 +12,7 @@ def setup(chip):
     setup_tool(chip)
 
     tool = 'surelog'
-    task = 'import'
+    task = 'parse'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 

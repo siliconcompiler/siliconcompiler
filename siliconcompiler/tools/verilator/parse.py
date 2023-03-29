@@ -23,7 +23,7 @@ def setup(chip):
     tool = 'verilator'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = 'import'
+    task = 'parse'
     design = chip.top()
 
     chip.add('tool', tool, 'task', task, 'option',  ['--lint-only', '--debug'], step=step, index=index)

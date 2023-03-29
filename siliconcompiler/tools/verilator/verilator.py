@@ -75,10 +75,9 @@ def runtime_options(chip):
     tool = 'verilator'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    # TODO: fix
-    task = step
+    task = chip._get_task(step, index)
 
-    if step == 'import':
+    if task == 'parse':
         for value in chip.find_files('option', 'ydir'):
             cmdlist.append('-y ' + value)
         for value in chip.find_files('option', 'vlib'):
@@ -89,7 +88,7 @@ def runtime_options(chip):
             cmdlist.append('-f ' + value)
         for value in chip.find_files('input', 'rtl', 'verilog', step=step, index=index):
             cmdlist.append(value)
-    elif step == 'compile':
+    elif task == 'compile':
         for value in chip.find_files('input', 'hll', 'c', step=step, index=index):
             cmdlist.append(value)
         for value in chip.find_files('tool', tool, 'task', task, 'input', step=step, index=index):

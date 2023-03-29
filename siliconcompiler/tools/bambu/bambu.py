@@ -10,14 +10,13 @@ Sources: https://github.com/ferrandi/PandA-bambu
 Installation: https://panda.dei.polimi.it/?page_id=88
 '''
 
-import importlib
+from siliconcompiler.tools.bambu import convert
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    setup = getattr(importlib.import_module('tools.bambu.import'), 'setup')
-    setup(chip)
+    convert.setup(chip)
     return chip
 
 def parse_version(stdout):

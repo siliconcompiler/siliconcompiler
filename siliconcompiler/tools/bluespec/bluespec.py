@@ -13,14 +13,13 @@ Sources: https://github.com/B-Lang-org/bsc
 Installation: https://github.com/B-Lang-org/bsc#download
 '''
 
-import importlib
+from siliconcompiler.tools.bluespec import convert
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    setup = getattr(importlib.import_module('tools.bluespec.import'), 'setup')
-    setup(chip)
+    convert.setup(chip)
     return chip
 
 # Directory inside step/index dir to store bsc intermediate results.

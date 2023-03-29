@@ -9,7 +9,7 @@ def setup(chip):
     tool = 'chisel'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = 'import'
+    task = chip._get_task(step, index)
 
     # Standard Setup
     refdir = 'tools/'+tool
@@ -33,7 +33,8 @@ def pre_process(chip):
     tool = 'chisel'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = step
+    task = chip._get_task(step, index)
+
     refdir = chip.find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)[0]
 
     for filename in ('build.sbt', 'SCDriver.scala'):
@@ -41,6 +42,6 @@ def pre_process(chip):
         dst = filename
         shutil.copyfile(src, dst)
 
-    # Hack: Chisel driver relies on Scala files being collected into '$CWD/inputs'
+    # Chisel driver relies on Scala files being collected into '$CWD/inputs'
     chip.set('input', 'hll', 'scala', True, field='copy')
-    chip._collect(step, index)
+    chip._collect(directory=os.path.join(chip._getworkdir(step=step, index=index), 'inputs'))

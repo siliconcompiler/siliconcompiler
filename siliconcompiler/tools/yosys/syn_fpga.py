@@ -1,8 +1,8 @@
 from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
 import os
 import shutil
-import importlib
 from jinja2 import Template
+from siliconcompiler.utils import Arch
 
 def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
@@ -43,17 +43,12 @@ def create_vpr_lib(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    src = f"{chip.scroot}/tools/yosys/vpr_yosyslib"
-    dst = f"{chip._getworkdir()}/{step}/{index}/inputs/vpr_yosyslib"
+    src = f"{os.path.dirname(__file__)}/vpr_yosyslib"
+    dst = f"{chip._getworkdir(step=step, index=index)}/inputs/vpr_yosyslib"
 
     if os.path.exists(dst):
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
-    spec = importlib.util.spec_from_file_location("utils", f"{chip.scroot}/utils.py")
-    imported = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(imported)
-
-    Arch = getattr(imported, 'Arch')
     arch = Arch(chip.get('fpga', 'arch')[0])
     max_lut_size = arch.find_max_lut_size()
     max_mem_addr_width = arch.find_memory_addr_width()
