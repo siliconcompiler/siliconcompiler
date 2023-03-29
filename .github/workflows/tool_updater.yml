@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '0 8 * * *'
 
-name: 'Tool updating'
+name: 'Tool Updater'
 
 defaults:
   run:
@@ -33,7 +33,7 @@ jobs:
           python3 -m pip install GitPython
           git config --global user.name ${{ secrets.PACKAGES_ACTOR }}
           git config --global user.email bot@siliconcompiler.com
-          echo "msg=$(python3 setup/_tools.py --bump_commit --tool ${{ matrix.tool }}) >> $GITHUB_OUTPUT
+          echo "msg=$(python3 setup/_tools.py --bump_commit --tool ${{ matrix.tool }})" >> $GITHUB_OUTPUT
           git add setup/_tools.json
           git commit -m 'Update ${{ matrix.tool }}'
 
