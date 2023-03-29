@@ -31,8 +31,8 @@ jobs:
         id: update
         run: |
           python3 -m pip install GitPython
-          git config --global user.name ${{ secrets.PACKAGES_ACTOR }}
-          git config --global user.email bot@siliconcompiler.com
+          git config --global user.name "SiliconCompiler Bot"
+          git config --global user.email "bot@siliconcompiler.com"
           echo "msg=$(python3 setup/_tools.py --bump_commit --tool ${{ matrix.tool }})" >> $GITHUB_OUTPUT
           git add setup/_tools.json
           git commit -m 'Update ${{ matrix.tool }}'
@@ -43,8 +43,7 @@ jobs:
         with:
           token: ${{ secrets.PACKAGES_TOKEN }}
           title: "[SC-BOT] Update ${{ matrix.tool }}"
-          author: ${{ secrets.PACKAGES_ACTOR }}
-          committer: ${{ secrets.PACKAGES_ACTOR }}
+          author: "SiliconCompiler Bot <bot@siliconcompiler.com>"
           body: |
             ${{ steps.update.outputs.msg }}
           commit-message: |
