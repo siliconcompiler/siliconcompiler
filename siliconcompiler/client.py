@@ -45,25 +45,20 @@ def remote_preprocess(chip, steplist):
     # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
     remote_steplist = steplist.copy()
-    import_tasks = chip._get_steps_by_task()['import']
-    import_steps = []
-    for task_tuple in import_tasks:
-        if not task_tuple[0] in import_steps:
-            import_steps.append(task_tuple[0])
-    if (remote_steplist[:len(import_steps)] != import_steps) or (len(remote_steplist) == 1):
-        chip.error('Remote flows must be organized such that the "import" task(s) are run before '
-                   'all other steps, and at least one import and EDA task are included.\n'
-                  f'Full steplist: {remote_steplist}\nImport steplist: {import_steps}',
+    entry_steps = chip._get_flowgraph_entry_nodes(flow=flow)
+    if any([step not in remote_steplist for step, _ in entry_steps]) or (len(remote_steplist) == 1):
+        chip.error('Remote flows must be organized such that the starting task(s) are run before '
+                   'all other steps, and at least one other task is included.\n'
+                  f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
                    fatal=True)
     # Setup up tools for all local functions
-    for local_step in import_steps:
-        indexlist = chip.getkeys('flowgraph', flow, local_step)
-        for index in indexlist:
-            task = chip._get_task(local_step, index)
-            tool = chip.get('flowgraph', flow, local_step, index, 'tool')
-            # Setting up tool is optional (step may be a builtin function)
-            if tool and not chip._is_builtin(tool, task):
-                chip._setup_tool(tool, task, local_step, index)
+    for local_step, index in entry_steps:
+        tool = chip.get('flowgraph', flow, local_step, index, 'tool')
+        task = chip._get_task(local_step, index)
+        # Setting up tool is optional (step may be a builtin function)
+        if not chip._is_builtin(tool, task):
+            chip._setup_tool(tool, task, local_step, index)
+
         # Remove each local step from the list of steps to run on the server side.
         remote_steplist.remove(local_step)
 
@@ -77,11 +72,9 @@ def remote_preprocess(chip, steplist):
         # step should have none.
         chip._runtask(local_step, index, {})
 
-        # Collect inputs into import directory only for remote runs, since
-        # we need to send inputs up to the server. Otherwise, it's simpler
-        # for debugging to leave inputs in place.
-        # TODO: if more than one import is present this might not work
-        chip._collect(local_step, index)
+    # Collect inputs into a collection directory only for remote runs, since
+    # we need to send inputs up to the server.
+    chip._collect()
 
     # Set 'steplist' to only the remote steps, for the future server-side run.
     chip.unset('arg', 'step')
@@ -334,7 +327,7 @@ def fetch_results(chip):
     '''Helper method to fetch and open job results from a remote compute cluster.
     '''
 
-    # Fetch the remote archive after the export stage.
+    # Fetch the remote archive after the last stage.
     results_code = fetch_results_request(chip)
 
     # Note: the server should eventually delete the results as they age out (~8h), but this will
@@ -356,8 +349,8 @@ def fetch_results(chip):
     # Remove the results archive after it is extracted.
     os.remove(f'{job_hash}.tar.gz')
 
-    # Remove dangling 'import' symlinks if necessary.
-    for import_link in glob.iglob(job_hash + '/' + top_design + '/**/import*',
+    # Remove dangling symlinks if necessary.
+    for import_link in glob.iglob(job_hash + '/' + top_design + '/**/*',
                                   recursive=True):
         if os.path.islink(import_link):
             os.remove(import_link)
