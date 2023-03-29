@@ -24,7 +24,7 @@ def test_klayout(datadir):
     chip.set('library', 'heartbeat', 'gds', '10M', library_gds)
 
     flow = 'export'
-    chip.node(flow, 'import', 'nop', 'nop')
+    chip.node(flow, 'import', 'builtin', 'nop')
     chip.node(flow, 'export', 'klayout', 'export')
     chip.edge(flow, 'import', 'export')
     chip.set('option', 'flow', flow)

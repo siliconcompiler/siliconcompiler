@@ -27,9 +27,9 @@ def test_multiple_tools():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'import', 'builtin', 'import')
-    chip.node(flow, 'slog', 'surelog', 'import', index=0)
-    chip.node(flow, 'slog', 'surelog', 'import', index=1)
+    chip.node(flow, 'import', 'builtin', 'nop')
+    chip.node(flow, 'slog', 'surelog', 'parse', index=0)
+    chip.node(flow, 'slog', 'surelog', 'parse', index=1)
     chip.edge(flow, 'import', 'slog', head_index=0)
     chip.edge(flow, 'import', 'slog', head_index=1)
 

@@ -1,6 +1,7 @@
-import importlib
 import siliconcompiler
 import pytest
+
+from siliconcompiler.pdks import asap7, freepdk45, skywater130
 
 def test_target_valid():
     '''Basic test of target function.'''
@@ -18,9 +19,9 @@ def test_target_fpga_valid():
 
     assert chip.get('option', 'mode') == 'fpga'
 
-@pytest.mark.parametrize('pdk', ['asap7', 'freepdk45', 'skywater130'])
+@pytest.mark.parametrize('pdk', [asap7, freepdk45, skywater130])
 def test_pdk(pdk):
+    name = pdk.__name__.split('.')[-1]
     chip = siliconcompiler.Chip('test')
-    pdk_module = importlib.import_module(f'pdks.{pdk}')
-    chip.use(pdk_module)
-    assert chip.getkeys('pdk')[0] == pdk
+    chip.use(pdk)
+    assert chip.getkeys('pdk')[0] == name
