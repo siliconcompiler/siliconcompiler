@@ -6,7 +6,7 @@
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "ad83eedc7de32ec15a3f7b4e271c6b45ddf547eb"
+    "git-commit": "c05d42898793772a6dc0e8441501c6a30ff15ac9"
   },
   "netgen": {
     "git-url": "https://github.com/RTimothyEdwards/netgen.git",
@@ -25,7 +25,7 @@
     "git-commit": "4cac6ebae076e8b8378597aba1d2119aa29ec419"
   },
   "klayout": {
-    "version": "0.28.3-1",
+    "version": "0.28.3",
     "docker-skip": true
   },
   "sv2v": {
