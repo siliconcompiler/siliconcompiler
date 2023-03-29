@@ -29,7 +29,7 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
     if not filetype:
         raise ValueError('filetype is a required argument')
 
-    flow.node(flowname, 'import', 'builtin', 'import')
+    flow.node(flowname, 'import', 'builtin', 'nop')
 
     show_tool = chip.get('option', 'showtool', filetype)
 

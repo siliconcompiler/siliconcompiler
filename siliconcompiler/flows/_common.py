@@ -6,15 +6,15 @@ def setup_frontend(chip):
     frontend_flow = []
 
     if frontend in ('verilog', 'systemverilog'):
-        frontend_flow.append(('import', 'surelog', 'import'))
+        frontend_flow.append(('import', 'surelog', 'parse'))
     elif frontend == 'chisel':
-        frontend_flow.append(('import', 'chisel', 'import'))
+        frontend_flow.append(('import', 'chisel', 'convert'))
     elif frontend == 'c':
-        frontend_flow.append(('import', 'bambu', 'import'))
+        frontend_flow.append(('import', 'bambu', 'convert'))
     elif frontend == 'bluespec':
-        frontend_flow.append(('import', 'bluespec', 'import'))
+        frontend_flow.append(('import', 'bluespec', 'convert'))
     elif frontend == 'vhdl':
-        frontend_flow.append(('import', 'ghdl', 'import'))
+        frontend_flow.append(('import', 'ghdl', 'convert'))
     else:
         raise ValueError(f'Unsupported frontend: {frontend}')
 

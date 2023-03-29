@@ -13,7 +13,7 @@ def setup(chip):
     flow = siliconcompiler.Flow(chip, flowname)
 
     # nop import since we don't need to pull in any sources
-    flow.node(flowname, 'import', 'builtin', 'import')
+    flow.node(flowname, 'import', 'builtin', 'nop')
 
     flow.node(flowname, 'extspice', 'magic', 'extspice')
     flow.node(flowname, 'drc', 'magic', 'drc')

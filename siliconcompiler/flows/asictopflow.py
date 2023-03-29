@@ -9,7 +9,7 @@ def setup(chip):
     '''
     flow = siliconcompiler.Flow(chip, 'asictopflow')
 
-    flow.node(flow.design, 'import', 'surelog', 'import')
+    flow.node(flow.design, 'import', 'surelog', 'parse')
     flow.node(flow.design, 'syn', 'yosys', 'syn_asic')
     flow.node(flow.design, 'export', 'klayout', 'export')
 

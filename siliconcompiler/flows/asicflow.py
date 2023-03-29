@@ -64,7 +64,6 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
 
     #step -->(tool, task)
     tools = {
-        'import' : ['surelog', 'import'],
         'syn' : ['yosys','syn_asic'],
         'synmin' : ['builtin','minimum'],
         'floorplan' : ['openroad','floorplan'],
