@@ -48,5 +48,5 @@ jobs:
             ${{ steps.update.outputs.msg }}
           commit-message: |
             Update ${{ matrix.tool }}
-          branch: ${{ matrix.tools }}-update-branch
+          branch: bot/${{ matrix.tool }}-update
           delete-branch: true
