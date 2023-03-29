@@ -26,29 +26,27 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          ref: main
 
       - name: Update tool
+        id: update
         run: |
-          python3 -m pip install -r requirements.txt
           python3 -m pip install GitPython
           git config --global user.name ${{ secrets.PACKAGES_ACTOR }}
-          git config --global user.email ${{ secrets.PACKAGES_ACTOR }}
-          python3 setup/_tools.py --bump_commit --tool ${{ matrix.tool }}
+          git config --global user.email bot@siliconcompiler.com
+          echo "msg=$(python3 setup/_tools.py --bump_commit --tool ${{ matrix.tool }}) >> $GITHUB_OUTPUT
           git add setup/_tools.json
           git commit -m 'Update ${{ matrix.tool }}'
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v4
+        if: ${{ steps.update.outputs.msg != '' }}
+        uses: peter-evans/create-pull-request@v4.2
         with:
           token: ${{ secrets.PACKAGES_TOKEN }}
           title: "[SC-BOT] Update ${{ matrix.tool }}"
           author: ${{ secrets.PACKAGES_ACTOR }}
           committer: ${{ secrets.PACKAGES_ACTOR }}
           body: |
-            This is an automated PR.
-            See the individual commits for details.
+            ${{ steps.update.outputs.msg }}
           commit-message: |
             Update ${{ matrix.tool }}
           branch: ${{ matrix.tools }}-update-branch
