@@ -10,9 +10,9 @@ def setup(chip):
     setup_tool(chip)
 
     tool = 'klayout'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    task = 'export'
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
     clobber = False
 
     script = 'klayout_export.py'

@@ -12,9 +12,9 @@ def setup(chip):
     setup_tool(chip)
 
     tool = 'surelog'
-    task = 'parse'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
+    task = chip._get_task(step, index)
 
     # Runtime parameters.
     chip.set('tool', tool, 'task', task, 'threads',  os.cpu_count(), step=step, index=index, clobber=False)

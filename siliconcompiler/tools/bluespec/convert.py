@@ -14,7 +14,6 @@ def setup(chip):
     index = chip.get('arg','index')
     task = chip._get_task(step, index)
 
-
     # Standard Setup
     refdir = 'tools/'+tool
     chip.set('tool', tool, 'exe', 'bsc')

@@ -11,8 +11,7 @@ def setup(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    #TODO: fix below
-    task = 'convert'
+    task = chip._get_task(step, index)
 
     chip.set('tool', tool, 'exe', 'ghdl')
     chip.set('tool', tool, 'vswitch', '--version')

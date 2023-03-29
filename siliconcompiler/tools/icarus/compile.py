@@ -7,9 +7,9 @@ def setup(chip):
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'icarus'
-    task = 'compile'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
     design = chip.top()
 
     # Standard Setup
