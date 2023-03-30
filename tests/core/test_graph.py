@@ -65,6 +65,15 @@ def test_graph_exit():
 
     assert chip._get_flowgraph_exit_nodes() == [('export', '0'), ('export', '1')]
 
+def test_graph_exit_with_steplist():
+
+    chip = siliconcompiler.Chip('foo')
+    chip.load_target('freepdk45_demo')
+
+    steps = ['import', 'syn', 'floorplan']
+
+    assert chip._get_flowgraph_exit_nodes(steplist=steps) == [('floorplan', '0')]
+
 #########################
 if __name__ == "__main__":
     test_graph()

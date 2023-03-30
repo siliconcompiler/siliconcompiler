@@ -2792,24 +2792,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return matches
 
     ###########################################################################
-    def _find_leaves(self, steplist):
-        '''Helper to find final (leaf) tasks for a given steplist.'''
-        flow = self.get('option', 'flow')
-
-        # First, iterate over the tasks to generate a set of non-leaf tasks.
-        all_tasks = set()
-        non_leaf_tasks = set()
-        for step in steplist:
-            for index in self.getkeys('flowgraph', flow, step):
-                all_tasks.add((step, index))
-                for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                    if in_step in steplist:
-                        non_leaf_tasks.add((in_step, in_index))
-
-        # Then, find all leaf tasks by elimination.
-        return all_tasks.difference(non_leaf_tasks)
-
-    ###########################################################################
     def _generate_summary_image(self, input_path, output_path):
         '''Takes a layout screenshot and generates a design summary image
         featuring a layout thumbnail and several metrics.'''
@@ -2948,7 +2930,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         to_search = []
 
         # Start search with any successful leaf tasks.
-        leaf_tasks = self._find_leaves(steplist)
+        leaf_tasks = self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist)
         for task in leaf_tasks:
             if self.get('flowgraph', flow, *task, 'status') == TaskStatus.SUCCESS:
                 selected_tasks.add(task)
@@ -4532,7 +4514,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
 
             # Merge cfg back from last executed tasks.
-            for step, index in self._find_leaves(steplist):
+            for step, index in self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist):
                 lastdir = self._getworkdir(step=step, index=index)
 
                 # This no-op listdir operation is important for ensuring we have
@@ -4934,7 +4916,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return nodes
 
     #######################################
-    def _get_flowgraph_exit_nodes(self, flow=None):
+    def _get_flowgraph_exit_nodes(self, flow=None, steplist=None):
         '''
         Collect all step/indecies that represent the exit
         nodes for the flowgraph
@@ -4944,10 +4926,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         inputnodes = []
         for step in self.getkeys('flowgraph', flow):
+            if steplist and step not in steplist:
+                continue
             for index in self.getkeys('flowgraph', flow, step):
                 inputnodes.extend(self.get('flowgraph', flow, step, index, 'input'))
         nodes = []
         for step in self.getkeys('flowgraph', flow):
+            if steplist and step not in steplist:
+                continue
             for index in self.getkeys('flowgraph', flow, step):
                 if (step, index) not in inputnodes:
                     nodes.append((step, index))
