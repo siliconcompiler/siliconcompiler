@@ -507,80 +507,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     self.set(*args, val, step=step, index=index, clobber=True)
 
-    #########################################################################
-    def find_function(self, modulename, funcname, moduletype=None, moduletask=None):
-        '''
-        Returns a function attribute from a module on disk.
-
-        Searches the SC root directory and the 'scpath' parameter for the
-        modulename provided and imports the module if found. If the funcname
-        provided is found in the module, a callable function attribute is
-        returned, otherwise None is returned.
-
-        The function assumes the following directory structure:
-
-        * tools/modulename/modulename.py
-        * flows/modulename.py
-        * pdks/modulname.py
-
-        If the moduletype is None, the module paths are search in the
-        order: 'targets'->'flows'->'tools'->'pdks'->'libs'->'checklists'):
-
-
-        Supported functions include:
-
-        * targets (make_docs, setup)
-        * pdks (make_docs, setup)
-        * flows (make_docs, setup)
-        * tools (make_docs, setup, check_version, runtime_options,
-          pre_process, post_process)
-        * libs (make_docs, setup)
-
-        Args:
-            modulename (str): Name of module to import.
-            funcname (str): Name of the function to find within the module.
-            moduletype (str): Type of module (flows, pdks, libs, checklists, targets).
-
-        Examples:
-            >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdks')
-            >>> setup_pdk()
-            Imports the freepdk45 module and runs the setup_pdk function
-
-        '''
-
-        # module search path depends on modtype
-        module = None
-        if moduletype is None:
-            for item in ('targets', 'flows', 'tools', 'pdks', 'libs', 'checklists'):
-                try:
-                    module = importlib.import_module(f'{item}.{modulename}')
-                    break
-                except ModuleNotFoundError:
-                    pass
-        elif moduletype in ('targets','flows', 'pdks', 'libs'):
-            try:
-                module = importlib.import_module(f'{moduletype}.{modulename}')
-            except ModuleNotFoundError:
-                pass
-        elif moduletype in ('tools', 'checklists'):
-            modulefile = moduletask if moduletask is not None else modulename
-            try:
-                module = importlib.import_module(f'{moduletype}.{modulename}.{modulefile}')
-            except ModuleNotFoundError:
-                pass
-        else:
-            self.error(f"Illegal module type '{moduletype}'.")
-            return None
-
-        if not module:
-            self.error(f'Could not find module {modulename}')
-            return None
-
-        # try loading module if found
-        self.logger.debug(f"Loading function '{funcname}' from module '{modulename}'")
-
-        return getattr(module, funcname, None)
-
     ##########################################################################
     def load_target(self, name, **kwargs):
         """
@@ -2040,13 +1966,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.info('Check succeeded!')
 
         return not error
-
-    ###########################################################################
-    def read_file(self, filename, step='import', index='0'):
-        '''
-        Read file defined in schema. (WIP)
-        '''
-        return(0)
 
     ###########################################################################
     def update(self):
