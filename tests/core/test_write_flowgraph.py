@@ -2,7 +2,10 @@
 import siliconcompiler
 import os
 
-def test_write_flowgraph():
+from siliconcompiler.pdks import freepdk45
+from siliconcompiler.flows import dvflow
+
+def test_write_flowgraph_serial():
 
     ################################################
     # Serial
@@ -14,6 +17,8 @@ def test_write_flowgraph():
 
     assert os.path.isfile('serial.png')
 
+def test_write_flowgraph_forkjoin():
+
     ################################################
     # Fork-Join
     ################################################
@@ -24,20 +29,16 @@ def test_write_flowgraph():
 
     assert os.path.isfile('forkjoin.png')
 
+def test_write_flowgraph_pipes():
+
     ################################################
     # Pipes
     ################################################
 
     chip = siliconcompiler.Chip('test')
-    from pdks import freepdk45
-    from flows import dvflow
     chip.use(freepdk45)
     chip.use(dvflow, np=10)
     chip.set('option', 'flow', 'dvflow')
     chip.write_flowgraph('pipes.png')
 
     assert os.path.isfile('pipes.png')
-
-#########################
-if __name__ == "__main__":
-    test_write_flowgraph()
