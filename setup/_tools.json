@@ -1,8 +1,10 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "81c846f4049a1232c69ab56b9b786dff6e71fb02",
-    "docker-cmds": ["RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"]
+    "git-commit": "71a707440d5db5c0d0ec83f86b4a3d797e39c678",
+    "docker-cmds": [
+      "RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"
+    ]
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
