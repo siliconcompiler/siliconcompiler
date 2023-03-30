@@ -1409,44 +1409,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     dest.set(*keylist, v, field=field)
 
     ###########################################################################
-    def _check_files(self):
-        allowed_paths = [os.path.join(self.cwd, self.get('option', 'builddir'))]
-        allowed_paths.extend(os.environ['SC_VALID_PATHS'].split(os.pathsep))
-
-        for keypath in self.allkeys():
-            if 'default' in keypath:
-                continue
-
-            paramtype = self.get(*keypath, field='type')
-            #only do something if type is file or dir
-            if ('history' not in keypath and 'library' not in keypath) and ('file' in paramtype or 'dir' in paramtype):
-                for val, step, index in self.schema._getvals(*keypath):
-                    if val is None:
-                        # skip unset values (some directories are None by default)
-                        continue
-
-                    abspaths = self._find_files(*keypath, missing_ok=True, step=step, index=index)
-                    if not isinstance(abspaths, list):
-                        abspaths = [abspaths]
-
-                    for abspath in abspaths:
-                        ok = False
-
-                        if abspath is not None:
-                            for allowed_path in allowed_paths:
-                                if os.path.commonpath([abspath, allowed_path]) == allowed_path:
-                                    ok = True
-                                    continue
-
-                        if not ok:
-                            self.logger.error(f'Keypath {keypath} contains path(s) '
-                                'that do not exist or resolve to files outside of '
-                                'allowed directories.')
-                            return False
-
-        return True
-
-    ###########################################################################
     def check_filepaths(self):
         '''
         Verifies that paths to all files in manifest are valid.
@@ -1517,12 +1479,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                     unresolved_path = unresolved_paths[i]
                                     self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
                                     error = True
-
-        # Need to run this check here since file resolution can change in
-        # _runtask().
-        if 'SC_VALID_PATHS' in os.environ:
-            if not self._check_files():
-                error = True
 
         return not error
 
@@ -1680,10 +1636,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if self.schema._is_empty('tool', tool, 'exe') and not task_run:
                     error = True
                     self.logger.error(f'No executable or run() function specified for {tool}/{task}')
-
-        if 'SC_VALID_PATHS' in os.environ:
-            if not self._check_files():
-                error = True
 
         if not self._check_flowgraph_io():
             error = True
