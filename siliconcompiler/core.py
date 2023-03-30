@@ -3293,7 +3293,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.node('asicflow', 'place', 'openroad', index=0)
             Creates a task with step='place' and index=0 and binds it to the 'openroad' tool.
         '''
-        if step in (Schema.GLOBAL_KEY, 'default'):
+        if step in (Schema.GLOBAL_KEY, 'default', 'sc_collected_files'):
             self.error(f'Illegal step name: {step} is reserved')
             return
 
