@@ -1258,7 +1258,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 name = self._get_imported_filename(path)
                 abspath = os.path.join(self._getcollectdir(jobname=job), name)
                 if os.path.isfile(abspath):
-                    # if copy is True and file is found in import inputs,
+                    # if copy is True and file is found in collected inputs,
                     # continue. Otherwise, fall through to _find_sc_file (the
                     # file may not have been gathered in imports yet)
                     result.append(abspath)
