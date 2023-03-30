@@ -4,6 +4,8 @@ import pytest
 
 import siliconcompiler
 
+import importlib
+
 def create_fake_surelog():
     with open('surelog', 'w') as f:
         # hardcoded to check that fake license server env is provided, then
@@ -27,9 +29,9 @@ def test_multiple_tools():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'import', 'builtin', 'import')
-    chip.node(flow, 'slog', 'surelog', 'import', index=0)
-    chip.node(flow, 'slog', 'surelog', 'import', index=1)
+    chip.node(flow, 'import', 'builtin.import')
+    chip.node(flow, 'slog', importlib.import_module('siliconcompiler.tools.surelog.import'), index=0)
+    chip.node(flow, 'slog', importlib.import_module('siliconcompiler.tools.surelog.import'), index=1)
     chip.edge(flow, 'import', 'slog', head_index=0)
     chip.edge(flow, 'import', 'slog', head_index=1)
 

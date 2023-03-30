@@ -4,6 +4,8 @@ import pytest
 
 import siliconcompiler
 
+from siliconcompiler.tools.klayout import export
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.skip(reason='writing to library not allowed')
@@ -11,8 +13,6 @@ def test_klayout(datadir):
     in_def = os.path.join(datadir, 'heartbeat_wrapper.def')
     library_gds = os.path.join(datadir, 'heartbeat.gds')
     library_lef = os.path.join(datadir, 'heartbeat.lef')
-
-
 
     chip = siliconcompiler.Chip('heartbeat_wrapper')
     chip.load_target('freepdk45_demo')
@@ -24,8 +24,8 @@ def test_klayout(datadir):
     chip.set('library', 'heartbeat', 'gds', '10M', library_gds)
 
     flow = 'export'
-    chip.node(flow, 'import', 'nop', 'nop')
-    chip.node(flow, 'export', 'klayout', 'export')
+    chip.node(flow, 'import', 'builtin.import')
+    chip.node(flow, 'export', export)
     chip.edge(flow, 'import', 'export')
     chip.set('option', 'flow', flow)
 
