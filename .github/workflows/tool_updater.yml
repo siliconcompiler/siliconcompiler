@@ -1,0 +1,70 @@
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+name: 'Tool Updater'
+
+jobs:
+  get_tools:
+    name: 'Get updatable tools'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
+
+    outputs:
+      tools: ${{ steps.tools.outputs.tools }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Tools
+        id: tools
+        run: |
+          echo "tools=$(python3 setup/_tools.py --json_tools)" >> $GITHUB_OUTPUT
+
+  update_tool:
+    needs: get_tools
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.get_tools.outputs.tools) }}
+
+    name: 'Update tool'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Update tool
+        id: update
+        run: |
+          python3 -m pip install GitPython
+          git config --global user.name "SiliconCompiler Bot"
+          git config --global user.email "bot@siliconcompiler.com"
+          msg=$(python3 setup/_tools.py --bump_commit --tool ${{ matrix.tool }})
+          echo "msg=$msg" >> $GITHUB_OUTPUT
+          git add setup/_tools.json
+          git commit -m "$msg" || true
+
+      - name: Create Pull Request
+        if: ${{ steps.update.outputs.msg != '' }}
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.PACKAGES_TOKEN }}
+          title: "[SC-BOT] Update ${{ matrix.tool }}"
+          author: "SiliconCompiler Bot <bot@siliconcompiler.com>"
+          committer: "SiliconCompiler Bot <bot@siliconcompiler.com>"
+          body: |
+            ${{ steps.update.outputs.msg }}
+          commit-message: |
+            Update ${{ matrix.tool }}
+          branch: bot/${{ matrix.tool }}-update
+          base: main
+          delete-branch: true

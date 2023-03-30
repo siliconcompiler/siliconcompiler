@@ -45,12 +45,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog = "SiliconCompiler Tool Helper",
         description = "Maintains current known good versions for all install scripts to use")
-    parser.add_argument("--tool", type=str, required=True, help=f"Tool name, supported options: {supported_tools}")
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--field", type=str, help=f"Field to get information from, supported options: {supported_fields}")
-    group.add_argument("--bump_commit", action="store_true", help="Flag to indicate that the speficied tool should be updated.")
+    parser.add_argument("--tool", type=str, help=f"Tool name, supported options: {supported_tools}")
+    parser.add_argument("--json_tools", action="store_true", help="Flag to get json matrix used by github to update tools")
+
+    parser.add_argument("--field", type=str, help=f"Field to get information from, supported options: {supported_fields}")
+    parser.add_argument("--bump_commit", action="store_true", help="Flag to indicate that the speficied tool should be updated.")
 
     args = parser.parse_args()
+
+    if args.json_tools:
+        json_tools = {'include': []}
+        for tool in get_tools():
+            field = get_field(tool, "git-url")
+            if field:
+                json_tools['include'].append({"tool": tool})
+        if len(json_tools['include']) == 0:
+            print(json.dumps({}))
+        else:
+            print(json.dumps(json_tools))
+        exit(0)
 
     if not has_tool(args.tool):
         print(f"{args.tool} is not a supported tool.")
