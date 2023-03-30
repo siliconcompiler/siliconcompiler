@@ -1,4 +1,7 @@
 import siliconcompiler
+import importlib
+
+from siliconcompiler.tools.verilator import compile
 
 ############################################################################
 # DOCS
@@ -26,7 +29,11 @@ def setup(chip, np=1):
     The dvflow can be parametrized using a single 'np' parameter.
     Setting 'np' > 1 results in multiple independent verificaiton
     pipelines to be launched.
+
+    This flow is a WIP
     '''
+
+    # Disabled testgen, refsim, sim, and compare because verilator tasks are missing
 
     # Definting a flow
     flowname = 'dvflow'
@@ -35,45 +42,45 @@ def setup(chip, np=1):
     # A simple linear flow
     flowpipe = ['import',
                 'compile',
-                'testgen',
-                'refsim',
-                'sim',
-                'compare',
+                # 'testgen',
+                # 'refsim',
+                # 'sim',
+                # 'compare',
                 'signoff']
 
-    tools = {
-        'import': ('verilator', 'import'),
-        'compile': ('verilator', 'compile'),
-        'testgen': ('verilator', 'testgen'),
-        'refsim': ('verilator', 'refsim'),
-        'sim': ('verilator', 'sim'),
-        'compare': ('verilator', 'compare'),
-        'signoff': ('verify', 'signoff')
+    tasks = {
+        'import': importlib.import_module('siliconcompiler.tools.surelog.import'),
+        'compile': compile,
+        # 'testgen': ('verilator', 'testgen'),
+        # 'refsim': ('verilator', 'refsim'),
+        # 'sim': ('verilator', 'sim'),
+        # 'compare': ('verilator', 'compare'),
+        'signoff': 'builtin.verify'
     }
 
     # Flow setup
     for step in flowpipe:
-        tool, task = tools[step]
+        task = tasks[step]
         #start
         if step == 'import':
-            flow.node(flowname, step, tool, task)
+            flow.node(flowname, step, task)
         #serial
         elif step == 'compile':
-            flow.node(flowname, step, tool, task)
+            flow.node(flowname, step, task)
             flow.edge(flowname, prevstep, step)
         #fork
         elif step == 'testgen':
             for index in range(np):
-                flow.node(flowname, step, tool, task, index=index)
+                flow.node(flowname, step, task, index=index)
                 flow.edge(flowname, prevstep, step, head_index=index)
         #join
         elif step == 'signoff':
-            flow.node(flowname, step, tool, task)
+            flow.node(flowname, step, task)
             for index in range(np):
                 flow.edge(flowname, prevstep, step, tail_index=index)
         else:
             for index in range(np):
-                flow.node(flowname, step, tool, task, index=index)
+                flow.node(flowname, step, task, index=index)
                 flow.edge(flowname, prevstep, step, head_index=index, tail_index=index)
 
         prevstep = step

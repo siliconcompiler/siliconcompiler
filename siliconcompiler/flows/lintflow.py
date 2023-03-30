@@ -1,4 +1,6 @@
 import siliconcompiler
+import importlib
+from siliconcompiler.tools.verilator import lint
 
 ###########################################################################
 # Flowgraph Setup
@@ -12,13 +14,14 @@ def setup(chip):
     flow = siliconcompiler.Flow(chip, flowname)
 
     # Linear flow, up until branch to run parallel verification steps.
-    pipe = [('import', 'surelog', 'import'),
-            ('lint', 'verilator', 'lint'),
-            ('export', 'nop', 'nop')]
+    pipe = [('import', importlib.import_module('siliconcompiler.tools.surelog.import')),
+            ('lint', lint),
+            ('export', 'builtin.nop')]
 
-    for step, tool, task in pipe:
-        flow.node(flowname, step, tool, task)
-        if task != 'import':
+    prevstep = None
+    for step, task in pipe:
+        flow.node(flowname, step, task)
+        if prevstep:
             flow.edge(flowname, prevstep, step)
         prevstep = step
 
