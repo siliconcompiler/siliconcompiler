@@ -2,7 +2,9 @@
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
     "git-commit": "81c846f4049a1232c69ab56b9b786dff6e71fb02",
-    "docker-cmds": ["RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"]
+    "docker-cmds": [
+      "RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"
+    ]
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
@@ -62,6 +64,6 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "956c4e485a9463863f60c4dd03372db3fa8332a4"
+    "git-commit": "53c0a6b780199dc56348916acf7c00e30f65e1ec"
   }
 }
