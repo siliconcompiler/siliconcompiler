@@ -49,7 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("--json_tools", action="store_true", help="Flag to get json matrix used by github to update tools")
 
     parser.add_argument("--field", type=str, help=f"Field to get information from, supported options: {supported_fields}")
-    parser.add_argument("--bump_commit", action="store_true", help="Flag to indicate that the speficied tool should be updated.")
+    parser.add_argument("--bump_commit", action="store_true", help="Flag to indicate that the specified tool should be updated.")
 
     args = parser.parse_args()
 
