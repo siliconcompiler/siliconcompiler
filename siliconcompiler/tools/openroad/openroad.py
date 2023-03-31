@@ -342,6 +342,10 @@ def post_process(chip):
             ('registers', 'sc__metric__design__registers', True, None),
             ('buffers', 'sc__metric__design__buffers', True, None)]:
             if or_metric in metrics:
+                # Check for INF timing
+                if or_unit == 'time' and value > 1e38:
+                    or_use = False
+
                 value = metrics[or_metric]
                 if or_unit:
                     if or_unit in or_units:
