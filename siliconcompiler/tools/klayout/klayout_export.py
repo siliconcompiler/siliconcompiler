@@ -163,7 +163,9 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
   def_cells = []
   for def_cell in main_layout.each_cell():
     def_cells.append(def_cell.name)
-  print(f"[INFO] Read in {len(def_cells)} cells")
+  print(f"[INFO] Read in {len(def_cells)} cells from DEF file")
+
+  def_cells.remove(design_name)
 
   # Load in the gds to merge
   print("[INFO] Merging GDS/OAS files...")
@@ -171,11 +173,13 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
     print("\t{0}".format(fil))
     macro_layout = pya.Layout()
     macro_layout.read(fil)
+    print(f"[INFO] Read in {fil}")
     for fil_cell in macro_layout.top_cells():
       subcell = main_layout.cell(fil_cell.name)
       if subcell:
         print(f"[INFO] Merging in {fil_cell.name}")
         subcell.copy_tree(fil_cell)
+        def_cells.remove(fil_cell.name)
 
   # Copy the top level only to a new layout
   print("[INFO] Copying toplevel cell '{0}'".format(design_name))
@@ -188,8 +192,9 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
 
   print("[INFO] Checking for missing GDS/OAS...")
   missing_cell = False
-  for check_cell in top_only_layout.each_cell():
-    if check_cell.is_empty() and check_cell.name in def_cells:
+  for check_cell in def_cells:
+    check_cell = main_layout.cell(check_cell)
+    if check_cell.is_empty():
       missing_cell = True
       print("[ERROR] LEF Cell '{0}' has no matching GDS/OAS cell. Cell will be empty".format(i.name))
 
@@ -229,11 +234,20 @@ schema = Schema(manifest='sc_manifest.json')
 sc_step = schema.get('arg', 'step')
 sc_index = schema.get('arg', 'index')
 sc_pdk = schema.get('option', 'pdk')
+sc_flow = schema.get('option', 'flow')
+sc_task = schema.get('flowgraph', sc_flow, sc_step, sc_index, 'task')
+sc_klayout_vars = schema.getkeys('tool', 'klayout', 'task', sc_task, 'var')
+sc_stream = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'stream', step=sc_step, index=sc_index)[0]
+sc_streams = (sc_stream, 'gds', 'oas')
 
 sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
 sc_mainlib = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)[0]
 
-tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
+tech_file = None
+for s in sc_streams:
+  if schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup):
+    tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup)[0]
+    break
 
 design = schema.get('option', 'entrypoint')
 if not design:
@@ -243,15 +257,18 @@ if schema.valid('input', 'layout', 'def') and schema.get('input', 'layout', 'def
   in_def = schema.get('input', 'layout', 'def', step=sc_step, index=sc_index)[0]
 else:
   in_def = os.path.join('inputs', f'{design}.def')
-out_gds = os.path.join('outputs', f'{design}.gds')
+out_file = os.path.join('outputs', f'{design}.{sc_stream}')
 
 libs = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)
 if 'macrolib' in schema.getkeys('asic'):
   libs += schema.get('asic', 'macrolib', step=sc_step, index=sc_index)
 
-in_gds = []
+in_files = []
 for lib in libs:
-  in_gds.extend(schema.get('library', lib, 'output', sc_stackup, 'gds', step=sc_step, index=sc_index))
+  for s in sc_streams:
+    if schema.valid('library', lib, 'output', sc_stackup, s):
+      in_files.extend(schema.get('library', lib, 'output', sc_stackup, s, step=sc_step, index=sc_index))
+      break
 
 foundry_lef = os.path.dirname(schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef', step=sc_step, index=sc_index)[0])
 
@@ -260,11 +277,6 @@ if 'macrolib' in schema.getkeys('asic'):
   for lib in schema.get('asic', 'macrolib', step=sc_step, index=sc_index):
     macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef', step=sc_step, index=sc_index))
 
-flow = schema.get('option', 'flow')
-
-sc_task = schema.get('flowgraph', flow, sc_step, sc_index, 'task')
-
-sc_klayout_vars = schema.getkeys('tool', 'klayout', 'task', sc_task, 'var')
 if 'timestamps' in sc_klayout_vars:
   sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'timestamps', step=sc_step, index=sc_index) == ['true']
 else:
@@ -275,8 +287,8 @@ if 'screenshot' in sc_klayout_vars:
 else:
   sc_screenshot = True
 
-gds_export(design, in_def, in_gds, out_gds, tech_file, foundry_lef, macro_lefs,
+gds_export(design, in_def, in_files, out_file, tech_file, foundry_lef, macro_lefs,
            config_file='', seal_file='', timestamps=sc_timestamps)
 
 if sc_screenshot:
-  show(schema, out_gds, f'outputs/{design}.png', screenshot=True)
+  show(schema, out_file, f'outputs/{design}.png', screenshot=True)
