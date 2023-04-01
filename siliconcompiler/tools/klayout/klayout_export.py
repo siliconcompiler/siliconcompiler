@@ -237,8 +237,9 @@ sc_pdk = schema.get('option', 'pdk')
 sc_flow = schema.get('option', 'flow')
 sc_task = schema.get('flowgraph', sc_flow, sc_step, sc_index, 'task')
 sc_klayout_vars = schema.getkeys('tool', 'klayout', 'task', sc_task, 'var')
+streams = ('gds', 'oas')
 sc_stream = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'stream', step=sc_step, index=sc_index)[0]
-sc_streams = (sc_stream, 'gds', 'oas')
+sc_streams = [sc_stream, *[s for s in streams if s != sc_stream]]
 
 sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
 sc_mainlib = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)[0]

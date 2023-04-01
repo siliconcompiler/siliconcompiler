@@ -28,8 +28,8 @@ def setup(chip):
     streams = ('gds', 'oas')
     chip.set('tool', tool, 'task', task, 'var', 'stream', 'gds', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'stream', f'Extension to use for stream generation ({streams})', field='help')
-    stream = chip.get('tool', tool, 'task', task, 'var', 'stream', step=step, index=index)[0]
-    sc_stream_order = [stream, *streams]
+    default_stream = chip.get('tool', tool, 'task', task, 'var', 'stream', step=step, index=index)[0]
+    sc_stream_order = [default_stream, *[s for s in streams if s != default_stream]]
 
     if stackup and targetlibs:
         macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
@@ -44,7 +44,7 @@ def setup(chip):
                 break
         if not req_set:
             # add default require
-            chip.add('tool', tool, 'task', task, 'require', ",".join(['pdk', pdk, 'layermap', 'klayout', 'def', sc_stream_order[0], stackup]), step=step, index=index)
+            chip.add('tool', tool, 'task', task, 'require', ",".join(['pdk', pdk, 'layermap', 'klayout', 'def', default_stream, stackup]), step=step, index=index)
 
         for lib in (targetlibs + macrolibs):
             req_set = False
@@ -55,7 +55,7 @@ def setup(chip):
                     break
             if not req_set:
                 # add default require
-                chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', stackup, sc_stream_order[0]]), step=step, index=index)
+                chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', stackup, default_stream]), step=step, index=index)
             chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', stackup, 'lef']), step=step, index=index)
     else:
         chip.error(f'Stackup and targetlib paremeters required for Klayout.')
@@ -65,7 +65,7 @@ def setup(chip):
     if (not chip.valid('input', 'layout', 'def') or
         not chip.get('input', 'layout', 'def', step=step, index=index)):
         chip.add('tool', tool, 'task', task, 'input', design + '.def', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', f'{design}.{stream}', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.{default_stream}', step=step, index=index)
 
     # Export GDS with timestamps by default.
     chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'true', step=step, index=index, clobber=False)
