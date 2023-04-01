@@ -68,6 +68,9 @@ def setup(chip):
     pdk.set('pdk', process, 'layermap','klayout','def','gds',stackup,
             pdkdir+'/setup/klayout/asap7.lyt')
 
+    pdk.set('pdk', process, 'display', 'klayout', stackup,
+            pdkdir + '/setup/klayout/asap7.lyp')
+
     # Openroad global routing grid derating
     openroad_layer_adjustments = {
         'M1': 1.0,

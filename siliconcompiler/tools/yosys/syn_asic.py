@@ -54,6 +54,7 @@ def setup_asic(chip):
     mainlib = chip.get('asic', 'logiclib', step=step, index=index)[0]
     for option, value, additional_require in [('flatten', "True", None),
                                               ('autoname', "True", None),
+                                              ('add_buffers', "True", None),
                                               ('map_adders', "False", ['library', mainlib, 'option', 'file', 'yosys_addermap'])]:
         chip.set('tool', tool, 'task', task, 'var', option, value, step=step, index=index, clobber=False)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', option]), step=step, index=index)
@@ -114,6 +115,7 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'var', 'abc_clock_derating', 'Used to derate the clock period to further constrain the clock, values between 0 and 1', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'techmap', 'File to use for techmapping in Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'dff_liberty_file', 'File to use for the DFF mapping stage of Yosys', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'add_buffers', 'True/False, flag to indicate whether to add buffers or not.', field='help')
 
 ################################
 # mark cells dont use and format liberty files for yosys and abc

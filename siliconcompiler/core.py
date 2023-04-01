@@ -4382,10 +4382,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             remote_preprocess(self, steplist)
 
             # Run the job on the remote server, and wait for it to finish.
+            # Set logger to indicate remote run
+            self._init_logger(step='remote', index='0', in_run=True)
             remote_run(self)
 
             # Fetch results (and delete the job's data from the server).
             fetch_results(self)
+            # Restore logger
+            self._init_logger(in_run=True)
 
             # Read back configuration from final manifest.
             cfg = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
