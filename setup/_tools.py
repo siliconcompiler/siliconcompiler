@@ -57,7 +57,8 @@ if __name__ == "__main__":
         json_tools = {'include': []}
         for tool in get_tools():
             field = get_field(tool, "git-url")
-            if field:
+            update = get_field(tool, "auto-update")
+            if field and update:
                 json_tools['include'].append({"tool": tool})
         if len(json_tools['include']) == 0:
             print(json.dumps({}))

@@ -57,7 +57,7 @@ jobs:
         if: ${{ steps.update.outputs.msg != '' }}
         uses: peter-evans/create-pull-request@v4
         with:
-          token: ${{ secrets.PACKAGES_TOKEN }}
+          token: ${{ secrets.BOT_TOKEN }}
           title: "[SC-BOT] Update ${{ matrix.tool }}"
           author: "SiliconCompiler Bot <bot@siliconcompiler.com>"
           committer: "SiliconCompiler Bot <bot@siliconcompiler.com>"
