@@ -43,8 +43,8 @@ def create_vpr_lib(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
-    src = f"{os.path.dirname(__file__)}/vpr_yosyslib"
-    dst = f"{chip._getworkdir(step=step, index=index)}/inputs/vpr_yosyslib"
+    src = os.path.join(os.path.dirname(__file__), "vpr_yosyslib")
+    dst = os.path.join(chip._getworkdir(step=step, index=index), "inputs", "vpr_yosyslib")
 
     if os.path.exists(dst):
         shutil.rmtree(dst)
