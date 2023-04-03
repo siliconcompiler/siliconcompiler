@@ -3288,7 +3288,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         task_parts = task_module.split('.')
         if len(task_parts) < 2:
-            self.error(f"{task} is not a a valid task, it must be associated with a tool '<tool>.<task>'.", fatal=True)
+            self.error(f"{task} is not a valid task, it must be associated with a tool '<tool>.<task>'.", fatal=True)
         tool_name, task_name = task_parts[-2:]
 
         if tool_name == 'builtin':
