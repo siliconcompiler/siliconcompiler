@@ -2,6 +2,7 @@ import os
 import pytest
 
 @pytest.mark.eda
+@pytest.mark.skip(reason='Skipped until CI container is updated to include a local Slurm controller.')
 def test_slurm_local_py(gcd_chip):
     '''Basic Python API test: build the GCD example using only Python code.
        Note: Requires that the test runner be connected to a cluster, or configured
@@ -18,6 +19,7 @@ def test_slurm_local_py(gcd_chip):
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
 
 @pytest.mark.eda
+@pytest.mark.skip(reason='Skipped until CI container is updated to include a local Slurm controller.')
 def test_slurm_local_py_script_override(gcd_chip):
     '''Basic Python API test: build the GCD example using only Python code.
        Note: Requires that the test runner be connected to a cluster, or configured
