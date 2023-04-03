@@ -1,5 +1,5 @@
 Python-based frontends
-===========================
+-------------------------
 
 Since SC itself is a Python library, it can be used as-is in an end-to-end build script with any Python-based HDL that can be scripted to export designs to Verilog.
 

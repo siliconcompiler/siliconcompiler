@@ -12,11 +12,11 @@ pkg_version=$(python3 ${src_path}/_tools.py --tool klayout --field version)
 version=$(lsb_release -sr)
 
 if [ "$version" = "18.04" ]; then
-    url=https://www.klayout.org/downloads/Ubuntu-18/klayout_${pkg_version}_amd64.deb
+    url="https://www.klayout.org/downloads/Ubuntu-18/klayout_${pkg_version}-1_amd64.deb"
 elif [ "$version" = "20.04" ]; then
-    url=https://www.klayout.org/downloads/Ubuntu-20/klayout_${pkg_version}_amd64.deb
+    url="https://www.klayout.org/downloads/Ubuntu-20/klayout_${pkg_version}-1_amd64.deb"
 elif [ "$version" = "22.04" ]; then
-    url=https://www.klayout.org/downloads/Ubuntu-22/klayout_${pkg_version}_amd64.deb
+    url="https://www.klayout.org/downloads/Ubuntu-22/klayout_${pkg_version}-1_amd64.deb"
 else
     echo "Script doesn't support Ubuntu version $version."
 fi

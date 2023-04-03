@@ -11,7 +11,8 @@ sudo apt-get install -y autoconf autoconf-archive automake libtool g++ \
     gfortran-8 gfortran-8-multilib libclang-6.0-dev clang-6.0 libclang-6.0-dev \
     clang-7 libclang-7-dev libbdd-dev libboost-all-dev libmpc-dev libmpfr-dev \
     libxml2-dev liblzma-dev libmpfi-dev zlib1g-dev libicu-dev bison doxygen flex \
-    graphviz iverilog verilator make libsuitesparse-dev libglpk-dev libgmp-dev
+    graphviz iverilog verilator make libsuitesparse-dev libglpk-dev libgmp-dev \
+    libfl-dev
 
 mkdir -p deps
 cd deps
@@ -20,18 +21,26 @@ git clone $(python3 ${src_path}/_tools.py --tool bambu --field git-url) bambu
 cd bambu
 git checkout $(python3 ${src_path}/_tools.py --tool bambu --field git-commit)
 
-sudo mkdir -p /opt/panda
-sudo chown $USER:$USER /opt/panda
+if [ ! -z ${PREFIX} ]; then
+    args=--prefix="$PREFIX"
+else
+    args=--prefix=/opt/panda
+
+    sudo mkdir -p /opt/panda
+    sudo chown $USER:$USER /opt/panda
+fi
 
 make -f Makefile.init
 
 mkdir obj
 cd obj
 
-../configure --enable-release --prefix=/opt/panda
-make
+../configure --enable-release --disable-flopoco --with-opt-level=2 $args
+make -j$(nproc)
 make install
 
 cd -
 
-echo "Please add \"export PATH="/opt/panda/bin:\$PATH"\" to your .bashrc"
+if [ -z ${PREFIX} ]; then
+    echo "Please add \"export PATH="/opt/panda/bin:\$PATH"\" to your .bashrc"
+fi

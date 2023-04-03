@@ -319,7 +319,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Creates a command line interface for 'sc-show' app.
 
             >>> chip.create_cmdline(progname='sc', input_map={'v': ('rtl', 'verilog')})
-            All sources ending in .v will be stored in ['input', 'rtl', verilog']
+            All sources ending in .v will be stored in ['input', 'rtl', 'verilog']
         """
 
         # Argparse
@@ -602,14 +602,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('option', 'target', name)
 
         load_function = self.find_function(name, 'setup', 'targets')
-        load_function(self, **kwargs)
+        try:
+            load_function(self, **kwargs)
+        except Exception as e:
+            self.logger.error(f'Failed to load target {name}')
+            raise e
 
     ##########################################################################
     def use(self, module, **kwargs):
         '''
         Loads a SiliconCompiler module into the current chip object.
 
-        The behavior of this function function is described in the table below
+        The behavior of this function is described in the table below
 
         .. list-table:: Use behavior
            :header-rows: 1
@@ -639,7 +643,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         setup_func = getattr(module, 'setup', None)
         if (setup_func):
             # Call the module setup function.
-            use_modules = setup_func(self, **kwargs)
+            try:
+                use_modules = setup_func(self, **kwargs)
+            except Exception as e:
+                self.logger.error(f'Unable to run setup() for {module.__name__}')
+                raise e
         else:
             # Import directly
             use_modules = module
@@ -1088,7 +1096,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.add(category, use_fileset, use_filetype, filename)
 
     ###########################################################################
-    def _find_sc_file(self, filename, missing_ok=False):
+    def _find_sc_file(self, filename, missing_ok=False, search_paths=None):
         """
         Returns the absolute path for the filename provided.
 
@@ -1101,6 +1109,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             filename (str): Relative or absolute filename.
+            missing_ok (bool): If False, error out if no valid absolute path
+                found, rather than returning None.
+            search_paths (list): List of directories to search under instead of
+                the defaults.
 
         Returns:
             Returns absolute path of 'filename' if found, otherwise returns
@@ -1120,11 +1132,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return filename
 
         # Otherwise, search relative to scpaths
-        scpaths = [self.cwd]
-        scpaths.extend(self.get('option', 'scpath'))
-        if 'SCPATH' in os.environ:
-            scpaths.extend(os.environ['SCPATH'].split(os.pathsep))
-        scpaths.append(self.scroot)
+        if search_paths is not None:
+            scpaths = search_paths
+        else:
+            scpaths = [self.cwd]
+            scpaths.extend(self.get('option', 'scpath'))
+            if 'SCPATH' in os.environ:
+                scpaths.extend(os.environ['SCPATH'].split(os.pathsep))
+            scpaths.append(self.scroot)
 
         searchdirs = ', '.join(scpaths)
         self.logger.debug(f"Searching for file {filename} in {searchdirs}")
@@ -1193,7 +1208,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return self._find_files(*keypath, missing_ok=missing_ok, job=job, step=step, index=index)
 
     ###########################################################################
-    def _find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None):
+    def _find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None, list_index=None):
         """Internal find_files() that allows you to skip step/index for optional
         params, regardless of [option, strict]."""
 
@@ -1216,41 +1231,35 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not is_list:
             paths = [paths]
 
+        if list_index is not None:
+            # List index is set, so we only want to check a particular path in the key
+            paths = [paths[list_index]]
+
         result = []
 
-        # Special cases for various ['eda', ...] files that may be implicitly
+        # Special cases for various ['tool', ...] files that may be implicitly
         # under the workdir (or refdir in the case of scripts).
         # TODO: it may be cleaner to have a file resolution scope flag in schema
         # (e.g. 'scpath', 'workdir', 'refdir'), rather than hardcoding special
         # cases.
 
+        search_paths = None
         if len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
             if keypath[4] == 'report':
                 io = ""
             else:
                 io = keypath[4] + 's'
             iodir = os.path.join(self._getworkdir(jobname=job, step=step, index=index), io)
-            for path in paths:
-                abspath = os.path.join(iodir, path)
-                if os.path.isfile(abspath):
-                    result.append(abspath)
-            return result
+            search_paths = [iodir]
         elif len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
             refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
-            for path in paths:
-                for refdir in refdirs:
-                    abspath = os.path.join(refdir, path)
-                    if os.path.isfile(abspath):
-                        result.append(abspath)
-                        break
-
-            return result
+            search_paths = refdirs
 
         import_steps = self._get_steps_by_task()['import']
         for path in paths:
-            if (copyall or copy) and ('file' in paramtype):
+            if (copyall or copy) and ('file' in paramtype) and not search_paths:
                 name = self._get_imported_filename(path)
                 found = False
                 for step, index in import_steps:
@@ -1264,7 +1273,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         break
                 if found:
                     continue
-            result.append(self._find_sc_file(path, missing_ok=missing_ok))
+            result.append(self._find_sc_file(path, missing_ok=missing_ok, search_paths=search_paths))
         # Convert back to scalar if that was original type
         if not is_list:
             return result[0]
@@ -1463,25 +1472,30 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         allkeys = self.allkeys()
+        error = False
         for keypath in allkeys:
-            allpaths = []
             paramtype = self.get(*keypath, field='type')
-            if 'file' in paramtype or 'dir' in paramtype:
-                if 'dir' not in keypath and self.get(*keypath):
-                    allpaths = list(self.get(*keypath))
-                for path in allpaths:
-                    #check for env var
-                    m = re.match(r'\$(\w+)(.*)', path)
-                    if m:
-                        prefix_path = os.environ[m.group(1)]
-                        path = prefix_path + m.group(2)
-                    file_error = 'file' in paramtype and not os.path.isfile(path)
-                    dir_error = 'dir' in paramtype and not os.path.isdir(path)
-                    if file_error or dir_error:
-                        self.logger.error(f"Paramater {keypath} path {path} is invalid")
-                        return False
+            is_file = 'file' in paramtype
+            is_dir = 'dir' in paramtype
+            is_list = paramtype.startswith('[')
 
-        return True
+            if is_file or is_dir:
+                for check_files, step, index in self.schema._getvals(*keypath):
+                    if not check_files:
+                        continue
+
+                    if not is_list:
+                        check_files = [check_files]
+
+                    for idx, check_file in enumerate(check_files):
+                        found_file = self._find_files(*keypath, missing_ok=True, step=step, index=index, list_index=idx)
+                        if is_list:
+                            found_file = found_file[0]
+                        if not found_file:
+                            self.logger.error(f"Paramater {keypath} path {check_file} is invalid")
+                            error = True
+
+        return not error
 
     ###########################################################################
     def _check_manifest_dynamic(self, step, index):
@@ -1705,6 +1719,41 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return outputs
 
     ###########################################################################
+    def _check_flowgraph(self, flow=None):
+        '''
+        Check if flowgraph is valid.
+
+        * Checks if all edges have valid nodes
+
+        Returns True if valid, False otherwise.
+        '''
+
+        if not flow:
+            flow = self.get('option', 'flow')
+
+        nodes = set()
+        for step in self.getkeys('flowgraph', flow):
+            for index in self.getkeys('flowgraph', flow, step):
+                nodes.add((step, index))
+                nodes.update(self.get('flowgraph', flow, step, index, 'input'))
+
+        error = False
+        for step, index in nodes:
+            # For each task, check input requirements.
+            tool = self.get('flowgraph', flow, step, index, 'tool')
+            task = self.get('flowgraph', flow, step, index, 'task')
+
+            if not tool:
+                self.logger.error(f'{step}{index} is missing a tool definition in the {flow} flowgraph')
+                error = True
+
+            if not task:
+                self.logger.error(f'{step}{index} is missing a task definition in the {flow} flowgraph')
+                error = True
+
+        return not error
+
+    ###########################################################################
     def _check_flowgraph_io(self):
         '''Check if flowgraph is valid in terms of input and output files.
 
@@ -1926,14 +1975,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.logger.info(f'Checking checklist {standard}')
 
+        if standard not in self.getkeys('checklist'):
+            self.logger.error(f'{standard} has not been loaded.')
+            return False
+
         if items is None:
             items = self.getkeys('checklist', standard)
 
         flow = self.get('option', 'flow')
 
-
-
         for item in items:
+            if item not in self.getkeys('checklist', standard):
+                self.logger.error(f'{item} is not a check in {standard}.')
+                error = True
+                continue
+
             all_criteria = self.get('checklist', standard, item, 'criteria')
             for criteria in all_criteria:
                 m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
@@ -2228,13 +2284,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         dot = graphviz.Digraph(format=fileformat)
         dot.graph_attr['rankdir'] = rankdir
         dot.attr(bgcolor='transparent')
-        for step in self.getkeys('flowgraph',flow):
-            irange = 0
+        for step in self.getkeys('flowgraph', flow):
             for index in self.getkeys('flowgraph', flow, step):
-                irange = irange +1
-            for i in range(irange):
-                index = str(i)
-                node = step+index
+                node = f'{step}{index}'
                 # create step node
                 tool = self.get('flowgraph', flow, step, index, 'tool')
                 task = self._get_task(step, index, flow=flow)
@@ -2253,7 +2305,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     all_inputs.append(in_step + in_index)
                 for item in all_inputs:
                     dot.edge(item, node)
-        dot.render(filename=fileroot, cleanup=True)
+        try:
+            dot.render(filename=fileroot, cleanup=True)
+        except graphviz.ExecutableNotFound as e:
+            self.logger.error(f'Unable to save flowgraph: {e}')
 
     ########################################################################
     def _collect_paths(self):
@@ -2407,7 +2462,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             A list of hash values.
 
         Examples:
-            >>> hashlist = hash_files('input', 'rtl', 'verilog)
+            >>> hashlist = hash_files('input', 'rtl', 'verilog')
             Computes, stores, and returns hashes of files in :keypath:`input, rtl, verilog`.
         '''
 
@@ -3232,7 +3287,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             jitter (float): Clock jitter specified in ns.
 
         Examples:
-            >>> chip.clock('clk, period=1.0)
+            >>> chip.clock('clk', period=1.0)
            Create a clock named 'clk' with a 1.0ns period.
         """
         design = self.top()
@@ -3788,9 +3843,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not is_builtin:
             func = self.find_function(tool, "pre_process", 'tools', task)
             if func:
-                func(self)
+                try:
+                    func(self)
+                except Exception as e:
+                    self.logger.error(f"Pre-processing failed for '{tool}/{task}'.")
+                    raise e
                 if self._error:
-                    self.logger.error(f"Pre-processing failed for '{tool}'")
+                    self.logger.error(f"Pre-processing failed for '{tool}/{task}'")
                     self._haltstep(step, index)
 
         ##################
@@ -3826,11 +3885,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 cmdlist = [exe]
                 cmdlist.extend(veropt)
                 proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                if proc.returncode != 0:
+                    self.logger.error(f'Version check on {tool} failed with code {proc.returncode}: {proc.stdout}')
+                    self._haltstep(step, index)
                 parse_version = self.find_function(tool, 'parse_version', 'tools')
                 if parse_version is None:
                     self.logger.error(f'{tool} does not implement parse_version.')
                     self._haltstep(step, index)
-                version = parse_version(proc.stdout)
+                try:
+                    version = parse_version(proc.stdout)
+                except Exception as e:
+                    self.logger.error(f'{tool} failed to parse version string: {proc.stdout}')
+                    raise e
 
                 self.logger.info(f"Tool '{exe_base}' found with version '{version}' in directory '{exe_path}'")
                 if vercheck and not self._check_version(version, tool, step, index):
@@ -3866,7 +3932,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
         elif run_func and not self.get('option', 'skipall'):
             logfile = None
-            retcode = run_func(self)
+            try:
+                retcode = run_func(self)
+            except Exception as e:
+                self.logger.error(f'Failed in run() for {tool}/{task}')
+                raise e
         elif not self.get('option', 'skipall'):
             cmdlist, printable_cmd, _, cmd_args = self._makecmd(tool, task, step, index)
             self.logger.info('Running in %s', workdir)
@@ -3943,7 +4013,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             # Gather subprocess memory usage.
                             try:
                                 pproc = psutil.Process(proc.pid)
-                                max_mem_bytes = max(max_mem_bytes, pproc.memory_full_info().uss)
+                                proc_mem_bytes = pproc.memory_full_info().uss
+                                for child in pproc.children(recursive=True):
+                                    proc_mem_bytes += child.memory_full_info().uss
+                                max_mem_bytes = max(max_mem_bytes, proc_mem_bytes)
                             except psutil.Error:
                                 # Process may have already terminated or been killed.
                                 # Retain existing memory usage statistics in this case.
@@ -3998,7 +4071,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if (not is_builtin) and (not self.get('option', 'skipall')) :
             func = self.find_function(tool, 'post_process', 'tools', task)
             if func:
-                func(self)
+                try:
+                    func(self)
+                except Exception as e:
+                    self.logger.error(f'Failed to run post-process for {tool}/{task}.')
+                    raise e
 
         ##################
         # Check log file (must be after post-process)
@@ -4114,11 +4191,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except SiliconCompilerError:
             setup_step = None
         if setup_step:
-            setup_step(self)
+            try:
+                setup_step(self)
+            except Exception as e:
+                self.logger.error(f'Failed to run setup() for {tool}/{task}')
+                raise e
         else:
-            # TODO: Should we update this to 'self.error(..., fatal=True)'?
-            self.logger.error(f'setup() not found for tool {tool}, task {task}')
-            sys.exit(1)
+            self.error(f'setup() not found for tool {tool}, task {task}', fatal=True)
 
         # Add logfile as a report for errors/warnings if they have associated
         # regexes.
@@ -4193,6 +4272,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
+
+        # Check if flowgraph is complete and valid
+        if not self._check_flowgraph(flow=flow):
+            self.error(f"{flow} flowgraph contains errors and cannot be run.",
+                       fatal=True)
 
         # Run steps if set, otherwise run whole graph
         if self.get('arg', 'step'):
@@ -4307,10 +4391,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             remote_preprocess(self, steplist)
 
             # Run the job on the remote server, and wait for it to finish.
+            # Set logger to indicate remote run
+            self._init_logger(step='remote', index='0', in_run=True)
             remote_run(self)
 
             # Fetch results (and delete the job's data from the server).
             fetch_results(self)
+            # Restore logger
+            self._init_logger(in_run=True)
 
             # Read back configuration from final manifest.
             cfg = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
@@ -4700,7 +4788,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         cmdlist.extend(scripts)
         runtime_options = self.find_function(tool, 'runtime_options', 'tools')
         if runtime_options:
-            for option in runtime_options(self):
+            try:
+                options = runtime_options(self)
+            except Exception as e:
+                self.logger.error(f'Failed to get runtime options for {tool}/{task}')
+                raise e
+            for option in options:
                 cmdlist.extend(shlex.split(option, posix=is_posix))
 
         envvars = {}
@@ -4963,7 +5056,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 normalized_version = reported_version
                 normalized_specs = ','.join([f'{op}{ver}' for op, ver in specs_list])
             else:
-                normalized_version = normalize_version(reported_version)
+                try:
+                    normalized_version = normalize_version(reported_version)
+                except Exception as e:
+                    self.logger.error(f'Unable to normalize version for {tool}: {reported_version}')
+                    raise e
                 normalized_specs = ','.join([f'{op}{normalize_version(ver)}' for op, ver in specs_list])
 
             try:

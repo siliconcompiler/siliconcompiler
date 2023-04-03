@@ -1,6 +1,12 @@
-Introduction
-===================================
 SiliconCompiler is an open source build system that automates translation from source code to silicon.
+
+Getting Started
+----------------
+
+If you're a **user** who would like to get started using SiliconCompiler to automate your design prototyping and experiment with optimizing different steps, hop on over to tool :ref:`installation`, followed by the :ref:`Quickstart guide` to get a quick tutorial on the run experience. Anchor yourself with the :ref:`Glossary` and :ref:`FAQ` and by searching through the Reference Manual.
+
+If you're a **developer** who's interested in adding functionality in addition to using the tool as-is to run hardware design flows, you may also be interested in the Developer Manual. Also, please consider :ref:`contributing modules`.
+
 
 Motivation
 -----------
@@ -19,11 +25,14 @@ To simplify flow development, the project incorporates a simple object oriented 
 
 The expansive data schema, standardized plug-in interfaces, and built-in dynamic module search functionality enables SiliconCompiler to scale effectively to a large number of tools and PDKs. The open source :ref:`Tool<Tools directory>` and :ref:`PDK<PDK directory>` sections in the reference manual serves as a good starting point for folks who want to add their own PDKs and tools.
 
-To further reduce design access barriers, the project also supports a :ref:`client-server <Remote Processing>` execution model that leverages the cloud to: 1) reduce tool installation barriers, 2) reduce the barrier to massively parallel elastic compute, 3) address the NDA barrier for PDK and EDA tools.
+To further reduce design access barriers, the project also supports a :ref:`client-server <Remote Processing>` execution model that leverages the cloud to: 1) reduce tool installation barriers, 2) reduce the barrier to massively parallel elastic compute, and 3) address the NDA barrier for PDK and EDA tools.
 
-.. image:: ../_images/sc_arch.svg
+.. image:: _images/sc_arch.svg
 
 Authors
 -------------
 
 SiliconCompiler project authors in chronological order: |authors|.
+
+
+

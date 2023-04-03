@@ -41,6 +41,7 @@ puts "$PREFIX holdslack"
 report_worst_slack -min
 report_worst_slack_metric -hold
 
+utl::metric_int "timing__clocks" [llength [all_clocks]]
 if { [llength [all_clocks]] == 1 } {
   # Based on
   # https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/34f853f2d2344b6f9198cbeadb1e08e46dde6c09/flow/scripts/write_ref_sdc.tcl
