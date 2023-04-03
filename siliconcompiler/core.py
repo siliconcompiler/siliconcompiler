@@ -1208,7 +1208,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return self._find_files(*keypath, missing_ok=missing_ok, job=job, step=step, index=index)
 
     ###########################################################################
-    def _find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None):
+    def _find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None, list_index=None):
         """Internal find_files() that allows you to skip step/index for optional
         params, regardless of [option, strict]."""
 
@@ -1230,6 +1230,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
+
+        if list_index is not None:
+            # List index is set, so we only want to check a particular path in the key
+            paths = [paths[list_index]]
 
         result = []
 
@@ -1468,25 +1472,30 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         allkeys = self.allkeys()
+        error = False
         for keypath in allkeys:
-            allpaths = []
             paramtype = self.get(*keypath, field='type')
-            if 'file' in paramtype or 'dir' in paramtype:
-                if 'dir' not in keypath and self.get(*keypath):
-                    allpaths = list(self.get(*keypath))
-                for path in allpaths:
-                    #check for env var
-                    m = re.match(r'\$(\w+)(.*)', path)
-                    if m:
-                        prefix_path = os.environ[m.group(1)]
-                        path = prefix_path + m.group(2)
-                    file_error = 'file' in paramtype and not os.path.isfile(path)
-                    dir_error = 'dir' in paramtype and not os.path.isdir(path)
-                    if file_error or dir_error:
-                        self.logger.error(f"Paramater {keypath} path {path} is invalid")
-                        return False
+            is_file = 'file' in paramtype
+            is_dir = 'dir' in paramtype
+            is_list = paramtype.startswith('[')
 
-        return True
+            if is_file or is_dir:
+                for check_files, step, index in self.schema._getvals(*keypath):
+                    if not check_files:
+                        continue
+
+                    if not is_list:
+                        check_files = [check_files]
+
+                    for idx, check_file in enumerate(check_files):
+                        found_file = self._find_files(*keypath, missing_ok=True, step=step, index=index, list_index=idx)
+                        if is_list:
+                            found_file = found_file[0]
+                        if not found_file:
+                            self.logger.error(f"Paramater {keypath} path {check_file} is invalid")
+                            error = True
+
+        return not error
 
     ###########################################################################
     def _check_manifest_dynamic(self, step, index):
