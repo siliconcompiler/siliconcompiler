@@ -26,7 +26,7 @@
 
         "key": {
             "title": "Authentication Key",
-            "description": "Base64-encoded decryption key for the user account's public key. Required if the uploaded data is encrypted.",
+            "description": "Password or Base64-encoded decryption key for the user account, depending on the server's authentication scheme.",
             "examples": ["PHlvdXJfa2V5X2hlcmU+"],
 
             "type": "string"
