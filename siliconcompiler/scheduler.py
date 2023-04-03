@@ -19,7 +19,8 @@ def _deferstep(chip, step, index, status):
     scheduler_type = chip.get('option', 'scheduler', 'name', step=step, index=index)
 
     # Determine which cluster parititon to use. (Default value can be overridden on per-step basis)
-    partition = chip.get('option', 'scheduler', 'queue', step=step, index=index)
+    # TODO: Add step/index at next major release.
+    partition = chip.get('option', 'scheduler', 'queue')
     # Get the temporary UID associated with this job run.
     job_hash = chip.status['jobhash']
 
@@ -61,7 +62,8 @@ def _deferstep(chip, step, index, status):
             username = chip.status['slurm_account']
             schedule_cmd.extend(['--acount', username])
         # Only delay the starting time if the 'defer' Schema option is specified.
-        defer_time = self.get('option', 'scheduler', 'defer', step=step, index=index)
+        # TODO: Add step/index at next major release.
+        defer_time = self.get('option', 'scheduler', 'defer')
         if defer_time:
             schedule_cmd.extend(['--begin', defer_time])
     elif scheduler_type == 'lsf':
