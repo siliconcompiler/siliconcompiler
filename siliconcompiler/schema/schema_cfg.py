@@ -1001,7 +1001,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             example=[
                 "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
                 "api: chip.set('flowgraph','asicflow','place','0','taskmodule','siliconcompiler.tools.openroad.place')"],
-            schelp="""Full python module name of the tool name used for task setup and execution.""")
+            schelp="""Full python module name of the task module used for task setup and execution.""")
 
     # flowgraph arguments
     scparam(cfg,['flowgraph', flow, step, index, 'args'],

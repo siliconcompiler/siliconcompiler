@@ -2010,7 +2010,7 @@
                             "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
                             "api: chip.set('flowgraph','asicflow','place','0','taskmodule','siliconcompiler.tools.openroad.place')"
                         ],
-                        "help": "Full python module name of the tool name used for task setup and execution.",
+                        "help": "Full python module name of the task module used for task setup and execution.",
                         "lock": false,
                         "node": {},
                         "notes": null,
