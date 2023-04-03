@@ -170,7 +170,6 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
   # Load in the gds to merge
   print("[INFO] Merging GDS/OAS files...")
   for fil in in_files:
-    print("\t{0}".format(fil))
     macro_layout = pya.Layout()
     macro_layout.read(fil)
     print(f"[INFO] Read in {fil}")
@@ -179,7 +178,8 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
       if subcell:
         print(f"[INFO] Merging in {fil_cell.name}")
         subcell.copy_tree(fil_cell)
-        def_cells.remove(fil_cell.name)
+        if fil_cell.name in def_cells:
+          def_cells.remove(fil_cell.name)
 
   # Copy the top level only to a new layout
   print("[INFO] Copying toplevel cell '{0}'".format(design_name))
