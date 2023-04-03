@@ -90,4 +90,4 @@ by calling :ref:`sc-show` directly from the command line as shown below:
 What Next?
 -----------
 
-Now that you've quickly run a simple example, you can proceed to a larger example like :ref:`building your own soc`, or you can dive deeper into the SiliconCompiler build flow  you ran from this quickstart (`asic_demo <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/asic_demo.py>`_) by looking through how the flow is constructed with :ref:`data model`, :ref:`programming model`, and :ref:`execution model`. 
+Now that you've quickly run a simple example, you can proceed to a larger example like :ref:`building your own soc`, or you can dive deeper into the SiliconCompiler build flow  you ran from this quickstart (`asic_demo <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/asic_demo.py>`_) by looking through how the flow is constructed with :ref:`execution model`, :ref:`data model`, and :ref:`programming model` in the Flow Basics section.

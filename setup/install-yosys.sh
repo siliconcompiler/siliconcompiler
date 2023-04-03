@@ -18,6 +18,6 @@ git clone $(python3 ${src_path}/_tools.py --tool yosys --field git-url) yosys
 cd yosys
 git checkout $(python3 ${src_path}/_tools.py --tool yosys --field git-commit)
 
-make -j
+make -j$(nproc)
 sudo make install
 cd -

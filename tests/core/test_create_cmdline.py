@@ -109,6 +109,8 @@ def test_cli_examples(monkeypatch):
     monkeypatch.setattr(siliconcompiler.Chip, 'read_manifest', _mock_read_manifest)
 
     chip = siliconcompiler.Chip('test')
+    args = ['sc']
+    expected_data = []
     for keypath in chip.allkeys():
         examples = chip.get(*keypath, field='example')
         for example in examples:
@@ -146,14 +148,25 @@ def test_cli_examples(monkeypatch):
             elif switch.startswith('+libext+'):
                 expected_val = switch[len('+libext+'):]
 
-            args = ['sc', switch]
+            # Handle target specially since it affects other values
+            if keypath == ['option', 'target']:
+                c = do_cli_test(['sc', switch, value], monkeypatch)
+                assert c.schema.get(*replaced_keypath, step=step, index=index) == expected_val
+                continue
+
+            args.append(switch)
             if value:
                 args.append(value)
 
-            c = do_cli_test(args, monkeypatch)
-
             if expected_val:
-                assert c.schema.get(*replaced_keypath, step=step, index=index) == _cast(expected_val, typestr)
+                expected = (replaced_keypath, step, index, _cast(expected_val, typestr))
             else:
                 assert typestr == 'bool', 'Implicit value only alowed for boolean'
-                assert c.schema.get(*replaced_keypath, step=step, index=index) == True
+                expected = (replaced_keypath, step, index, True)
+
+            expected_data.append(expected)
+
+    c = do_cli_test(args, monkeypatch)
+
+    for kp, step, index, val in expected_data:
+        assert c.schema.get(*kp, step=step, index=index) == val

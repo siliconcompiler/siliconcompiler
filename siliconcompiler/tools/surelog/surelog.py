@@ -38,7 +38,7 @@ def setup(chip):
     # Standard Setup
     chip.set('tool', tool, 'exe', exe)
     chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=1.13', clobber=False)
+    chip.set('tool', tool, 'version', '>=1.51', clobber=False)
 
     # Command-line options.
     options = []

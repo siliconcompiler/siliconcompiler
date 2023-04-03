@@ -3206,7 +3206,7 @@
         "flow": {
             "defvalue": null,
             "example": [
-                "cli: -flow asicfow",
+                "cli: -flow asicflow",
                 "api: chip.set('option','flow','asicflow')"
             ],
             "help": "Sets the flow for the current run. The flow name\nmust match up with a 'flow' in the flowgraph",

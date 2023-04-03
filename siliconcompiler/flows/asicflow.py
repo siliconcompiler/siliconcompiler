@@ -17,7 +17,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
     A configurable ASIC compilation flow.
 
     The 'asicflow' includes the stages below. The steps syn, floorplan,
-    physyn, place, cts, route, and dfm have minimizataion associated
+    physyn, place, cts, route, and dfm have minimization associated
     with them. To view the flowgraph, see the .png file.
 
     * **import**: Sources are collected and packaged for compilation

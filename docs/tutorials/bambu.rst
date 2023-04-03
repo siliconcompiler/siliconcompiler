@@ -1,7 +1,7 @@
 C HLS frontend
-======================
+-----------------
 
-SiliconCompiler supports high-level synthesis of C code to any supported SC target, implemented using the :ref:`Bambu <bambu>` HLS tool. To get started compiling C code with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and build Bambu from source following the instructions `here <https://panda.dei.polimi.it/?page_id=88>`_. For Ubuntu 20.04, we've additionally provided a `setup script <https://github.com/siliconcompiler/siliconcompiler/blob/main/setup/install-bambu.sh>`_.
+SiliconCompiler supports high-level synthesis of C code to any supported SC target, implemented using the :ref:`Bambu <bambu>` HLS tool. To get started compiling C code with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and `build Bambu from source <https://panda.dei.polimi.it/?page_id=88>`_. For Ubuntu 20.04, we've additionally provided a `bambu setup script <https://github.com/siliconcompiler/siliconcompiler/blob/main/setup/install-bambu.sh>`_.
 
 To build a C design, the only things you need to do differently from a configuration perspective are:
 

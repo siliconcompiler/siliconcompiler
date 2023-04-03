@@ -14,6 +14,11 @@ git clone $(python3 ${src_path}/_tools.py --tool netgen --field git-url) netgen
 cd netgen
 git checkout $(python3 ${src_path}/_tools.py --tool netgen --field git-commit)
 
-./configure
-make
+args=
+if [ ! -z ${PREFIX} ]; then
+    args=--prefix="$PREFIX"
+fi
+
+./configure $args
+make -j$(nproc)
 sudo make install

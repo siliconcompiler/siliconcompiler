@@ -29,6 +29,7 @@ where ninja && ninja --version
 
 :: Required for Surelog
 pip3 install orderedmultidict
+pip3 install cmake
 
 for /f "tokens=* USEBACKQ" %%i in (`python3 setup/_tools.py --tool surelog --field git-url`) do set GITURL=%%i
 for /f "tokens=* USEBACKQ" %%i in (`python3 setup/_tools.py --tool surelog --field git-commit`) do set GITCOMMIT=%%i
@@ -40,3 +41,5 @@ git submodule update --init --recursive
 
 make
 make install
+
+python3 %GITHUB_WORKSPACE%\.github\workflows\bin\clean_surelog_build.py

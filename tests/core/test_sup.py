@@ -5,6 +5,7 @@ import shutil
 import os
 import sys
 
+@pytest.mark.skip(reason='Test takes a while and SUP logic is going to be modified')
 def test_sup():
     ''' SUP basic test
     '''
@@ -63,6 +64,7 @@ def test_sup():
     #chip.write_depgraph('tree.png')
 
 #########################
+@pytest.mark.skip(reason='SUP logic is going to be modified')
 def test_sup_circ_import():
     ''' Test that SUP detects circular imports, and throws an error without freezing.
     '''

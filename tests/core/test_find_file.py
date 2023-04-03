@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 
 import siliconcompiler
+from siliconcompiler.core import SiliconCompilerError
 
 def test_find_sc_file(datadir):
 
@@ -19,7 +20,7 @@ def test_find_sc_file(datadir):
 
     assert chip._find_sc_file('my_file_that_doesnt_exist.blah', missing_ok=True) is None
 
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(SiliconCompilerError):
         assert chip._find_sc_file('my_file_that_doesnt_exist.blah') is None
 
 def test_find_sc_file_env(datadir):
@@ -59,6 +60,17 @@ def test_find_sc_file_cwd():
     # Should be relative to starting directory
     assert chip._find_sc_file('.') == mydir
     os.chdir(mydir)
+
+def test_invalid_script():
+    '''Regression test: find_files(missing_ok=False) should error out if script
+    not found.'''
+    chip = siliconcompiler.Chip('test')
+    chip.load_target('freepdk45_demo')
+
+    chip.set('tool', 'yosys', 'task', 'syn_asic', 'script', 'fakescript.tcl')
+
+    with pytest.raises(SiliconCompilerError):
+        chip.find_files('tool', 'yosys', 'task', 'syn_asic', 'script', missing_ok=False, step='syn', index='0')
 
 #########################
 if __name__ == "__main__":

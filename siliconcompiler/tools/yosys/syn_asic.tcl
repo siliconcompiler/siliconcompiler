@@ -197,7 +197,7 @@ if {[llength $yosys_hilomap_args] != 0} {
     yosys hilomap -singleton {*}$yosys_hilomap_args
 }
 
-if {[has_buffer_cell]} {
+if {[has_buffer_cell] && [dict get $sc_cfg tool $sc_tool task $sc_task var add_buffers] == "True"} {
     yosys insbuf -buf {*}[get_buffer_cell]
 }
 
