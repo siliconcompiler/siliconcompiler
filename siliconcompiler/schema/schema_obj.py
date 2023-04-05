@@ -859,7 +859,7 @@ class Schema:
 
         See :meth:`~siliconcompiler.core.Chip.read_manifest` for detailed documentation.
         """
-        self.read_manifest(filename, job=job, clear=clear, clobber=clobber)
+        self._read_manifest(filename, job=job, clear=clear, clobber=clobber)
 
     ###########################################################################
     def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
