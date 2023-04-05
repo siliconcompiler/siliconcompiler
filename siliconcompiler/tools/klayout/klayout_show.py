@@ -39,13 +39,7 @@ def show(schema, input_path, output_path, screenshot=False):
 
     # Tech / library LEF files are optional.
     tech_lefs = schema.get('pdk', sc_pdk, 'aprtech', 'klayout', sc_stackup, sc_libtype, 'lef')
-
-    # Need to check validity since there are no "default" placeholders within the
-    # library schema that would allow schema.get() to get a default value.
-    if schema.valid('library', sc_mainlib, 'output', sc_stackup, 'lef'):
-        lib_lefs = schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef', step=step, index=index)
-    else:
-        lib_lefs = []
+    lib_lefs = schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef', step=step, index=index)
 
     # Load KLayout technology file
     tech = pya.Technology()
@@ -119,7 +113,8 @@ def main():
     sys.path.append(SC_ROOT)
     from schema import Schema
 
-    schema = Schema(manifest='sc_manifest.json')
+    schema = Schema()
+    schema.read_manifest('sc_manifest.json')
 
     flow = schema.get('option', 'flow')
     step = schema.get('arg', 'step')

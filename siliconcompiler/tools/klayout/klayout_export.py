@@ -228,7 +228,8 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
   write_options.gds2_write_timestamps = timestamps
   top_only_layout.write(out_file, write_options)
 
-schema = Schema(manifest='sc_manifest.json')
+schema = Schema()
+schema.read_manifest('sc_manifest.json')
 
 # Extract info from manifest
 sc_step = schema.get('arg', 'step')
