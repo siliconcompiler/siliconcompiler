@@ -258,6 +258,7 @@ class Schema:
 
         if cfg['lock']:
             self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
+            return False
 
         if step is None:
             step = Schema.GLOBAL_KEY
