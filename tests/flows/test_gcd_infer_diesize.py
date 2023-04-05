@@ -2,13 +2,9 @@ import pytest
 import re
 
 @pytest.mark.eda
-@pytest.mark.skip(reason='Skipping until fixed in openroad')
 def test_gcd_infer_diesize(gcd_chip):
     '''Test inferring diesize from density/aspectratio/margin arguments
     '''
-
-    gcd_chip.set('asic', 'diearea', [])
-    gcd_chip.set('asic', 'corearea', [])
 
     gcd_chip.add('option', 'steplist', 'import')
     gcd_chip.add('option', 'steplist', 'syn')
@@ -29,7 +25,7 @@ def test_gcd_infer_diesize(gcd_chip):
             diearea = match.group(1, 2, 3, 4)
             break
 
-    assert diearea == ('0', '0', '139200', '139200')
+    assert diearea == ('0', '0', '200260', '201600')
 
 if __name__ == '__main__':
     from tests.fixtures import gcd_chip

@@ -2533,7 +2533,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
 
     ###########################################################################
-    def calc_area(self):
+    def calc_area(self, step=None, index=None):
         '''Calculates the area of a rectilinear diearea.
 
         Uses the shoelace formulate to calculate the design area using
@@ -2542,6 +2542,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         must be the lower left and upper right points of the rectangle.
         (Ref: https://en.wikipedia.org/wiki/Shoelace_formula)
 
+        Args:
+            step (str): name of the step to calculate the area from
+            index (str): name of the step to calculate the area from
+        
         Returns:
             Design area (float).
 
@@ -2550,7 +2554,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        vertices = self.get('asic', 'diearea')
+        if not step:
+            step = self.get('arg', 'step')
+
+        if not index:
+            index = self.get('arg', 'index')
+
+        vertices = self.get('constraint', 'outline', step=step, index=index)
 
         if len(vertices) == 2:
             width = vertices[1][0] - vertices[0][0]
