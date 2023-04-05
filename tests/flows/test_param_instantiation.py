@@ -4,7 +4,6 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason="not supported with each chip object having ummutable design name")
 def test_parameterized_instantiation(datadir):
     '''Ensure that we can properly import and synthesize a multi-source design
     where module instantiation depends on parameter values.
