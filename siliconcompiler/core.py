@@ -235,9 +235,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.addHandler(handler)
         self.logger.setLevel(loglevel)
 
+        self.schema.logger = self.logger
+
     ###########################################################################
     def _deinit_logger(self):
         self.logger = None
+        self.schema.logger = None
 
     ###########################################################################
     def _get_switches(self, schema, *keypath):
@@ -946,17 +949,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.setLevel(value)
 
         try:
-            if not self.schema.set(
-                *keypath, value, field=field, clobber=clobber, step=step, index=index
-            ):
-                # TODO: this message should be pushed down into Schema.set()
-                # once we have a static logger.
-                if clobber:
-                    self.logger.debug(f'Failed to set value for {keypath}: '
-                        'parameter is locked')
-                else:
-                    self.logger.debug(f'Failed to set value for {keypath}: '
-                        'clobber is False and parameter may be locked')
+            self.schema.set(*keypath, value, field=field, clobber=clobber, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(e)
 
@@ -978,8 +971,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         self.logger.debug(f'Unsetting {keypath}')
 
-        if not self.schema.unset(*keypath, step=step, index=index):
-            self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
+        self.schema.unset(*keypath, step=step, index=index)
 
     ###########################################################################
     def add(self, *args, field='value', step=None, index=None):
@@ -1014,11 +1006,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            if not self.schema.add(*args, field=field, step=step, index=index):
-                # TODO: this message should be pushed down into Schema.add()
-                # once we have a static logger.
-                self.logger.debug(f'Failed to add value for {keypath}: '
-                    'parameter may be locked')
+            self.schema.add(*args, field=field, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
@@ -2545,7 +2533,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             step (str): name of the step to calculate the area from
             index (str): name of the step to calculate the area from
-        
+
         Returns:
             Design area (float).
 

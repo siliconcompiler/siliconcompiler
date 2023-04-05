@@ -8,6 +8,8 @@ import copy
 import csv
 import gzip
 import json
+import logging
+import uuid
 import os
 import re
 
@@ -53,6 +55,8 @@ class Schema:
             self.cfg = Schema._read_manifest(manifest)
         else:
             self.cfg = schema_cfg()
+
+        self.logger = logging.getLogger(uuid.uuid4().hex)
 
     ###########################################################################
     @staticmethod
@@ -155,11 +159,11 @@ class Schema:
             index = str(index)
 
         if cfg['lock']:
-            # TODO: log here
+            self.logger.debug(f'Failed to set value for {keypath}: parameter is locked')
             return False
 
         if Schema._is_set(cfg, step=step, index=index) and not clobber:
-            # TODO: log here
+            self.logger.debug(f'Failed to set value for {keypath}: clobber is False and parameter is set')
             return False
 
         allowed_values = None
@@ -211,7 +215,7 @@ class Schema:
                 raise ValueError(f'Invalid field {field}: add() must be called on a list')
 
         if cfg['lock']:
-            # TODO: log here
+            self.logger.debug(f'Failed to add value for {keypath}: parameter is locked')
             return False
 
         allowed_values = None
@@ -253,8 +257,7 @@ class Schema:
             raise ValueError(f'Invalid args to unset() of keypath {keypath}: {err}')
 
         if cfg['lock']:
-            # TODO: log here
-            return False
+            self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
 
         if step is None:
             step = Schema.GLOBAL_KEY
