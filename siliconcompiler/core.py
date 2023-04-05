@@ -674,7 +674,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             elif isinstance(use_module, (Library, Chip)):
                 self._loaded_modules['libs'].append(use_module.design)
-                self._import_library(use_module.design, use_module.schema.cfg)
+                self.schema._import_library(use_module.design, use_module.schema.cfg)
 
             else:
                 raise ValueError(f"{module.__name__} returned an object with an unsupported type: {use_module.__class__.__name__}")
@@ -1332,87 +1332,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return schema
 
     ###########################################################################
-    def _key_may_be_updated(self, keypath):
-        '''Helper that returns whether `keypath` can be updated mid-run.'''
-        # TODO: cleaner way to manage this?
-        if keypath[0] in ('metric', 'record'):
-            return True
-        if keypath[0] == 'flowgraph' and keypath[4] in ('select', 'status'):
-            return True
-        if keypath[0] == 'tool':
-            return True
-        if self.get(*keypath, field='type') in ['file', '[file]']:
-            return True
-        return False
-
-    ###########################################################################
-    def _merge_manifest(self, src, job=None, clobber=True, clear=True, check=False, partial=False):
-        """
-        Merges a given manifest with the current compilation manifest.
-
-        All value fields in the provided schema dictionary are merged into the
-        current chip object. Dictionaries with non-existent keypath produces a
-        logger error message and raises the Chip object error flag.
-
-        Args:
-            src (Schema): Schema object to merge
-            job (str): Specifies non-default job to merge into
-            clear (bool): If True, disables append operations for list type
-            clobber (bool): If True, overwrites existing parameter value
-            check (bool): If True, checks the validity of each key
-            partial (bool): If True, perform a partial merge, only merging
-                keypaths that may have been updated during run().
-        """
-        if job is not None:
-            dest = self.schema.history(job)
-        else:
-            dest = self.schema
-
-        for keylist in src.allkeys():
-            if partial and not self._key_may_be_updated(keylist):
-                continue
-            if keylist[0] in ('history', 'library'):
-                continue
-            #only read in valid keypaths without 'default'
-            key_valid = True
-            if check:
-                key_valid = dest.valid(*keylist, default_valid=True)
-                if not key_valid:
-                    self.logger.warning(f'Keypath {keylist} is not valid')
-            if key_valid and 'default' not in keylist:
-                typestr = src.get(*keylist, field='type')
-                should_append = re.match(r'\[', typestr) and not clear
-                for val, step, index in src._getvals(*keylist, return_defvalue=False):
-                    # update value, handling scalars vs. lists
-                    if should_append:
-                        dest.add(*keylist, val, step=step, index=index)
-                    else:
-                        dest.set(*keylist, val, step=step, index=index, clobber=clobber)
-
-                    # update other pernode fields
-                    # TODO: only update these if clobber is successful
-                    step_key = Schema.GLOBAL_KEY if not step else step
-                    idx_key = Schema.GLOBAL_KEY if not index else index
-                    for field in src.getdict(*keylist)['node'][step_key][idx_key].keys():
-                        if field == 'value':
-                            continue
-                        v = src.get(*keylist, step=step, index=index, field=field)
-                        if should_append:
-                            dest.add(*keylist, v, step=step, index=index, field=field)
-                        else:
-                            dest.set(*keylist, v, step=step, index=index, field=field)
-
-                # update other fields that a user might modify
-                for field in src.getdict(*keylist).keys():
-                    if field in ('node', 'switch', 'type', 'require', 'defvalue',
-                                 'shorthelp', 'example', 'help'):
-                        # skip these fields (node handled above, others are static)
-                        continue
-                    # TODO: should we be taking into consideration clobber for these fields?
-                    v = src.get(*keylist, field=field)
-                    dest.set(*keylist, v, field=field)
-
-    ###########################################################################
     def _check_files(self):
         allowed_paths = [os.path.join(self.cwd, self.get('option', 'builddir'))]
         allowed_paths.extend(os.environ['SC_VALID_PATHS'].split(os.pathsep))
@@ -1825,35 +1744,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.read_manifest('mychip.json')
             Loads the file mychip.json into the current Chip object.
         """
-        self._read_manifest(filename, job=job, clear=clear, clobber=clobber)
-
-    ###########################################################################
-    def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
-        """
-        Internal read_manifest() implementation with `partial` arg.
-
-        partial (bool): If True, perform a partial merge, only merging keypaths
-        that may have been updated during run().
-        """
-        # Read from file into new schema object
-        schema = Schema(manifest=filename)
-
-        # Merge data in schema with Chip configuration
-        self._merge_manifest(schema, job=job, clear=clear, clobber=clobber, partial=partial)
-
-        # Read history, if we're not already reading into a job
-        if 'history' in schema.getkeys() and not partial and not job:
-            for historic_job in schema.getkeys('history'):
-                self._merge_manifest(schema.history(historic_job),
-                                     job=historic_job,
-                                     clear=clear,
-                                     clobber=clobber,
-                                     partial=False)
-
-        # TODO: better way to handle this?
-        if 'library' in schema.getkeys() and not partial:
-            for libname in schema.getkeys('library'):
-                self._import_library(libname, schema.getdict('library', libname), job=job, clobber=clobber)
+        self.schema.read_manifest(filename, job=job, clear=clear, clobber=clobber)
 
     ###########################################################################
     def write_manifest(self, filename, prune=True, abspath=False):
@@ -2184,25 +2075,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self._find_deps(cache, local, remote, subdesign, subdeps, auto, depgraph, upstream)
 
         return depgraph
-
-    ###########################################################################
-    def _import_library(self, libname, libcfg, job=None, clobber=True):
-        '''Helper to import library with config 'libconfig' as a library
-        'libname' in current Chip object.'''
-        if job:
-            cfg = self.schema.cfg['history'][job]['library']
-        else:
-            cfg = self.schema.cfg['library']
-
-        if libname in cfg:
-            if clobber:
-                self.logger.warning(f'Overwriting existing library {libname}')
-            else:
-                return
-
-        cfg[libname] = copy.deepcopy(libcfg)
-        if 'pdk' in cfg:
-            del cfg[libname]['pdk']
 
     ###########################################################################
     def write_depgraph(self, filename):
@@ -3754,7 +3626,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_task_status)
                 if in_task_status != TaskStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
-                    self._read_manifest(cfgfile, clobber=False, partial=True)
+                    self.schema._read_manifest(cfgfile, clobber=False, partial=True)
 
         ##################
         # Write manifest prior to step running into inputs
@@ -4574,7 +4446,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
                 if status[step+index] == TaskStatus.SUCCESS:
-                    self._read_manifest(lastcfg, clobber=False, partial=True)
+                    self.schema._read_manifest(lastcfg, clobber=False, partial=True)
                 else:
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
 
