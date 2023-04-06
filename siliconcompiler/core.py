@@ -2579,7 +2579,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return area
 
     ###########################################################################
-    def calc_yield(self, model='poisson'):
+    def calc_yield(self, step=None, index=None, model='poisson'):
         '''Calculates raw die yield.
 
         Calculates the raw yield of the design as a function of design area
@@ -2591,6 +2591,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         * Murphy model: dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.
 
         Args:
+            step (str): name of the step use for calculation
+            index (str): name of the step use for calculation
             model (string): Model to use for calculation (poisson or murphy)
 
         Returns:
@@ -2601,24 +2603,36 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Yield variable gets yield value based on the chip manifest.
         '''
 
-        d0 = self.get('pdk', 'd0')
-        diearea = self.calc_area()
+        pdk = self.get('option', 'pdk')
+        d0 = self.get('pdk', pdk, 'd0')
+        if d0 is None:
+            self.error(f"['pdk', {pdk}, 'd0'] has not been set")
+        diearea = self.calc_area(step=step, index=index)
+
+        # diearea is um^2, but d0 looking for cm^2
+        diearea = diearea / 10000.0**2
 
         if model == 'poisson':
             dy = math.exp(-diearea * d0/100)
         elif model == 'murphy':
             dy = ((1-math.exp(-diearea * d0/100))/(diearea * d0/100))**2
+        else:
+            self.error(f'Unknown yield model: {model}')
 
         return dy
 
     ##########################################################################
-    def calc_dpw(self):
+    def calc_dpw(self, step=None, index=None):
         '''Calculates dies per wafer.
 
         Calculates the gross dies per wafer based on the design area, wafersize,
         wafer edge margin, and scribe lines. The calculation is done by starting
         at the center of the wafer and placing as many complete design
         footprints as possible within a legal placement area.
+
+        Args:
+            step (str): name of the step use for calculation
+            index (str): name of the step use for calculation
 
         Returns:
             Number of gross dies per wafer (int).
@@ -2629,20 +2643,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         #PDK information
-        wafersize = self.get('pdk', 'wafersize')
-        edgemargin = self.get('pdk', 'edgemargin')
-        hscribe = self.get('pdk', 'hscribe')
-        vscribe = self.get('pdk', 'vscribe')
+        pdk = self.get('option', 'pdk')
+        wafersize = self.get('pdk', pdk, 'wafersize')
+        edgemargin = self.get('pdk', pdk, 'edgemargin')
+        hscribe = self.get('pdk', pdk, 'hscribe')
+        vscribe = self.get('pdk', pdk, 'vscribe')
 
         #Design parameters
-        diesize = self.get('asic', 'diesize').split()
-        diewidth = (diesize[2] - diesize[0])/1000
-        dieheight = (diesize[3] - diesize[1])/1000
+        diesize = self.get('constraint', 'outline', step=step, index=index)
+
+        # Convert to mm
+        diewidth = (diesize[1][0] - diesize[0][0]) / 1000.0
+        dieheight = (diesize[1][1] - diesize[0][1]) / 1000.0
 
         #Derived parameters
-        radius = wafersize/2 -edgemargin
-        stepwidth = (diewidth + hscribe)
-        stepheight = (dieheight + vscribe)
+        radius = wafersize / 2 - edgemargin
+        stepwidth = diewidth + hscribe
+        stepheight = dieheight + vscribe
 
         #Raster dies out from center until you touch edge margin
         #Work quadrant by quadrant
@@ -2665,12 +2682,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             #loop through all y values from center
             while math.hypot(0, y) < radius:
                 y = y + yincr
+                x = xincr
                 while math.hypot(x, y) < radius:
                     x = x + xincr
                     dies = dies + 1
-                x = 0
 
-        return int(dies)
+        return dies
 
     ###########################################################################
     def grep(self, args, line):
