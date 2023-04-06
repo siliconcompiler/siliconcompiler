@@ -89,6 +89,7 @@ def test_py_sky130(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)
+@pytest.mark.skip(reason='Long runtime, can still timeout at 900s')
 def test_cli_asap7(setup_example_test):
     ex_dir = setup_example_test('gcd')
 
