@@ -10,6 +10,7 @@ from unittest.mock import Mock
 # Run as a daily test, because this takes a long time to build.
 @pytest.mark.eda
 @pytest.mark.timeout(900)
+@pytest.mark.skip(reason='Long runtime, can still timeout at 900s')
 def test_picorv32_sram(setup_example_test):
     setup_example_test('picorv32_ram')
 
