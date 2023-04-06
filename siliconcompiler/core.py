@@ -2437,7 +2437,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return archive_name
 
     ###########################################################################
-    def hash_files(self, *keypath, algo='sha256', update=True, step=None, index=None):
+    def hash_files(self, *keypath, update=True, step=None, index=None):
         '''Generates hash values for a list of parameter files.
 
         Generates a hash value for each file found in the keypath. If existing
@@ -2455,8 +2455,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             *keypath(str): Keypath to parameter.
-            algo (str): Algorithm to use for file hash calculation (currently
-                unimplemented, defaults to SHA256).
             update (bool): If True, the hash values are recorded in the
                 chip object manifest.
 
@@ -2472,10 +2470,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         #TODO: Insert into find_files?
         if 'file' not in self.get(*keypath, field='type'):
             self.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
-            return
+            return []
 
         filelist = self._find_files(*keypath, step=step, index=index)
         if not filelist:
+            return []
+
+        algo = self.get(*keypath, field='hashalgo')
+        hashfunc = getattr(hashlib, algo, None)
+        if not hashfunc:
+            self.error(f"Unable to use {algo} as the hashing algorithm for [{keypathstr}].")
             return []
 
         #cycle through all paths
@@ -2484,8 +2488,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.info(f'Computing hash value for [{keypathstr}]')
         for filename in filelist:
             if os.path.isfile(filename):
-                #TODO: Implement algo selection
-                hashobj = hashlib.sha256()
+                hashobj = hashfunc()
                 with open(filename, "rb") as f:
                     for byte_block in iter(lambda: f.read(4096), b""):
                         hashobj.update(byte_block)
