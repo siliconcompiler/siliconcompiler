@@ -1,29 +1,26 @@
 import siliconcompiler
 
-import pytest
-
-import importlib
+from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.yosys import syn_asic
 from tests.core.tools.fake import fake_out
 from tests.core.tools.fake import fake_in
 
-@pytest.mark.skip(reason='complains since synthesis corner not set')
 def test_check_flowgraph():
     chip = siliconcompiler.Chip('foo')
+    chip.load_target('freepdk45_demo')
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'import', importlib.import_module('siliconcompiler.tools.surelog.import'))
+    chip.node(flow, 'import', parse)
     chip.node(flow, 'syn', syn_asic)
     chip.edge(flow, 'import', 'syn')
-    chip.set('asic', 'logiclib', 'dummylib')
 
     for step in chip.getkeys('flowgraph', flow):
         for index in chip.getkeys('flowgraph', flow, step):
             # Setting up tool is optional
             tool = chip.get('flowgraph', flow, step, index, 'tool')
             task = chip.get('flowgraph', flow, step, index, 'task')
-            if task not in chip.builtin:
+            if not chip._is_builtin(tool ,task):
                 chip._setup_tool(tool, task, step, index)
 
     assert chip._check_flowgraph_io()

@@ -57,16 +57,17 @@ def copy_show_files(chip):
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
         show_file = chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index)[0]
         show_type = chip.get('tool', tool, 'task', task, 'var', 'show_filetype', step=step, index=index)[0]
-        show_job = chip.get('tool', tool, 'task', task, 'var', 'show_job', step=step, index=index)[0]
-        show_step = chip.get('tool', tool, 'task', task, 'var', 'show_step', step=step, index=index)[0]
-        show_index = chip.get('tool', tool, 'task', task, 'var', 'show_index', step=step, index=index)[0]
+        show_job = chip.get('tool', tool, 'task', task, 'var', 'show_job', step=step, index=index)
+        show_step = chip.get('tool', tool, 'task', task, 'var', 'show_step', step=step, index=index)
+        show_index = chip.get('tool', tool, 'task', task, 'var', 'show_index', step=step, index=index)
 
         # copy source in to keep sc_apr.tcl simple
         dst_file = "inputs/"+chip.top()+"."+show_type
         shutil.copy2(show_file, dst_file)
-        sdc_file = chip.find_result('sdc', show_step, jobname=show_job, index=show_index)
-        if sdc_file and os.path.exists(sdc_file):
-            shutil.copy2(sdc_file, "inputs/"+chip.top()+".sdc")
+        if show_job and show_step and show_index:
+            sdc_file = chip.find_result('sdc', show_step[0], jobname=show_job[0], index=show_index[0])
+            if sdc_file and os.path.exists(sdc_file):
+                shutil.copy2(sdc_file, "inputs/"+chip.top()+".sdc")
 
 def find_incoming_ext(chip):
 

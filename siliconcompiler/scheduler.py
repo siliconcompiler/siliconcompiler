@@ -19,10 +19,8 @@ def _deferstep(chip, step, index, status):
     scheduler_type = chip.get('option', 'scheduler', 'name', step=step, index=index)
 
     # Determine which cluster parititon to use. (Default value can be overridden on per-step basis)
-    if f'{step}_slurm_partition' in chip.status:
-        partition = chip.status[f'{step}_slurm_partition']
-    else:
-        partition = chip.status['slurm_partition']
+    # TODO: Add step/index at next major release.
+    partition = chip.get('option', 'scheduler', 'queue')
     # Get the temporary UID associated with this job run.
     job_hash = chip.status['jobhash']
 
@@ -39,6 +37,7 @@ def _deferstep(chip, step, index, status):
     if scheduler_type == 'slurm':
         # The script defining this Chip object may specify feature(s) to
         # ensure that the job runs on a specific subset of available nodes.
+        # TODO: Maybe we should add a Schema parameter for these values.
         if 'slurm_constraint' in chip.status:
             slurm_constraint = chip.status['slurm_constraint']
         else:
@@ -61,22 +60,29 @@ def _deferstep(chip, step, index, status):
         # Only specify an account if accounting is required for this cluster/run.
         if 'slurm_account' in chip.status:
             username = chip.status['slurm_account']
-            schedule_cmd.extend(['--acount', username])
+            schedule_cmd.extend(['--account', username])
+        # Only delay the starting time if the 'defer' Schema option is specified.
+        # TODO: Add step/index at next major release.
+        defer_time = chip.get('option', 'scheduler', 'defer')
+        if defer_time:
+            schedule_cmd.extend(['--begin', defer_time])
     elif scheduler_type == 'lsf':
         # TODO: LSF support is untested and currently unsupported.
         schedule_cmd = ['lsrun']
 
-    # Create a command to defer execution to a compute node.
+    # Allow user-defined compute node execution script if it already exists on the filesystem.
+    # Otherwise, create a minimal script to run the task using the SiliconCompiler CLI.
     script_path = f'{cfg_dir}/{step}{index}.sh'
-    with open(script_path, 'w') as sf:
-        sf.write('#!/bin/bash\n')
-        sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
-                    f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
-                    f"-design {shlex.quote(chip.top())}\n")
-        # In case of error(s) which prevents the SC build script from completing, ensure the
-        # file mutex for job completion is set in shared storage. This lockfile signals the server
-        # to mark the job done, without putting load on the cluster reporting/accounting system.
-        sf.write(f'touch {os.path.dirname(output_file)}/done')
+    if not os.path.isfile(script_path):
+        with open(script_path, 'w') as sf:
+            sf.write('#!/bin/bash\n')
+            sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
+                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
+                     f"-design {shlex.quote(chip.top())}\n")
+            # In case of error(s) which prevents the SC build script from completing, ensure the
+            # file mutex for job completion is set in shared storage. This lockfile signals the server
+            # to mark the job done, without putting load on the cluster reporting/accounting system.
+            sf.write(f'touch {os.path.dirname(output_file)}/done')
 
     # This is Python for: `chmod +x [script_path]`
     fst = os.stat(script_path)

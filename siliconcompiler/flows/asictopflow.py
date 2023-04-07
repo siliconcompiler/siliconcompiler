@@ -1,6 +1,6 @@
 import siliconcompiler
-import importlib
 
+from siliconcompiler.tools.surelog import parse as surelog_parse
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.klayout import export
 
@@ -13,7 +13,7 @@ def setup(chip):
     '''
     flow = siliconcompiler.Flow(chip, 'asictopflow')
 
-    flow.node(flow.design, 'import', importlib.import_module('siliconcompiler.tools.surelog.import'))
+    flow.node(flow.design, 'import', surelog_parse)
     flow.node(flow.design, 'syn', syn_asic)
     flow.node(flow.design, 'export', export)
 

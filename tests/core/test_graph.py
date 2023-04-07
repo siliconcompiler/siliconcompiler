@@ -1,6 +1,6 @@
 import siliconcompiler
 
-import importlib
+from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.openroad import floorplan
 from siliconcompiler.tools.openroad import physyn
@@ -14,17 +14,20 @@ from siliconcompiler.tools.magic import extspice
 from siliconcompiler.tools.magic import drc
 from siliconcompiler.tools.netgen import lvs
 
+from tests.core.tools.fake import fake_in
+from tests.core.tools.fake import fake_out
+
 def test_graph():
 
     chip = siliconcompiler.Chip('test')
 
     #RTL
-    chip.pipe('rtl', [{'import' : importlib.import_module('siliconcompiler.tools.surelog.import')},
+    chip.pipe('rtl', [{'import' : parse},
                       {'syn' : syn_asic},
                       {'export' : 'builtin.nop'},])
 
     #APR
-    chip.pipe('apr', [{'import' : 'builtin.import'},
+    chip.pipe('apr', [{'import' : 'builtin.nop'},
                       {'floorplan' : floorplan},
                       {'physyn' : physyn},
                       {'place' : place},
@@ -34,7 +37,7 @@ def test_graph():
                       {'export' : export}])
 
     #SIGNOFF
-    chip.node('signoff', 'import', 'builtin.import')
+    chip.node('signoff', 'import', 'builtin.nop')
     chip.node('signoff', 'extspice', extspice)
     chip.node('signoff', 'drc', drc)
     chip.node('signoff', 'lvs', lvs)
@@ -47,13 +50,46 @@ def test_graph():
     chip.edge('signoff', 'drc', 'export')
 
     #TOP
-    chip.graph("top","rtl", name="rtl")
-    chip.graph("top","apr", name="apr")
-    chip.graph("top","signoff", name="dv")
-    chip.edge("top", "rtl", "apr")
-    chip.edge("top", "apr", "dv")
+    chip.graph("top", "rtl", name="rtl")
+    chip.graph("top", "apr", name="apr")
+    chip.graph("top", "signoff", name="dv")
+    chip.edge("top", "rtl.export", "apr.import")
+    chip.edge("top", "apr.export", "dv.import")
 
     chip.write_flowgraph("top.png", flow="top")
+
+def test_graph_entry():
+
+    chip = siliconcompiler.Chip('foo')
+
+    flow = 'test'
+    chip.set('option', 'flow', flow)
+    chip.node(flow, 'premin', fake_out, index=0)
+    chip.node(flow, 'premin', fake_out, index=1)
+    chip.node(flow, 'domin', 'builtin.minimum')
+    chip.node(flow, 'postmin', fake_in)
+
+    chip.edge(flow, 'premin', 'domin', tail_index=0)
+    chip.edge(flow, 'premin', 'domin', tail_index=1)
+    chip.edge(flow, 'domin', 'postmin')
+
+    assert chip._get_flowgraph_entry_nodes() == [('premin', '0'), ('premin', '1')]
+
+def test_graph_exit():
+
+    chip = siliconcompiler.Chip('foo')
+    chip.load_target('freepdk45_demo')
+
+    assert chip._get_flowgraph_exit_nodes() == [('export', '0'), ('export', '1')]
+
+def test_graph_exit_with_steplist():
+
+    chip = siliconcompiler.Chip('foo')
+    chip.load_target('freepdk45_demo')
+
+    steps = ['import', 'syn', 'floorplan']
+
+    assert chip._get_flowgraph_exit_nodes(steplist=steps) == [('floorplan', '0')]
 
 #########################
 if __name__ == "__main__":

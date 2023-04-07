@@ -1,6 +1,6 @@
 import siliconcompiler
-import importlib
 
+from siliconcompiler.tools.surelog import parse as surelog_parse
 from siliconcompiler.tools.verilator import compile
 
 ############################################################################
@@ -49,7 +49,7 @@ def setup(chip, np=1):
                 'signoff']
 
     tasks = {
-        'import': importlib.import_module('siliconcompiler.tools.surelog.import'),
+        'import': surelog_parse),
         'compile': compile,
         # 'testgen': ('verilator', 'testgen'),
         # 'refsim': ('verilator', 'refsim'),

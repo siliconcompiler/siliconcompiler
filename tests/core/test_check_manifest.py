@@ -62,7 +62,7 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     workdir = chip._getworkdir(step='import', index='0')
     os.makedirs(workdir)
     os.chdir(workdir)
-    chip._collect('import', '0')
+    chip._collect()
     os.chdir(cwd)
 
     env = {
@@ -88,7 +88,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     cwd = os.getcwd()
     os.makedirs(workdir)
     os.chdir(workdir)
-    chip._collect('import', '0')
+    chip._collect()
     os.chdir(cwd)
 
     env = {
@@ -124,7 +124,7 @@ def merge_flow_chip():
     chip = siliconcompiler.Chip('test')
 
     flow = 'test'
-    chip.node(flow, 'import', 'builtin.import')
+    chip.node(flow, 'import', 'builtin.nop')
     chip.node(flow, 'parallel1', foo)
     chip.node(flow, 'parallel2', bar)
     chip.edge(flow, 'import', 'parallel1')
@@ -152,7 +152,7 @@ def test_merged_graph_good(merge_flow_chip):
 def test_merged_graph_good_steplist():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
-    chip.node(flow, 'import', 'builtin.import')
+    chip.node(flow, 'import', 'builtin.nop')
     chip.node(flow, 'parallel1', echo)
     chip.node(flow, 'parallel2', echo)
     chip.node(flow, 'merge', echo)

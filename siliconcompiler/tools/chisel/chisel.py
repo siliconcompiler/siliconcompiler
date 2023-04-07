@@ -14,14 +14,13 @@ Installation: The Chisel plugin relies on having the Scala Build Tool (sbt)
 installed. Instructions: https://www.scala-sbt.org/download.html.
 '''
 
-import importlib
+from siliconcompiler.tools.chisel import convert
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    setup = getattr(importlib.import_module('tools.chisel.import'), 'setup')
-    setup(chip)
+    convert.setup(chip)
     return chip
 
 def parse_version(stdout):

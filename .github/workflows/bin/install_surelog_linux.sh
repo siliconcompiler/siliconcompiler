@@ -18,6 +18,4 @@ export LDFLAGS="-lrt"
 make
 make install PREFIX=/github/workspace/siliconcompiler/tools/surelog
 
-python3 ${src_path}/.github/workflows/bin/clean_surelog_build.py
-
 cd -

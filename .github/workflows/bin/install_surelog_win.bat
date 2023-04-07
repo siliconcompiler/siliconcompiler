@@ -41,5 +41,3 @@ git submodule update --init --recursive
 
 make
 make install
-
-python3 %GITHUB_WORKSPACE%\.github\workflows\bin\clean_surelog_build.py

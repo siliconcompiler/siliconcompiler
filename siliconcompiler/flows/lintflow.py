@@ -1,5 +1,6 @@
 import siliconcompiler
-import importlib
+
+from siliconcompiler.tools.surelog import parse as surelog_parse
 from siliconcompiler.tools.verilator import lint
 
 ###########################################################################
@@ -14,7 +15,7 @@ def setup(chip):
     flow = siliconcompiler.Flow(chip, flowname)
 
     # Linear flow, up until branch to run parallel verification steps.
-    pipe = [('import', importlib.import_module('siliconcompiler.tools.surelog.import')),
+    pipe = [('import', surelog_parse),
             ('lint', lint),
             ('export', 'builtin.nop')]
 

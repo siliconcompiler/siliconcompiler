@@ -197,7 +197,7 @@ if {[llength $yosys_hilomap_args] != 0} {
     yosys hilomap -singleton {*}$yosys_hilomap_args
 }
 
-if {[has_buffer_cell]} {
+if {[has_buffer_cell] && [dict get $sc_cfg tool $sc_tool task $sc_task var add_buffers] == "True"} {
     yosys insbuf -buf {*}[get_buffer_cell]
 }
 
@@ -211,7 +211,4 @@ foreach lib_file "$sc_libraries $sc_macro_libraries" {
 # turn off echo to prevent the stat command from showing up in the json file
 yosys echo off
 yosys tee -o ./reports/stat.json stat -json -top $sc_design {*}$stat_libs
-## currently Yosys does not place area into json (PR#3605)
-set area_metric [yosys tee -s result.string scratchpad -get stat.area]
 yosys echo on
-yosys log "SC_METRIC: area: ${area_metric}"

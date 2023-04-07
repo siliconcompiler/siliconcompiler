@@ -11,10 +11,11 @@ def setup(chip):
     setup_tool(chip)
 
     tool = 'openroad'
-    task = 'export'
     design = chip.top()
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
+
     stackup = chip.get('option', 'stackup')
     pdk = chip.get('option', 'pdk')
 

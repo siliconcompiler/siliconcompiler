@@ -2,17 +2,20 @@
 import siliconcompiler
 import os
 import pytest
-@pytest.mark.skip(reason="broken file path")
+
+@pytest.mark.eda
+@pytest.mark.quick
 def test_archive(oh_dir):
     srcdir = os.path.join(oh_dir, 'stdlib', 'hdl')
 
-    chip = siliconcompiler.Chip()
-    chip.set('design', 'oh_add')
-    chip.input(os.path.join(srcdir,'oh_add.v'))
-    chip.set('steplist','import')
-    chip.target('asicflow_freepdk45')
+    chip = siliconcompiler.Chip('oh_parity')
+    chip.input(os.path.join(srcdir,'oh_parity.v'))
+    chip.set('option', 'steplist', 'import')
+    chip.load_target('freepdk45_demo')
     chip.run()
     chip.archive()
+
+    assert os.path.isfile('oh_parity_job0.tgz')
 
 #########################
 if __name__ == "__main__":

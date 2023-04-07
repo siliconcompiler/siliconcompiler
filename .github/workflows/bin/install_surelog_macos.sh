@@ -19,5 +19,3 @@ cmake --version # must be >=3.20
 export ADDITIONAL_CMAKE_OPTIONS="-DPython3_ROOT_DIR=${pythonLocation} -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64'"
 make -j2
 make install PREFIX=$GITHUB_WORKSPACE/siliconcompiler/tools/surelog
-
-python3 ${src_path}/.github/workflows/bin/clean_surelog_build.py

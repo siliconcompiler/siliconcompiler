@@ -5,7 +5,7 @@ import pytest
 
 import siliconcompiler
 
-import importlib
+from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.verilator import compile
 
 @pytest.mark.eda
@@ -21,7 +21,7 @@ def test_basic(scroot, datadir):
 
     # Basic Verilator compilation flow
     flow = 'verilator_compile'
-    chip.node(flow, 'import', importlib.import_module('siliconcompiler.tools.surelog.import'))
+    chip.node(flow, 'import', parse)
     chip.node(flow, 'compile', compile)
     chip.edge(flow, 'import', 'compile')
     chip.set('option', 'flow', flow)

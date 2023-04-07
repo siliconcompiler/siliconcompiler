@@ -2,8 +2,8 @@
 import siliconcompiler
 import pytest
 
+from siliconcompiler.tools.verilator import parse
 from siliconcompiler.tools.yosys import syn_asic
-import importlib
 
 @pytest.fixture
 def chip():
@@ -16,7 +16,7 @@ def chip():
                 'synmin']
 
     task = {
-        'import': importlib.import_module('siliconcompiler.tools.verilator.import'),
+        'import': parse,
         'syn': syn_asic,
         'synmin': 'builtin.minimum'
     }

@@ -37,8 +37,8 @@ def test_self_test_cli():
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)
-@pytest.mark.skip(reason="Report popup needs to be suppressed for test")
+@pytest.mark.skip(reason="Remote calls can accidentially trigger bans")
 def test_self_test_cli_remote():
     ''' Verify self-test functionality w/ command-line call with remote '''
-    subprocess.run(['sc', '-target', 'asic_demo', '-remote'])
+    subprocess.run(['sc', '-target', 'asic_demo', '-remote', '-nodisplay'])
     assert os.path.isfile('build/heartbeat/job0/export/0/outputs/heartbeat.gds')

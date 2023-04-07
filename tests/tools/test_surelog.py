@@ -6,7 +6,8 @@ import sys
 
 import pytest
 
-import importlib
+from siliconcompiler.tools.surelog import parse
+
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -14,7 +15,7 @@ import importlib
 def test_surelog(scroot, clean):
     gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
-    step = "import"
+    step = "parse"
 
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
@@ -22,7 +23,7 @@ def test_surelog(scroot, clean):
     chip.input(gcd_src)
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'clean', clean)
-    chip.node('surelog', step, importlib.import_module('siliconcompiler.tools.surelog.import'))
+    chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
 
     chip.run()
@@ -40,7 +41,7 @@ def test_surelog(scroot, clean):
 def test_surelog_duplicate_inputs(scroot):
     gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
-    step = "import"
+    step = "parse"
 
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
@@ -51,7 +52,7 @@ def test_surelog_duplicate_inputs(scroot):
 
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'clean', True)
-    chip.node('surelog', step, importlib.import_module('siliconcompiler.tools.surelog.import'))
+    chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
 
     chip.run()
@@ -72,11 +73,11 @@ def test_surelog_duplicate_inputs(scroot):
 def test_surelog_preproc_regression(datadir):
     src = os.path.join(datadir, 'test_preproc.v')
     design = 'test_preproc'
-    step = "import"
+    step = "parse"
 
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
-    chip.node('surelog', step, importlib.import_module('siliconcompiler.tools.surelog.import'))
+    chip.node('surelog', step, parse)
     chip.input(src)
     chip.add('option', 'define', 'MEM_ROOT=test')
     chip.set('option', 'mode', 'sim')
@@ -97,14 +98,14 @@ def test_surelog_preproc_regression(datadir):
 def test_replay(scroot):
     src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
-    step = "import"
+    step = "parse"
 
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
 
     chip.input(src)
     chip.set('option', 'mode', 'sim')
-    chip.node('surelog', step, importlib.import_module('siliconcompiler.tools.surelog.import'))
+    chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
     chip.set('option', 'quiet', True)
     chip.set('option', 'clean', True) # replay should work even with clean=True
