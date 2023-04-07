@@ -45,6 +45,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.imgconverter',
     'sphinx.ext.autosummary',
+    'sphinx_design',                                  # helps with grid views
     'siliconcompiler.sphinx_ext.dynamicgen',
     'schemagen',
     'clientservergen',
@@ -70,36 +71,49 @@ suppress_warnings = ['autosectionlabel.*']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'pydata_sphinx_theme'
+
+html_logo = 'sc_logo_with_text.png'
+html_logo = 'sc_logo_with_text.png'
 
 html_theme_options = {
-    'collapse_navigation': False,
-    'logo_only': True,
+  'collapse_navigation': False,
+#    'logo_only': True,
 #    'display_version': True,
 #    'navigation_depth': 4,
+  "logo": {
+      "image_light": html_logo,
+      "image_dark": html_logo,
+  },
+  "github_url": "https://github.com/siliconcompiler/siliconcompiler",  # these are top right 
+  "collapse_navigation": True, # this prevents expandable navigation on side bars
+
+  # Add light/dark mode and documentation version switcher:
+  "navbar_end": ["theme-switcher", "navbar-icon-links"],
+    
 }
 
-# Custom sidebar templates, must be a dictionary that maps document names
-# to template names.
-#
-# The default sidebars (for documents that don't match any pattern) are
-# defined by theme itself.  Builtin themes are using these templates by
-# default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
-# 'searchbox.html']``.
-#
-# html_sidebars = {}
 
-html_logo = '_static/sc_logo_with_text.png'
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
+html_title = "%s v%s Manual" % (project, version)
 html_static_path = ['_static']
 
 html_css_files = [
     'css/custom.css',
 ]
+html_context = {"default_mode": "light"}
+html_use_modindex = True
+html_copy_source = False
+html_domain_indices = False
+html_file_suffix = '.html'
+
+
+plot_html_show_formats = False
+plot_html_show_source_link = False
 
 # -- Options for Latex output ------------------------------------------------
 
@@ -110,10 +124,27 @@ latex_preamble = r"""\newcommand{\origunderscore}{}
 \renewcommand{\_}{\allowbreak\origunderscore}
 """
 
+# Grouping the document tree into LaTeX files. List of tuples
+# (source start file, target name, title, author, document class [howto/manual]).
+
+_stdauthor = author # this automatically happens even if you don't specify latex_documents
+#_stdauthor = ", ".join(siliconcompiler._metadata.authors)
+
+latex_documents = [
+  ('index', 'siliconcompiler.tex', 'SiliconCompiler',
+   _stdauthor, 'manual'),
+]
+
 latex_elements = {
   'extraclassoptions': 'openany,oneside', # Don't add blank pages after some chapters
   'preamble': latex_preamble
 }
+
+#latex_logo = '_images/sc_logo_with_text.png'
+
+latex_use_modindex = False
+
+
 
 # -- Options for autodoc -----------------------------------------------------
 

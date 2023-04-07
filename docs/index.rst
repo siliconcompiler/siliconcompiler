@@ -3,84 +3,54 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+##################################################
 Welcome to SiliconCompiler's Documentation!
-============================================
+##################################################
 
-.. include:: user_guide/introduction.rst
-
-.. toctree::
-   :maxdepth: 3
-   :caption: User Guide
-   :numbered:
-
-   user_guide/installation
-   user_guide/quickstart
-   user_guide/glossary
-   user_guide/remote_processing
-   user_guide/faq
-   user_guide/licenses
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Flow Basics
-   :numbered:
-
-   user_guide/data_model
-   user_guide/programming_model
-   user_guide/execution_model
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Tutorials
-   :numbered:
-
-   tutorials/parallel
-   tutorials/hw_frontends.rst
-   tutorials/picorv32_ram
-   tutorials/slurmsetup
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Developer Manual
-   :numbered:
+ .. toctree::
+   :maxdepth: 1
+   :hidden:
       
-   tutorials/contribution
-   user_guide/tools
-   user_guide/pdks
-   user_guide/flows
-   user_guide/targets
-   user_guide/metrics
-   user_guide/records
-   user_guide/libraries
-   user_guide/packages
+   user_guide/index
+   development_guide/index
+   reference_manual/index
 
-.. toctree::
-   :maxdepth: 3
-   :caption: Reference Manual
-   :numbered:
+**Useful Links**:
+:ref:`Installation <installation>` | `GitHub Repo <https://github.com/siliconcompiler/siliconcompiler>`_ | `File an Issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_
 
-   reference_manual/schema
-   reference_manual/core_api
-   reference_manual/server_api
-   reference_manual/floorplan_api
-   reference_manual/apps
-   reference_manual/flows
-   reference_manual/tools
-   reference_manual/pdks
-   reference_manual/libs
-   reference_manual/targets
-   reference_manual/checklists
+.. grid:: 2
 
-.. toctree::
-   :maxdepth: 3
-   :caption: Resources
-   :numbered:
+    .. grid-item-card::
 
-   resources/glossary
+        After :ref:`installation` get started by going through how a simple demo is set up.
 
-Indices and tables
-------------------
+        +++
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+        .. button-ref:: user_guide/quickstart
+            :expand:
+            :color: secondary
+            :click-parent:
+
+            Quickstart Guide
+
+    .. grid-item-card::
+
+        Walk through examples and fundamentals of SiliconCompiler, including tutorials.
+
+
+        +++
+
+        .. button-ref:: user_guide/index
+            :expand:
+            :color: secondary
+            :click-parent:
+
+            To the Complete User Guide
+
+.. warning::
+   TBD on final "grid" placement cards. This should be what we think the users will most quickly want to get to.
+
+.. warning::
+   TBD also on Getting Help section.
+
+.. This is not really the index page, ...

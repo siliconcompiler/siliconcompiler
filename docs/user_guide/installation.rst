@@ -1,6 +1,8 @@
 Installation
 ===================================
 
+.. warning::
+   **[WIP]** Open PR `#1401 <https://siliconcompiler--1401.org.readthedocs.build/en/1401/user_guide/installation.html>`_ is a better representation of final from a content perspective.
 
 Installing Python
 -----------------

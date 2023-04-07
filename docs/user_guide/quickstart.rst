@@ -2,6 +2,9 @@
 Quickstart guide
 ================
 
+.. warning::
+   **[WIP]** Open PR `#1401 <https://siliconcompiler--1401.org.readthedocs.build/en/1401/user_guide/installation.html>`_ is a better representation of final from a content perspective.
+
 After following the :ref:`installation` instructions, you can either `run remotely`_ in the cloud, or `run locally`_ on your machine. The run instructions below will use :ref:`asic_demo`, a simple design run in an ASIC flow, using the :ref:`skywater130` PDK (set up from  :ref:`installation`).
 
 .. _run remotely:

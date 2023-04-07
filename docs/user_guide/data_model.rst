@@ -1,3 +1,11 @@
+######################################
+The Schema
+######################################
+
+.. warning::
+   **[WIP]** This page is a work in progress. What's currently on this page is still the original content. One thing that needs to be update is there is some duplication with the Schema API
+
+
 Data model
 ===================================
 

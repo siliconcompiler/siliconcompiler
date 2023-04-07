@@ -1,7 +1,18 @@
+.. _what_is_sc:
+
+
+###################################
+What is SiliconCompiler?
+###################################
+
 SiliconCompiler is an open source build system that automates translation from source code to silicon.
 
+.. warning::
+   **[WIP]** Still has content from original pages.
+   Planning to merge in content from github README and the existing Introduction page which starts below
+
 Getting Started
-----------------
+-------------------
 
 If you're a **user** who would like to get started using SiliconCompiler to automate your design prototyping and experiment with optimizing different steps, hop on over to tool :ref:`installation`, followed by the :ref:`Quickstart guide` to get a quick tutorial on the run experience. Anchor yourself with the :ref:`Glossary` and :ref:`FAQ` and by searching through the Reference Manual.
 
@@ -27,7 +38,7 @@ The expansive data schema, standardized plug-in interfaces, and built-in dynamic
 
 To further reduce design access barriers, the project also supports a :ref:`client-server <Remote Processing>` execution model that leverages the cloud to: 1) reduce tool installation barriers, 2) reduce the barrier to massively parallel elastic compute, and 3) address the NDA barrier for PDK and EDA tools.
 
-.. image:: _images/sc_arch.svg
+.. image:: ../_images/sc_arch.svg
 
 Authors
 -------------
