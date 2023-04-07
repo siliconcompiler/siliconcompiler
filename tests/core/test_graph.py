@@ -1,30 +1,47 @@
 import siliconcompiler
 
+from siliconcompiler.tools.surelog import parse
+from siliconcompiler.tools.yosys import syn_asic
+from siliconcompiler.tools.openroad import floorplan
+from siliconcompiler.tools.openroad import physyn
+from siliconcompiler.tools.openroad import place
+from siliconcompiler.tools.openroad import cts
+from siliconcompiler.tools.openroad import route
+from siliconcompiler.tools.openroad import dfm
+from siliconcompiler.tools.klayout import export
+
+from siliconcompiler.tools.magic import extspice
+from siliconcompiler.tools.magic import drc
+from siliconcompiler.tools.netgen import lvs
+
+from tests.core.tools.fake import fake_in
+from tests.core.tools.fake import fake_out
+
 def test_graph():
 
     chip = siliconcompiler.Chip('test')
 
     #RTL
-    chip.pipe('rtl', [{'import' : ('surelog', 'parse')},
-                      {'syn' : ('yosys', 'syn')},
-                      {'export' : ('builtin', 'nop')},])
+    chip.pipe('rtl', [{'import' : parse},
+                      {'syn' : syn_asic},
+                      {'export' : 'builtin.nop'},])
 
     #APR
-    chip.pipe('apr', [{'import' : ('builtin', 'nop')},
-                      {'floorplan' : ('openroad', 'floorplan')},
-                      {'physyn' : ('openroad', 'physyn')},
-                      {'place' : ('openroad', 'place')},
-                      {'cts' : ('openroad', 'cts')},
-                      {'route' : ('openroad', 'route')},
-                      {'dfm' : ('openroad', 'dfm')},
-                      {'export' : ('klayout', 'export')}])
+    chip.pipe('apr', [{'import' : 'builtin.nop'},
+                      {'floorplan' : floorplan},
+                      {'physyn' : physyn},
+                      {'place' : place},
+                      {'cts' : cts},
+                      {'route' : route},
+                      {'dfm' : dfm},
+                      {'export' : export}])
 
     #SIGNOFF
-    chip.node('signoff', 'import', 'builtin', 'nop')
-    chip.node('signoff', 'extspice', 'magic', 'extspice')
-    chip.node('signoff', 'drc', 'magic', 'drc')
-    chip.node('signoff', 'lvs', 'netgen', 'lvs')
-    chip.node('signoff', 'export', 'join', 'export')
+    chip.node('signoff', 'import', 'builtin.nop')
+    chip.node('signoff', 'extspice', extspice)
+    chip.node('signoff', 'drc', drc)
+    chip.node('signoff', 'lvs', lvs)
+    chip.node('signoff', 'export', 'bulitin.join')
 
     chip.edge('signoff', 'import', 'drc')
     chip.edge('signoff', 'import', 'extspice')
@@ -47,10 +64,10 @@ def test_graph_entry():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'premin', 'fake_out', 'premin', index=0)
-    chip.node(flow, 'premin', 'fake_out', 'premin', index=1)
-    chip.node(flow, 'domin', 'builtin', 'minimum')
-    chip.node(flow, 'postmin', 'fake_in', 'postmin')
+    chip.node(flow, 'premin', fake_out, index=0)
+    chip.node(flow, 'premin', fake_out, index=1)
+    chip.node(flow, 'domin', 'builtin.minimum')
+    chip.node(flow, 'postmin', fake_in)
 
     chip.edge(flow, 'premin', 'domin', tail_index=0)
     chip.edge(flow, 'premin', 'domin', tail_index=1)

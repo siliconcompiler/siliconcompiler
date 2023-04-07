@@ -2,6 +2,16 @@ import siliconcompiler
 
 from siliconcompiler.flows._common import setup_frontend
 
+from siliconcompiler.tools.yosys import syn_asic
+from siliconcompiler.tools.openroad import floorplan
+from siliconcompiler.tools.openroad import physyn
+from siliconcompiler.tools.openroad import place
+from siliconcompiler.tools.openroad import cts
+from siliconcompiler.tools.openroad import route
+from siliconcompiler.tools.openroad import dfm
+from siliconcompiler.tools.openroad import export as openroad_export
+from siliconcompiler.tools.klayout import export as klayout_export
+
 ############################################################################
 # DOCS
 ############################################################################
@@ -62,21 +72,21 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
                 'routemin',
                 'dfm']
 
-    #step -->(tool, task)
-    tools = {
-        'syn' : ['yosys','syn_asic'],
-        'synmin' : ['builtin','minimum'],
-        'floorplan' : ['openroad','floorplan'],
-        'floorplanmin' : ['builtin','minimum'],
-        'physyn' : ['openroad','physyn'],
-        'physynmin' : ['builtin','minimum'],
-        'place' : ['openroad','place'],
-        'placemin' : ['builtin','minimum'],
-        'cts' : ['openroad','cts'],
-        'ctsmin' : ['builtin','minimum'],
-        'route' : ['openroad','route'],
-        'routemin' : ['builtin','minimum'],
-        'dfm' : ['openroad','dfm']
+    #step --> task
+    tasks = {
+        'syn' : syn_asic,
+        'synmin' : 'builtin.minimum',
+        'floorplan' : floorplan,
+        'floorplanmin' : 'builtin.minimum',
+        'physyn' : physyn,
+        'physynmin' : 'builtin.minimum',
+        'place' : place,
+        'placemin' : 'builtin.minimum',
+        'cts' : cts,
+        'ctsmin' : 'builtin.minimum',
+        'route' : route,
+        'routemin' : 'builtin.minimum',
+        'dfm' : dfm
     }
 
     np = {
@@ -88,45 +98,49 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
         "route": route_np
     }
 
-    #Remove built in steps where appropriate
+    # Remove built in steps where appropriate
     flowpipe = []
     for step in longpipe:
-        if tools[step][0] == 'builtin':
+        task = tasks[step]
+        if isinstance(task, str) and task.startswith('builtin'):
             if prevstep in np and np[prevstep] > 1:
                 flowpipe.append(step)
         else:
             flowpipe.append(step)
         prevstep = step
 
-    flowtools = setup_frontend(chip)
+    flowtasks = setup_frontend(chip)
     for step in flowpipe:
-        flowtools.append((step, tools[step][0], tools[step][1]))
+        flowtasks.append((step, tasks[step]))
 
     # Programatically build linear portion of flowgraph and fanin/fanout args
-    for step,tool,task in flowtools:
+    prevstep = None
+    for step, task in flowtasks:
         fanout = 1
         if step in np:
             fanout = np[step]
         # create nodes
         for index in range(fanout):
             # nodes
-            flow.node(flowname, step, tool, task, index=index)
+            flow.node(flowname, step, task, index=index)
+
             # edges
-            if tool == 'builtin':
+            if isinstance(task, str) and task.startswith('builtin'):
                 fanin = 1
                 if prevstep in np:
                     fanin = np[prevstep]
                 for i in range(fanin):
                     flow.edge(flowname, prevstep, step, tail_index=i)
-            elif step != 'import':
+            elif prevstep:
                 flow.edge(flowname, prevstep, step, head_index=index)
+
             # metrics
             goal_metrics = ()
             weight_metrics = ()
-            if tool == 'yosys':
+            if task in (syn_asic, ):
                 goal_metrics = ('errors',)
                 weight_metrics = ()
-            elif tool == 'openroad':
+            elif task in (floorplan, physyn, place, cts, route, dfm):
                 goal_metrics = ('errors', 'setupwns', 'setuptns')
                 weight_metrics = ('cellarea', 'peakpower', 'leakagepower')
 
@@ -137,8 +151,8 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
         prevstep = step
 
     # add export
-    flow.node(flowname, 'export', 'klayout', 'export', index=0)
-    flow.node(flowname, 'export', 'openroad', 'export', index=1)
+    flow.node(flowname, 'export', klayout_export, index=0)
+    flow.node(flowname, 'export', openroad_export, index=1)
     flow.edge(flowname, prevstep, 'export', head_index=0)
     flow.edge(flowname, prevstep, 'export', head_index=1)
 

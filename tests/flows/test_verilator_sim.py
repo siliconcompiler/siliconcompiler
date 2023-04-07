@@ -5,6 +5,9 @@ import pytest
 
 import siliconcompiler
 
+from siliconcompiler.tools.surelog import parse
+from siliconcompiler.tools.verilator import compile
+
 @pytest.mark.eda
 def test_basic(scroot, datadir):
     chip = siliconcompiler.Chip('heartbeat')
@@ -18,8 +21,8 @@ def test_basic(scroot, datadir):
 
     # Basic Verilator compilation flow
     flow = 'verilator_compile'
-    chip.node(flow, 'import', 'surelog', 'parse')
-    chip.node(flow, 'compile', 'verilator', 'compile')
+    chip.node(flow, 'import', parse)
+    chip.node(flow, 'compile', compile)
     chip.edge(flow, 'import', 'compile')
     chip.set('option', 'flow', flow)
 

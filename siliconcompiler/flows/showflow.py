@@ -1,4 +1,6 @@
 import siliconcompiler
+from siliconcompiler import SiliconCompilerError
+import importlib
 
 ############################################################################
 # DOCS
@@ -29,7 +31,10 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
     if not filetype:
         raise ValueError('filetype is a required argument')
 
-    flow.node(flowname, 'import', 'builtin', 'nop')
+    flow.node(flowname, 'import', 'builtin.nop')
+
+    if filetype not in chip.getkeys('option', 'showtool'):
+        raise SiliconCompilerError(f'Show tool for {filetype} is not defined.')
 
     show_tool = chip.get('option', 'showtool', filetype)
 
@@ -37,8 +42,41 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
     if screenshot:
         stepname = 'screenshot'
 
+    # Find suitable tool
+    tools = set()
+    for flowg in chip.getkeys('flowgraph'):
+        for step in chip.getkeys('flowgraph', flowg):
+            for index in chip.getkeys('flowgraph', flowg, step):
+                tool, _ = chip._get_tool_task(step, index, flow=flowg)
+                if tool != show_tool:
+                    continue
+                try:
+                    tool_module = chip._get_tool_module(step, index, flow=flowg)
+                    if not tool_module:
+                        continue
+                    tools.add(tool_module.__name__)
+                except SiliconCompilerError:
+                    pass
+
+    show_task_module = None
+    for tool in tools:
+        tool_base = '.'.join(tool.split('.')[:-1])
+        search_modules = [
+            f'{tool}.{stepname}',
+            f'{tool_base}.{stepname}'
+        ]
+        for search_module in search_modules:
+            try:
+                show_task_module = importlib.import_module(search_module)
+                break
+            except ModuleNotFoundError:
+                pass
+
+    if not show_task_module:
+        raise SiliconCompilerError(f'Cannot determine {stepname} module for {show_tool}.')
+
     for idx in range(np):
-        flow.node(flowname, stepname, show_tool, stepname, index=idx)
+        flow.node(flowname, stepname, show_task_module, index=idx)
         flow.edge(flowname, 'import', stepname, head_index=idx, tail_index=0)
 
     return flow

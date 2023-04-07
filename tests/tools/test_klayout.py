@@ -4,6 +4,8 @@ import pytest
 
 import siliconcompiler
 
+from siliconcompiler.tools.klayout import export
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_klayout(datadir):
@@ -24,8 +26,8 @@ def test_klayout(datadir):
     chip.use(lib)
 
     flow = 'export'
-    chip.node(flow, 'import', 'builtin', 'nop')
-    chip.node(flow, 'export', 'klayout', 'export')
+    chip.node(flow, 'import', 'builtin.nop')
+    chip.node(flow, 'export', export)
     chip.edge(flow, 'import', 'export')
     chip.set('option', 'flow', flow)
 

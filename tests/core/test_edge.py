@@ -2,6 +2,10 @@
 import siliconcompiler
 import os
 
+from siliconcompiler.tools.surelog import parse
+from siliconcompiler.tools.yosys import syn_asic
+from siliconcompiler.tools.openroad import floorplan
+
 def test_edge():
 
     chip = siliconcompiler.Chip('test')
@@ -11,11 +15,11 @@ def test_edge():
     flow = 'test'
     chip.set('option', 'flow', flow)
     #nodes
-    chip.node(flow, 'import', 'surelog', 'parse')
+    chip.node(flow, 'import', parse)
     for i in range(syn_np):
-        chip.node(flow, 'syn', 'yosys', 'syn', index=i)
-    chip.node(flow, 'synmin', 'minimum', 'synmin')
-    chip.node(flow, 'floorplan', 'openroad', 'floorplan')
+        chip.node(flow, 'syn', syn_asic, index=i)
+    chip.node(flow, 'synmin', 'builtin.minimum')
+    chip.node(flow, 'floorplan', floorplan)
 
     #edges
     for i in range(syn_np):

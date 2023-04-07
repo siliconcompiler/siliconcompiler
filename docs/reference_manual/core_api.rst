@@ -49,13 +49,11 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.core.Chip.clock
     ~siliconcompiler.core.Chip.create_cmdline
     ~siliconcompiler.core.Chip.find_files
-    ~siliconcompiler.core.Chip.find_function
     ~siliconcompiler.core.Chip.find_result
     ~siliconcompiler.core.Chip.grep
     ~siliconcompiler.core.Chip.hash_files
     ~siliconcompiler.core.Chip.list_steps
     ~siliconcompiler.core.Chip.load_target
-    ~siliconcompiler.core.Chip.read_file
     ~siliconcompiler.core.Chip.read_manifest
     ~siliconcompiler.core.Chip.show
     ~siliconcompiler.core.Chip.summary

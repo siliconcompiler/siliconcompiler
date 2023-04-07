@@ -6,6 +6,9 @@ import sys
 
 import pytest
 
+from siliconcompiler.tools.surelog import parse
+
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.parametrize('clean', [False, True])
@@ -20,7 +23,7 @@ def test_surelog(scroot, clean):
     chip.input(gcd_src)
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'clean', clean)
-    chip.node('surelog', step, 'surelog', step)
+    chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
 
     chip.run()
@@ -49,7 +52,7 @@ def test_surelog_duplicate_inputs(scroot):
 
     chip.set('option', 'mode', 'sim')
     chip.set('option', 'clean', True)
-    chip.node('surelog', step, 'surelog', step)
+    chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
 
     chip.run()
@@ -74,7 +77,7 @@ def test_surelog_preproc_regression(datadir):
 
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
-    chip.node('surelog', step, 'surelog', step)
+    chip.node('surelog', step, parse)
     chip.input(src)
     chip.add('option', 'define', 'MEM_ROOT=test')
     chip.set('option', 'mode', 'sim')
@@ -102,7 +105,7 @@ def test_replay(scroot):
 
     chip.input(src)
     chip.set('option', 'mode', 'sim')
-    chip.node('surelog', step, 'surelog', step)
+    chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
     chip.set('option', 'quiet', True)
     chip.set('option', 'clean', True) # replay should work even with clean=True

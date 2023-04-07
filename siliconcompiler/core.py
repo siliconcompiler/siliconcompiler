@@ -21,6 +21,7 @@ import hashlib
 import shutil
 import copy
 import importlib
+import inspect
 import textwrap
 import math
 import pandas
@@ -166,20 +167,59 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return entrypoint
 
     ###########################################################################
-    def _get_task(self, step, index='0', flow=None):
+    def _get_tool_task(self, step, index, flow=None):
         '''
-        Helper function to get the name of the task associated with a given step/index.
-        The flowgraph step name may be descriptive for disambiguation pruposes, while the
-        task name defines how the associated tool should be configured and run.
-
-        TODO: Is this sort of schema shortcut worth adding?
-              If so should we also add 'get_tool'?
-              Should it be called 'get_step_task'?
+        Helper function to get the name of the tool and task associated with a given step/index.
         '''
         if not flow:
             flow = self.get('option', 'flow')
-        return self.get('flowgraph', flow, step, index, 'task')
 
+        return self.get('flowgraph', flow, step, index, 'tool'), self.get('flowgraph', flow, step, index, 'task')
+
+    def _get_task(self, step, index, flow=None):
+        '''
+        Helper function to get the name of the task associated with a given step/index.
+        '''
+        _, task = self._get_tool_task(step, index, flow=flow)
+        return task
+
+    def _get_tool_module(self, step, index, flow=None, error=True):
+        if not flow:
+            flow = self.get('option', 'flow')
+
+        tool, _ = self._get_tool_task(step, index, flow=flow)
+
+        taskmodule = self.get('flowgraph', flow, step, index, 'taskmodule')
+        module_path = taskmodule.split('.')
+
+        tool_module = '.'.join(module_path[0:-1] + [tool])
+
+        try:
+            return importlib.import_module(tool_module)
+        except ModuleNotFoundError:
+            pass
+
+        if error:
+            self.error(f'Unable to load {tool_module} for {tool}', fatal=True)
+        else:
+            return None
+
+    def _get_task_module(self, step, index, flow=None, error=True):
+        if not flow:
+            flow = self.get('option', 'flow')
+
+        taskmodule = self.get('flowgraph', flow, step, index, 'taskmodule')
+
+        try:
+            return importlib.import_module(taskmodule)
+        except ModuleNotFoundError:
+            pass
+
+        if error:
+            tool, task = self._get_tool_task(step, index, flow=flow)
+            self.error(f'Unable to load {taskmodule} for {tool}/{task}', fatal=True)
+        else:
+            return None
 
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
@@ -507,87 +547,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     self.set(*args, val, step=step, index=index, clobber=True)
 
-    #########################################################################
-    def find_function(self, modulename, funcname, moduletype=None, moduletask=None):
-        '''
-        Returns a function attribute from a module on disk.
-
-        Searches the SC root directory and the 'scpath' parameter for the
-        modulename provided and imports the module if found. If the funcname
-        provided is found in the module, a callable function attribute is
-        returned, otherwise None is returned.
-
-        The function assumes the following directory structure:
-
-        * tools/modulename/modulename.py
-        * flows/modulename.py
-        * pdks/modulname.py
-
-        If the moduletype is None, the module paths are search in the
-        order: 'targets'->'flows'->'tools'->'pdks'->'libs'->'checklists'):
-
-
-        Supported functions include:
-
-        * targets (make_docs, setup)
-        * pdks (make_docs, setup)
-        * flows (make_docs, setup)
-        * tools (make_docs, setup, check_version, runtime_options,
-          pre_process, post_process)
-        * libs (make_docs, setup)
-
-        Args:
-            modulename (str): Name of module to import.
-            funcname (str): Name of the function to find within the module.
-            moduletype (str): Type of module (flows, pdks, libs, checklists, targets).
-
-        Examples:
-            >>> setup_pdk = chip.find_function('freepdk45', 'setup', 'pdks')
-            >>> setup_pdk()
-            Imports the freepdk45 module and runs the setup_pdk function
-
-        '''
-
-        # module search path depends on modtype
-        module = None
-        if moduletype is None:
-            for item in ('targets', 'flows', 'tools', 'pdks', 'libs', 'checklists'):
-                try:
-                    module = importlib.import_module(f'{item}.{modulename}')
-                    break
-                except ModuleNotFoundError:
-                    pass
-        elif moduletype in ('targets','flows', 'pdks', 'libs'):
-            try:
-                module = importlib.import_module(f'{moduletype}.{modulename}')
-            except ModuleNotFoundError:
-                pass
-        elif moduletype in ('tools', 'checklists'):
-            modulefile = moduletask if moduletask is not None else modulename
-            try:
-                module = importlib.import_module(f'{moduletype}.{modulename}.{modulefile}')
-            except ModuleNotFoundError:
-                pass
-        else:
-            self.error(f"Illegal module type '{moduletype}'.")
-            return None
-
-        if not module:
-            self.error(f'Could not find module {modulename}')
-            return None
-
-        # try loading module if found
-        self.logger.debug(f"Loading function '{funcname}' from module '{modulename}'")
-
-        return getattr(module, funcname, None)
-
     ##########################################################################
     def load_target(self, name, **kwargs):
         """
         Loads a target module and runs the setup() function.
 
-        The function searches the $SCPATH for targets/<name>.py and runs
-        the setup function in that module if found.
+        The function searches the installed Python packages for <name> and
+        siliconcompiler.targets.<name> and runs the setup function in that module
+        if found.
 
         Args:
             name (str): Module name
@@ -598,15 +565,36 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
-        # Record target
-        self.set('option', 'target', name)
+        # Search order "{name}", and "siliconcompiler.targets.{name}"
+        modules = []
+        for module_name in [name, f'siliconcompiler.targets.{name}']:
+            try:
+                module = importlib.import_module(module_name)
+                modules.append(module)
+            except ModuleNotFoundError:
+                pass
 
-        load_function = self.find_function(name, 'setup', 'targets')
+        if len(modules) == 0:
+            self.error(f'Could not find target {name}', fatal=True)
+
+        # Check for setup in modules
+        load_function = None
+        for module in modules:
+            load_function = getattr(module, 'setup', None)
+            if load_function:
+                break
+
+        if not load_function:
+            self.error(f'Could not find setup function for {name} target', fatal=True)
+
         try:
             load_function(self, **kwargs)
         except Exception as e:
             self.logger.error(f'Failed to load target {name}')
             raise e
+
+        # Record target
+        self.set('option', 'target', name)
 
     ##########################################################################
     def use(self, module, **kwargs):
@@ -1419,44 +1407,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     dest.set(*keylist, v, field=field)
 
     ###########################################################################
-    def _check_files(self):
-        allowed_paths = [os.path.join(self.cwd, self.get('option', 'builddir'))]
-        allowed_paths.extend(os.environ['SC_VALID_PATHS'].split(os.pathsep))
-
-        for keypath in self.allkeys():
-            if 'default' in keypath:
-                continue
-
-            paramtype = self.get(*keypath, field='type')
-            #only do something if type is file or dir
-            if ('history' not in keypath and 'library' not in keypath) and ('file' in paramtype or 'dir' in paramtype):
-                for val, step, index in self.schema._getvals(*keypath):
-                    if val is None:
-                        # skip unset values (some directories are None by default)
-                        continue
-
-                    abspaths = self._find_files(*keypath, missing_ok=True, step=step, index=index)
-                    if not isinstance(abspaths, list):
-                        abspaths = [abspaths]
-
-                    for abspath in abspaths:
-                        ok = False
-
-                        if abspath is not None:
-                            for allowed_path in allowed_paths:
-                                if os.path.commonpath([abspath, allowed_path]) == allowed_path:
-                                    ok = True
-                                    continue
-
-                        if not ok:
-                            self.logger.error(f'Keypath {keypath} contains path(s) '
-                                'that do not exist or resolve to files outside of '
-                                'allowed directories.')
-                            return False
-
-        return True
-
-    ###########################################################################
     def check_filepaths(self):
         '''
         Verifies that paths to all files in manifest are valid.
@@ -1501,8 +1451,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         error = False
 
         flow = self.get('option', 'flow')
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
+        tool, task = self._get_tool_task(step, index, flow=flow)
 
         required_inputs = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
         input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
@@ -1533,12 +1482,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                     unresolved_path = unresolved_paths[i]
                                     self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
                                     error = True
-
-        # Need to run this check here since file resolution can change in
-        # _runtask().
-        if 'SC_VALID_PATHS' in os.environ:
-            if not self._check_files():
-                error = True
 
         return not error
 
@@ -1645,28 +1588,51 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     error = True
                     self.logger.error(f"Mode requirement missing for [{keypath}].")
 
-        #4. Check per tool parameter requirements (when tool exists)
+        #4. Check if tool/task modules exists
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool = self.get('flowgraph', flow, step, index, 'tool')
                 task = self.get('flowgraph', flow, step, index, 'task')
-                if (not self._is_builtin(tool, task)) and (tool in self.getkeys('tool')):
-                    # checking that requirements are set
-                    all_required = self.get('tool', tool, 'task', task, 'require', step=step, index=index)
-                    for item in all_required:
-                        keypath = item.split(',')
-                        if self.schema._is_empty(*keypath):
-                            error = True
-                            self.logger.error(f"Value empty for [{keypath}] for {tool}.")
+                tool_name, task_name = self._get_tool_task(step, index, flow=flow)
+                if self._is_builtin(tool_name, task_name):
+                    continue
 
-                    if (self.schema._is_empty('tool', tool, 'exe') and
-                        self.find_function(tool, 'run', 'tools') is None):
+                if not self._get_tool_module(step, index, flow=flow, error=False):
+                    error = True
+                    self.logger.error(f"Tool module {tool_name} could not be found or loaded for {step}{index}.")
+                if not self._get_task_module(step, index, flow=flow, error=False):
+                    error = True
+                    task_module = self.get('flowgraph', flow, step, index, 'taskmodule')
+                    self.logger.error(f"Task module {task_module} for {tool_name}/{task_name} could not be found or loaded for {step}{index}.")
+
+        #5. Check per tool parameter requirements (when tool exists)
+        for step in steplist:
+            for index in self.getkeys('flowgraph', flow, step):
+                tool, task = self._get_tool_task(step, index, flow=flow)
+                if self._is_builtin(tool, task):
+                    continue
+
+                if tool not in self.getkeys('tool'):
+                    error = True
+                    self.logger.error(f'{tool} is not configured.')
+                    continue
+
+                if task not in self.getkeys('tool', tool, 'task'):
+                    error = True
+                    self.logger.error(f'{tool}/{task} is not configured.')
+                    continue
+
+                all_required = self.get('tool', tool, 'task', task, 'require', step=step, index=index)
+                for item in all_required:
+                    keypath = item.split(',')
+                    if self.schema._is_empty(*keypath):
                         error = True
-                        self.logger.error(f'No executable or run() function specified for tool {tool}')
+                        self.logger.error(f"Value empty for [{keypath}] for {tool}.")
 
-        if 'SC_VALID_PATHS' in os.environ:
-            if not self._check_files():
-                error = True
+                task_run = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
+                if self.schema._is_empty('tool', tool, 'exe') and not task_run:
+                    error = True
+                    self.logger.error(f'No executable or run() function specified for {tool}/{task}')
 
         if not self._check_flowgraph_io():
             error = True
@@ -1679,8 +1645,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         directory after a successful run of step/index.'''
 
         flow = self.get('option', 'flow')
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
+        tool, task = self._get_tool_task(step, index, flow=flow)
 
         outputs = set()
         if self._is_builtin(tool, task):
@@ -1730,8 +1695,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         error = False
         for step, index in nodes:
             # For each task, check input requirements.
-            tool = self.get('flowgraph', flow, step, index, 'tool')
-            task = self.get('flowgraph', flow, step, index, 'task')
+            tool, task = self._get_tool_task(step, index, flow=flow)
 
             if not tool:
                 self.logger.error(f'{step}{index} is missing a tool definition in the {flow} flowgraph')
@@ -1759,8 +1723,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 # For each task, check input requirements.
-                tool = self.get('flowgraph', flow, step, index, 'tool')
-                task = self.get('flowgraph', flow, step, index, 'task')
+                tool, task = self._get_tool_task(step, index, flow=flow)
 
                 if self._is_builtin(tool, task):
                     # We can skip builtins since they don't have any particular
@@ -2041,13 +2004,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return not error
 
     ###########################################################################
-    def read_file(self, filename, step=None, index='0'):
-        '''
-        Read file defined in schema. (WIP)
-        '''
-        return(0)
-
-    ###########################################################################
     def update(self):
         '''
         Update the chip dependency graph.
@@ -2278,8 +2234,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for index in self.getkeys('flowgraph', flow, step):
                 node = f'{step}{index}'
                 # create step node
-                tool = self.get('flowgraph', flow, step, index, 'tool')
-                task = self._get_task(step, index, flow=flow)
+                tool, task = self._get_tool_task(step, index, flow=flow)
                 if self._is_builtin(tool, task):
                     labelname = step
                 elif tool is not None:
@@ -2787,8 +2742,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             logfile = os.path.join(self._getworkdir(jobname=jobname, step=step, index=index),
                                    f'{step}.log')
 
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
+        tool, task = self._get_tool_task(step, index, flow=flow)
 
         # Creating local dictionary (for speed)
         # self.get is slow
@@ -2987,8 +2941,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # only report tool based steps functions
         for step in steplist.copy():
-            tool = self.get('flowgraph', flow, step, '0', 'tool')
-            task = self._get_task(step, '0', flow=flow)
+            tool, task = self._get_tool_task(step, '0', flow=flow)
             if self._is_builtin(tool, task):
                 index = steplist.index(step)
                 del steplist[index]
@@ -3076,8 +3029,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 value = self.get('metric', metric, step=step, index=index)
                 if value is not None:
                     show_metric = True
-                tool = self.get('flowgraph', flow, step, index, 'tool')
-                task = self._get_task(step, index, flow=flow)
+                tool, task = self._get_tool_task(step, index, flow=flow)
                 rpts = self.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)
 
                 errors[step, index] = self.get('flowgraph', flow, step, index, 'status') == TaskStatus.ERROR
@@ -3308,7 +3260,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('datasheet', design, 'pin', pin, 'tjitter', 'global', jitter_range)
 
     ###########################################################################
-    def node(self, flow, step, tool, task, index=0):
+    def node(self, flow, step, task, index=0):
         '''
         Creates a flowgraph node.
 
@@ -3319,30 +3271,51 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         The method modifies the following schema parameters:
 
-        ['flowgraph', flow, step, index, 'tool', tool]
-        ['flowgraph', flow, step, index, 'task', task]
-        ['flowgraph', flow, step, index, 'weight', metric]
+        * ['flowgraph', flow, step, index, 'tool', tool]
+        * ['flowgraph', flow, step, index, 'task', task]
+        * ['flowgraph', flow, step, index, 'task', taskmodule]
+        * ['flowgraph', flow, step, index, 'weight', metric]
 
         Args:
             flow (str): Flow name
             step (str): Step name
-            task (str): Task name, built in or tool specific
-            tool (str): Tool to associate with task.
+            task (module/str): Task to associate with this node
             index (int): Step index
 
         Examples:
-            >>> chip.node('asicflow', 'place', 'openroad', index=0)
-            Creates a task with step='place' and index=0 and binds it to the 'openroad' tool.
+            >>> import siliconcomiler.tools.openroad.place as place
+            >>> chip.node('asicflow', 'apr_place', place, index=0)
+            Creates a 'place' task with step='apr_place' and index=0 and binds it to the 'openroad' tool.
         '''
+
         if step in (Schema.GLOBAL_KEY, 'default', 'sc_collected_files'):
             self.error(f'Illegal step name: {step} is reserved')
             return
 
         index = str(index)
 
+        # Determine task name and module
+        task_module = None
+        if (isinstance(task, str)):
+           task_module = task
+        elif inspect.ismodule(task):
+            task_module = task.__name__
+        else:
+            self.error(f"{task} is not a string or module and cannot be used to setup a task.", fatal=True)
+
+        task_parts = task_module.split('.')
+        if len(task_parts) < 2:
+            self.error(f"{task} is not a valid task, it must be associated with a tool '<tool>.<task>'.", fatal=True)
+        tool_name, task_name = task_parts[-2:]
+
+        if tool_name == 'builtin':
+            if not self._is_builtin(tool_name, task_name):
+                self.error(f'{tool_name}/{task_name} is not a valid builtin task.', fatal=True)
+
         # bind tool to node
-        self.set('flowgraph', flow, step, index, 'tool', tool)
-        self.set('flowgraph', flow, step, index, 'task', task)
+        self.set('flowgraph', flow, step, index, 'tool', tool_name)
+        self.set('flowgraph', flow, step, index, 'task', task_name)
+        self.set('flowgraph', flow, step, index, 'taskmodule', task_module)
 
         # set default weights
         for metric in self.getkeys('metric'):
@@ -3424,8 +3397,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         prevstep = None
         for item in plan:
             step = list(item.keys())[0]
-            tool, task = list(item.values())[0]
-            self.node(flow, step, tool, task)
+            task = list(item.values())[0]
+            self.node(flow, step, task)
             if prevstep:
                 self.edge(flow, prevstep, step)
             prevstep = step
@@ -3715,8 +3688,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         design = self.get('design')
         top = self.top()
         flow = self.get('option', 'flow')
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self._get_task(step, index, flow)
+        tool, task = self._get_tool_task(step, index, flow)
 
         quiet = (
             self.get('option', 'quiet', step=step, index=index) and not
@@ -3839,7 +3811,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Run preprocess step for tool
         if not is_builtin:
-            func = self.find_function(tool, "pre_process", 'tools', task)
+            func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)
             if func:
                 try:
                     func(self)
@@ -3867,7 +3839,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         run_func = None
         if not is_builtin:
-            run_func = self.find_function(tool, 'run', 'tools')
+            run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
 
         ##################
         # Check exe version
@@ -3886,9 +3858,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if proc.returncode != 0:
                     self.logger.error(f'Version check on {tool} failed with code {proc.returncode}: {proc.stdout}')
                     self._haltstep(step, index)
-                parse_version = self.find_function(tool, 'parse_version', 'tools')
+                parse_version = getattr(self._get_tool_module(step, index, flow=flow), 'parse_version', None)
                 if parse_version is None:
-                    self.logger.error(f'{tool} does not implement parse_version.')
+                    self.logger.error(f'{tool}/{task} does not implement parse_version().')
                     self._haltstep(step, index)
                 try:
                     version = parse_version(proc.stdout)
@@ -4067,7 +4039,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Post process
         if (not is_builtin) and (not self.get('option', 'skipall')) :
-            func = self.find_function(tool, 'post_process', 'tools', task)
+            func = getattr(self._get_task_module(step, index, flow=flow), 'post_process', None)
             if func:
                 try:
                     func(self)
@@ -4177,15 +4149,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 os.remove(path)
 
     ###########################################################################
-    def _setup_tool(self, tool, task, step, index):
+    def _setup_task(self, step, index):
 
         self.set('arg','step', step)
         self.set('arg','index', index)
+        tool, task = self._get_tool_task(step, index)
 
         # Run task setup.
         try:
-            task = self.get('flowgraph', self.get('option', 'flow'), step, index, 'task')
-            setup_step = self.find_function(tool, 'setup', 'tools', task)
+            setup_step = getattr(self._get_task_module(step, index), 'setup', None)
         except SiliconCompilerError:
             setup_step = None
         if setup_step:
@@ -4447,10 +4419,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for step in steplist:
                 for index in indexlist[step]:
                     # Setting up tool is optional
-                    tool = self.get('flowgraph', flow, step, index, 'tool')
-                    task = self._get_task(step, index, flow=flow)
+                    tool, task = self._get_tool_task(step, index, flow=flow)
                     if not self._is_builtin(tool, task):
-                        self._setup_tool(tool, task, step, index)
+                        self._setup_task(step, index)
 
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
@@ -4709,7 +4680,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if step != taskname:
                 continue
             for index in self.getkeys('flowgraph', 'showflow', step):
-                show_tool = self.get('flowgraph', 'showflow', step, index, 'tool')
+                show_tool, _ = self._get_tool_task(step, index, flow='showflow')
                 self.set('tool', show_tool, 'task', taskname , 'var', 'show_filetype', filetype, step=step, index=index)
                 self.set('tool', show_tool, 'task', taskname , 'var', 'show_filepath', filepath, step=step, index=index)
                 if sc_step:
@@ -4783,7 +4754,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             cmdlist.extend(extra_options)
         cmdlist.extend(options)
         cmdlist.extend(scripts)
-        runtime_options = self.find_function(tool, 'runtime_options', 'tools')
+
+        runtime_options = getattr(self._get_task_module(step, index), 'runtime_options', None)
+        if not runtime_options:
+            runtime_options = getattr(self._get_tool_module(step, index), 'runtime_options', None)
         if runtime_options:
             try:
                 options = runtime_options(self)
@@ -5064,7 +5038,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             """
         _regex = re.compile(r"^\s*" + _regex_str + r"\s*$", re.VERBOSE | re.IGNORECASE)
 
-        normalize_version = self.find_function(tool, 'normalize_version', 'tools')
+        normalize_version = getattr(self._get_tool_module(step, index), 'normalize_version', None)
         # Version is good if it matches any of the specifier sets in this list.
         spec_sets = self.get('tool', tool, 'version', step=step, index=index)
         if not spec_sets:
@@ -5188,8 +5162,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if source:
             flow = self.get('option', 'flow')
-            tool = self.get('flowgraph', flow, step, index, 'tool')
-            task = self.get('flowgraph', flow, step, index, 'task')
+            tool, task = self._get_tool_task(step, index, flow=flow)
 
             self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
 
@@ -5200,8 +5173,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Helper function to clear metrics records
         '''
         flow = self.get('option', 'flow')
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
+        tool, task = self._get_tool_task(step, index, flow=flow)
 
         self.unset('metric', metric, step=step, index=index)
         self.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)

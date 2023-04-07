@@ -3,6 +3,14 @@ import re
 
 from siliconcompiler.flows._common import setup_frontend
 
+from siliconcompiler.tools.yosys import syn_fpga as yosys_syn
+from siliconcompiler.tools.vivado import syn_fpga as vivado_syn
+from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
+from siliconcompiler.tools.vpr import apr as vpr_apr
+from siliconcompiler.tools.icepack import bitstream as icestorm_bitstream
+from siliconcompiler.tools.genfasm import bitstream as genfasm_bitstream
+from siliconcompiler.tools.vivado import bitstream as vivado_bitstream
+
 ############################################################################
 # DOCS
 ############################################################################
@@ -64,23 +72,19 @@ def setup(chip, flowname='fpgaflow'):
         flowpipe = ['syn_fpga', 'place', 'route', 'bitstream']
     elif flowtype =='vpr':
         flowpipe = ['syn_vpr', 'apr', 'bitstream']
-        # flowpipe = ['syn_vpr', 'apr']
     else:
         flowpipe = ['syn_fpga', 'apr', 'bitstream']
 
     flowtools = setup_frontend(chip)
     for step in flowpipe:
-        task = step
-        if (step == 'syn_vpr') and (flowtype == 'vpr'):
-            task = 'syn_fpga'
-        flowtools.append((step, tool_lookup(flowtype, step), task))
+        flowtools.append((step, task_lookup(flowtype, step)))
 
     # Minimal setup
     index = '0'
     prevstep = None
-    for step,tool,task in flowtools:
+    for step, task in flowtools:
         # Flow
-        flow.node(flowname, step, tool,task)
+        flow.node(flowname, step, task)
         if prevstep:
             flow.edge(flowname, prevstep, step)
         # Hard goals
@@ -163,7 +167,7 @@ def flow_lookup(partname):
 
 ##################################################
 
-def tool_lookup(flow, step):
+def task_lookup(flow, step):
     '''
     Return tool based on flow and step combo.
     '''
@@ -176,29 +180,29 @@ def tool_lookup(flow, step):
     # open source ice40 flow
     if flow == "yosys-nextpnr":
         if step == "syn_fpga":
-            tool = "yosys"
+            return yosys_syn
         elif step == "apr":
-            tool = "nextpnr"
+            return nextpnr_apr
         elif step == "bitstream":
-            tool = "icepack"
-        elif step == "program":
-            tool = "iceprog"
-    # intel/quartus
-    elif flow == "quartus":
-        tool = 'quartus'
+            return icestorm_bitstream
+        elif step == "syn_vpr":
+            return yosys_syn
     # xilinx/vivado
     elif flow == "vivado":
-        tool = 'vivado'
-    # open source vpr flow
-    elif flow == 'vpr':
+        if step == "syn_fpga":
+            return vivado_syn
+        elif step == 'bitstream':
+            return vivado_bitstream
+    elif flow == "vpr":
         if step == "syn_vpr":
-            tool = "yosys"
+            return yosys_syn
         elif step == "apr":
-            tool = "vpr"
-        else:
-            tool = "genfasm"
+            return vpr_apr
+        elif step == "bitstream":
+            return genfasm_bitstream
 
-    return tool
+
+    return None
 
 ##################################################
 if __name__ == "__main__":
