@@ -2234,7 +2234,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task module",
-                        "switch": "-flowgraph_taskmodule 'flow step <str>'",
+                        "switch": [
+                            "-flowgraph_taskmodule 'flow step <str>'"
+                        ],
                         "type": "str"
                     },
                     "timeout": {
