@@ -49,7 +49,7 @@ def setup(chip, np=1):
                 'signoff']
 
     tasks = {
-        'import': surelog_parse),
+        'import': surelog_parse,
         'compile': compile,
         # 'testgen': ('verilator', 'testgen'),
         # 'refsim': ('verilator', 'refsim'),
