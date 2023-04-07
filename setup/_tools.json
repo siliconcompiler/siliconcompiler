@@ -1,28 +1,36 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "81c846f4049a1232c69ab56b9b786dff6e71fb02",
-    "docker-cmds": ["RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"]
+    "git-commit": "47991be874e4db0197c787e072ad23100b5b0911",
+    "docker-cmds": [
+      "RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"
+    ],
+    "auto-update": true
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "c05d42898793772a6dc0e8441501c6a30ff15ac9"
+    "git-commit": "c05d42898793772a6dc0e8441501c6a30ff15ac9",
+    "auto-update": true
   },
   "netgen": {
     "git-url": "https://github.com/RTimothyEdwards/netgen.git",
-    "git-commit": "fb7876c7a6f9d58a3d88a49e302e682c1d12e00d"
+    "git-commit": "fb7876c7a6f9d58a3d88a49e302e682c1d12e00d",
+    "auto-update": false
   },
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
-    "git-commit": "d10b226f3d1dc302d7a95b9c2d77beaece3d3634"
+    "git-commit": "d10b226f3d1dc302d7a95b9c2d77beaece3d3634",
+    "auto-update": false
   },
   "magic": {
     "git-url": "https://github.com/RTimothyEdwards/magic.git",
-    "git-commit": "c7f11d2169f6af8751ae22b5d70250b331e1a667"
+    "git-commit": "c7f11d2169f6af8751ae22b5d70250b331e1a667",
+    "auto-update": false
   },
   "bluespec": {
     "git-url": "https://github.com/B-Lang-org/bsc.git",
-    "git-commit": "4cac6ebae076e8b8378597aba1d2119aa29ec419"
+    "git-commit": "4cac6ebae076e8b8378597aba1d2119aa29ec419",
+    "auto-update": false
   },
   "klayout": {
     "version": "0.28.3",
@@ -30,23 +38,28 @@
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "c822d2e8c6806eab28a5c54cdab9f3aa4d7660bd"
+    "git-commit": "c822d2e8c6806eab28a5c54cdab9f3aa4d7660bd",
+    "auto-update": false
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "890cecc15b5971bd5a088ef579c048058ae6cc5d"
+    "git-commit": "890cecc15b5971bd5a088ef579c048058ae6cc5d",
+    "auto-update": false
   },
   "bambu": {
     "git-url": "https://github.com/ferrandi/PandA-bambu.git",
-    "git-commit": "7c5d0f140911d19e1b5c5a1b7cbc466e0fa66d0f"
+    "git-commit": "7c5d0f140911d19e1b5c5a1b7cbc466e0fa66d0f",
+    "auto-update": false
   },
   "vpr": {
     "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
-    "git-commit": "a80248dc4fef1c62af2d32091c82a846e5fc5c92"
+    "git-commit": "a80248dc4fef1c62af2d32091c82a846e5fc5c92",
+    "auto-update": false
   },
   "icepack": {
     "git-url": "https://github.com/YosysHQ/icestorm.git",
-    "git-commit": "d20a5e9001f46262bf0cef220f1a6943946e421d"
+    "git-commit": "d20a5e9001f46262bf0cef220f1a6943946e421d",
+    "auto-update": false
   },
   "nextpnr": {
     "git-url": "https://github.com/YosysHQ/nextpnr.git",
@@ -58,10 +71,12 @@
   },
   "icarus": {
     "git-url": "https://github.com/steveicarus/iverilog.git",
-    "git-commit": "01441687235135d1c12eeef920f75d97995da333"
+    "git-commit": "01441687235135d1c12eeef920f75d97995da333",
+    "auto-update": false
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "956c4e485a9463863f60c4dd03372db3fa8332a4"
+    "git-commit": "53c0a6b780199dc56348916acf7c00e30f65e1ec",
+    "auto-update": true
   }
 }

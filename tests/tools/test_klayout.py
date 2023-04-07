@@ -6,13 +6,10 @@ import siliconcompiler
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason='writing to library not allowed')
 def test_klayout(datadir):
     in_def = os.path.join(datadir, 'heartbeat_wrapper.def')
     library_gds = os.path.join(datadir, 'heartbeat.gds')
     library_lef = os.path.join(datadir, 'heartbeat.lef')
-
-
 
     chip = siliconcompiler.Chip('heartbeat_wrapper')
     chip.load_target('freepdk45_demo')
@@ -20,8 +17,11 @@ def test_klayout(datadir):
     chip.input(in_def)
 
     chip.add('asic', 'macrolib', 'heartbeat')
-    chip.set('model', 'library', 'heartbeat', 'lef', '10M', library_lef)
-    chip.set('library', 'heartbeat', 'gds', '10M', library_gds)
+
+    lib = siliconcompiler.Library(chip, 'heartbeat')
+    lib.set('output', '10M', 'lef', library_lef)
+    lib.set('output', '10M', 'gds', library_gds)
+    chip.use(lib)
 
     flow = 'export'
     chip.node(flow, 'import', 'builtin', 'nop')
@@ -37,4 +37,4 @@ def test_klayout(datadir):
 
     with open(result, 'rb') as gds_file:
         data = gds_file.read()
-        assert hashlib.md5(data).hexdigest() == '5045229cefe367e6cb4200b3e2f5bd54'
+        assert hashlib.md5(data).hexdigest() == '537785c8c2dcbb0dae7ef5fc0b72556b'

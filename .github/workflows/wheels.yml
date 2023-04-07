@@ -9,9 +9,88 @@ on:
       - published
 
 jobs:
+  build_surelog:
+    name: Build Surelog for ${{ matrix.platform.os }} ${{ matrix.platform.arch}}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os: ubuntu-latest
+            arch: x86_64
+          - os: ubuntu-latest
+            arch: aarch64
+          - os: macos-latest
+            arch: universal
+          - os: windows-latest
+            arch: x86_64
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # This facilitates building Linux+arm64 wheels
+      # https://cibuildwheel.readthedocs.io/en/stable/faq/#emulation
+      - name: Set up QEMU
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+
+      # Explicitly use "shell: bash" to make this work on Windows
+      - name: Get Surelog version
+        id: get-surelog
+        run: |
+          echo "version=$(python3 setup/_tools.py --tool surelog --field git-commit)" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - uses: actions/cache@v3
+        id: surelog-cache
+        with:
+          path: |
+            siliconcompiler/tools/surelog/bin/surelog*
+            siliconcompiler/tools/surelog/lib/surelog/sv/builtin.sv
+          key: ${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ steps.get-surelog.outputs.version }}
+
+      - name: Setup Java
+        if: (matrix.platform.os == 'macos-latest' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 11
+          java-package: jre
+          architecture: x64
+
+      - name: Setup Python
+        if: (matrix.platform.os == 'macos-latest' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+          architecture: x64
+
+      - name: Build Surelog (Windows)
+        if: matrix.platform.os == 'windows-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
+        run: .github/workflows/bin/install_surelog_win.bat
+
+      - name: Build Surelog (macOS)
+        if: matrix.platform.os == 'macos-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
+        run: .github/workflows/bin/install_surelog_macos.sh
+
+      - name: Build Surelog (Linux x86)
+        if: matrix.platform.os == 'ubuntu-latest' && matrix.platform.arch == 'x86_64'&& steps.surelog-cache.outputs.cache-hit != 'true'
+        uses: docker://quay.io/pypa/manylinux2014_x86_64:latest
+        with:
+          args: ./.github/workflows/bin/install_surelog_linux.sh
+
+      - name: Build Surelog (Linux arm64)
+        if: matrix.platform.os == 'ubuntu-latest' && matrix.platform.arch == 'aarch64' && steps.surelog-cache.outputs.cache-hit != 'true'
+        uses: docker://quay.io/pypa/manylinux2014_aarch64:latest
+        with:
+          args: ./.github/workflows/bin/install_surelog_linux.sh
+
   build_wheels:
     name: Wheels on ${{ matrix.platform.os }} ${{ matrix.platform.arch}}
     runs-on: ${{ matrix.platform.os }}
+    needs: build_surelog
     strategy:
       fail-fast: false
       matrix:
@@ -54,41 +133,10 @@ jobs:
           siliconcompiler/tools/surelog/lib/surelog/sv/builtin.sv
         key: ${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ steps.get-surelog.outputs.version }}
 
-    - name: Setup Java
-      if: (matrix.platform.os == 'macos-latest' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
-      uses: actions/setup-java@v3
-      with:
-        distribution: temurin
-        java-version: 11
-        java-package: jre
-        architecture: x64
-
-    - name: Setup Python
-      if: (matrix.platform.os == 'macos-latest' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.8
-        architecture: x64
-
-    - name: Build Surelog (Windows)
-      if: matrix.platform.os == 'windows-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
-      run: .github/workflows/bin/install_surelog_win.bat
-
-    - name: Build Surelog (macOS)
-      if: matrix.platform.os == 'macos-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
-      run: .github/workflows/bin/install_surelog_macos.sh
-
-    - name: Build Surelog (Linux x86)
-      if: matrix.platform.os == 'ubuntu-latest' && matrix.platform.arch == 'x86_64'&& steps.surelog-cache.outputs.cache-hit != 'true'
-      uses: docker://quay.io/pypa/manylinux2014_x86_64:latest
-      with:
-        args: ./.github/workflows/bin/install_surelog_linux.sh
-
-    - name: Build Surelog (Linux arm64)
-      if: matrix.platform.os == 'ubuntu-latest' && matrix.platform.arch == 'aarch64' && steps.surelog-cache.outputs.cache-hit != 'true'
-      uses: docker://quay.io/pypa/manylinux2014_aarch64:latest
-      with:
-        args: ./.github/workflows/bin/install_surelog_linux.sh
+    # We should be guaranteed a hit after build_surelog executes
+    - name: Verify Surelog cache hit
+      if: steps.surelog-cache.outputs.cache-hit != 'true'
+      run: exit 1
 
     - name: Setup env (Windows)
       if: matrix.platform.os == 'windows-latest'

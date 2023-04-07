@@ -1208,7 +1208,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return self._find_files(*keypath, missing_ok=missing_ok, job=job, step=step, index=index)
 
     ###########################################################################
-    def _find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None):
+    def _find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None, list_index=None):
         """Internal find_files() that allows you to skip step/index for optional
         params, regardless of [option, strict]."""
 
@@ -1230,6 +1230,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
+
+        if list_index is not None:
+            # List index is set, so we only want to check a particular path in the key
+            paths = [paths[list_index]]
 
         result = []
 
@@ -1462,25 +1466,30 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         allkeys = self.allkeys()
+        error = False
         for keypath in allkeys:
-            allpaths = []
             paramtype = self.get(*keypath, field='type')
-            if 'file' in paramtype or 'dir' in paramtype:
-                if 'dir' not in keypath and self.get(*keypath):
-                    allpaths = list(self.get(*keypath))
-                for path in allpaths:
-                    #check for env var
-                    m = re.match(r'\$(\w+)(.*)', path)
-                    if m:
-                        prefix_path = os.environ[m.group(1)]
-                        path = prefix_path + m.group(2)
-                    file_error = 'file' in paramtype and not os.path.isfile(path)
-                    dir_error = 'dir' in paramtype and not os.path.isdir(path)
-                    if file_error or dir_error:
-                        self.logger.error(f"Paramater {keypath} path {path} is invalid")
-                        return False
+            is_file = 'file' in paramtype
+            is_dir = 'dir' in paramtype
+            is_list = paramtype.startswith('[')
 
-        return True
+            if is_file or is_dir:
+                for check_files, step, index in self.schema._getvals(*keypath):
+                    if not check_files:
+                        continue
+
+                    if not is_list:
+                        check_files = [check_files]
+
+                    for idx, check_file in enumerate(check_files):
+                        found_file = self._find_files(*keypath, missing_ok=True, step=step, index=index, list_index=idx)
+                        if is_list:
+                            found_file = found_file[0]
+                        if not found_file:
+                            self.logger.error(f"Paramater {keypath} path {check_file} is invalid")
+                            error = True
+
+        return not error
 
     ###########################################################################
     def _check_manifest_dynamic(self, step, index):
@@ -1714,7 +1723,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for step in self.getkeys('flowgraph', flow):
             for index in self.getkeys('flowgraph', flow, step):
                 nodes.add((step, index))
-                nodes.update(self.get('flowgraph', flow, step, index, 'input'))
+                input_tasks = self.get('flowgraph', flow, step, index, 'input')
+                for task in input_tasks:
+                    nodes.add((task[0], task[1]))
 
         error = False
         for step, index in nodes:
@@ -2415,7 +2426,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return archive_name
 
     ###########################################################################
-    def hash_files(self, *keypath, algo='sha256', update=True, step=None, index=None):
+    def hash_files(self, *keypath, update=True, step=None, index=None):
         '''Generates hash values for a list of parameter files.
 
         Generates a hash value for each file found in the keypath. If existing
@@ -2433,8 +2444,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             *keypath(str): Keypath to parameter.
-            algo (str): Algorithm to use for file hash calculation (currently
-                unimplemented, defaults to SHA256).
             update (bool): If True, the hash values are recorded in the
                 chip object manifest.
 
@@ -2450,10 +2459,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         #TODO: Insert into find_files?
         if 'file' not in self.get(*keypath, field='type'):
             self.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
-            return
+            return []
 
         filelist = self._find_files(*keypath, step=step, index=index)
         if not filelist:
+            return []
+
+        algo = self.get(*keypath, field='hashalgo')
+        hashfunc = getattr(hashlib, algo, None)
+        if not hashfunc:
+            self.error(f"Unable to use {algo} as the hashing algorithm for [{keypathstr}].")
             return []
 
         #cycle through all paths
@@ -2462,8 +2477,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.info(f'Computing hash value for [{keypathstr}]')
         for filename in filelist:
             if os.path.isfile(filename):
-                #TODO: Implement algo selection
-                hashobj = hashlib.sha256()
+                hashobj = hashfunc()
                 with open(filename, "rb") as f:
                     for byte_block in iter(lambda: f.read(4096), b""):
                         hashobj.update(byte_block)
@@ -2513,7 +2527,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
 
     ###########################################################################
-    def calc_area(self):
+    def calc_area(self, step=None, index=None):
         '''Calculates the area of a rectilinear diearea.
 
         Uses the shoelace formulate to calculate the design area using
@@ -2522,6 +2536,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         must be the lower left and upper right points of the rectangle.
         (Ref: https://en.wikipedia.org/wiki/Shoelace_formula)
 
+        Args:
+            step (str): name of the step to calculate the area from
+            index (str): name of the step to calculate the area from
+        
         Returns:
             Design area (float).
 
@@ -2530,7 +2548,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        vertices = self.get('asic', 'diearea')
+        if not step:
+            step = self.get('arg', 'step')
+
+        if not index:
+            index = self.get('arg', 'index')
+
+        vertices = self.get('constraint', 'outline', step=step, index=index)
 
         if len(vertices) == 2:
             width = vertices[1][0] - vertices[0][0]
@@ -2547,7 +2571,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return area
 
     ###########################################################################
-    def calc_yield(self, model='poisson'):
+    def calc_yield(self, step=None, index=None, model='poisson'):
         '''Calculates raw die yield.
 
         Calculates the raw yield of the design as a function of design area
@@ -2559,6 +2583,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         * Murphy model: dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.
 
         Args:
+            step (str): name of the step use for calculation
+            index (str): name of the step use for calculation
             model (string): Model to use for calculation (poisson or murphy)
 
         Returns:
@@ -2569,24 +2595,36 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Yield variable gets yield value based on the chip manifest.
         '''
 
-        d0 = self.get('pdk', 'd0')
-        diearea = self.calc_area()
+        pdk = self.get('option', 'pdk')
+        d0 = self.get('pdk', pdk, 'd0')
+        if d0 is None:
+            self.error(f"['pdk', {pdk}, 'd0'] has not been set")
+        diearea = self.calc_area(step=step, index=index)
+
+        # diearea is um^2, but d0 looking for cm^2
+        diearea = diearea / 10000.0**2
 
         if model == 'poisson':
             dy = math.exp(-diearea * d0/100)
         elif model == 'murphy':
             dy = ((1-math.exp(-diearea * d0/100))/(diearea * d0/100))**2
+        else:
+            self.error(f'Unknown yield model: {model}')
 
         return dy
 
     ##########################################################################
-    def calc_dpw(self):
+    def calc_dpw(self, step=None, index=None):
         '''Calculates dies per wafer.
 
         Calculates the gross dies per wafer based on the design area, wafersize,
         wafer edge margin, and scribe lines. The calculation is done by starting
         at the center of the wafer and placing as many complete design
         footprints as possible within a legal placement area.
+
+        Args:
+            step (str): name of the step use for calculation
+            index (str): name of the step use for calculation
 
         Returns:
             Number of gross dies per wafer (int).
@@ -2597,20 +2635,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         #PDK information
-        wafersize = self.get('pdk', 'wafersize')
-        edgemargin = self.get('pdk', 'edgemargin')
-        hscribe = self.get('pdk', 'hscribe')
-        vscribe = self.get('pdk', 'vscribe')
+        pdk = self.get('option', 'pdk')
+        wafersize = self.get('pdk', pdk, 'wafersize')
+        edgemargin = self.get('pdk', pdk, 'edgemargin')
+        hscribe = self.get('pdk', pdk, 'hscribe')
+        vscribe = self.get('pdk', pdk, 'vscribe')
 
         #Design parameters
-        diesize = self.get('asic', 'diesize').split()
-        diewidth = (diesize[2] - diesize[0])/1000
-        dieheight = (diesize[3] - diesize[1])/1000
+        diesize = self.get('constraint', 'outline', step=step, index=index)
+
+        # Convert to mm
+        diewidth = (diesize[1][0] - diesize[0][0]) / 1000.0
+        dieheight = (diesize[1][1] - diesize[0][1]) / 1000.0
 
         #Derived parameters
-        radius = wafersize/2 -edgemargin
-        stepwidth = (diewidth + hscribe)
-        stepheight = (dieheight + vscribe)
+        radius = wafersize / 2 - edgemargin
+        stepwidth = diewidth + hscribe
+        stepheight = dieheight + vscribe
 
         #Raster dies out from center until you touch edge margin
         #Work quadrant by quadrant
@@ -2633,12 +2674,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             #loop through all y values from center
             while math.hypot(0, y) < radius:
                 y = y + yincr
+                x = xincr
                 while math.hypot(x, y) < radius:
                     x = x + xincr
                     dies = dies + 1
-                x = 0
 
-        return int(dies)
+        return dies
 
     ###########################################################################
     def grep(self, args, line):
@@ -3843,7 +3884,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 cmdlist.extend(veropt)
                 proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
                 if proc.returncode != 0:
-                    self.logger.error(f'Version check on {tool} failed with code {retcode}.')
+                    self.logger.error(f'Version check on {tool} failed with code {proc.returncode}: {proc.stdout}')
                     self._haltstep(step, index)
                 parse_version = self.find_function(tool, 'parse_version', 'tools')
                 if parse_version is None:
@@ -4347,10 +4388,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             remote_preprocess(self, steplist)
 
             # Run the job on the remote server, and wait for it to finish.
+            # Set logger to indicate remote run
+            self._init_logger(step='remote', index='0', in_run=True)
             remote_run(self)
 
             # Fetch results (and delete the job's data from the server).
             fetch_results(self)
+            # Restore logger
+            self._init_logger(in_run=True)
 
             # Read back configuration from final manifest.
             cfg = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
