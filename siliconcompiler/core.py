@@ -1363,9 +1363,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             dest = self.schema
 
         for keylist in src.allkeys():
-            if partial and not self._key_may_be_updated(keylist):
-                continue
             if keylist[0] in ('history', 'library'):
+                continue
+            if partial and not self._key_may_be_updated(keylist):
                 continue
             #only read in valid keypaths without 'default'
             key_valid = True

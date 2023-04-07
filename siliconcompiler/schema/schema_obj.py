@@ -498,13 +498,13 @@ class Schema:
 
         if field in (
             'type', 'switch', 'shorthelp', 'help', 'unit', 'hashalgo', 'notes',
-            'signature'
+            'signature', 'require'
         ):
             if not isinstance(value, str):
                 raise TypeError(error_msg('str'))
             return value
 
-        if field in ('require', 'lock', 'copy'):
+        if field in ('lock', 'copy'):
             if value == 'true': return True
             if value == 'false': return False
             if isinstance(value, bool): return value
@@ -553,7 +553,7 @@ class Schema:
     def _is_list(field, type):
         is_list = type.startswith('[')
 
-        if field in ('filehash', 'date', 'author', 'example', 'enum'):
+        if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch'):
             return True
 
         if is_list and field in ('signature', 'defvalue', 'value'):
