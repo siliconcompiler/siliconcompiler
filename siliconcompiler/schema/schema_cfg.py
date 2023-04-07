@@ -84,6 +84,8 @@ def scparam(cfg,
         cfg['scope'] = scope
         cfg['require'] = require
         cfg['lock'] = lock
+        if switch and not isinstance(switch, list):
+            switch = [switch]
         cfg['switch'] = switch
         cfg['shorthelp'] = shorthelp
         cfg['example'] = example

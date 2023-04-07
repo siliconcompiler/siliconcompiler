@@ -476,7 +476,7 @@ class Schema:
         if field in ('author', 'filehash', 'date', 'hashalgo', 'copy') and ('file' not in sc_type):
             raise TypeError(f'Invalid field {field} for keypath {keypath}: this field only exists for file parameters')
 
-        if Schema._is_list(field, sc_type) or field in ('switch',):
+        if Schema._is_list(field, sc_type):
             if not isinstance(value, list):
                 value = [value]
             if not all(isinstance(v, str) for v in value):
@@ -553,7 +553,7 @@ class Schema:
     def _is_list(field, type):
         is_list = type.startswith('[')
 
-        if field in ('filehash', 'date', 'author', 'example', 'enum'):
+        if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch'):
             return True
 
         if is_list and field in ('signature', 'defvalue', 'value'):
