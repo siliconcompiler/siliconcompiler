@@ -67,7 +67,7 @@ def scparam(cfg,
         # removing leading spaces as if schelp were a docstring
         schelp = trim(schelp)
 
-        # setting valus based on types
+        # setting values based on types
         # note (bools are never lists)
         if re.match(r'bool',sctype):
             require = 'all'
