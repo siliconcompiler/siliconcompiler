@@ -1,8 +1,6 @@
 Installation
 ===================================
 
-.. warning::
-   **[WIP]** Open PR `#1401 <https://siliconcompiler--1401.org.readthedocs.build/en/1401/user_guide/installation.html>`_ is a better representation of final from a content perspective.
 
 Installing Python
 -----------------
@@ -27,10 +25,6 @@ Open up a terminal and enter the following command sequence.
 .. note::
    Currently Ubuntu on ARM64 is not supported. It is planned to be included as part of the next release.
    
-.. note::
-   If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
-   You can make sure you have this dependency by running ``sudo apt install graphviz xdot``
-
 Skip ahead to `SC Install`_.
 
 RHEL (>=RHEL 7)
@@ -52,11 +46,6 @@ Open up a terminal and enter the following command sequence.
    source ./venv/bin/activate                                         # active virtual env (bash/zsh)
    pip install --upgrade pip                                          # upgrade Pip
 
-.. note::
-   If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
-   You can make sure you have this dependency by running ``sudo yum -y install graphviz xdot``
-
-	     
 Skip ahead to `SC Install`_.
 
 macOS (>=10.15)
@@ -73,12 +62,6 @@ Open up a terminal and enter the following command sequence.
    python3 -m venv  ./venv                                # create a virtual env
    source ./venv/bin/activate                             # active virtual env
 
-.. note::
-   If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
-   You can make sure you have this dependency by running ``brew install graphviz xdot``
-
-
-   
 Skip ahead to `SC Install`_.
 
 Windows (>= Windows 10)
@@ -96,9 +79,7 @@ From the command shell, enter the following sequence to create and activate a vi
   python -m venv  .\venv
   .\venv\Scripts\activate
 
-.. note::
-   If you plan to generate any docs or create any flowgraphs, you'll also need to `install Graphviz <https://graphviz.org/download/#windows>`_.
-   
+
 .. _SC Install:
 
 
@@ -130,7 +111,7 @@ SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ us
 
 .. include:: installation/installation_prep_path.rst 
 
-Skip to :ref:`Quickstart guide`.
+Skip to `asic demo`_.
 	     
 .. _offline install:
 
@@ -158,7 +139,7 @@ Then untar the package and install SiliconCompiler:
 .. include:: installation/installation_prep_path.rst
 
 
-Skip to :ref:`Quickstart guide`.
+Skip to `asic demo`_.
 
 .. _directly from the git repository:
 
@@ -201,18 +182,37 @@ Finally, to clone and install SiliconCompiler, run the following:
 .. include:: installation/installation_confirm_version.rst
 	     
 
+.. _asic demo:
+
+ASIC Demo
+-----------------
+Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow in the cloud.::
+  
+    sc -target asic_demo -remote
+
+
+Your remote job should only take a few minutes to run if the servers aren't too busy. It should end with a results directory where you can find ``png`` file which displays your results. It should look something like this:
+
+.. image:: ../_images/selftest_screenshot.png
+
+See :ref:`Quickstart guide` next to go through the design and run details of the quick demo above.
+
 .. _External Tools:
 
 External Tools
 --------------
 
-To run compilation locally (instead of remotely), you will need to install a number of tools. For reference, we have provided install scripts for many of these tools. Unless otherwise specified in the script name, these scripts target Ubuntu 20.04.
+If you wish to run on your machine instead of remotely in the cloud as in the quick `asic demo`_ target above, there will be some tools you need to install first.
 
 .. note::
 
-   These install scripts are a reference for installation. If you should run into issues, please consult the official download instructions for the tool itself. All official tool documentation links can be found in the :ref:`tools directory`
+   The minimum set of tools required for an ASIC flow are: :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>`. Links to individual tool installation instructions and platform limitations can be found in the :ref:`Tools directory`.
+
+   We have provided the following helper install scripts for this minimum toolset for the ASIC flow as well as other external tools, but keep in mind that they are for reference only. If you should run into issues, please consult the official download instructions for the tool itself. All official tool documentation links can be found in the :ref:`tools directory`.
+
+   Unless otherwise specified in the script name, these scripts target Ubuntu 20.04.
 
 .. installscripts::
 
 
-Go to :ref:`Quickstart guide`.
+See :ref:`Quickstart guide` next to see how to run locally on your machine with these tools.
