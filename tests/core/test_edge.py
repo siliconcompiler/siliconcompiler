@@ -11,7 +11,7 @@ def test_edge():
     flow = 'test'
     chip.set('option', 'flow', flow)
     #nodes
-    chip.node(flow, 'import', 'surelog', 'import')
+    chip.node(flow, 'import', 'surelog', 'parse')
     for i in range(syn_np):
         chip.node(flow, 'syn', 'yosys', 'syn', index=i)
     chip.node(flow, 'synmin', 'minimum', 'synmin')
