@@ -1203,7 +1203,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         copyall = self.get('option', 'copyall', job=job)
         paramtype = self.get(*keypath, field='type', job=job)
 
-        if 'file' in paramtype:
+        if 'file' in paramtype or 'dir' in paramtype:
             copy = self.get(*keypath, field='copy', job=job)
         else:
             copy = False
@@ -1246,14 +1246,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             search_paths = refdirs
 
         for path in paths:
-            if (copyall or copy) and ('file' in paramtype) and not search_paths:
-                name = self._get_imported_filename(path)
-                abspath = os.path.join(self._getcollectdir(jobname=job), name)
-                if os.path.isfile(abspath):
-                    # if copy is True and file is found in collected inputs,
-                    # continue. Otherwise, fall through to _find_sc_file (the
-                    # file may not have been gathered in imports yet)
-                    result.append(abspath)
+            if not search_paths:
+                import_path = self._find_sc_imported_file(path, self._getcollectdir(jobname=job))
+                if import_path:
+                    result.append(import_path)
                     continue
             result.append(self._find_sc_file(path, missing_ok=missing_ok, search_paths=search_paths))
         # Convert back to scalar if that was original type
@@ -1261,6 +1257,32 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return result[0]
 
         return result
+
+    ###########################################################################
+    def _find_sc_imported_file(self, path, collected_dir):
+        """
+        Returns the path to an imported file if it is available in the import directory
+        or in a directory that was imported
+
+        Returns none if not found
+        """
+        path_paths = pathlib.Path(path).parts
+        for n in range(len(path_paths)):
+            # Search through the path elements to see if any of the previous path parts
+            # have been imported
+
+            n += 1
+            basename = str(pathlib.Path(*path_paths[0:n]))
+            endname = str(pathlib.Path(*path_paths[n:]))
+
+            abspath = os.path.join(collected_dir, self._get_imported_filename(basename))
+            if endname:
+                abspath = os.path.join(abspath, endname)
+            abspath = os.path.abspath(abspath)
+            if os.path.exists(abspath):
+                return abspath
+
+        return None
 
     ###########################################################################
     def find_result(self, filetype, step, jobname=None, index='0'):
@@ -1664,10 +1686,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             # Not builtin tool
             outputs = set(self.get('tool', tool, 'task', task, 'output', step=step, index=index))
-
-        if self.get('option', 'remote') and (step, index) in self._get_flowgraph_entry_nodes(flow=flow):
-            imports = {self._get_imported_filename(p) for p in self._collect_paths()}
-            outputs.update(imports)
 
         return outputs
 
@@ -2256,31 +2274,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error(f'Unable to save flowgraph: {e}')
 
     ########################################################################
-    def _collect_paths(self):
-        '''
-        Returns list of paths to files that will be collected by import step.
-
-        See docstring for _collect() for more details.
-        '''
-        paths = []
-
-        copyall = self.get('option', 'copyall')
-        allkeys = self.allkeys()
-        for key in allkeys:
-            if key[0] == 'history':
-                continue
-            leaftype = self.get(*key, field='type')
-            if re.search('file', leaftype):
-                copy = self.get(*key, field='copy')
-                if copyall or copy:
-                    for value, _, _ in self.schema._getvals(*key):
-                        if not isinstance(value, list):
-                            value = [value]
-                        paths.extend(value)
-
-        return paths
-
-    ########################################################################
     def _collect(self, directory=None):
         '''
         Collects files found in the configuration dictionary and places
@@ -2304,12 +2297,61 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.logger.info('Collecting input sources')
 
-        for path in self._collect_paths():
-            filename = self._get_imported_filename(path)
-            abspath = self._find_sc_file(path)
+        dirs = {}
+        files = {}
+
+        copyall = self.get('option', 'copyall')
+        for key in self.allkeys():
+            if key == ['option', 'builddir']:
+                # skip builddir
+                continue
+            if key[0] == 'history':
+                # skip history
+                continue
+            leaftype = self.get(*key, field='type')
+            is_dir = re.search('dir', leaftype)
+            is_file = re.search('file', leaftype)
+            if is_dir or is_file:
+                copy = self.get(*key, field='copy')
+                if copyall or copy:
+                    for value, step, index in self.schema._getvals(*key):
+                        key_dirs = self._find_files(*key, step=step, index=index)
+                        if not isinstance(key_dirs, list):
+                            key_dirs = [key_dirs]
+                            value = [value]
+                        for path, abspath in zip(value, key_dirs):
+                            if is_dir:
+                                dirs[path] = abspath
+                            else:
+                                files[path] = abspath
+
+        for path in sorted(dirs.keys()):
+            if self._find_sc_imported_file(path, directory):
+                # File already imported in directory
+                continue
+
+            abspath = dirs[path]
             if abspath:
+                filename = self._get_imported_filename(path)
+                dst_path = os.path.join(directory, filename)
+                if os.path.exists(dst_path):
+                    continue
+                self.logger.info(f"Copying directory {abspath} to '{directory}' directory")
+                shutil.copytree(abspath, dst_path)
+            else:
+                self.error(f'Failed to copy {path}', fatal=True)
+
+        for path in sorted(files.keys()):
+            if self._find_sc_imported_file(path, directory):
+                # File already imported in directory
+                continue
+
+            abspath = files[path]
+            if abspath:
+                filename = self._get_imported_filename(path)
+                dst_path = os.path.join(directory, filename)
                 self.logger.info(f"Copying {abspath} to '{directory}' directory")
-                shutil.copy(abspath, os.path.join(directory, filename))
+                shutil.copy(abspath, dst_path)
             else:
                 self.error(f'Failed to copy {path}', fatal=True)
 
@@ -5013,11 +5055,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ext = ''.join(path.suffixes)
 
         # strip off all file suffixes to get just the bare name
-        while path.suffix:
-            path = pathlib.Path(path.stem)
-        filename = str(path)
+        barepath = path
+        while barepath.suffix:
+            barepath = pathlib.Path(barepath.stem)
+        filename = str(barepath.parts[-1])
 
-        pathhash = hashlib.sha1(pathstr.encode('utf-8')).hexdigest()
+        pathhash = hashlib.sha1(str(path).encode('utf-8')).hexdigest()
 
         return f'{filename}_{pathhash}{ext}'
 
