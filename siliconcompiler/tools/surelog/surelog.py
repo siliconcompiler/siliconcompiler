@@ -23,12 +23,12 @@ def setup(chip):
     '''
 
     tool = 'surelog'
-    task = 'import'
     # Nothing in this method should rely on the value of 'step' or 'index', but they are used
     # as schema keys in some important places, so we still need to fetch them.
     step = chip.get('arg','step')
     index = chip.get('arg','index')
     exe = tool
+    task = chip._get_task(step, index)
 
     # Although Windows will find the binary even if the .exe suffix is omitted,
     # Surelog won't find the relative builtin.sv file unless we add it.

@@ -102,7 +102,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.status = {}
 
         self.builtin = ['minimum','maximum',
-                        'nop', 'mux', 'join', 'verify', 'import']
+                        'nop', 'mux', 'join', 'verify']
 
         # We set 'design' and 'loglevel' by directly calling the schema object
         # because of a chicken-and-egg problem: self.set() relies on the logger,
@@ -1257,21 +1257,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
             search_paths = refdirs
 
-        import_steps = self._get_steps_by_task()['import']
         for path in paths:
             if (copyall or copy) and ('file' in paramtype) and not search_paths:
                 name = self._get_imported_filename(path)
-                found = False
-                for step, index in import_steps:
-                    abspath = os.path.join(self._getworkdir(jobname=job, step=step, index=index), 'inputs', name)
-                    if os.path.isfile(abspath):
-                        # if copy is True and file is found in import inputs,
-                        # continue. Otherwise, fall through to _find_sc_file (the
-                        # file may not have been gathered in imports yet)
-                        result.append(abspath)
-                        found = True
-                        break
-                if found:
+                abspath = os.path.join(self._getcollectdir(jobname=job), name)
+                if os.path.isfile(abspath):
+                    # if copy is True and file is found in collected inputs,
+                    # continue. Otherwise, fall through to _find_sc_file (the
+                    # file may not have been gathered in imports yet)
+                    result.append(abspath)
                     continue
             result.append(self._find_sc_file(path, missing_ok=missing_ok, search_paths=search_paths))
         # Convert back to scalar if that was original type
@@ -1586,7 +1580,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         design = self.get('design')
         flow = self.get('option', 'flow')
-        jobname = self.get('option', 'jobname')
         steplist = self.get('option', 'steplist')
         if not steplist:
             steplist = self.list_steps()
@@ -1595,11 +1588,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if flow not in self.getkeys('flowgraph'):
             error = True
             self.logger.error(f"flowgraph {flow} not defined.")
-        legal_steps = self.getkeys('flowgraph',flow)
-
-        if 'import' not in self._get_steps_by_task(flow):
-            error = True
-            self.logger.error("Flowgraph doesn't contain import task.")
 
         indexlist = {}
         #TODO: refactor
@@ -1702,7 +1690,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if task in ('minimum', 'maximum'):
                 if len(in_task_outputs) > 0:
                     outputs = in_task_outputs[0].intersection(*in_task_outputs[1:])
-            elif task in ('join', 'nop', 'import'):
+            elif task in ('join', 'nop'):
                 if len(in_task_outputs) > 0:
                     outputs = in_task_outputs[0].union(*in_task_outputs[1:])
             else:
@@ -1712,7 +1700,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Not builtin tool
             outputs = set(self.get('tool', tool, 'task', task, 'output', step=step, index=index))
 
-        if task == 'import' and self.get('option', 'remote'):
+        if self.get('option', 'remote') and (step, index) in self._get_flowgraph_entry_nodes(flow=flow):
             imports = {self._get_imported_filename(p) for p in self._collect_paths()}
             outputs.update(imports)
 
@@ -2053,7 +2041,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return not error
 
     ###########################################################################
-    def read_file(self, filename, step='import', index='0'):
+    def read_file(self, filename, step=None, index='0'):
         '''
         Read file defined in schema. (WIP)
         '''
@@ -2338,7 +2326,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return paths
 
     ########################################################################
-    def _collect(self, step, index):
+    def _collect(self, directory=None):
         '''
         Collects files found in the configuration dictionary and places
         them in inputs/. The function only copies in files that have the 'copy'
@@ -2353,10 +2341,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        indir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
+        if not directory:
+            directory = os.path.join(self._getcollectdir())
 
-        if not os.path.exists(indir):
-            os.makedirs(indir)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
         self.logger.info('Collecting input sources')
 
@@ -2364,10 +2353,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             filename = self._get_imported_filename(path)
             abspath = self._find_sc_file(path)
             if abspath:
-                self.logger.info(f"Copying {abspath} to '{indir}' directory")
-                shutil.copy(abspath, os.path.join(indir, filename))
+                self.logger.info(f"Copying {abspath} to '{directory}' directory")
+                shutil.copy(abspath, os.path.join(directory, filename))
             else:
-                self._haltstep(step, index)
+                self.error(f'Failed to copy {path}', fatal=True)
 
     ###########################################################################
     def archive(self, step=None, index=None, all_files=False):
@@ -2844,24 +2833,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return matches
 
     ###########################################################################
-    def _find_leaves(self, steplist):
-        '''Helper to find final (leaf) tasks for a given steplist.'''
-        flow = self.get('option', 'flow')
-
-        # First, iterate over the tasks to generate a set of non-leaf tasks.
-        all_tasks = set()
-        non_leaf_tasks = set()
-        for step in steplist:
-            for index in self.getkeys('flowgraph', flow, step):
-                all_tasks.add((step, index))
-                for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                    if in_step in steplist:
-                        non_leaf_tasks.add((in_step, in_index))
-
-        # Then, find all leaf tasks by elimination.
-        return all_tasks.difference(non_leaf_tasks)
-
-    ###########################################################################
     def _generate_summary_image(self, input_path, output_path):
         '''Takes a layout screenshot and generates a design summary image
         featuring a layout thumbnail and several metrics.'''
@@ -2877,20 +2848,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # TODO: a bit hardcoded to asicflow assumptions... a way to query
         # "final" metrics regardless of flow would be handy
-        totalarea = self.get('metric', 'totalarea', step='export', index='1')
-        if totalarea:
-            metric_unit = self.get('metric', 'totalarea', field='unit')
-            prefix = units.get_si_prefix(metric_unit)
-            mm_area = units.convert(totalarea, from_unit=prefix, to_unit='mm^2')
-            if mm_area < 10:
-                metrics['Area'] = units.format_si(totalarea, 'um') + 'um^2'
-            else:
-                metrics['Area'] = units.format_si(mm_area, 'mm') + 'mm^2'
+        for step, index in self._get_flowgraph_exit_nodes():
+            if 'Area' not in metrics:
+                totalarea = self.get('metric', 'totalarea', step=step, index=index)
+                if totalarea:
+                    metric_unit = self.get('metric', 'totalarea', field='unit')
+                    prefix = units.get_si_prefix(metric_unit)
+                    mm_area = units.convert(totalarea, from_unit=prefix, to_unit='mm^2')
+                    if mm_area < 10:
+                        metrics['Area'] = units.format_si(totalarea, 'um') + 'um^2'
+                    else:
+                        metrics['Area'] = units.format_si(mm_area, 'mm') + 'mm^2'
 
-        fmax = self.get('metric', 'fmax', step='export', index='1')
-        if fmax:
-            fmax = units.convert(fmax, from_unit=self.get('metric', 'fmax', field='unit'))
-            metrics['Fmax'] = units.format_si(fmax, 'Hz') + 'Hz'
+            if 'Fmax' not in metrics:
+                fmax = self.get('metric', 'fmax', step=step, index=index)
+                if fmax:
+                    fmax = units.convert(fmax, from_unit=self.get('metric', 'fmax', field='unit'))
+                    metrics['Fmax'] = units.format_si(fmax, 'Hz') + 'Hz'
 
         # Generate design
 
@@ -2973,11 +2947,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 indices.
             generate_image (bool): If True, generates a summary image featuring
                 a layout screenshot and a subset of metrics. Requires that the
-                current job has an export0 node with a PNG file output.
+                current job has an ending node that generated a PNG file.
             generate_html (bool): If True, generates an HTML report featuring a
                 metrics summary table and manifest tree view. The report will
-                include a layout screenshot if the current job has an export0
-                node with a PNG file output.
+                include a layout screenshot if the current job has an ending node
+                that generated a PNG file.
 
         Examples:
             >>> chip.summary()
@@ -2997,7 +2971,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         to_search = []
 
         # Start search with any successful leaf tasks.
-        leaf_tasks = self._find_leaves(steplist)
+        leaf_tasks = self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist)
         for task in leaf_tasks:
             if self.get('flowgraph', flow, *task, 'status') == TaskStatus.SUCCESS:
                 selected_tasks.add(task)
@@ -3173,8 +3147,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             results_pdf = os.path.join(web_dir, 'report.pdf')
             results_img = os.path.join(web_dir, f'{self.design}.png')
 
-            # TODO: we should generalize where we look for the png (perhaps [output, layout, png])
-            layout_img = self.find_result('png', step='export', index='0')
+            for step, index in self._get_flowgraph_exit_nodes():
+                layout_img = self.find_result('png', step=step, index=index)
+                if layout_img:
+                    break
 
             if generate_image and layout_img:
                 self._generate_summary_image(layout_img, results_img)
@@ -3358,7 +3334,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.node('asicflow', 'place', 'openroad', index=0)
             Creates a task with step='place' and index=0 and binds it to the 'openroad' tool.
         '''
-        if step in (Schema.GLOBAL_KEY, 'default'):
+        if step in (Schema.GLOBAL_KEY, 'default', 'sc_collected_files'):
             self.error(f'Illegal step name: {step} is reserved')
             return
 
@@ -3400,17 +3376,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f'Illegal step name: {step} is reserved')
                 return
 
-        # Handling connecting edges between graphs
-        # Not completely name space safe, but feels like this limitation
-        # is a non-issue
-
-        module_tail = f"{tail}.export"
-        module_head = f"{head}.import"
-        if module_tail in self.getkeys('flowgraph',flow):
-            tail = module_tail
-        if module_head in self.getkeys('flowgraph',flow):
-            head = module_head
-        #TODO: add error checking
         # Adding
         self.add('flowgraph', flow, head, str(head_index), 'input', (tail, str(tail_index)))
 
@@ -3456,11 +3421,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Creates a pipeline based on an order list of key values pairs.
         '''
 
+        prevstep = None
         for item in plan:
             step = list(item.keys())[0]
             tool, task = list(item.values())[0]
             self.node(flow, step, tool, task)
-            if task != 'import':
+            if prevstep:
                 self.edge(flow, prevstep, step)
             prevstep = step
 
@@ -3862,7 +3828,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Defer job to compute node
         # If the job is configured to run on a cluster, collect the schema
         # and send it to a compute node for deferred execution.
-        # (Run the initial 'import' stage[s] locally)
+        # (Run the initial starting nodes stage[s] locally)
         if self.get('option', 'scheduler', 'name', step=step, index=index) and \
            self.get('flowgraph', flow, step, index, 'input'):
             # Note: The _deferstep method blocks until the compute node
@@ -4407,13 +4373,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     'please run "sc-configure" and enter your server address and '
                     'credentials.', fatal=True)
 
-            # Pre-process: Run an 'import' stage locally, and upload the
+            # Pre-process: Run an starting nodes locally, and upload the
             # in-progress build directory to the remote server.
             # Data is encrypted if user / key were specified.
             # run remote process
             if self.get('arg', 'step'):
-                self.error('Cannot pass "-step" parameter into remote flow. A steplist including '
-                           'an "import" task and at least one EDA task is required.',
+                self.error('Cannot pass "-step" parameter into remote flow.',
                            fatal=True)
             cur_steplist = self.get('option', 'steplist')
             pre_remote_steplist = {
@@ -4594,7 +4559,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
 
             # Merge cfg back from last executed tasks.
-            for step, index in self._find_leaves(steplist):
+            for step, index in self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist):
                 lastdir = self._getworkdir(step=step, index=index)
 
                 # This no-op listdir operation is important for ensuring we have
@@ -4675,18 +4640,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Displays gds file with a viewer assigned by 'showtool'
         '''
 
-        export_step = "export"
-        export_index = "0"
-
-        tasks = self._get_steps_by_task()
-        if 'export' in tasks:
-            export_step, export_index = tasks['export'][0]
         sc_step = self.get('arg', 'step')
-        if not sc_step:
-            sc_step = export_step
         sc_index = self.get('arg', 'index')
-        if not sc_index:
-            sc_index = export_index
         sc_job = self.get('option', 'jobname')
 
         # Finding last layout if no argument specified
@@ -4694,7 +4649,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.info('Searching build directory for layout to show.')
 
             for ext in self.getkeys('option', 'showtool'):
-                filename = self.find_result(ext, step=sc_step, index=sc_index, jobname=sc_job)
+                for step, index in self._get_flowgraph_exit_nodes():
+                    filename = self.find_result(ext, step=step, index=index, jobname=sc_job)
+                    if filename:
+                        sc_step = step
+                        sc_index = index
+                        break
                 if filename:
                     break
             if not filename:
@@ -4728,7 +4688,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             taskname = 'screenshot'
 
         try:
-            from flows import showflow
+            from siliconcompiler.flows import showflow
             self.use(showflow, filetype=filetype, screenshot=screenshot)
         except:
             # restore environment
@@ -4745,21 +4705,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
 
         # Setup in step/index variables
-        steps = self._get_steps_by_task(flow='showflow')[taskname]
-        for step, index in steps:
-            show_tool = self.get('flowgraph', 'showflow', step, index, 'tool')
-            self.set('tool', show_tool, 'task', taskname , 'var', 'show_filetype', filetype, step=step, index=index)
-            self.set('tool', show_tool, 'task', taskname , 'var', 'show_filepath', filepath, step=step, index=index)
-            self.set('tool', show_tool, 'task', taskname , 'var', 'show_step', sc_step, step=step, index=index)
-            self.set('tool', show_tool, 'task', taskname , 'var', 'show_index', sc_index, step=step, index=index)
-            self.set('tool', show_tool, 'task', taskname , 'var', 'show_job', sc_job, step=step, index=index)
+        for step in self.getkeys('flowgraph', 'showflow'):
+            if step != taskname:
+                continue
+            for index in self.getkeys('flowgraph', 'showflow', step):
+                show_tool = self.get('flowgraph', 'showflow', step, index, 'tool')
+                self.set('tool', show_tool, 'task', taskname , 'var', 'show_filetype', filetype, step=step, index=index)
+                self.set('tool', show_tool, 'task', taskname , 'var', 'show_filepath', filepath, step=step, index=index)
+                if sc_step:
+                    self.set('tool', show_tool, 'task', taskname , 'var', 'show_step', sc_step, step=step, index=index)
+                if sc_index:
+                    self.set('tool', show_tool, 'task', taskname , 'var', 'show_index', sc_index, step=step, index=index)
+                if sc_job:
+                    self.set('tool', show_tool, 'task', taskname , 'var', 'show_job', sc_job, step=step, index=index)
 
         # run show flow
         try:
             self.run()
             if screenshot:
-                step, _ = steps[0]
-                success = self.find_result('png', step)
+                step, index = self._get_flowgraph_exit_nodes(flow='showflow')[0]
+                success = self.find_result('png', step=step, index=index)
             else:
                 success = True
         except SiliconCompilerError as e:
@@ -4980,32 +4945,67 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return task in self.builtin
 
     #######################################
-    def _get_steps_by_task(self, flow=None):
+    def _get_flowgraph_entry_nodes(self, flow=None):
         '''
-        Collect all steps and indicies and organize by tasks
-        Returns dict(task, [(step, index)])
+        Collect all step/indecies that represent the entry
+        nodes for the flowgraph
         '''
         if not flow:
             flow = self.get('option', 'flow')
 
-        tasks = {}
+        nodes = []
         for step in self.getkeys('flowgraph', flow):
             for index in self.getkeys('flowgraph', flow, step):
-                tasks.setdefault(self._get_task(step, index, flow=flow), []).append((step, index))
-        return tasks
+                if not self.get('flowgraph', flow, step, index, 'input'):
+                    nodes.append((step, index))
+        return nodes
+
+    #######################################
+    def _get_flowgraph_exit_nodes(self, flow=None, steplist=None):
+        '''
+        Collect all step/indecies that represent the exit
+        nodes for the flowgraph
+        '''
+        if not flow:
+            flow = self.get('option', 'flow')
+
+        inputnodes = []
+        for step in self.getkeys('flowgraph', flow):
+            if steplist and step not in steplist:
+                continue
+            for index in self.getkeys('flowgraph', flow, step):
+                inputnodes.extend(self.get('flowgraph', flow, step, index, 'input'))
+        nodes = []
+        for step in self.getkeys('flowgraph', flow):
+            if steplist and step not in steplist:
+                continue
+            for index in self.getkeys('flowgraph', flow, step):
+                if (step, index) not in inputnodes:
+                    nodes.append((step, index))
+        return nodes
+
+    #######################################
+    def _getcollectdir(self, jobname=None):
+        '''
+        Get absolute path to collected files directory
+        '''
+
+        return os.path.join(self._getworkdir(jobname=jobname), 'sc_collected_files')
 
     #######################################
     def _getworkdir(self, jobname=None, step=None, index='0'):
-        '''Create a step directory with absolute path
+        '''
+        Get absolute path to work directory for a given step/index,
+        if step/index not given, job directory is returned
         '''
 
         if jobname is None:
             jobname = self.get('option','jobname')
 
-        dirlist =[self.cwd,
-                  self.get('option','builddir'),
-                  self.get('design'),
-                  jobname]
+        dirlist = [self.cwd,
+                   self.get('option','builddir'),
+                   self.get('design'),
+                   jobname]
 
         # Return jobdirectory if no step defined
         # Return index 0 by default

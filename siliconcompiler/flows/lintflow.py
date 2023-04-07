@@ -12,13 +12,14 @@ def setup(chip):
     flow = siliconcompiler.Flow(chip, flowname)
 
     # Linear flow, up until branch to run parallel verification steps.
-    pipe = [('import', 'surelog', 'import'),
+    pipe = [('import', 'surelog', 'parse'),
             ('lint', 'verilator', 'lint'),
             ('export', 'nop', 'nop')]
 
+    prevstep = None
     for step, tool, task in pipe:
         flow.node(flowname, step, tool, task)
-        if task != 'import':
+        if prevstep:
             flow.edge(flowname, prevstep, step)
         prevstep = step
 

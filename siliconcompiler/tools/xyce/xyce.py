@@ -24,7 +24,7 @@ def setup(chip):
      tool = 'xyce'
      step = chip.get('arg','step')
      index = chip.get('arg','index')
-     task = step
+     task = chip._get_task(step, index)
 
      clobber = False
 

@@ -12,7 +12,7 @@ import pytest
 def test_surelog(scroot, clean):
     gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
-    step = "import"
+    step = "parse"
 
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
@@ -38,7 +38,7 @@ def test_surelog(scroot, clean):
 def test_surelog_duplicate_inputs(scroot):
     gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
-    step = "import"
+    step = "parse"
 
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
@@ -70,7 +70,7 @@ def test_surelog_duplicate_inputs(scroot):
 def test_surelog_preproc_regression(datadir):
     src = os.path.join(datadir, 'test_preproc.v')
     design = 'test_preproc'
-    step = "import"
+    step = "parse"
 
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
@@ -95,7 +95,7 @@ def test_surelog_preproc_regression(datadir):
 def test_replay(scroot):
     src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
-    step = "import"
+    step = "parse"
 
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')

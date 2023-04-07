@@ -69,7 +69,7 @@ def chip(scroot):
     flow = chip.get('option', 'flow')
 
     # no-op import since we're not preprocessing source files
-    chip.node(flow, 'import', 'builtin', 'import')
+    chip.node(flow, 'import', 'builtin', 'nop')
 
     chip.node(flow, 'place', 'openroad', 'place', index=0)
     chip.edge(flow, 'import', 'place', head_index=0)

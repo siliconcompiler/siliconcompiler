@@ -77,10 +77,11 @@ def setup(chip, flowname='fpgaflow'):
 
     # Minimal setup
     index = '0'
+    prevstep = None
     for step,tool,task in flowtools:
         # Flow
         flow.node(flowname, step, tool,task)
-        if task != 'import':
+        if prevstep:
             flow.edge(flowname, prevstep, step)
         # Hard goals
         for metric in ('errors','warnings','drvs','unconstrained',

@@ -10,7 +10,7 @@ def test_verilator(oh_dir):
 
     design = "oh_fifo_sync"
     topfile = os.path.join(ydir, f'{design}.v')
-    step = "import"
+    step = "parse"
 
     chip = siliconcompiler.Chip(design)
     chip.input(topfile)

@@ -9,9 +9,9 @@ def setup(chip):
 
     tool = 'netgen'
     refdir = 'tools/'+tool
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    task = 'lvs'
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
 
     # magic used for drc and lvs
     script = 'sc_lvs.tcl'

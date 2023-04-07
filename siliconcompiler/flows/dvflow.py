@@ -42,7 +42,7 @@ def setup(chip, np=1):
                 'signoff']
 
     tools = {
-        'import': ('verilator', 'import'),
+        'import': ('verilator', 'parse'),
         'compile': ('verilator', 'compile'),
         'testgen': ('verilator', 'testgen'),
         'refsim': ('verilator', 'refsim'),

@@ -17,9 +17,9 @@ def setup(chip):
     setup_tool(chip)
 
     tool = 'verilator'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    task = 'compile'
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
     design = chip.top()
 
     chip.add('tool', tool, 'task', task, 'option',  ['--cc', '--exe'], step=step, index=index)

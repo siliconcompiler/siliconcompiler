@@ -46,12 +46,13 @@ def setup(chip):
     # Generic tool setup.
     setup_tool(chip)
 
-    task = 'show'
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
+
     general_gui_setup(chip, task, False)
 
     tool = 'klayout'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
     clobber = False
 
     option = ['-nc', '-rm']

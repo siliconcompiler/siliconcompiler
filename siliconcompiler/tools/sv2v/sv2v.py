@@ -14,15 +14,13 @@ Sources: https://github.com/zachjs/sv2v
 Installation: https://github.com/zachjs/sv2v
 '''
 
-import importlib
+from siliconcompiler.tools.sv2v import convert
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    from tools.sv2v.convert import setup
-    setup = getattr(importlib.import_module('tools.sv2v.convert'), 'setup')
-    setup(chip)
+    convert.setup(chip)
     return chip
 
 def parse_version(stdout):
