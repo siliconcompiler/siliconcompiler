@@ -25,13 +25,13 @@ def test_err_mismatch():
     chip.load_target('freepdk45_demo')
 
     # Create foo.txt and compute its hash
-    with open('foo.txt', 'w') as f:
+    with open('foo.txt', 'w', newline='\n') as f:
         f.write('foobar\n')
     chip.set('input', 'rtl', 'verilog', 'foo.txt')
     assert chip.hash_files('input', 'rtl', 'verilog') == ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
 
     # Change foo.txt
-    with open('foo.txt', 'w') as f:
+    with open('foo.txt', 'w', newline='\n') as f:
         f.write('FOObar\n')
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
@@ -39,7 +39,7 @@ def test_err_mismatch():
         chip.hash_files('input', 'rtl', 'verilog', update=False)
 
     # Restore foo.txt
-    with open('foo.txt', 'w') as f:
+    with open('foo.txt', 'w', newline='\n') as f:
         f.write('foobar\n')
 
     # No error since foo.txt was restored, and update=False in previous call
@@ -55,7 +55,7 @@ def test_err_mismatch():
 def test_changed_algorithm(algorithm, expected):
 
     # Create foo.txt and compute its hash
-    with open('foo.txt', 'w') as f:
+    with open('foo.txt', 'w', newline='\n') as f:
         f.write('foobar\n')
 
     chip = siliconcompiler.Chip('top')
