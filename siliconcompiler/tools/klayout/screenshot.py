@@ -15,10 +15,10 @@ def setup(chip):
     setup_tool(chip)
 
     tool = 'klayout'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
     design = chip.top()
-    task = 'screenshot'
     clobber = False
 
     general_gui_setup(chip, task, True)

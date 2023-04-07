@@ -11,10 +11,10 @@ def setup(chip):
     setup_tool(chip)
 
     tool = 'openroad'
-    task = 'place'
     design = chip.top()
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
 
     if (not chip.valid('input', 'layout', 'def') or
         not chip.get('input', 'layout', 'def', step=step, index=index)):

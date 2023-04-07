@@ -5,6 +5,11 @@ import os
 
 import pytest
 
+from tests.core.tools.fake import foo
+from tests.core.tools.fake import bar
+from tests.core.tools.fake import baz
+from tests.core.tools.echo import echo
+
 def test_check_manifest():
 
     chip = siliconcompiler.Chip('gcd')
@@ -17,9 +22,13 @@ def test_check_manifest():
         tool = chip.get('flowgraph', flow, step, index, 'tool')
         chip.set('arg', 'step', step)
         chip.set('arg', 'index', index)
-        setup = chip.find_function(tool, 'setup', 'tools')
+        module = chip._get_task_module(step, index)
+        assert module is not None
+        setup = getattr(module, 'setup', None)
         assert setup is not None
         setup(chip)
+        chip.unset('arg', 'step')
+        chip.unset('arg', 'index')
 
     chip.set('option', 'steplist', steps)
 
@@ -35,12 +44,25 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip.input(os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.load_target("freepdk45_demo")
 
+    flow = chip.get('option', 'flow')
+    for step in chip.getkeys('flowgraph', flow):
+        for index in chip.getkeys('flowgraph', flow, step):
+            chip.set('arg', 'step', step)
+            chip.set('arg', 'index', index)
+            module = chip._get_task_module(step, index)
+            assert module is not None
+            setup = getattr(module, 'setup', None)
+            assert setup is not None
+            setup(chip)
+            chip.unset('arg', 'step')
+            chip.unset('arg', 'index')
+
     # collect input files
     cwd = os.getcwd()
     workdir = chip._getworkdir(step='import', index='0')
     os.makedirs(workdir)
     os.chdir(workdir)
-    chip._collect('import', '0')
+    chip._collect()
     os.chdir(cwd)
 
     env = {
@@ -66,7 +88,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     cwd = os.getcwd()
     os.makedirs(workdir)
     os.chdir(workdir)
-    chip._collect('import', '0')
+    chip._collect()
     os.chdir(cwd)
 
     env = {
@@ -81,7 +103,7 @@ def test_check_missing_file_param():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
 
-    chip._setup_tool('yosys', 'syn_asic', 'syn', '0')
+    chip._setup_task('syn', '0')
 
     chip.set('arg', 'step', 'syn')
     chip.set('arg', 'index', '0')
@@ -102,13 +124,13 @@ def merge_flow_chip():
     chip = siliconcompiler.Chip('test')
 
     flow = 'test'
-    chip.node(flow, 'import', 'builtin', 'import')
-    chip.node(flow, 'parallel1', 'foo', 'parallel1')
-    chip.node(flow, 'parallel2', 'bar', 'parallel2')
+    chip.node(flow, 'import', 'builtin.nop')
+    chip.node(flow, 'parallel1', foo)
+    chip.node(flow, 'parallel2', bar)
     chip.edge(flow, 'import', 'parallel1')
     chip.edge(flow, 'import', 'parallel2')
 
-    chip.node(flow, 'export', 'baz', 'export')
+    chip.node(flow, 'export', baz)
     chip.edge(flow, 'parallel1', 'export')
     chip.edge(flow, 'parallel2', 'export')
     chip.set('option', 'flow', flow)
@@ -117,34 +139,30 @@ def merge_flow_chip():
     chip.set('tool', 'bar', 'exe', 'foo')
     chip.set('tool', 'baz', 'exe', 'baz')
 
-    chip.set('tool', 'baz', 'task', 'export', 'input', ['foo.out', 'bar.out'], step='export', index='0')
+    chip.set('tool', 'fake', 'task', 'baz', 'input', ['foo.out', 'bar.out'], step='export', index='0')
 
     return chip
 
 def test_merged_graph_good(merge_flow_chip):
-    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'bar.out', step='parallel1', index='0')
-    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'foo.out', step='parallel2', index='0')
+    merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'bar.out', step='parallel1', index='0')
+    merge_flow_chip.set('tool', 'fake', 'task', 'bar', 'output', 'foo.out', step='parallel2', index='0')
 
     assert merge_flow_chip.check_manifest()
 
 def test_merged_graph_good_steplist():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
-    chip.node(flow, 'import', 'builtin', 'import')
-    chip.node(flow, 'parallel1', 'echo', 'parallel1')
-    chip.node(flow, 'parallel2', 'echo', 'parallel2')
-    chip.node(flow, 'merge', 'echo', 'merge')
-    chip.node(flow, 'export', 'echo', 'export')
+    chip.node(flow, 'import', 'builtin.nop')
+    chip.node(flow, 'parallel1', echo)
+    chip.node(flow, 'parallel2', echo)
+    chip.node(flow, 'merge', echo)
+    chip.node(flow, 'export', echo)
     chip.edge(flow, 'import', 'parallel1')
     chip.edge(flow, 'import', 'parallel2')
     chip.edge(flow, 'parallel1', 'merge')
     chip.edge(flow, 'parallel2', 'merge')
     chip.edge(flow, 'merge', 'export')
     chip.set('option', 'flow', flow)
-    chip.set('flowgraph', flow, 'merge', '0', 'task', 'echo')
-    chip.set('flowgraph', flow, 'export', '0', 'task', 'echo')
-    chip.set('flowgraph', flow, 'parallel1', '0', 'task', 'echo')
-    chip.set('flowgraph', flow, 'parallel2', '0', 'task', 'echo')
 
     chip.run()
 
@@ -154,16 +172,26 @@ def test_merged_graph_good_steplist():
 
 def test_merged_graph_bad_same(merge_flow_chip):
     # Two merged steps can't output the same thing
-    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'foo.out', step='parallel1', index='0')
-    merge_flow_chip.set('tool', 'bar', 'task', 'parallel2', 'output', 'foo.out', step='parallel2', index='0')
+    merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'foo.out', step='parallel1', index='0')
+    merge_flow_chip.set('tool', 'fake', 'task', 'bar', 'output', 'foo.out', step='parallel2', index='0')
 
     assert not merge_flow_chip.check_manifest()
 
 def test_merged_graph_bad_missing(merge_flow_chip):
     # bar doesn't provide necessary output
-    merge_flow_chip.set('tool', 'foo', 'task', 'parallel1', 'output', 'foo.out', step='parallel1', index='0')
+    merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'foo.out', step='parallel1', index='0')
 
     assert not merge_flow_chip.check_manifest()
+
+@pytest.mark.quick
+def test_check_missing_task_module():
+    chip = siliconcompiler.Chip('gcd')
+
+    chip.load_target("freepdk45_demo")
+
+    chip.set('flowgraph', chip.get('option', 'flow'), 'place', '0', 'taskmodule', 'missing.place')
+
+    assert not chip.check_manifest()
 
 #########################
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ sc -design gcd \
    gcd_asap7.sdc \
    -package_version "0.0.0" \
    -package_description "GCD test package" \
+   -constraint_density 30 \
    -package_license "MIT" \
    -target "asap7_demo" \
    -loglevel "INFO" \

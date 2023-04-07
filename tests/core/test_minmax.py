@@ -2,6 +2,9 @@
 import siliconcompiler
 import pytest
 
+from siliconcompiler.tools.verilator import parse
+from siliconcompiler.tools.yosys import syn_asic
+
 @pytest.fixture
 def chip():
     # Create instance of Chip class
@@ -12,9 +15,10 @@ def chip():
                 'syn',
                 'synmin']
 
-    tools = {
-        'import': 'verilator',
-        'syn': 'yosys'
+    task = {
+        'import': parse,
+        'syn': syn_asic,
+        'synmin': 'builtin.minimum'
     }
 
     N = 10
@@ -31,13 +35,13 @@ def chip():
     for i, step in enumerate(flowpipe):
         for index in range(threads[step]):
             if step == "synmin":
-                chip.set('flowgraph', flow, step, str(index), 'tool', 'minimum')
+                chip.node(flow, step, task[step], index=index)
                 for j in range(N):
-                    chip.add('flowgraph', flow, step, '0', 'input', (flowpipe[i-1],str(j)))
+                    chip.edge(flow, step, flowpipe[i-1], head_index=j)
             elif step == 'import':
-                chip.set('flowgraph', flow, step, str(index), 'tool', tools[step])
+                chip.node(flow, step, task[step], index=index)
             else:
-                chip.node(flow, step, tools[step], step, index=index)
+                chip.node(flow, step, task[step], index=index)
                 chip.edge(flow, flowpipe[i-1], step, tail_index=0, head_index=index)
             #weight
             chip.set('flowgraph', flow, step, str(index), 'weight', 'cellarea', 1.0)

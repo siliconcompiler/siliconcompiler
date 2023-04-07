@@ -11,10 +11,10 @@ def setup(chip):
     setup_tool(chip)
 
     tool = 'openroad'
-    task = 'floorplan'
     design = chip.top()
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
 
     if chip.valid('input', 'asic', 'floorplan'):
         chip.add('tool', tool, 'task', task, 'require', ",".join(['input', 'asic', 'floorplan']), step=step, index=index)

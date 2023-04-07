@@ -3,6 +3,8 @@ import os
 import siliconcompiler
 import pytest
 
+from siliconcompiler.tools.verilator import parse
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_verilator(oh_dir):
@@ -10,7 +12,7 @@ def test_verilator(oh_dir):
 
     design = "oh_fifo_sync"
     topfile = os.path.join(ydir, f'{design}.v')
-    step = "import"
+    step = "parse"
 
     chip = siliconcompiler.Chip(design)
     chip.input(topfile)
@@ -18,7 +20,7 @@ def test_verilator(oh_dir):
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
     chip.set('option', 'mode', 'sim')
-    chip.node('verilator', step, 'verilator', step)
+    chip.node('verilator', step, parse)
     chip.load_target('freepdk45_demo')
     chip.set('option', 'flow', 'verilator')
     chip.run()

@@ -11,10 +11,10 @@ def setup(chip):
     setup_tool(chip)
 
     tool = 'openroad'
-    task = 'dfm'
     design = chip.top()
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
 
     chip.add('tool', tool, 'task', task, 'input', design +'.def', step=step, index=index)
 

@@ -3,15 +3,15 @@ import siliconcompiler
 def test_list_steps():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
-    chip.node(flow, 'A', 'join', 'A')
+    chip.node(flow, 'A', 'builtin.join')
 
-    chip.node(flow, 'B', 'join', 'B')
+    chip.node(flow, 'B', 'builtin.join')
     chip.edge(flow, 'A', 'B')
 
-    chip.node(flow, 'C', 'join', 'C')
+    chip.node(flow, 'C', 'builtin.join')
     chip.edge(flow, 'B', 'C')
 
-    chip.node(flow, 'D', 'join', 'D')
+    chip.node(flow, 'D', 'builtin.join')
     chip.edge(flow, 'A', 'D')
     chip.edge(flow, 'C', 'D')
 

@@ -2,6 +2,7 @@ import siliconcompiler
 import os
 import pytest
 
+from siliconcompiler.flows import fpgaflow
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -15,7 +16,6 @@ def test_parity(scroot):
     chip.input(source)
     chip.set('fpga', 'arch', arch)
     chip.set('fpga', 'partname', 'dummy')
-    from flows import fpgaflow
     chip.use(fpgaflow)
     chip.set('option', 'mode', 'fpga')
 

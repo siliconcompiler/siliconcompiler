@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.28.0'
+SCHEMA_VERSION = '0.29.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -67,7 +67,7 @@ def scparam(cfg,
         # removing leading spaces as if schelp were a docstring
         schelp = trim(schelp)
 
-        # setting valus based on types
+        # setting values based on types
         # note (bools are never lists)
         if re.match(r'bool',sctype):
             require = 'all'
@@ -84,6 +84,8 @@ def scparam(cfg,
         cfg['scope'] = scope
         cfg['require'] = require
         cfg['lock'] = lock
+        if switch and not isinstance(switch, list):
+            switch = [switch]
         cfg['switch'] = switch
         cfg['shorthelp'] = shorthelp
         cfg['example'] = example
@@ -993,6 +995,15 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
                 "api: chip.set('flowgraph','asicflow','myplace','0','task','place')"],
             schelp="""Name of the tool associated task used for step execution. Builtin
             task names include: minimum, maximum, join, verify, mux. """)
+
+    scparam(cfg,['flowgraph', flow, step, index, 'taskmodule'],
+            sctype='str',
+            shorthelp="Flowgraph: task module",
+            switch="-flowgraph_taskmodule 'flow step <str>'",
+            example=[
+                "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
+                "api: chip.set('flowgraph','asicflow','place','0','taskmodule','siliconcompiler.tools.openroad.place')"],
+            schelp="""Full python module name of the task module used for task setup and execution.""")
 
     # flowgraph arguments
     scparam(cfg,['flowgraph', flow, step, index, 'args'],

@@ -3,6 +3,9 @@ import siliconcompiler
 
 import pytest
 
+from siliconcompiler.tools.openroad import place
+from siliconcompiler.tools.openroad import cts
+
 @pytest.fixture
 def gcd_with_metrics(gcd_chip):
     steps = gcd_chip.list_steps()
@@ -42,16 +45,16 @@ def test_parallel_path(capfd):
 
         flow = 'test'
         chip.set('option','flow', flow)
-        chip.node(flow, 'import', 'builtin', 'nop')
-        chip.node(flow, 'ctsmin', 'builtin', 'minimum')
+        chip.node(flow, 'import', 'builtin.nop')
+        chip.node(flow, 'ctsmin', 'builtin.minimum')
 
         chip.set('flowgraph', flow, 'import', '0', 'status', siliconcompiler.TaskStatus.SUCCESS)
         chip.set('flowgraph', flow, 'ctsmin', '0', 'status', siliconcompiler.TaskStatus.SUCCESS)
         chip.set('flowgraph', flow, 'ctsmin', '0', 'select', ('cts', '1'))
 
         for i in ('0', '1', '2'):
-            chip.node(flow, 'place', 'openroad', 'place', index=i)
-            chip.node(flow, 'cts', 'openroad', 'cts', index=i)
+            chip.node(flow, 'place', place, index=i)
+            chip.node(flow, 'cts', cts, index=i)
 
             chip.set('flowgraph', flow, 'place', i, 'status', siliconcompiler.TaskStatus.SUCCESS)
             chip.set('flowgraph', flow, 'cts', i, 'status', siliconcompiler.TaskStatus.SUCCESS)

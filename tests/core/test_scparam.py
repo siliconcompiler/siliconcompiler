@@ -46,7 +46,8 @@ def test_scparam():
 
     cfg_golden['metric'][step][index]['warnings'] = {}
     cfg_golden['metric'][step][index]['warnings'][group] = {
-        'switch': "-metric_warnings 'step index group <int>'",
+        'switch': [
+            "-metric_warnings 'step index group <int>'"],
         'type': 'int',
         'lock': False,
         'scope': 'job',
@@ -65,7 +66,8 @@ def test_scparam():
 
     cfg_golden['metric'][step][index]['cells'] = {}
     cfg_golden['metric'][step][index]['cells'][group] = {
-        'switch': "-metric_cells 'step index group <int>'",
+        'switch': [
+            "-metric_cells 'step index group <int>'"],
         'type': 'int',
         'lock': False,
         'scope': 'job',

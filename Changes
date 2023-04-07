@@ -8,6 +8,25 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.10.2 (2023-04-04)
+=========================================
+
+**Major:**
+
+* Support for Python 3.11
+* Building arm64 wheels for surelog
+
+**Minor:**
+
+* Tools:
+
+  * general - deployed docker based CI with automatic tool building and testing
+  * klayout - support for OAS stream files via ['tool', 'klayout', 'task', 'export', 'var', 'stream'] = 'oas', better detection of missing layout cells
+  * yosys - support for controling buffer insertion via ['tool', 'yosys', 'task', 'syn_asic', 'var', 'add_buffers'] = 'True'/'False'
+  * openroad - correct handling of INF timing in metrics
+* Improve memory recording to account for child processes
+* General documentation cleanup
+
 SiliconCompiler 0.10.1 (2023-03-11)
 =========================================
 

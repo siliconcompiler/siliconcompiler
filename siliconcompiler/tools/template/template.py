@@ -43,9 +43,9 @@ def setup(chip):
     ##################################
 
     # Fetching current step and index
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    task = step
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
 
     # Required for all
     chip.set('tool', tool, 'exe', exe)

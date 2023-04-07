@@ -60,10 +60,10 @@ def _deferstep(chip, step, index, status):
         # Only specify an account if accounting is required for this cluster/run.
         if 'slurm_account' in chip.status:
             username = chip.status['slurm_account']
-            schedule_cmd.extend(['--acount', username])
+            schedule_cmd.extend(['--account', username])
         # Only delay the starting time if the 'defer' Schema option is specified.
         # TODO: Add step/index at next major release.
-        defer_time = self.get('option', 'scheduler', 'defer')
+        defer_time = chip.get('option', 'scheduler', 'defer')
         if defer_time:
             schedule_cmd.extend(['--begin', defer_time])
     elif scheduler_type == 'lsf':

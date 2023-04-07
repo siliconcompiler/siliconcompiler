@@ -12,16 +12,13 @@ Sources: https://github.com/ghdl/ghdl
 Installation: https://github.com/ghdl/ghdl
 '''
 
-import importlib
-
-import siliconcompiler
+from siliconcompiler.tools.ghdl import convert
 
 #####################################################################
 # Make Docs
 #####################################################################
 def make_docs(chip):
-    setup = getattr(importlib.import_module('tools.ghdl.import'), 'setup')
-    setup(chip)
+    convert.setup(chip)
     return chip
 
 ################################
@@ -35,7 +32,7 @@ def runtime_options(chip):
 
     step = chip.get('arg','step')
     index = chip.get('arg','index')
-    task = step
+    task = chip._get_task(step, index)
 
     options = []
 

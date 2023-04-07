@@ -14,7 +14,9 @@
             "require": null,
             "scope": "scratch",
             "shorthelp": "ARG: Index argument",
-            "switch": "-arg_index <str>",
+            "switch": [
+                "-arg_index <str>"
+            ],
             "type": "str"
         },
         "step": {
@@ -31,7 +33,9 @@
             "require": null,
             "scope": "scratch",
             "shorthelp": "ARG: Step argument",
-            "switch": "-arg_step <str>",
+            "switch": [
+                "-arg_step <str>"
+            ],
             "type": "str"
         }
     },
@@ -51,7 +55,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: antenna cell list",
-                "switch": "-asic_cells_antenna '<str>'",
+                "switch": [
+                    "-asic_cells_antenna '<str>'"
+                ],
                 "type": "[str]"
             },
             "clkbuf": {
@@ -68,7 +74,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkbuf cell list",
-                "switch": "-asic_cells_clkbuf '<str>'",
+                "switch": [
+                    "-asic_cells_clkbuf '<str>'"
+                ],
                 "type": "[str]"
             },
             "clkdelay": {
@@ -85,7 +93,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkdelay cell list",
-                "switch": "-asic_cells_clkdelay '<str>'",
+                "switch": [
+                    "-asic_cells_clkdelay '<str>'"
+                ],
                 "type": "[str]"
             },
             "clkgate": {
@@ -102,7 +112,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkgate cell list",
-                "switch": "-asic_cells_clkgate '<str>'",
+                "switch": [
+                    "-asic_cells_clkgate '<str>'"
+                ],
                 "type": "[str]"
             },
             "clkicg": {
@@ -119,7 +131,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkicg cell list",
-                "switch": "-asic_cells_clkicg '<str>'",
+                "switch": [
+                    "-asic_cells_clkicg '<str>'"
+                ],
                 "type": "[str]"
             },
             "clkinv": {
@@ -136,7 +150,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clkinv cell list",
-                "switch": "-asic_cells_clkinv '<str>'",
+                "switch": [
+                    "-asic_cells_clkinv '<str>'"
+                ],
                 "type": "[str]"
             },
             "clklogic": {
@@ -153,7 +169,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: clklogic cell list",
-                "switch": "-asic_cells_clklogic '<str>'",
+                "switch": [
+                    "-asic_cells_clklogic '<str>'"
+                ],
                 "type": "[str]"
             },
             "decap": {
@@ -170,7 +188,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: decap cell list",
-                "switch": "-asic_cells_decap '<str>'",
+                "switch": [
+                    "-asic_cells_decap '<str>'"
+                ],
                 "type": "[str]"
             },
             "delay": {
@@ -187,7 +207,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: delay cell list",
-                "switch": "-asic_cells_delay '<str>'",
+                "switch": [
+                    "-asic_cells_delay '<str>'"
+                ],
                 "type": "[str]"
             },
             "dontuse": {
@@ -204,7 +226,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: dontuse cell list",
-                "switch": "-asic_cells_dontuse '<str>'",
+                "switch": [
+                    "-asic_cells_dontuse '<str>'"
+                ],
                 "type": "[str]"
             },
             "endcap": {
@@ -221,7 +245,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: endcap cell list",
-                "switch": "-asic_cells_endcap '<str>'",
+                "switch": [
+                    "-asic_cells_endcap '<str>'"
+                ],
                 "type": "[str]"
             },
             "filler": {
@@ -238,7 +264,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: filler cell list",
-                "switch": "-asic_cells_filler '<str>'",
+                "switch": [
+                    "-asic_cells_filler '<str>'"
+                ],
                 "type": "[str]"
             },
             "hold": {
@@ -255,7 +283,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: hold cell list",
-                "switch": "-asic_cells_hold '<str>'",
+                "switch": [
+                    "-asic_cells_hold '<str>'"
+                ],
                 "type": "[str]"
             },
             "tap": {
@@ -272,7 +302,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: tap cell list",
-                "switch": "-asic_cells_tap '<str>'",
+                "switch": [
+                    "-asic_cells_tap '<str>'"
+                ],
                 "type": "[str]"
             },
             "tie": {
@@ -289,7 +321,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: tie cell list",
-                "switch": "-asic_cells_tie '<str>'",
+                "switch": [
+                    "-asic_cells_tie '<str>'"
+                ],
                 "type": "[str]"
             }
         },
@@ -307,7 +341,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: delay model",
-            "switch": "-asic_delaymodel <str>",
+            "switch": [
+                "-asic_delaymodel <str>"
+            ],
             "type": "str"
         },
         "libarch": {
@@ -324,7 +360,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: library architecture",
-            "switch": "-asic_libarch '<str>'",
+            "switch": [
+                "-asic_libarch '<str>'"
+            ],
             "type": "str"
         },
         "logiclib": {
@@ -341,7 +379,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: logic libraries",
-            "switch": "-asic_logiclib <str>",
+            "switch": [
+                "-asic_logiclib <str>"
+            ],
             "type": "[str]"
         },
         "macrolib": {
@@ -358,7 +398,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "ASIC: macro libraries",
-            "switch": "-asic_macrolib <str>",
+            "switch": [
+                "-asic_macrolib <str>"
+            ],
             "type": "[str]"
         },
         "site": {
@@ -376,7 +418,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "ASIC: Library sites",
-                "switch": "-asic_site 'libarch <str>'",
+                "switch": [
+                    "-asic_site 'libarch <str>'"
+                ],
                 "type": "[str]"
             }
         }
@@ -398,7 +442,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item criteria",
-                    "switch": "-checklist_criteria 'standard item <float>'",
+                    "switch": [
+                        "-checklist_criteria 'standard item <float>'"
+                    ],
                     "type": "[str]"
                 },
                 "dataformat": {
@@ -415,7 +461,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item data format",
-                    "switch": "-checklist_dataformat 'standard item <float>'",
+                    "switch": [
+                        "-checklist_dataformat 'standard item <float>'"
+                    ],
                     "type": "str"
                 },
                 "description": {
@@ -432,7 +480,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item description",
-                    "switch": "-checklist_description 'standard item <str>",
+                    "switch": [
+                        "-checklist_description 'standard item <str>"
+                    ],
                     "type": "str"
                 },
                 "ok": {
@@ -449,7 +499,9 @@
                     "require": "all",
                     "scope": "global",
                     "shorthelp": "Checklist: item ok",
-                    "switch": "-checklist_ok 'standard item <str>'",
+                    "switch": [
+                        "-checklist_ok 'standard item <str>'"
+                    ],
                     "type": "bool"
                 },
                 "rationale": {
@@ -466,7 +518,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item rational",
-                    "switch": "-checklist_rationale 'standard item <str>",
+                    "switch": [
+                        "-checklist_rationale 'standard item <str>"
+                    ],
                     "type": "[str]"
                 },
                 "report": {
@@ -485,7 +539,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item report",
-                    "switch": "-checklist_report 'standard item <file>'",
+                    "switch": [
+                        "-checklist_report 'standard item <file>'"
+                    ],
                     "type": "[file]"
                 },
                 "requirement": {
@@ -502,7 +558,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item requirement",
-                    "switch": "-checklist_requirement 'standard item <str>",
+                    "switch": [
+                        "-checklist_requirement 'standard item <str>"
+                    ],
                     "type": "str"
                 },
                 "task": {
@@ -519,7 +577,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Checklist: item task",
-                    "switch": "-checklist_task 'standard item <(str, str, str)>'",
+                    "switch": [
+                        "-checklist_task 'standard item <(str, str, str)>'"
+                    ],
                     "type": "[(str,str,str)]"
                 },
                 "waiver": {
@@ -539,7 +599,9 @@
                         "require": null,
                         "scope": "global",
                         "shorthelp": "Checklist: item metric waivers",
-                        "switch": "-checklist_waiver 'standard item metric <file>'",
+                        "switch": [
+                            "-checklist_waiver 'standard item metric <file>'"
+                        ],
                         "type": "[file]"
                     }
                 }
@@ -561,7 +623,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Constraint: Layout aspect ratio",
-            "switch": "-constraint_aspectratio <float>",
+            "switch": [
+                "-constraint_aspectratio <float>"
+            ],
             "type": "float"
         },
         "component": {
@@ -580,7 +644,9 @@
                     "require": "all",
                     "scope": "job",
                     "shorthelp": "Constraint: Component flip option",
-                    "switch": "-constraint_component_flip 'inst <bool>'",
+                    "switch": [
+                        "-constraint_component_flip 'inst <bool>'"
+                    ],
                     "type": "bool"
                 },
                 "halo": {
@@ -597,7 +663,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Component halo",
-                    "switch": "-constraint_component_halo 'inst <(float,float)>'",
+                    "switch": [
+                        "-constraint_component_halo 'inst <(float,float)>'"
+                    ],
                     "type": "(float,float)",
                     "unit": "um"
                 },
@@ -615,7 +683,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Component part name",
-                    "switch": "-constraint_component_partname 'inst <str>'",
+                    "switch": [
+                        "-constraint_component_partname 'inst <str>'"
+                    ],
                     "type": "str"
                 },
                 "placement": {
@@ -632,7 +702,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Component placement",
-                    "switch": "-constraint_component_placement 'inst <(float,float, float)>'",
+                    "switch": [
+                        "-constraint_component_placement 'inst <(float,float, float)>'"
+                    ],
                     "type": "(float,float,float)",
                     "unit": "um"
                 },
@@ -650,7 +722,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Component rotation",
-                    "switch": "-constraint_component_rotation 'inst <float>'",
+                    "switch": [
+                        "-constraint_component_rotation 'inst <float>'"
+                    ],
                     "type": "float"
                 }
             }
@@ -669,7 +743,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Constraint: Layout core area",
-            "switch": "-constraint_corearea <[(float,float)]>",
+            "switch": [
+                "-constraint_corearea <[(float,float)]>"
+            ],
             "type": "[(float,float)]",
             "unit": "um"
         },
@@ -687,7 +763,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Constraint: Layout core margin",
-            "switch": "-constraint_coremargin <float>",
+            "switch": [
+                "-constraint_coremargin <float>"
+            ],
             "type": "float",
             "unit": "um"
         },
@@ -705,7 +783,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Constraint: Layout density",
-            "switch": "-constraint_density <float>",
+            "switch": [
+                "-constraint_density <float>"
+            ],
             "type": "float"
         },
         "net": {
@@ -724,7 +804,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net diffpair",
-                    "switch": "-constraint_net_diffpair 'name <str>'",
+                    "switch": [
+                        "-constraint_net_diffpair 'name <str>'"
+                    ],
                     "type": "str"
                 },
                 "match": {
@@ -741,7 +823,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net matched routing",
-                    "switch": "-constraint_net_match 'name <str>'",
+                    "switch": [
+                        "-constraint_net_match 'name <str>'"
+                    ],
                     "type": "[str]"
                 },
                 "maxlayer": {
@@ -758,7 +842,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net maximum routing layer",
-                    "switch": "-constraint_net_maxlayer 'name <str>'",
+                    "switch": [
+                        "-constraint_net_maxlayer 'name <str>'"
+                    ],
                     "type": "str"
                 },
                 "maxlength": {
@@ -775,7 +861,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net max length",
-                    "switch": "-constraint_net_maxlength 'name <float>'",
+                    "switch": [
+                        "-constraint_net_maxlength 'name <float>'"
+                    ],
                     "type": "float",
                     "unit": "um"
                 },
@@ -793,7 +881,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net max resistasnce",
-                    "switch": "-constraint_net_maxresistance 'name <float>'",
+                    "switch": [
+                        "-constraint_net_maxresistance 'name <float>'"
+                    ],
                     "type": "float",
                     "unit": "ohm"
                 },
@@ -811,7 +901,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net minimum routing layer",
-                    "switch": "-constraint_net_minlayer 'name <str>'",
+                    "switch": [
+                        "-constraint_net_minlayer 'name <str>'"
+                    ],
                     "type": "str"
                 },
                 "ndr": {
@@ -828,7 +920,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net routing rule",
-                    "switch": "-constraint_net_ndr 'name <(float,float)>'",
+                    "switch": [
+                        "-constraint_net_ndr 'name <(float,float)>'"
+                    ],
                     "type": "(float,float)",
                     "unit": "um"
                 },
@@ -846,7 +940,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net shielding",
-                    "switch": "-constraint_net_shielding 'name <str>'",
+                    "switch": [
+                        "-constraint_net_shielding 'name <str>'"
+                    ],
                     "type": "str"
                 },
                 "sympair": {
@@ -863,7 +959,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Net sympair",
-                    "switch": "-constraint_net_sympair 'name <str>'",
+                    "switch": [
+                        "-constraint_net_sympair 'name <str>'"
+                    ],
                     "type": "str"
                 }
             }
@@ -882,7 +980,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Constraint: Layout outline",
-            "switch": "-constraint_outline <[(float,float)]>",
+            "switch": [
+                "-constraint_outline <[(float,float)]>"
+            ],
             "type": "[(float,float)]",
             "unit": "um"
         },
@@ -902,7 +1002,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin layer",
-                    "switch": "-constraint_pin_layer 'name <str>'",
+                    "switch": [
+                        "-constraint_pin_layer 'name <str>'"
+                    ],
                     "type": "str"
                 },
                 "order": {
@@ -919,7 +1021,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin order",
-                    "switch": "-constraint_pin_order 'name <int>'",
+                    "switch": [
+                        "-constraint_pin_order 'name <int>'"
+                    ],
                     "type": "int"
                 },
                 "placement": {
@@ -936,7 +1040,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin placement",
-                    "switch": "-constraint_pin_placement 'name <(float,float, float)>'",
+                    "switch": [
+                        "-constraint_pin_placement 'name <(float,float, float)>'"
+                    ],
                     "type": "(float,float,float)",
                     "unit": "um"
                 },
@@ -954,7 +1060,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin side",
-                    "switch": "-constraint_pin_side 'name <int>'",
+                    "switch": [
+                        "-constraint_pin_side 'name <int>'"
+                    ],
                     "type": "int"
                 }
             }
@@ -975,7 +1083,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: timing checks",
-                    "switch": "-constraint_timing_check 'scenario <str>'",
+                    "switch": [
+                        "-constraint_timing_check 'scenario <str>'"
+                    ],
                     "type": "[str]"
                 },
                 "file": {
@@ -994,7 +1104,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: SDC files",
-                    "switch": "-constraint_timing_file 'scenario <file>'",
+                    "switch": [
+                        "-constraint_timing_file 'scenario <file>'"
+                    ],
                     "type": "[file]"
                 },
                 "libcorner": {
@@ -1011,7 +1123,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: library corner",
-                    "switch": "-constraint_timing_libcorner 'scenario <str>'",
+                    "switch": [
+                        "-constraint_timing_libcorner 'scenario <str>'"
+                    ],
                     "type": "[str]"
                 },
                 "mode": {
@@ -1028,7 +1142,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: operating mode",
-                    "switch": "-constraint_timing_mode 'scenario <str>'",
+                    "switch": [
+                        "-constraint_timing_mode 'scenario <str>'"
+                    ],
                     "type": "str"
                 },
                 "opcond": {
@@ -1045,7 +1161,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: operating condition",
-                    "switch": "-constraint_timing_opcond 'scenario <str>'",
+                    "switch": [
+                        "-constraint_timing_opcond 'scenario <str>'"
+                    ],
                     "type": "str"
                 },
                 "pexcorner": {
@@ -1062,7 +1180,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: pex corner",
-                    "switch": "-constraint_timing_pexcorner 'scenario <str>'",
+                    "switch": [
+                        "-constraint_timing_pexcorner 'scenario <str>'"
+                    ],
                     "type": "str"
                 },
                 "temperature": {
@@ -1079,7 +1199,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: temperature",
-                    "switch": "-constraint_timing_temperature 'scenario <float>'",
+                    "switch": [
+                        "-constraint_timing_temperature 'scenario <float>'"
+                    ],
                     "type": "float",
                     "unit": "C"
                 },
@@ -1097,7 +1219,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Constraint: voltage level",
-                    "switch": "-constraint_timing_voltage 'scenario <float>'",
+                    "switch": [
+                        "-constraint_timing_voltage 'scenario <float>'"
+                    ],
                     "type": "float",
                     "unit": "V"
                 }
@@ -1121,7 +1245,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Datasheet: device features",
-                    "switch": "-datasheet_feature 'design name <float>'",
+                    "switch": [
+                        "-datasheet_feature 'design name <float>'"
+                    ],
                     "type": "float"
                 }
             },
@@ -1139,7 +1265,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Datasheet: device footprint",
-                "switch": "-datasheet_footprint 'design <str>'",
+                "switch": [
+                    "-datasheet_footprint 'design <str>'"
+                ],
                 "type": "[str]"
             },
             "limits": {
@@ -1157,7 +1285,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Datasheet: absolute junction temperature limits",
-                    "switch": "-datasheet_junctiontemp 'design <(float,float)>'",
+                    "switch": [
+                        "-datasheet_junctiontemp 'design <(float,float)>'"
+                    ],
                     "type": "(float,float)"
                 },
                 "storagetemp": {
@@ -1174,7 +1304,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Datasheet: absolute storage temperature limits",
-                    "switch": "-datasheet_storagetemp 'design <(float,float)>'",
+                    "switch": [
+                        "-datasheet_storagetemp 'design <(float,float)>'"
+                    ],
                     "type": "(float,float)"
                 },
                 "voltage": {
@@ -1192,7 +1324,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Datasheet: absolute voltage limits",
-                        "switch": "-datasheet_limits_voltage 'design pin <(float,float)>'",
+                        "switch": [
+                            "-datasheet_limits_voltage 'design pin <(float,float)>'"
+                        ],
                         "type": "(float,float)"
                     }
                 }
@@ -1214,7 +1348,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin capacitance",
-                            "switch": "-datasheet_pin_capacitance 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_capacitance 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "F"
                         }
@@ -1234,7 +1370,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin related clock",
-                            "switch": "-datasheet_pin_clk 'design name mode <str>'",
+                            "switch": [
+                                "-datasheet_pin_clk 'design name mode <str>'"
+                            ],
                             "type": "str"
                         }
                     },
@@ -1253,7 +1391,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin complement",
-                            "switch": "-datasheet_pin_complement 'design name mode <str>'",
+                            "switch": [
+                                "-datasheet_pin_complement 'design name mode <str>'"
+                            ],
                             "type": "str"
                         }
                     },
@@ -1272,7 +1412,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin direction",
-                            "switch": "-datasheet_pin_dir 'design name mode <str>'",
+                            "switch": [
+                                "-datasheet_pin_dir 'design name mode <str>'"
+                            ],
                             "type": "str"
                         }
                     },
@@ -1291,7 +1433,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin duty cycle",
-                            "switch": "-datasheet_pin_dutycycle 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_dutycycle 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "%"
                         }
@@ -1311,7 +1455,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin related ground",
-                            "switch": "-datasheet_pin_ground 'design name mode <str>'",
+                            "switch": [
+                                "-datasheet_pin_ground 'design name mode <str>'"
+                            ],
                             "type": "str"
                         }
                     },
@@ -1330,7 +1476,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin drive current",
-                            "switch": "-datasheet_pin_idrive 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_idrive 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "A"
                         }
@@ -1350,7 +1498,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin injection current",
-                            "switch": "-datasheet_pin_iinject 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_iinject 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "A"
                         }
@@ -1370,7 +1520,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin leakage current",
-                            "switch": "-datasheet_pin_ileakage 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_ileakage 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "A"
                         }
@@ -1390,7 +1542,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin map",
-                            "switch": "-datasheet_pin_map 'design name package <str>'",
+                            "switch": [
+                                "-datasheet_pin_map 'design name package <str>'"
+                            ],
                             "type": "str"
                         }
                     },
@@ -1409,7 +1563,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin differential pair resistance",
-                            "switch": "-datasheet_pin_rdiff 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_rdiff 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "ohm"
                         }
@@ -1429,7 +1585,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin reset value",
-                            "switch": "-datasheet_pin_resetvalue 'design name mode <str>'",
+                            "switch": [
+                                "-datasheet_pin_resetvalue 'design name mode <str>'"
+                            ],
                             "type": "[str]"
                         }
                     },
@@ -1448,7 +1606,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin pulldown resistance",
-                            "switch": "-datasheet_pin_rpulldown 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_rpulldown 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "ohm"
                         }
@@ -1468,7 +1628,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin pullup resistance",
-                            "switch": "-datasheet_pin_rpullup 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_rpullup 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "ohm"
                         }
@@ -1488,7 +1650,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin standard",
-                            "switch": "-datasheet_pin_standard 'design name mode <str>'",
+                            "switch": [
+                                "-datasheet_pin_standard 'design name mode <str>'"
+                            ],
                             "type": "[str]"
                         }
                     },
@@ -1507,7 +1671,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin related power supply",
-                            "switch": "-datasheet_pin_supply 'design name mode <str>'",
+                            "switch": [
+                                "-datasheet_pin_supply 'design name mode <str>'"
+                            ],
                             "type": "str"
                         }
                     },
@@ -1526,7 +1692,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin fall transition",
-                            "switch": "-datasheet_pin_tfall 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_tfall 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "s"
                         }
@@ -1546,7 +1714,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin hold time",
-                            "switch": "-datasheet_pin_thold 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_thold 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "s"
                         }
@@ -1566,7 +1736,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin rms jitter",
-                            "switch": "-datasheet_pin_tjitter 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_tjitter 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "s"
                         }
@@ -1586,7 +1758,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin minimum period",
-                            "switch": "-datasheet_pin_tperiod 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_tperiod 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "s"
                         }
@@ -1606,7 +1780,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin pulse width",
-                            "switch": "-datasheet_pin_tpulse 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_tpulse 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "s"
                         }
@@ -1626,7 +1802,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin rise transition",
-                            "switch": "-datasheet_pin_trise 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_trise 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "s"
                         }
@@ -1646,7 +1824,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin setup time",
-                            "switch": "-datasheet_pin_tsetup 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_tsetup 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "s"
                         }
@@ -1666,7 +1846,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin type",
-                            "switch": "-datasheet_pin_type 'design name mode <str>'",
+                            "switch": [
+                                "-datasheet_pin_type 'design name mode <str>'"
+                            ],
                             "type": "str"
                         }
                     },
@@ -1685,7 +1867,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin CDM ESD tolerance",
-                            "switch": "-datasheet_pin_vcdm 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_vcdm 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "V"
                         }
@@ -1705,7 +1889,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin common mode voltage",
-                            "switch": "-datasheet_pin_vcm 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_vcm 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "V"
                         }
@@ -1725,7 +1911,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin differential voltage",
-                            "switch": "-datasheet_pin_vdiff 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_vdiff 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "V"
                         }
@@ -1745,7 +1933,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin HBM ESD tolerance",
-                            "switch": "-datasheet_pin_vhbm 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_vhbm 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "V"
                         }
@@ -1765,7 +1955,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin high input voltage level",
-                            "switch": "-datasheet_pin_vih 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_vih 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "V"
                         }
@@ -1785,7 +1977,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin low input voltage level",
-                            "switch": "-datasheet_pin_vil 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_vil 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "V"
                         }
@@ -1805,7 +1999,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin MM ESD tolerance",
-                            "switch": "-datasheet_pin_vmm 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_vmm 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "V"
                         }
@@ -1825,7 +2021,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin random voltage noise",
-                            "switch": "-datasheet_pin_vnoise 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_vnoise 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "V"
                         }
@@ -1845,7 +2043,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin high output voltage level",
-                            "switch": "-datasheet_pin_voh 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_voh 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "V"
                         }
@@ -1865,7 +2065,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin low output voltage level",
-                            "switch": "-datasheet_pin_vol 'design pin mode <(float,float,float)>'",
+                            "switch": [
+                                "-datasheet_pin_vol 'design pin mode <(float,float,float)>'"
+                            ],
                             "type": "(float,float,float)",
                             "unit": "V"
                         }
@@ -1888,7 +2090,9 @@
         "require": "all",
         "scope": "global",
         "shorthelp": "Design top module name",
-        "switch": "-design <str>",
+        "switch": [
+            "-design <str>"
+        ],
         "type": "str"
     },
     "flowgraph": {
@@ -1909,7 +2113,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: setup arguments",
-                        "switch": "-flowgraph_args 'flow step index <str>'",
+                        "switch": [
+                            "-flowgraph_args 'flow step index <str>'"
+                        ],
                         "type": "[str]"
                     },
                     "goal": {
@@ -1927,7 +2133,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Flowgraph: metric goals",
-                            "switch": "-flowgraph_goal 'flow step index metric <float>'",
+                            "switch": [
+                                "-flowgraph_goal 'flow step index metric <float>'"
+                            ],
                             "type": "float"
                         }
                     },
@@ -1945,7 +2153,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: step input",
-                        "switch": "-flowgraph_input 'flow step index <(str,str)>'",
+                        "switch": [
+                            "-flowgraph_input 'flow step index <(str,str)>'"
+                        ],
                         "type": "[(str,str)]"
                     },
                     "select": {
@@ -1962,7 +2172,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task select record",
-                        "switch": "-flowgraph_select 'flow step index <(str,str)>'",
+                        "switch": [
+                            "-flowgraph_select 'flow step index <(str,str)>'"
+                        ],
                         "type": "[(str,str)]"
                     },
                     "status": {
@@ -1984,7 +2196,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task status",
-                        "switch": "-flowgraph_status 'flow step index <str>'",
+                        "switch": [
+                            "-flowgraph_status 'flow step index <str>'"
+                        ],
                         "type": "enum"
                     },
                     "task": {
@@ -2001,7 +2215,28 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task selection",
-                        "switch": "-flowgraph_task 'flow step <str>'",
+                        "switch": [
+                            "-flowgraph_task 'flow step <str>'"
+                        ],
+                        "type": "str"
+                    },
+                    "taskmodule": {
+                        "defvalue": null,
+                        "example": [
+                            "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
+                            "api: chip.set('flowgraph','asicflow','place','0','taskmodule','siliconcompiler.tools.openroad.place')"
+                        ],
+                        "help": "Full python module name of the task module used for task setup and execution.",
+                        "lock": false,
+                        "node": {},
+                        "notes": null,
+                        "pernode": "never",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Flowgraph: task module",
+                        "switch": [
+                            "-flowgraph_taskmodule 'flow step <str>'"
+                        ],
                         "type": "str"
                     },
                     "timeout": {
@@ -2018,7 +2253,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task timeout value",
-                        "switch": "-flowgraph_timeout 'flow step 0 <float>'",
+                        "switch": [
+                            "-flowgraph_timeout 'flow step 0 <float>'"
+                        ],
                         "type": "float",
                         "unit": "s"
                     },
@@ -2036,7 +2273,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Flowgraph: tool selection",
-                        "switch": "-flowgraph_tool 'flow step <str>'",
+                        "switch": [
+                            "-flowgraph_tool 'flow step <str>'"
+                        ],
                         "type": "str"
                     },
                     "valid": {
@@ -2053,7 +2292,9 @@
                         "require": "all",
                         "scope": "job",
                         "shorthelp": "Flowgraph: task valid bit",
-                        "switch": "-flowgraph_valid 'flow step index <str>'",
+                        "switch": [
+                            "-flowgraph_valid 'flow step index <str>'"
+                        ],
                         "type": "bool"
                     },
                     "weight": {
@@ -2071,7 +2312,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Flowgraph: metric weights",
-                            "switch": "-flowgraph_weight 'flow step index metric <float>'",
+                            "switch": [
+                                "-flowgraph_weight 'flow step index metric <float>'"
+                            ],
                             "type": "float"
                         }
                     }
@@ -2096,7 +2339,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "FPGA: architecture file",
-            "switch": "-fpga_arch <file>",
+            "switch": [
+                "-fpga_arch <file>"
+            ],
             "type": "[file]"
         },
         "board": {
@@ -2113,7 +2358,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "FPGA: board name",
-            "switch": "-fpga_board <str>",
+            "switch": [
+                "-fpga_board <str>"
+            ],
             "type": "str"
         },
         "flash": {
@@ -2130,7 +2377,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "FPGA: flash enable",
-            "switch": "-fpga_flash <bool>",
+            "switch": [
+                "-fpga_flash <bool>"
+            ],
             "type": "bool"
         },
         "partname": {
@@ -2147,7 +2396,9 @@
             "require": "fpga",
             "scope": "job",
             "shorthelp": "FPGA: part name",
-            "switch": "-fpga_partname <str>",
+            "switch": [
+                "-fpga_partname <str>"
+            ],
             "type": "str"
         },
         "program": {
@@ -2164,7 +2415,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "FPGA: program enable",
-            "switch": "-fpga_program <bool>",
+            "switch": [
+                "-fpga_program <bool>"
+            ],
             "type": "bool"
         },
         "vendor": {
@@ -2181,7 +2434,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "FPGA: vendor name",
-            "switch": "-fpga_vendor <str>",
+            "switch": [
+                "-fpga_vendor <str>"
+            ],
             "type": "str"
         }
     },
@@ -2204,7 +2459,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Input: files",
-                "switch": "-input 'fileset filetype <file>'",
+                "switch": [
+                    "-input 'fileset filetype <file>'"
+                ],
                 "type": "[file]"
             }
         }
@@ -2225,7 +2482,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: averagepower",
-            "switch": "-metric_averagepower 'step index <float>'",
+            "switch": [
+                "-metric_averagepower 'step index <float>'"
+            ],
             "type": "float",
             "unit": "mw"
         },
@@ -2243,7 +2502,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: FPGA BRAM tiles",
-            "switch": "-metric_brams 'step index <int>'",
+            "switch": [
+                "-metric_brams 'step index <int>'"
+            ],
             "type": "int"
         },
         "buffers": {
@@ -2260,7 +2521,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: buffers",
-            "switch": "-metric_buffers 'step index <float>'",
+            "switch": [
+                "-metric_buffers 'step index <float>'"
+            ],
             "type": "int"
         },
         "cellarea": {
@@ -2277,7 +2540,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: cellarea",
-            "switch": "-metric_cellarea 'step index <float>'",
+            "switch": [
+                "-metric_cellarea 'step index <float>'"
+            ],
             "type": "float",
             "unit": "um^2"
         },
@@ -2295,7 +2560,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: cells",
-            "switch": "-metric_cells 'step index <float>'",
+            "switch": [
+                "-metric_cells 'step index <float>'"
+            ],
             "type": "int"
         },
         "coverage": {
@@ -2312,7 +2579,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: coverage",
-            "switch": "-metric_coverage 'step index <float>'",
+            "switch": [
+                "-metric_coverage 'step index <float>'"
+            ],
             "type": "float",
             "unit": "%"
         },
@@ -2330,7 +2599,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: dozepower",
-            "switch": "-metric_dozepower 'step index <float>'",
+            "switch": [
+                "-metric_dozepower 'step index <float>'"
+            ],
             "type": "float",
             "unit": "mw"
         },
@@ -2348,7 +2619,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: total drvs",
-            "switch": "-metric_drvs 'step index <int>'",
+            "switch": [
+                "-metric_drvs 'step index <int>'"
+            ],
             "type": "int"
         },
         "dsps": {
@@ -2365,7 +2638,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: FPGA DSP slices",
-            "switch": "-metric_dsps 'step index <int>'",
+            "switch": [
+                "-metric_dsps 'step index <int>'"
+            ],
             "type": "int"
         },
         "errors": {
@@ -2382,7 +2657,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: total errors",
-            "switch": "-metric_errors 'step index <int>'",
+            "switch": [
+                "-metric_errors 'step index <int>'"
+            ],
             "type": "int"
         },
         "exetime": {
@@ -2399,7 +2676,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: exetime",
-            "switch": "-metric_exetime 'step index <float>'",
+            "switch": [
+                "-metric_exetime 'step index <float>'"
+            ],
             "type": "float",
             "unit": "s"
         },
@@ -2417,7 +2696,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: fmax",
-            "switch": "-metric_fmax 'step index <float>'",
+            "switch": [
+                "-metric_fmax 'step index <float>'"
+            ],
             "type": "float",
             "unit": "Hz"
         },
@@ -2435,7 +2716,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: holdpaths",
-            "switch": "-metric_holdpaths 'step index <float>'",
+            "switch": [
+                "-metric_holdpaths 'step index <float>'"
+            ],
             "type": "int"
         },
         "holdslack": {
@@ -2452,7 +2735,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: holdslack",
-            "switch": "-metric_holdslack 'step index <float>'",
+            "switch": [
+                "-metric_holdslack 'step index <float>'"
+            ],
             "type": "float",
             "unit": "ns"
         },
@@ -2470,7 +2755,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: holdtns",
-            "switch": "-metric_holdtns 'step index <float>'",
+            "switch": [
+                "-metric_holdtns 'step index <float>'"
+            ],
             "type": "float",
             "unit": "ns"
         },
@@ -2488,7 +2775,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: holdwns",
-            "switch": "-metric_holdwns 'step index <float>'",
+            "switch": [
+                "-metric_holdwns 'step index <float>'"
+            ],
             "type": "float",
             "unit": "ns"
         },
@@ -2506,7 +2795,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: idlepower",
-            "switch": "-metric_idlepower 'step index <float>'",
+            "switch": [
+                "-metric_idlepower 'step index <float>'"
+            ],
             "type": "float",
             "unit": "mw"
         },
@@ -2524,7 +2815,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: peak IR drop",
-            "switch": "-metric_irdrop 'step index <float>'",
+            "switch": [
+                "-metric_irdrop 'step index <float>'"
+            ],
             "type": "float",
             "unit": "mv"
         },
@@ -2542,7 +2835,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: leakagepower",
-            "switch": "-metric_leakagepower 'step index <float>'",
+            "switch": [
+                "-metric_leakagepower 'step index <float>'"
+            ],
             "type": "float",
             "unit": "mw"
         },
@@ -2560,7 +2855,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: FPGA LUTs",
-            "switch": "-metric_luts 'step index <int>'",
+            "switch": [
+                "-metric_luts 'step index <int>'"
+            ],
             "type": "int"
         },
         "macros": {
@@ -2577,7 +2874,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: macros",
-            "switch": "-metric_macros 'step index <float>'",
+            "switch": [
+                "-metric_macros 'step index <float>'"
+            ],
             "type": "int"
         },
         "memory": {
@@ -2594,7 +2893,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: memory",
-            "switch": "-metric_memory 'step index <float>'",
+            "switch": [
+                "-metric_memory 'step index <float>'"
+            ],
             "type": "float",
             "unit": "B"
         },
@@ -2612,7 +2913,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: nets",
-            "switch": "-metric_nets 'step index <float>'",
+            "switch": [
+                "-metric_nets 'step index <float>'"
+            ],
             "type": "int"
         },
         "overflow": {
@@ -2629,7 +2932,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: overflow",
-            "switch": "-metric_overflow 'step index <float>'",
+            "switch": [
+                "-metric_overflow 'step index <float>'"
+            ],
             "type": "int"
         },
         "peakpower": {
@@ -2646,7 +2951,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: peakpower",
-            "switch": "-metric_peakpower 'step index <float>'",
+            "switch": [
+                "-metric_peakpower 'step index <float>'"
+            ],
             "type": "float",
             "unit": "mw"
         },
@@ -2664,7 +2971,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: pins",
-            "switch": "-metric_pins 'step index <float>'",
+            "switch": [
+                "-metric_pins 'step index <float>'"
+            ],
             "type": "int"
         },
         "registers": {
@@ -2681,7 +2990,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: registers",
-            "switch": "-metric_registers 'step index <float>'",
+            "switch": [
+                "-metric_registers 'step index <float>'"
+            ],
             "type": "int"
         },
         "security": {
@@ -2698,7 +3009,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: security",
-            "switch": "-metric_security 'step index <float>'",
+            "switch": [
+                "-metric_security 'step index <float>'"
+            ],
             "type": "float",
             "unit": "%"
         },
@@ -2716,7 +3029,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: setuppaths",
-            "switch": "-metric_setuppaths 'step index <float>'",
+            "switch": [
+                "-metric_setuppaths 'step index <float>'"
+            ],
             "type": "int"
         },
         "setupslack": {
@@ -2733,7 +3048,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: setupslack",
-            "switch": "-metric_setupslack 'step index <float>'",
+            "switch": [
+                "-metric_setupslack 'step index <float>'"
+            ],
             "type": "float",
             "unit": "ns"
         },
@@ -2751,7 +3068,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: setuptns",
-            "switch": "-metric_setuptns 'step index <float>'",
+            "switch": [
+                "-metric_setuptns 'step index <float>'"
+            ],
             "type": "float",
             "unit": "ns"
         },
@@ -2769,7 +3088,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: setupwns",
-            "switch": "-metric_setupwns 'step index <float>'",
+            "switch": [
+                "-metric_setupwns 'step index <float>'"
+            ],
             "type": "float",
             "unit": "ns"
         },
@@ -2787,7 +3108,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: sleeppower",
-            "switch": "-metric_sleeppower 'step index <float>'",
+            "switch": [
+                "-metric_sleeppower 'step index <float>'"
+            ],
             "type": "float",
             "unit": "mw"
         },
@@ -2805,7 +3128,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: tasktime",
-            "switch": "-metric_tasktime 'step index <float>'",
+            "switch": [
+                "-metric_tasktime 'step index <float>'"
+            ],
             "type": "float",
             "unit": "s"
         },
@@ -2823,7 +3148,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: totalarea",
-            "switch": "-metric_totalarea 'step index <float>'",
+            "switch": [
+                "-metric_totalarea 'step index <float>'"
+            ],
             "type": "float",
             "unit": "um^2"
         },
@@ -2841,7 +3168,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: totaltime",
-            "switch": "-metric_totaltime 'step index <float>'",
+            "switch": [
+                "-metric_totaltime 'step index <float>'"
+            ],
             "type": "float",
             "unit": "s"
         },
@@ -2859,7 +3188,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: transistors",
-            "switch": "-metric_transistors 'step index <float>'",
+            "switch": [
+                "-metric_transistors 'step index <float>'"
+            ],
             "type": "int"
         },
         "unconstrained": {
@@ -2876,7 +3207,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: total unconstrained",
-            "switch": "-metric_unconstrained 'step index <int>'",
+            "switch": [
+                "-metric_unconstrained 'step index <int>'"
+            ],
             "type": "int"
         },
         "utilization": {
@@ -2893,7 +3226,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: area utilization",
-            "switch": "-metric_utilization step index <float>",
+            "switch": [
+                "-metric_utilization step index <float>"
+            ],
             "type": "float",
             "unit": "%"
         },
@@ -2911,7 +3246,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: vias",
-            "switch": "-metric_vias 'step index <float>'",
+            "switch": [
+                "-metric_vias 'step index <float>'"
+            ],
             "type": "int"
         },
         "warnings": {
@@ -2928,7 +3265,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: total warnings",
-            "switch": "-metric_warnings 'step index <int>'",
+            "switch": [
+                "-metric_warnings 'step index <int>'"
+            ],
             "type": "int"
         },
         "wirelength": {
@@ -2945,7 +3284,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric: wirelength",
-            "switch": "-metric_wirelength 'step index <float>'",
+            "switch": [
+                "-metric_wirelength 'step index <float>'"
+            ],
             "type": "float",
             "unit": "um"
         }
@@ -2965,7 +3306,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Option: auto install packages",
-            "switch": "-autoinstall <bool>",
+            "switch": [
+                "-autoinstall <bool>"
+            ],
             "type": "bool"
         },
         "breakpoint": {
@@ -2982,7 +3325,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Breakpoint list",
-            "switch": "-breakpoint <bool>",
+            "switch": [
+                "-breakpoint <bool>"
+            ],
             "type": "bool"
         },
         "builddir": {
@@ -2999,7 +3344,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Build directory",
-            "switch": "-builddir <dir>",
+            "switch": [
+                "-builddir <dir>"
+            ],
             "type": "dir"
         },
         "cfg": {
@@ -3018,7 +3365,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Configuration manifest",
-            "switch": "-cfg <file>",
+            "switch": [
+                "-cfg <file>"
+            ],
             "type": "[file]"
         },
         "clean": {
@@ -3035,7 +3384,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Clean up after run",
-            "switch": "-clean <bool>",
+            "switch": [
+                "-clean <bool>"
+            ],
             "type": "bool"
         },
         "cmdfile": {
@@ -3054,7 +3405,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Design compilation command file",
-            "switch": "-f <file>",
+            "switch": [
+                "-f <file>"
+            ],
             "type": "[file]"
         },
         "continue": {
@@ -3071,7 +3424,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Implementation continue-on-error",
-            "switch": "-continue",
+            "switch": [
+                "-continue"
+            ],
             "type": "bool"
         },
         "copyall": {
@@ -3088,7 +3443,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Copy all inputs to build directory",
-            "switch": "-copyall <bool>",
+            "switch": [
+                "-copyall <bool>"
+            ],
             "type": "bool"
         },
         "credentials": {
@@ -3107,7 +3464,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "User credentials file",
-            "switch": "-credentials <file>'",
+            "switch": [
+                "-credentials <file>'"
+            ],
             "type": "[file]"
         },
         "define": {
@@ -3124,7 +3483,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Design pre-processor symbol",
-            "switch": "-D<str>",
+            "switch": [
+                "-D<str>"
+            ],
             "type": "[str]"
         },
         "dir": {
@@ -3142,7 +3503,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Custom directories",
-                "switch": "-dir 'key <str>'",
+                "switch": [
+                    "-dir 'key <str>'"
+                ],
                 "type": "[dir]"
             }
         },
@@ -3160,7 +3523,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Program entry point",
-            "switch": "-entrypoint <str>",
+            "switch": [
+                "-entrypoint <str>"
+            ],
             "type": "str"
         },
         "env": {
@@ -3178,7 +3543,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Environment variables",
-                "switch": "-env 'key <str>'",
+                "switch": [
+                    "-env 'key <str>'"
+                ],
                 "type": "str"
             }
         },
@@ -3199,7 +3566,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Custom files",
-                "switch": "-file 'key <str>'",
+                "switch": [
+                    "-file 'key <str>'"
+                ],
                 "type": "[file]"
             }
         },
@@ -3217,7 +3586,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Flow target",
-            "switch": "-flow <str>",
+            "switch": [
+                "-flow <str>"
+            ],
             "type": "str"
         },
         "flowcontinue": {
@@ -3234,7 +3605,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Flow continue-on-error",
-            "switch": "-flowcontinue",
+            "switch": [
+                "-flowcontinue"
+            ],
             "type": "bool"
         },
         "frontend": {
@@ -3251,7 +3624,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation frontend",
-            "switch": "-frontend <frontend>",
+            "switch": [
+                "-frontend <frontend>"
+            ],
             "type": "str"
         },
         "hash": {
@@ -3268,7 +3643,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Enable file hashing",
-            "switch": "-hash <bool>",
+            "switch": [
+                "-hash <bool>"
+            ],
             "type": "bool"
         },
         "idir": {
@@ -3305,7 +3682,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation index list",
-            "switch": "-indexlist <index>",
+            "switch": [
+                "-indexlist <index>"
+            ],
             "type": "[str]"
         },
         "jobincr": {
@@ -3322,7 +3701,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Autoincrement jobname",
-            "switch": "-jobincr <bool>",
+            "switch": [
+                "-jobincr <bool>"
+            ],
             "type": "bool"
         },
         "jobinput": {
@@ -3341,7 +3722,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Input job name",
-                    "switch": "-jobinput 'step index <str>'",
+                    "switch": [
+                        "-jobinput 'step index <str>'"
+                    ],
                     "type": "str"
                 }
             }
@@ -3360,7 +3743,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Job name",
-            "switch": "-jobname <str>",
+            "switch": [
+                "-jobname <str>"
+            ],
             "type": "str"
         },
         "libext": {
@@ -3377,7 +3762,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Design file extensions",
-            "switch": "+libext+<str>",
+            "switch": [
+                "+libext+<str>"
+            ],
             "type": "[str]"
         },
         "loglevel": {
@@ -3402,7 +3789,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Logging level",
-            "switch": "-loglevel <str>",
+            "switch": [
+                "-loglevel <str>"
+            ],
             "type": "enum"
         },
         "metricoff": {
@@ -3419,7 +3808,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Metric summary filter",
-            "switch": "-metricoff '<str>'",
+            "switch": [
+                "-metricoff '<str>'"
+            ],
             "type": "[str]"
         },
         "mode": {
@@ -3441,7 +3832,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation mode",
-            "switch": "-mode <str>",
+            "switch": [
+                "-mode <str>"
+            ],
             "type": "enum"
         },
         "nice": {
@@ -3458,7 +3851,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Tool execution scheduling priority",
-            "switch": "-nice <int>",
+            "switch": [
+                "-nice <int>"
+            ],
             "type": "int"
         },
         "nodisplay": {
@@ -3475,7 +3870,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Headless execution",
-            "switch": "-nodisplay <bool>",
+            "switch": [
+                "-nodisplay <bool>"
+            ],
             "type": "bool"
         },
         "novercheck": {
@@ -3492,7 +3889,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Disable version checking",
-            "switch": "-novercheck <bool>",
+            "switch": [
+                "-novercheck <bool>"
+            ],
             "type": "bool"
         },
         "optmode": {
@@ -3509,7 +3908,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Optimization mode",
-            "switch": "-O<str>",
+            "switch": [
+                "-O<str>"
+            ],
             "type": "str"
         },
         "param": {
@@ -3527,7 +3928,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Design parameter",
-                "switch": "-param 'name <str>'",
+                "switch": [
+                    "-param 'name <str>'"
+                ],
                 "type": "str"
             }
         },
@@ -3545,7 +3948,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "PDK target",
-            "switch": "-pdk <str>",
+            "switch": [
+                "-pdk <str>"
+            ],
             "type": "str"
         },
         "quiet": {
@@ -3562,7 +3967,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Quiet execution",
-            "switch": "-quiet <bool>",
+            "switch": [
+                "-quiet <bool>"
+            ],
             "type": "bool"
         },
         "registry": {
@@ -3579,7 +3986,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Option: package registry",
-            "switch": "-registry <dir>",
+            "switch": [
+                "-registry <dir>"
+            ],
             "type": "[dir]"
         },
         "relax": {
@@ -3596,7 +4005,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Relax design checking",
-            "switch": "-relax <bool>",
+            "switch": [
+                "-relax <bool>"
+            ],
             "type": "bool"
         },
         "remote": {
@@ -3613,7 +4024,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Enable remote processing",
-            "switch": "-remote <bool>",
+            "switch": [
+                "-remote <bool>"
+            ],
             "type": "bool"
         },
         "resume": {
@@ -3630,7 +4043,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Resume build",
-            "switch": "-resume <bool>",
+            "switch": [
+                "-resume <bool>"
+            ],
             "type": "bool"
         },
         "scheduler": {
@@ -3648,7 +4063,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler core constraint",
-                "switch": "-cores <int>",
+                "switch": [
+                    "-cores <int>"
+                ],
                 "type": "int"
             },
             "defer": {
@@ -3665,7 +4082,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler start time",
-                "switch": "-defer <str>",
+                "switch": [
+                    "-defer <str>"
+                ],
                 "type": "str"
             },
             "memory": {
@@ -3682,7 +4101,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler memory constraint",
-                "switch": "-memory <str>",
+                "switch": [
+                    "-memory <str>"
+                ],
                 "type": "int",
                 "unit": "MB"
             },
@@ -3700,7 +4121,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Message contact",
-                "switch": "-msgcontact <str>",
+                "switch": [
+                    "-msgcontact <str>"
+                ],
                 "type": "[str]"
             },
             "msgevent": {
@@ -3717,7 +4140,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Message event trigger",
-                "switch": "-msgevent <str>",
+                "switch": [
+                    "-msgevent <str>"
+                ],
                 "type": "str"
             },
             "name": {
@@ -3739,7 +4164,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler platform",
-                "switch": "-scheduler <str>",
+                "switch": [
+                    "-scheduler <str>"
+                ],
                 "type": "enum"
             },
             "options": {
@@ -3756,7 +4183,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler arguments",
-                "switch": "-scheduler_options <str>",
+                "switch": [
+                    "-scheduler_options <str>"
+                ],
                 "type": "[str]"
             },
             "queue": {
@@ -3773,7 +4202,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler queue",
-                "switch": "-queue <str>",
+                "switch": [
+                    "-queue <str>"
+                ],
                 "type": "str"
             }
         },
@@ -3791,7 +4222,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Search path",
-            "switch": "-scpath <dir>",
+            "switch": [
+                "-scpath <dir>"
+            ],
             "type": "[dir]"
         },
         "show": {
@@ -3808,7 +4241,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Show layout",
-            "switch": "-show <bool>",
+            "switch": [
+                "-show <bool>"
+            ],
             "type": "bool"
         },
         "showtool": {
@@ -3826,7 +4261,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Select data display tool",
-                "switch": "-showtool 'filetype <tool>'",
+                "switch": [
+                    "-showtool 'filetype <tool>'"
+                ],
                 "type": "str"
             }
         },
@@ -3844,7 +4281,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Skip all tasks",
-            "switch": "-skipall <bool>",
+            "switch": [
+                "-skipall <bool>"
+            ],
             "type": "bool"
         },
         "skipcheck": {
@@ -3861,7 +4300,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Skip manifest check",
-            "switch": "-skipcheck <bool>",
+            "switch": [
+                "-skipcheck <bool>"
+            ],
             "type": "bool"
         },
         "skipstep": {
@@ -3878,7 +4319,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Skip step list",
-            "switch": "-skipstep <str>",
+            "switch": [
+                "-skipstep <str>"
+            ],
             "type": "[str]"
         },
         "stackup": {
@@ -3895,7 +4338,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Stackup target",
-            "switch": "-stackup <str>",
+            "switch": [
+                "-stackup <str>"
+            ],
             "type": "str"
         },
         "steplist": {
@@ -3912,7 +4357,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation step list",
-            "switch": "-steplist <step>",
+            "switch": [
+                "-steplist <step>"
+            ],
             "type": "[str]"
         },
         "strict": {
@@ -3929,7 +4376,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Option: Strict checking",
-            "switch": "-strict <bool>",
+            "switch": [
+                "-strict <bool>"
+            ],
             "type": "bool"
         },
         "target": {
@@ -3946,7 +4395,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Compilation target",
-            "switch": "-target <str>",
+            "switch": [
+                "-target <str>"
+            ],
             "type": "str"
         },
         "timeout": {
@@ -3963,7 +4414,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Option: Timeout value",
-            "switch": "-timeout <str>",
+            "switch": [
+                "-timeout <str>"
+            ],
             "type": "float",
             "unit": "s"
         },
@@ -3981,7 +4434,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Enable debug traces",
-            "switch": "-trace <bool>",
+            "switch": [
+                "-trace <bool>"
+            ],
             "type": "bool"
         },
         "track": {
@@ -3998,7 +4453,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Enable provenance tracking",
-            "switch": "-track <bool>",
+            "switch": [
+                "-track <bool>"
+            ],
             "type": "bool"
         },
         "uselambda": {
@@ -4015,7 +4472,9 @@
             "require": "all",
             "scope": "job",
             "shorthelp": "Use lambda scaling",
-            "switch": "-uselambda <bool>",
+            "switch": [
+                "-uselambda <bool>"
+            ],
             "type": "bool"
         },
         "var": {
@@ -4033,7 +4492,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Custom variables",
-                "switch": "-var 'key <str>'",
+                "switch": [
+                    "-var 'key <str>'"
+                ],
                 "type": "[str]"
             }
         },
@@ -4053,7 +4514,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Design libraries",
-            "switch": "-v <file>",
+            "switch": [
+                "-v <file>"
+            ],
             "type": "[file]"
         },
         "ydir": {
@@ -4070,7 +4533,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Design module search paths",
-            "switch": "-y <dir>",
+            "switch": [
+                "-y <dir>"
+            ],
             "type": "[dir]"
         }
     },
@@ -4092,7 +4557,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Output: files",
-                "switch": "-output 'fileset filetype <file>'",
+                "switch": [
+                    "-output 'fileset filetype <file>'"
+                ],
                 "type": "[file]"
             }
         }
@@ -4114,7 +4581,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author email",
-                    "switch": "-package_author_email 'userid <str>'",
+                    "switch": [
+                        "-package_author_email 'userid <str>'"
+                    ],
                     "type": "str"
                 },
                 "location": {
@@ -4131,7 +4600,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author location",
-                    "switch": "-package_author_location 'userid <str>'",
+                    "switch": [
+                        "-package_author_location 'userid <str>'"
+                    ],
                     "type": "str"
                 },
                 "name": {
@@ -4148,7 +4619,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author name",
-                    "switch": "-package_author_name 'userid <str>'",
+                    "switch": [
+                        "-package_author_name 'userid <str>'"
+                    ],
                     "type": "str"
                 },
                 "organization": {
@@ -4165,7 +4638,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author organization",
-                    "switch": "-package_author_organization 'userid <str>'",
+                    "switch": [
+                        "-package_author_organization 'userid <str>'"
+                    ],
                     "type": "str"
                 },
                 "publickey": {
@@ -4182,7 +4657,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author publickey",
-                    "switch": "-package_author_publickey 'userid <str>'",
+                    "switch": [
+                        "-package_author_publickey 'userid <str>'"
+                    ],
                     "type": "str"
                 },
                 "username": {
@@ -4199,7 +4676,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "Package: author username",
-                    "switch": "-package_author_username 'userid <str>'",
+                    "switch": [
+                        "-package_author_username 'userid <str>'"
+                    ],
                     "type": "str"
                 }
             }
@@ -4219,7 +4698,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: version dependencies",
-                "switch": "-package_dependency 'module <str>'",
+                "switch": [
+                    "-package_dependency 'module <str>'"
+                ],
                 "type": "[str]"
             }
         },
@@ -4238,7 +4719,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: dependency list",
-                "switch": "-package_depgraph 'module <(str,str)>'",
+                "switch": [
+                    "-package_depgraph 'module <(str,str)>'"
+                ],
                 "type": "[(str,str)]"
             }
         },
@@ -4256,7 +4739,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: description",
-            "switch": "-package_description <str>",
+            "switch": [
+                "-package_description <str>"
+            ],
             "type": "str"
         },
         "doc": {
@@ -4276,7 +4761,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: datasheet document",
-                "switch": "-package_doc_datasheet <str",
+                "switch": [
+                    "-package_doc_datasheet <str"
+                ],
                 "type": "[file]"
             },
             "homepage": {
@@ -4293,7 +4780,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: documentation homepage",
-                "switch": "-package_doc_homepage <str>",
+                "switch": [
+                    "-package_doc_homepage <str>"
+                ],
                 "type": "str"
             },
             "quickstart": {
@@ -4312,7 +4801,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: quickstart document",
-                "switch": "-package_doc_quickstart <str",
+                "switch": [
+                    "-package_doc_quickstart <str"
+                ],
                 "type": "[file]"
             },
             "reference": {
@@ -4331,7 +4822,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: reference document",
-                "switch": "-package_doc_reference <str",
+                "switch": [
+                    "-package_doc_reference <str"
+                ],
                 "type": "[file]"
             },
             "releasenotes": {
@@ -4350,7 +4843,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: releasenotes document",
-                "switch": "-package_doc_releasenotes <str",
+                "switch": [
+                    "-package_doc_releasenotes <str"
+                ],
                 "type": "[file]"
             },
             "signoff": {
@@ -4369,7 +4864,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: signoff document",
-                "switch": "-package_doc_signoff <str",
+                "switch": [
+                    "-package_doc_signoff <str"
+                ],
                 "type": "[file]"
             },
             "testplan": {
@@ -4388,7 +4885,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: testplan document",
-                "switch": "-package_doc_testplan <str",
+                "switch": [
+                    "-package_doc_testplan <str"
+                ],
                 "type": "[file]"
             },
             "tutorial": {
@@ -4407,7 +4906,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: tutorial document",
-                "switch": "-package_doc_tutorial <str",
+                "switch": [
+                    "-package_doc_tutorial <str"
+                ],
                 "type": "[file]"
             },
             "userguide": {
@@ -4426,7 +4927,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "Package: userguide document",
-                "switch": "-package_doc_userguide <str",
+                "switch": [
+                    "-package_doc_userguide <str"
+                ],
                 "type": "[file]"
             }
         },
@@ -4444,7 +4947,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: project homepage",
-            "switch": "-package_homepage <str>",
+            "switch": [
+                "-package_homepage <str>"
+            ],
             "type": "str"
         },
         "keyword": {
@@ -4461,7 +4966,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: keyword",
-            "switch": "-package_keyword <str>",
+            "switch": [
+                "-package_keyword <str>"
+            ],
             "type": "str"
         },
         "license": {
@@ -4478,7 +4985,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: license identifiers",
-            "switch": "-package_license <str>",
+            "switch": [
+                "-package_license <str>"
+            ],
             "type": "[str]"
         },
         "licensefile": {
@@ -4497,7 +5006,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: license files",
-            "switch": "-package_licensefile <file>",
+            "switch": [
+                "-package_licensefile <file>"
+            ],
             "type": "[file]"
         },
         "location": {
@@ -4514,7 +5025,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: location",
-            "switch": "-package_location <file>",
+            "switch": [
+                "-package_location <file>"
+            ],
             "type": "[str]"
         },
         "name": {
@@ -4531,7 +5044,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: name",
-            "switch": "-package_name <str>",
+            "switch": [
+                "-package_name <str>"
+            ],
             "type": "str"
         },
         "organization": {
@@ -4548,7 +5063,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: sponsoring organization",
-            "switch": "-package_organization <str>",
+            "switch": [
+                "-package_organization <str>"
+            ],
             "type": "[str]"
         },
         "publickey": {
@@ -4565,7 +5082,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: public key",
-            "switch": "-package_publickey <str>",
+            "switch": [
+                "-package_publickey <str>"
+            ],
             "type": "str"
         },
         "repo": {
@@ -4582,7 +5101,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: code repository",
-            "switch": "-package_repo <str>",
+            "switch": [
+                "-package_repo <str>"
+            ],
             "type": "[str]"
         },
         "target": {
@@ -4599,7 +5120,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: qualified targets",
-            "switch": "-package_target <str>",
+            "switch": [
+                "-package_target <str>"
+            ],
             "type": "[str]"
         },
         "version": {
@@ -4616,7 +5139,9 @@
             "require": null,
             "scope": "global",
             "shorthelp": "Package: version",
-            "switch": "-package_version <str>",
+            "switch": [
+                "-package_version <str>"
+            ],
             "type": "str"
         }
     },
@@ -4642,7 +5167,9 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: APR technology files",
-                                "switch": "-pdk_aprtech 'pdkname tool stackup libarch filetype <file>'",
+                                "switch": [
+                                    "-pdk_aprtech 'pdkname tool stackup libarch filetype <file>'"
+                                ],
                                 "type": "[file]"
                             }
                         }
@@ -4663,7 +5190,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: process defect density",
-                "switch": "-pdk_d0 'pdkname <float>'",
+                "switch": [
+                    "-pdk_d0 'pdkname <float>'"
+                ],
                 "type": "float"
             },
             "density": {
@@ -4680,7 +5209,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: transistor density",
-                "switch": "-pdk_density 'pdkname <float>'",
+                "switch": [
+                    "-pdk_density 'pdkname <float>'"
+                ],
                 "type": "float"
             },
             "devmodel": {
@@ -4702,7 +5233,9 @@
                             "require": null,
                             "scope": "global",
                             "shorthelp": "PDK: device models",
-                            "switch": "-pdk_devmodel 'pdkname tool simtype stackup <file>'",
+                            "switch": [
+                                "-pdk_devmodel 'pdkname tool simtype stackup <file>'"
+                            ],
                             "type": "[file]"
                         }
                     }
@@ -4725,7 +5258,9 @@
                             "require": null,
                             "scope": "global",
                             "shorthelp": "PDK: special directory",
-                            "switch": "-pdk_directory 'pdkname tool key stackup <file>'",
+                            "switch": [
+                                "-pdk_directory 'pdkname tool key stackup <file>'"
+                            ],
                             "type": "[dir]"
                         }
                     }
@@ -4749,7 +5284,9 @@
                         "require": null,
                         "scope": "global",
                         "shorthelp": "PDK: display file",
-                        "switch": "-pdk_display 'pdkname tool stackup <file>'",
+                        "switch": [
+                            "-pdk_display 'pdkname tool stackup <file>'"
+                        ],
                         "type": "[file]"
                     }
                 }
@@ -4771,7 +5308,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: datasheet",
-                    "switch": "-pdk_doc_datasheet 'pdkname <file>'",
+                    "switch": [
+                        "-pdk_doc_datasheet 'pdkname <file>'"
+                    ],
                     "type": "[file]"
                 },
                 "homepage": {
@@ -4790,7 +5329,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: documentation homepage",
-                    "switch": "-pdk_doc_homepage 'pdkname <file>'",
+                    "switch": [
+                        "-pdk_doc_homepage 'pdkname <file>'"
+                    ],
                     "type": "[file]"
                 },
                 "install": {
@@ -4809,7 +5350,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: install",
-                    "switch": "-pdk_doc_install 'pdkname <file>'",
+                    "switch": [
+                        "-pdk_doc_install 'pdkname <file>'"
+                    ],
                     "type": "[file]"
                 },
                 "quickstart": {
@@ -4828,7 +5371,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: quickstart",
-                    "switch": "-pdk_doc_quickstart 'pdkname <file>'",
+                    "switch": [
+                        "-pdk_doc_quickstart 'pdkname <file>'"
+                    ],
                     "type": "[file]"
                 },
                 "reference": {
@@ -4847,7 +5392,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: reference",
-                    "switch": "-pdk_doc_reference 'pdkname <file>'",
+                    "switch": [
+                        "-pdk_doc_reference 'pdkname <file>'"
+                    ],
                     "type": "[file]"
                 },
                 "releasenotes": {
@@ -4866,7 +5413,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: releasenotes",
-                    "switch": "-pdk_doc_releasenotes 'pdkname <file>'",
+                    "switch": [
+                        "-pdk_doc_releasenotes 'pdkname <file>'"
+                    ],
                     "type": "[file]"
                 },
                 "tutorial": {
@@ -4885,7 +5434,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: tutorial",
-                    "switch": "-pdk_doc_tutorial 'pdkname <file>'",
+                    "switch": [
+                        "-pdk_doc_tutorial 'pdkname <file>'"
+                    ],
                     "type": "[file]"
                 },
                 "userguide": {
@@ -4904,7 +5455,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: userguide",
-                    "switch": "-pdk_doc_userguide 'pdkname <file>'",
+                    "switch": [
+                        "-pdk_doc_userguide 'pdkname <file>'"
+                    ],
                     "type": "[file]"
                 }
             },
@@ -4928,7 +5481,9 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: DRC runset files",
-                                "switch": "-pdk_drc_runset 'pdkname tool stackup name <file>'",
+                                "switch": [
+                                    "-pdk_drc_runset 'pdkname tool stackup name <file>'"
+                                ],
                                 "type": "[file]"
                             }
                         }
@@ -4953,7 +5508,9 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: DRC waiver files",
-                                "switch": "-pdk_drc_waiver 'tool stackup name <file>'",
+                                "switch": [
+                                    "-pdk_drc_waiver 'tool stackup name <file>'"
+                                ],
                                 "type": "[file]"
                             }
                         }
@@ -4974,7 +5531,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: wafer edge keep-out margin",
-                "switch": "-pdk_edgemargin 'pdkname <float>'",
+                "switch": [
+                    "-pdk_edgemargin 'pdkname <float>'"
+                ],
                 "type": "float",
                 "unit": "mm"
             },
@@ -4998,7 +5557,9 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: ERC runset files",
-                                "switch": "-pdk_erc_runset 'pdkname tool stackup name <file>'",
+                                "switch": [
+                                    "-pdk_erc_runset 'pdkname tool stackup name <file>'"
+                                ],
                                 "type": "[file]"
                             }
                         }
@@ -5023,7 +5584,9 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: ERC waiver files",
-                                "switch": "-pdk_erc_waiver 'tool stackup name <file>'",
+                                "switch": [
+                                    "-pdk_erc_waiver 'tool stackup name <file>'"
+                                ],
                                 "type": "[file]"
                             }
                         }
@@ -5049,7 +5612,9 @@
                             "require": null,
                             "scope": "global",
                             "shorthelp": "PDK: special file",
-                            "switch": "-pdk_file 'pdkname tool key stackup <file>'",
+                            "switch": [
+                                "-pdk_file 'pdkname tool key stackup <file>'"
+                            ],
                             "type": "[file]"
                         }
                     }
@@ -5075,7 +5640,9 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: FILL runset files",
-                                "switch": "-pdk_fill_runset 'pdkname tool stackup name <file>'",
+                                "switch": [
+                                    "-pdk_fill_runset 'pdkname tool stackup name <file>'"
+                                ],
                                 "type": "[file]"
                             }
                         }
@@ -5100,7 +5667,9 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: FILL waiver files",
-                                "switch": "-pdk_fill_waiver 'tool stackup name <file>'",
+                                "switch": [
+                                    "-pdk_fill_waiver 'tool stackup name <file>'"
+                                ],
                                 "type": "[file]"
                             }
                         }
@@ -5121,7 +5690,9 @@
                 "require": "asic",
                 "scope": "global",
                 "shorthelp": "PDK: foundry name",
-                "switch": "-pdk_foundry 'pdkname <str>'",
+                "switch": [
+                    "-pdk_foundry 'pdkname <str>'"
+                ],
                 "type": "str"
             },
             "hscribe": {
@@ -5138,7 +5709,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: horizontal scribe line width",
-                "switch": "-pdk_hscribe 'pdkname <float>'",
+                "switch": [
+                    "-pdk_hscribe 'pdkname <float>'"
+                ],
                 "type": "float",
                 "unit": "mm"
             },
@@ -5156,7 +5729,9 @@
                 "require": "asic",
                 "scope": "global",
                 "shorthelp": "PDK: Lambda value",
-                "switch": "-pdk_lambda 'pdkname <float>",
+                "switch": [
+                    "-pdk_lambda 'pdkname <float>"
+                ],
                 "type": "float"
             },
             "layermap": {
@@ -5179,7 +5754,9 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: layer map file",
-                                "switch": "-pdk_layermap 'pdkname tool src dst stackup <file>'",
+                                "switch": [
+                                    "-pdk_layermap 'pdkname tool src dst stackup <file>'"
+                                ],
                                 "type": "[file]"
                             }
                         }
@@ -5206,7 +5783,9 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: LVS runset files",
-                                "switch": "-pdk_lvs_runset 'pdkname tool stackup name <file>'",
+                                "switch": [
+                                    "-pdk_lvs_runset 'pdkname tool stackup name <file>'"
+                                ],
                                 "type": "[file]"
                             }
                         }
@@ -5231,7 +5810,9 @@
                                 "require": null,
                                 "scope": "global",
                                 "shorthelp": "PDK: LVS waiver files",
-                                "switch": "-pdk_lvs_waiver 'tool stackup name <file>'",
+                                "switch": [
+                                    "-pdk_lvs_waiver 'tool stackup name <file>'"
+                                ],
                                 "type": "[file]"
                             }
                         }
@@ -5253,7 +5834,9 @@
                     "require": "asic",
                     "scope": "global",
                     "shorthelp": "PDK: maximum routing layer",
-                    "switch": "-pdk_maxlayer 'pdk stackup <str>'",
+                    "switch": [
+                        "-pdk_maxlayer 'pdk stackup <str>'"
+                    ],
                     "type": "str"
                 }
             },
@@ -5272,7 +5855,9 @@
                     "require": "asic",
                     "scope": "global",
                     "shorthelp": "PDK: minimum routing layer",
-                    "switch": "-pdk_minlayer 'pdk stackup <str>'",
+                    "switch": [
+                        "-pdk_minlayer 'pdk stackup <str>'"
+                    ],
                     "type": "str"
                 }
             },
@@ -5290,7 +5875,9 @@
                 "require": "asic",
                 "scope": "global",
                 "shorthelp": "PDK: process node",
-                "switch": "-pdk_node 'pdkname <float>'",
+                "switch": [
+                    "-pdk_node 'pdkname <float>'"
+                ],
                 "type": "float"
             },
             "panelsize": {
@@ -5307,7 +5894,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: panel size",
-                "switch": "-pdk_panelsize 'pdkname <float>'",
+                "switch": [
+                    "-pdk_panelsize 'pdkname <float>'"
+                ],
                 "type": "[(float,float)]",
                 "unit": "mm"
             },
@@ -5330,7 +5919,9 @@
                             "require": null,
                             "scope": "global",
                             "shorthelp": "PDK: parasitic TCAD models",
-                            "switch": "-pdk_pexmodel 'pdkname tool stackup corner <file>'",
+                            "switch": [
+                                "-pdk_pexmodel 'pdkname tool stackup corner <file>'"
+                            ],
                             "type": "[file]"
                         }
                     }
@@ -5350,7 +5941,9 @@
                 "require": "asic",
                 "scope": "global",
                 "shorthelp": "PDK: metal stackups",
-                "switch": "-pdk_stackup 'pdkname <str>'",
+                "switch": [
+                    "-pdk_stackup 'pdkname <str>'"
+                ],
                 "type": "[str]"
             },
             "thickness": {
@@ -5368,7 +5961,9 @@
                     "require": null,
                     "scope": "global",
                     "shorthelp": "PDK: unit thickness",
-                    "switch": "-pdk_thickness 'pdkname stackup <float>'",
+                    "switch": [
+                        "-pdk_thickness 'pdkname stackup <float>'"
+                    ],
                     "type": "float",
                     "unit": "mm"
                 }
@@ -5387,7 +5982,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: unit cost",
-                "switch": "-pdk_unitcost 'pdkname <float>'",
+                "switch": [
+                    "-pdk_unitcost 'pdkname <float>'"
+                ],
                 "type": "float",
                 "unit": "USD"
             },
@@ -5408,7 +6005,9 @@
                             "require": null,
                             "scope": "global",
                             "shorthelp": "PDK: special variable",
-                            "switch": "-pdk_var 'pdkname tool stackup key <str>'",
+                            "switch": [
+                                "-pdk_var 'pdkname tool stackup key <str>'"
+                            ],
                             "type": "[str]"
                         }
                     }
@@ -5428,7 +6027,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: version",
-                "switch": "-pdk_version 'pdkname <str>'",
+                "switch": [
+                    "-pdk_version 'pdkname <str>'"
+                ],
                 "type": "str"
             },
             "vscribe": {
@@ -5445,7 +6046,9 @@
                 "require": null,
                 "scope": "global",
                 "shorthelp": "PDK: vertical scribe line width",
-                "switch": "-pdk_vscribe 'pdkname <float>'",
+                "switch": [
+                    "-pdk_vscribe 'pdkname <float>'"
+                ],
                 "type": "float",
                 "unit": "mm"
             },
@@ -5463,7 +6066,9 @@
                 "require": "asic",
                 "scope": "global",
                 "shorthelp": "PDK: wafer size",
-                "switch": "-pdk_wafersize 'pdkname <float>'",
+                "switch": [
+                    "-pdk_wafersize 'pdkname <float>'"
+                ],
                 "type": "float",
                 "unit": "mm"
             }
@@ -5484,7 +6089,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: hardware architecture",
-            "switch": "-record_arch 'step index <str>'",
+            "switch": [
+                "-record_arch 'step index <str>'"
+            ],
             "type": "str"
         },
         "distro": {
@@ -5501,7 +6108,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: distro name",
-            "switch": "-record_distro 'step index <str>'",
+            "switch": [
+                "-record_distro 'step index <str>'"
+            ],
             "type": "str"
         },
         "endtime": {
@@ -5518,7 +6127,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: end time",
-            "switch": "-record_endtime 'step index <str>'",
+            "switch": [
+                "-record_endtime 'step index <str>'"
+            ],
             "type": "str"
         },
         "ipaddr": {
@@ -5535,7 +6146,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: IP address",
-            "switch": "-record_ipaddr 'step index <str>'",
+            "switch": [
+                "-record_ipaddr 'step index <str>'"
+            ],
             "type": "str"
         },
         "kernelversion": {
@@ -5552,7 +6165,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: O/S kernel version",
-            "switch": "-record_kernelversion 'step index <str>'",
+            "switch": [
+                "-record_kernelversion 'step index <str>'"
+            ],
             "type": "str"
         },
         "macaddr": {
@@ -5569,7 +6184,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: MAC address",
-            "switch": "-record_macaddr 'step index <str>'",
+            "switch": [
+                "-record_macaddr 'step index <str>'"
+            ],
             "type": "str"
         },
         "machine": {
@@ -5586,7 +6203,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: machine name",
-            "switch": "-record_machine 'step index <str>'",
+            "switch": [
+                "-record_machine 'step index <str>'"
+            ],
             "type": "str"
         },
         "osversion": {
@@ -5603,7 +6222,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: O/S version",
-            "switch": "-record_osversion 'step index <str>'",
+            "switch": [
+                "-record_osversion 'step index <str>'"
+            ],
             "type": "str"
         },
         "platform": {
@@ -5620,7 +6241,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: platform name",
-            "switch": "-record_platform 'step index <str>'",
+            "switch": [
+                "-record_platform 'step index <str>'"
+            ],
             "type": "str"
         },
         "publickey": {
@@ -5637,7 +6260,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: public key",
-            "switch": "-record_publickey 'step index <str>'",
+            "switch": [
+                "-record_publickey 'step index <str>'"
+            ],
             "type": "str"
         },
         "region": {
@@ -5654,7 +6279,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: cloud region",
-            "switch": "-record_region 'step index <str>'",
+            "switch": [
+                "-record_region 'step index <str>'"
+            ],
             "type": "str"
         },
         "scversion": {
@@ -5671,7 +6298,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: software version",
-            "switch": "-record_scversion 'step index <str>'",
+            "switch": [
+                "-record_scversion 'step index <str>'"
+            ],
             "type": "str"
         },
         "starttime": {
@@ -5688,7 +6317,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: start time",
-            "switch": "-record_starttime 'step index <str>'",
+            "switch": [
+                "-record_starttime 'step index <str>'"
+            ],
             "type": "str"
         },
         "toolargs": {
@@ -5705,7 +6336,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: tool CLI arguments",
-            "switch": "-record_toolargs 'step index <str>'",
+            "switch": [
+                "-record_toolargs 'step index <str>'"
+            ],
             "type": "str"
         },
         "toolpath": {
@@ -5722,7 +6355,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: tool path",
-            "switch": "-record_toolpath 'step index <str>'",
+            "switch": [
+                "-record_toolpath 'step index <str>'"
+            ],
             "type": "str"
         },
         "toolversion": {
@@ -5739,7 +6374,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: tool version",
-            "switch": "-record_toolversion 'step index <str>'",
+            "switch": [
+                "-record_toolversion 'step index <str>'"
+            ],
             "type": "str"
         },
         "userid": {
@@ -5756,12 +6393,14 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Record: userid",
-            "switch": "-record_userid 'step index <str>'",
+            "switch": [
+                "-record_userid 'step index <str>'"
+            ],
             "type": "str"
         }
     },
     "schemaversion": {
-        "defvalue": "0.28.0",
+        "defvalue": "0.29.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -5773,7 +6412,9 @@
         "require": "all",
         "scope": "global",
         "shorthelp": "Schema version number",
-        "switch": "-schemaversion <str>",
+        "switch": [
+            "-schemaversion <str>"
+        ],
         "type": "str"
     },
     "tool": {
@@ -5792,7 +6433,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: executable name",
-                "switch": "-tool_exe 'tool <str>'",
+                "switch": [
+                    "-tool_exe 'tool <str>'"
+                ],
                 "type": "str"
             },
             "format": {
@@ -5809,7 +6452,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: file format",
-                "switch": "-tool_format 'tool <file>'",
+                "switch": [
+                    "-tool_format 'tool <file>'"
+                ],
                 "type": "str"
             },
             "licenseserver": {
@@ -5827,7 +6472,9 @@
                     "require": null,
                     "scope": "job",
                     "shorthelp": "Tool: license servers",
-                    "switch": "-tool_licenseserver 'name key <str>'",
+                    "switch": [
+                        "-tool_licenseserver 'name key <str>'"
+                    ],
                     "type": "[str]"
                 }
             },
@@ -5845,7 +6492,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: executable path",
-                "switch": "-tool_path 'tool <dir>'",
+                "switch": [
+                    "-tool_path 'tool <dir>'"
+                ],
                 "type": "dir"
             },
             "task": {
@@ -5864,7 +6513,9 @@
                         "require": "all",
                         "scope": "job",
                         "shorthelp": "Task: continue option",
-                        "switch": "-tool_task_continue 'tool task <bool>'",
+                        "switch": [
+                            "-tool_task_continue 'tool task <bool>'"
+                        ],
                         "type": "bool"
                     },
                     "env": {
@@ -5882,7 +6533,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: environment variables",
-                            "switch": "-tool_task_env 'tool task step index name <str>'",
+                            "switch": [
+                                "-tool_task_env 'tool task step index name <str>'"
+                            ],
                             "type": "str"
                         }
                     },
@@ -5903,7 +6556,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: setup files",
-                            "switch": "-tool_task_file 'tool task key <file>'",
+                            "switch": [
+                                "-tool_task_file 'tool task key <file>'"
+                            ],
                             "type": "[file]"
                         }
                     },
@@ -5923,7 +6578,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: inputs",
-                        "switch": "-tool_task_input 'tool task step index <str>'",
+                        "switch": [
+                            "-tool_task_input 'tool task step index <str>'"
+                        ],
                         "type": "[file]"
                     },
                     "keep": {
@@ -5940,7 +6597,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: files to keep",
-                        "switch": "-tool_task_keep 'task <str>'",
+                        "switch": [
+                            "-tool_task_keep 'task <str>'"
+                        ],
                         "type": "[str]"
                     },
                     "option": {
@@ -5957,7 +6616,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: executable options",
-                        "switch": "-tool_task_option 'tool task <str>'",
+                        "switch": [
+                            "-tool_task_option 'tool task <str>'"
+                        ],
                         "type": "[str]"
                     },
                     "output": {
@@ -5976,7 +6637,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: outputs",
-                        "switch": "-tool_task_output 'tool task step index <str>'",
+                        "switch": [
+                            "-tool_task_output 'tool task step index <str>'"
+                        ],
                         "type": "[file]"
                     },
                     "postscript": {
@@ -5995,7 +6658,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: post-step script",
-                        "switch": "-tool_task_postscript 'task <file>'",
+                        "switch": [
+                            "-tool_task_postscript 'task <file>'"
+                        ],
                         "type": "[file]"
                     },
                     "prescript": {
@@ -6014,7 +6679,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: pre-step script",
-                        "switch": "-tool_task_prescript 'task <file>'",
+                        "switch": [
+                            "-tool_task_prescript 'task <file>'"
+                        ],
                         "type": "[file]"
                     },
                     "refdir": {
@@ -6031,7 +6698,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: script directory",
-                        "switch": "-tool_task_refdir 'task <dir>'",
+                        "switch": [
+                            "-tool_task_refdir 'task <dir>'"
+                        ],
                         "type": "[dir]"
                     },
                     "regex": {
@@ -6049,7 +6718,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: regex filter",
-                            "switch": "-tool_task_regex 'tool task suffix <str>'",
+                            "switch": [
+                                "-tool_task_regex 'tool task suffix <str>'"
+                            ],
                             "type": "[str]"
                         }
                     },
@@ -6070,7 +6741,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: reports",
-                            "switch": "-tool_task_report 'task metric step index <str>'",
+                            "switch": [
+                                "-tool_task_report 'task metric step index <str>'"
+                            ],
                             "type": "[file]"
                         }
                     },
@@ -6088,7 +6761,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: parameter requirements",
-                        "switch": "-tool_task_require 'task step index <str>'",
+                        "switch": [
+                            "-tool_task_require 'task step index <str>'"
+                        ],
                         "type": "[str]"
                     },
                     "script": {
@@ -6107,7 +6782,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: entry script",
-                        "switch": "-tool_task_script 'task step index <file>'",
+                        "switch": [
+                            "-tool_task_script 'task step index <file>'"
+                        ],
                         "type": "[file]"
                     },
                     "stderr": {
@@ -6125,7 +6802,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: Destination for stderr",
-                            "switch": "-tool_task_stderr_destination 'task [log|output|none]'",
+                            "switch": [
+                                "-tool_task_stderr_destination 'task [log|output|none]'"
+                            ],
                             "type": "str"
                         },
                         "suffix": {
@@ -6142,7 +6821,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: File suffix for redirected stderr",
-                            "switch": "-tool_task_stderr_suffix 'task <str>'",
+                            "switch": [
+                                "-tool_task_stderr_suffix 'task <str>'"
+                            ],
                             "type": "str"
                         }
                     },
@@ -6161,7 +6842,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: Destination for stdout",
-                            "switch": "-tool_task_stdout_destination 'task [log|output|none]'",
+                            "switch": [
+                                "-tool_task_stdout_destination 'task [log|output|none]'"
+                            ],
                             "type": "str"
                         },
                         "suffix": {
@@ -6178,7 +6861,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: File suffix for redirected stdout",
-                            "switch": "-tool_task_stdout_suffix 'task <str>'",
+                            "switch": [
+                                "-tool_task_stdout_suffix 'task <str>'"
+                            ],
                             "type": "str"
                         }
                     },
@@ -6196,7 +6881,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: thread parallelism",
-                        "switch": "-tool_task_threads 'task <int>'",
+                        "switch": [
+                            "-tool_task_threads 'task <int>'"
+                        ],
                         "type": "int"
                     },
                     "var": {
@@ -6214,7 +6901,9 @@
                             "require": null,
                             "scope": "job",
                             "shorthelp": "Task: script variables",
-                            "switch": "-tool_task_variable 'tool task key <str>'",
+                            "switch": [
+                                "-tool_task_variable 'tool task key <str>'"
+                            ],
                             "type": "[str]"
                         }
                     },
@@ -6232,7 +6921,9 @@
                         "require": null,
                         "scope": "job",
                         "shorthelp": "Task: warning filter",
-                        "switch": "-tool_task_warningoff 'tool task <str>'",
+                        "switch": [
+                            "-tool_task_warningoff 'tool task <str>'"
+                        ],
                         "type": "[str]"
                     }
                 }
@@ -6251,7 +6942,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: vendor",
-                "switch": "-tool_vendor 'tool <str>'",
+                "switch": [
+                    "-tool_vendor 'tool <str>'"
+                ],
                 "type": "str"
             },
             "version": {
@@ -6268,7 +6961,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: version",
-                "switch": "-tool_version 'tool <str>'",
+                "switch": [
+                    "-tool_version 'tool <str>'"
+                ],
                 "type": "[str]"
             },
             "vswitch": {
@@ -6285,7 +6980,9 @@
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Tool: executable version switch",
-                "switch": "-tool_vswitch 'tool <str>'",
+                "switch": [
+                    "-tool_vswitch 'tool <str>'"
+                ],
                 "type": "[str]"
             }
         }
@@ -6305,7 +7002,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: capacitance",
-            "switch": "-unit_capacitance '<str>'",
+            "switch": [
+                "-unit_capacitance '<str>'"
+            ],
             "type": "str"
         },
         "current": {
@@ -6322,7 +7021,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: current",
-            "switch": "-unit_current '<str>'",
+            "switch": [
+                "-unit_current '<str>'"
+            ],
             "type": "str"
         },
         "energy": {
@@ -6339,7 +7040,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: energy",
-            "switch": "-unit_energy '<str>'",
+            "switch": [
+                "-unit_energy '<str>'"
+            ],
             "type": "str"
         },
         "inductance": {
@@ -6356,7 +7059,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: inductance",
-            "switch": "-unit_inductance '<str>'",
+            "switch": [
+                "-unit_inductance '<str>'"
+            ],
             "type": "str"
         },
         "length": {
@@ -6373,7 +7078,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: length",
-            "switch": "-unit_length '<str>'",
+            "switch": [
+                "-unit_length '<str>'"
+            ],
             "type": "str"
         },
         "mass": {
@@ -6390,7 +7097,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: mass",
-            "switch": "-unit_mass '<str>'",
+            "switch": [
+                "-unit_mass '<str>'"
+            ],
             "type": "str"
         },
         "power": {
@@ -6407,7 +7116,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: power",
-            "switch": "-unit_power '<str>'",
+            "switch": [
+                "-unit_power '<str>'"
+            ],
             "type": "str"
         },
         "resistance": {
@@ -6424,7 +7135,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: resistance",
-            "switch": "-unit_resistance '<str>'",
+            "switch": [
+                "-unit_resistance '<str>'"
+            ],
             "type": "str"
         },
         "temperature": {
@@ -6441,7 +7154,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: temperature",
-            "switch": "-unit_temperature '<str>'",
+            "switch": [
+                "-unit_temperature '<str>'"
+            ],
             "type": "str"
         },
         "time": {
@@ -6458,7 +7173,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: time",
-            "switch": "-unit_time '<str>'",
+            "switch": [
+                "-unit_time '<str>'"
+            ],
             "type": "str"
         },
         "voltage": {
@@ -6475,7 +7192,9 @@
             "require": null,
             "scope": "job",
             "shorthelp": "Unit: voltage",
-            "switch": "-unit_voltage '<str>'",
+            "switch": [
+                "-unit_voltage '<str>'"
+            ],
             "type": "str"
         }
     }

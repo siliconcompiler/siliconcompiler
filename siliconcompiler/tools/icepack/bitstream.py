@@ -4,9 +4,9 @@ def setup(chip):
     Generate a bitstream for the ICE40 FPGA
     '''
     tool = 'icepack'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
-    task = 'bitstream'
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
 
     clobber = False
     design = chip.top()
