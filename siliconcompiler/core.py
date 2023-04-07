@@ -3011,11 +3011,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # Get the unit associated with the metric
             metric_unit = None
-            try:
+            if self.schema._has_field('metric', metric, 'unit'):
                 metric_unit = self.get('metric', metric, field='unit')
-            except SiliconCompilerError:
-                # Metric does not have a unit associated
-                pass
             metric_type = self.get('metric', metric, field='type')
 
             show_metric = False
@@ -5150,10 +5147,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Records the metric cell area under 'floorplan0' and notes the source as 'reports/metrics.json'
         '''
         metric_unit = None
-        try:
+        if self.schema._has_field('metric', metric, 'unit'):
             metric_unit = self.get('metric', metric, field='unit')
-        except SiliconCompilerError:
-            pass
 
         if metric_unit:
             value = units.convert(value, from_unit=source_unit, to_unit=metric_unit)
