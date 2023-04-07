@@ -473,8 +473,11 @@ class Schema:
         def error_msg(t):
             return f'Invalid value {value} for field {field} of keypath {keypath}: expected {t}'
 
-        if field in ('author', 'filehash', 'date', 'hashalgo', 'copy') and ('file' not in sc_type):
+        if field in ('author', 'filehash', 'date', 'hashalgo') and ('file' not in sc_type):
             raise TypeError(f'Invalid field {field} for keypath {keypath}: this field only exists for file parameters')
+
+        if field in ('copy',) and ('file' not in sc_type and 'dir' not in sc_type):
+            raise TypeError(f'Invalid field {field} for keypath {keypath}: this field only exists for file and dir parameters')
 
         if Schema._is_list(field, sc_type):
             if not isinstance(value, list):

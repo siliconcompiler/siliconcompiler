@@ -3331,6 +3331,7 @@
             "type": "bool"
         },
         "builddir": {
+            "copy": false,
             "defvalue": "build",
             "example": [
                 "cli: -builddir ./build_the_future",
@@ -3490,6 +3491,7 @@
         },
         "dir": {
             "default": {
+                "copy": false,
                 "defvalue": [],
                 "example": [
                     "cli: -dir 'openroad_tapcell ./tapcell.tcl'",
@@ -3649,6 +3651,7 @@
             "type": "bool"
         },
         "idir": {
+            "copy": false,
             "defvalue": [],
             "example": [
                 "cli: +incdir+./mylib",
@@ -3973,6 +3976,7 @@
             "type": "bool"
         },
         "registry": {
+            "copy": false,
             "defvalue": [],
             "example": [
                 "cli: -registry '~/myregistry'",
@@ -4209,6 +4213,7 @@
             }
         },
         "scpath": {
+            "copy": false,
             "defvalue": [],
             "example": [
                 "cli: -scpath '/home/$USER/sclib'",
@@ -4520,6 +4525,7 @@
             "type": "[file]"
         },
         "ydir": {
+            "copy": false,
             "defvalue": [],
             "example": [
                 "cli: -y './mylib'",
@@ -5245,6 +5251,7 @@
                 "default": {
                     "default": {
                         "default": {
+                            "copy": false,
                             "defvalue": [],
                             "example": [
                                 "cli: -pdk_directory 'asap7 xyce rfmodel M10 rftechdir'",
@@ -6400,7 +6407,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.29.0",
+        "defvalue": "0.30.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6479,6 +6486,7 @@
                 }
             },
             "path": {
+                "copy": false,
                 "defvalue": null,
                 "example": [
                     "cli: -tool_path 'openroad /usr/local/bin'",
@@ -6685,6 +6693,7 @@
                         "type": "[file]"
                     },
                     "refdir": {
+                        "copy": false,
                         "defvalue": [],
                         "example": [
                             "cli: -tool_task_refdir 'yosys syn ./myref'",
