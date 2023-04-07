@@ -131,7 +131,7 @@ _stdauthor = author # this automatically happens even if you don't specify latex
 #_stdauthor = ", ".join(siliconcompiler._metadata.authors)
 
 latex_documents = [
-  ('index', 'siliconcompiler.tex', 'SiliconCompiler',
+  ('index_pdf', 'siliconcompiler.tex', 'SiliconCompiler',
    _stdauthor, 'manual'),
 ]
 
