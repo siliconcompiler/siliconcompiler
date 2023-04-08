@@ -34,7 +34,7 @@ The SiliconCompiler project is based on a standardized data :ref:`Schema <Silico
 
 To simplify flow development, the project incorporates a simple object oriented :ref:`Python API<Core API>`. The API includes abstracted set/get access to the Schema, a flowgraph based parallel programming model, and a suite of utility functions for compilation setup and metric tracking.
 
-The expansive data schema, standardized plug-in interfaces, and built-in dynamic module search functionality enables SiliconCompiler to scale effectively to a large number of tools and PDKs. The open source :ref:`Tool<Tools directory>` and :ref:`PDK<PDK directory>` sections in the reference manual serves as a good starting point for folks who want to add their own PDKs and tools.
+The expansive data schema, standardized plug-in interfaces, and built-in dynamic module search functionality enables SiliconCompiler to scale effectively to a large number of tools and PDKs. The open source :ref:`building_blocks` sections in the reference manual serves as a good starting point for folks who want to add their own PDKs and tools.
 
 To further reduce design access barriers, the project also supports a :ref:`client-server <Remote Processing>` execution model that leverages the cloud to: 1) reduce tool installation barriers, 2) reduce the barrier to massively parallel elastic compute, and 3) address the NDA barrier for PDK and EDA tools.
 

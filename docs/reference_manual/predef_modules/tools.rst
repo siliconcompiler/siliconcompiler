@@ -3,7 +3,7 @@
 Pre-Defined Tools
 ===================
 
-The following are examples are pre-built tools that come with SiliconCompiler which you can use for your own builds.
+The following are examples are pre-built tool drivers that come with SiliconCompiler which you can use for your own builds.
 
 .. warning::
    **[WIP]** Add more to link to companion modules tools

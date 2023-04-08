@@ -21,6 +21,7 @@ To learn how to use SiliconCompiler, see :ref:`user <User Guide>`.
    Tools  <predef_modules/tools>
    PDKs <predef_modules/pdks>
    Libraries <predef_modules/libs>
+   Checklists <predef_modules/checklists>
 
 
 .. toctree::
