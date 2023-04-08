@@ -7,7 +7,7 @@
 Welcome to SiliconCompiler's Documentation!
 ##################################################
 
- .. toctree::
+.. toctree::
    :maxdepth: 1
    :hidden:
       
