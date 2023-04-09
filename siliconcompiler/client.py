@@ -57,7 +57,7 @@ def remote_preprocess(chip, steplist):
         task = chip._get_task(local_step, index)
         # Setting up tool is optional (step may be a builtin function)
         if not chip._is_builtin(tool, task):
-            chip._setup_tool(tool, task, local_step, index)
+            chip._setup_task(local_step, index)
 
         # Remove each local step from the list of steps to run on the server side.
         remote_steplist.remove(local_step)
