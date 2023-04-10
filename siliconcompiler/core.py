@@ -4099,13 +4099,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if errors is None:
                     errors = 0
                 errors += matches['errors']
-                self._record_metric(step, index, 'errors', errors, log_file)
+                self._record_metric(step, index, 'errors', errors, f'{step}.log')
             if 'warnings' in matches:
                 warnings = self.get('metric', 'warnings', step=step, index=index)
                 if warnings is None:
                     warnings = 0
                 warnings += matches['warnings']
-                self._record_metric(step, index, 'warnings', warnings, log_file)
+                self._record_metric(step, index, 'warnings', warnings, f'{step}.log')
 
         ##################
         # Hash files
@@ -4210,21 +4210,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 raise e
         else:
             self.error(f'setup() not found for tool {tool}, task {task}', fatal=True)
-
-        # Add logfile as a report for errors/warnings if they have associated
-        # regexes.
-        logfile = f'{step}.log'
-        if (
-            self.get('tool', tool, 'task', task, 'regex', 'errors', step=step, index=index) and
-            logfile not in self.get('tool', tool, 'task', task, 'report', 'errors', step=step, index=index),
-        ):
-            self.add('tool', tool, 'task', task, 'report', 'errors', logfile, step=step, index=index)
-
-        if (
-            self.get('tool', tool, 'task', task, 'regex', 'warnings', step=step, index=index) and
-            logfile not in self.get('tool', tool, 'task', task, 'report', 'warnings', step=step, index=index)
-        ):
-            self.add('tool', tool, 'task', task, 'report', 'warnings', logfile, step=step, index=index)
 
         # Need to clear index, otherwise we will skip setting up other indices.
         # Clear step for good measure.
