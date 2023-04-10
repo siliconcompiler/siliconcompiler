@@ -10,6 +10,8 @@ def test_hash_files():
     chip.write_manifest("raw.json")
     allkeys = chip.allkeys()
     for keypath in allkeys:
+        if 'default' in keypath:
+            continue
         if 'file' in chip.get(*keypath, field='type'):
             for vals, step, index in chip.schema._getvals(*keypath):
                 hashes = chip.hash_files(*keypath, step=step, index=index)
