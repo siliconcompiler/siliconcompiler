@@ -8,16 +8,6 @@ What is SiliconCompiler?
 SiliconCompiler is an open source, modular, build system that automates translation from hardware design source code to silicon ("make for silicon").
 
 
-Getting Started
--------------------
-
-If you're who would like to get started using SiliconCompiler to automate your hardware design prototyping and experiment with optimizing different steps, hop on over to tool :ref:`installation`, followed by the :ref:`Quickstart guide` to get a quick tutorial on the run experience. Anchor yourself with the :ref:`Glossary` and :ref:`FAQ` and by searching through the :ref:`Reference Manual <reference>`.
-
-If you're an advanced user who's interested in adding functionality in addition to using the :ref:`pre-defined building blocks <building_blocks>` provided by SiliconCompiler to run hardware design flows, you may also be interested in the :ref:`Advanced Guide <advanced>`. Also, please consider :ref:`contributing modules`.
-
-Read on for SiliconCompiler's genesis and design philosopy.
-
-
 Motivation
 -----------
 

@@ -56,8 +56,8 @@ Welcome to SiliconCompiler's Documentation!
 
 .. rst-class:: page-break
 
-- The :ref:`User Guide` is for users who would like to start running SiliconCompiler with their own designs using pre-defined build flows. Useful subsections include :ref:`quickstart` and :ref:`tutorials`
-- The :ref:`Advanced Guide <advanced>` is for users who are already familiar with the basics in User Guide and would like to build their own flows
+- The :ref:`User Guide` is useful for users who would like to start running SiliconCompiler with their own designs using pre-defined build flows. Useful subsections include :ref:`quickstart` and :ref:`tutorials`
+- The :ref:`Advanced Guide <advanced>` is for users who are already familiar with the basics in User Guide and would like to build their own flows or add additional functionality to existing flows.
 - The :ref:`references` section contains useful lookup information, like :ref:`building_blocks` and :ref:`API references <api_refs>` which are helpful to search through.
 
 **Getting Help**

@@ -6,14 +6,11 @@ User Guide
 
 This guide provides an overview for users. You will also want to look at API References for details.
 
-.. warning::
-   **[Info]** Using this menu to show what it looks like with *without* enumerated sections.
-   
 .. toctree::
    :caption: Getting Started
    :maxdepth: 1
 	      
-   What is SiliconCompiler? (WIP) <introduction>
+   What is SiliconCompiler? <introduction>
    Installation <installation>
    Quickstart guide <quickstart>
 
