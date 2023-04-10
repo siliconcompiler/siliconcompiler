@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.29.0'
+SCHEMA_VERSION = '0.30.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -107,6 +107,8 @@ def scparam(cfg,
             cfg['hashalgo'] = hashalgo
             cfg['copy'] = copy
 
+        if re.search(r'dir',sctype):
+            cfg['copy'] = copy
 
 #############################################################################
 # CHIP CONFIGURATION
