@@ -241,7 +241,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 task_mod = importlib.import_module(task_module)
                 if getattr(task_mod, 'setup', None):
                     tasks.append(task)
-            except ModuleNotFoundError:
+            except:
+                # Use broad except since python modules might have any
+                # number of issues which could get raised
                 pass
 
         return tasks
