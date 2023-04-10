@@ -3,6 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. This is not the full index page. This will taking to the landing page of docs.silicompiler.com
+   There is a index.rst file for each submenu
+   The content of this page will largely be ignored in pdf generation
+   
 ##################################################
 Welcome to SiliconCompiler's Documentation!
 ##################################################
@@ -12,7 +16,7 @@ Welcome to SiliconCompiler's Documentation!
    :hidden:
       
    user_guide/index
-   development_guide/index
+   Advanced Guide <development_guide/index>
    reference_manual/index
 
 **Useful Links**:
@@ -22,7 +26,7 @@ Welcome to SiliconCompiler's Documentation!
 
     .. grid-item-card::
 
-        After :ref:`installation` get started by going through how a simple demo is set up.
+        The fastest way to get started after :ref:`installation` is to walk through a simple demo!
 
         +++
 
@@ -31,11 +35,11 @@ Welcome to SiliconCompiler's Documentation!
             :color: secondary
             :click-parent:
 
-            Quickstart Guide
+            To the Quickstart Guide
 
     .. grid-item-card::
 
-        Walk through examples and fundamentals of SiliconCompiler, including tutorials.
+        A more complete introduction for new users, including fundamentals of SiliconCompiler, examples and tutorials.
 
 
         +++
@@ -46,11 +50,22 @@ Welcome to SiliconCompiler's Documentation!
             :click-parent:
 
             To the Complete User Guide
+	    
 
-.. warning::
-   TBD on final "grid" placement cards. This should be what we think the users will most quickly want to get to.
+**How the Documentation is Organized**
 
-.. warning::
-   TBD also on Getting Help section.
+.. rst-class:: page-break
 
-.. This is not really the index page, ...
+- The :ref:`User Guide` is for users who would like to start running SiliconCompiler with their own designs using pre-defined build flows. Useful subsections include :ref:`quickstart` and :ref:`tutorials`
+- The :ref:`Advanced Guide <advanced>` is for users who are already familiar with the basics in User Guide and would like to build their own flows
+- The :ref:`references` section contains useful lookup information, like :ref:`building_blocks` and :ref:`API references <api_refs>` which are helpful to search through.
+
+**Getting Help**
+
+.. rst-class:: page-break
+
+- Look in the :ref:`glossary` for unfamiliar terms
+- Try the :ref:`faq` for common questions
+- The :ref:`API references <api_refs>` can be a good resource if you're looking for more information about functions and methods
+- And if you can't find what you're looking for, the SiliconCompiler team is happy to help! Please `file an issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_ so we can look into it.
+  

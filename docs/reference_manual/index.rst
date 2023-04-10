@@ -23,7 +23,7 @@ To learn how to use SiliconCompiler, see :ref:`user <User Guide>`.
    Libraries <predef_modules/libs>
    Checklists <predef_modules/checklists>
 
-
+.. _api_refs:
 .. toctree::
    :caption: API References
    :maxdepth: 3

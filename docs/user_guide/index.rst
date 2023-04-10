@@ -14,11 +14,11 @@ This guide provides an overview for users. You will also want to look at API Ref
    :maxdepth: 1
 	      
    What is SiliconCompiler? (WIP) <introduction>
-   Installation (WIP) <installation>
-   Quickstart guide (WIP) <quickstart>
-   glossary
-   faq
-	      
+   Installation <installation>
+   Quickstart guide <quickstart>
+
+.. _tutorials:
+
 .. toctree::
    :caption: Tutorials
    :maxdepth: 1
@@ -34,13 +34,14 @@ This guide provides an overview for users. You will also want to look at API Ref
    The Schema (WIP)  <data_model>
    The Flowgraph (WIP) <execution_model>
    The Checklist (WIP) <checklist>
-
-	      
 	      
 .. toctree::
    :caption: Extras
    :maxdepth: 1
-	      
+
+   glossary
+   faq
+      
 
 
 	      

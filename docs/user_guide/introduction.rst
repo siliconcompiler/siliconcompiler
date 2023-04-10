@@ -5,18 +5,17 @@
 What is SiliconCompiler?
 ###################################
 
-SiliconCompiler is an open source build system that automates translation from source code to silicon.
+SiliconCompiler is an open source, modular, build system that automates translation from hardware design source code to silicon ("make for silicon").
 
-.. warning::
-   **[WIP]** Still has content from original pages.
-   Planning to merge in content from github README and the existing Introduction page which starts below
 
 Getting Started
 -------------------
 
-If you're a **user** who would like to get started using SiliconCompiler to automate your design prototyping and experiment with optimizing different steps, hop on over to tool :ref:`installation`, followed by the :ref:`Quickstart guide` to get a quick tutorial on the run experience. Anchor yourself with the :ref:`Glossary` and :ref:`FAQ` and by searching through the Reference Manual.
+If you're who would like to get started using SiliconCompiler to automate your hardware design prototyping and experiment with optimizing different steps, hop on over to tool :ref:`installation`, followed by the :ref:`Quickstart guide` to get a quick tutorial on the run experience. Anchor yourself with the :ref:`Glossary` and :ref:`FAQ` and by searching through the :ref:`Reference Manual <reference>`.
 
-If you're a **developer** who's interested in adding functionality in addition to using the tool as-is to run hardware design flows, you may also be interested in the Developer Manual. Also, please consider :ref:`contributing modules`.
+If you're an advanced user who's interested in adding functionality in addition to using the :ref:`pre-defined building blocks <building_blocks>` provided by SiliconCompiler to run hardware design flows, you may also be interested in the :ref:`Advanced Guide <advanced>`. Also, please consider :ref:`contributing modules`.
+
+Read on for SiliconCompiler's genesis and design philosopy.
 
 
 Motivation
@@ -30,11 +29,12 @@ Hardware specialization for a long tail of future applications will require the 
 Our Approach
 -------------
 
-The SiliconCompiler project is based on a standardized data :ref:`Schema <SiliconCompiler Schema>` that supports orthogonal combinations of design, tools, and Process Design Kits (PDKs). The schema design philosophy is to "make the complex possible while keeping the simple simple".
+The SiliconCompiler project is based on a standardized :ref:`Schema <SiliconCompiler Schema>` that supports orthogonal combinations of design, tools, and Process Design Kits (PDKs). The schema design philosophy is to "make the complex possible while keeping the simple simple".
 
 To simplify flow development, the project incorporates a simple object oriented :ref:`Python API<Core API>`. The API includes abstracted set/get access to the Schema, a flowgraph based parallel programming model, and a suite of utility functions for compilation setup and metric tracking.
 
 The expansive data schema, standardized plug-in interfaces, and built-in dynamic module search functionality enables SiliconCompiler to scale effectively to a large number of tools and PDKs. The open source :ref:`building_blocks` sections in the reference manual serves as a good starting point for folks who want to add their own PDKs and tools.
+
 
 To further reduce design access barriers, the project also supports a :ref:`client-server <Remote Processing>` execution model that leverages the cloud to: 1) reduce tool installation barriers, 2) reduce the barrier to massively parallel elastic compute, and 3) address the NDA barrier for PDK and EDA tools.
 

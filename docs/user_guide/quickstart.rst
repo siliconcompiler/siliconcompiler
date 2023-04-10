@@ -19,7 +19,7 @@ The simple design that was used in the :ref:`demo target <ASIC Demo>` is a singl
 Run Setup
 -----------------
 
-The following python script shows how easily this design is loaded in and run through the :ref:`ASIC flow <asicflow>`.
+SiliconCompiler includes a Python API to simplify the hardware compilation flow process. The following code snippet below shows how the :ref:`demo design <ASIC Demo>` was loaded in and run through the Python API.
 
 .. code-block:: python
 	:caption: heartbeat.py (remote run)
@@ -37,9 +37,51 @@ The following python script shows how easily this design is loaded in and run th
         chip.summary()                            # print results summary
 
     
-In the script above, a pre-existing flow target called :ref:`skywater130_demo` is loaded in, which is specifying a full RTL to GDS run flow, from design synthesis to design placement and routing. 
+The following sub-sections will describe each line in more detail.
 
-Notice that in the example above, :keypath:`option,remote` is set to ``True``. This means it's run in the cloud. If you were to remove this, it would run on your :ref:`local machine <Local Run>`.
+Object Creation
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The hardware build flow centers around the chip data object. This chip object is instantiated by calling the :py:meth:`~siliconcompiler.core.Chip` class constructor defined in the :ref:`core api` ::
+  
+	import siliconcompiler                    # import python package
+
+	chip = siliconcompiler.Chip('heartbeat')  # create chip object
+
+.. TODO It would be good to link to "The Schema" section here once that is completed	
+
+Define Design 
+^^^^^^^^^^^^^^
+
+Once the chip object is created, design parameters can be set up with the chip object's pre-defined functions, or methods. In this case, the helper function :ref:`.input() <input>` allows you to specify the hardware description input file(s) and the ``.clock()`` helper function allows you to specify the design frequency. ::
+
+        chip.input('heartbeat.v')                 # define list of source files
+        chip.clock('clk', period=10)              # define clock speed of design
+
+Define PDK and Flow
+^^^^^^^^^^^^^^^^^^^^^
+
+In addition to design parameters, you can also set up your PDK and libraries. The compilations of this design is using the :py:meth:`~siliconcompiler.core.Chip.load_target` function to load the pre-defined flow target :ref:`skywater130_demo <skywater130_demo>` which is set up to use the :ref:`skywater130 pdk <skywater130>`. This :ref:`pre-built target <skywater130_demo>` is also set up to run a full RTL to GDS run flow, from design synthesis to design placement and routing. You can take a look at the other :ref:`targets_directory` to see other options for other PDKs and libraries. ::
+
+        chip.load_target('skywater130_demo')      # load predefined technology and flow target
+
+
+Specify Run Location
+^^^^^^^^^^^^^^^^^^^^^
+
+Next, the :keypath:`option,remote` parameter of the chip object is directly being accessed by the :ref:`set` method to ``True``. This means it's run in the cloud. If you were to remove this, it would run on your :ref:`local machine <Local Run>`.::
+
+  chip.set('option', 'remote', True)        # run remote in the cloud
+
+
+Design Compilation
+^^^^^^^^^^^^^^^^^^^^^^^^
+Now that the design compilation is set up, it's time to :ref:`run` the compilation and print the results with :ref:`summary`. ::
+  
+        chip.run()                                # run compilation of design and target
+        chip.summary()                            # print results summary
+
+
 
 Run Flow
 -----------
@@ -129,4 +171,4 @@ If you want to have this window pop up automatically at the end of your script, 
 What Next?
 -----------
 
-Now that you've quickly run a simple example, you can proceed to a larger example like :ref:`building your own soc`, or you can dive deeper into the SiliconCompiler build flow  you ran from this quickstart (`asic_demo <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/asic_demo.py>`_) by looking through how the flow is constructed with :ref:`execution model`, :ref:`programming model`, and :ref:`data model` in the Flow Basics section.
+Now that you've quickly run a simple example, you can proceed to a larger example like :ref:`building your own soc`, or you can dive deeper into the SiliconCompiler build flow  you ran from this quickstart (`asic_demo <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/asic_demo.py>`_) by looking through how the flow is constructed with :ref:`execution model` and :ref:`data model` in the Fundamentals section.
