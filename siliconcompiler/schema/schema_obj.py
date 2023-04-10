@@ -358,6 +358,14 @@ class Schema:
         return False
 
     ##########################################################################
+    def _has_field(self, *args):
+        keypath = args[:-1]
+        field = args[-1]
+
+        cfg = self._search(*keypath)
+        return field in cfg
+
+    ##########################################################################
     def record_history(self):
         '''
         Copies all non-empty parameters from current job into the history
