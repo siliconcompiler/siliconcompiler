@@ -224,14 +224,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     def _get_tool_tasks(self, tool):
         tool_dir = os.path.dirname(tool.__file__)
+        tool_base_module = tool.__name__.split('.')[0:-1]
         tool_name = tool.__name__.split('.')[-1]
 
-        tasks = []
+        task_candidates = []
         for task_mod in pkgutil.iter_modules([tool_dir]):
             if task_mod.name == tool_name:
                 continue
-            tasks.append(task_mod.name)
-        return sorted(tasks)
+            task_candidates.append(task_mod.name)
+
+        tasks = []
+        for task in sorted(task_candidates):
+            task_module = '.'.join([*tool_base_module, task])
+            try:
+                # Try loading and checking for setup in case tool has python scripts
+                task_mod = importlib.import_module(task_module)
+                if getattr(task_mod, 'setup', None):
+                    tasks.append(task)
+            except ModuleNotFoundError:
+                pass
+
+        return tasks
 
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
