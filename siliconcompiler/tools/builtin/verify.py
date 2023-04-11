@@ -31,7 +31,7 @@ def _select_inputs(chip, step, index):
     for criteria in arguments:
         m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
         if not m:
-            chip.error(f"Illegal checklist criteria: {criteria}", fatal=True)
+            chip.error(f"Illegal verify criteria: {criteria}", fatal=True)
         
         metric = m.group(1)
         op = m.group(2)

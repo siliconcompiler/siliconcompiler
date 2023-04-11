@@ -28,7 +28,7 @@ def _select_inputs(chip, step, index):
     for criteria in arguments:
         m = re.match(r'(minimum|maximum)\((\w+)\)', criteria)
         if not m:
-            chip.error(f"Illegal checklist criteria: {criteria}", fatal=True)
+            chip.error(f"Illegal mux criteria: {criteria}", fatal=True)
 
         op = m.group(1)
         metric = m.group(2)
