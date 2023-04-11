@@ -1,5 +1,6 @@
 import siliconcompiler
 from siliconcompiler import SiliconCompilerError
+from siliconcompiler.tools.builtin import nop
 import importlib
 
 ############################################################################
@@ -32,7 +33,7 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
     if not filetype:
         raise ValueError('filetype is a required argument')
 
-    flow.node(flowname, 'import', 'builtin.nop')
+    flow.node(flowname, 'import', nop)
 
     if filetype not in chip.getkeys('option', 'showtool'):
         raise SiliconCompilerError(f'Show tool for {filetype} is not defined.')

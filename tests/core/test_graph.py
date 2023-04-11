@@ -14,6 +14,10 @@ from siliconcompiler.tools.magic import extspice
 from siliconcompiler.tools.magic import drc
 from siliconcompiler.tools.netgen import lvs
 
+from siliconcompiler.tools.builtin import nop
+from siliconcompiler.tools.builtin import join
+from siliconcompiler.tools.builtin import minimum
+
 from tests.core.tools.fake import fake_in
 from tests.core.tools.fake import fake_out
 
@@ -24,10 +28,10 @@ def test_graph():
     #RTL
     chip.pipe('rtl', [{'import' : parse},
                       {'syn' : syn_asic},
-                      {'export' : 'builtin.nop'},])
+                      {'export' : nop},])
 
     #APR
-    chip.pipe('apr', [{'import' : 'builtin.nop'},
+    chip.pipe('apr', [{'import' : nop},
                       {'floorplan' : floorplan},
                       {'physyn' : physyn},
                       {'place' : place},
@@ -37,11 +41,11 @@ def test_graph():
                       {'export' : export}])
 
     #SIGNOFF
-    chip.node('signoff', 'import', 'builtin.nop')
+    chip.node('signoff', 'import', nop)
     chip.node('signoff', 'extspice', extspice)
     chip.node('signoff', 'drc', drc)
     chip.node('signoff', 'lvs', lvs)
-    chip.node('signoff', 'export', 'bulitin.join')
+    chip.node('signoff', 'export', join)
 
     chip.edge('signoff', 'import', 'drc')
     chip.edge('signoff', 'import', 'extspice')
@@ -66,7 +70,7 @@ def test_graph_entry():
     chip.set('option', 'flow', flow)
     chip.node(flow, 'premin', fake_out, index=0)
     chip.node(flow, 'premin', fake_out, index=1)
-    chip.node(flow, 'domin', 'builtin.minimum')
+    chip.node(flow, 'domin', minimum)
     chip.node(flow, 'postmin', fake_in)
 
     chip.edge(flow, 'premin', 'domin', tail_index=0)

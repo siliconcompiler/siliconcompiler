@@ -5,6 +5,8 @@ import pytest
 from siliconcompiler.tools.verilator import parse
 from siliconcompiler.tools.yosys import syn_asic
 
+from siliconcompiler.tools.builtin import minimum
+
 @pytest.fixture
 def chip():
     # Create instance of Chip class
@@ -13,12 +15,12 @@ def chip():
     #sequence
     flowpipe = ['import',
                 'syn',
-                'synmin']
+                'teststep']
 
     task = {
         'import': parse,
         'syn': syn_asic,
-        'synmin': 'builtin.minimum'
+        'teststep': minimum
     }
 
     N = 10
@@ -28,21 +30,22 @@ def chip():
     threads = {
         'import': 1,
         'syn' : N,
-        'synmin' : 1
+        'teststep' : 1
     }
 
     # Parallel flow for syn
     for i, step in enumerate(flowpipe):
         for index in range(threads[step]):
-            if step == "synmin":
+            if step == "teststep":
                 chip.node(flow, step, task[step], index=index)
                 for j in range(N):
-                    chip.edge(flow, step, flowpipe[i-1], head_index=j)
+                    chip.edge(flow, flowpipe[i-1], step, tail_index=j)
             elif step == 'import':
                 chip.node(flow, step, task[step], index=index)
             else:
                 chip.node(flow, step, task[step], index=index)
                 chip.edge(flow, flowpipe[i-1], step, tail_index=0, head_index=index)
+
             #weight
             chip.set('flowgraph', flow, step, str(index), 'weight', 'cellarea', 1.0)
             #goal
@@ -61,27 +64,17 @@ def chip():
 def test_minimum(chip):
     '''API test for min/max() methods
     '''
-    flow = chip.get('option', 'flow')
-    N = len(chip.getkeys('flowgraph', flow , 'syn'))
+    task = chip._get_task_module('teststep', '0')
+    winner = task._select_inputs(chip, 'teststep', '0')
 
-    chip.write_flowgraph('minmax.png')
-    chip.write_manifest('minmax.json')
-
-    steplist = []
-    for i in range(N):
-        steplist.append(('syn',str(i)))
-    (score, winner) = chip.minimum(*steplist)
-    assert winner[0] + winner[1] == 'syn9'
+    assert winner == ('syn', '9')
 
 def test_maximum(chip):
     flow = chip.get('option', 'flow')
-    N = len(chip.getkeys('flowgraph', flow, 'syn'))
+    chip.set('flowgraph', flow, 'teststep', '0', 'taskmodule', 'siliconcompiler.tools.builtin.maximum')
+    task = chip._get_task_module('teststep', '0')
+    winner = task._select_inputs(chip, 'teststep', '0')
 
-    steplist = []
-    for i in range(N):
-        steplist.append(('syn',str(i)))
-
-    (score, winner) = chip.maximum(*steplist)
     assert winner == ('syn', '0')
 
 def test_all_failed(chip):
@@ -91,11 +84,8 @@ def test_all_failed(chip):
     for index in range(N):
         chip.set('flowgraph', flow, 'syn', str(index), 'status', siliconcompiler.TaskStatus.ERROR)
 
-    steplist = []
-    for i in range(N):
-        steplist.append(('syn',str(i)))
-
-    (score, winner) = chip.minimum(*steplist)
+    task = chip._get_task_module('teststep', '0')
+    winner = task._select_inputs(chip, 'teststep', '0')
 
     assert winner is None
 
@@ -106,14 +96,11 @@ def test_winner_failed(chip):
     # set error bit on what would otherwise be winner
     chip.set('flowgraph', flow, 'syn', '9', 'status', siliconcompiler.TaskStatus.ERROR)
 
-    steplist = []
-    for i in range(N):
-        steplist.append(('syn',str(i)))
-
-    (score, winner) = chip.minimum(*steplist)
+    task = chip._get_task_module('teststep', '0')
+    winner = task._select_inputs(chip, 'teststep', '0')
 
     # winner should be second-best, not syn9
-    assert winner[0] + winner[1] == 'syn8'
+    assert winner == ('syn', '8')
 
 def test_winner_fails_goal_negative(chip):
     flow = chip.get('option', 'flow')
@@ -121,11 +108,8 @@ def test_winner_fails_goal_negative(chip):
 
     chip.set('metric', 'setupwns', -1, step='syn', index='9')
 
-    steplist = []
-    for i in range(N):
-        steplist.append(('syn',str(i)))
-
-    (score, winner) = chip.minimum(*steplist)
+    task = chip._get_task_module('teststep', '0')
+    winner = task._select_inputs(chip, 'teststep', '0')
 
     # winner should be second-best, not syn9
     assert winner == ('syn', '8')
@@ -137,11 +121,8 @@ def test_winner_fails_goal_positive(chip):
     chip.set('flowgraph', flow, 'syn', '9', 'goal', 'errors', 0)
     chip.set('metric', 'errors', 1, step='syn', index='9')
 
-    steplist = []
-    for i in range(N):
-        steplist.append(('syn',str(i)))
-
-    (score, winner) = chip.minimum(*steplist)
+    task = chip._get_task_module('teststep', '0')
+    winner = task._select_inputs(chip, 'teststep', '0')
 
     # winner should be second-best, not syn9
     assert winner == ('syn', '8')

@@ -1,17 +1,19 @@
 import siliconcompiler
 
+from siliconcompiler.tools.builtin import join
+
 def test_list_steps():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
-    chip.node(flow, 'A', 'builtin.join')
+    chip.node(flow, 'A', join)
 
-    chip.node(flow, 'B', 'builtin.join')
+    chip.node(flow, 'B', join)
     chip.edge(flow, 'A', 'B')
 
-    chip.node(flow, 'C', 'builtin.join')
+    chip.node(flow, 'C', join)
     chip.edge(flow, 'B', 'C')
 
-    chip.node(flow, 'D', 'builtin.join')
+    chip.node(flow, 'D', join)
     chip.edge(flow, 'A', 'D')
     chip.edge(flow, 'C', 'D')
 
