@@ -473,8 +473,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if additional_args:
             # Add additional user specified arguments
+            arg_dests = []
             for arg, arg_detail in additional_args.items():
-                parser.add_argument(arg, **arg_detail)
+                argument = parser.add_argument(arg, **arg_detail)
+                arg_dests.append(argument.dest)
+            # rewrite additional_args with new dest infomation
+            additional_args = arg_dests
 
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
@@ -483,8 +487,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if additional_args:
             # Grab user specified arguments
             extra_params = {}
-            for arg in additional_args.keys():
-                arg = arg.replace('-', '')
+            for arg in additional_args:
                 if arg in cmdargs:
                     extra_params[arg] = cmdargs[arg]
                     # Remove from cmdargs
