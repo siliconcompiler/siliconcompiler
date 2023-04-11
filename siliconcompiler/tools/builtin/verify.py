@@ -5,13 +5,13 @@ import re
 
 def setup(chip):
     '''
-    Tests an assertion on a list of input tasks.
+    Tests an assertion on an input task.
 
-    The provided steplist is verified to ensure that all assertions
+    The input to this task is verified to ensure that all assertions
     are True. If any of the assertions fail, False is returned.
-    Assertions are passed in as kwargs, with the key being a metric
-    and the value being a number and an optional conditional operator.
-    The allowed conditional operators are: >, <, >=, <=
+    Assertions are passed in using ['flowgraph', flow, step, index, 'args'] in the form
+    'metric==0.0'.
+    The allowed conditional operators are: >, <, >=, <=, ==
     '''
 
 def _select_inputs(chip, step, index):

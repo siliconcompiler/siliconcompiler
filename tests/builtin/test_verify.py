@@ -26,7 +26,6 @@ def chip():
     flow = 'testflow'
     chip.set('option', 'flow', flow)
 
-    # Parallel flow for syn
     for i, step in enumerate(flowpipe):
         if step == "teststep":
             chip.node(flow, step, task[step])
@@ -47,7 +46,6 @@ def chip():
 ##################################
 def test_verify_pass(chip):
     flow = chip.get('option', 'flow')
-    index = '0'
     chip.set('flowgraph', flow, 'teststep', '0', 'args', 'errors==1042')
 
     task = chip._get_task_module('teststep', '0')
@@ -58,7 +56,6 @@ def test_verify_pass(chip):
 ##################################
 def test_verify_pass_greater(chip):
     flow = chip.get('option', 'flow')
-    index = '0'
     chip.set('flowgraph', flow, 'teststep', '0', 'args', 'errors>=0')
 
     task = chip._get_task_module('teststep', '0')
@@ -69,7 +66,6 @@ def test_verify_pass_greater(chip):
 ##################################
 def test_verify_fail(chip):
     flow = chip.get('option', 'flow')
-    index = '0'
     chip.set('flowgraph', flow, 'teststep', '0', 'args', 'errors==1041')
 
     task = chip._get_task_module('teststep', '0')
@@ -79,7 +75,6 @@ def test_verify_fail(chip):
 ##################################
 def test_verify_pass_two_metrics(chip):
     flow = chip.get('option', 'flow')
-    index = '0'
     chip.set('flowgraph', flow, 'teststep', '0', 'args', 'errors==1042')
     chip.add('flowgraph', flow, 'teststep', '0', 'args', 'warnings==1042')
 
@@ -91,7 +86,6 @@ def test_verify_pass_two_metrics(chip):
 ##################################
 def test_verify_partial_fail(chip):
     flow = chip.get('option', 'flow')
-    index = '0'
     chip.set('flowgraph', flow, 'teststep', '0', 'args', 'errors==1042')
     chip.add('flowgraph', flow, 'teststep', '0', 'args', 'warnings==1041')
 
@@ -102,7 +96,6 @@ def test_verify_partial_fail(chip):
 ##################################
 def test_verify_partial_missing(chip):
     flow = chip.get('option', 'flow')
-    index = '0'
     chip.set('flowgraph', flow, 'teststep', '0', 'args', 'errors==1042')
     chip.add('flowgraph', flow, 'teststep', '0', 'args', 'setuptns>=0')
 

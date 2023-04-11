@@ -8,7 +8,7 @@ def setup(chip):
     The selector criteria provided is used to create a custom function
     for selecting the best step/index pair from the inputs. Metrics and
     weights are passed in and used to select the step/index based on
-    the minimum or maximum score depending on the 'op' argument.
+    the minimum or maximum score depending on the 'op' argument from ['flowgraph', flow, step, index, 'args'].
 
     The function can be used to bypass the flows weight functions for
     the purpose of conditional flow execution and verification.
