@@ -334,7 +334,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return switchstrs, metavar
 
     ###########################################################################
-    def create_cmdline(self, progname, description=None, switchlist=None, input_map=None):
+    def create_cmdline(self, progname, description=None, switchlist=None, input_map=None, additional_args=None):
         """Creates an SC command line interface.
 
         Exposes parameters in the SC schema as command line switches,
@@ -373,6 +373,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 source arguments to ['input', 'fileset', ...] keypaths based on their file
                 extension. If None, the CLI will not accept positional source
                 arguments.
+            additional_args (dict of dict): Dictionary of extra arguments to add
+                to the command line parser, with the arguments matching the
+                argparse.add_argument() call.
+
+        Returns:
+            None if additional_args is not provided, otherwise a dictionary with the
+                command line options detected from the additional_args
 
         Examples:
             >>> chip.create_cmdline(progname='sc-show',switchlist=['-input','-cfg'])
@@ -461,8 +468,24 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         parser.add_argument('-version', action='version', version=_metadata.version)
 
+        if additional_args:
+            # Add additional user specified arguments
+            for arg, arg_detail in additional_args.items():
+                parser.add_argument(arg, **arg_detail)
+
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
+
+        extra_params = None
+        if additional_args:
+            # Grab user specified arguments
+            extra_params = {}
+            for arg in additional_args.keys():
+                arg = arg.replace('-', '')
+                if arg in cmdargs:
+                    extra_params[arg] = cmdargs[arg]
+                    # Remove from cmdargs
+                    del cmdargs[arg]
 
         # Print banner
         print(_metadata.banner)
@@ -566,6 +589,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         self.set(*args, val, step=step, index=index, clobber=True)
                 else:
                     self.set(*args, val, step=step, index=index, clobber=True)
+
+        return extra_params
 
     ##########################################################################
     def load_target(self, name, **kwargs):

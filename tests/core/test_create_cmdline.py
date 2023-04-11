@@ -3,10 +3,12 @@ import pytest
 
 import siliconcompiler
 
-def do_cli_test(args, monkeypatch, switchlist=None, input_map=None):
+def do_cli_test(args, monkeypatch, switchlist=None, input_map=None, additional_args=None):
     chip = siliconcompiler.Chip('test')
     monkeypatch.setattr('sys.argv', args)
-    chip.create_cmdline('sc', switchlist=switchlist, input_map=input_map)
+    args = chip.create_cmdline('sc', switchlist=switchlist, input_map=input_map, additional_args=additional_args)
+    # Store additional args in chip object to make testing easier
+    chip.args = args
     return chip
 
 def test_cli_multi_source(monkeypatch):
@@ -99,6 +101,66 @@ def _cast(val, sctype):
     else:
         # everything else (str, file, dir) is treated like a string
         return val.strip('"')
+
+def test_additional_parameters(monkeypatch):
+    args = ['sc',
+            '-input', 'rtl verilog examples/ibex/ibex_alu.v',
+            '-input', 'rtl verilog examples/ibex/ibex_branch_predict.v',
+            '-target', 'freepdk45_demo',
+            '-testing_bool',
+            '-testing_str', 'this is a string',
+            '-testing_int', '12']
+
+    additional_args = {
+        '-testing_bool': {
+            'action': 'store_true'
+        },
+        '-testing_str': {
+            'type': str
+        },
+        '-testing_int': {
+            'type': int
+        }
+    }
+
+    chip = do_cli_test(args, monkeypatch, additional_args=additional_args)
+
+    assert chip.args['testing_bool']
+    assert chip.args['testing_str'] == 'this is a string'
+    assert chip.args['testing_int'] == 12
+
+    sources = chip.get('input','rtl','verilog', step='import', index=0)
+    assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
+    assert chip.get('option','target') == 'freepdk45_demo'
+
+def test_additional_parameters_not_used(monkeypatch):
+    args = ['sc',
+            '-input', 'rtl verilog examples/ibex/ibex_alu.v',
+            '-input', 'rtl verilog examples/ibex/ibex_branch_predict.v',
+            '-target', 'freepdk45_demo',
+            '-testing_bool']
+
+    additional_args = {
+        '-testing_bool': {
+            'action': 'store_true'
+        },
+        '-testing_str': {
+            'type': str
+        },
+        '-testing_int': {
+            'type': int
+        }
+    }
+
+    chip = do_cli_test(args, monkeypatch, additional_args=additional_args)
+
+    assert chip.args['testing_bool']
+    assert chip.args['testing_str'] is None
+    assert chip.args['testing_int'] is None
+
+    sources = chip.get('input','rtl','verilog', step='import', index=0)
+    assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
+    assert chip.get('option','target') == 'freepdk45_demo'
 
 def test_cli_examples(monkeypatch):
     # Need to mock this function, since our cfg CLI example will try to call it
