@@ -2,11 +2,13 @@ import siliconcompiler
 
 import pytest
 
+from siliconcompiler.tools.builtin import join
+
 @pytest.mark.quick
 def test_builtin():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
-    chip.node(flow, 'A', 'builtin.join')
+    chip.node(flow, 'A', join)
 
     assert chip.get('flowgraph', flow, 'A', '0', 'tool') == "builtin"
     assert chip.get('flowgraph', flow, 'A', '0', 'task') == "join"

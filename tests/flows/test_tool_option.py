@@ -4,6 +4,10 @@ import pytest
 
 from siliconcompiler.tools.openroad import place
 
+from siliconcompiler.tools.builtin import nop
+from siliconcompiler.tools.builtin import join
+from siliconcompiler.tools.builtin import minimum
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_tool_option(scroot):
@@ -71,7 +75,7 @@ def chip(scroot):
     flow = chip.get('option', 'flow')
 
     # no-op import since we're not preprocessing source files
-    chip.node(flow, 'import', 'builtin.nop')
+    chip.node(flow, 'import', nop)
 
     chip.node(flow, 'place', place, index=0)
     chip.edge(flow, 'import', 'place', head_index=0)
@@ -94,7 +98,7 @@ def test_failed_branch_min(chip):
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5', step='place', index='1')
 
     # Perform minimum
-    chip.node(flow, 'placemin', 'builtin.minimum')
+    chip.node(flow, 'placemin', minimum)
     chip.edge(flow, 'place', 'placemin', tail_index=0)
     chip.edge(flow, 'place', 'placemin', tail_index=1)
 
@@ -123,7 +127,7 @@ def test_all_failed_min(chip):
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf')
 
     # Perform minimum
-    chip.node(flow, 'placemin', 'builtin.minimum')
+    chip.node(flow, 'placemin', minimum)
     chip.edge(flow, 'place', 'placemin', tail_index=0)
     chip.edge(flow, 'place', 'placemin', tail_index=1)
 
@@ -147,7 +151,7 @@ def test_branch_failed_join(chip):
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5', step='place', index='1')
 
     # Perform join
-    chip.node(flow, 'placemin', 'builtin.join')
+    chip.node(flow, 'placemin', join)
     chip.edge(flow, 'place', 'placemin', tail_index=0)
     chip.edge(flow, 'place', 'placemin', tail_index=1)
 

@@ -5,6 +5,8 @@ import pytest
 
 from siliconcompiler.tools.icarus import compile
 
+from siliconcompiler.tools.builtin import nop
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_icarus(oh_dir):
@@ -20,7 +22,7 @@ def test_icarus(oh_dir):
     chip.set('option', 'mode', 'sim')
 
     flow = 'sim'
-    chip.node(flow, 'import', 'builtin.nop')
+    chip.node(flow, 'import', nop)
     chip.node(flow, 'compile', compile)
     chip.edge(flow, 'import', 'compile')
     chip.set('option', 'flow', flow)
