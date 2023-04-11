@@ -6,6 +6,7 @@ import importlib
 # DOCS
 ############################################################################
 def make_docs(chip):
+    chip.load_target('freepdk45_demo')
     return setup(chip, filetype='gds', np=3)
 
 ###########################################################################
