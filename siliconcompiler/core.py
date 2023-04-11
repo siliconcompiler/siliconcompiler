@@ -3365,10 +3365,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Determine task name and module
         task_module = None
         if (isinstance(task, str)):
-           task_module = task
+            task_module = task
         elif inspect.ismodule(task):
             task_module = task.__name__
-            self.modules[task.__name__] = task
+            self.modules[task_module] = task
         else:
             self.error(f"{task} is not a string or module and cannot be used to setup a task.", fatal=True)
 
