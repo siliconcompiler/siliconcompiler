@@ -387,6 +387,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             >>> chip.create_cmdline(progname='sc', input_map={'v': ('rtl', 'verilog')})
             All sources ending in .v will be stored in ['input', 'rtl', 'verilog']
+
+            >>> extra = chip.create_cmdline(progname='sc', additional_args={'-demo': {'action': 'store_true'}})
+            Returns extra = {'demo': False/True}
         """
 
         # Argparse
