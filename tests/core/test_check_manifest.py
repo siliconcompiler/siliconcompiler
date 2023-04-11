@@ -10,6 +10,8 @@ from tests.core.tools.fake import bar
 from tests.core.tools.fake import baz
 from tests.core.tools.echo import echo
 
+from siliconcompiler.tools.builtin import nop
+
 def test_check_manifest():
 
     chip = siliconcompiler.Chip('gcd')
@@ -124,7 +126,7 @@ def merge_flow_chip():
     chip = siliconcompiler.Chip('test')
 
     flow = 'test'
-    chip.node(flow, 'import', 'builtin.nop')
+    chip.node(flow, 'import', nop)
     chip.node(flow, 'parallel1', foo)
     chip.node(flow, 'parallel2', bar)
     chip.edge(flow, 'import', 'parallel1')
@@ -152,7 +154,7 @@ def test_merged_graph_good(merge_flow_chip):
 def test_merged_graph_good_steplist():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
-    chip.node(flow, 'import', 'builtin.nop')
+    chip.node(flow, 'import', nop)
     chip.node(flow, 'parallel1', echo)
     chip.node(flow, 'parallel2', echo)
     chip.node(flow, 'merge', echo)

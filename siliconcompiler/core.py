@@ -106,9 +106,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Cache of python modules
         self.modules = {}
 
-        self.builtin = ['minimum','maximum',
-                        'nop', 'mux', 'join', 'verify']
-
         # We set 'design' and 'loglevel' by directly calling the schema object
         # because of a chicken-and-egg problem: self.set() relies on the logger,
         # but the logger relies on these values.
@@ -117,10 +114,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.schema.set('option', 'loglevel', loglevel)
 
         self._init_logger()
-
-        # Ensure that SC built-ins are on the $PYTHONPATH
-        if not self.scroot in sys.path:
-            sys.path.append(self.scroot)
 
         self._loaded_modules = {
             'flows': [],
@@ -1512,27 +1505,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'Required input {filename} not received for {step}{index}.')
                 error = True
 
-        if not self._is_builtin(tool, task):
-            all_required = self.get('tool', tool, 'task', task, 'require', step=step, index=index)
-            for item in all_required:
-                keypath = item.split(',')
-                if not self.valid(*keypath):
-                    self.logger.error(f'Cannot resolve required keypath {keypath}.')
-                    error = True
-                else:
-                    paramtype = self.get(*keypath, field='type')
-                    if ('file' in paramtype) or ('dir' in paramtype):
-                        for val, step, index in self.schema._getvals(*keypath):
-                            abspath = self._find_files(*keypath, missing_ok=True, step=step, index=index)
-                            unresolved_paths = val
-                            if not isinstance(abspath, list):
-                                abspath = [abspath]
-                                unresolved_paths = [unresolved_paths]
-                            for i, path in enumerate(abspath):
-                                if path is None:
-                                    unresolved_path = unresolved_paths[i]
-                                    self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
-                                    error = True
+        all_required = self.get('tool', tool, 'task', task, 'require', step=step, index=index)
+        for item in all_required:
+            keypath = item.split(',')
+            if not self.valid(*keypath):
+                self.logger.error(f'Cannot resolve required keypath {keypath}.')
+                error = True
+            else:
+                paramtype = self.get(*keypath, field='type')
+                if ('file' in paramtype) or ('dir' in paramtype):
+                    for val, step, index in self.schema._getvals(*keypath):
+                        abspath = self._find_files(*keypath, missing_ok=True, step=step, index=index)
+                        unresolved_paths = val
+                        if not isinstance(abspath, list):
+                            abspath = [abspath]
+                            unresolved_paths = [unresolved_paths]
+                        for i, path in enumerate(abspath):
+                            if path is None:
+                                unresolved_path = unresolved_paths[i]
+                                self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
+                                error = True
 
         return not error
 
@@ -1645,8 +1637,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 tool = self.get('flowgraph', flow, step, index, 'tool')
                 task = self.get('flowgraph', flow, step, index, 'task')
                 tool_name, task_name = self._get_tool_task(step, index, flow=flow)
-                if self._is_builtin(tool_name, task_name):
-                    continue
 
                 if not self._get_tool_module(step, index, flow=flow, error=False):
                     error = True
@@ -1696,27 +1686,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         directory after a successful run of step/index.'''
 
         flow = self.get('option', 'flow')
+        task_gather = getattr(self._get_task_module(step, index, flow=flow, error=False), '_gather_outputs', None)
+        if task_gather:
+            return set(task_gather(self, step, index))
+
         tool, task = self._get_tool_task(step, index, flow=flow)
-
-        outputs = set()
-        if self._is_builtin(tool, task):
-            in_tasks = self.get('flowgraph', flow, step, index, 'input')
-            in_task_outputs = [self._gather_outputs(*task) for task in in_tasks]
-
-            if task in ('minimum', 'maximum'):
-                if len(in_task_outputs) > 0:
-                    outputs = in_task_outputs[0].intersection(*in_task_outputs[1:])
-            elif task in ('join', 'nop'):
-                if len(in_task_outputs) > 0:
-                    outputs = in_task_outputs[0].union(*in_task_outputs[1:])
-            else:
-                # TODO: logic should be added here when mux/verify builtins are implemented.
-                self.logger.error(f'Builtin {tool}/{task} not yet implemented')
-        else:
-            # Not builtin tool
-            outputs = set(self.get('tool', tool, 'task', task, 'output', step=step, index=index))
-
-        return outputs
+        return set(self.get('tool', tool, 'task', task, 'output', step=step, index=index))
 
     ###########################################################################
     def _check_flowgraph(self, flow=None):
@@ -3377,10 +3352,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f"{task} is not a valid task, it must be associated with a tool '<tool>.<task>'.", fatal=True)
         tool_name, task_name = task_parts[-2:]
 
-        if tool_name == 'builtin':
-            if not self._is_builtin(tool_name, task_name):
-                self.error(f'{tool_name}/{task_name} is not a valid builtin task.', fatal=True)
-
         # bind tool to node
         self.set('flowgraph', flow, step, index, 'tool', tool_name)
         self.set('flowgraph', flow, step, index, 'task', task_name)
@@ -3473,244 +3444,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             prevstep = step
 
     ###########################################################################
-    def join(self, *tasks):
-        '''
-        Merges outputs from a list of input tasks.
-
-        Args:
-            tasks(list): List of input tasks specified as (step,index) tuples.
-
-        Returns:
-            Input list
-
-        Examples:
-            >>> select = chip.join([('lvs','0'), ('drc','0')])
-           Select gets the list [('lvs','0'), ('drc','0')]
-        '''
-
-        tasklist = list(tasks)
-        sel_inputs = tasklist
-
-        # no score for join, so just return 0
-        return sel_inputs
-
-    ###########################################################################
-    def nop(self, *task):
-        '''
-        A no-operation that passes inputs to outputs.
-
-        Args:
-            task(list): Input task specified as a (step,index) tuple.
-
-        Returns:
-            Input task
-
-        Examples:
-            >>> select = chip.nop(('lvs','0'))
-           Select gets the tuple [('lvs',0')]
-        '''
-
-        return list(task)
-
-    ###########################################################################
-    def minimum(self, *tasks):
-        '''
-        Selects the task with the minimum metric score from a list of inputs.
-
-        Sequence of operation:
-
-        1. Check list of input tasks to see if all metrics meets goals
-        2. Check list of input tasks to find global min/max for each metric
-        3. Select MIN value if all metrics are met.
-        4. Normalize the min value as sel = (val - MIN) / (MAX - MIN)
-        5. Return normalized value and task name
-
-        Meeting metric goals takes precedence over compute metric scores.
-        Only goals with values set and metrics with weights set are considered
-        in the calculation.
-
-        Args:
-            tasks(list): List of input tasks specified as (step,index) tuples.
-
-        Returns:
-            tuple containing
-
-            - score (float): Minimum score
-            - task (tuple): Task with minimum score
-
-        Examples:
-            >>> (score, task) = chip.minimum([('place','0'),('place','1')])
-
-        '''
-        return self._minmax(*tasks, op="minimum")
-
-    ###########################################################################
-    def maximum(self, *tasks):
-        '''
-        Selects the task with the maximum metric score from a list of inputs.
-
-        Sequence of operation:
-
-        1. Check list of input tasks to see if all metrics meets goals
-        2. Check list of input tasks to find global min/max for each metric
-        3. Select MAX value if all metrics are met.
-        4. Normalize the min value as sel = (val - MIN) / (MAX - MIN)
-        5. Return normalized value and task name
-
-        Meeting metric goals takes precedence over compute metric scores.
-        Only goals with values set and metrics with weights set are considered
-        in the calculation.
-
-        Args:
-            tasks(list): List of input tasks specified as (step,index) tuples.
-
-        Returns:
-            tuple containing
-
-            - score (float): Maximum score.
-            - task (tuple): Task with minimum score
-
-        Examples:
-            >>> (score, task) = chip.maximum([('place','0'),('place','1')])
-
-        '''
-        return self._minmax(*tasks, op="maximum")
-
-    ###########################################################################
-    def _minmax(self, *steps, op="minimum", **selector):
-        '''
-        Shared function used for min and max calculation.
-        '''
-
-        if op not in ('minimum', 'maximum'):
-            raise ValueError('Invalid op')
-
-        flow = self.get('option', 'flow')
-        steplist = list(steps)
-
-        # Keeping track of the steps/indexes that have goals met
-        failed = {}
-        for step, index in steplist:
-            if step not in failed:
-                failed[step] = {}
-            failed[step][index] = False
-
-            if self.get('flowgraph', flow, step, index, 'status') == TaskStatus.ERROR:
-                failed[step][index] = True
-            else:
-                for metric in self.getkeys('metric'):
-                    if self.valid('flowgraph', flow, step, index, 'goal', metric):
-                        goal = self.get('flowgraph', flow, step, index, 'goal', metric)
-                        real = self.get('metric', metric, step=step, index=index)
-                        if real is None:
-                            self.error(f'Metric {metric} has goal for {step}{index} '
-                                'but it has not been set.', fatal=True)
-                        if abs(real) > goal:
-                            self.logger.warning(f"Step {step}{index} failed "
-                                f"because it didn't meet goals for '{metric}' "
-                                "metric.")
-                            failed[step][index] = True
-
-        # Calculate max/min values for each metric
-        max_val = {}
-        min_val = {}
-        for metric in self.getkeys('flowgraph', flow, step, '0', 'weight'):
-            max_val[metric] = 0
-            min_val[metric] = float("inf")
-            for step, index in steplist:
-                if not failed[step][index]:
-                    real = self.get('metric', metric, step=step, index=index)
-                    if real is None:
-                        continue
-                    max_val[metric] = max(max_val[metric], real)
-                    min_val[metric] = min(min_val[metric], real)
-
-        # Select the minimum index
-        best_score = float('inf') if op == 'minimum' else float('-inf')
-        winner = None
-        for step, index in steplist:
-            if failed[step][index]:
-                continue
-
-            score = 0.0
-            for metric in self.getkeys('flowgraph', flow, step, index, 'weight'):
-                weight = self.get('flowgraph', flow, step, index, 'weight', metric)
-                if not weight:
-                    # skip if weight is 0 or None
-                    continue
-
-                real = self.get('metric', metric, step=step, index=index)
-                if real is None:
-                    self.error(f'Metric {metric} has weight for {step}{index} '
-                        'but it has not been set.', fatal=True)
-
-                if not (max_val[metric] - min_val[metric]) == 0:
-                    scaled = (real - min_val[metric]) / (max_val[metric] - min_val[metric])
-                else:
-                    scaled = max_val[metric]
-                score = score + scaled * weight
-
-            if ((op == 'minimum' and score < best_score) or
-                (op == 'maximum' and score > best_score)):
-                best_score = score
-                winner = (step,index)
-
-        return (best_score, winner)
-
-    ###########################################################################
-    def verify(self, *tasks, **assertion):
-        '''
-        Tests an assertion on a list of input tasks.
-
-        The provided steplist is verified to ensure that all assertions
-        are True. If any of the assertions fail, False is returned.
-        Assertions are passed in as kwargs, with the key being a metric
-        and the value being a number and an optional conditional operator.
-        The allowed conditional operators are: >, <, >=, <=
-
-        Args:
-            *steps (str): List of steps to verify
-            **assertion (str='str'): Assertion to check on metric
-
-        Returns:
-            True if all assertions hold True for all steps.
-
-        Example:
-            >>> pass = chip.verify(['drc','lvs'], errors=0)
-            Pass is True if the error metrics in the drc, lvs steps is 0.
-        '''
-        #TODO: implement
-        return True
-
-    ###########################################################################
-    def mux(self, *tasks, **selector):
-        '''
-        Selects a task from a list of inputs.
-
-        The selector criteria provided is used to create a custom function
-        for selecting the best step/index pair from the inputs. Metrics and
-        weights are passed in and used to select the step/index based on
-        the minimum or maximum score depending on the 'op' argument.
-
-        The function can be used to bypass the flows weight functions for
-        the purpose of conditional flow execution and verification.
-
-        Args:
-            *steps (str): List of steps to verify
-            **selector: Key value selection criteria.
-
-        Returns:
-            True if all assertions hold True for all steps.
-
-        Example:
-            >>> sel_stepindex = chip.mux(['route'], wirelength=0)
-            Selects the routing stepindex with the shortest wirelength.
-        '''
-
-        #TODO: modify the _minmax function to feed in alternate weight path
-        return None
-
-    ###########################################################################
     def _runtask(self, step, index, status):
         '''
         Private per step run method called by run().
@@ -3764,8 +3497,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.get('option', 'breakpoint', step=step, index=index)
         )
 
-        is_builtin = self._is_builtin(tool, task)
-
         ##################
         # Start wall timer
         wall_start = time.time()
@@ -3807,30 +3538,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Select inputs
 
-        args = self.get('flowgraph', flow, step, index, 'args')
-        inputs = self.get('flowgraph', flow, step, index, 'input')
-
         sel_inputs = []
-        score = 0
 
-        if is_builtin:
-            self.logger.info(f"Running builtin task '{task}'")
-            # Figure out which inputs to select
-            if task == 'minimum':
-                (score, sel_inputs) = self.minimum(*inputs)
-            elif task == "maximum":
-                (score, sel_inputs) = self.maximum(*inputs)
-            elif task == "mux":
-                (score, sel_inputs) = self.mux(*inputs, selector=args)
-            elif task == "join":
-                sel_inputs = self.join(*inputs)
-            elif task == "verify":
-                if not self.verify(*input, assertion=args):
-                    self._haltstep(step, index)
+        select_inputs = getattr(self._get_task_module(step, index, flow=flow), '_select_inputs', None)
+        if select_inputs:
+            sel_inputs = select_inputs(self, step, index)
         else:
             sel_inputs = self.get('flowgraph', flow, step, index, 'input')
 
-        if sel_inputs == None:
+        if (step, index) not in self._get_flowgraph_entry_nodes(flow=flow) and not sel_inputs:
             self.logger.error(f'No inputs selected after running {tool}')
             self._haltstep(step, index)
 
@@ -3879,17 +3595,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Run preprocess step for tool
-        if not is_builtin:
-            func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)
-            if func:
-                try:
-                    func(self)
-                except Exception as e:
-                    self.logger.error(f"Pre-processing failed for '{tool}/{task}'.")
-                    raise e
-                if self._error:
-                    self.logger.error(f"Pre-processing failed for '{tool}/{task}'")
-                    self._haltstep(step, index)
+
+        func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)
+        if func:
+            try:
+                func(self)
+            except Exception as e:
+                self.logger.error(f"Pre-processing failed for '{tool}/{task}'.")
+                raise e
+            if self._error:
+                self.logger.error(f"Pre-processing failed for '{tool}/{task}'")
+                self._haltstep(step, index)
 
         ##################
         # Set environment variables
@@ -3906,9 +3622,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if val:
                 os.environ[item] = val
 
-        run_func = None
-        if not is_builtin:
-            run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
+        ##################
+        # Get run() function if available
+
+        run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
 
         ##################
         # Check exe version
@@ -3942,7 +3659,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self._haltstep(step, index)
             else:
                 self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
-        elif not is_builtin and run_func is None:
+        elif run_func is None:
             exe_base = self.get('tool', tool, 'exe')
             self.logger.error(f'Executable {exe_base} not found')
             self._haltstep(step, index)
@@ -3967,9 +3684,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         retcode = 0
         cmdlist = []
-        if is_builtin:
-            utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
-        elif run_func and not self.get('option', 'skipall'):
+        cmd_args = []
+        if run_func and not self.get('option', 'skipall'):
             logfile = None
             try:
                 retcode = run_func(self)
@@ -4107,7 +3823,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Post process
-        if (not is_builtin) and (not self.get('option', 'skipall')) :
+        if not self.get('option', 'skipall'):
             func = getattr(self._get_task_module(step, index, flow=flow), 'post_process', None)
             if func:
                 try:
@@ -4118,7 +3834,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Check log file (must be after post-process)
-        if (not is_builtin) and (not self.get('option', 'skipall')) and (run_func is None):
+        if (not self.get('option', 'skipall')) and (run_func is None):
             log_file = os.path.join(self._getworkdir(step=step, index=index), f'{step}.log')
             matches = self.check_logfile(step=step, index=index, display=not quiet, logfile=log_file)
             if 'errors' in matches:
@@ -4136,7 +3852,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Hash files
-        if (not is_builtin) and self.get('option', 'hash'):
+        if self.get('option', 'hash'):
             # hash all outputs
             self.hash_files('tool', tool, 'task', task, 'output', step=step, index=index)
             # hash all requirements
@@ -4473,9 +4189,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for step in steplist:
                 for index in indexlist[step]:
                     # Setting up tool is optional
-                    tool, task = self._get_tool_task(step, index, flow=flow)
-                    if not self._is_builtin(tool, task):
-                        self._setup_task(step, index)
+                    self._setup_task(step, index)
 
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
@@ -4968,9 +4682,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         Check if tool and task is a builtin
         '''
-        if tool != 'builtin':
-            return False
-        return task in self.builtin
+        return tool == 'builtin'
 
     #######################################
     def _get_flowgraph_entry_nodes(self, flow=None):

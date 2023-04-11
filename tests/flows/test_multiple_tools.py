@@ -6,6 +6,8 @@ import siliconcompiler
 
 from siliconcompiler.tools.surelog import parse
 
+from siliconcompiler.tools.builtin import nop
+
 def create_fake_surelog():
     with open('surelog', 'w') as f:
         # hardcoded to check that fake license server env is provided, then
@@ -29,7 +31,7 @@ def test_multiple_tools():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    chip.node(flow, 'import', 'builtin.nop')
+    chip.node(flow, 'import', nop)
     chip.node(flow, 'slog', parse, index=0)
     chip.node(flow, 'slog', parse, index=1)
     chip.edge(flow, 'import', 'slog', head_index=0)
