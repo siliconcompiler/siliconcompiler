@@ -112,10 +112,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._init_logger()
 
-        # Ensure that SC built-ins are on the $PYTHONPATH
-        if not self.scroot in sys.path:
-            sys.path.append(self.scroot)
-
         self._loaded_modules = {
             'flows': [],
             'pdks': [],
