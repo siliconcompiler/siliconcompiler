@@ -73,8 +73,6 @@ for app in os.listdir('siliconcompiler/apps'):
         entry = f'{cli_name}=siliconcompiler.apps.{name}:main'
         entry_points_apps.append(entry)
 
-entry_points = entry_points_apps + ["sc-server=siliconcompiler.server:main", "sc-crypt=siliconcompiler.crypto:main"]
-
 # Remove the _skbuild/ directory before running install procedure. This helps
 # fix very opaque bugs we've run into where the install fails due to some bad
 # state being cached in this directory. This means we won't get caching of build
@@ -137,6 +135,6 @@ setup(
     python_requires=">=3.6",
     install_requires=install_reqs,
     extras_require = extras_req,
-    entry_points={"console_scripts": entry_points},
+    entry_points={"console_scripts": entry_points_apps},
     **skbuild_args
 )
