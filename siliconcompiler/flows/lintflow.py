@@ -16,8 +16,7 @@ def setup(chip):
 
     # Linear flow, up until branch to run parallel verification steps.
     pipe = [('import', surelog_parse),
-            ('lint', lint),
-            ('export', 'builtin.nop')]
+            ('lint', lint)]
 
     prevstep = None
     for step, task in pipe:
