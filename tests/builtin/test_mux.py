@@ -51,13 +51,15 @@ def chip():
         for metric in chip.getkeys('flowgraph', flow, 'syn', str(index), 'weight'):
             if metric != 'setupwns':
                 chip.set('metric', metric, 1000-index*1 + 42.0, step='syn', index=index)
+            else:
+                chip.set('metric', metric, index % 3, step='syn', index=index)
 
     return chip
 
 ##################################
 def test_minimum(chip):
     flow = chip.get('option', 'flow')
-    chip.set('flowgraph', flow, 'teststep', '0', 'args', 'setuptns==0')
+    chip.set('flowgraph', flow, 'teststep', '0', 'args', 'minimum(setuptns)')
 
     task = chip._get_task_module('teststep', '0')
     winner = task._select_inputs(chip, 'teststep', '0')
@@ -66,18 +68,19 @@ def test_minimum(chip):
 
 def test_maximum(chip):
     flow = chip.get('option', 'flow')
-    chip.set('flowgraph', flow, 'teststep', '0', 'args', 'setuptns>0')
+    chip.set('flowgraph', flow, 'teststep', '0', 'args', 'maximum(setuptns)')
 
     task = chip._get_task_module('teststep', '0')
     winner = task._select_inputs(chip, 'teststep', '0')
 
     assert winner == ('syn', '0')
 
-def test_minimum_lessthan(chip):
+def test_minimum_two_metrics(chip):
     flow = chip.get('option', 'flow')
-    chip.set('flowgraph', flow, 'teststep', '0', 'args', 'setuptns<=0')
+    chip.set('flowgraph', flow, 'teststep', '0', 'args', 'maximum(setupwns)')
+    chip.add('flowgraph', flow, 'teststep', '0', 'args', 'minimum(setuptns)')
 
     task = chip._get_task_module('teststep', '0')
     winner = task._select_inputs(chip, 'teststep', '0')
 
-    assert winner == ('syn', '9')
+    assert winner == ('syn', '8')

@@ -8,7 +8,9 @@ def setup(chip):
     The selector criteria provided is used to create a custom function
     for selecting the best step/index pair from the inputs. Metrics and
     weights are passed in and used to select the step/index based on
-    the minimum or maximum score depending on the 'op' argument from ['flowgraph', flow, step, index, 'args'].
+    the minimum or maximum score depending on the 'op' argument from
+    ['flowgraph', flow, step, index, 'args'] in the form 'minimum(metric)' or
+    'maximum(metric)'.
 
     The function can be used to bypass the flows weight functions for
     the purpose of conditional flow execution and verification.
@@ -22,24 +24,19 @@ def _select_inputs(chip, step, index):
     inputs = chip.get('flowgraph', flow, step, index, 'input')
     arguments = chip.get('flowgraph', flow, step, index, 'args')
 
-    if len(arguments) != 1:
-        chip.error(f'{step}{index} has {len(arguments)} arguments, but only support 1.', fatal=True)
-    criteria = arguments[0]
+    operations = []
+    for criteria in arguments:
+        m = re.match(r'(minimum|maximum)\((\w+)\)', criteria)
+        if not m:
+            chip.error(f"Illegal checklist criteria: {criteria}", fatal=True)
 
-    m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
-    if not m:
-        chip.error(f"Illegal checklist criteria: {criteria}", fatal=True)
+        op = m.group(1)
+        metric = m.group(2)
+        if metric not in chip.getkeys('metric'):
+            chip.error(f"Critera must use legal metrics only: {criteria}", fatal=True)
 
-    metric = m.group(1)
-    op = m.group(2)
-    if metric not in chip.getkeys('metric'):
-        chip.error(f"Critera must use legal metrics only: {criteria}", fatal=True)
-
-    operation = 'minimum'
-    if op == '>=' or op == '>':
-        operation = 'maximum'
-
-    score, sel_inputs = _common._mux(chip, *inputs, op=operation, metric=metric)
+        operations.append((metric, op))
+    score, sel_inputs = _common._mux(chip, *inputs, operations=operations)
 
     if sel_inputs:
         chip.logger.info(f"Selected '{sel_inputs[0]}{sel_inputs[1]}' with score {score:.3f}")

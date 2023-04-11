@@ -3,13 +3,10 @@ from siliconcompiler import TaskStatus
 from siliconcompiler import utils
 
 ###########################################################################
-def _mux(chip, *steps, op=None, metric=None):
+def _mux(chip, *steps, operations=None):
     '''
     Shared function used for min and max calculation.
     '''
-
-    if op not in ('minimum', 'maximum'):
-        raise ValueError('Invalid op')
 
     flow = chip.get('option', 'flow')
     steplist = list(steps)
@@ -26,35 +23,33 @@ def _mux(chip, *steps, op=None, metric=None):
         else:
             failed[step][index] = False
 
-    # Calculate max/min values for each metric
-    max_val = 0
-    min_val = float("inf")
-    for step, index in steplist:
-        if not failed[step][index]:
-            real = chip.get('metric', metric, step=step, index=index)
-            if real is None:
-                continue
-            max_val = max(max_val, real)
-            min_val = min(min_val, real)
+    candidates = [(step, index) for step, index in steplist if not failed[step][index]]
+    best_score = 0
+    for metric, op in operations:
+        if op not in ('minimum', 'maximum'):
+            raise ValueError('Invalid op')
 
-    # Select the minimum index
-    best_score = float('inf') if op == 'minimum' else float('-inf')
-    winner = None
-    for step, index in steplist:
-        if failed[step][index]:
-            continue
+        values = [chip.get('metric', metric, step=step, index=index) for step, index in candidates]
 
-        real = chip.get('metric', metric, step=step, index=index)
-        if real is None:
-            chip.error(f'Metric {metric} has weight for {step}{index} '
-                'but it has not been set.', fatal=True)
+        if op == 'minimum':
+            target = min(values)
+        else:
+            target = max(values)
 
-        if ((op == 'minimum' and real < best_score) or
-            (op == 'maximum' and real > best_score)):
-            best_score = real
-            winner = (step,index)
+        winners = []
+        for value, node in zip(values, candidates):
+            if value == target:
+                winners.append(node)
+        candidates = winners
 
-    return (best_score, winner)
+        if len(candidates) == 1:
+            break
+
+    if len(candidates) == 0:
+        # Restore step list and pick first step
+        candidates = steplist
+
+    return (best_score, candidates[0])
 
 ###########################################################################
 def _minmax(chip, *steps, op=None):
