@@ -103,6 +103,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         #                   to consume in a connected HPC cluster's storage.
         self.status = {}
 
+        # Cache of python modules
+        self.modules = {}
+
         self.builtin = ['minimum','maximum',
                         'nop', 'mux', 'join', 'verify']
 
@@ -168,6 +171,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return entrypoint
 
     ###########################################################################
+    def _load_module(self, module_name, raise_error=False):
+        if module_name in self.modules:
+            return self.modules[module_name]
+
+        try:
+            self.modules[module_name] = importlib.import_module(module_name)
+            return self.modules[module_name]
+        except Exception as e:
+            if raise_error:
+                raise e
+
+        return None
+
+    ###########################################################################
     def _get_tool_task(self, step, index, flow=None):
         '''
         Helper function to get the name of the tool and task associated with a given step/index.
@@ -195,15 +212,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         tool_module = '.'.join(module_path[0:-1] + [tool])
 
-        try:
-            return importlib.import_module(tool_module)
-        except ModuleNotFoundError:
-            pass
+        module = self._load_module(tool_module)
 
-        if error:
+        if error and not module:
             self.error(f'Unable to load {tool_module} for {tool}', fatal=True)
         else:
-            return None
+            return module
 
     def _get_task_module(self, step, index, flow=None, error=True):
         if not flow:
@@ -211,16 +225,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         taskmodule = self.get('flowgraph', flow, step, index, 'taskmodule')
 
-        try:
-            return importlib.import_module(taskmodule)
-        except ModuleNotFoundError:
-            pass
+        module = self._load_module(taskmodule)
 
-        if error:
+        if error and not module:
             tool, task = self._get_tool_task(step, index, flow=flow)
             self.error(f'Unable to load {taskmodule} for {tool}/{task}', fatal=True)
         else:
-            return None
+            return module
 
     def _get_tool_tasks(self, tool):
         tool_dir = os.path.dirname(tool.__file__)
@@ -236,15 +247,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         tasks = []
         for task in sorted(task_candidates):
             task_module = '.'.join([*tool_base_module, task])
-            try:
-                # Try loading and checking for setup in case tool has python scripts
-                task_mod = importlib.import_module(task_module)
-                if getattr(task_mod, 'setup', None):
-                    tasks.append(task)
-            except:
-                # Use broad except since python modules might have any
-                # number of issues which could get raised
-                pass
+            if getattr(self._load_module(task_module), 'setup', None):
+                tasks.append(task)
 
         return tasks
 
@@ -595,11 +599,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Search order "{name}", and "siliconcompiler.targets.{name}"
         modules = []
         for module_name in [name, f'siliconcompiler.targets.{name}']:
-            try:
-                module = importlib.import_module(module_name)
+            module = self._load_module(module_name)
+            if module:
                 modules.append(module)
-            except ModuleNotFoundError:
-                pass
 
         if len(modules) == 0:
             self.error(f'Could not find target {name}', fatal=True)
@@ -3366,6 +3368,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
            task_module = task
         elif inspect.ismodule(task):
             task_module = task.__name__
+            self.modules[task.__name__] = task
         else:
             self.error(f"{task} is not a string or module and cannot be used to setup a task.", fatal=True)
 
@@ -5228,6 +5231,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.unset('metric', metric, step=step, index=index)
         self.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
 
+    #######################################
+    def __getstate__(self):
+        # Called when generating a serial stream of the object
+        attributes = self.__dict__.copy()
+
+        # Modules are not serializable, so save without cache
+        attributes['modules'] = {}
+        return attributes
 
 ###############################################################################
 # Package Customization classes
