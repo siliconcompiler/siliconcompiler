@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.30.0'
+SCHEMA_VERSION = '0.31.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -1085,6 +1085,8 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
 def schema_tool(cfg, tool='default'):
 
+    version = 'default'
+    
     scparam(cfg, ['tool', tool, 'exe'],
             sctype='str',
             shorthelp="Tool: executable name",
@@ -1093,13 +1095,29 @@ def schema_tool(cfg, tool='default'):
                      "api:  chip.set('tool','openroad','exe','openroad')"],
             schelp="""Tool executable name.""")
 
+    scparam(cfg, ['tool', tool, 'sbom', version],
+            sctype='[file]',
+            pernode='optional',
+            shorthelp="Tool: software BOM",
+            switch="-tool_sbom 'tool version <file>'",
+            example=[
+                "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
+                "api:  chip.set('tool','yosys','sbom','1.0','ys_sbom.json')"],
+            schelp="""
+            Paths to software bill of material (SBOM) document file of the tool
+            specified on a per version basis. The SBOM includes critical
+            package information about the tool including the list of included 
+            components, licenses, and copyright. The SBOM file is generally 
+            provided as in a a standardized open data format such as SPDX.""")
+    
     scparam(cfg, ['tool', tool, 'path'],
             sctype='dir',
             pernode='optional',
             shorthelp="Tool: executable path",
             switch="-tool_path 'tool <dir>'",
-            example=["cli: -tool_path 'openroad /usr/local/bin'",
-                     "api:  chip.set('tool','openroad','path','/usr/local/bin')"],
+            example=[
+                "cli: -tool_path 'openroad /usr/local/bin'",
+                "api: chip.set('tool','openroad','path','/usr/local/bin')"],
             schelp="""
             File system path to tool executable. The path is prepended to the
             system PATH environment variable for batch and interactive runs. The
