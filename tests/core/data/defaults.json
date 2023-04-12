@@ -6407,7 +6407,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.31.0",
+        "defvalue": "0.32.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
