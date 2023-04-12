@@ -2391,7 +2391,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f'Failed to copy {path}', fatal=True)
 
     ###########################################################################
-    def archive(self, step=None, index=None, all_files=False):
+    def archive(self, step=None, index=None, nodelist=None, all_files=False, archive_name=None, include_manifest=True, additional_files=None):
         '''Archive a job directory.
 
         Creates a single compressed archive (.tgz) based on the design,
@@ -2404,7 +2404,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             step(str): Step to archive.
             index (str): Index to archive
+            nodelist (list): List of step/index pairs to include in the archive
             all_files (bool): If True, all files are archived.
+            archive_name (str): Path to the archive
+            include_manifest (bool): If True, the final manifest will be included
+            additional_files (dict of str): Dictionary with additional files to include
+                in the archive with their associated filename in the archive
 
         '''
 
@@ -2422,38 +2427,54 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             steplist = self.list_steps()
 
-        if step:
-            archive_name = f"{design}_{jobname}_{step}.tgz"
-        else:
-            archive_name = f"{design}_{jobname}.tgz"
-
-        with tarfile.open(archive_name, "w:gz") as tar:
-            # Don't use _getworkdir() since we want a relative path for arcname
-            jobdir = os.path.join(buildpath, design, jobname)
-
-            manifest = os.path.join(jobdir, f'{design}.pkg.json')
-            if os.path.isfile(manifest):
-                tar.add(os.path.abspath(manifest), arcname=manifest)
+        if not archive_name:
+            if step and index:
+                archive_name = f"{design}_{jobname}_{step}{index}.tgz"
+            elif step:
+                archive_name = f"{design}_{jobname}_{step}.tgz"
             else:
-                self.loger.warning('Archiving job with failed or incomplete run.')
+                archive_name = f"{design}_{jobname}.tgz"
 
+        if not additional_files:
+            additional_files = {}
+
+        if not nodelist:
+            nodelist = []
             for step in steplist:
                 if index:
                     indexlist = [index]
                 else:
                     indexlist = self.getkeys('flowgraph', flow, step)
-                for item in indexlist:
-                    basedir = os.path.join(jobdir, step, item)
-                    if all_files:
-                         tar.add(os.path.abspath(basedir), arcname=basedir)
-                    else:
-                        reportdir = os.path.join(basedir, 'reports')
-                        outdir = os.path.join(basedir,'outputs')
-                        logfile = os.path.join(basedir, step+'.log')
-                        tar.add(os.path.abspath(reportdir), arcname=reportdir)
-                        tar.add(os.path.abspath(outdir), arcname=outdir)
-                        if os.path.isfile(logfile):
-                            tar.add(os.path.abspath(logfile), arcname=logfile)
+
+                for index in indexlist:
+                    nodelist.append((step, index))
+
+        with tarfile.open(archive_name, "w:gz") as tar:
+            # Don't use _getworkdir() since we want a relative path for arcname
+            jobdir = os.path.join(buildpath, design, jobname)
+
+            if include_manifest:
+                manifest = os.path.join(jobdir, f'{design}.pkg.json')
+                if os.path.isfile(manifest):
+                    tar.add(os.path.abspath(manifest), arcname=manifest)
+                else:
+                    self.loger.warning('Archiving job with failed or incomplete run.')
+
+            for step, index in nodelist:
+                basedir = os.path.join(jobdir, step, index)
+                if all_files:
+                        tar.add(os.path.abspath(basedir), arcname=basedir)
+                else:
+                    for folder in ('reports', 'outputs'):
+                        path = os.path.join(basedir, folder)
+                        tar.add(os.path.abspath(path), arcname=path)
+
+                    logfile = os.path.join(basedir, step+'.log')
+                    if os.path.isfile(logfile):
+                        tar.add(os.path.abspath(logfile), arcname=logfile)
+
+            for add_file, arch_path in additional_files.items():
+                tar.add(os.path.abspath(add_file), arcname=arch_path)
 
         return archive_name
 
