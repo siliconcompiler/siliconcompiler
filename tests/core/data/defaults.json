@@ -4176,8 +4176,8 @@
             "options": {
                 "defvalue": [],
                 "example": [
-                    "cli: -scheduler_options '--pty bash'",
-                    "api: chip.set('option', 'scheduler', 'options', '--pty bash')"
+                    "cli: -scheduler_options \"--pty\"",
+                    "api: chip.set('option', 'scheduler', 'options', \"--pty\")"
                 ],
                 "help": "Advanced/export options passed through unchanged to the job\nscheduler as-is. (The user specified options must be compatible\nwith the rest of the scheduler parameters entered.(memory etc).\nFor more information, see the job scheduler documentation.",
                 "lock": false,

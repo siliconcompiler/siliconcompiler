@@ -2800,8 +2800,8 @@ def schema_option(cfg):
             shorthelp="Option: Scheduler arguments",
             switch="-scheduler_options <str>",
             example=[
-                "cli: -scheduler_options '--pty bash'",
-                "api: chip.set('option', 'scheduler', 'options', '--pty bash')"],
+                "cli: -scheduler_options \"--pty\"",
+                "api: chip.set('option', 'scheduler', 'options', \"--pty\")"],
             schelp="""
             Advanced/export options passed through unchanged to the job
             scheduler as-is. (The user specified options must be compatible
