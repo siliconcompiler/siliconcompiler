@@ -4647,6 +4647,44 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return 'local'
 
     #######################################
+    @staticmethod
+    def _get_machine_info():
+        system = platform.system()
+        if system == 'Darwin':
+            lower_sys_name = 'macos'
+        else:
+            lower_sys_name = system.lower()
+
+        if system == 'Linux':
+            distro_name = distro.id()
+        else:
+            distro_name = None
+
+        if system == 'Darwin':
+            osversion, _, _ = platform.mac_ver()
+        elif system == 'Linux':
+            osversion = distro.version()
+        else:
+            osversion = platform.release()
+
+        if system == 'Linux':
+            kernelversion = platform.release()
+        elif system == 'Windows':
+            kernelversion = platform.version()
+        elif system == 'Darwin':
+            kernelversion = platform.release()
+        else:
+            kernelversion = None
+
+        arch = platform.machine()
+
+        return {'system': lower_sys_name,
+                'distro': distro_name,
+                'osversion': osversion,
+                'kernelversion': kernelversion,
+                'arch': arch}
+
+    #######################################
     def _make_record(self, step, index, start, end, toolversion, toolpath, cli_args):
         '''
         Records provenance details for a runstep.
@@ -4658,9 +4696,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         userid = getpass.getuser()
         self.set('record', 'userid', userid, step=step, index=index)
-
-        if toolversion:
-            self.set('record', 'toolversion', toolversion, step=step, index=index)
 
         self.set('record', 'starttime', start_date, step=step, index=index)
         self.set('record', 'endtime', end_date, step=step, index=index)
@@ -4679,43 +4714,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except KeyError:
             self.logger.warning('Could not find default network interface info')
 
-        system = platform.system()
-        if system == 'Darwin':
-            lower_sys_name = 'macos'
-        else:
-            lower_sys_name = system.lower()
-        self.set('record', 'platform', lower_sys_name, step=step, index=index)
+        machine_info = Chip._get_machine_info()
+        self.set('record', 'platform', machine_info['system'], step=step, index=index)
 
-        if system == 'Linux':
-            distro_name = distro.id()
-            self.set('record', 'distro', distro_name, step=step, index=index)
+        if machine_info['distro']:
+            self.set('record', 'distro', machine_info['distro'], step=step, index=index)
 
-        if system == 'Darwin':
-            osversion, _, _ = platform.mac_ver()
-        elif system == 'Linux':
-            osversion = distro.version()
-        else:
-            osversion = platform.release()
-        self.set('record', 'osversion', osversion, step=step, index=index)
+        self.set('record', 'osversion', machine_info['osversion'], step=step, index=index)
 
-        if system == 'Linux':
-            kernelversion = platform.release()
-        elif system == 'Windows':
-            kernelversion = platform.version()
-        elif system == 'Darwin':
-            kernelversion = platform.release()
-        else:
-            kernelversion = None
-        if kernelversion:
-            self.set('record', 'kernelversion', kernelversion, step=step, index=index)
+        if machine_info['kernelversion']:
+            self.set('record', 'kernelversion', machine_info['kernelversion'], step=step, index=index)
 
-        arch = platform.machine()
-        self.set('record', 'arch', arch, step=step, index=index)
+        self.set('record', 'arch', machine_info['arch'], step=step, index=index)
 
-        self.set('record', 'toolpath', toolpath, step=step, index=index)
+        if toolversion:
+            self.set('record', 'toolversion', toolversion, step=step, index=index)
 
-        toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
-        self.set('record', 'toolargs', toolargs, step=step, index=index)
+        if toolpath:
+            self.set('record', 'toolpath', toolpath, step=step, index=index)
+
+        if cli_args is not None:
+            toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
+            self.set('record', 'toolargs', toolargs, step=step, index=index)
 
     #######################################
     def _safecompare(self, value, op, goal):
