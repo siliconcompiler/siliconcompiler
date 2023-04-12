@@ -3499,7 +3499,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             prevstep = step
 
     ###########################################################################
-    def _runtask(self, step, index, status):
+    def _runtask(self, step, index, status, replay=False):
         '''
         Private per step run method called by run().
 
@@ -3562,7 +3562,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         workdir = self._getworkdir(step=step,index=index)
         cwd = os.getcwd()
-        if os.path.isdir(workdir):
+        if os.path.isdir(workdir) and not replay:
             shutil.rmtree(workdir)
         os.makedirs(workdir, exist_ok=True)
 
@@ -3575,7 +3575,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Merge manifests from all input dependancies
 
         all_inputs = []
-        if not self.get('option', 'remote'):
+        if not self.get('option', 'remote') and not replay:
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 in_task_status = status[in_step + in_index]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_task_status)
@@ -3623,8 +3623,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
-            utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
-                ignore=[f'{design}.pkg.json'], link=True)
+            if not replay:
+                utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
+                    ignore=[f'{design}.pkg.json'], link=True)
 
         ##################
         # Check manifest
