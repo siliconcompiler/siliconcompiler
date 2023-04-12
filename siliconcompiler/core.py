@@ -1165,6 +1165,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         """
 
+        if not filename:
+            return None
+
         # Replacing environment variables
         filename = self._resolve_env_vars(filename)
 
@@ -1285,14 +1288,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # cases.
 
         search_paths = None
-        if len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
+        if len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
             if keypath[4] == 'report':
                 io = ""
             else:
                 io = keypath[4] + 's'
             iodir = os.path.join(self._getworkdir(jobname=job, step=step, index=index), io)
             search_paths = [iodir]
-        elif len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] == 'script':
+        elif len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
             refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
@@ -4813,6 +4816,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     #######################################
     def _resolve_env_vars(self, filepath):
+        if not filepath:
+            return None
+
         resolved_path = os.path.expandvars(filepath)
 
         # variables that don't exist in environment get ignored by `expandvars`,
