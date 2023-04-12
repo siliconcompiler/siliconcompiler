@@ -2738,6 +2738,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'scheduler', 'cores'],
             sctype='int',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler core constraint",
             switch="-cores <int>",
             example= ["cli: -cores 48",
@@ -2752,6 +2753,7 @@ def schema_option(cfg):
             sctype='int',
             unit='MB',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler memory constraint",
             switch="-memory <str>",
             example= ["cli: -memory 8000",
@@ -2765,6 +2767,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'scheduler', 'queue'],
             sctype='str',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler queue",
             switch="-queue <str>",
             example= ["cli: -queue nightrun",
@@ -2778,6 +2781,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'scheduler', 'defer'],
             sctype='str',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler start time",
             switch="-defer <str>",
             example= ["cli: -defer 16:00",
@@ -2792,6 +2796,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'options'],
             sctype='[str]',
+            pernode='optional',
             shorthelp="Option: Scheduler arguments",
             switch="-scheduler_options <str>",
             example=[
@@ -2807,6 +2812,7 @@ def schema_option(cfg):
             sctype='str',
             defvalue='NONE',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Message event trigger",
             switch="-msgevent <str>",
             example=[
@@ -2823,6 +2829,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'scheduler', 'msgcontact'],
             sctype='[str]',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Message contact",
             switch="-msgcontact <str>",
             example=[
