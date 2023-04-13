@@ -13,6 +13,7 @@ def _get_manifest(dirname):
         manifest = manifest[0]
     else:
         manifest = None
+
     if not manifest or not os.path.isfile(manifest):
         return None
     return manifest

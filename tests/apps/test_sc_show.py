@@ -30,9 +30,39 @@ def heartbeat_dir(tmpdir_factory):
     return cwd
 
 @pytest.mark.parametrize('flags', [
+    ['-design', 'heartbeat']
+    ])
+@pytest.mark.eda
+@pytest.mark.quick
+def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
+    '''Test sc-show app on a few sets of flags.'''
+
+    # Mock chip.show() to avoid GUI complications
+    # We have separate tests in test/core/test_show.py that handle these
+    # complications and test this function itself, so there's no need to
+    # run it here.
+    def fake_show(chip, filename):
+        # when only -design is provided the filename will not be available
+        assert not filename
+
+        pdkname = chip.get('option', 'pdk')
+        sc_stackup = chip.get('pdk', pdkname, 'stackup')[0]
+        tech_file = chip.get('pdk', pdkname, 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
+        assert tech_file is not None
+
+        chip.logger.info(f'Showing {chip.design}')
+        return True
+
+    os.chdir(heartbeat_dir)
+
+    monkeypatch.setattr(Chip, 'show', fake_show)
+
+    monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
+    assert sc_show.main() == 0
+
+@pytest.mark.parametrize('flags', [
     ['-input', 'layout def build/heartbeat/job0/dfm/0/outputs/heartbeat.def'],
     ['-input', 'layout gds build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
-    ['-design', 'heartbeat'],
     ['-input', 'layout def build/heartbeat/job0/export/0/inputs/heartbeat.def',
      '-cfg', 'build/heartbeat/job0/export/0/outputs/heartbeat.pkg.json']
     ])
