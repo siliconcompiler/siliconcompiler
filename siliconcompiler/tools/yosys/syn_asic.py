@@ -35,7 +35,7 @@ def setup_asic(chip):
     if syn_corner is None:
         chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'synthesis_corner']), step=step, index=index)
     if get_dff_liberty_file(chip) is None:
-        chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'dff_liberty']), step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'file', 'dff_liberty']), step=step, index=index)
 
     if syn_corner is not None:
     # add timing library requirements
@@ -69,7 +69,7 @@ def setup_asic(chip):
         for techmap in chip.find_files('library', lib, 'option', 'file', 'yosys_techmap'):
             if techmap is None:
                 continue
-            chip.add('tool', tool, 'task', task, 'var', 'techmap', techmap, step=step, index=index)
+            chip.add('tool', tool, 'task', task, 'file', 'techmap', techmap, step=step, index=index)
 
     # Add conditionally required mainlib variables
     if chip.valid('library', mainlib, 'option', 'var', 'yosys_buffer_cell'):
@@ -85,13 +85,13 @@ def setup_asic(chip):
             chip.add('tool', tool, 'task', task, 'require', ",".join(key0), step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner', get_synthesis_corner(chip), step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'dff_liberty', get_dff_liberty_file(chip), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', get_dff_liberty_file(chip), step=step, index=index, clobber=False)
     chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'synthesis_corner']), step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'dff_liberty']), step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'file', 'dff_liberty']), step=step, index=index)
 
     # Constants needed by yosys, do not allow overriding of values so force clobbering
-    chip.set('tool', tool, 'task', task, 'var', 'dff_liberty_file', "inputs/sc_dff_library.lib", step=step, index=index, clobber=True)
-    chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_file', "inputs/sc_abc.constraints", step=step, index=index, clobber=True)
+    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file', f"{chip._getworkdir(step=step, index=index)}/inputs/sc_dff_library.lib", step=step, index=index, clobber=True)
+    chip.set('tool', tool, 'task', task, 'file', 'abc_constraint_file', f"{chip._getworkdir(step=step, index=index)}/inputs/sc_abc.constraints", step=step, index=index, clobber=True)
 
     abc_driver = get_abc_driver(chip)
     if abc_driver:
@@ -107,14 +107,14 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'var', 'autoname', 'True/False, call autoname to rename wires based on registers', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'map_adders', 'False/path to map_adders, techmap adders in Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner', 'Timing corner to use for synthesis', field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'dff_liberty', 'Liberty file to use for flip-flop mapping, if not specified the first in the logiclib is used', field='help')
+    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', 'Liberty file to use for flip-flop mapping, if not specified the first in the logiclib is used', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver', 'Buffer that drives the abc techmapping, defaults to first buffer specified', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_load', 'Capacitive load for the abc techmapping in fF, if not specified it will not be used', field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_file', 'File used to pass in contraints to abc', field='help')
+    chip.set('tool', tool, 'task', task, 'file', 'abc_constraint_file', 'File used to pass in contraints to abc', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'abc_clock_period', 'Clock period to use for synthesis in ps, if more than one clock is specified, the smallest period is used.', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'abc_clock_derating', 'Used to derate the clock period to further constrain the clock, values between 0 and 1', field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'techmap', 'File to use for techmapping in Yosys', field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'dff_liberty_file', 'File to use for the DFF mapping stage of Yosys', field='help')
+    chip.set('tool', tool, 'task', task, 'file', 'techmap', 'File to use for techmapping in Yosys', field='help')
+    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file', 'File to use for the DFF mapping stage of Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'add_buffers', 'True/False, flag to indicate whether to add buffers or not.', field='help')
 
 ################################
@@ -132,7 +132,7 @@ def prepare_synthesis_libraries(chip):
 
 
     # mark dff libery file with dont use
-    dff_liberty_file = chip.get('tool', tool, 'task', task, 'var', 'dff_liberty', step=step, index=index)[0]
+    dff_liberty_file = chip.get('tool', tool, 'task', task, 'file', 'dff_liberty', step=step, index=index)[0]
     dff_dont_use = []
     for lib in chip.get('asic', 'logiclib', step=step, index=index):
         dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse', step=step, index=index)
@@ -145,7 +145,7 @@ def prepare_synthesis_libraries(chip):
 
     markDontUse.processLibertyFile(
         dff_liberty_file,
-        chip.get('tool', tool, 'task', task, 'var', 'dff_liberty_file', step=step, index=index)[0],
+        chip.get('tool', tool, 'task', task, 'file', 'dff_liberty_file', step=step, index=index)[0],
         dff_dont_use,
         chip.get('option', 'quiet', step=step, index=index),
     )
@@ -167,14 +167,14 @@ def prepare_synthesis_libraries(chip):
 
     def process_lib_file(libtype, lib, lib_file, dont_use):
         input_base_name = os.path.splitext(os.path.basename(lib_file))[0]
-        output_file = f"inputs/sc_{libtype}_{lib}_{input_base_name}.lib"
+        output_file = f"{chip._getworkdir(step=step, index=index)}/inputs/sc_{libtype}_{lib}_{input_base_name}.lib"
         markDontUse.processLibertyFile(lib_file, output_file, dont_use, chip.get('option', 'quiet', step=step, index=index))
 
         var_name = 'synthesis_libraries'
         if (libtype == "macrolib"):
             var_name = 'synthesis_libraries_macros'
 
-        chip.add('tool', tool, 'task', task, 'var', var_name, output_file, step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'file', var_name, output_file, step=step, index=index)
 
     for libtype in ('logiclib', 'macrolib'):
         for lib in chip.get('asic', libtype, step=step, index=index):
@@ -202,7 +202,7 @@ def create_abc_synthesis_constraints(chip):
         # neither is set so nothing to do
         return
 
-    with open(chip.get('tool', tool, 'task', task, 'var', 'abc_constraint_file', step=step, index=index)[0], "w") as f:
+    with open(chip.get('tool', tool, 'task', task, 'file', 'abc_constraint_file', step=step, index=index)[0], "w") as f:
         if abc_driver:
             f.write(f"set_driving_cell {abc_driver}\n")
         if abc_load:
@@ -246,7 +246,7 @@ def get_dff_liberty_file(chip):
     index = chip.get('arg','index')
     task = chip._get_task(step, index)
 
-    dff_liberty = chip.get('tool', tool, 'task', task, 'var', 'dff_liberty', step=step, index=index)
+    dff_liberty = chip.get('tool', tool, 'task', task, 'file', 'dff_liberty', step=step, index=index)
     if dff_liberty:
         return dff_liberty[0]
 
