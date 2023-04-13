@@ -4418,8 +4418,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if filename is None:
             self.logger.info('Searching build directory for layout to show.')
 
+            search_nodes = []
+            if sc_step and sc_index:
+                search_nodes.append((sc_step, sc_index))
+            search_nodes.extend(self._get_flowgraph_exit_nodes())
             for ext in self.getkeys('option', 'showtool'):
-                for step, index in self._get_flowgraph_exit_nodes():
+                for step, index in search_nodes:
                     filename = self.find_result(ext, step=step, index=index, jobname=sc_job)
                     if filename:
                         sc_step = step
