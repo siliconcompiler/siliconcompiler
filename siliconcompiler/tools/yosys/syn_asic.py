@@ -132,7 +132,7 @@ def prepare_synthesis_libraries(chip):
 
 
     # mark dff libery file with dont use
-    dff_liberty_file = chip.get('tool', tool, 'task', task, 'file', 'dff_liberty', step=step, index=index)[0]
+    dff_liberty_file = chip.find_files('tool', tool, 'task', task, 'file', 'dff_liberty', step=step, index=index)[0]
     dff_dont_use = []
     for lib in chip.get('asic', 'logiclib', step=step, index=index):
         dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse', step=step, index=index)
@@ -246,9 +246,11 @@ def get_dff_liberty_file(chip):
     index = chip.get('arg','index')
     task = chip._get_task(step, index)
 
-    dff_liberty = chip.get('tool', tool, 'task', task, 'file', 'dff_liberty', step=step, index=index)
-    if dff_liberty:
-        return dff_liberty[0]
+    dff_liberty = None
+    if chip.valid('tool', tool, 'task', task, 'file', 'dff_liberty'):
+        dff_liberty = chip.find_files('tool', tool, 'task', task, 'file', 'dff_liberty', step=step, index=index)
+        if dff_liberty:
+            return dff_liberty[0]
 
     mainlib = chip.get('asic', 'logiclib', step=step, index=index)[0]
     dff_liberty = chip.find_files('library', mainlib, 'option', 'file', 'yosys_dff_liberty')
