@@ -4,6 +4,7 @@ import os
 import glob
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
+from siliconcompiler.targets.utils import set_common_showtools
 
 def _get_manifest(dirname):
     # pkg.json file may have a different name from the design due to the entrypoint
@@ -44,10 +45,11 @@ def main():
     chip = siliconcompiler.Chip(UNSET_DESIGN)
 
     # Fill input map with default mapping only for showable files
-    default_input = 'gds'
     input_map = {}
     default_input_map = get_default_iomap()
-    for ext in ('gds', 'oas', 'odb', 'def'):
+    show_chip = siliconcompiler.Chip('show-tools')
+    set_common_showtools(show_chip)
+    for ext in show_chip.getkeys('option', 'showtool'):
         if ext in default_input_map:
             input_map[ext] = default_input_map[ext]
 
@@ -98,6 +100,9 @@ def main():
     # Read in file
     if filename:
         chip.logger.info(f"Displaying {filename}")
+
+    # Set supported showtools incase custom flow was used and didn't get set
+    set_common_showtools(chip)
 
     success = chip.show(filename)
 
