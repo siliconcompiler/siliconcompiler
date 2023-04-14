@@ -20,6 +20,16 @@ def main():
     -----------------------------------------------------------
     Restricted SC app that generates a sharable testcase from a 
     failed flow or runs an issue generated with this program.
+
+    To generate a testcase, use:
+        sc-issue -generate -cfg <cfg_file>
+      or include a different step/index than what the cfg_file is pointing to:
+        sc-issue -generate -cfg <cfg_file> -arg_step <step> -arg_index <index>
+      or include specific libraries while excluding others:
+        sc-issue -generate -cfg <cfg_file> -exclude_libraries -add_library sram -add_library gpio
+
+    To run a testcase, use:
+        sc-issue -run -file sc_issue_<...>.tar.gz
     -----------------------------------------------------------
     """
 
@@ -38,7 +48,15 @@ def main():
                  'help': 'run a provided testcase'},
 
         '-use': {'action': 'append',
-                 'help': 'list of modules to load into test run'},
+                 'help': 'modules to load into test run',
+                 'metavar': '<module>'},
+
+        '-add_library': {'action': 'append',
+                         'help': 'library to include in the testcase, if not provided all libraries will be added according to the -exclude_libraries flag',
+                         'metavar': '<library>'},
+        '-add_pdk': {'action': 'append',
+                     'help':  'pdk to include in the testcase, if not provided all libraries will be added according to the -exclude_pdks flag',
+                     'metavar': '<pdk>'},
 
         '-file': {'help': f'filename for the generated testcase',
                   'metavar': '<file>'},
@@ -59,7 +77,9 @@ def main():
                                 index,
                                 switches['file'],
                                 include_pdks=not switches['exclude_pdks'],
+                                include_specific_pdks=switches['add_pdk'],
                                 include_libraries=not switches['exclude_libraries'],
+                                include_specific_libraries=switches['add_library'],
                                 hash_files=switches['hash_files'])
     if switches['run']:
         if not switches['file']:

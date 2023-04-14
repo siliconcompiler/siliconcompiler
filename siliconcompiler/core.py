@@ -5033,7 +5033,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return attributes
 
     #######################################
-    def _generate_testcase(self, step, index, archive_name=None, include_pdks=True, include_libraries=True, hash_files=False):
+    def _generate_testcase(self, step, index, archive_name=None, include_pdks=True, include_specific_pdks=None, include_libraries=True, include_specific_libraries=None, hash_files=False):
         # Save original schema since it will be modified
         schema_copy = self.schema.copy()
 
@@ -5067,10 +5067,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             copy = True
             if keypath[0] == 'libraries':
                 # only copy libraries if selected
-                copy = include_libraries
+                if include_specific_libraries and keypath[1] in include_specific_libraries:
+                    copy = True
+                else:
+                    copy = include_libraries
             elif keypath[0] == 'pdk':
                 # only copy pdks if selected
-                copy = include_pdks
+                if include_specific_pdks and keypath[1] in include_specific_pdks:
+                    copy = True
+                else:
+                    copy = include_pdks
             elif keypath[0] == 'history':
                 # Skip history
                 continue
