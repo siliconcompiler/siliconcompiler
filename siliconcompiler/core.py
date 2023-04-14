@@ -2396,7 +2396,29 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f'Failed to copy {path}', fatal=True)
 
     ###########################################################################
-    def archive(self, step=None, index=None, nodelist=None, all_files=False, archive_name=None, include_manifest=True, additional_files=None):
+    def _archive_node(self, tar, step=None, index=None, all_files=False):
+        design = self.get('design')
+        jobname = self.get('option', 'jobname')
+        buildpath = self.get('option', 'builddir')
+
+        # Don't use _getworkdir() since we want a relative path for arcname
+        jobdir = os.path.join(buildpath, design, jobname)
+
+        basedir = os.path.join(jobdir, step, index)
+        if all_files:
+            tar.add(os.path.abspath(basedir), arcname=basedir)
+        else:
+            for folder in ('reports', 'outputs'):
+                path = os.path.join(basedir, folder)
+                tar.add(os.path.abspath(path), arcname=path)
+
+            logfile = os.path.join(basedir, step+'.log')
+            if os.path.isfile(logfile):
+                tar.add(os.path.abspath(logfile), arcname=logfile)
+
+
+    ###########################################################################
+    def archive(self, step=None, index=None, all_files=False, archive_name=None):
         '''Archive a job directory.
 
         Creates a single compressed archive (.tgz) based on the design,
@@ -2409,12 +2431,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             step(str): Step to archive.
             index (str): Index to archive
-            nodelist (list): List of step/index pairs to include in the archive
             all_files (bool): If True, all files are archived.
             archive_name (str): Path to the archive
-            include_manifest (bool): If True, the final manifest will be included
-            additional_files (dict of str): Dictionary with additional files to include
-                in the archive with their associated filename in the archive
 
         '''
 
@@ -2440,46 +2458,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 archive_name = f"{design}_{jobname}.tgz"
 
-        if not additional_files:
-            additional_files = {}
+        with tarfile.open(archive_name, "w:gz") as tar:
+            # Don't use _getworkdir() since we want a relative path for arcname
+            jobdir = os.path.join(buildpath, design, jobname)
 
-        if not nodelist:
-            nodelist = []
+            manifest = os.path.join(jobdir, f'{design}.pkg.json')
+            if os.path.isfile(manifest):
+                tar.add(os.path.abspath(manifest), arcname=manifest)
+            else:
+                self.logger.warning('Archiving job with failed or incomplete run.')
+
             for step in steplist:
                 if index:
                     indexlist = [index]
                 else:
                     indexlist = self.getkeys('flowgraph', flow, step)
-
-                for index in indexlist:
-                    nodelist.append((step, index))
-
-        with tarfile.open(archive_name, "w:gz") as tar:
-            # Don't use _getworkdir() since we want a relative path for arcname
-            jobdir = os.path.join(buildpath, design, jobname)
-
-            if include_manifest:
-                manifest = os.path.join(jobdir, f'{design}.pkg.json')
-                if os.path.isfile(manifest):
-                    tar.add(os.path.abspath(manifest), arcname=manifest)
-                else:
-                    self.loger.warning('Archiving job with failed or incomplete run.')
-
-            for step, index in nodelist:
-                basedir = os.path.join(jobdir, step, index)
-                if all_files:
-                        tar.add(os.path.abspath(basedir), arcname=basedir)
-                else:
-                    for folder in ('reports', 'outputs'):
-                        path = os.path.join(basedir, folder)
-                        tar.add(os.path.abspath(path), arcname=path)
-
-                    logfile = os.path.join(basedir, step+'.log')
-                    if os.path.isfile(logfile):
-                        tar.add(os.path.abspath(logfile), arcname=logfile)
-
-            for add_file, arch_path in additional_files.items():
-                tar.add(os.path.abspath(add_file), arcname=arch_path)
+                for idx in indexlist:
+                    self._archive_node(tar, step, idx, all_files=all_files)
 
         return archive_name
 
@@ -5042,8 +5037,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Save original schema since it will be modified
         schema_copy = self.schema.copy()
 
-        additional_files = {}
-
         issue_dir = tempfile.TemporaryDirectory(prefix='sc_issue_')
 
         self.set('option', 'continue', True)
@@ -5058,63 +5051,56 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         manifest_path = os.path.join(issue_dir.name, 'manifest.json')
         self.write_manifest(manifest_path)
-        additional_files[manifest_path] = 'manifest.json'
 
         flow = self.get('option', 'flow')
         tool, task = self._get_tool_task(step, index, flow=flow)
 
         # Set copy flags for _collect
-        for keypath in self.allkeys('input'):
+        for keypath in self.allkeys():
             if 'default' in keypath:
                 continue
-            keypath = ['input', *keypath]
-            self.set(*keypath, True, field='copy')
-        for keypath in self.allkeys('output'):
-            if 'default' in keypath:
-                continue
-            keypath = ['output', *keypath]
-            self.set(*keypath, True, field='copy')
 
-        for key in self.getkeys('option', 'dir'):
-            self.set('option', 'dir', key, True, field='copy')
-        for key in self.getkeys('option', 'file'):
-            self.set('option', 'file', key, True, field='copy')
-
-        # Tool/task files
-        for keypath in self.allkeys('tool', tool, 'task', task):
-            if keypath[0] in ('output', 'input', 'report'):
+            sctype = self.get(*keypath, field='type')
+            if 'file' not in sctype and 'dir' not in sctype:
                 continue
-            if 'default' in keypath:
-                continue
-            keypath = ['tool', tool, 'task', task, *keypath]
-            key_type = self.get(*keypath, field='type')
-            if 'file' in key_type or 'dir' in key_type:
-                self.set(*keypath, True, field='copy')
 
-        # Copy library files
-        for keypath in self.allkeys('library'):
-            if 'default' in keypath:
+            copy = True
+            if keypath[0] == 'libraries':
+                # only copy libraries if selected
+                copy = include_libraries
+            elif keypath[0] == 'pdk':
+                # only copy pdks if selected
+                copy = include_pdks
+            elif keypath[0] == 'history':
+                # Skip history
                 continue
-            keypath = ['library', *keypath]
-            key_type = self.get(*keypath, field='type')
-            if 'file' in key_type or 'dir' in key_type:
-                self.set(*keypath, include_libraries, field='copy')
-
-        # Copy pdk files
-        for keypath in self.allkeys('pdk'):
-            if 'default' in keypath:
+            elif keypath[0] == 'package':
+                # Skip packages
                 continue
-            keypath = ['pdk', *keypath]
-            key_type = self.get(*keypath, field='type')
-            if 'file' in key_type or 'dir' in key_type:
-                self.set(*keypath, include_pdks, field='copy')
+            elif keypath[0] == 'tool':
+                # Only grab tool / tasks
+                copy = False
+                if keypath[0:4] == ['tool', tool, 'task', task]:
+                    # Get files associated with testcase tool / task
+                    copy = True
+                    if len(keypath) > 5:
+                        if keypath[4] in ('output', 'input', 'report'):
+                            # Skip input, output, and report files
+                            copy = False
 
+            # Check keys that might be found in libraries
+            if keypath[-2:] == ['option', 'build']:
+                # Avoid build directory
+                copy = False
+            elif keypath[-2:] == ['option', 'credentials']:
+                # Exclude credentials file
+                copy = False
+
+            self.set(*keypath, copy, field='copy')
+
+        # Collect files
         collect_path = os.path.join(issue_dir.name, 'collect')
         self._collect(directory=collect_path)
-        additional_files[collect_path] = os.path.join(self.get('option','builddir'),
-                                                        self.get('design'),
-                                                        self.get('option', 'jobname'),
-                                                        'sc_collected_files')
 
         git_data = {}
         try:
@@ -5152,11 +5138,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         issue_path = os.path.join(issue_dir.name, 'issue.json')
         with open(issue_path, 'w') as fd:
             json.dump(issue_information, fd, indent=4, sort_keys=True)
-        additional_files[issue_path] = 'issue.json'
 
-        self.archive(nodelist=[(step, index)], all_files=True, include_manifest=False, archive_name=archive_name, additional_files=additional_files)
+        with tarfile.open(archive_name, "w:gz") as tar:
+            self._archive_node(tar, step, index, all_files=True)
+
+            tar.add(os.path.abspath(manifest_path), arcname='manifest.json')
+            tar.add(os.path.abspath(issue_path), arcname='issue.json')
+            tar.add(collect_path, arcname=os.path.join(self.get('option','builddir'),
+                                                       self.get('design'),
+                                                       self.get('option', 'jobname'),
+                                                       'sc_collected_files'))
 
         issue_dir.cleanup()
+
+        self.logger.info(f'Generated testcase for {step}{index} in: {os.path.abspath(archive_name)}')
 
         # Restore original schema
         self.schema = schema_copy
