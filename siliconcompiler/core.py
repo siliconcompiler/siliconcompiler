@@ -603,7 +603,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return extra_params
 
     ##########################################################################
-    def load_target(self, name, **kwargs):
+    def load_target(self, module, **kwargs):
         """
         Loads a target module and runs the setup() function.
 
@@ -612,7 +612,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if found.
 
         Args:
-            name (str): Module name
+            module (str or module): Module name
             **kwargs (str): Options to pass along to the target
 
         Examples:
@@ -620,34 +620,38 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
-        # Search order "{name}", and "siliconcompiler.targets.{name}"
-        modules = []
-        for module_name in [name, f'siliconcompiler.targets.{name}']:
-            module = self._load_module(module_name)
-            if module:
-                modules.append(module)
+        if not inspect.ismodule(module):
+            # Search order "{name}", and "siliconcompiler.targets.{name}"
+            modules = []
+            for mod_name in [module, f'siliconcompiler.targets.{module}']:
+                mod = self._load_module(mod_name)
+                if mod:
+                    modules.append(mod)
 
-        if len(modules) == 0:
-            self.error(f'Could not find target {name}', fatal=True)
+            if len(modules) == 0:
+                self.error(f'Could not find target {module}', fatal=True)
+        else:
+            modules = [module]
 
         # Check for setup in modules
         load_function = None
-        for module in modules:
-            load_function = getattr(module, 'setup', None)
+        for mod in modules:
+            load_function = getattr(mod, 'setup', None)
             if load_function:
+                module_name = mod.__name__
                 break
 
         if not load_function:
-            self.error(f'Could not find setup function for {name} target', fatal=True)
+            self.error(f'Could not find setup function for {module} target', fatal=True)
 
         try:
             load_function(self, **kwargs)
         except Exception as e:
-            self.logger.error(f'Failed to load target {name}')
+            self.logger.error(f'Failed to load target {module}')
             raise e
 
         # Record target
-        self.set('option', 'target', name)
+        self.set('option', 'target', module_name)
 
     ##########################################################################
     def use(self, module, **kwargs):
