@@ -5033,7 +5033,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return attributes
 
     #######################################
-    def _generate_testcase(self, step, index, archive_name, include_pdks=True, include_libraries=True, hash_files=False):
+    def _generate_testcase(self, step, index, archive_name=None, include_pdks=True, include_libraries=True, hash_files=False):
         # Save original schema since it will be modified
         schema_copy = self.schema.copy()
 
@@ -5121,11 +5121,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except git.InvalidGitRepositoryError:
             pass
 
+        issue_time = time.time()
         issue_information = {}
         issue_information['environment'] = {key: value for key, value in os.environ.items()}
         issue_information['python'] = {"path": sys.path,
                                        "version": sys.version}
-        issue_information['date'] = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+        issue_information['date'] = datetime.datetime.fromtimestamp(issue_time).strftime('%Y-%m-%d %H:%M:%S')
         issue_information['machine'] = Chip._get_machine_info()
         issue_information['run'] = {'step': step,
                                     'index': index,
@@ -5138,6 +5139,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         issue_path = os.path.join(issue_dir.name, 'issue.json')
         with open(issue_path, 'w') as fd:
             json.dump(issue_information, fd, indent=4, sort_keys=True)
+
+        if not archive_name:
+            design = self.design
+            job = self.get('option', 'jobname')
+            file_time = datetime.datetime.fromtimestamp(issue_time).strftime('%Y%m%d-%H%M%S')
+            archive_name = f'sc_issue_{design}_{job}_{step}{index}_{file_time}.tar.gz'
 
         with tarfile.open(archive_name, "w:gz") as tar:
             self._archive_node(tar, step, index, all_files=True)

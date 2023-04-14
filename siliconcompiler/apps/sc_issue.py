@@ -23,8 +23,6 @@ def main():
     -----------------------------------------------------------
     """
 
-    default_file = 'sc_issue.tgz'
-
     issue_arguments = {
         '-generate': {'action': 'store_true',
                       'help': 'generate a testcase'},
@@ -42,8 +40,7 @@ def main():
         '-use': {'action': 'append',
                  'help': 'list of modules to load into test run'},
 
-        '-file': {'default': default_file,
-                  'help': f'filename for the generated testcase, defaults to {default_file}',
+        '-file': {'help': f'filename for the generated testcase',
                   'metavar': '<file>'},
     }
 
@@ -65,6 +62,9 @@ def main():
                                 include_libraries=not switches['exclude_libraries'],
                                 hash_files=switches['hash_files'])
     if switches['run']:
+        if not switches['file']:
+            raise ValueError('-file must be provided')
+
         test_dir = os.path.splitext(os.path.basename(switches['file']))[0]
         with tarfile.open(switches['file'], 'r:gz') as f:
             f.extractall(path=test_dir)
