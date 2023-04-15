@@ -5112,19 +5112,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         try:
             # Check git information
             repo = git.Repo(path=os.path.join(self.scroot, '..'))
-            git_data['commit'] = repo.head.commit.hexsha
-            git_data['date'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(repo.head.commit.committed_date))
-            git_data['author'] = f'{repo.head.commit.author.name} <{repo.head.commit.author.email}>'
-            git_data['msg'] = repo.head.commit.message
+            commit = repo.head.commit
+            git_data['commit'] = commit.hexsha
+            git_data['date'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(commit.committed_date))
+            git_data['author'] = f'{commit.author.name} <{commit.author.email}>'
+            git_data['msg'] = commit.message
             # Count number of commits ahead of version
             version_tag = repo.tag(f'v{self.scversion}')
             count = 0
-            for c in repo.head.commit.iter_parents():
+            for c in commit.iter_parents():
                 count += 1
                 if c == version_tag.commit:
                     break
             git_data['count'] = count
         except git.InvalidGitRepositoryError:
+            pass
+        except Exception as e:
+            git_data['failed'] = str(e)
             pass
 
         issue_time = time.time()
