@@ -11,6 +11,7 @@ import asyncio
 from subprocess import run, PIPE
 import os
 import glob
+import git
 import pathlib
 import sys
 import gzip
@@ -37,6 +38,7 @@ import netifaces
 import webbrowser
 import codecs
 import string
+import tempfile
 import packaging.version
 import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
@@ -1169,6 +1171,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         """
 
+        if not filename:
+            return None
+
         # Replacing environment variables
         filename = self._resolve_env_vars(filename)
 
@@ -1289,14 +1294,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # cases.
 
         search_paths = None
-        if len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
+        if len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
             if keypath[4] == 'report':
                 io = ""
             else:
                 io = keypath[4] + 's'
             iodir = os.path.join(self._getworkdir(jobname=job, step=step, index=index), io)
             search_paths = [iodir]
-        elif len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] == 'script':
+        elif len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
             refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
@@ -2341,7 +2346,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         copyall = self.get('option', 'copyall')
         for key in self.allkeys():
-            if key == ['option', 'builddir']:
+            if key[-2:] == ['option', 'builddir']:
                 # skip builddir
                 continue
             if key[0] == 'history':
@@ -2395,7 +2400,29 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f'Failed to copy {path}', fatal=True)
 
     ###########################################################################
-    def archive(self, step=None, index=None, all_files=False):
+    def _archive_node(self, tar, step=None, index=None, all_files=False):
+        design = self.get('design')
+        jobname = self.get('option', 'jobname')
+        buildpath = self.get('option', 'builddir')
+
+        # Don't use _getworkdir() since we want a relative path for arcname
+        jobdir = os.path.join(buildpath, design, jobname)
+
+        basedir = os.path.join(jobdir, step, index)
+        if all_files:
+            tar.add(os.path.abspath(basedir), arcname=basedir)
+        else:
+            for folder in ('reports', 'outputs'):
+                path = os.path.join(basedir, folder)
+                tar.add(os.path.abspath(path), arcname=path)
+
+            logfile = os.path.join(basedir, step+'.log')
+            if os.path.isfile(logfile):
+                tar.add(os.path.abspath(logfile), arcname=logfile)
+
+
+    ###########################################################################
+    def archive(self, step=None, index=None, all_files=False, archive_name=None):
         '''Archive a job directory.
 
         Creates a single compressed archive (.tgz) based on the design,
@@ -2409,6 +2436,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             step(str): Step to archive.
             index (str): Index to archive
             all_files (bool): If True, all files are archived.
+            archive_name (str): Path to the archive
 
         '''
 
@@ -2426,10 +2454,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             steplist = self.list_steps()
 
-        if step:
-            archive_name = f"{design}_{jobname}_{step}.tgz"
-        else:
-            archive_name = f"{design}_{jobname}.tgz"
+        if not archive_name:
+            if step and index:
+                archive_name = f"{design}_{jobname}_{step}{index}.tgz"
+            elif step:
+                archive_name = f"{design}_{jobname}_{step}.tgz"
+            else:
+                archive_name = f"{design}_{jobname}.tgz"
 
         with tarfile.open(archive_name, "w:gz") as tar:
             # Don't use _getworkdir() since we want a relative path for arcname
@@ -2439,25 +2470,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if os.path.isfile(manifest):
                 tar.add(os.path.abspath(manifest), arcname=manifest)
             else:
-                self.loger.warning('Archiving job with failed or incomplete run.')
+                self.logger.warning('Archiving job with failed or incomplete run.')
 
             for step in steplist:
                 if index:
                     indexlist = [index]
                 else:
                     indexlist = self.getkeys('flowgraph', flow, step)
-                for item in indexlist:
-                    basedir = os.path.join(jobdir, step, item)
-                    if all_files:
-                         tar.add(os.path.abspath(basedir), arcname=basedir)
-                    else:
-                        reportdir = os.path.join(basedir, 'reports')
-                        outdir = os.path.join(basedir,'outputs')
-                        logfile = os.path.join(basedir, step+'.log')
-                        tar.add(os.path.abspath(reportdir), arcname=reportdir)
-                        tar.add(os.path.abspath(outdir), arcname=outdir)
-                        if os.path.isfile(logfile):
-                            tar.add(os.path.abspath(logfile), arcname=logfile)
+                for idx in indexlist:
+                    self._archive_node(tar, step, idx, all_files=all_files)
 
         return archive_name
 
@@ -3479,7 +3500,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             prevstep = step
 
     ###########################################################################
-    def _runtask(self, step, index, status):
+    def _runtask(self, step, index, status, replay=False):
         '''
         Private per step run method called by run().
 
@@ -3542,7 +3563,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         workdir = self._getworkdir(step=step,index=index)
         cwd = os.getcwd()
-        if os.path.isdir(workdir):
+        if os.path.isdir(workdir) and not replay:
             shutil.rmtree(workdir)
         os.makedirs(workdir, exist_ok=True)
 
@@ -3555,7 +3576,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Merge manifests from all input dependancies
 
         all_inputs = []
-        if not self.get('option', 'remote'):
+        if not self.get('option', 'remote') and not replay:
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 in_task_status = status[in_step + in_index]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_task_status)
@@ -3603,8 +3624,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
-            utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
-                ignore=[f'{design}.pkg.json'], link=True)
+            if not replay:
+                utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
+                    ignore=[f'{design}.pkg.json'], link=True)
 
         ##################
         # Check manifest
@@ -4627,6 +4649,44 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return 'local'
 
     #######################################
+    @staticmethod
+    def _get_machine_info():
+        system = platform.system()
+        if system == 'Darwin':
+            lower_sys_name = 'macos'
+        else:
+            lower_sys_name = system.lower()
+
+        if system == 'Linux':
+            distro_name = distro.id()
+        else:
+            distro_name = None
+
+        if system == 'Darwin':
+            osversion, _, _ = platform.mac_ver()
+        elif system == 'Linux':
+            osversion = distro.version()
+        else:
+            osversion = platform.release()
+
+        if system == 'Linux':
+            kernelversion = platform.release()
+        elif system == 'Windows':
+            kernelversion = platform.version()
+        elif system == 'Darwin':
+            kernelversion = platform.release()
+        else:
+            kernelversion = None
+
+        arch = platform.machine()
+
+        return {'system': lower_sys_name,
+                'distro': distro_name,
+                'osversion': osversion,
+                'kernelversion': kernelversion,
+                'arch': arch}
+
+    #######################################
     def _make_record(self, step, index, start, end, toolversion, toolpath, cli_args):
         '''
         Records provenance details for a runstep.
@@ -4638,9 +4698,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         userid = getpass.getuser()
         self.set('record', 'userid', userid, step=step, index=index)
-
-        if toolversion:
-            self.set('record', 'toolversion', toolversion, step=step, index=index)
 
         self.set('record', 'starttime', start_date, step=step, index=index)
         self.set('record', 'endtime', end_date, step=step, index=index)
@@ -4659,43 +4716,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except KeyError:
             self.logger.warning('Could not find default network interface info')
 
-        system = platform.system()
-        if system == 'Darwin':
-            lower_sys_name = 'macos'
-        else:
-            lower_sys_name = system.lower()
-        self.set('record', 'platform', lower_sys_name, step=step, index=index)
+        machine_info = Chip._get_machine_info()
+        self.set('record', 'platform', machine_info['system'], step=step, index=index)
 
-        if system == 'Linux':
-            distro_name = distro.id()
-            self.set('record', 'distro', distro_name, step=step, index=index)
+        if machine_info['distro']:
+            self.set('record', 'distro', machine_info['distro'], step=step, index=index)
 
-        if system == 'Darwin':
-            osversion, _, _ = platform.mac_ver()
-        elif system == 'Linux':
-            osversion = distro.version()
-        else:
-            osversion = platform.release()
-        self.set('record', 'osversion', osversion, step=step, index=index)
+        self.set('record', 'osversion', machine_info['osversion'], step=step, index=index)
 
-        if system == 'Linux':
-            kernelversion = platform.release()
-        elif system == 'Windows':
-            kernelversion = platform.version()
-        elif system == 'Darwin':
-            kernelversion = platform.release()
-        else:
-            kernelversion = None
-        if kernelversion:
-            self.set('record', 'kernelversion', kernelversion, step=step, index=index)
+        if machine_info['kernelversion']:
+            self.set('record', 'kernelversion', machine_info['kernelversion'], step=step, index=index)
 
-        arch = platform.machine()
-        self.set('record', 'arch', arch, step=step, index=index)
+        self.set('record', 'arch', machine_info['arch'], step=step, index=index)
 
-        self.set('record', 'toolpath', toolpath, step=step, index=index)
+        if toolversion:
+            self.set('record', 'toolversion', toolversion, step=step, index=index)
 
-        toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
-        self.set('record', 'toolargs', toolargs, step=step, index=index)
+        if toolpath:
+            self.set('record', 'toolpath', toolpath, step=step, index=index)
+
+        if cli_args is not None:
+            toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
+            self.set('record', 'toolargs', toolargs, step=step, index=index)
 
     #######################################
     def _safecompare(self, value, op, goal):
@@ -4796,6 +4838,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     #######################################
     def _resolve_env_vars(self, filepath):
+        if not filepath:
+            return None
+
         resolved_path = os.path.expandvars(filepath)
 
         # variables that don't exist in environment get ignored by `expandvars`,
@@ -4990,6 +5035,147 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Modules are not serializable, so save without cache
         attributes['modules'] = {}
         return attributes
+
+    #######################################
+    def _generate_testcase(self, step, index, archive_name=None, include_pdks=True, include_specific_pdks=None, include_libraries=True, include_specific_libraries=None, hash_files=False):
+        # Save original schema since it will be modified
+        schema_copy = self.schema.copy()
+
+        issue_dir = tempfile.TemporaryDirectory(prefix='sc_issue_')
+
+        self.set('option', 'continue', True)
+        if hash_files:
+            for key in self.allkeys():
+                if key[0] == 'history':
+                    continue
+                if 'file' not in self.get(*key, field='type'):
+                    continue
+                for _, key_step, key_index in self.schema._getvals(*key):
+                    self.hash_files(*key, step=key_step, index=key_index)
+
+        manifest_path = os.path.join(issue_dir.name, 'manifest.json')
+        self.write_manifest(manifest_path)
+
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow=flow)
+
+        # Set copy flags for _collect
+        for keypath in self.allkeys():
+            if 'default' in keypath:
+                continue
+
+            sctype = self.get(*keypath, field='type')
+            if 'file' not in sctype and 'dir' not in sctype:
+                continue
+
+            copy = True
+            if keypath[0] == 'libraries':
+                # only copy libraries if selected
+                if include_specific_libraries and keypath[1] in include_specific_libraries:
+                    copy = True
+                else:
+                    copy = include_libraries
+            elif keypath[0] == 'pdk':
+                # only copy pdks if selected
+                if include_specific_pdks and keypath[1] in include_specific_pdks:
+                    copy = True
+                else:
+                    copy = include_pdks
+            elif keypath[0] == 'history':
+                # Skip history
+                continue
+            elif keypath[0] == 'package':
+                # Skip packages
+                continue
+            elif keypath[0] == 'tool':
+                # Only grab tool / tasks
+                copy = False
+                if keypath[0:4] == ['tool', tool, 'task', task]:
+                    # Get files associated with testcase tool / task
+                    copy = True
+                    if len(keypath) > 5:
+                        if keypath[4] in ('output', 'input', 'report'):
+                            # Skip input, output, and report files
+                            copy = False
+
+            # Check keys that might be found in libraries
+            if keypath[-2:] == ['option', 'build']:
+                # Avoid build directory
+                copy = False
+            elif keypath[-2:] == ['option', 'credentials']:
+                # Exclude credentials file
+                copy = False
+
+            self.set(*keypath, copy, field='copy')
+
+        # Collect files
+        collect_path = os.path.join(issue_dir.name, 'collect')
+        self._collect(directory=collect_path)
+
+        git_data = {}
+        try:
+            # Check git information
+            repo = git.Repo(path=os.path.join(self.scroot, '..'))
+            commit = repo.head.commit
+            git_data['commit'] = commit.hexsha
+            git_data['date'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(commit.committed_date))
+            git_data['author'] = f'{commit.author.name} <{commit.author.email}>'
+            git_data['msg'] = commit.message
+            # Count number of commits ahead of version
+            version_tag = repo.tag(f'v{self.scversion}')
+            count = 0
+            for c in commit.iter_parents():
+                count += 1
+                if c == version_tag.commit:
+                    break
+            git_data['count'] = count
+        except git.InvalidGitRepositoryError:
+            pass
+        except Exception as e:
+            git_data['failed'] = str(e)
+            pass
+
+        issue_time = time.time()
+        issue_information = {}
+        issue_information['environment'] = {key: value for key, value in os.environ.items()}
+        issue_information['python'] = {"path": sys.path,
+                                       "version": sys.version}
+        issue_information['date'] = datetime.datetime.fromtimestamp(issue_time).strftime('%Y-%m-%d %H:%M:%S')
+        issue_information['machine'] = Chip._get_machine_info()
+        issue_information['run'] = {'step': step,
+                                    'index': index,
+                                    'libraries_included': include_libraries,
+                                    'pdks_included': include_pdks}
+        issue_information['version'] = {'schema': self.schemaversion,
+                                        'sc': self.scversion,
+                                        'git': git_data}
+
+        issue_path = os.path.join(issue_dir.name, 'issue.json')
+        with open(issue_path, 'w') as fd:
+            json.dump(issue_information, fd, indent=4, sort_keys=True)
+
+        if not archive_name:
+            design = self.design
+            job = self.get('option', 'jobname')
+            file_time = datetime.datetime.fromtimestamp(issue_time).strftime('%Y%m%d-%H%M%S')
+            archive_name = f'sc_issue_{design}_{job}_{step}{index}_{file_time}.tar.gz'
+
+        with tarfile.open(archive_name, "w:gz") as tar:
+            self._archive_node(tar, step, index, all_files=True)
+
+            tar.add(os.path.abspath(manifest_path), arcname='manifest.json')
+            tar.add(os.path.abspath(issue_path), arcname='issue.json')
+            tar.add(collect_path, arcname=os.path.join(self.get('option','builddir'),
+                                                       self.get('design'),
+                                                       self.get('option', 'jobname'),
+                                                       'sc_collected_files'))
+
+        issue_dir.cleanup()
+
+        self.logger.info(f'Generated testcase for {step}{index} in: {os.path.abspath(archive_name)}')
+
+        # Restore original schema
+        self.schema = schema_copy
 
 ###############################################################################
 # Package Customization classes
