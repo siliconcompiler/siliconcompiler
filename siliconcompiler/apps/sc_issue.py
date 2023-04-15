@@ -22,11 +22,11 @@ def main():
     failed flow or runs an issue generated with this program.
 
     To generate a testcase, use:
-        sc-issue -generate -cfg <cfg_file>
+        sc-issue -generate -cfg <stepdir>/outputs/<design>.pkg.json
       or include a different step/index than what the cfg_file is pointing to:
-        sc-issue -generate -cfg <cfg_file> -arg_step <step> -arg_index <index>
+        sc-issue -generate -cfg <otherdir>/outputs/<design>.pkg.json -arg_step <step> -arg_index <index>
       or include specific libraries while excluding others:
-        sc-issue -generate -cfg <cfg_file> -exclude_libraries -add_library sram -add_library gpio
+        sc-issue -generate -cfg <stepdir>/outputs/<design>.pkg.json -exclude_libraries -add_library sram -add_library gpio
 
     To run a testcase, use:
         sc-issue -run -file sc_issue_<...>.tar.gz
@@ -73,6 +73,15 @@ def main():
     if switches['generate']:
         step = chip.get('arg', 'step')
         index = chip.get('arg', 'index')
+
+        if not step:
+            chip.logger.error('Unable to determine step from manifest')
+        if not index:
+            chip.logger.error('Unable to determine index from manifest')
+        if not step or not index:
+            # Exit out
+            sys.exit(1)
+
         chip._generate_testcase(step,
                                 index,
                                 switches['file'],
