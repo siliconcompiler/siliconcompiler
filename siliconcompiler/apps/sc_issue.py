@@ -80,7 +80,7 @@ def main():
             chip.logger.error('Unable to determine index from manifest')
         if not step or not index:
             # Exit out
-            sys.exit(1)
+            return 1
 
         chip._generate_testcase(step,
                                 index,
@@ -90,11 +90,14 @@ def main():
                                 include_libraries=not switches['exclude_libraries'],
                                 include_specific_libraries=switches['add_library'],
                                 hash_files=switches['hash_files'])
+
+        return 0
+
     if switches['run']:
         if not switches['file']:
             raise ValueError('-file must be provided')
 
-        test_dir = os.path.splitext(os.path.basename(switches['file']))[0]
+        test_dir = os.path.basename(switches['file']).split('.')[0]
         with tarfile.open(switches['file'], 'r:gz') as f:
             f.extractall(path=test_dir)
 
@@ -157,6 +160,8 @@ def main():
         # Rerun setup task
         chip._setup_task(step, index)
         chip._runtask(step, index, {}, replay=True)
+
+        return 0
 
 #########################
 if __name__ == "__main__":
