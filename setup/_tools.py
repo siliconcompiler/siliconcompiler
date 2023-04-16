@@ -34,7 +34,6 @@ def bump_version(tools, tool):
 
         newest = None
         for tag in repo.tags:
-            print(tag, tag.name)
             if not newest:
                 newest = tag
             else:
