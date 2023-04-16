@@ -27,8 +27,11 @@ def parse_version(stdout):
     # sbt version in this project: 1.5.5
     # sbt script version: 1.5.5
 
-    # grab version # by splitting on whitespace
-    return stdout.split('\n')[0].split()[-1]
+    for line in stdout.split('\n'):
+        if line.startwith('sbt version in this project'):
+            return line.split()[-1]
+
+    return None
 
 ################################
 #  Custom runtime options
