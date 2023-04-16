@@ -69,8 +69,7 @@
   },
   "chisel": {
     "version": "1.8.0",
-    "git-url": "https://github.com/sbt/sbt.git",
-    "docker-skip": true
+    "git-url": "https://github.com/sbt/sbt.git"
   },
   "icarus": {
     "git-url": "https://github.com/steveicarus/iverilog.git",
