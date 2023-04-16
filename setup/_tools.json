@@ -68,6 +68,8 @@
     "docker-depends": "icepack"
   },
   "chisel": {
+    "version": "1.8.0",
+    "git-url": "https://github.com/sbt/sbt.git",
     "docker-skip": true
   },
   "icarus": {
