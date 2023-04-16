@@ -23,6 +23,33 @@ def bump_commit(tools, tool):
 
     return None
 
+def bump_version(tools, tool):
+    if "git-url" not in tools[tool]:
+        return None
+
+    import git, tempfile
+
+    with tempfile.TemporaryDirectory(prefix=tool) as repo_work_dir:
+        repo = git.Repo.clone_from(tools[tool]["git-url"], repo_work_dir)
+
+        newest = None
+        for tag in repo.tags:
+            print(tag, tag.name)
+            if not newest:
+                newest = tag
+            else:
+                if tag.commit.committed_datetime > newest.commit.committed_datetime:
+                    newest = tag
+        if newest:
+            newest = newest.name
+            if newest[0] == 'v':
+                newest = newest[1:]
+            return newest
+
+        return None
+
+    return None
+
 def has_tool(tool):
     return tool in tools
 
@@ -82,10 +109,16 @@ if __name__ == "__main__":
         print(tool_fields[args.field])
         exit(0)
 
-    new_value = bump_commit(tools, args.tool)
-    if new_value and tools[args.tool]["git-commit"] != new_value:
-        print(f"Updating {args.tool} to {new_value}")
-        tools[args.tool]["git-commit"] = new_value
+    if "git-commit" in tools[args.tool]:
+        new_value = bump_commit(tools, args.tool)
+        if new_value and tools[args.tool]["git-commit"] != new_value:
+            print(f"Updating {args.tool} to {new_value}")
+            tools[args.tool]["git-commit"] = new_value
+    else:
+        new_value = bump_version(tools, args.tool)
+        if new_value and tools[args.tool]["version"] != new_value:
+            print(f"Updating {args.tool} to {new_value}")
+            tools[args.tool]["version"] = new_value
 
     with open(data_file, "w") as f:
         f.write(json.dumps(tools, indent=2))
