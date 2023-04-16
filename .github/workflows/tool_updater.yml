@@ -49,6 +49,7 @@ jobs:
           git config --global user.name "SiliconCompiler Bot"
           git config --global user.email "bot@siliconcompiler.com"
           msg=$(python3 setup/_tools.py --bump_commit --tool ${{ matrix.tool }})
+          echo $msg
           echo "msg=$msg" >> $GITHUB_OUTPUT
           git add setup/_tools.json
           git commit -m "$msg" || true

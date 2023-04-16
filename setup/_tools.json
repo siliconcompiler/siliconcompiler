@@ -34,7 +34,9 @@
   },
   "klayout": {
     "version": "0.28.3",
-    "docker-skip": true
+    "git-url": "https://github.com/KLayout/klayout.git",
+    "docker-skip": true,
+    "auto-update": true
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
