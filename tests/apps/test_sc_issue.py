@@ -1,11 +1,11 @@
 import os
-import shutil
 import glob
 
 import pytest
 import siliconcompiler
 
 from siliconcompiler.apps import sc_issue
+from siliconcompiler import utils
 
 # TODO: I think moving back to something like a tarfile would be nice here to
 # remove the dependency on EDA tools. Maybe make that tarfile the single source
@@ -41,7 +41,7 @@ def heartbeat_dir(tmpdir_factory):
 def test_sc_issue_generate_success(flags, outputfileglob, monkeypatch, heartbeat_dir):
     '''Test sc-issue app on a few sets of flags.'''
 
-    shutil.copytree(heartbeat_dir, './', dirs_exist_ok=True)
+    utils.copytree(heartbeat_dir, './', dirs_exist_ok=True)
 
     monkeypatch.setattr('sys.argv', ['sc-issue'] + flags)
     assert sc_issue.main() == 0
@@ -55,7 +55,7 @@ def test_sc_issue_generate_success(flags, outputfileglob, monkeypatch, heartbeat
 def test_sc_issue_generate_fail(flags, monkeypatch, heartbeat_dir):
     '''Test sc-issue app on a few sets of flags.'''
 
-    shutil.copytree(heartbeat_dir, './', dirs_exist_ok=True)
+    utils.copytree(heartbeat_dir, './', dirs_exist_ok=True)
 
     monkeypatch.setattr('sys.argv', ['sc-issue'] + flags)
     assert sc_issue.main() == 1
@@ -65,7 +65,7 @@ def test_sc_issue_generate_fail(flags, monkeypatch, heartbeat_dir):
 def test_sc_issue_run(monkeypatch, heartbeat_dir):
     '''Test sc-issue app on a few sets of flags.'''
 
-    shutil.copytree(heartbeat_dir, './', dirs_exist_ok=True)
+    utils.copytree(heartbeat_dir, './', dirs_exist_ok=True)
 
     monkeypatch.setattr('sys.argv', ['sc-issue', '-generate', '-cfg', 'build/heartbeat/job0/syn/0/outputs/heartbeat.pkg.json', '-file', 'sc_issue.tar.gz'])
     assert sc_issue.main() == 0

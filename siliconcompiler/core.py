@@ -2381,7 +2381,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if os.path.exists(dst_path):
                     continue
                 self.logger.info(f"Copying directory {abspath} to '{directory}' directory")
-                shutil.copytree(abspath, dst_path)
+                utils.copytree(abspath, dst_path)
             else:
                 self.error(f'Failed to copy {path}', fatal=True)
 
