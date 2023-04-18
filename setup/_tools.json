@@ -34,7 +34,9 @@
   },
   "klayout": {
     "version": "0.28.3",
-    "docker-skip": true
+    "git-url": "https://github.com/KLayout/klayout.git",
+    "docker-skip": true,
+    "auto-update": true
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
@@ -67,7 +69,9 @@
     "docker-depends": "icepack"
   },
   "chisel": {
-    "docker-skip": true
+    "version": "1.8.0",
+    "git-url": "https://github.com/sbt/sbt.git",
+    "auto-update": false
   },
   "icarus": {
     "git-url": "https://github.com/steveicarus/iverilog.git",

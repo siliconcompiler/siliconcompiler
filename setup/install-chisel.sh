@@ -2,10 +2,25 @@
 
 set -e
 
-sudo apt-get update
-echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | sudo tee /etc/apt/sources.list.d/sbt.list
-echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | sudo tee /etc/apt/sources.list.d/sbt_old.list
-curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | sudo -H gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/scalasbt-release.gpg --import
-sudo chmod 644 /etc/apt/trusted.gpg.d/scalasbt-release.gpg
-sudo apt-get update
-sudo apt-get install sbt
+# Get directory of script
+src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
+
+mkdir -p deps
+cd deps
+
+version=$(python3 ${src_path}/_tools.py --tool chisel --field version)
+
+wget -O sbt.tgz https://github.com/sbt/sbt/releases/download/v${version}/sbt-${version}.tgz
+
+args=
+if [ ! -z ${PREFIX} ]; then
+    args="-C $PREFIX --strip-components 1"
+fi
+
+tar xvf sbt.tgz $args
+
+cd -
+
+if [ -z ${PREFIX} ]; then
+    echo "Please add \"export PATH="${src_path}/deps/sbt/bin:\$PATH"\" to your .bashrc"
+fi
