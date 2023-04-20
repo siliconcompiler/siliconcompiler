@@ -1708,7 +1708,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     keypath = item.split(',')
                     if self.schema._is_empty(*keypath):
                         error = True
-                        self.logger.error(f"Value empty for [{keypath}] for {tool}.")
+                        self.logger.error(f"Value empty for {keypath} for {tool}.")
 
                 task_run = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
                 if self.schema._is_empty('tool', tool, 'exe') and not task_run:
@@ -2596,7 +2596,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             step (str): name of the step to calculate the area from
             index (str): name of the step to calculate the area from
-        
+
         Returns:
             Design area (float).
 

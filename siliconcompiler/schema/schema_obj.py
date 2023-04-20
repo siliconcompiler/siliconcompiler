@@ -824,9 +824,8 @@ class Schema:
         defvalue = self.get(*keypath, field='defvalue')
         value_empty = (
             (defvalue in empty) and
-            all([value in empty for value in values])
+            all([value in empty for value, _, _ in values])
         )
-
         return value_empty
 
     ###########################################################################
