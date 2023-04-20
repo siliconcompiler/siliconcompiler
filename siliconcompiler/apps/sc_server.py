@@ -14,12 +14,9 @@ def server_cmdline():
     '''
     Command-line parsing for sc-server variables.
     TODO: It may be a good idea to merge with 'cmdline()' to reduce code duplication.
-
     '''
 
     def_cfg = server_schema()
-
-    os.environ["COLUMNS"] = '100'
 
     #Argument Parser
     parser = argparse.ArgumentParser(prog='sc-server',
@@ -87,13 +84,7 @@ def main():
     cmdlinecfg = server_cmdline()
 
     #Create the Server class instance.
-    server = Server(cmdlinecfg)
-
-    #Save the given server configuration in JSON format (not yet implemented)
-    server.writecfg("sc_server_setup.json")
-
-    # Start processing incoming requests.
-    server.run()
+    Server(cmdlinecfg)
 
 if __name__ == '__main__':
     main()
