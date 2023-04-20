@@ -149,6 +149,7 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         'install_script': f'install-{tool}.sh',
         'extra_commands': extracmds
     }
+
     copy_files = []
     for f in ('_tools.json', 
               '_tools.py', 
@@ -169,16 +170,19 @@ def make_sc_tools_docker(tools, output_dir):
 
     template_opts = {
         'tools': tools,
-        'skip_build': skip_build
+        'skip_build': skip_build,
+        'slurm_version': _tools.get_field('slurm', 'version')
     }
 
     copy_files = ['_tools.json', '_tools.py']
     for tool in skip_build:
         copy_files.append(f'install-{tool}.sh')
+    for slurm_file in ['cgroup.conf', 'slurm.conf', 'start_slurm.sh']:
+        copy_files.append(os.path.join('docker', 'slurm', slurm_file))
     cp_files = []
     for f in copy_files:
         cp_files.append(os.path.join(_tools_path, f))
-        
+
     assemble_docker_file(name, tag, docker_file, template_opts, output_dir, copy_files=cp_files)
 
 def build_docker(docker_file, image_name):
@@ -205,6 +209,8 @@ def _get_tools():
     '''
     tools = []
     for tool in _tools.get_tools():
+        if not os.path.exists(os.path.join(_tools_path, f'install-{tool}.sh')):
+            continue
         if not _tools.get_field(tool, 'docker-skip'):
             tools.append((tool, _tools.get_field(tool, 'docker-depends')))
     return tools
