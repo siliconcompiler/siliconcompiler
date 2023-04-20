@@ -33,7 +33,7 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.28.3",
+    "version": "0.28.6",
     "git-url": "https://github.com/KLayout/klayout.git",
     "docker-skip": true,
     "auto-update": true
