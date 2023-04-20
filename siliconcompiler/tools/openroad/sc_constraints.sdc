@@ -23,13 +23,18 @@ if {[dict exists $sc_cfg datasheet] && [dict exists $sc_cfg datasheet $sc_design
 }
 
 ### Create IO constraints
+set sc_sdc_buffer [dict get $sc_cfg tool $sc_tool task $sc_task {var} sdc_buffer]
 set buffer_cell "NULL"
-foreach cell [get_lib_cells *] {
-    if { [$cell is_buffer] } {
-        # Find first buffer and use that as IO constraints
-        set buffer_cell $cell
-        break
+if { [llength $sc_sdc_buffer] == 0 } {
+    foreach cell [get_lib_cells *] {
+        if { [$cell is_buffer] } {
+            # Find first buffer and use that as IO constraints
+            set buffer_cell $cell
+            break
+        }
     }
+} else {
+    set buffer_cell [get_lib_cells [lindex $sc_sdc_buffer 0]]
 }
 
 if { $buffer_cell != "NULL" } {
