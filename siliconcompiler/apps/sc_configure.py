@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
 import sys
+import json
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -56,31 +57,56 @@ def main():
         if not confirm_dialog('Overwrite existing remote configuration?'):
             return
 
+    config = {}
+
     # If a command-line argument is passed in, use that as a public server address.
-    if len(sys.argv) > 1:
+    interactive = len(sys.argv) <= 1
+    if not interactive:
         print(f'Creating remote configuration file for public server: {sys.argv[1]}')
-        if default_server_name in sys.argv[1] and not confirm_dialog(tos_str):
-            return
-        with open(cfg_file, 'w') as f:
-            f.write('{"address": "%s"}'%(sys.argv[1]))
+        srv_addr = sys.argv[1]
+    else:
+        # If no arguments were passed in, interactively request credentials from the user.
+        srv_addr = input('Remote server address:\n').replace(" ","")
+
+    server = urlparse(srv_addr)
+    has_scheme = True
+    if not server.scheme:
+        # fake add a scheme to the url
+        has_scheme = False
+        server = urlparse('https://' + srv_addr)
+        config['address'] = server.hostname
+    if not server.hostname:
+        print(f'Invalid address provided: {srv_addr}')
         return
 
-    # If no arguments were passed in, interactively request credentials from the user.
-    srv_addr = input('Remote server address:\n').replace(" ","")
-    username = input('Remote username (leave blank for public servers):\n').replace(" ","")
-    user_pass = input('Remote password (leave blank for public servers):\n').replace(" ","")
+    if has_scheme:
+        config['address'] = f'{server.scheme}://{server.hostname}'
+    else:
+        config['address'] = server.hostname
 
-    if default_server_name in srv_addr and not confirm_dialog(tos_str):
+    public_server = default_server_name in srv_addr
+    if public_server and not confirm_dialog(tos_str):
         return
+
+    if server.port is not None:
+        config['port'] = server.port
+
+    if not public_server and interactive:
+        username = server.username
+        if not username:
+            username = input('Remote username:\n').replace(" ","")
+        user_pass = server.password
+        if not user_pass:
+            user_pass = input('Remote password:\n').replace(" ","")
+
+        if username:
+            config['username'] = username
+        if user_pass:
+            config['password'] = user_pass
 
     # Save the values to the target config file in JSON format.
     with open(cfg_file, 'w') as f:
-        f.write('''\
-{
-  "address": "%s",
-  "username": "%s",
-  "password": "%s"
-}'''%(srv_addr, username, user_pass))
+        f.write(json.dumps(config, indent=4))
 
     # Let the user know that we finished successfully.
     print(f'Remote configuration saved to: {cfg_file}')
