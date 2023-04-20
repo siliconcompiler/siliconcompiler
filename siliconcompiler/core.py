@@ -3866,7 +3866,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if retcode != 0:
             msg = f'Command failed with code {retcode}.'
             if logfile:
-                # No log file for pure-Python tools.
+                if quiet:
+                    # Print last 10 lines of log when in quiet mode
+                    with open(logfile, 'r') as logfd:
+                        loglines = logfd.read().splitlines()
+                        for logline in loglines[-10:]:
+                            print(logline)
+                    # No log file for pure-Python tools.
                 msg += f' See log file {os.path.abspath(logfile)}'
             self.logger.warning(msg)
             self._haltstep(step, index)
