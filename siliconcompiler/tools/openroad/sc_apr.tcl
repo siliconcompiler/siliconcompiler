@@ -303,8 +303,7 @@ if {$openroad_sta_late_timing_derate != 0.0} {
 }
 
 # Check timing setup
-# This produces a segfault on sky130
-#check_setup
+check_setup
 
 if { [llength [all_clocks]] == 0} {
   utl::warn FLW 1 "No clocks defined."
