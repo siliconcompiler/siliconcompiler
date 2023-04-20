@@ -233,7 +233,8 @@ def setup(chip, mode='batch'):
         ('sta_late_timing_derate', '0.0', 'timing derating factor to use for setup corners'),
         ('fin_add_fill', 'true', 'true/false, when true enables adding fill, if enabled by the PDK, to the design'),
         ('psm_enable', 'true', 'true/false, when true enables IR drop analysis'),
-        ('debug_level', None, 'list of "tool key level" to enable debugging of OpenROAD')
+        ('debug_level', None, 'list of "tool key level" to enable debugging of OpenROAD'),
+        ('sdc_buffer', None, 'Buffer cell to use when auto generating timing constraints')
         ]:
         if value:
             chip.set('tool', tool, 'task', task, 'var', variable, value, step=step, index=index, clobber=False)
