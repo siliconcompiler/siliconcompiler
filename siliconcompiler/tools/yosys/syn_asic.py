@@ -253,9 +253,10 @@ def get_dff_liberty_file(chip):
             return dff_liberty[0]
 
     mainlib = chip.get('asic', 'logiclib', step=step, index=index)[0]
-    dff_liberty = chip.find_files('library', mainlib, 'option', 'file', 'yosys_dff_liberty')
-    if dff_liberty:
-        return dff_liberty[0]
+    if chip.valid('library', mainlib, 'option', 'file', 'yosys_dff_liberty'):
+        dff_liberty = chip.find_files('library', mainlib, 'option', 'file', 'yosys_dff_liberty')
+        if dff_liberty:
+            return dff_liberty[0]
 
     corner = get_synthesis_corner(chip)
     if corner is None:
