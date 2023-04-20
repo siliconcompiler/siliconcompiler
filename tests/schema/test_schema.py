@@ -24,3 +24,10 @@ def test_pernode_mandatory():
 
     # Should succeed
     assert schema.set('test', 'foo', step='syn', index=0)
+
+def test_empty():
+    schema = Schema()
+    assert schema._is_empty('package', 'version')
+
+    schema.set('package', 'version', '1.0')
+    assert not schema._is_empty('package', 'version')
