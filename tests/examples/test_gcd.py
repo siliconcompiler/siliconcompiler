@@ -37,8 +37,9 @@ def test_py(setup_example_test):
     # "Found unsupported expression..." (x72) + 3 ABC Warnings
     assert chip.get('metric', 'warnings', step='syn', index='0') == 75
 
-    # [WARNING PSM*]
-    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 16
+    # Warning: *. (x3)
+    # [WARNING PSM*] (x16)
+    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 19
 
     assert chip.get('metric', 'warnings', step='physyn', index='0') == 0
 
