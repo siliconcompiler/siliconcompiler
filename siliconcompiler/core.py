@@ -6,11 +6,8 @@ import time
 import datetime
 import multiprocessing
 import tarfile
-import traceback
-import asyncio
-from subprocess import run, PIPE
+from subprocess import PIPE
 import os
-import glob
 import git
 import pathlib
 import sys
@@ -51,6 +48,7 @@ from siliconcompiler import utils
 from siliconcompiler import units
 from siliconcompiler import _metadata
 import psutil
+import subprocess
 
 class TaskStatus():
     # Could use Python 'enum' class here, but that doesn't work nicely with
