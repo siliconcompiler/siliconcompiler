@@ -159,8 +159,10 @@ class Server:
         # Create a dummy Chip object to make schema traversal easier.
         # TODO: if this is a dummy Chip we should be able to use Schema class,
         # but looks like it relies on chip.status.
-        chip = Chip('server')  # start with a dummy name, as this will be overwritten
-        chip.schema = Schema(cfg=cfg) # Add provided schema
+        # start with a dummy name, as this will be overwritten
+        chip = Chip('server')
+        # Add provided schema
+        chip.schema = Schema(cfg=cfg)
 
         # Fetch some common values.
         design = chip.get('design')
@@ -438,7 +440,6 @@ class Server:
 
             utils.copytree(from_dir, build_dir, dirs_exist_ok=True)
 
-            utils.copytree(from_dir, build_dir, dirs_exist_ok=True)
             run_cmd += f"sc-crypt -mode decrypt -target {job_dir} -key_file {keypath} ; "
             run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('option', 'jobname')}.json -dir {build_dir} -remote_addr '' ; "
             run_cmd += f"sc-crypt -mode encrypt -target {job_dir} -key_file {keypath} ; "
