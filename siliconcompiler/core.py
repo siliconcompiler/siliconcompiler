@@ -4166,6 +4166,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 cfg_dir = os.path.join(Path.home(), '.sc')
                 cfg_file = os.path.join(cfg_dir, 'credentials')
             if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
+                self.logger.info(f'Using credentials: {cfg_file}')
                 with open(cfg_file, 'r') as cfgf:
                     self.status['remote_cfg'] = json.loads(cfgf.read())
             else:
