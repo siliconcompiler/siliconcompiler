@@ -7,10 +7,10 @@ import json
 import logging as log
 import os
 import re
-import subprocess
 import shutil
 import uuid
 import tempfile
+import tarfile
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -205,9 +205,8 @@ class Server:
         else:
             # Move the uploaded archive and un-zip it.
             # (Contents will be encrypted for authenticated jobs)
-            os.replace(tmp_file, '%s/import.tar.gz'%job_root)
-            subprocess.run(['tar', '-xzf', '%s/import.tar.gz'%(job_root)],
-                           cwd=job_dir)
+            with tarfile.open(tmp_file, "r:gz") as tar:
+                tar.extractall(path=job_dir)
 
         # Delete the temporary file if it still exists.
         if os.path.exists(tmp_file):
@@ -223,7 +222,6 @@ class Server:
         chip.set('option', 'builddir', build_dir, clobber=True)
         # Link to the 'import' directory if necessary.
         os.makedirs(os.path.join(jobs_dir, job_nameid), exist_ok=True)
-        #subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('option', 'remote', False, clobber=True)
@@ -337,10 +335,8 @@ class Server:
         if not '..' in job_hash:
           build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
           if os.path.exists(build_dir):
-            #print('Deleting: %s'%build_dir)
             shutil.rmtree(build_dir)
           if os.path.exists('%s.tar.gz'%build_dir):
-            #print('Deleting: %s.tar.gz'%build_dir)
             os.remove('%s.tar.gz'%build_dir)
 
         return web.Response(text="Job deleted.")
@@ -459,11 +455,8 @@ class Server:
                 os.remove(keypath)
 
         # Zip results after all job stages have finished.
-        subprocess.run(['tar',
-                        '-czf',
-                        '%s.tar.gz'%job_hash,
-                        '%s'%job_hash],
-                       cwd = nfs_mount)
+        with tarfile.open(f'{job_hash}.tar.gz', "w:gz") as tar:
+            tar.add(nfs_mount, arcname=job_hash)
 
         # (Email notifications can be sent here using your preferred API)
 
@@ -516,11 +509,8 @@ class Server:
         # (Email notifications can be sent here using SES)
 
         # Create a single-file archive to return if results are requested.
-        subprocess.run(['tar',
-                        '-czf',
-                        '%s.tar.gz'%job_hash,
-                        '%s'%job_hash],
-                       cwd=self.cfg['nfsmount']['value'][-1])
+        with tarfile.open(self.cfg['nfsmount']['value'][-1] + f'/{job_hash}.tar.gz', "w:gz") as tar:
+            tar.add(os.path.join(self.cfg['nfsmount']['value'][-1], job_hash), arcname=job_hash)
 
         # Mark the job hash as being done.
         self.sc_jobs.pop("%s_%s"%(job_hash, jobid))
