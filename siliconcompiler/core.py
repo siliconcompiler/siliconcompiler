@@ -3725,8 +3725,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Write manifest (tool interface) (Don't move this!)
         suffix = self.get('tool', tool, 'format')
         if suffix:
-            pruneopt = (suffix != 'tcl')
-            self.write_manifest(f"sc_manifest.{suffix}", prune=pruneopt, abspath=True)
+            self.write_manifest(f"sc_manifest.{suffix}", prune=False, abspath=True)
 
         ##################
         # Start CPU Timer
