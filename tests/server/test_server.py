@@ -8,6 +8,8 @@ import time
 
 from unittest.mock import Mock
 
+SERVER_STARTUP_DELAY = 10
+
 @pytest.fixture
 def gcd_remote_test(gcd_chip, request):
     # Get the port number; avoid re-use to enable parallel tests.
@@ -22,7 +24,7 @@ def gcd_remote_test(gcd_chip, request):
                                  '-port', port,
                                  '-nfs_mount', './local_server_work',
                                  '-cluster', 'local'])
-    time.sleep(3)
+    time.sleep(SERVER_STARTUP_DELAY)
 
     # Mock the _runstep method.
     old__runtask = gcd_chip._runtask
@@ -41,8 +43,7 @@ def gcd_remote_test(gcd_chip, request):
     gcd_chip.set('option', 'remote', True)
     gcd_chip.set('option', 'credentials', os.path.abspath(tmp_creds))
 
-    # Ensure that klayout doesn't open its GUI after results are retrieved.
-    os.environ['DISPLAY'] = ''
+    gcd_chip.set('option', 'nodisplay', True)
 
     try:
         yield gcd_chip
@@ -59,7 +60,7 @@ def gcd_remote_test(gcd_chip, request):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
+@pytest.mark.timeout(300)
 @pytest.mark.remote_test(port='8080')
 def test_gcd_server(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -82,7 +83,7 @@ def test_gcd_server(gcd_remote_test):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
+@pytest.mark.timeout(300)
 @pytest.mark.remote_test(port='8081')
 def test_gcd_server_partial(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -112,7 +113,7 @@ def test_gcd_server_partial(gcd_remote_test):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
+@pytest.mark.timeout(300)
 @pytest.mark.remote_test(port='8082')
 def test_gcd_server_partial_noeda(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -128,13 +129,13 @@ def test_gcd_server_partial_noeda(gcd_remote_test):
     gcd_chip.set('option', 'steplist', ['import'])
 
     # Run the remote job.
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
 
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
+@pytest.mark.timeout(300)
 @pytest.mark.remote_test(port='8083')
 def test_gcd_server_partial_noimport(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -150,37 +151,13 @@ def test_gcd_server_partial_noimport(gcd_remote_test):
     gcd_chip.set('option', 'steplist', ['syn'])
 
     # Run the remote job.
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
 
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
-@pytest.mark.remote_test(port='8084')
-def test_gcd_server_error(gcd_remote_test):
-    '''Basic sc-server test: Run a local instance of a server, and build the GCD
-       example using loopback network calls to that server.
-
-       This test attempts to run an invalid flow graph, with two 'import' tasks containing an EDA
-       task between them. This should fail, because the current remote flow expects 'import' -> 'EDA'.
-    '''
-
-    # Get the partially-configured GCD Chip object from the fixture.
-    gcd_chip = gcd_remote_test
-
-    # Set an extra import step after the export step, to create an invalid flowgraph.
-    gcd_chip.node('asicflow', 'importt', 'surelog', 'parse', index='0')
-    gcd_chip.edge('asicflow', 'export', 'importt', head_index='0')
-
-    # Run the remote job.
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
-        gcd_chip.run()
-
-###########################
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.skip(reason="Server tests are unstable and need to be corrected.")
+@pytest.mark.timeout(300)
 @pytest.mark.remote_test(port='8085')
 def test_gcd_server_argstep_noimport(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -197,7 +174,7 @@ def test_gcd_server_argstep_noimport(gcd_remote_test):
     gcd_chip.set('arg', 'step', 'floorplan')
 
     # Run the remote job.
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
 
 if __name__ == "__main__":

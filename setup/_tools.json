@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "5287d3822a623e936c1bfc61a2718b27c3166eb6",
+    "git-commit": "4f7caa83c5774750c050c809ee25690fd49617f9",
     "docker-cmds": [
       "RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"
     ],
@@ -33,7 +33,7 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.28.3",
+    "version": "0.28.6",
     "git-url": "https://github.com/KLayout/klayout.git",
     "docker-skip": true,
     "auto-update": true
@@ -80,7 +80,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "a2655a4b70691aae8be02477f0a236a5a3d45542",
+    "git-commit": "7efc50367ed8f582001a5a293a9cd51f788f6a13",
     "auto-update": true
   }
 }

@@ -31,3 +31,8 @@ def test_empty():
 
     schema.set('package', 'version', '1.0')
     assert not schema._is_empty('package', 'version')
+
+def test_add_keypath_error():
+    schema = Schema()
+    with pytest.raises(ValueError):
+        schema.add('input', 'verilog', 'foo.v')

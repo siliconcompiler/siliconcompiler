@@ -37,22 +37,28 @@ def test_py(setup_example_test):
     # "Found unsupported expression..." (x72) + 3 ABC Warnings
     assert chip.get('metric', 'warnings', step='syn', index='0') == 75
 
-    # [WARNING PSM*]
-    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 16
+    # Warning: *. (x3)
+    # [WARNING PSM*] (x16)
+    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 19
 
-    assert chip.get('metric', 'warnings', step='physyn', index='0') == 0
+    # Warning: *. (x3)
+    assert chip.get('metric', 'warnings', step='physyn', index='0') == 3
 
-    assert chip.get('metric', 'warnings', step='place', index='0') == 0
+    # Warning: *. (x3)
+    assert chip.get('metric', 'warnings', step='place', index='0') == 3
 
+    # Warning: *. (x3)
     # "1632 wires are pure wire and no slew degradation"
     # "Creating fake entries in the LUT"
-    assert chip.get('metric', 'warnings', step='cts', index='0') == 2
+    assert chip.get('metric', 'warnings', step='cts', index='0') == 5
 
+    # Warning: *. (x3)
     # Missing route to pin (x69)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 69
+    assert chip.get('metric', 'warnings', step='route', index='0') == 72
 
+    # Warning: *. (x3)
     # Missing route to pin (x235)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 235
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 238
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1
