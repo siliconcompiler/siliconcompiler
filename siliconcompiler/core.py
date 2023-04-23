@@ -1708,7 +1708,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     keypath = item.split(',')
                     if self.schema._is_empty(*keypath):
                         error = True
-                        self.logger.error(f"Value empty for [{keypath}] for {tool}.")
+                        self.logger.error(f"Value empty for {keypath} for {tool}.")
 
                 task_run = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
                 if self.schema._is_empty('tool', tool, 'exe') and not task_run:
@@ -2596,7 +2596,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             step (str): name of the step to calculate the area from
             index (str): name of the step to calculate the area from
-        
+
         Returns:
             Design area (float).
 
@@ -3725,8 +3725,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Write manifest (tool interface) (Don't move this!)
         suffix = self.get('tool', tool, 'format')
         if suffix:
-            pruneopt = (suffix != 'tcl')
-            self.write_manifest(f"sc_manifest.{suffix}", prune=pruneopt, abspath=True)
+            self.write_manifest(f"sc_manifest.{suffix}", prune=False, abspath=True)
 
         ##################
         # Start CPU Timer

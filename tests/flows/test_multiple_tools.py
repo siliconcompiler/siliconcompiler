@@ -29,6 +29,8 @@ def test_multiple_tools():
     chip = siliconcompiler.Chip('test')
     chip.load_target('freepdk45_demo')
 
+    chip.input('foo.v')
+
     flow = 'test'
     chip.set('option', 'flow', flow)
     chip.node(flow, 'import', nop)
@@ -49,7 +51,7 @@ def test_multiple_tools():
     # Set fake license server for slog1
     chip.set('tool', 'surelog', 'licenseserver', 'ACME_LICENSE', '1700@server', step='slog', index=1)
 
-    # Don't run tools, just vesion check
+    # Don't run tools, just version check
     chip.set('option', 'skipall', True)
     chip.run()
 
