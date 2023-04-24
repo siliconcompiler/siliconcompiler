@@ -40,8 +40,8 @@ import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from PIL import Image, ImageFont, ImageDraw
-from siliconcompiler.client import *
-from siliconcompiler.schema import *
+from siliconcompiler.client import remote_preprocess, remote_run, fetch_results
+from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils
 from siliconcompiler import units

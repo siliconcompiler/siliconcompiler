@@ -12,14 +12,9 @@ import uuid
 import tempfile
 import tarfile
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import hashes, serialization
 from siliconcompiler import Chip
 from siliconcompiler import Schema
 from siliconcompiler import utils
-from siliconcompiler.crypto import gen_cipher_key
 
 class Server:
     """
@@ -175,38 +170,10 @@ class Server:
         job_dir  = os.path.join(job_root, design, job_name)
         os.makedirs(job_dir, exist_ok=True)
 
-        if use_auth:
-            # Create a new AES block cipher key, and an IV for the import step.
-            decrypt_key = serialization.load_ssh_private_key(self.user_keys[username]['priv_key'].encode(), None, backend=default_backend())
-            gen_cipher_key(job_dir, self.user_keys[username]['pub_key'], pubk_type='str')
-            # Decrypt the block cipher key.
-            with open(os.path.join(job_dir, 'import.bin'), 'rb') as f:
-                aes_key = decrypt_key.decrypt(
-                    f.read(),
-                    padding.OAEP(
-                        mgf=padding.MGF1(algorithm=hashes.SHA512()),
-                        algorithm=hashes.SHA512(),
-                        label=None,
-                    ))
-            aes_iv  = os.urandom(16)
-            with open(os.path.join(job_dir, f'import.iv'), 'wb') as f:
-                f.write(aes_iv)
-            # Encrypt the received data.
-            cipher = Cipher(algorithms.AES(aes_key), modes.CTR(aes_iv))
-            encryptor = cipher.encryptor()
-            with open(os.path.join(job_dir, f'import.crypt'), 'wb') as wf:
-                with open(tmp_file, 'rb') as rf:
-                    while True:
-                        chunk = rf.read(1024)
-                        if not chunk:
-                            break
-                        wf.write(encryptor.update(chunk))
-                    wf.write(encryptor.finalize())
-        else:
-            # Move the uploaded archive and un-zip it.
-            # (Contents will be encrypted for authenticated jobs)
-            with tarfile.open(tmp_file, "r:gz") as tar:
-                tar.extractall(path=job_dir)
+        # Move the uploaded archive and un-zip it.
+        # (Contents will be encrypted for authenticated jobs)
+        with tarfile.open(tmp_file, "r:gz") as tar:
+            tar.extractall(path=job_dir)
 
         # Delete the temporary file if it still exists.
         if os.path.exists(tmp_file):
@@ -390,7 +357,7 @@ class Server:
             return web.Response(text="Job has no running steps.")
 
     ####################
-    async def remote_sc_auth(self, chip, username, pk):
+    async def remote_sc_auth(self, chip, username):
         '''
         Async method to delegate an 'sc' command to a slurm host,
         and send an email notification when the job completes.
@@ -413,7 +380,6 @@ class Server:
             chip.set('option', 'jobscheduler', 'slurm')
             chip.set('option', 'remote', False)
             chip.unset('option', 'credentials')
-            chip.status['decrypt_key'] = base64.urlsafe_b64encode(pk)
             chip.run()
         else:
             # Reset 'build' directory in NFS storage.
@@ -425,22 +391,11 @@ class Server:
             job_dir  = os.path.join(build_dir, top_module, job_nameid)
             # Write plaintext JSON config to the build directory.
             os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
-            # Write private key to a file.
-            # This should be okay, because we are already trusting the local
-            # "compute node" disk to store the decrypted data. Further, the
-            # file will be deleted immediately after the run.
-            # Even so, use the usual 400 permissions for key files.
-            keypath = f'{build_dir}/pk'
-            with open(os.open(keypath, os.O_CREAT | os.O_WRONLY, 0o400), 'w+') as keyfile:
-                keyfile.write(pk)
             chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
 
             utils.copytree(from_dir, build_dir, dirs_exist_ok=True)
 
-            run_cmd += f"sc-crypt -mode decrypt -target {job_dir} -key_file {keypath} ; "
             run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('option', 'jobname')}.json -dir {build_dir} -remote_addr '' ; "
-            run_cmd += f"sc-crypt -mode encrypt -target {job_dir} -key_file {keypath} ; "
-
             # Run the generated command.
             proc = await asyncio.create_subprocess_shell(run_cmd)
             await proc.wait()
@@ -448,12 +403,6 @@ class Server:
             utils.copytree(os.path.join(build_dir, top_module),
                            os.path.join(from_dir, top_module), dirs_exist_ok=True)
             os.removedirs(build_dir)
-
-            # Ensure that the private key file was deleted.
-            # (The whole directory should already be gone,
-            #  but the subprocess command could fail)
-            if os.path.isfile(keypath):
-                os.remove(keypath)
 
         # Zip results after all job stages have finished.
         with tarfile.open(f'{job_hash}.tar.gz', "w:gz") as tar:
