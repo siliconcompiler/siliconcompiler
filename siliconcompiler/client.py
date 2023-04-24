@@ -5,13 +5,13 @@ import json
 import os
 import requests
 import shutil
-import subprocess
 import time
 import urllib.parse
 import uuid
+import tarfile
+import tempfile
 
 from siliconcompiler._metadata import default_server
-from siliconcompiler.crypto import *
 from siliconcompiler import utils
 
 ###################################
@@ -158,21 +158,18 @@ def request_remote_run(chip):
     # If '-remote_user' and '-remote_key' are not both specified,
     # no authorization is configured; proceed without crypto.
     # If they were specified, these files are now encrypted.
-    subprocess.run(['tar',
-                    '-czf',
-                    'import.tar.gz',
-                    '--exclude',
-                    'import.tar.gz',
-                    '.'],
-                   stdout=subprocess.PIPE,
-                   stderr=subprocess.STDOUT,
-                   cwd=local_build_dir)
-    upload_file = os.path.abspath(os.path.join(local_build_dir, 'import.tar.gz'))
+
+    upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
+    with tarfile.open(fileobj=upload_file, mode='w:gz') as tar:
+        tar.add(local_build_dir, arcname='')
+    # Flush file to ensure everything is written
+    upload_file.flush()
 
     # Print a reminder for public beta runs.
     default_server_name = urllib.parse.urlparse(default_server).hostname
     if default_server_name in remote_run_url:
-        chip.logger.warning("""Your job will be uploaded to a public server for processing in 5 seconds.
+        default_delay = 5
+        chip.logger.warning(f"""Your job will be uploaded to a public server for processing in {default_delay} seconds.
 ---------------------------------------------------------------------------------------------------
   DISCLAIMER:
   - The open SiliconCompiler remote server is a free service. Please don't abuse it.
@@ -183,27 +180,30 @@ def request_remote_run(chip):
   - For full TOS, see https://www.siliconcompiler.com/terms-of-service
 -------------------------------------------------------------------------------------------------""")
         chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
-        time.sleep(5)
+        time.sleep(default_delay)
 
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
     # part of the HTTP spec, so we need to manually follow the trail.
     redirect_url = remote_run_url
     while redirect_url:
-        with open(upload_file, 'rb') as f:
-            resp = requests.post(redirect_url,
-                                 files={'import': f,
-                                        'params': json.dumps(post_params)},
-                                 allow_redirects=False)
-            if resp.status_code == 302:
-                redirect_url = resp.headers['Location']
-            elif resp.status_code >= 400:
-                chip.logger.error(resp.json()['message'])
-                chip.logger.error('Error starting remote job run; quitting.')
-                raise RuntimeError('Remote server returned unrecoverable error code.')
-            else:
-                chip.logger.info(resp.text)
-                return
+        # Return to start of file
+        upload_file.seek(0)
+        resp = requests.post(redirect_url,
+                            files={'import': upload_file,
+                                   'params': json.dumps(post_params)},
+                            allow_redirects=False)
+        if resp.status_code == 302:
+            redirect_url = resp.headers['Location']
+        elif resp.status_code >= 400:
+            chip.logger.error(resp.json()['message'])
+            chip.logger.error('Error starting remote job run; quitting.')
+            raise RuntimeError('Remote server returned unrecoverable error code.')
+        else:
+            chip.logger.info(resp.text)
+            break
+
+    upload_file.close()
 
 ###################################
 def is_job_busy(chip):
@@ -345,7 +345,8 @@ def fetch_results(chip):
 
     # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
     # So we need to extract and delete those.
-    subprocess.run(['tar', '-xzf', f'{job_hash}.tar.gz'])
+    with tarfile.open(f'{job_hash}.tar.gz', 'r:gz') as tar:
+        tar.extractall()
     # Remove the results archive after it is extracted.
     os.remove(f'{job_hash}.tar.gz')
 

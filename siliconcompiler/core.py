@@ -6,11 +6,7 @@ import time
 import datetime
 import multiprocessing
 import tarfile
-import traceback
-import asyncio
-from subprocess import run, PIPE
 import os
-import glob
 import git
 import pathlib
 import sys
@@ -51,6 +47,7 @@ from siliconcompiler import utils
 from siliconcompiler import units
 from siliconcompiler import _metadata
 import psutil
+import subprocess
 
 class TaskStatus():
     # Could use Python 'enum' class here, but that doesn't work nicely with
@@ -3697,7 +3694,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if veropt:
                 cmdlist = [exe]
                 cmdlist.extend(veropt)
-                proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                proc = subprocess.run(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
                 if proc.returncode != 0:
                     self.logger.error(f'Version check on {tool} failed with code {proc.returncode}: {proc.stdout}')
                     self._haltstep(step, index)

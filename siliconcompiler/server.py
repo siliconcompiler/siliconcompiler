@@ -7,10 +7,10 @@ import json
 import logging as log
 import os
 import re
-import subprocess
 import shutil
 import uuid
 import tempfile
+import tarfile
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -49,7 +49,7 @@ class Server:
         # Use the config that was passed in.
         self.cfg = cmdlinecfg
         # Ensure that NFS mounting path is absolute.
-        self.cfg['nfsmount']['value'] = [os.path.abspath(self.cfg['nfsmount']['value'][-1])]
+        self.cfg['nfsmount']['value'] = [os.path.abspath(nfs_path) for nfs_path in self.cfg['nfsmount']['value']]
 
         # Set up a dictionary to track running jobs.
         self.sc_jobs = {}
@@ -64,7 +64,7 @@ class Server:
         # server implementation.
         if self.cfg['auth']['value'][-1]:
             self.user_keys = {}
-            json_path = self.cfg['nfsmount']['value'][-1] + '/users.json'
+            json_path = os.path.join(self.nfs_mount, 'users.json')
             try:
                 with open(json_path, 'r') as users_file:
                     users_json = json.loads(users_file.read())
@@ -91,7 +91,7 @@ class Server:
         # For security reasons, this is not a good public-facing solution.
         # There's no access control on which files can be downloaded.
         # But this is an example server which only implements a minimal API.
-        self.app.router.add_static('/get_results/', self.cfg['nfsmount']['value'][0])
+        self.app.router.add_static('/get_results/', self.nfs_mount)
 
         # Start the async server.
         web.run_app(self.app, port = int(self.cfg['port']['value'][-1]))
@@ -104,7 +104,7 @@ class Server:
         '''
 
         # Temporary file path to store streamed data.
-        tmp_file = self.cfg['nfsmount']['value'][-1] + '/' + uuid.uuid4().hex
+        tmp_file = os.path.join(self.nfs_mount, uuid.uuid4().hex)
 
         # Set up a multipart reader to read in the large file, and param data.
         reader = await request.multipart()
@@ -171,8 +171,8 @@ class Server:
         chip.status['jobhash'] = job_hash
 
         # Ensure that the job's root directory exists.
-        job_root = f"{self.cfg['nfsmount']['value'][-1]}/{job_hash}"
-        job_dir  = f"{job_root}/{design}/{job_name}"
+        job_root = os.path.join(self.nfs_mount, job_hash)
+        job_dir  = os.path.join(job_root, design, job_name)
         os.makedirs(job_dir, exist_ok=True)
 
         if use_auth:
@@ -205,17 +205,16 @@ class Server:
         else:
             # Move the uploaded archive and un-zip it.
             # (Contents will be encrypted for authenticated jobs)
-            os.replace(tmp_file, '%s/import.tar.gz'%job_root)
-            subprocess.run(['tar', '-xzf', '%s/import.tar.gz'%(job_root)],
-                           cwd=job_dir)
+            with tarfile.open(tmp_file, "r:gz") as tar:
+                tar.extractall(path=job_dir)
 
         # Delete the temporary file if it still exists.
         if os.path.exists(tmp_file):
             os.remove(tmp_file)
 
         # Reset 'build' directory in NFS storage.
-        build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
-        jobs_dir = '%s/%s'%(build_dir, chip.get('design'))
+        build_dir = os.path.join(self.nfs_mount, job_hash)
+        jobs_dir = os.path.join(build_dir, chip.get('design'))
         job_nameid = f"{chip.get('option', 'jobname')}"
 
         # Create the working directory for the given 'job hash' if necessary.
@@ -223,7 +222,6 @@ class Server:
         chip.set('option', 'builddir', build_dir, clobber=True)
         # Link to the 'import' directory if necessary.
         os.makedirs(os.path.join(jobs_dir, job_nameid), exist_ok=True)
-        #subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
 
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('option', 'remote', False, clobber=True)
@@ -285,7 +283,7 @@ class Server:
         )
         await resp.prepare(request)
 
-        zipfn = os.path.join(self.cfg['nfsmount']['value'][-1], job_hash+'.tar.gz')
+        zipfn = os.path.join(self.nfs_mount, f'{job_hash}.tar.gz')
         with open(zipfn, 'rb') as zipf:
             await resp.write(zipf.read())
 
@@ -335,13 +333,13 @@ class Server:
         # Again, we will need a more mature server framework to implement
         # good access control and security policies for a public-facing service.
         if not '..' in job_hash:
-          build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
-          if os.path.exists(build_dir):
-            #print('Deleting: %s'%build_dir)
-            shutil.rmtree(build_dir)
-          if os.path.exists('%s.tar.gz'%build_dir):
-            #print('Deleting: %s.tar.gz'%build_dir)
-            os.remove('%s.tar.gz'%build_dir)
+            build_dir = os.path.join(self.nfs_mount, job_hash)
+            if os.path.exists(build_dir):
+                shutil.rmtree(build_dir)
+
+            tar_file = f'{build_dir}.tar.gz'
+            if os.path.exists(tar_file):
+                os.remove(tar_file)
 
         return web.Response(text="Job deleted.")
 
@@ -404,7 +402,6 @@ class Server:
         job_hash = chip.status['jobhash']
         top_module = chip.top()
         job_nameid = chip.get('option', 'jobname')
-        nfs_mount = self.cfg['nfsmount']['value'][-1]
 
         # Mark the job run as busy.
         self.sc_jobs[f'{username}{job_hash}_{job_nameid}'] = 'busy'
@@ -412,10 +409,10 @@ class Server:
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Run the job with slurm clustering.
-            chip.set('option', 'builddir', f'{nfs_mount}/{job_hash}', clobber=True)
+            chip.set('option', 'builddir', os.path.join(self.nfs_mount, job_hash))
             chip.set('option', 'jobscheduler', 'slurm')
             chip.set('option', 'remote', False)
-            chip.set('option', 'credentials', '', clobber=True)
+            chip.unset('option', 'credentials')
             chip.status['decrypt_key'] = base64.urlsafe_b64encode(pk)
             chip.run()
         else:
@@ -424,7 +421,7 @@ class Server:
 
             chip.set('option', 'builddir', build_dir, clobber=True)
             # Run the build command locally.
-            from_dir = '%s/%s'%(nfs_mount, job_hash)
+            from_dir = os.path.join(self.nfs_mount, job_hash)
             job_dir  = os.path.join(build_dir, top_module, job_nameid)
             # Write plaintext JSON config to the build directory.
             os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
@@ -459,11 +456,8 @@ class Server:
                 os.remove(keypath)
 
         # Zip results after all job stages have finished.
-        subprocess.run(['tar',
-                        '-czf',
-                        '%s.tar.gz'%job_hash,
-                        '%s'%job_hash],
-                       cwd = nfs_mount)
+        with tarfile.open(f'{job_hash}.tar.gz', "w:gz") as tar:
+            tar.add(self.nfs_mount, arcname=job_hash)
 
         # (Email notifications can be sent here using your preferred API)
 
@@ -516,11 +510,8 @@ class Server:
         # (Email notifications can be sent here using SES)
 
         # Create a single-file archive to return if results are requested.
-        subprocess.run(['tar',
-                        '-czf',
-                        '%s.tar.gz'%job_hash,
-                        '%s'%job_hash],
-                       cwd=self.cfg['nfsmount']['value'][-1])
+        with tarfile.open(os.path.join(self.nfs_mount, f'{job_hash}.tar.gz'), "w:gz") as tar:
+            tar.add(os.path.join(self.nfs_mount, job_hash), arcname=job_hash)
 
         # Mark the job hash as being done.
         self.sc_jobs.pop("%s_%s"%(job_hash, jobid))
@@ -539,6 +530,11 @@ class Server:
         if not username in self.user_keys:
             return False
         return (password == self.user_keys[username]['password'])
+
+    ###################
+    @property
+    def nfs_mount(self):
+        return self.cfg['nfsmount']['value'][-1]
 
     ####################
     def writecfg(self, filename, mode="all"):
