@@ -19,7 +19,6 @@ from cryptography.hazmat.primitives import hashes, serialization
 from siliconcompiler import Chip
 from siliconcompiler import Schema
 from siliconcompiler import utils
-from siliconcompiler.crypto import gen_cipher_key
 
 class Server:
     """
@@ -178,7 +177,6 @@ class Server:
         if use_auth:
             # Create a new AES block cipher key, and an IV for the import step.
             decrypt_key = serialization.load_ssh_private_key(self.user_keys[username]['priv_key'].encode(), None, backend=default_backend())
-            gen_cipher_key(job_dir, self.user_keys[username]['pub_key'], pubk_type='str')
             # Decrypt the block cipher key.
             with open(os.path.join(job_dir, 'import.bin'), 'rb') as f:
                 aes_key = decrypt_key.decrypt(
