@@ -191,7 +191,7 @@ def request_remote_run(chip):
         upload_file.seek(0)
         resp = requests.post(redirect_url,
                             files={'import': upload_file,
-                                    'params': json.dumps(post_params)},
+                                   'params': json.dumps(post_params)},
                             allow_redirects=False)
         if resp.status_code == 302:
             redirect_url = resp.headers['Location']
