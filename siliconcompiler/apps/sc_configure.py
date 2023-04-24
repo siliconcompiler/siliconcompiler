@@ -70,7 +70,7 @@ def main():
 
     server = urlparse(srv_addr)
     has_scheme = True
-    if not server.scheme:
+    if not server.hostname:
         # fake add a scheme to the url
         has_scheme = False
         server = urlparse('https://' + srv_addr)
