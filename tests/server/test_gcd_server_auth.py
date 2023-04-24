@@ -10,7 +10,7 @@ import pytest
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_gcd_server_authenticated(gcd_chip, scroot):
+def test_gcd_server_authenticated(gcd_chip, unused_tcp_port):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
        Use authentication and encryption features.
@@ -32,7 +32,7 @@ def test_gcd_server_authenticated(gcd_chip, scroot):
     srv_proc = subprocess.Popen(['sc-server',
                                  '-nfs_mount', './local_server_work',
                                  '-cluster', 'local',
-                                 '-port', '8085',
+                                 '-port', str(unused_tcp_port),
                                  '-auth'])
     time.sleep(10)
 
@@ -40,7 +40,7 @@ def test_gcd_server_authenticated(gcd_chip, scroot):
     tmp_creds = '.test_remote_cfg'
     with open(tmp_creds, 'w') as tmp_cred_file:
         tmp_cred_file.write(json.dumps({'address': 'localhost', 
-                                        'port': int(8085),
+                                        'port': unused_tcp_port,
                                         'username': 'test_user',
                                         'password': user_pwd
                                         }))
@@ -63,7 +63,7 @@ def test_gcd_server_authenticated(gcd_chip, scroot):
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 @pytest.mark.skip(reason="Skip until server.py has fixed the reponses to be be jsons")
-def test_gcd_server_not_authenticated(gcd_chip, scroot):
+def test_gcd_server_not_authenticated(gcd_chip, unused_tcp_port):
     '''Basic sc-server test: Run a local instance of a server, and attempt to
        authenticate a user with an invalid key. The remote run should fail.
     '''
@@ -82,7 +82,7 @@ def test_gcd_server_not_authenticated(gcd_chip, scroot):
     srv_proc = subprocess.Popen(['sc-server',
                                  '-nfs_mount', './local_server_work',
                                  '-cluster', 'local',
-                                 '-port', '8086',
+                                 '-port', str(unused_tcp_port),
                                  '-auth'])
     time.sleep(10)
 
@@ -93,7 +93,7 @@ def test_gcd_server_not_authenticated(gcd_chip, scroot):
     tmp_creds = '.test_remote_cfg'
     with open(tmp_creds, 'w') as tmp_cred_file:
         tmp_cred_file.write(json.dumps({'address': 'localhost', 
-                                        'port': int(8086),
+                                        'port': unused_tcp_port,
                                         'username': 'test_user',
                                         'password': user_pwd + '1'
                                         }))
