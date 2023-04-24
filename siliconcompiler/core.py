@@ -6,7 +6,6 @@ import time
 import datetime
 import multiprocessing
 import tarfile
-from subprocess import PIPE
 import os
 import git
 import pathlib
@@ -3695,7 +3694,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if veropt:
                 cmdlist = [exe]
                 cmdlist.extend(veropt)
-                proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                proc = subprocess.run(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
                 if proc.returncode != 0:
                     self.logger.error(f'Version check on {tool} failed with code {proc.returncode}: {proc.stdout}')
                     self._haltstep(step, index)
