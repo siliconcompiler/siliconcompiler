@@ -65,8 +65,6 @@ class Server:
                     users_json = json.loads(users_file.read())
                 for mapping in users_json['users']:
                     self.user_keys[mapping['username']] = {
-                        'pub_key': mapping['pub_key'],
-                        'priv_key': mapping['priv_key'],
                         'password': mapping['password'],
                     }
             except Exception:
@@ -200,8 +198,7 @@ class Server:
         # Run the job with the configured clustering option. (Non-blocking)
         if use_auth:
             asyncio.ensure_future(self.remote_sc_auth(chip,
-                                                      username,
-                                                      self.user_keys[username]['priv_key']))
+                                                      username))
         else:
             asyncio.ensure_future(self.remote_sc(chip))
 
@@ -371,47 +368,31 @@ class Server:
         job_nameid = chip.get('option', 'jobname')
 
         # Mark the job run as busy.
-        self.sc_jobs[f'{username}{job_hash}_{job_nameid}'] = 'busy'
+        sc_job_name = f'{username}{job_hash}_{job_nameid}'
+        self.sc_jobs[sc_job_name] = 'busy'
 
-        run_cmd = ''
+        build_dir = os.path.join(self.nfs_mount, job_hash)
+        chip.set('option', 'builddir', build_dir)
+        chip.set('option', 'remote', False)
+        chip.unset('option', 'credentials')
+
+        os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
+        chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
+
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Run the job with slurm clustering.
-            chip.set('option', 'builddir', os.path.join(self.nfs_mount, job_hash))
             chip.set('option', 'jobscheduler', 'slurm')
-            chip.set('option', 'remote', False)
-            chip.unset('option', 'credentials')
-            chip.run()
-        else:
-            # Reset 'build' directory in NFS storage.
-            _, build_dir = tempfile.mkstemp(prefix=job_hash, suffix=job_nameid)
 
-            chip.set('option', 'builddir', build_dir, clobber=True)
-            # Run the build command locally.
-            from_dir = os.path.join(self.nfs_mount, job_hash)
-            job_dir  = os.path.join(build_dir, top_module, job_nameid)
-            # Write plaintext JSON config to the build directory.
-            os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
-            chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
+        chip.run()
 
-            utils.copytree(from_dir, build_dir, dirs_exist_ok=True)
-
-            run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('option', 'jobname')}.json -dir {build_dir} -remote_addr '' ; "
-            # Run the generated command.
-            proc = await asyncio.create_subprocess_shell(run_cmd)
-            await proc.wait()
-
-            utils.copytree(os.path.join(build_dir, top_module),
-                           os.path.join(from_dir, top_module), dirs_exist_ok=True)
-            os.removedirs(build_dir)
-
-        # Zip results after all job stages have finished.
-        with tarfile.open(f'{job_hash}.tar.gz', "w:gz") as tar:
-            tar.add(self.nfs_mount, arcname=job_hash)
+        # Create a single-file archive to return if results are requested.
+        with tarfile.open(os.path.join(self.nfs_mount, f'{job_hash}.tar.gz'), "w:gz") as tar:
+            tar.add(os.path.join(self.nfs_mount, job_hash), arcname=job_hash)
 
         # (Email notifications can be sent here using your preferred API)
 
         # Mark the job hash as being done.
-        self.sc_jobs.pop(f'{username}{job_hash}_{chip.get("jobname")}')
+        self.sc_jobs.pop(sc_job_name)
 
     ####################
     async def remote_sc(self, chip):
