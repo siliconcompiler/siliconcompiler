@@ -74,7 +74,6 @@ def main():
         # fake add a scheme to the url
         has_scheme = False
         server = urlparse('https://' + srv_addr)
-        config['address'] = server.hostname
     if not server.hostname:
         print(f'Invalid address provided: {srv_addr}')
         return
