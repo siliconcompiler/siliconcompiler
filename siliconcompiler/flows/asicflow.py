@@ -12,6 +12,8 @@ from siliconcompiler.tools.openroad import dfm
 from siliconcompiler.tools.openroad import export as openroad_export
 from siliconcompiler.tools.klayout import export as klayout_export
 
+from siliconcompiler.tools.builtin import minimum
+
 ############################################################################
 # DOCS
 ############################################################################
@@ -75,17 +77,17 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
     #step --> task
     tasks = {
         'syn' : syn_asic,
-        'synmin' : 'builtin.minimum',
+        'synmin' : minimum,
         'floorplan' : floorplan,
-        'floorplanmin' : 'builtin.minimum',
+        'floorplanmin' : minimum,
         'physyn' : physyn,
-        'physynmin' : 'builtin.minimum',
+        'physynmin' : minimum,
         'place' : place,
-        'placemin' : 'builtin.minimum',
+        'placemin' : minimum,
         'cts' : cts,
-        'ctsmin' : 'builtin.minimum',
+        'ctsmin' : minimum,
         'route' : route,
-        'routemin' : 'builtin.minimum',
+        'routemin' : minimum,
         'dfm' : dfm
     }
 
@@ -102,7 +104,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
     flowpipe = []
     for step in longpipe:
         task = tasks[step]
-        if isinstance(task, str) and task.startswith('builtin'):
+        if task == minimum:
             if prevstep in np and np[prevstep] > 1:
                 flowpipe.append(step)
         else:
@@ -125,7 +127,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
             flow.node(flowname, step, task, index=index)
 
             # edges
-            if isinstance(task, str) and task.startswith('builtin'):
+            if task == minimum:
                 fanin = 1
                 if prevstep in np:
                     fanin = np[prevstep]

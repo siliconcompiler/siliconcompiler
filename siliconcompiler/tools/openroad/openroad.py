@@ -26,6 +26,24 @@ def make_docs(chip):
 # Setup Tool (pre executable)
 ################################
 
+def setup_tool(chip, exit=True, clobber=True):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    chip.set('tool', tool, 'exe', tool)
+    chip.set('tool', tool, 'vswitch', '-version')
+    chip.set('tool', tool, 'version', '>=v2.0-7761', clobber=clobber)
+    chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
+
+    # exit automatically in batch mode and not breakpoint
+    option = ''
+    if exit and not chip.get('option', 'breakpoint', step=step, index=index):
+        option += " -exit"
+
+    option += " -metrics reports/metrics.json"
+    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
+
 def setup(chip, mode='batch'):
 
     # default tool settings, note, not additive!
@@ -57,18 +75,8 @@ def setup(chip, mode='batch'):
     else:
         clobber = False
 
-    # exit automatically in batch mode and not breakpoint
-    option = ''
-    if (mode=='batch' or is_screenshot) and not chip.get('option', 'breakpoint', step=step, index=index):
-        option += " -exit"
-
-    option += " -metrics reports/metrics.json"
-
     # Fixed for tool
-    chip.set('tool', tool, 'exe', tool)
-    chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-7069', clobber=clobber)
-    chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
+    setup_tool(chip, exit=(mode=='batch' or is_screenshot), clobber=clobber)
 
     # normalizing thread count based on parallelism and local
     threads = os.cpu_count()
@@ -78,7 +86,6 @@ def setup(chip, mode='batch'):
 
     # Input/Output requirements for default asicflow steps
 
-    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'threads', threads, step=step, index=index, clobber=clobber)
@@ -226,7 +233,8 @@ def setup(chip, mode='batch'):
         ('sta_late_timing_derate', '0.0', 'timing derating factor to use for setup corners'),
         ('fin_add_fill', 'true', 'true/false, when true enables adding fill, if enabled by the PDK, to the design'),
         ('psm_enable', 'true', 'true/false, when true enables IR drop analysis'),
-        ('debug_level', None, 'list of "tool key level" to enable debugging of OpenROAD')
+        ('debug_level', None, 'list of "tool key level" to enable debugging of OpenROAD'),
+        ('sdc_buffer', None, 'Buffer cell to use when auto generating timing constraints')
         ]:
         if value:
             chip.set('tool', tool, 'task', task, 'var', variable, value, step=step, index=index, clobber=False)

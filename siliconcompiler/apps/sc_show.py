@@ -1,8 +1,22 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import sys
 import os
+import glob
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
+from siliconcompiler.targets.utils import set_common_showtools
+
+def _get_manifest(dirname):
+    # pkg.json file may have a different name from the design due to the entrypoint
+    manifest = glob.glob(os.path.join(dirname, '*.pkg.json'))
+    if manifest:
+        manifest = manifest[0]
+    else:
+        manifest = None
+
+    if not manifest or not os.path.isfile(manifest):
+        return None
+    return manifest
 
 def main():
     progname = "sc-show"
@@ -32,10 +46,11 @@ def main():
     chip = siliconcompiler.Chip(UNSET_DESIGN)
 
     # Fill input map with default mapping only for showable files
-    default_input = 'gds'
     input_map = {}
     default_input_map = get_default_iomap()
-    for ext in ('gds', 'oas', 'odb', 'def'):
+    show_chip = siliconcompiler.Chip('show-tools')
+    set_common_showtools(show_chip)
+    for ext in show_chip.getkeys('option', 'showtool'):
         if ext in default_input_map:
             input_map[ext] = default_input_map[ext]
 
@@ -69,30 +84,26 @@ def main():
 
     if (filename is not None) and (not chip.get('option', 'cfg')):
         # only autoload manifest if user doesn't supply manually
-        design = os.path.splitext(os.path.basename(filename))[0]
-        dirname = os.path.dirname(filename)
-        manifest = os.path.join(*[dirname, design+'.pkg.json'])
-        if not os.path.isfile(manifest):
+        manifest = _get_manifest(os.path.dirname(filename))
+        if not manifest:
+            design = os.path.splitext(os.path.basename(filename))[0]
             chip.logger.error(f'Unable to automatically find manifest for design {design}. '
                 'Please provide a manifest explicitly using -cfg.')
             sys.exit(1)
         chip.read_manifest(manifest)
     elif not chip.get('option', 'cfg'):
-        # TODO: should we consider using showable?
-        manifest = os.path.join(chip._getworkdir(), f'{design}.pkg.json')
-        if not os.path.isfile(manifest):
+        manifest = _get_manifest(chip._getworkdir())
+        if not manifest:
             chip.logger.warning('Could not find manifest from design name')
         else:
             chip.read_manifest(manifest)
 
-        filename = chip.find_result(default_input, step='export')
-        if filename is None:
-            chip.logger.error(f'No final {default_input} export found for design')
-            sys.exit(1)
-
     # Read in file
     if filename:
         chip.logger.info(f"Displaying {filename}")
+
+    # Set supported showtools incase custom flow was used and didn't get set
+    set_common_showtools(chip)
 
     success = chip.show(filename)
 

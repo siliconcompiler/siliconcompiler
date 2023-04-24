@@ -77,7 +77,7 @@ set sc_libtype      [dict get $sc_cfg library $sc_mainlib asic libarch]
 set sc_site         [lindex [dict get $sc_cfg library $sc_mainlib asic site $sc_libtype] 0]
 set sc_filler       [dict get $sc_cfg library $sc_mainlib asic cells filler]
 set sc_dontuse      [dict get $sc_cfg library $sc_mainlib asic cells dontuse]
-set sc_clkbuf       [dict get $sc_cfg library $sc_mainlib asic cells clkbuf]
+set sc_clkbuf       [lindex [dict get $sc_cfg library $sc_mainlib asic cells clkbuf] end]
 set sc_filler       [dict get $sc_cfg library $sc_mainlib asic cells filler]
 set sc_tap          [dict get $sc_cfg library $sc_mainlib asic cells tap]
 set sc_endcap       [dict get $sc_cfg library $sc_mainlib asic cells endcap]
@@ -303,8 +303,7 @@ if {$openroad_sta_late_timing_derate != 0.0} {
 }
 
 # Check timing setup
-# This produces a segfault on sky130
-#check_setup
+check_setup
 
 if { [llength [all_clocks]] == 0} {
   utl::warn FLW 1 "No clocks defined."

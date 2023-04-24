@@ -1,24 +1,20 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import argparse
 from aiohttp import web
 import asyncio
 import base64
-import glob
 import json
 import logging as log
 import os
 import re
-import subprocess
 import shutil
 import uuid
+import tempfile
+import tarfile
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import hashes, serialization
 from siliconcompiler import Chip
-from siliconcompiler.crypto import decrypt_job, gen_cipher_key
+from siliconcompiler import Schema
+from siliconcompiler import utils
 
 class Server:
     """
@@ -38,17 +34,17 @@ class Server:
         '''
 
         # Initialize logger
-        self.logger = log.getLogger()
+        self.logger = log.getLogger(uuid.uuid4().hex)
         self.handler = log.StreamHandler()
         self.formatter = log.Formatter('%(asctime)s %(levelname)-8s %(message)s')
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
-        self.logger.setLevel(str(loglevel))
+        self.logger.setLevel(loglevel)
 
         # Use the config that was passed in.
         self.cfg = cmdlinecfg
         # Ensure that NFS mounting path is absolute.
-        self.cfg['nfsmount']['value'] = [os.path.abspath(self.cfg['nfsmount']['value'][-1])]
+        self.cfg['nfsmount']['value'] = [os.path.abspath(nfs_path) for nfs_path in self.cfg['nfsmount']['value']]
 
         # Set up a dictionary to track running jobs.
         self.sc_jobs = {}
@@ -63,7 +59,7 @@ class Server:
         # server implementation.
         if self.cfg['auth']['value'][-1]:
             self.user_keys = {}
-            json_path = self.cfg['nfsmount']['value'][-1] + '/users.json'
+            json_path = os.path.join(self.nfs_mount, 'users.json')
             try:
                 with open(json_path, 'r') as users_file:
                     users_json = json.loads(users_file.read())
@@ -90,7 +86,7 @@ class Server:
         # For security reasons, this is not a good public-facing solution.
         # There's no access control on which files can be downloaded.
         # But this is an example server which only implements a minimal API.
-        self.app.router.add_static('/get_results/', self.cfg['nfsmount']['value'][0])
+        self.app.router.add_static('/get_results/', self.nfs_mount)
 
         # Start the async server.
         web.run_app(self.app, port = int(self.cfg['port']['value'][-1]))
@@ -103,7 +99,7 @@ class Server:
         '''
 
         # Temporary file path to store streamed data.
-        tmp_file = self.cfg['nfsmount']['value'][-1] + '/' + uuid.uuid4().hex
+        tmp_file = os.path.join(self.nfs_mount, uuid.uuid4().hex)
 
         # Set up a multipart reader to read in the large file, and param data.
         reader = await request.multipart()
@@ -158,8 +154,10 @@ class Server:
         # Create a dummy Chip object to make schema traversal easier.
         # TODO: if this is a dummy Chip we should be able to use Schema class,
         # but looks like it relies on chip.status.
-        chip = Chip(cfg['design']['value'])
-        chip.schema.cfg = cfg
+        # start with a dummy name, as this will be overwritten
+        chip = Chip('server')
+        # Add provided schema
+        chip.schema = Schema(cfg=cfg)
 
         # Fetch some common values.
         design = chip.get('design')
@@ -168,66 +166,36 @@ class Server:
         chip.status['jobhash'] = job_hash
 
         # Ensure that the job's root directory exists.
-        job_root = f"{self.cfg['nfsmount']['value'][-1]}/{job_hash}"
-        job_dir  = f"{job_root}/{design}/{job_name}"
-        subprocess.run(['mkdir', '-p', job_dir])
+        job_root = os.path.join(self.nfs_mount, job_hash)
+        job_dir  = os.path.join(job_root, design, job_name)
+        os.makedirs(job_dir, exist_ok=True)
 
-        if use_auth:
-            # Create a new AES block cipher key, and an IV for the import step.
-            decrypt_key = serialization.load_ssh_private_key(self.user_keys[username]['priv_key'].encode(), None, backend=default_backend())
-            gen_cipher_key(job_dir, self.user_keys[username]['pub_key'], pubk_type='str')
-            # Decrypt the block cipher key.
-            with open(os.path.join(job_dir, 'import.bin'), 'rb') as f:
-                aes_key = decrypt_key.decrypt(
-                    f.read(),
-                    padding.OAEP(
-                        mgf=padding.MGF1(algorithm=hashes.SHA512()),
-                        algorithm=hashes.SHA512(),
-                        label=None,
-                    ))
-            aes_iv  = os.urandom(16)
-            with open(os.path.join(job_dir, f'import.iv'), 'wb') as f:
-                f.write(aes_iv)
-            # Encrypt the received data.
-            cipher = Cipher(algorithms.AES(aes_key), modes.CTR(aes_iv))
-            encryptor = cipher.encryptor()
-            with open(os.path.join(job_dir, f'import.crypt'), 'wb') as wf:
-                with open(tmp_file, 'rb') as rf:
-                    while True:
-                        chunk = rf.read(1024)
-                        if not chunk:
-                            break
-                        wf.write(encryptor.update(chunk))
-                    wf.write(encryptor.finalize())
-        else:
-            # Move the uploaded archive and un-zip it.
-            # (Contents will be encrypted for authenticated jobs)
-            os.replace(tmp_file, '%s/import.tar.gz'%job_root)
-            subprocess.run(['tar', '-xzf', '%s/import.tar.gz'%(job_root)],
-                           cwd=job_dir)
+        # Move the uploaded archive and un-zip it.
+        # (Contents will be encrypted for authenticated jobs)
+        with tarfile.open(tmp_file, "r:gz") as tar:
+            tar.extractall(path=job_dir)
 
         # Delete the temporary file if it still exists.
         if os.path.exists(tmp_file):
             os.remove(tmp_file)
 
         # Reset 'build' directory in NFS storage.
-        build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][-1], job_hash)
-        jobs_dir = '%s/%s'%(build_dir, chip.get('design'))
+        build_dir = os.path.join(self.nfs_mount, job_hash)
+        jobs_dir = os.path.join(build_dir, chip.get('design'))
         job_nameid = f"{chip.get('option', 'jobname')}"
 
         # Create the working directory for the given 'job hash' if necessary.
-        subprocess.run(['mkdir', '-p', jobs_dir])
+        os.makedirs(jobs_dir, exist_ok=True)
         chip.set('option', 'builddir', build_dir, clobber=True)
         # Link to the 'import' directory if necessary.
-        subprocess.run(['mkdir', '-p', '%s/%s'%(jobs_dir, job_nameid)])
-        #subprocess.run(['ln', '-s', '%s/import0'%build_dir, '%s/%s/import0'%(jobs_dir, job_nameid)])
+        os.makedirs(os.path.join(jobs_dir, job_nameid), exist_ok=True)
 
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('option', 'remote', False, clobber=True)
         chip.set('option', 'credentials', '', clobber=True)
 
         # Write JSON config to shared compute storage.
-        subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
+        os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
 
         # Run the job with the configured clustering option. (Non-blocking)
         if use_auth:
@@ -282,7 +250,7 @@ class Server:
         )
         await resp.prepare(request)
 
-        zipfn = os.path.join(self.cfg['nfsmount']['value'][-1], job_hash+'.tar.gz')
+        zipfn = os.path.join(self.nfs_mount, f'{job_hash}.tar.gz')
         with open(zipfn, 'rb') as zipf:
             await resp.write(zipf.read())
 
@@ -332,13 +300,13 @@ class Server:
         # Again, we will need a more mature server framework to implement
         # good access control and security policies for a public-facing service.
         if not '..' in job_hash:
-          build_dir = '%s/%s'%(self.cfg['nfsmount']['value'][0], job_hash)
-          if os.path.exists(build_dir):
-            #print('Deleting: %s'%build_dir)
-            shutil.rmtree(build_dir)
-          if os.path.exists('%s.tar.gz'%build_dir):
-            #print('Deleting: %s.tar.gz'%build_dir)
-            os.remove('%s.tar.gz'%build_dir)
+            build_dir = os.path.join(self.nfs_mount, job_hash)
+            if os.path.exists(build_dir):
+                shutil.rmtree(build_dir)
+
+            tar_file = f'{build_dir}.tar.gz'
+            if os.path.exists(tar_file):
+                os.remove(tar_file)
 
         return web.Response(text="Job deleted.")
 
@@ -389,7 +357,7 @@ class Server:
             return web.Response(text="Job has no running steps.")
 
     ####################
-    async def remote_sc_auth(self, chip, username, pk):
+    async def remote_sc_auth(self, chip, username):
         '''
         Async method to delegate an 'sc' command to a slurm host,
         and send an email notification when the job completes.
@@ -399,69 +367,46 @@ class Server:
 
         # Assemble core job parameters.
         job_hash = chip.status['jobhash']
-        design = chip.get('design')
         top_module = chip.top()
-        job_nameid = f"{chip.get('option', 'jobname')}"
-        nfs_mount = self.cfg['nfsmount']['value'][-1]
+        job_nameid = chip.get('option', 'jobname')
 
         # Mark the job run as busy.
         self.sc_jobs[f'{username}{job_hash}_{job_nameid}'] = 'busy'
 
-        # Reset 'build' directory in NFS storage.
-        build_dir = '/tmp/%s_%s'%(job_hash, job_nameid)
-        os.mkdir(build_dir)
-
         run_cmd = ''
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Run the job with slurm clustering.
-            chip.set('option', 'builddir', f'{nfs_mount}/{job_hash}', clobber=True)
+            chip.set('option', 'builddir', os.path.join(self.nfs_mount, job_hash))
             chip.set('option', 'jobscheduler', 'slurm')
             chip.set('option', 'remote', False)
-            chip.set('option', 'credentials', '', clobber=True)
-            chip.status['decrypt_key'] = base64.urlsafe_b64encode(pk)
+            chip.unset('option', 'credentials')
             chip.run()
         else:
+            # Reset 'build' directory in NFS storage.
+            _, build_dir = tempfile.mkstemp(prefix=job_hash, suffix=job_nameid)
+
             chip.set('option', 'builddir', build_dir, clobber=True)
             # Run the build command locally.
-            from_dir = '%s/%s'%(nfs_mount, job_hash)
-            to_dir   = '/tmp/%s_%s'%(job_hash, job_nameid)
+            from_dir = os.path.join(self.nfs_mount, job_hash)
             job_dir  = os.path.join(build_dir, top_module, job_nameid)
             # Write plaintext JSON config to the build directory.
-            subprocess.run(['mkdir', '-p', to_dir])
-            subprocess.run(['mkdir', '-p', '%s/configs'%build_dir])
-            # Write private key to a file.
-            # This should be okay, because we are already trusting the local
-            # "compute node" disk to store the decrypted data. Further, the
-            # file will be deleted immediately after the run.
-            # Even so, use the usual 400 permissions for key files.
-            keypath = f'{to_dir}/pk'
-            with open(os.open(keypath, os.O_CREAT | os.O_WRONLY, 0o400), 'w+') as keyfile:
-                keyfile.write(pk)
+            os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
             chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
-            # Create the command to run.
-            run_cmd  = f"cp -R {from_dir}/* {to_dir}/ ; "
-            run_cmd += f"sc-crypt -mode decrypt -target {job_dir} -key_file {keypath} ; "
-            run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('option', 'jobname')}.json -dir {to_dir} -remote_addr '' ; "
-            run_cmd += f"sc-crypt -mode encrypt -target {job_dir} -key_file {keypath} ; "
-            run_cmd += f"cp -R {to_dir}/{top_module}/* {from_dir}/{top_module}/ ; "
-            run_cmd += f"rm -rf {to_dir}"
 
+            utils.copytree(from_dir, build_dir, dirs_exist_ok=True)
+
+            run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('option', 'jobname')}.json -dir {build_dir} -remote_addr '' ; "
             # Run the generated command.
             proc = await asyncio.create_subprocess_shell(run_cmd)
             await proc.wait()
 
-            # Ensure that the private key file was deleted.
-            # (The whole directory should already be gone,
-            #  but the subprocess command could fail)
-            if os.path.isfile(keypath):
-                os.remove(keypath)
+            utils.copytree(os.path.join(build_dir, top_module),
+                           os.path.join(from_dir, top_module), dirs_exist_ok=True)
+            os.removedirs(build_dir)
 
         # Zip results after all job stages have finished.
-        subprocess.run(['tar',
-                        '-czf',
-                        '%s.tar.gz'%job_hash,
-                        '%s'%job_hash],
-                       cwd = nfs_mount)
+        with tarfile.open(f'{job_hash}.tar.gz', "w:gz") as tar:
+            tar.add(self.nfs_mount, arcname=job_hash)
 
         # (Email notifications can be sent here using your preferred API)
 
@@ -514,11 +459,8 @@ class Server:
         # (Email notifications can be sent here using SES)
 
         # Create a single-file archive to return if results are requested.
-        subprocess.run(['tar',
-                        '-czf',
-                        '%s.tar.gz'%job_hash,
-                        '%s'%job_hash],
-                       cwd=self.cfg['nfsmount']['value'][-1])
+        with tarfile.open(os.path.join(self.nfs_mount, f'{job_hash}.tar.gz'), "w:gz") as tar:
+            tar.add(os.path.join(self.nfs_mount, job_hash), arcname=job_hash)
 
         # Mark the job hash as being done.
         self.sc_jobs.pop("%s_%s"%(job_hash, jobid))
@@ -537,6 +479,11 @@ class Server:
         if not username in self.user_keys:
             return False
         return (password == self.user_keys[username]['password'])
+
+    ###################
+    @property
+    def nfs_mount(self):
+        return self.cfg['nfsmount']['value'][-1]
 
     ####################
     def writecfg(self, filename, mode="all"):
@@ -596,95 +543,3 @@ def server_schema():
     }
 
     return cfg
-
-###############################################
-# Helper method to parse sc-server command-line args.
-###############################################
-
-def server_cmdline():
-    '''
-    Command-line parsing for sc-server variables.
-    TODO: It may be a good idea to merge with 'cmdline()' to reduce code duplication.
-
-    '''
-
-    def_cfg = server_schema()
-
-    os.environ["COLUMNS"] = '100'
-
-    #Argument Parser
-    parser = argparse.ArgumentParser(prog='sc-server',
-                                     formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50),
-                                     prefix_chars='-+',
-                                     description="Silicon Compiler Collection Remote Job Server (sc-server)")
-
-    # Add supported schema arguments to the parser.
-    for k,v in sorted(def_cfg.items()):
-        keystr = str(k)
-        helpstr = (def_cfg[k]['short_help'] +
-                   '\n\n' +
-                   '\n'.join(def_cfg[k]['help']) +
-                   '\n\n---------------------------------------------------------\n')
-        if def_cfg[k]['type'][-1] == 'bool': #scalar
-            parser.add_argument(def_cfg[k]['switch'],
-                                metavar=def_cfg[k]['switch_args'],
-                                dest=keystr,
-                                action='store_const',
-                                const=['True'],
-                                help=helpstr,
-                                default = argparse.SUPPRESS)
-        else:
-            parser.add_argument(def_cfg[k]['switch'],
-                                metavar=def_cfg[k]['switch_args'],
-                                dest=keystr,
-                                action='append',
-                                help=helpstr,
-                                default = argparse.SUPPRESS)
-
-    #Parsing args and converting to dict
-    cmdargs = vars(parser.parse_args())
-
-    # Generate nested cfg dictionary.
-    for key,all_vals in cmdargs.items():
-        switch = key.split('_')
-        param = switch[0]
-        if len(switch) > 1 :
-            param = param + "_" + switch[1]
-
-        if param not in def_cfg:
-            def_cfg[param] = {}
-
-        #(Omit checks for stdcell, maro, etc; server args are simple.)
-
-        if 'value' not in def_cfg[param]:
-            def_cfg[param] = {}
-            def_cfg[param]['value'] = all_vals
-        else:
-            def_cfg[param]['value'].extend(all_vals)
-
-    # Ensure that the default 'value' fields exist.
-    for key in def_cfg:
-        if (not 'value' in def_cfg[key]) and ('defvalue' in def_cfg[key]):
-            def_cfg[key]['value'] = def_cfg[key]['defvalue']
-
-    return def_cfg
-
-###############################################
-# Main method to run the sc-server application.
-###############################################
-
-def main():
-    #Command line inputs and default 'server_schema' config values.
-    cmdlinecfg = server_cmdline()
-
-    #Create the Server class instance.
-    server = Server(cmdlinecfg)
-
-    #Save the given server configuration in JSON format (not yet implemented)
-    server.writecfg("sc_server_setup.json")
-
-    # Start processing incoming requests.
-    server.run()
-
-if __name__ == '__main__':
-    main()

@@ -481,6 +481,7 @@ class ToolGen(DynamicGen):
         flow = chip.get('option', 'flow')
         if not flow:
             flow = '<flow>'
+        chip.set('option', 'flow', flow)
         chip.set('flowgraph', flow, step, index, 'tool', tool_name)
         chip.set('flowgraph', flow, step, index, 'task', task_name)
 

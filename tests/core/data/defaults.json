@@ -4063,7 +4063,7 @@
                 "lock": false,
                 "node": {},
                 "notes": null,
-                "pernode": "never",
+                "pernode": "optional",
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler core constraint",
@@ -4082,7 +4082,7 @@
                 "lock": false,
                 "node": {},
                 "notes": null,
-                "pernode": "never",
+                "pernode": "optional",
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler start time",
@@ -4101,7 +4101,7 @@
                 "lock": false,
                 "node": {},
                 "notes": null,
-                "pernode": "never",
+                "pernode": "optional",
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler memory constraint",
@@ -4121,7 +4121,7 @@
                 "lock": false,
                 "node": {},
                 "notes": null,
-                "pernode": "never",
+                "pernode": "optional",
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Message contact",
@@ -4140,7 +4140,7 @@
                 "lock": false,
                 "node": {},
                 "notes": null,
-                "pernode": "never",
+                "pernode": "optional",
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Message event trigger",
@@ -4176,14 +4176,14 @@
             "options": {
                 "defvalue": [],
                 "example": [
-                    "cli: -scheduler_options '--pty bash'",
-                    "api: chip.set('option', 'scheduler', 'options', '--pty bash')"
+                    "cli: -scheduler_options \"--pty\"",
+                    "api: chip.set('option', 'scheduler', 'options', \"--pty\")"
                 ],
                 "help": "Advanced/export options passed through unchanged to the job\nscheduler as-is. (The user specified options must be compatible\nwith the rest of the scheduler parameters entered.(memory etc).\nFor more information, see the job scheduler documentation.",
                 "lock": false,
                 "node": {},
                 "notes": null,
-                "pernode": "never",
+                "pernode": "optional",
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler arguments",
@@ -4202,7 +4202,7 @@
                 "lock": false,
                 "node": {},
                 "notes": null,
-                "pernode": "never",
+                "pernode": "optional",
                 "require": null,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler queue",
@@ -6407,7 +6407,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.30.0",
+        "defvalue": "0.32.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6490,7 +6490,7 @@
                 "defvalue": null,
                 "example": [
                     "cli: -tool_path 'openroad /usr/local/bin'",
-                    "api:  chip.set('tool','openroad','path','/usr/local/bin')"
+                    "api: chip.set('tool','openroad','path','/usr/local/bin')"
                 ],
                 "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the 'exe' is already in the\nenvironment search path.",
                 "lock": false,
@@ -6504,6 +6504,29 @@
                     "-tool_path 'tool <dir>'"
                 ],
                 "type": "dir"
+            },
+            "sbom": {
+                "default": {
+                    "copy": false,
+                    "defvalue": [],
+                    "example": [
+                        "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
+                        "api:  chip.set('tool','yosys','sbom','1.0','ys_sbom.json')"
+                    ],
+                    "hashalgo": "sha256",
+                    "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
+                    "lock": false,
+                    "node": {},
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Tool: software BOM",
+                    "switch": [
+                        "-tool_sbom 'tool version <file>'"
+                    ],
+                    "type": "[file]"
+                }
             },
             "task": {
                 "default": {

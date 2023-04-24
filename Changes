@@ -8,6 +8,21 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.11.0 (2023-04-17)
+=========================================
+
+**Major:**
+
+* ``sc-issue`` added as command line application to support sharing runnable testcases.
+* Removed the requirement that the intial task of the flowgraph be called 'import' and the final task be called 'export'.
+* Fully implemented ``.node()`` to take in a task module, simplifying the construction of a flowgraph and removing its dependence on ['option', 'scpath'].
+
+**Minor:**
+
+* ['tool', tool, version, 'sbom'] added to be able to track a tools `SBOM <https://en.wikipedia.org/wiki/Software_supply_chain>`_.
+* ``.hash_files()`` updated to honor the 'hash' field for the file parameters.
+* ``.calc_yield()``, ``.calc_area()``, ``.calc_dpw()`` updated to new schema parameters.
+
 SiliconCompiler 0.10.2 (2023-04-04)
 =========================================
 

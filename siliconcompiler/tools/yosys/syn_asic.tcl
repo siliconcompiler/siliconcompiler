@@ -2,16 +2,16 @@
 # DESIGNER's CHOICE
 ####################
 
-set sc_libraries        [dict get $sc_cfg tool $sc_tool task $sc_task var synthesis_libraries]
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var synthesis_libraries_macros]} {
-    set sc_macro_libraries [dict get $sc_cfg tool $sc_tool task $sc_task var synthesis_libraries_macros]
+set sc_libraries        [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries]
+if {[dict exists $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros]} {
+    set sc_macro_libraries [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros]
 } else {
     set sc_macro_libraries []
 }
 set sc_mainlib          [lindex [dict get $sc_cfg asic logiclib] 0]
 
-set sc_dff_library      [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var dff_liberty_file] 0]
-set sc_abc_constraints  [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var abc_constraint_file] 0]
+set sc_dff_library      [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} dff_liberty_file] 0]
+set sc_abc_constraints  [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} abc_constraint_file] 0]
 
 #########################
 # Schema helper functions
@@ -116,8 +116,8 @@ if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] != "False"} {
     post_techmap -fast
 }
 
-if [dict exists $sc_cfg tool $sc_tool task $sc_task var techmap] {
-    foreach mapfile [dict get $sc_cfg tool $sc_tool task $sc_task var techmap] {
+if [dict exists $sc_cfg tool $sc_tool task $sc_task {file} techmap] {
+    foreach mapfile [dict get $sc_cfg tool $sc_tool task $sc_task {file} techmap] {
         yosys techmap -map $mapfile
         post_techmap -fast
     }

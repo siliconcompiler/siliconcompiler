@@ -4,6 +4,8 @@ import pytest
 
 from siliconcompiler.tools.yosys import lec
 
+from siliconcompiler.tools.builtin import nop
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_yosys_lec(datadir):
@@ -15,7 +17,7 @@ def test_yosys_lec(datadir):
     chip.set('option', 'mode', 'asic')
 
     flow = 'lec'
-    chip.node(flow, 'import', 'builtin.nop')
+    chip.node(flow, 'import', nop)
     chip.node(flow, 'lec', lec)
     chip.edge(flow, 'import', 'lec')
     chip.set('option', 'flow', flow)
@@ -40,7 +42,7 @@ def test_yosys_lec_broken(datadir):
     chip.set('option', 'mode', 'asic')
 
     flow = 'lec'
-    chip.node(flow, 'import', 'builtin.nop')
+    chip.node(flow, 'import', nop)
     chip.node(flow, 'lec', lec)
     chip.edge(flow, 'import', 'lec')
     chip.set('option','flow', flow)

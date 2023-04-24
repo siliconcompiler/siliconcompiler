@@ -3,6 +3,8 @@ import siliconcompiler
 from siliconcompiler.tools.magic import extspice
 from siliconcompiler.tools.magic import drc
 from siliconcompiler.tools.netgen import lvs
+from siliconcompiler.tools.builtin import nop
+from siliconcompiler.tools.builtin import join
 
 def setup(chip):
     '''A flow for running LVS/DRC signoff on a GDS layout.
@@ -17,12 +19,12 @@ def setup(chip):
     flow = siliconcompiler.Flow(chip, flowname)
 
     # nop import since we don't need to pull in any sources
-    flow.node(flowname, 'import', 'builtin.nop')
+    flow.node(flowname, 'import', nop)
 
     flow.node(flowname, 'extspice', extspice)
     flow.node(flowname, 'drc', drc)
     flow.node(flowname, 'lvs', lvs)
-    flow.node(flowname, 'signoff', 'builtin.join')
+    flow.node(flowname, 'signoff', join)
 
     flow.edge(flowname, 'import', 'drc')
     flow.edge(flowname, 'import', 'extspice')

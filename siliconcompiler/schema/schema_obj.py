@@ -194,15 +194,15 @@ class Schema:
 
         cfg = self._search(*keypath, insert_defaults=True)
 
+        if not Schema._is_leaf(cfg):
+            raise ValueError(f'Invalid keypath {keypath}: add() must be called on a complete keypath')
+
         err = Schema._validate_step_index(cfg['pernode'], field, step, index)
         if err:
             raise ValueError(f'Invalid args to add() of keypath {keypath}: {err}')
 
         if isinstance(index, int):
             index = str(index)
-
-        if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: add() must be called on a complete keypath')
 
         if not Schema._is_list(field, cfg['type']):
             if field == 'value':
@@ -824,9 +824,8 @@ class Schema:
         defvalue = self.get(*keypath, field='defvalue')
         value_empty = (
             (defvalue in empty) and
-            all([value in empty for value in values])
+            all([value in empty for value, _, _ in values])
         )
-
         return value_empty
 
     ###########################################################################

@@ -27,11 +27,6 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.core.Chip.run
     ~siliconcompiler.core.Chip.node
     ~siliconcompiler.core.Chip.edge
-    ~siliconcompiler.core.Chip.join
-    ~siliconcompiler.core.Chip.minimum
-    ~siliconcompiler.core.Chip.maximum
-    ~siliconcompiler.core.Chip.mux
-    ~siliconcompiler.core.Chip.verify
 
 **Utility functions:**
 

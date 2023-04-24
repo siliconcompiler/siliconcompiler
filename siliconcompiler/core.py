@@ -6,11 +6,8 @@ import time
 import datetime
 import multiprocessing
 import tarfile
-import traceback
-import asyncio
-from subprocess import run, PIPE
 import os
-import glob
+import git
 import pathlib
 import sys
 import gzip
@@ -25,6 +22,7 @@ import inspect
 import textwrap
 import math
 import pandas
+import pkgutil
 import graphviz
 import time
 import uuid
@@ -36,18 +34,20 @@ import netifaces
 import webbrowser
 import codecs
 import string
+import tempfile
 import packaging.version
 import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from PIL import Image, ImageFont, ImageDraw
-from siliconcompiler.client import *
-from siliconcompiler.schema import *
+from siliconcompiler.client import remote_preprocess, remote_run, fetch_results
+from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils
 from siliconcompiler import units
 from siliconcompiler import _metadata
 import psutil
+import subprocess
 
 class TaskStatus():
     # Could use Python 'enum' class here, but that doesn't work nicely with
@@ -102,8 +102,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         #                   to consume in a connected HPC cluster's storage.
         self.status = {}
 
-        self.builtin = ['minimum','maximum',
-                        'nop', 'mux', 'join', 'verify']
+        # Cache of python modules
+        self.modules = {}
 
         # We set 'design' and 'loglevel' by directly calling the schema object
         # because of a chicken-and-egg problem: self.set() relies on the logger,
@@ -113,10 +113,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.schema.set('option', 'loglevel', loglevel)
 
         self._init_logger()
-
-        # Ensure that SC built-ins are on the $PYTHONPATH
-        if not self.scroot in sys.path:
-            sys.path.append(self.scroot)
 
         self._loaded_modules = {
             'flows': [],
@@ -167,6 +163,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return entrypoint
 
     ###########################################################################
+    def _load_module(self, module_name, raise_error=False):
+        if module_name in self.modules:
+            return self.modules[module_name]
+
+        try:
+            self.modules[module_name] = importlib.import_module(module_name)
+            return self.modules[module_name]
+        except Exception as e:
+            if raise_error:
+                raise e
+
+        return None
+
+    ###########################################################################
     def _get_tool_task(self, step, index, flow=None):
         '''
         Helper function to get the name of the tool and task associated with a given step/index.
@@ -194,15 +204,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         tool_module = '.'.join(module_path[0:-1] + [tool])
 
-        try:
-            return importlib.import_module(tool_module)
-        except ModuleNotFoundError:
-            pass
+        module = self._load_module(tool_module)
 
-        if error:
+        if error and not module:
             self.error(f'Unable to load {tool_module} for {tool}', fatal=True)
         else:
-            return None
+            return module
 
     def _get_task_module(self, step, index, flow=None, error=True):
         if not flow:
@@ -210,16 +217,32 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         taskmodule = self.get('flowgraph', flow, step, index, 'taskmodule')
 
-        try:
-            return importlib.import_module(taskmodule)
-        except ModuleNotFoundError:
-            pass
+        module = self._load_module(taskmodule)
 
-        if error:
+        if error and not module:
             tool, task = self._get_tool_task(step, index, flow=flow)
             self.error(f'Unable to load {taskmodule} for {tool}/{task}', fatal=True)
         else:
-            return None
+            return module
+
+    def _get_tool_tasks(self, tool):
+        tool_dir = os.path.dirname(tool.__file__)
+        tool_base_module = tool.__name__.split('.')[0:-1]
+        tool_name = tool.__name__.split('.')[-1]
+
+        task_candidates = []
+        for task_mod in pkgutil.iter_modules([tool_dir]):
+            if task_mod.name == tool_name:
+                continue
+            task_candidates.append(task_mod.name)
+
+        tasks = []
+        for task in sorted(task_candidates):
+            task_module = '.'.join([*tool_base_module, task])
+            if getattr(self._load_module(task_module), 'setup', None):
+                tasks.append(task)
+
+        return tasks
 
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
@@ -314,7 +337,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return switchstrs, metavar
 
     ###########################################################################
-    def create_cmdline(self, progname, description=None, switchlist=None, input_map=None):
+    def create_cmdline(self, progname, description=None, switchlist=None, input_map=None, additional_args=None):
         """Creates an SC command line interface.
 
         Exposes parameters in the SC schema as command line switches,
@@ -353,6 +376,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 source arguments to ['input', 'fileset', ...] keypaths based on their file
                 extension. If None, the CLI will not accept positional source
                 arguments.
+            additional_args (dict of dict): Dictionary of extra arguments to add
+                to the command line parser, with the arguments matching the
+                argparse.add_argument() call.
+
+        Returns:
+            None if additional_args is not provided, otherwise a dictionary with the
+                command line options detected from the additional_args
 
         Examples:
             >>> chip.create_cmdline(progname='sc-show',switchlist=['-input','-cfg'])
@@ -360,6 +390,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             >>> chip.create_cmdline(progname='sc', input_map={'v': ('rtl', 'verilog')})
             All sources ending in .v will be stored in ['input', 'rtl', 'verilog']
+
+            >>> extra = chip.create_cmdline(progname='sc', additional_args={'-demo': {'action': 'store_true'}})
+            Returns extra = {'demo': False/True}
         """
 
         # Argparse
@@ -441,8 +474,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         parser.add_argument('-version', action='version', version=_metadata.version)
 
+        if additional_args:
+            # Add additional user specified arguments
+            arg_dests = []
+            for arg, arg_detail in additional_args.items():
+                argument = parser.add_argument(arg, **arg_detail)
+                arg_dests.append(argument.dest)
+            # rewrite additional_args with new dest infomation
+            additional_args = arg_dests
+
         #Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
+
+        extra_params = None
+        if additional_args:
+            # Grab user specified arguments
+            extra_params = {}
+            for arg in additional_args:
+                if arg in cmdargs:
+                    extra_params[arg] = cmdargs[arg]
+                    # Remove from cmdargs
+                    del cmdargs[arg]
 
         # Print banner
         print(_metadata.banner)
@@ -547,8 +599,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     self.set(*args, val, step=step, index=index, clobber=True)
 
+        return extra_params
+
     ##########################################################################
-    def load_target(self, name, **kwargs):
+    def load_target(self, module, **kwargs):
         """
         Loads a target module and runs the setup() function.
 
@@ -557,7 +611,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if found.
 
         Args:
-            name (str): Module name
+            module (str or module): Module name
             **kwargs (str): Options to pass along to the target
 
         Examples:
@@ -565,36 +619,38 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
-        # Search order "{name}", and "siliconcompiler.targets.{name}"
-        modules = []
-        for module_name in [name, f'siliconcompiler.targets.{name}']:
-            try:
-                module = importlib.import_module(module_name)
-                modules.append(module)
-            except ModuleNotFoundError:
-                pass
+        if not inspect.ismodule(module):
+            # Search order "{name}", and "siliconcompiler.targets.{name}"
+            modules = []
+            for mod_name in [module, f'siliconcompiler.targets.{module}']:
+                mod = self._load_module(mod_name)
+                if mod:
+                    modules.append(mod)
 
-        if len(modules) == 0:
-            self.error(f'Could not find target {name}', fatal=True)
+            if len(modules) == 0:
+                self.error(f'Could not find target {module}', fatal=True)
+        else:
+            modules = [module]
 
         # Check for setup in modules
         load_function = None
-        for module in modules:
-            load_function = getattr(module, 'setup', None)
+        for mod in modules:
+            load_function = getattr(mod, 'setup', None)
             if load_function:
+                module_name = mod.__name__
                 break
 
         if not load_function:
-            self.error(f'Could not find setup function for {name} target', fatal=True)
+            self.error(f'Could not find setup function for {module} target', fatal=True)
 
         try:
             load_function(self, **kwargs)
         except Exception as e:
-            self.logger.error(f'Failed to load target {name}')
+            self.logger.error(f'Failed to load target {module}')
             raise e
 
         # Record target
-        self.set('option', 'target', name)
+        self.set('option', 'target', module_name)
 
     ##########################################################################
     def use(self, module, **kwargs):
@@ -1112,6 +1168,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         """
 
+        if not filename:
+            return None
+
         # Replacing environment variables
         filename = self._resolve_env_vars(filename)
 
@@ -1232,14 +1291,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # cases.
 
         search_paths = None
-        if len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
+        if len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] in ('input', 'output', 'report'):
             if keypath[4] == 'report':
                 io = ""
             else:
                 io = keypath[4] + 's'
             iodir = os.path.join(self._getworkdir(jobname=job, step=step, index=index), io)
             search_paths = [iodir]
-        elif len(keypath) >= 4 and keypath[0] == 'tool' and keypath[4] == 'script':
+        elif len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
             refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
@@ -1483,27 +1542,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'Required input {filename} not received for {step}{index}.')
                 error = True
 
-        if not self._is_builtin(tool, task):
-            all_required = self.get('tool', tool, 'task', task, 'require', step=step, index=index)
-            for item in all_required:
-                keypath = item.split(',')
-                if not self.valid(*keypath):
-                    self.logger.error(f'Cannot resolve required keypath {keypath}.')
-                    error = True
-                else:
-                    paramtype = self.get(*keypath, field='type')
-                    if ('file' in paramtype) or ('dir' in paramtype):
-                        for val, step, index in self.schema._getvals(*keypath):
-                            abspath = self._find_files(*keypath, missing_ok=True, step=step, index=index)
-                            unresolved_paths = val
-                            if not isinstance(abspath, list):
-                                abspath = [abspath]
-                                unresolved_paths = [unresolved_paths]
-                            for i, path in enumerate(abspath):
-                                if path is None:
-                                    unresolved_path = unresolved_paths[i]
-                                    self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
-                                    error = True
+        all_required = self.get('tool', tool, 'task', task, 'require', step=step, index=index)
+        for item in all_required:
+            keypath = item.split(',')
+            if not self.valid(*keypath):
+                self.logger.error(f'Cannot resolve required keypath {keypath}.')
+                error = True
+            else:
+                paramtype = self.get(*keypath, field='type')
+                if ('file' in paramtype) or ('dir' in paramtype):
+                    for val, step, index in self.schema._getvals(*keypath):
+                        abspath = self._find_files(*keypath, missing_ok=True, step=step, index=index)
+                        unresolved_paths = val
+                        if not isinstance(abspath, list):
+                            abspath = [abspath]
+                            unresolved_paths = [unresolved_paths]
+                        for i, path in enumerate(abspath):
+                            if path is None:
+                                unresolved_path = unresolved_paths[i]
+                                self.logger.error(f'Cannot resolve path {unresolved_path} in required file keypath {keypath}.')
+                                error = True
 
         return not error
 
@@ -1616,8 +1674,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 tool = self.get('flowgraph', flow, step, index, 'tool')
                 task = self.get('flowgraph', flow, step, index, 'task')
                 tool_name, task_name = self._get_tool_task(step, index, flow=flow)
-                if self._is_builtin(tool_name, task_name):
-                    continue
 
                 if not self._get_tool_module(step, index, flow=flow, error=False):
                     error = True
@@ -1649,7 +1705,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     keypath = item.split(',')
                     if self.schema._is_empty(*keypath):
                         error = True
-                        self.logger.error(f"Value empty for [{keypath}] for {tool}.")
+                        self.logger.error(f"Value empty for {keypath} for {tool}.")
 
                 task_run = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
                 if self.schema._is_empty('tool', tool, 'exe') and not task_run:
@@ -1667,27 +1723,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         directory after a successful run of step/index.'''
 
         flow = self.get('option', 'flow')
+        task_gather = getattr(self._get_task_module(step, index, flow=flow, error=False), '_gather_outputs', None)
+        if task_gather:
+            return set(task_gather(self, step, index))
+
         tool, task = self._get_tool_task(step, index, flow=flow)
-
-        outputs = set()
-        if self._is_builtin(tool, task):
-            in_tasks = self.get('flowgraph', flow, step, index, 'input')
-            in_task_outputs = [self._gather_outputs(*task) for task in in_tasks]
-
-            if task in ('minimum', 'maximum'):
-                if len(in_task_outputs) > 0:
-                    outputs = in_task_outputs[0].intersection(*in_task_outputs[1:])
-            elif task in ('join', 'nop'):
-                if len(in_task_outputs) > 0:
-                    outputs = in_task_outputs[0].union(*in_task_outputs[1:])
-            else:
-                # TODO: logic should be added here when mux/verify builtins are implemented.
-                self.logger.error(f'Builtin {tool}/{task} not yet implemented')
-        else:
-            # Not builtin tool
-            outputs = set(self.get('tool', tool, 'task', task, 'output', step=step, index=index))
-
-        return outputs
+        return set(self.get('tool', tool, 'task', task, 'output', step=step, index=index))
 
     ###########################################################################
     def _check_flowgraph(self, flow=None):
@@ -2302,7 +2343,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         copyall = self.get('option', 'copyall')
         for key in self.allkeys():
-            if key == ['option', 'builddir']:
+            if key[-2:] == ['option', 'builddir']:
                 # skip builddir
                 continue
             if key[0] == 'history':
@@ -2337,7 +2378,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if os.path.exists(dst_path):
                     continue
                 self.logger.info(f"Copying directory {abspath} to '{directory}' directory")
-                shutil.copytree(abspath, dst_path)
+                utils.copytree(abspath, dst_path)
             else:
                 self.error(f'Failed to copy {path}', fatal=True)
 
@@ -2356,7 +2397,29 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f'Failed to copy {path}', fatal=True)
 
     ###########################################################################
-    def archive(self, step=None, index=None, all_files=False):
+    def _archive_node(self, tar, step=None, index=None, all_files=False):
+        design = self.get('design')
+        jobname = self.get('option', 'jobname')
+        buildpath = self.get('option', 'builddir')
+
+        # Don't use _getworkdir() since we want a relative path for arcname
+        jobdir = os.path.join(buildpath, design, jobname)
+
+        basedir = os.path.join(jobdir, step, index)
+        if all_files:
+            tar.add(os.path.abspath(basedir), arcname=basedir)
+        else:
+            for folder in ('reports', 'outputs'):
+                path = os.path.join(basedir, folder)
+                tar.add(os.path.abspath(path), arcname=path)
+
+            logfile = os.path.join(basedir, step+'.log')
+            if os.path.isfile(logfile):
+                tar.add(os.path.abspath(logfile), arcname=logfile)
+
+
+    ###########################################################################
+    def archive(self, step=None, index=None, all_files=False, archive_name=None):
         '''Archive a job directory.
 
         Creates a single compressed archive (.tgz) based on the design,
@@ -2370,6 +2433,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             step(str): Step to archive.
             index (str): Index to archive
             all_files (bool): If True, all files are archived.
+            archive_name (str): Path to the archive
 
         '''
 
@@ -2387,10 +2451,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             steplist = self.list_steps()
 
-        if step:
-            archive_name = f"{design}_{jobname}_{step}.tgz"
-        else:
-            archive_name = f"{design}_{jobname}.tgz"
+        if not archive_name:
+            if step and index:
+                archive_name = f"{design}_{jobname}_{step}{index}.tgz"
+            elif step:
+                archive_name = f"{design}_{jobname}_{step}.tgz"
+            else:
+                archive_name = f"{design}_{jobname}.tgz"
 
         with tarfile.open(archive_name, "w:gz") as tar:
             # Don't use _getworkdir() since we want a relative path for arcname
@@ -2400,25 +2467,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if os.path.isfile(manifest):
                 tar.add(os.path.abspath(manifest), arcname=manifest)
             else:
-                self.loger.warning('Archiving job with failed or incomplete run.')
+                self.logger.warning('Archiving job with failed or incomplete run.')
 
             for step in steplist:
                 if index:
                     indexlist = [index]
                 else:
                     indexlist = self.getkeys('flowgraph', flow, step)
-                for item in indexlist:
-                    basedir = os.path.join(jobdir, step, item)
-                    if all_files:
-                         tar.add(os.path.abspath(basedir), arcname=basedir)
-                    else:
-                        reportdir = os.path.join(basedir, 'reports')
-                        outdir = os.path.join(basedir,'outputs')
-                        logfile = os.path.join(basedir, step+'.log')
-                        tar.add(os.path.abspath(reportdir), arcname=reportdir)
-                        tar.add(os.path.abspath(outdir), arcname=outdir)
-                        if os.path.isfile(logfile):
-                            tar.add(os.path.abspath(logfile), arcname=logfile)
+                for idx in indexlist:
+                    self._archive_node(tar, step, idx, all_files=all_files)
 
         return archive_name
 
@@ -2536,7 +2593,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             step (str): name of the step to calculate the area from
             index (str): name of the step to calculate the area from
-        
+
         Returns:
             Design area (float).
 
@@ -3336,9 +3393,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Determine task name and module
         task_module = None
         if (isinstance(task, str)):
-           task_module = task
+            task_module = task
         elif inspect.ismodule(task):
             task_module = task.__name__
+            self.modules[task_module] = task
         else:
             self.error(f"{task} is not a string or module and cannot be used to setup a task.", fatal=True)
 
@@ -3346,10 +3404,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if len(task_parts) < 2:
             self.error(f"{task} is not a valid task, it must be associated with a tool '<tool>.<task>'.", fatal=True)
         tool_name, task_name = task_parts[-2:]
-
-        if tool_name == 'builtin':
-            if not self._is_builtin(tool_name, task_name):
-                self.error(f'{tool_name}/{task_name} is not a valid builtin task.', fatal=True)
 
         # bind tool to node
         self.set('flowgraph', flow, step, index, 'tool', tool_name)
@@ -3443,245 +3497,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             prevstep = step
 
     ###########################################################################
-    def join(self, *tasks):
-        '''
-        Merges outputs from a list of input tasks.
-
-        Args:
-            tasks(list): List of input tasks specified as (step,index) tuples.
-
-        Returns:
-            Input list
-
-        Examples:
-            >>> select = chip.join([('lvs','0'), ('drc','0')])
-           Select gets the list [('lvs','0'), ('drc','0')]
-        '''
-
-        tasklist = list(tasks)
-        sel_inputs = tasklist
-
-        # no score for join, so just return 0
-        return sel_inputs
-
-    ###########################################################################
-    def nop(self, *task):
-        '''
-        A no-operation that passes inputs to outputs.
-
-        Args:
-            task(list): Input task specified as a (step,index) tuple.
-
-        Returns:
-            Input task
-
-        Examples:
-            >>> select = chip.nop(('lvs','0'))
-           Select gets the tuple [('lvs',0')]
-        '''
-
-        return list(task)
-
-    ###########################################################################
-    def minimum(self, *tasks):
-        '''
-        Selects the task with the minimum metric score from a list of inputs.
-
-        Sequence of operation:
-
-        1. Check list of input tasks to see if all metrics meets goals
-        2. Check list of input tasks to find global min/max for each metric
-        3. Select MIN value if all metrics are met.
-        4. Normalize the min value as sel = (val - MIN) / (MAX - MIN)
-        5. Return normalized value and task name
-
-        Meeting metric goals takes precedence over compute metric scores.
-        Only goals with values set and metrics with weights set are considered
-        in the calculation.
-
-        Args:
-            tasks(list): List of input tasks specified as (step,index) tuples.
-
-        Returns:
-            tuple containing
-
-            - score (float): Minimum score
-            - task (tuple): Task with minimum score
-
-        Examples:
-            >>> (score, task) = chip.minimum([('place','0'),('place','1')])
-
-        '''
-        return self._minmax(*tasks, op="minimum")
-
-    ###########################################################################
-    def maximum(self, *tasks):
-        '''
-        Selects the task with the maximum metric score from a list of inputs.
-
-        Sequence of operation:
-
-        1. Check list of input tasks to see if all metrics meets goals
-        2. Check list of input tasks to find global min/max for each metric
-        3. Select MAX value if all metrics are met.
-        4. Normalize the min value as sel = (val - MIN) / (MAX - MIN)
-        5. Return normalized value and task name
-
-        Meeting metric goals takes precedence over compute metric scores.
-        Only goals with values set and metrics with weights set are considered
-        in the calculation.
-
-        Args:
-            tasks(list): List of input tasks specified as (step,index) tuples.
-
-        Returns:
-            tuple containing
-
-            - score (float): Maximum score.
-            - task (tuple): Task with minimum score
-
-        Examples:
-            >>> (score, task) = chip.maximum([('place','0'),('place','1')])
-
-        '''
-        return self._minmax(*tasks, op="maximum")
-
-    ###########################################################################
-    def _minmax(self, *steps, op="minimum", **selector):
-        '''
-        Shared function used for min and max calculation.
-        '''
-
-        if op not in ('minimum', 'maximum'):
-            raise ValueError('Invalid op')
-
-        flow = self.get('option', 'flow')
-        steplist = list(steps)
-
-        # Keeping track of the steps/indexes that have goals met
-        failed = {}
-        for step, index in steplist:
-            if step not in failed:
-                failed[step] = {}
-            failed[step][index] = False
-
-            if self.get('flowgraph', flow, step, index, 'status') == TaskStatus.ERROR:
-                failed[step][index] = True
-            else:
-                for metric in self.getkeys('metric'):
-                    if self.valid('flowgraph', flow, step, index, 'goal', metric):
-                        goal = self.get('flowgraph', flow, step, index, 'goal', metric)
-                        real = self.get('metric', metric, step=step, index=index)
-                        if real is None:
-                            self.error(f'Metric {metric} has goal for {step}{index} '
-                                'but it has not been set.', fatal=True)
-                        if abs(real) > goal:
-                            self.logger.warning(f"Step {step}{index} failed "
-                                f"because it didn't meet goals for '{metric}' "
-                                "metric.")
-                            failed[step][index] = True
-
-        # Calculate max/min values for each metric
-        max_val = {}
-        min_val = {}
-        for metric in self.getkeys('flowgraph', flow, step, '0', 'weight'):
-            max_val[metric] = 0
-            min_val[metric] = float("inf")
-            for step, index in steplist:
-                if not failed[step][index]:
-                    real = self.get('metric', metric, step=step, index=index)
-                    if real is None:
-                        continue
-                    max_val[metric] = max(max_val[metric], real)
-                    min_val[metric] = min(min_val[metric], real)
-
-        # Select the minimum index
-        best_score = float('inf') if op == 'minimum' else float('-inf')
-        winner = None
-        for step, index in steplist:
-            if failed[step][index]:
-                continue
-
-            score = 0.0
-            for metric in self.getkeys('flowgraph', flow, step, index, 'weight'):
-                weight = self.get('flowgraph', flow, step, index, 'weight', metric)
-                if not weight:
-                    # skip if weight is 0 or None
-                    continue
-
-                real = self.get('metric', metric, step=step, index=index)
-                if real is None:
-                    self.error(f'Metric {metric} has weight for {step}{index} '
-                        'but it has not been set.', fatal=True)
-
-                if not (max_val[metric] - min_val[metric]) == 0:
-                    scaled = (real - min_val[metric]) / (max_val[metric] - min_val[metric])
-                else:
-                    scaled = max_val[metric]
-                score = score + scaled * weight
-
-            if ((op == 'minimum' and score < best_score) or
-                (op == 'maximum' and score > best_score)):
-                best_score = score
-                winner = (step,index)
-
-        return (best_score, winner)
-
-    ###########################################################################
-    def verify(self, *tasks, **assertion):
-        '''
-        Tests an assertion on a list of input tasks.
-
-        The provided steplist is verified to ensure that all assertions
-        are True. If any of the assertions fail, False is returned.
-        Assertions are passed in as kwargs, with the key being a metric
-        and the value being a number and an optional conditional operator.
-        The allowed conditional operators are: >, <, >=, <=
-
-        Args:
-            *steps (str): List of steps to verify
-            **assertion (str='str'): Assertion to check on metric
-
-        Returns:
-            True if all assertions hold True for all steps.
-
-        Example:
-            >>> pass = chip.verify(['drc','lvs'], errors=0)
-            Pass is True if the error metrics in the drc, lvs steps is 0.
-        '''
-        #TODO: implement
-        return True
-
-    ###########################################################################
-    def mux(self, *tasks, **selector):
-        '''
-        Selects a task from a list of inputs.
-
-        The selector criteria provided is used to create a custom function
-        for selecting the best step/index pair from the inputs. Metrics and
-        weights are passed in and used to select the step/index based on
-        the minimum or maximum score depending on the 'op' argument.
-
-        The function can be used to bypass the flows weight functions for
-        the purpose of conditional flow execution and verification.
-
-        Args:
-            *steps (str): List of steps to verify
-            **selector: Key value selection criteria.
-
-        Returns:
-            True if all assertions hold True for all steps.
-
-        Example:
-            >>> sel_stepindex = chip.mux(['route'], wirelength=0)
-            Selects the routing stepindex with the shortest wirelength.
-        '''
-
-        #TODO: modify the _minmax function to feed in alternate weight path
-        return None
-
-    ###########################################################################
-    def _runtask(self, step, index, status):
+    def _runtask(self, step, index, status, replay=False):
         '''
         Private per step run method called by run().
 
@@ -3734,8 +3550,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.get('option', 'breakpoint', step=step, index=index)
         )
 
-        is_builtin = self._is_builtin(tool, task)
-
         ##################
         # Start wall timer
         wall_start = time.time()
@@ -3746,7 +3560,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         workdir = self._getworkdir(step=step,index=index)
         cwd = os.getcwd()
-        if os.path.isdir(workdir):
+        if os.path.isdir(workdir) and not replay:
             shutil.rmtree(workdir)
         os.makedirs(workdir, exist_ok=True)
 
@@ -3759,7 +3573,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Merge manifests from all input dependancies
 
         all_inputs = []
-        if not self.get('option', 'remote'):
+        if not self.get('option', 'remote') and not replay:
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 in_task_status = status[in_step + in_index]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_task_status)
@@ -3777,30 +3591,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Select inputs
 
-        args = self.get('flowgraph', flow, step, index, 'args')
-        inputs = self.get('flowgraph', flow, step, index, 'input')
-
         sel_inputs = []
-        score = 0
 
-        if is_builtin:
-            self.logger.info(f"Running builtin task '{task}'")
-            # Figure out which inputs to select
-            if task == 'minimum':
-                (score, sel_inputs) = self.minimum(*inputs)
-            elif task == "maximum":
-                (score, sel_inputs) = self.maximum(*inputs)
-            elif task == "mux":
-                (score, sel_inputs) = self.mux(*inputs, selector=args)
-            elif task == "join":
-                sel_inputs = self.join(*inputs)
-            elif task == "verify":
-                if not self.verify(*input, assertion=args):
-                    self._haltstep(step, index)
+        select_inputs = getattr(self._get_task_module(step, index, flow=flow), '_select_inputs', None)
+        if select_inputs:
+            sel_inputs = select_inputs(self, step, index)
         else:
             sel_inputs = self.get('flowgraph', flow, step, index, 'input')
 
-        if sel_inputs == None:
+        if (step, index) not in self._get_flowgraph_entry_nodes(flow=flow) and not sel_inputs:
             self.logger.error(f'No inputs selected after running {tool}')
             self._haltstep(step, index)
 
@@ -3822,8 +3621,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
-            utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
-                ignore=[f'{design}.pkg.json'], link=True)
+            if not replay:
+                utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
+                    ignore=[f'{design}.pkg.json'], link=True)
 
         ##################
         # Check manifest
@@ -3849,17 +3649,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Run preprocess step for tool
-        if not is_builtin:
-            func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)
-            if func:
-                try:
-                    func(self)
-                except Exception as e:
-                    self.logger.error(f"Pre-processing failed for '{tool}/{task}'.")
-                    raise e
-                if self._error:
-                    self.logger.error(f"Pre-processing failed for '{tool}/{task}'")
-                    self._haltstep(step, index)
+
+        func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)
+        if func:
+            try:
+                func(self)
+            except Exception as e:
+                self.logger.error(f"Pre-processing failed for '{tool}/{task}'.")
+                raise e
+            if self._error:
+                self.logger.error(f"Pre-processing failed for '{tool}/{task}'")
+                self._haltstep(step, index)
 
         ##################
         # Set environment variables
@@ -3876,9 +3676,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if val:
                 os.environ[item] = val
 
-        run_func = None
-        if not is_builtin:
-            run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
+        ##################
+        # Get run() function if available
+
+        run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
 
         ##################
         # Check exe version
@@ -3893,7 +3694,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if veropt:
                 cmdlist = [exe]
                 cmdlist.extend(veropt)
-                proc = subprocess.run(cmdlist, stdout=PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                proc = subprocess.run(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
                 if proc.returncode != 0:
                     self.logger.error(f'Version check on {tool} failed with code {proc.returncode}: {proc.stdout}')
                     self._haltstep(step, index)
@@ -3912,7 +3713,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self._haltstep(step, index)
             else:
                 self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
-        elif not is_builtin and run_func is None:
+        elif run_func is None:
             exe_base = self.get('tool', tool, 'exe')
             self.logger.error(f'Executable {exe_base} not found')
             self._haltstep(step, index)
@@ -3921,8 +3722,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Write manifest (tool interface) (Don't move this!)
         suffix = self.get('tool', tool, 'format')
         if suffix:
-            pruneopt = (suffix != 'tcl')
-            self.write_manifest(f"sc_manifest.{suffix}", prune=pruneopt, abspath=True)
+            self.write_manifest(f"sc_manifest.{suffix}", prune=False, abspath=True)
 
         ##################
         # Start CPU Timer
@@ -3937,9 +3737,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         retcode = 0
         cmdlist = []
-        if is_builtin:
-            utils.copytree(f"inputs", 'outputs', dirs_exist_ok=True, link=True)
-        elif run_func and not self.get('option', 'skipall'):
+        cmd_args = []
+        if run_func and not self.get('option', 'skipall'):
             logfile = None
             try:
                 retcode = run_func(self)
@@ -4063,7 +3862,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if retcode != 0:
             msg = f'Command failed with code {retcode}.'
             if logfile:
-                # No log file for pure-Python tools.
+                if quiet:
+                    # Print last 10 lines of log when in quiet mode
+                    with open(logfile, 'r') as logfd:
+                        loglines = logfd.read().splitlines()
+                        for logline in loglines[-10:]:
+                            print(logline)
+                    # No log file for pure-Python tools.
                 msg += f' See log file {os.path.abspath(logfile)}'
             self.logger.warning(msg)
             self._haltstep(step, index)
@@ -4077,7 +3882,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Post process
-        if (not is_builtin) and (not self.get('option', 'skipall')) :
+        if not self.get('option', 'skipall'):
             func = getattr(self._get_task_module(step, index, flow=flow), 'post_process', None)
             if func:
                 try:
@@ -4088,7 +3893,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Check log file (must be after post-process)
-        if (not is_builtin) and (not self.get('option', 'skipall')) and (run_func is None):
+        if (not self.get('option', 'skipall')) and (run_func is None):
             log_file = os.path.join(self._getworkdir(step=step, index=index), f'{step}.log')
             matches = self.check_logfile(step=step, index=index, display=not quiet, logfile=log_file)
             if 'errors' in matches:
@@ -4106,7 +3911,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Hash files
-        if (not is_builtin) and self.get('option', 'hash'):
+        if self.get('option', 'hash'):
             # hash all outputs
             self.hash_files('tool', tool, 'task', task, 'output', step=step, index=index)
             # hash all requirements
@@ -4351,13 +4156,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Load the remote storage config into the status dictionary.
             if self.get('option','credentials'):
                 # Use the provided remote credentials file.
-                cfg_file = self.get('option','credentials')[-1]
+                cfg_file = os.path.abspath(self.get('option', 'credentials')[-1])
                 cfg_dir = os.path.dirname(cfg_file)
+
+                if not os.path.isfile(cfg_file):
+                    # Check if it's a file since its been requested by the user
+                    self.error(f'Unable to find the credentials file: {cfg_file}', fatal=True)
             else:
                 # Use the default config file path.
                 cfg_dir = os.path.join(Path.home(), '.sc')
                 cfg_file = os.path.join(cfg_dir, 'credentials')
             if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
+                self.logger.info(f'Using credentials: {cfg_file}')
                 with open(cfg_file, 'r') as cfgf:
                     self.status['remote_cfg'] = json.loads(cfgf.read())
             else:
@@ -4443,9 +4253,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for step in steplist:
                 for index in indexlist[step]:
                     # Setting up tool is optional
-                    tool, task = self._get_tool_task(step, index, flow=flow)
-                    if not self._is_builtin(tool, task):
-                        self._setup_task(step, index)
+                    self._setup_task(step, index)
 
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
@@ -4643,8 +4451,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if filename is None:
             self.logger.info('Searching build directory for layout to show.')
 
+            search_nodes = []
+            if sc_step and sc_index:
+                search_nodes.append((sc_step, sc_index))
+            search_nodes.extend(self._get_flowgraph_exit_nodes())
             for ext in self.getkeys('option', 'showtool'):
-                for step, index in self._get_flowgraph_exit_nodes():
+                for step, index in search_nodes:
                     filename = self.find_result(ext, step=step, index=index, jobname=sc_job)
                     if filename:
                         sc_step = step
@@ -4844,6 +4656,44 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return 'local'
 
     #######################################
+    @staticmethod
+    def _get_machine_info():
+        system = platform.system()
+        if system == 'Darwin':
+            lower_sys_name = 'macos'
+        else:
+            lower_sys_name = system.lower()
+
+        if system == 'Linux':
+            distro_name = distro.id()
+        else:
+            distro_name = None
+
+        if system == 'Darwin':
+            osversion, _, _ = platform.mac_ver()
+        elif system == 'Linux':
+            osversion = distro.version()
+        else:
+            osversion = platform.release()
+
+        if system == 'Linux':
+            kernelversion = platform.release()
+        elif system == 'Windows':
+            kernelversion = platform.version()
+        elif system == 'Darwin':
+            kernelversion = platform.release()
+        else:
+            kernelversion = None
+
+        arch = platform.machine()
+
+        return {'system': lower_sys_name,
+                'distro': distro_name,
+                'osversion': osversion,
+                'kernelversion': kernelversion,
+                'arch': arch}
+
+    #######################################
     def _make_record(self, step, index, start, end, toolversion, toolpath, cli_args):
         '''
         Records provenance details for a runstep.
@@ -4855,9 +4705,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         userid = getpass.getuser()
         self.set('record', 'userid', userid, step=step, index=index)
-
-        if toolversion:
-            self.set('record', 'toolversion', toolversion, step=step, index=index)
 
         self.set('record', 'starttime', start_date, step=step, index=index)
         self.set('record', 'endtime', end_date, step=step, index=index)
@@ -4876,43 +4723,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except KeyError:
             self.logger.warning('Could not find default network interface info')
 
-        system = platform.system()
-        if system == 'Darwin':
-            lower_sys_name = 'macos'
-        else:
-            lower_sys_name = system.lower()
-        self.set('record', 'platform', lower_sys_name, step=step, index=index)
+        machine_info = Chip._get_machine_info()
+        self.set('record', 'platform', machine_info['system'], step=step, index=index)
 
-        if system == 'Linux':
-            distro_name = distro.id()
-            self.set('record', 'distro', distro_name, step=step, index=index)
+        if machine_info['distro']:
+            self.set('record', 'distro', machine_info['distro'], step=step, index=index)
 
-        if system == 'Darwin':
-            osversion, _, _ = platform.mac_ver()
-        elif system == 'Linux':
-            osversion = distro.version()
-        else:
-            osversion = platform.release()
-        self.set('record', 'osversion', osversion, step=step, index=index)
+        self.set('record', 'osversion', machine_info['osversion'], step=step, index=index)
 
-        if system == 'Linux':
-            kernelversion = platform.release()
-        elif system == 'Windows':
-            kernelversion = platform.version()
-        elif system == 'Darwin':
-            kernelversion = platform.release()
-        else:
-            kernelversion = None
-        if kernelversion:
-            self.set('record', 'kernelversion', kernelversion, step=step, index=index)
+        if machine_info['kernelversion']:
+            self.set('record', 'kernelversion', machine_info['kernelversion'], step=step, index=index)
 
-        arch = platform.machine()
-        self.set('record', 'arch', arch, step=step, index=index)
+        self.set('record', 'arch', machine_info['arch'], step=step, index=index)
 
-        self.set('record', 'toolpath', toolpath, step=step, index=index)
+        if toolversion:
+            self.set('record', 'toolversion', toolversion, step=step, index=index)
 
-        toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
-        self.set('record', 'toolargs', toolargs, step=step, index=index)
+        if toolpath:
+            self.set('record', 'toolpath', toolpath, step=step, index=index)
+
+        if cli_args is not None:
+            toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
+            self.set('record', 'toolargs', toolargs, step=step, index=index)
 
     #######################################
     def _safecompare(self, value, op, goal):
@@ -4938,9 +4770,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         Check if tool and task is a builtin
         '''
-        if tool != 'builtin':
-            return False
-        return task in self.builtin
+        return tool == 'builtin'
 
     #######################################
     def _get_flowgraph_entry_nodes(self, flow=None):
@@ -5015,6 +4845,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     #######################################
     def _resolve_env_vars(self, filepath):
+        if not filepath:
+            return None
+
         resolved_path = os.path.expandvars(filepath)
 
         # variables that don't exist in environment get ignored by `expandvars`,
@@ -5201,6 +5034,155 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.unset('metric', metric, step=step, index=index)
         self.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
 
+    #######################################
+    def __getstate__(self):
+        # Called when generating a serial stream of the object
+        attributes = self.__dict__.copy()
+
+        # Modules are not serializable, so save without cache
+        attributes['modules'] = {}
+        return attributes
+
+    #######################################
+    def _generate_testcase(self, step, index, archive_name=None, include_pdks=True, include_specific_pdks=None, include_libraries=True, include_specific_libraries=None, hash_files=False):
+        # Save original schema since it will be modified
+        schema_copy = self.schema.copy()
+
+        issue_dir = tempfile.TemporaryDirectory(prefix='sc_issue_')
+
+        self.set('option', 'continue', True)
+        if hash_files:
+            for key in self.allkeys():
+                if key[0] == 'history':
+                    continue
+                if 'file' not in self.get(*key, field='type'):
+                    continue
+                for _, key_step, key_index in self.schema._getvals(*key):
+                    self.hash_files(*key, step=key_step, index=key_index)
+
+        manifest_path = os.path.join(issue_dir.name, 'manifest.json')
+        self.write_manifest(manifest_path)
+
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow=flow)
+
+        # Set copy flags for _collect
+        for keypath in self.allkeys():
+            if 'default' in keypath:
+                continue
+
+            sctype = self.get(*keypath, field='type')
+            if 'file' not in sctype and 'dir' not in sctype:
+                continue
+
+            copy = True
+            if keypath[0] == 'libraries':
+                # only copy libraries if selected
+                if include_specific_libraries and keypath[1] in include_specific_libraries:
+                    copy = True
+                else:
+                    copy = include_libraries
+            elif keypath[0] == 'pdk':
+                # only copy pdks if selected
+                if include_specific_pdks and keypath[1] in include_specific_pdks:
+                    copy = True
+                else:
+                    copy = include_pdks
+            elif keypath[0] == 'history':
+                # Skip history
+                continue
+            elif keypath[0] == 'package':
+                # Skip packages
+                continue
+            elif keypath[0] == 'tool':
+                # Only grab tool / tasks
+                copy = False
+                if keypath[0:4] == ['tool', tool, 'task', task]:
+                    # Get files associated with testcase tool / task
+                    copy = True
+                    if len(keypath) > 5:
+                        if keypath[4] in ('output', 'input', 'report'):
+                            # Skip input, output, and report files
+                            copy = False
+
+            # Check keys that might be found in libraries
+            if keypath[-2:] == ['option', 'build']:
+                # Avoid build directory
+                copy = False
+            elif keypath[-2:] == ['option', 'credentials']:
+                # Exclude credentials file
+                copy = False
+
+            self.set(*keypath, copy, field='copy')
+
+        # Collect files
+        collect_path = os.path.join(issue_dir.name, 'collect')
+        self._collect(directory=collect_path)
+
+        git_data = {}
+        try:
+            # Check git information
+            repo = git.Repo(path=os.path.join(self.scroot, '..'))
+            commit = repo.head.commit
+            git_data['commit'] = commit.hexsha
+            git_data['date'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(commit.committed_date))
+            git_data['author'] = f'{commit.author.name} <{commit.author.email}>'
+            git_data['msg'] = commit.message
+            # Count number of commits ahead of version
+            version_tag = repo.tag(f'v{self.scversion}')
+            count = 0
+            for c in commit.iter_parents():
+                count += 1
+                if c == version_tag.commit:
+                    break
+            git_data['count'] = count
+        except git.InvalidGitRepositoryError:
+            pass
+        except Exception as e:
+            git_data['failed'] = str(e)
+            pass
+
+        issue_time = time.time()
+        issue_information = {}
+        issue_information['environment'] = {key: value for key, value in os.environ.items()}
+        issue_information['python'] = {"path": sys.path,
+                                       "version": sys.version}
+        issue_information['date'] = datetime.datetime.fromtimestamp(issue_time).strftime('%Y-%m-%d %H:%M:%S')
+        issue_information['machine'] = Chip._get_machine_info()
+        issue_information['run'] = {'step': step,
+                                    'index': index,
+                                    'libraries_included': include_libraries,
+                                    'pdks_included': include_pdks}
+        issue_information['version'] = {'schema': self.schemaversion,
+                                        'sc': self.scversion,
+                                        'git': git_data}
+
+        issue_path = os.path.join(issue_dir.name, 'issue.json')
+        with open(issue_path, 'w') as fd:
+            json.dump(issue_information, fd, indent=4, sort_keys=True)
+
+        if not archive_name:
+            design = self.design
+            job = self.get('option', 'jobname')
+            file_time = datetime.datetime.fromtimestamp(issue_time).strftime('%Y%m%d-%H%M%S')
+            archive_name = f'sc_issue_{design}_{job}_{step}{index}_{file_time}.tar.gz'
+
+        with tarfile.open(archive_name, "w:gz") as tar:
+            self._archive_node(tar, step, index, all_files=True)
+
+            tar.add(os.path.abspath(manifest_path), arcname='manifest.json')
+            tar.add(os.path.abspath(issue_path), arcname='issue.json')
+            tar.add(collect_path, arcname=os.path.join(self.get('option','builddir'),
+                                                       self.get('design'),
+                                                       self.get('option', 'jobname'),
+                                                       'sc_collected_files'))
+
+        issue_dir.cleanup()
+
+        self.logger.info(f'Generated testcase for {step}{index} in: {os.path.abspath(archive_name)}')
+
+        # Restore original schema
+        self.schema = schema_copy
 
 ###############################################################################
 # Package Customization classes

@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.30.0'
+SCHEMA_VERSION = '0.32.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -1085,6 +1085,8 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
 def schema_tool(cfg, tool='default'):
 
+    version = 'default'
+    
     scparam(cfg, ['tool', tool, 'exe'],
             sctype='str',
             shorthelp="Tool: executable name",
@@ -1093,13 +1095,29 @@ def schema_tool(cfg, tool='default'):
                      "api:  chip.set('tool','openroad','exe','openroad')"],
             schelp="""Tool executable name.""")
 
+    scparam(cfg, ['tool', tool, 'sbom', version],
+            sctype='[file]',
+            pernode='optional',
+            shorthelp="Tool: software BOM",
+            switch="-tool_sbom 'tool version <file>'",
+            example=[
+                "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
+                "api:  chip.set('tool','yosys','sbom','1.0','ys_sbom.json')"],
+            schelp="""
+            Paths to software bill of material (SBOM) document file of the tool
+            specified on a per version basis. The SBOM includes critical
+            package information about the tool including the list of included 
+            components, licenses, and copyright. The SBOM file is generally 
+            provided as in a a standardized open data format such as SPDX.""")
+    
     scparam(cfg, ['tool', tool, 'path'],
             sctype='dir',
             pernode='optional',
             shorthelp="Tool: executable path",
             switch="-tool_path 'tool <dir>'",
-            example=["cli: -tool_path 'openroad /usr/local/bin'",
-                     "api:  chip.set('tool','openroad','path','/usr/local/bin')"],
+            example=[
+                "cli: -tool_path 'openroad /usr/local/bin'",
+                "api: chip.set('tool','openroad','path','/usr/local/bin')"],
             schelp="""
             File system path to tool executable. The path is prepended to the
             system PATH environment variable for batch and interactive runs. The
@@ -2720,6 +2738,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'scheduler', 'cores'],
             sctype='int',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler core constraint",
             switch="-cores <int>",
             example= ["cli: -cores 48",
@@ -2734,6 +2753,7 @@ def schema_option(cfg):
             sctype='int',
             unit='MB',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler memory constraint",
             switch="-memory <str>",
             example= ["cli: -memory 8000",
@@ -2747,6 +2767,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'scheduler', 'queue'],
             sctype='str',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler queue",
             switch="-queue <str>",
             example= ["cli: -queue nightrun",
@@ -2760,6 +2781,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'scheduler', 'defer'],
             sctype='str',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Scheduler start time",
             switch="-defer <str>",
             example= ["cli: -defer 16:00",
@@ -2774,11 +2796,12 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'scheduler', 'options'],
             sctype='[str]',
+            pernode='optional',
             shorthelp="Option: Scheduler arguments",
             switch="-scheduler_options <str>",
             example=[
-                "cli: -scheduler_options '--pty bash'",
-                "api: chip.set('option', 'scheduler', 'options', '--pty bash')"],
+                "cli: -scheduler_options \"--pty\"",
+                "api: chip.set('option', 'scheduler', 'options', \"--pty\")"],
             schelp="""
             Advanced/export options passed through unchanged to the job
             scheduler as-is. (The user specified options must be compatible
@@ -2789,6 +2812,7 @@ def schema_option(cfg):
             sctype='str',
             defvalue='NONE',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Message event trigger",
             switch="-msgevent <str>",
             example=[
@@ -2805,6 +2829,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'scheduler', 'msgcontact'],
             sctype='[str]',
             scope='job',
+            pernode='optional',
             shorthelp="Option: Message contact",
             switch="-msgcontact <str>",
             example=[

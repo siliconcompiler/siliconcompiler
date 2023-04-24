@@ -5,6 +5,9 @@ from siliconcompiler.tools.yosys import syn_asic
 from tests.core.tools.fake import fake_out
 from tests.core.tools.fake import fake_in
 
+from siliconcompiler.tools.builtin import join
+from siliconcompiler.tools.builtin import minimum
+
 def test_check_flowgraph():
     chip = siliconcompiler.Chip('foo')
     chip.load_target('freepdk45_demo')
@@ -33,7 +36,7 @@ def test_check_flowgraph_join():
     chip.set('option', 'flow', flow)
     chip.node(flow, 'prejoin1', fake_out)
     chip.node(flow, 'prejoin2', fake_out)
-    chip.node(flow, 'dojoin', 'builtin.join')
+    chip.node(flow, 'dojoin', join)
     chip.node(flow, 'postjoin', fake_in)
 
     chip.edge(flow, 'prejoin1', 'dojoin')
@@ -54,7 +57,7 @@ def test_check_flowgraph_min():
     chip.set('option', 'flow', flow)
     chip.node(flow, 'premin', fake_out, index=0)
     chip.node(flow, 'premin', fake_out, index=1)
-    chip.node(flow, 'domin', 'builtin.minimum')
+    chip.node(flow, 'domin', minimum)
     chip.node(flow, 'postmin', fake_in)
 
     chip.edge(flow, 'premin', 'domin', tail_index=0)
@@ -75,7 +78,7 @@ def test_check_flowgraph_min_fail():
     chip.set('option', 'flow', flow)
     chip.node(flow, 'premin', fake_out, index=0)
     chip.node(flow, 'premin', fake_out, index=1)
-    chip.node(flow, 'domin', 'builtin.minimum')
+    chip.node(flow, 'domin', minimum)
     chip.node(flow, 'postmin', fake_in)
 
     chip.edge(flow, 'premin', 'domin', tail_index=0)
