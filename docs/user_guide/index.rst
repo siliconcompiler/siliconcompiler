@@ -28,9 +28,9 @@ This guide provides an overview for users. You will also want to look at API Ref
    :caption: Fundamentals
    :maxdepth: 1
 	      
-   The Schema (WIP)  <data_model>
-   The Flowgraph (WIP) <execution_model>
-   The Checklist (WIP) <checklist>
+   <wip> Data Model (aka The Schema)  <data_model>
+   <wip> Execution Model (aka The Flowgraph)  <execution_model>
+   <wip> Audit Model (aka The Checklist) <checklist>
 	      
 .. toctree::
    :caption: Extras
