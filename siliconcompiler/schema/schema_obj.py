@@ -537,8 +537,13 @@ class Schema:
             raise TypeError(f'Invalid field {field} for keypath {keypath}: this field only exists for file and dir parameters')
 
         if Schema._is_list(field, sc_type):
+            if not value:
+                # Replace none with an empty list
+                value = []
+
             if not isinstance(value, list):
                 value = [value]
+
             if not all(isinstance(v, str) for v in value):
                 raise TypeError(error_msg('str'))
             return value
