@@ -2,9 +2,9 @@
 Data Model (aka The Schema)
 ######################################
 
-SiliconCompiler uses a data structure class, called the Schema, to store all information associated with the compilation process and the design that's being compiled.
+SiliconCompiler uses a data structure object, called :class:`~siliconcompiler.schema.Schema`, also referred to as "the schema" in subsequent docs, to store all information associated with the compilation process and the design that's being compiled.
 
-The types of information stored by the SiliconCompiler Schema include, but is not limited to:
+The types of information stored by the schema include, but is not limited to:
 
 - How the design is defined (i.e. HW architectural definitions)
 - How the design is compiled (i.e. Build tools and technology specifics)
@@ -14,19 +14,18 @@ This data is stored in Schema parameters, and accessed through Schema methods.
 
 .. image:: _images/schema_diagram.png
    :scale: 50%
-..   :align: center
-	   
+   :align: center
 
 The diagram above shows a few example Schema parameters and methods for an overview of how data is stored and accessed.
 
 .. rst-class:: page-break
 
-The following sections provide more detail on Schema parameters and methods.
+The following sections provide more detail on how information in the schema is initialized and manipulated.
   
 Schema Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The Schema is "configured," or defined, based on its parameters. 
+The schema is "configured," or defined, based on its parameters. 
 
 Major Parameter Categories
 ---------------------------
@@ -46,11 +45,24 @@ Some parameters have their own subtrees in order to be fully defined. The table 
 Accessing Schema Parameters
 ---------------------------
 
-Accessing schema parameters is done using Python methods defined in :class:`Core API <siliconcompiler.core.Chip>`.
+While all the design and compilation information are stored in the Schema object, this information is manipulated through separate data structured called :class:`~siliconcompiler.core.Chip`.
 
-.. rst-class:: page-break
 
-The following example shows how to create a chip object and manipulate the :ref:`input` schema parameter in Python by setting the parameter with the :meth:`.set()` method, accessing it with the :meth:`.get()` method, and adding to the parameter with the :meth:`.add()` method.
+.. _chip_obj:
+
+The Chip Object
++++++++++++++++++++
+
+This separate data structure is different from the :class:`~siliconcompiler.schema.Schema` since it instantiates the Schema object and is used to define methods that manipulate the compilation process.
+
+.. autoclass:: siliconcompiler.core.Chip
+
+Chip Creation and Schema Parameter Access
++++++++++++++++++++++++++++++++++++++++++++ 
+
+.. currentmodule:: siliconcompiler
+
+The following example shows how to create a chip object and manipulate the :ref:`input` schema parameter in Python by setting the parameter with the :meth:`.set()` method, accessing it with the :meth:`.get()` method, and appending to the parameter field with the :meth:`.add()` method.
 
 .. code-block:: python
 
@@ -67,23 +79,25 @@ The following example shows how to create a chip object and manipulate the :ref:
    ['fulladder.v', 'halfadder.v']
 
 
-You can also use methods like :meth:`.input()`, a helper function used in the :ref:`define design` section of the :ref:`quickstart guide` to set a parameter. 
+The :class:`~siliconcompiler.core.Chip` object provides many useful helper functions. For example, in the :ref:`quickstart guide <define design>` , the :meth:`.input()` helper function was used to set the chip timing constraints file.
 
 .. code-block:: python
 
-   >>> chip.getkeys('input')
-   ['rtl']
-   >>> chip.set('input', 'constraint', 'sdc', 'fulladder.sdc')
-   >>> print(chip.set('input', 'constraint', 'sdc'))
+   >>> chip.input('fulladder.sdc')
+   | INFO    | fulladder.sdc inferred as constraint/sdc
    
    >>> print(chip.get('input', 'constraint', 'sdc'))
    ['fulladder.sdc']
    
+   
+:meth:`.getkeys()` is another example of a useful function, provided by :class:`~siliconcompiler.core.Chip`, for checking your parameters.
+
+.. code-block:: python
+
    >>> chip.getkeys('input')
    ['rtl', 'constraint']   
    
-   
-As you can see, additional methods like :meth:`.getkeys()` are helpful for checking your parameters. See :class:`siliconcompiler.core.Chip` for more infomration on methods which can be used to manipulate Schema parameters.
+ See :class:`siliconcompiler.core.Chip` for more infomration on methods which can be used to manipulate Schema parameters.   
 
 
 Manifest

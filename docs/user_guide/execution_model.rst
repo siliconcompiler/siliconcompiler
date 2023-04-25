@@ -1,82 +1,130 @@
-#########################
-The Flowgraph
-#########################
+.. _execution_model:
 
-.. warning::
-   **[WIP]** This page is a work in progress. What's currently on this page is still the original content. Some of the content here may get replaced by examples/tutorials. 
+#########################################
+Execution Model (aka The Flowgraph)
+#########################################
 
-Execution model
-===================================
+The complete SiliconCompiler compilation is handled by a single call to the :meth:`.run()` function. Within that function call, a static data :term:`flowgraph`, consisting of :term:`nodes <node>` and :term:`edges <edge>` is traversed and "executed."
 
-The complete SiliconCompiler compilation is handled by a single call to the :meth:`.run()` function. Within that function call, the execution model is based on a directed static data flow graph consisting of nodes and edges. The static flowgraph approach was chosen for a number reasons:
+.. rst-class:: page-break
+
+The static flowgraph approach was chosen for a number reasons:
 
 * Performance scalability ("cloud-scale")
 * High abstraction level (not locked into one language and/or shared memory model)
 * Deterministic execution
 * Ease of implementation (synchronization is hard)
 
-A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where a node is an executable tool performing some ("task"), and an edge is the connection between those tasks. SiliconCompiler defines a "task" as an atomic combination of a step and an index, where: 1.) STEP is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and 2.) INDEX is defined as variant of a step operating on identical data.  Flowgraph execution is done through the :meth:`.run()` function which checks the flowgraph for correctness and then executes all tasks in the flowgraph from start to finish.
+The Flowgraph
+-----------------
 
-The :ref:`quickstart guide` example called the built-in "`asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_" compilation flow through the target function. The :ref:`asicflow <asicflow-ref>` compilation flow is a pre-defined flowgraph customized for an ASIC build flow.
-You can design your own chip compilation build flows by easily creating custom flowgraphs through the :meth:`.set()`/:meth:`.get()` methods or the :meth:`.node()`/:meth:`.edge()` methods (**recommended**). All flows must contain an import task that 'imports' source files into the SiliconCompiler schema. Otherwise the user is free to define any reasonable combination of steps and indices based on available tools and PDKs. The example below shows the 'heartbeat' example modified to include a simple two step (import + synthesis) compilation pipeline.
+Nodes and Edges
+^^^^^^^^^^^^^^^^^^
+
+A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where:
+
+* A :term:`node` is an executable :term:`tool` performing some (":term:`task`"), and
+* An :term:`edge` is the connection between those tasks, specifying execution order.
+
+.. image:: _images/flowgraph_diagram.png
+   :scale: 35%
+   :align: center
+
+Tasks
+^^^^^^^^^^^^^^^
+SiliconCompiler breaks down a "task" into an atomic combination of a step and an index, where:
+
+1. A :term:`step` is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and
+2. An :term:`index` is defined as variant of a step operating on identical data.
+
+An example of this might be two parallel synthesis runs with different settings. The two synthesis "tasks" might be called ``syn0`` and ``syn1``, where:
+
+  .. table:: 
+     :align: center
+     :widths: auto
+  
+     =========  =====  ======  =============================================================
+     Task Name  Step    Index  Example Task Description
+     =========  =====  ======  =============================================================
+     syn0       syn      0     One synthesis run with default settings
+     syn1       syn      1     Second, parallel synthesis run with optimized settings
+     =========  =====  ======  =============================================================
+
+
+**Execution**
+
+Flowgraph execution is done through the :meth:`.run()` function which checks the flowgraph for correctness and then executes all tasks in the flowgraph from start to finish.
+
+Flowgraph Examples
+---------------------
+
+The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, called :ref:`asicflow <asicflow-ref>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.load_target()` function, which calls a :ref:`pre-defined PDK module <pdk_director>` that `uses the asicflow flowgraph <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/skywater130_demo.py>`_.
+
+.. rst-class:: page-break
+
+You can design your own chip compilation build flows by easily creating custom flowgraphs through:
+
+* :meth:`.set()`/:meth:`.get()` methods, or
+* :meth:`.node()`/:meth:`.edge()` methods (**recommended**)
+
+The user is free to construct a flowgraph by defining any reasonable combination of steps and indices based on available tools and PDKs.
+
+
+Two-Step Flowgraph 
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The example below shows a snippet which creates a simple two-step (import + synthesis) compilation pipeline.
 
 .. The built in functions are important to minimize data movement in remote processing workflows, where intermediate results may not be accessible.
 
-.. literalinclude:: examples/heartbeat_flowgraph.py
 
-The execution flowgraph can be rendered using :meth:`.write_flowgraph()`, which proves very helpful in debugging graph definitions. ::
+.. literalinclude:: examples/heartbeat_flowgraph.py
+   :start-after: start of flowgraph setup
+   :end-before: end of flowgraph setup
+
+
+At this point, you can visually examine your flowgraph by using :meth:`.write_flowgraph()`. This function is very useful in debugging graph definitions. ::
 
   chip.write_flowgraph("flowgraph.svg", landscape=True)
 
 .. image:: _images/flowgraph.svg
 	   :align: center
 
-The previous heartbeat example did not include any mention of index, so the index defaults to 0. While not essential to basic execution, the 'index' is fundamental to searching and optimizing tool and design options. One example use case for the index feature would be to run a design through synthesis with a range of settings and then selecting the optimal settings based on power, performance, and area. The snippet below shows how a massively parallel optimization flow can be programmed using the SiliconCompiler Python API.
+Using Index for Optimization
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The previous example did not include any mention of :term:`index`, so the index defaults to ``0``.
+
+.. rst-class:: page-break
+
+While not essential to basic execution, the 'index' is fundamental to searching and optimizing tool and design options.
+
+.. rst-class:: page-break
+
+One example use case for the index feature would be to run a design through synthesis with a range of settings and then selecting the optimal settings based on power, performance, and area. The snippet below shows how a massively parallel optimization flow can be programmed using the SiliconCompiler Python API.
 
 .. literalinclude:: examples/flowgraph_doe.py
+   :caption: Snippet that sets up parallel synthesis runs for optimization
+   :start-after: chip =
+   :end-before: write_flowgraph
 
 .. image:: _images/flowgraph_doe.svg
 
-The SiliconCompiler directory structure follows the convention shown below. Each step/index combination ("task") has a separate work directory, with all data inputs read from a local 'inputs' directory and all data outputs placed in a local 'outputs' directory. Reports are placed in the task's local  'reports' directory. Control communication between tasks is done entirely through file based communication. The compilation schema containing all setup parameters and run time metrics are read from 'inputs' directory at the start of a task and written to the 'outputs' directory at the end of a task.
-
-::
-
-    heartbeat
-    └── <jobname>
-        ├── floorplan
-        │   └── <index>
-        │       ├── inputs
-        │       ├── outputs
-        │       └── reports
-        ├── import
-        │   └── <index>
-        │       ├── inputs
-        │       ├── outputs
-        │       └── reports
-        └── syn
-            └── <index>
-                ├── inputs
-                ├── outputs
-                └── reports
-
-
-The combination of the flowgraph execution mode and file based communication enables support for distributed processing of any static execution pattern, including serial pipelines, fork-join patterns, and parallel pipelines.
-
-The ubiquitous fork-join execution pattern can be created by adding steps associated with built in function steps to the flowgraph. The built in :ref:`asicflow <asicflow-ref>` is an example of a flow that supports fork-join optimization at every step.
-
-.. image:: ../_images/forkjoin.png
-
-Parallel pipelines is another common pattern found in parallel programming. It's especially useful for embarrassingly parallel applications such as constrained random verification and brute force search design of experiments. SiliconCompiler enables parallel pipelines by: 1) supporting any step/index output to any step/index input within the flowgraph and by 2.) Inclusion of built in join, minimum, and maximum functions. The flowgraph below shows a place and route experiment that imports source files, runs 4 separate sets of experiments on the same data, and then picks the best one based on the metrics reported and metrics weights set in the flowgraph.
-
-.. image:: ../_images/pipes.png
-
-At the end of each :meth:`run()` call, the current in memory job schema entries are copied into a job history dictionary to more complex flow creation. which can be accessed by the user to to create sophisticated non-linear flows that take into account run history and gradients. The code snippet below shows a minimal sequence leveraging the multi-job feature.::
+.. note::
+   **[In Progress]** Provide pointer to a tutorial on optimizing a metric
+   
+Multi-Job Flows
+^^^^^^^^^^^^^^^^^^^^^^
+At the end of each :meth:`.run()` call, the current in-memory job schema entries are copied into a job history dictionary for reference later. The user can access these to create more complex, non-linear flows that take into account run history and gradients. The code snippet below shows a minimal sequence leveraging the multi-job feature.::
 
   chip.run()
   chip.set('option', 'jobname', 'newname')
   chip.set('some parameter..')
   chip.run()
 
-Complex iterative compilation flows can be created with Python programs that 1.) calls run() multiple times using a different jobname and 2.) leverages Python logic to query per job metrics to control the compilation flow decision.
+Complex iterative compilation flows can be created with Python programs that:
+
+1. Calls run() multiple times using a different jobname, and
+2. Leverages Python logic to query per job metrics to control the compilation flow decision
 
 .. image:: ../_images/complex.png
