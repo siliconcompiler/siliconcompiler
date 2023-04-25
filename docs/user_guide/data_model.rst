@@ -2,7 +2,7 @@
 Data Model (aka The Schema)
 ######################################
 
-SiliconCompiler uses a data structure to store all information associated with the compilation process and the design that's being compiled. This class is called the Schema. 
+SiliconCompiler uses a data structure class, called the Schema, to store all information associated with the compilation process and the design that's being compiled.
 
 The types of information stored by the SiliconCompiler Schema include, but is not limited to:
 
@@ -10,11 +10,23 @@ The types of information stored by the SiliconCompiler Schema include, but is no
 - How the design is compiled (i.e. Build tools and technology specifics)
 - How the design is optimized (i.e. Different tool options for  build experiments)
 
+This data is stored in Schema parameters, and accessed through Schema methods.
 
+.. image:: _images/schema_diagram.png
+   :scale: 50%
+..   :align: center
+	   
+
+The diagram above shows a few example Schema parameters and methods for an overview of how data is stored and accessed.
+
+.. rst-class:: page-break
+
+The following sections provide more detail on Schema parameters and methods.
+  
 Schema Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The Schema is "configured" or defined based on its parameters. 
+The Schema is "configured," or defined, based on its parameters. 
 
 Major Parameter Categories
 ---------------------------

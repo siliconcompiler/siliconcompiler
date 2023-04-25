@@ -35,7 +35,7 @@ Welcome to SiliconCompiler's Documentation!
             :color: secondary
             :click-parent:
 
-            To the Quickstart Guide
+            Quickstart Guide
 
     .. grid-item-card::
 
@@ -49,7 +49,7 @@ Welcome to SiliconCompiler's Documentation!
             :color: secondary
             :click-parent:
 
-            To the Complete User Guide
+            Complete User Guide
 	    
 
 **How the Documentation is Organized**
@@ -64,8 +64,7 @@ Welcome to SiliconCompiler's Documentation!
 
 .. rst-class:: page-break
 
-- Look in the :ref:`glossary` for unfamiliar terms
-- Try the :ref:`faq` for common questions
-- The :ref:`API references <api_refs>` can be a good resource if you're looking for more information about functions and methods
-- And if you can't find what you're looking for, the SiliconCompiler team is happy to help! Please `file an issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_ so we can look into it.
-  
+- :ref:`glossary` 
+- :ref:`faq`
+- Last but not least, `file an issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_ if you can't find what you're looking for, or something isn't working as expected. The SiliconCompiler team is happy to help!   
+
