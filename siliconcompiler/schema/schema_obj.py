@@ -48,11 +48,47 @@ class Schema:
             raise ValueError('You may not specify both cfg and manifest')
 
         if cfg is not None:
-            self.cfg = copy.deepcopy(cfg)
+            self.cfg = Schema._dict_to_schema(copy.deepcopy(cfg))
         elif manifest is not None:
             self.cfg = Schema._read_manifest(manifest)
         else:
             self.cfg = schema_cfg()
+
+    ###########################################################################
+    @staticmethod
+    def _dict_to_schema_set(cfg, *key):
+        if Schema._is_leaf(cfg):
+            for field, value in cfg.items():
+                if field == 'node':
+                    for step in value:
+                        for index in value[step]:
+                            if step == Schema.GLOBAL_KEY:
+                                sstep = None
+                            else:
+                                sstep = step
+                            if index == Schema.GLOBAL_KEY:
+                                sindex = None
+                            else:
+                                sindex = index
+                            for nodefield, nodevalue in value[step][index].items():
+                                Schema._set(*key, nodevalue, cfg=cfg, field=nodefield, step=sstep, index=sindex)
+                else:
+                    Schema._set(*key, value, cfg=cfg, field=field)
+        else:
+            for nextkey in cfg.keys():
+                Schema._dict_to_schema_set(cfg[nextkey], *key, nextkey)
+
+    ###########################################################################
+    @staticmethod
+    def _dict_to_schema(cfg):
+        for category in cfg.keys():
+            if category in ('history', 'library'):
+                # History and library are subschemas
+                for _, value in cfg[category].items():
+                    Schema._dict_to_schema(value)
+            else:
+                Schema._dict_to_schema_set(cfg[category], category)
+        return cfg
 
     ###########################################################################
     @staticmethod
@@ -77,8 +113,10 @@ class Schema:
         finally:
             fin.close()
 
-        if Schema().get('schemaversion') != localcfg['schemaversion']['defvalue']:
-            raise ValueError('Attempting to read manifest with incompatible schema version')
+        try:
+            Schema._dict_to_schema(localcfg)
+        except (TypeError, ValueError) as e:
+            raise ValueError(f'Attempting to read manifest with incompatible schema version: {e}') from e
 
         return localcfg
 
@@ -139,10 +177,22 @@ class Schema:
 
         See :meth:`~siliconcompiler.core.Chip.set` for detailed documentation.
         '''
+
+        keypath = args[:-1]
+        cfg = self._search(*keypath, insert_defaults=True)
+
+        return self._set(*args, cfg=cfg, field=field, clobber=clobber, step=step, index=index)
+
+    ###########################################################################
+    @staticmethod
+    def _set(*args, cfg=None, field='value', clobber=True, step=None, index=None):
+        '''
+        Sets a schema parameter field.
+
+        See :meth:`~siliconcompiler.core.Chip.set` for detailed documentation.
+        '''
         keypath = args[:-1]
         value = args[-1]
-
-        cfg = self._search(*keypath, insert_defaults=True)
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: set() must be called on a complete keypath')
@@ -168,9 +218,9 @@ class Schema:
 
         value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
-        if field in self.PERNODE_FIELDS:
-            step = step if step is not None else self.GLOBAL_KEY
-            index = index if index is not None else self.GLOBAL_KEY
+        if field in Schema.PERNODE_FIELDS:
+            step = step if step is not None else Schema.GLOBAL_KEY
+            index = index if index is not None else Schema.GLOBAL_KEY
 
             if step not in cfg['node']:
                 cfg['node'][step] = {}
@@ -219,7 +269,6 @@ class Schema:
             allowed_values = cfg['enum']
 
         value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
-
         if field in self.PERNODE_FIELDS:
             step = step if step is not None else self.GLOBAL_KEY
             index = index if index is not None else self.GLOBAL_KEY
@@ -488,8 +537,13 @@ class Schema:
             raise TypeError(f'Invalid field {field} for keypath {keypath}: this field only exists for file and dir parameters')
 
         if Schema._is_list(field, sc_type):
+            if not value:
+                # Replace none with an empty list
+                value = []
+
             if not isinstance(value, list):
                 value = [value]
+
             if not all(isinstance(v, str) for v in value):
                 raise TypeError(error_msg('str'))
             return value
