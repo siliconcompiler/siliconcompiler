@@ -31,9 +31,9 @@ To learn how to use SiliconCompiler, see :ref:`user <User Guide>`.
 
    schema
    core_api
+   apps
    server_api
    floorplan_api
-   apps
 
 .. toctree::
    :caption: Appendix
