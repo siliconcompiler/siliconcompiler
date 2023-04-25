@@ -1747,9 +1747,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for step in self.getkeys('flowgraph', flow):
             for index in self.getkeys('flowgraph', flow, step):
                 nodes.add((step, index))
-                input_tasks = self.get('flowgraph', flow, step, index, 'input')
-                for task in input_tasks:
-                    nodes.add((task[0], task[1]))
+                nodes.update(self.get('flowgraph', flow, step, index, 'input'))
 
         error = False
         for step, index in nodes:
