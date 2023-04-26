@@ -123,12 +123,12 @@ class Server:
                 params = await part.json()
 
                 if 'chip_cfg' not in params:
-                    return web.Response(text='Manifest not provided.')
+                    return self.__response('Manifest not provided.', status=400)
                 chip_cfg = params['chip_cfg']
 
         # Process input parameters
         job_params, response = self.__handle_request(params['params'])
-        if response:
+        if response is not None:
             return response
 
         # Create a dummy Chip object to make schema traversal easier.
@@ -185,7 +185,7 @@ class Server:
         params = await request.json()
         params['job_hash'] = request.match_info.get('job_hash', '')
         job_params, response = self.__handle_request(params)
-        if response:
+        if response is not None:
             return response
 
         job_hash = job_params['job_hash']
@@ -217,7 +217,7 @@ class Server:
 
         # Process input parameters
         job_params, response = self.__handle_request(await request.json())
-        if response:
+        if response is not None:
             return response
 
         job_hash = job_params['job_hash']
@@ -225,7 +225,7 @@ class Server:
         # Determine if the job is running.
         for job in self.sc_jobs:
             if job_hash in job:
-                return web.Response(text="Error: job is still running.")
+                return self.__response("Error: job is still running.", status=400)
 
         # Delete job hash directory, only if it exists.
         # TODO: This assumes no malicious input.
@@ -254,7 +254,7 @@ class Server:
 
         # Process input parameters
         job_params, response = self.__handle_request(await request.json())
-        if response:
+        if response is not None:
             return response
 
         job_hash = job_params['job_hash']
@@ -327,10 +327,10 @@ class Server:
 
         # Get the job hash value, and verify it is a 32-char hex string.
         if 'job_hash' not in request:
-            return (params, web.Response(text="Error: no job hash provided."))
+            return (params, self.__response("Error: no job hash provided.", status=400))
 
         if not re.match("^[0-9A-Za-z]{32}$", request['job_hash']):
-            return (params, web.Response(text="Error: invalid job hash."))
+            return (params, self.__response("Error: invalid job hash.", status=400))
 
         params['job_hash'] = request['job_hash']
 
@@ -338,16 +338,19 @@ class Server:
         params['username'] = None
         if self.cfg['auth']['value'][-1]:
             if ('username' in request) and ('key' in request):
-                params['username'] = request['username']
-                if not params['username'] in self.user_keys.keys():
-                    return (params, web.Response(text="Error: invalid username provided.", status=404))
                 # Authenticate the user.
-                if not self.__auth_password(params['username'], request['key']):
-                    return (params, web.Response(text="Authentication error.", status=403))
+                if not self.__auth_password(request['username'], request['key']):
+                    return (params, self.__response("Authentication error.", status=403))
+
+                params['username'] = request['username']
             else:
-                return (params, web.Response(text="Error: some authentication parameters are missing.", status=400))
+                return (params, self.__response("Error: some authentication parameters are missing.", status=400))
 
         return (params, None)
+
+    ###################
+    def __response(self, message, status=200):
+        return web.json_response({'message': message}, status=status)
 
     ###################
     @property
