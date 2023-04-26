@@ -77,19 +77,20 @@ html_logo = 'sc_logo_with_text.png'
 html_logo = 'sc_logo_with_text.png'
 
 html_theme_options = {
-  'collapse_navigation': False,
+  'collapse_navigation': True,
 #    'logo_only': True,
 #    'display_version': True,
 #    'navigation_depth': 4,
+  "show_toc_level": 2,   # this automatically displays two levels
   "logo": {
       "image_light": html_logo,
       "image_dark": html_logo,
   },
   "github_url": "https://github.com/siliconcompiler/siliconcompiler",  # these are top right 
-  "collapse_navigation": True, # this prevents expandable navigation on side bars
 
   # Add light/dark mode and documentation version switcher:
   "navbar_end": ["theme-switcher", "navbar-icon-links"],
+
     
 }
 
@@ -156,3 +157,9 @@ latex_use_modindex = False
 # -- Options for autodoc -----------------------------------------------------
 
 autodoc_mock_imports = ['siliconcompiler.leflib._leflib']
+
+
+
+
+
+   

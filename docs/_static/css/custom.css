@@ -11,3 +11,18 @@ code.literal {
 .wy-table-responsive table td, .wy-table-responsive table th {
     white-space: inherit;
 }
+
+/* font of main toctree on left */
+.toctree-l1 {
+    font-size: 15px;
+}
+
+/* change font of onthispage toctree */
+.toc-h2.nav-item.toc-entry {
+    font-size: 14px;
+}
+
+/* change font of onthispage toctree */
+.toc-h3.nav-item.toc-entry {
+    font-size: 13px;
+}

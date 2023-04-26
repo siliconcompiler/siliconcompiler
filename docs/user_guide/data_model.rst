@@ -27,7 +27,7 @@ The following sections provide more detail on how information in the schema is i
 Schema Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The schema is "configured," or defined, based on its parameters. 
+The schema is "configured," or defined, based on its parameters.
 
 Major Parameter Categories
 ---------------------------

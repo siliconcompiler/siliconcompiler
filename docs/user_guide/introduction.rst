@@ -23,6 +23,10 @@ The SiliconCompiler project is based on a standardized :ref:`Schema <SiliconComp
 
 To simplify flow development, the project incorporates a simple object oriented :ref:`Python API<Core API>`. The API includes abstracted set/get access to the Schema, a flowgraph based parallel programming model, and a suite of utility functions for compilation setup and metric tracking.
 
+.. image:: ../_images/sc_overview.png
+   :scale: 90%
+   :align: center	   
+
 The expansive data schema, standardized plug-in interfaces, and built-in dynamic module search functionality enables SiliconCompiler to scale effectively to a large number of tools and PDKs. The open source :ref:`building_blocks` sections in the reference manual serves as a good starting point for folks who want to add their own PDKs and tools.
 
 
