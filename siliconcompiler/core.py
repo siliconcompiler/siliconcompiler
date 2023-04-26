@@ -4155,15 +4155,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if self.get('option','credentials'):
                 # Use the provided remote credentials file.
                 cfg_file = os.path.abspath(self.get('option', 'credentials')[-1])
-                cfg_dir = os.path.dirname(cfg_file)
 
                 if not os.path.isfile(cfg_file):
                     # Check if it's a file since its been requested by the user
                     self.error(f'Unable to find the credentials file: {cfg_file}', fatal=True)
             else:
                 # Use the default config file path.
-                cfg_dir = os.path.join(Path.home(), '.sc')
-                cfg_file = os.path.join(cfg_dir, 'credentials')
+                cfg_file = utils.default_credentials_file()
+
+            cfg_dir = os.path.dirname(cfg_file)
             if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
                 self.logger.info(f'Using credentials: {cfg_file}')
                 with open(cfg_file, 'r') as cfgf:
