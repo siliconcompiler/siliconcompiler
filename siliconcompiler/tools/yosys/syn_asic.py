@@ -38,7 +38,7 @@ def setup_asic(chip):
         chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'file', 'dff_liberty']), step=step, index=index)
 
     if syn_corner is not None:
-    # add timing library requirements
+        # add timing library requirements
         for lib in chip.get('asic', 'logiclib', step=step, index=index):
             # mandatory for logiclibs
             chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', syn_corner, delaymodel]), step=step, index=index)

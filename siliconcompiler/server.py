@@ -2,19 +2,16 @@
 
 from aiohttp import web
 import asyncio
-import base64
 import json
 import logging as log
 import os
 import re
 import shutil
 import uuid
-import tempfile
 import tarfile
 
 from siliconcompiler import Chip
 from siliconcompiler import Schema
-from siliconcompiler import utils
 
 class Server:
     """
@@ -65,8 +62,6 @@ class Server:
                     users_json = json.loads(users_file.read())
                 for mapping in users_json['users']:
                     self.user_keys[mapping['username']] = {
-                        'pub_key': mapping['pub_key'],
-                        'priv_key': mapping['priv_key'],
                         'password': mapping['password'],
                     }
             except Exception:
@@ -199,11 +194,10 @@ class Server:
 
         # Run the job with the configured clustering option. (Non-blocking)
         if use_auth:
-            asyncio.ensure_future(self.remote_sc_auth(chip,
-                                                      username,
-                                                      self.user_keys[username]['priv_key']))
+            asyncio.ensure_future(self.remote_sc(chip,
+                                                 username))
         else:
-            asyncio.ensure_future(self.remote_sc(chip))
+            asyncio.ensure_future(self.remote_sc(chip, None))
 
         # Return a response to the client.
         response_text = f"Starting job: {job_hash}"
@@ -292,8 +286,8 @@ class Server:
 
         # Determine if the job is running.
         for job in self.sc_jobs:
-          if job_hash in job:
-            return web.Response(text="Error: job is still running.")
+            if job_hash in job:
+                return web.Response(text="Error: job is still running.")
 
         # Delete job hash directory, only if it exists.
         # TODO: This assumes no malicious input.
@@ -357,12 +351,10 @@ class Server:
             return web.Response(text="Job has no running steps.")
 
     ####################
-    async def remote_sc_auth(self, chip, username):
+    async def remote_sc(self, chip, username):
         '''
-        Async method to delegate an 'sc' command to a slurm host,
+        Async method to delegate an '.run()' command to a host,
         and send an email notification when the job completes.
-        This method requires authentication to access client-encrypted data,
-        but the transport methods for this dev server aren't adequately secured.
         '''
 
         # Assemble core job parameters.
@@ -371,99 +363,34 @@ class Server:
         job_nameid = chip.get('option', 'jobname')
 
         # Mark the job run as busy.
-        self.sc_jobs[f'{username}{job_hash}_{job_nameid}'] = 'busy'
+        if username:
+            sc_job_name = f'{username}_{job_hash}_{job_nameid}'
+        else:
+            sc_job_name = f'{job_hash}_{job_nameid}'
+        self.sc_jobs[sc_job_name] = 'busy'
 
-        run_cmd = ''
+        build_dir = os.path.join(self.nfs_mount, job_hash)
+        chip.set('option', 'builddir', build_dir)
+        chip.set('option', 'remote', False)
+        chip.unset('option', 'credentials')
+
+        os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
+        chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
+
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Run the job with slurm clustering.
-            chip.set('option', 'builddir', os.path.join(self.nfs_mount, job_hash))
             chip.set('option', 'jobscheduler', 'slurm')
-            chip.set('option', 'remote', False)
-            chip.unset('option', 'credentials')
-            chip.run()
-        else:
-            # Reset 'build' directory in NFS storage.
-            _, build_dir = tempfile.mkstemp(prefix=job_hash, suffix=job_nameid)
 
-            chip.set('option', 'builddir', build_dir, clobber=True)
-            # Run the build command locally.
-            from_dir = os.path.join(self.nfs_mount, job_hash)
-            job_dir  = os.path.join(build_dir, top_module, job_nameid)
-            # Write plaintext JSON config to the build directory.
-            os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
-            chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
-
-            utils.copytree(from_dir, build_dir, dirs_exist_ok=True)
-
-            run_cmd += f"sc -cfg {build_dir}/configs/chip{chip.get('option', 'jobname')}.json -dir {build_dir} -remote_addr '' ; "
-            # Run the generated command.
-            proc = await asyncio.create_subprocess_shell(run_cmd)
-            await proc.wait()
-
-            utils.copytree(os.path.join(build_dir, top_module),
-                           os.path.join(from_dir, top_module), dirs_exist_ok=True)
-            os.removedirs(build_dir)
-
-        # Zip results after all job stages have finished.
-        with tarfile.open(f'{job_hash}.tar.gz', "w:gz") as tar:
-            tar.add(self.nfs_mount, arcname=job_hash)
-
-        # (Email notifications can be sent here using your preferred API)
-
-        # Mark the job hash as being done.
-        self.sc_jobs.pop(f'{username}{job_hash}_{chip.get("jobname")}')
-
-    ####################
-    async def remote_sc(self, chip):
-        '''
-        Async method to delegate an 'sc' command to a slurm host,
-        and send an email notification when the job completes.
-        '''
-
-        # Collect a few bookkeeping values.
-        job_hash = chip.status['jobhash']
-        build_dir = chip.get('option', 'builddir')
-        jobid = chip.get('option', 'jobname')
-
-        # Mark the job hash as being busy.
-        self.sc_jobs["%s_%s"%(job_hash, jobid)] = 'busy'
-
-        run_cmd = ''
-        if self.cfg['cluster']['value'][-1] == 'slurm':
-            # Assemble the 'sc' command. The host must be running slurmctld.
-            # TODO: Avoid using a hardcoded $PATH variable for the compute node.
-            #export_path  = '--export=PATH=/home/ubuntu/OpenROAD-flow-scripts/tools/build/OpenROAD/src'
-            #export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/TritonRoute'
-            #export_path += ':/home/ubuntu/OpenROAD-flow-scripts/tools/build/yosys/bin'
-            #export_path += ':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
-            # Send JSON config instead of using subset of flags.
-            # TODO: Use slurmpy SDK?
-            #run_cmd  = 'srun %s sc '%(export_path)
-            #run_cmd += '-cfg %s/configs/chip%s.json '%(build_dir, jobid)
-            # Run the job with slurm clustering.
-            chip.set('jobscheduler', 'slurm')
-            chip.run()
-        else:
-            # Unrecognized or unset clusering option; run locally on the
-            # server itself. (Note: local runs are mostly synchronous, so
-            # this will probably block the server from responding to other
-            # calls. It should only be used for testing and development.)
-            cfg_out = f"{build_dir}/configs/chip{jobid}.json"
-            chip.write_manifest(cfg_out)
-            run_cmd = f'sc -cfg {cfg_out}'
-
-            # Create async subprocess shell, and block this thread until it finishes.
-            proc = await asyncio.create_subprocess_shell(run_cmd)
-            await proc.wait()
-
-        # (Email notifications can be sent here using SES)
+        chip.run()
 
         # Create a single-file archive to return if results are requested.
         with tarfile.open(os.path.join(self.nfs_mount, f'{job_hash}.tar.gz'), "w:gz") as tar:
             tar.add(os.path.join(self.nfs_mount, job_hash), arcname=job_hash)
 
+        # (Email notifications can be sent here using your preferred API)
+
         # Mark the job hash as being done.
-        self.sc_jobs.pop("%s_%s"%(job_hash, jobid))
+        self.sc_jobs.pop(sc_job_name)
 
     ####################
     def auth_password(self, username, password):

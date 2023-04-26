@@ -1,4 +1,3 @@
-import base64
 import os
 import shlex
 import subprocess
@@ -50,12 +49,11 @@ def _deferstep(chip, step, index, status):
                                    chip.get('option', 'jobname'),
                                    f'sc_remote-{step}-{index}.log')
         schedule_cmd = ['sbatch', '--exclusive',
-                       '--constraint', slurm_constraint,
-                       '--partition', partition,
-                       '--chdir', chip.get('option', 'builddir'),
-                       '--job-name', f'{job_hash}_{step}{index}',
-                       '--output', output_file,
-                       ]
+                        '--constraint', slurm_constraint,
+                        '--partition', partition,
+                        '--chdir', chip.get('option', 'builddir'),
+                        '--job-name', f'{job_hash}_{step}{index}',
+                        '--output', output_file]
         # Only specify an account if accounting is required for this cluster/run.
         if 'slurm_account' in chip.status:
             username = chip.status['slurm_account']

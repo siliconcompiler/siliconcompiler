@@ -11,17 +11,12 @@ from unittest.mock import Mock
 SERVER_STARTUP_DELAY = 10
 
 @pytest.fixture
-def gcd_remote_test(gcd_chip, request):
-    # Get the port number; avoid re-use to enable parallel tests.
-    if 'port' in request.keywords:
-        port = request.keywords["port"]
-    else:
-        port = '8080'
+def gcd_remote_test(gcd_chip, unused_tcp_port):
 
     # Start running an sc-server instance.
     os.mkdir('local_server_work')
     srv_proc = subprocess.Popen(['sc-server',
-                                 '-port', port,
+                                 '-port', str(unused_tcp_port),
                                  '-nfs_mount', './local_server_work',
                                  '-cluster', 'local'])
     time.sleep(SERVER_STARTUP_DELAY)
@@ -39,7 +34,8 @@ def gcd_remote_test(gcd_chip, request):
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
     with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps({'address': 'localhost', 'port': int(port)}))
+        tmp_cred_file.write(json.dumps({'address': 'localhost',
+                                        'port': unused_tcp_port}))
     gcd_chip.set('option', 'remote', True)
     gcd_chip.set('option', 'credentials', os.path.abspath(tmp_creds))
 
@@ -61,7 +57,6 @@ def gcd_remote_test(gcd_chip, request):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-@pytest.mark.remote_test(port='8080')
 def test_gcd_server(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
@@ -84,7 +79,6 @@ def test_gcd_server(gcd_remote_test):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-@pytest.mark.remote_test(port='8081')
 def test_gcd_server_partial(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
@@ -114,7 +108,6 @@ def test_gcd_server_partial(gcd_remote_test):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-@pytest.mark.remote_test(port='8082')
 def test_gcd_server_partial_noeda(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
@@ -136,7 +129,6 @@ def test_gcd_server_partial_noeda(gcd_remote_test):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-@pytest.mark.remote_test(port='8083')
 def test_gcd_server_partial_noimport(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
@@ -158,7 +150,6 @@ def test_gcd_server_partial_noimport(gcd_remote_test):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-@pytest.mark.remote_test(port='8085')
 def test_gcd_server_argstep_noimport(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.

@@ -18,7 +18,7 @@ def main():
                   '-loglevel']
     description = """
     -----------------------------------------------------------
-    Restricted SC app that generates a sharable testcase from a 
+    Restricted SC app that generates a sharable testcase from a
     failed flow or runs an issue generated with this program.
 
     To generate a testcase, use:
@@ -58,7 +58,7 @@ def main():
                      'help':  'pdk to include in the testcase, if not provided all libraries will be added according to the -exclude_pdks flag',
                      'metavar': '<pdk>'},
 
-        '-file': {'help': f'filename for the generated testcase',
+        '-file': {'help': 'filename for the generated testcase',
                   'metavar': '<file>'},
     }
 

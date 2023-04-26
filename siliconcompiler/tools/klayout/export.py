@@ -62,8 +62,7 @@ def setup(chip):
 
     # Input/Output requirements for default flow
     design = chip.top()
-    if (not chip.valid('input', 'layout', 'def') or
-        not chip.get('input', 'layout', 'def', step=step, index=index)):
+    if (not chip.valid('input', 'layout', 'def') or not chip.get('input', 'layout', 'def', step=step, index=index)):
         chip.add('tool', tool, 'task', task, 'input', design + '.def', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', f'{design}.{default_stream}', step=step, index=index)
 

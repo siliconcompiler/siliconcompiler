@@ -12,11 +12,11 @@
 #
 import os
 import sys
+from datetime import date
+
 sys.path.insert(0, os.path.abspath('../siliconcompiler'))
 import siliconcompiler
 sys.path.append(os.path.abspath('./_ext'))
-
-from datetime import date
 
 
 # -- Project information -----------------------------------------------------
@@ -93,7 +93,15 @@ html_theme_options = {
     
 }
 
-
+# Custom sidebar templates, must be a dictionary that maps document names
+# to template names.
+#
+# The default sidebars (for documents that don't match any pattern) are
+# defined by theme itself.  Builtin themes are using these templates by
+# default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
+# 'searchbox.html']``.
+#
+# html_sidebars = {}
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -127,8 +135,7 @@ latex_preamble = r"""\newcommand{\origunderscore}{}
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, document class [howto/manual]).
 
-_stdauthor = author # this automatically happens even if you don't specify latex_documents
-#_stdauthor = ", ".join(siliconcompiler._metadata.authors)
+_stdauthor = author 
 
 latex_documents = [
   ('index_pdf', 'siliconcompiler.tex', 'SiliconCompiler',
@@ -136,8 +143,8 @@ latex_documents = [
 ]
 
 latex_elements = {
-  'extraclassoptions': 'openany,oneside', # Don't add blank pages after some chapters
-  'preamble': latex_preamble
+    'extraclassoptions': 'openany,oneside', # Don't add blank pages after some chapters
+    'preamble': latex_preamble
 }
 
 #latex_logo = '_images/sc_logo_with_text.png'

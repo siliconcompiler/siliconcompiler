@@ -32,12 +32,13 @@ def test_doe(oh_dir):
     processes = []
     for i in range(len(N)):
         job = 'job' + str(i)
-        processes.append(multiprocessing.Process(target=run_design,
-                                                args=(datadir,
-                                                      design,
-                                                      str(N[i]),
-                                                      job
-                                                )))
+        processes.append(multiprocessing.Process(
+            target=run_design,
+            args=(datadir,
+                  design,
+                  str(N[i]),
+                  job)
+        ))
 
     # Boiler plate start and join
     for p in processes:

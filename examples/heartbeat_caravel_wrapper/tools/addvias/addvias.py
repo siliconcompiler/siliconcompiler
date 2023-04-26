@@ -22,11 +22,11 @@ def run(chip):
     in_mod = False
     done_mod = False
     with open(f'outputs/{design}.vg', 'w') as wf:
-      with open(f'inputs/{design}.vg', 'r') as rf:
-        for line in rf.readlines():
-          if in_mod:
-            if line.strip().startswith('endmodule'):
-              wf.write(''' VIA_L1M1_PR(vssd1);
+        with open(f'inputs/{design}.vg', 'r') as rf:
+            for line in rf.readlines():
+                if in_mod:
+                    if line.strip().startswith('endmodule'):
+                        wf.write(''' VIA_L1M1_PR(vssd1);
  VIA_L1M1_PR(vccd1);
  VIA_L1M1_PR_MR(vssd1);
  VIA_L1M1_PR_MR(vccd1);
@@ -50,9 +50,9 @@ def run(chip):
  VIA_via4_3100x3100(vccd1);
  VIA_via4_5_3100_480_1_7_400_400(vssd1);
  VIA_via4_5_3100_480_1_7_400_400(vccd1);\n''')
-          elif not done_mod:
-            if line.strip().startswith(f'module {design}'):
-              in_mod = True
-          wf.write(line)
+                elif not done_mod:
+                    if line.strip().startswith(f'module {design}'):
+                        in_mod = True
+                wf.write(line)
 
     return 0

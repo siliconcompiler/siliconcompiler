@@ -1,8 +1,6 @@
 import argparse
 import sys
-import re
 import siliconcompiler as sc
-from siliconcompiler.package import Sup
 
 def main():
 
@@ -10,7 +8,7 @@ def main():
     usage = f"""{progname} <command> [options]
     """
     description = "SiliconCompiler package manager"
-    epilog = f"""
+    epilog = """
 ------------------------------------------------------------
 The Silicon Unified Packager ('sup') is the SiliconCompiler
 package management utility for installing, upgrading,
