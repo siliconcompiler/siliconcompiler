@@ -1,9 +1,9 @@
 import os
 import shutil
 import psutil
-import sys
 import xml.etree.ElementTree as ET
 import re
+from pathlib import Path
 
 PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -231,3 +231,8 @@ def format_fileset_type_table(indent=12):
         table += f"{indent}{filetype:<10}| {fileset:<11}| {ext}\n"
 
     return table
+
+def default_credentials_file():
+    cfg_file = os.path.join(Path.home(), '.sc', 'credentials')
+
+    return cfg_file
