@@ -20,7 +20,7 @@ This guide provides an overview for users. You will also want to look at API Ref
    :caption: Fundamentals
    :maxdepth: 1
 	      
-   Design & compilation aata <data_model>
+   Design & compilation data <data_model>
    Compilation process <execution_model>
 ..   <wip> Audit Model (aka The Checklist) <checklist>
 	      
