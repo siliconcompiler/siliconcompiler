@@ -27,5 +27,10 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'require', ','.join(['tool', tool, 'task', task, 'file', 'padring']))
     chip.set('tool', tool, 'task', task, 'file', 'padring', 'script to insert the padring', field='help')
 
+    snap = chip.get('tool', tool, 'task', task, 'var', 'ifp_snap_strategy', step=step, index=index)[0]
+    snaps_allowed =  ('none', 'site', 'manufacturing_grid')
+    if snap not in snaps_allowed:
+        chip.error(f'{snap} is not a supported snapping strategy. Allowed values: {snaps_allowed}')
+
 def pre_process(chip):
     build_pex_corners(chip)
