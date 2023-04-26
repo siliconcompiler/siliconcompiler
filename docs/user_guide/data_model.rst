@@ -1,5 +1,7 @@
+.. _data_model:
+
 ######################################
-Data Model (aka The Schema)
+Design and Compilation Data
 ######################################
 
 SiliconCompiler uses a data structure object, called :class:`~siliconcompiler.schema.Schema`, also referred to as "the schema" in subsequent docs, to store all information associated with the compilation process and the design that's being compiled.
@@ -16,7 +18,7 @@ This data is stored in Schema parameters, and accessed through Schema methods.
    :scale: 50%
    :align: center
 
-The diagram above shows a few example Schema parameters and methods for an overview of how data is stored and accessed.
+The diagram above shows a few examples of Schema parameters and methods for an overview of how data is stored and accessed.
 
 .. rst-class:: page-break
 
@@ -45,7 +47,7 @@ Some parameters have their own subtrees in order to be fully defined. The table 
 Accessing Schema Parameters
 ---------------------------
 
-While all the design and compilation information are stored in the Schema object, this information is manipulated through separate data structured called :class:`~siliconcompiler.core.Chip`.
+While all the design and compilation information are stored in the Schema object, this information is manipulated through a separate data structured called :class:`~siliconcompiler.core.Chip`.
 
 
 .. _chip_obj:
@@ -79,7 +81,7 @@ The following example shows how to create a chip object and manipulate the :ref:
    ['fulladder.v', 'halfadder.v']
 
 
-The :class:`~siliconcompiler.core.Chip` object provides many useful helper functions. For example, in the :ref:`quickstart guide <define design>` , the :meth:`.input()` helper function was used to set the chip timing constraints file.
+The :class:`~siliconcompiler.core.Chip` object provides many useful helper functions. For example, in the :ref:`quickstart guide <define design>` , the :meth:`.input()` helper function was used to set the chip timing constraints file, a simpler call than using :meth:`.set()`.
 
 .. code-block:: python
 
@@ -97,7 +99,7 @@ The :class:`~siliconcompiler.core.Chip` object provides many useful helper funct
    >>> chip.getkeys('input')
    ['rtl', 'constraint']   
    
- See :class:`siliconcompiler.core.Chip` for more infomration on methods which can be used to manipulate Schema parameters.   
+See :class:`siliconcompiler.core.Chip` for more information on methods which can be used to manipulate Schema parameters.   
 
 
 Manifest

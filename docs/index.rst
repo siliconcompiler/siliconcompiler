@@ -26,7 +26,7 @@ Welcome to SiliconCompiler's Documentation!
 
     .. grid-item-card::
 
-        The fastest way to get started after :ref:`installation` is to walk through a simple demo!
+        The fastest way to get started, after installation, is to walk through a simple demo!
 
         +++
 
@@ -39,7 +39,8 @@ Welcome to SiliconCompiler's Documentation!
 
     .. grid-item-card::
 
-        A more complete introduction for new users, including fundamentals of SiliconCompiler, examples and tutorials.
+        A more complete introduction for new users, this
+	section is for those who want to use their own designs using pre-defined build flows.
 
 
         +++
@@ -49,22 +50,43 @@ Welcome to SiliconCompiler's Documentation!
             :color: secondary
             :click-parent:
 
-            Complete User Guide
+            Introductory User Guide
 	    
 
-**How the Documentation is Organized**
+    .. grid-item-card::
 
-.. rst-class:: page-break
+        This section contains useful lookup information, like flow building blocks, the schema and other API references.
 
-- The :ref:`User Guide` is useful for users who would like to start running SiliconCompiler with their own designs using pre-defined build flows. Useful subsections include :ref:`quickstart` and :ref:`tutorials`
-- The :ref:`Advanced Guide <advanced>` is for users who are already familiar with the basics in User Guide and would like to build their own flows or add additional functionality to existing flows.
-- The :ref:`references` section contains useful lookup information, like :ref:`building_blocks` and :ref:`API references <api_refs>` which are helpful to search through.
+        +++
+
+        .. button-ref:: reference_manual/index
+            :expand:
+            :color: secondary
+            :click-parent:
+
+            Reference Manual
+
+    .. grid-item-card::
+
+        This section is for users who are already familiar with the basics in User Guide and would like to build their own flows or add additional functionality.
+
+
+        +++
+
+        .. button-ref:: development_guide/index
+            :expand:
+            :color: secondary
+            :click-parent:
+
+            Advanced Guide
+	    
+
 
 **Getting Help**
 
 .. rst-class:: page-break
 
-- :ref:`glossary` 
-- :ref:`faq`
-- Last but not least, `file an issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_ if you can't find what you're looking for, or something isn't working as expected. The SiliconCompiler team is happy to help!   
+- Search :ref:`glossary`, 
+- Review :ref:`faq`, or
+- `File an issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_: if you can't find something, or something is not working, the SiliconCompiler team is happy to help!   
 

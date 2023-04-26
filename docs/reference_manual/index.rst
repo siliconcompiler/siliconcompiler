@@ -4,11 +4,8 @@
 References
 ###############
 
-:Release: |version|
-:Date: |today|
-
 The following sections provides details on the functions, modules and objects included in SiliconCompiler.
-To learn how to use SiliconCompiler, see :ref:`user <User Guide>`. 
+To learn how to use SiliconCompiler, see the :ref:`user guide`. 
 
 .. _building_blocks:
 .. toctree::

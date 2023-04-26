@@ -10,7 +10,6 @@ The following sections describe how to build your own custom modules in SiliconC
 .. toctree::
    :caption: Customize Your Build Environment
    :maxdepth: 3
-   :numbered:
 
    contribution
    targets
@@ -18,4 +17,7 @@ The following sections describe how to build your own custom modules in SiliconC
    tools
    pdks
    libraries
+   metrics
+   records
+   packages
    remote_processing
