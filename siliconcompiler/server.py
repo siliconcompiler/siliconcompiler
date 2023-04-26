@@ -64,9 +64,14 @@ class Server:
                 with open(json_path, 'r') as users_file:
                     users_json = json.loads(users_file.read())
                 for mapping in users_json['users']:
-                    self.user_keys[mapping['username']] = {
-                        'password': mapping['password'],
+                    username = mapping['username']
+                    self.user_keys[username] = {
+                        'password': mapping['password']
                     }
+                    if 'compute_time' in mapping:
+                        self.user_keys[username]['compute_time'] = mapping['compute_time']
+                    if 'bandwidth' in mapping:
+                        self.user_keys[username]['bandwidth'] = mapping['bandwidth']
             except Exception:
                 self.logger.warning("Could not find well-formatted 'users.json' "\
                                     "file in the server's working directory. "\
@@ -77,6 +82,7 @@ class Server:
         self.app.add_routes([
             web.post('/remote_run/', self.handle_remote_run),
             web.post('/check_progress/', self.handle_check_progress),
+            web.post('/check_user/', self.handle_check_user),
             web.post('/delete_job/', self.handle_delete_job),
             web.post('/get_results/{job_hash}.tar.gz', self.handle_get_results),
         ])
@@ -352,6 +358,44 @@ class Server:
             return web.Response(text="Job is currently running on the cluster.")
         else:
             return web.Response(text="Job has no running steps.")
+
+    ####################
+    async def handle_check_user(self, request):
+        '''
+        API handler for the 'check user' endpoint.
+        '''
+
+        # Retrieve the JSON parameters.
+        params = await request.json()
+        username = ''
+        if 'username' in params:
+            username = params['username']
+
+        # Check for authentication parameters.
+        use_auth = False
+        if ('username' in params) or ('key' in params):
+            if self.cfg['auth']['value'][-1]:
+                if ('username' in params) and ('key' in params):
+                    username = params['username']
+                    key = params['key']
+                    if not username in self.user_keys.keys():
+                        return web.Response(text="Error: invalid username provided.", status=404)
+                    # Authenticate the user.
+                    if self.auth_password(username, key):
+                        use_auth = True
+                    else:
+                        return web.Response(text="Authentication error.", status=403)
+                else:
+                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
+            else:
+                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
+
+        resp = {
+            'compute_time': self.user_keys[username]['compute_time'],
+            'bandwidth_kb': self.user_keys[username]['bandwidth']
+        }
+
+        return web.json_response(resp)
 
     ####################
     async def remote_sc(self, chip, username):
