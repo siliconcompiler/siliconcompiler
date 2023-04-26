@@ -33,14 +33,14 @@ def main():
     # Check the configuration.
     if not os.path.isfile(cfg_file):
         print('Error: Remote configuration was not found. Please run "sc-configure".')
-        sys.exit(1)
+        return 1
 
     try:
         with open(cfg_file, 'r') as cfgf:
             remote_cfg = json.loads(cfgf.read())
     except Exception:
         print('Error reading remote configuration file.')
-        sys.exit(1)
+        return 1
 
     # Create the chip object and generate the request
     chip = Chip('ping')
@@ -69,16 +69,16 @@ def main():
            (not 'compute_time' in user_info) or \
            (not 'bandwidth_kb' in user_info):
             print('Error fetching user information from the remote server.')
-            sys.exit(1)
+            return 1
 
         # Print the user's account info, and return.
-        print(f'User {remote_cfg["username"]} validated successfully!')
-        print(f'  Remaining compute time: {(user_info["compute_time"]/60.0):.2f} minutes')
+        print(f'User {remote_cfg["username"]}:')
+        print(f'  Remaining compute time: {(user_info["bandwidth_kb"]/60):.2f}) minutes')
         print(f'  Remaining results bandwidth: {user_info["bandwidth_kb"]} KiB')
-        return
+        return 0
     except Exception:
         print('Error fetching user information from the remote server.')
-        sys.exit(1)
+        return 1
 
 #########################
 if __name__ == "__main__":
