@@ -21,7 +21,7 @@ def _deferstep(chip, step, index, status):
     # Determine which cluster parititon to use. (Default value can be overridden on per-step basis)
     partition = chip.get('option', 'scheduler', 'queue', step=step, index=index)
     if not partition:
-        partition = _get_slurm_partitions()
+        partition = _get_slurm_partition()
 
     # Get the temporary UID associated with this job run.
     if 'jobhash' in chip.status:
@@ -152,7 +152,7 @@ def _deferstep(chip, step, index, status):
     if retcode > 0:
         chip.logger.error(f'srun command for {step} failed.')
 
-def _get_slurm_partitions():
+def _get_slurm_partition():
     partitions = subprocess.run(['sinfo', '--json'],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
