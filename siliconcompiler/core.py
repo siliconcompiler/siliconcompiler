@@ -789,9 +789,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         fullstr = ("-"*80 +
                    "\nDescription: " + description +
                    "\nSwitch:      " + switchstr +
-                   "\nType:        " + typestr  +
-                   "\nRequirement: " + requirement   +
-                   "\nDefault:     " + defstr   +
+                   "\nType:        " + typestr +
+                   "\nRequirement: " + requirement +
+                   "\nDefault:     " + defstr +
                    examplestr +
                    "\nHelp:        " + para_list[0] + "\n")
         for line in para_list[1:]:

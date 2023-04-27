@@ -162,7 +162,7 @@ class Server:
 
         # Ensure that the job's root directory exists.
         job_root = os.path.join(self.nfs_mount, job_hash)
-        job_dir  = os.path.join(job_root, design, job_name)
+        job_dir = os.path.join(job_root, design, job_name)
         os.makedirs(job_dir, exist_ok=True)
 
         # Move the uploaded archive and un-zip it.

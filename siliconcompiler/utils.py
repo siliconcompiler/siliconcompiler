@@ -215,7 +215,7 @@ def format_fileset_type_table(indent=12):
     Generate a table to use in the __doc__ of the input function which auto
     updates based on the iomap
     '''
-    table  = "filetype  | fileset    | suffix (case insensitive)\n"
+    table = "filetype  | fileset    | suffix (case insensitive)\n"
     indent = " " * indent
     table += f"{indent}----------|------------|---------------------------------------------\n"
 
