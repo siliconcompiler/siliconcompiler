@@ -290,7 +290,7 @@ class Server:
 
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Run the job with slurm clustering.
-            chip.set('option', 'jobscheduler', 'slurm')
+            chip.set('option', 'scheduler', 'name', 'slurm')
 
         chip.run()
 
