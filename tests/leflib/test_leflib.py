@@ -63,7 +63,7 @@ def test_leflib_complete(datadir):
     assert rx['width'] == 1
     assert rx['direction'] == 'HORIZONTAL'
 
-    assert data['maxviastack'] == { 'value': 4, 'range': {'bottom': 'm1', 'top': 'm7'}}
+    assert data['maxviastack'] == {'value': 4, 'range': {'bottom': 'm1', 'top': 'm7'}}
     assert data
 
     # 11 viarules defined, but two are skipped because they are "turn-vias"

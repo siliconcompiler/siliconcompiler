@@ -1169,8 +1169,8 @@ def schema_tool(cfg, tool='default'):
             sctype='str',
             shorthelp="Tool: file format",
             switch="-tool_format 'tool <file>'",
-            example=[ "cli: -tool_format 'yosys tcl'",
-                      "api: chip.set('tool','yosys','format','tcl')"],
+            example=["cli: -tool_format 'yosys tcl'",
+                     "api: chip.set('tool','yosys','format','tcl')"],
             schelp="""
             File format for tool manifest handoff. Supported formats are tcl,
             yaml, and json.""")

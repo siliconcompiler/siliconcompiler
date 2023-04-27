@@ -68,10 +68,10 @@ class PbPrimitive:
         num_pins = port.attrib['num_pins']
         port_class = port.attrib.get('port_class')
 
-        new_port = { 'port_type': port_type,
-                     'port_name': port_name,
-                     'num_pins': num_pins,
-                     'port_class': port_class }
+        new_port = {'port_type': port_type,
+                    'port_name': port_name,
+                    'num_pins': num_pins,
+                    'port_class': port_class}
 
         self.ports.append(new_port)
 
