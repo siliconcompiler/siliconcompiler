@@ -800,7 +800,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         return fullstr
 
-
     ###########################################################################
     def valid(self, *keypath, valid_keypaths=None, default_valid=False):
         """
@@ -2414,7 +2413,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if os.path.isfile(logfile):
                 tar.add(os.path.abspath(logfile), arcname=logfile)
 
-
     ###########################################################################
     def archive(self, step=None, index=None, all_files=False, archive_name=None):
         '''Archive a job directory.
@@ -2575,7 +2573,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         return 0
-
 
     ###########################################################################
     def calc_area(self, step=None, index=None):
@@ -4986,7 +4983,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         raise SiliconCompilerError(msg) from None
 
-
     #######################################
     def _record_metric(self, step, index, metric, value, source, source_unit=None):
         '''
@@ -5022,7 +5018,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             tool, task = self._get_tool_task(step, index, flow=flow)
 
             self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
-
 
     #######################################
     def _clear_metric(self, step, index, metric):

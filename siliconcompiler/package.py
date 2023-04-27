@@ -136,7 +136,6 @@ class Sup:
         return 0
 
     ############################################################################
-
     def uninstall(self, name):
         '''
         Uninstall local package.
@@ -165,7 +164,6 @@ class Sup:
         return 0
 
     ############################################################################
-
     def search(self, name=None):
         '''
         Search for a package in registry.
@@ -209,9 +207,7 @@ class Sup:
 
         return supfile
 
-
     ############################################################################
-
     def info(self, name):
         '''
         Display package information.
@@ -233,7 +229,6 @@ class Sup:
                     self.chip.logger.info(f"Package '{name}' {key[1]}: {value}")
 
     ############################################################################
-
     def clear(self):
         '''
         Removes all locally installed packages.

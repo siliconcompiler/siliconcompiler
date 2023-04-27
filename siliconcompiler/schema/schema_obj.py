@@ -787,7 +787,6 @@ class Schema:
             if 'default' not in key:
                 fout.write(outstr)
 
-
     ###########################################################################
     def write_csv(self, fout):
         csvwriter = csv.writer(fout)
