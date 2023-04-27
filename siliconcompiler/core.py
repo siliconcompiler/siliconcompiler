@@ -585,8 +585,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     val = remainder
 
                 msg = f'Command line argument entered: {args} Value: {val}'
-                if step is not None: msg += f' Step: {step}'
-                if index is not None: msg += f' Index: {index}'
+                if step is not None:
+                    msg += f' Step: {step}'
+                if index is not None:
+                    msg += f' Index: {index}'
                 self.logger.info(msg)
 
                 # Storing in manifest

@@ -496,9 +496,12 @@ class Schema:
             return tuple(Schema._normalize_value(v, base_type, error_msg, allowed_values) for v, base_type in zip(value, base_types))
 
         if sc_type == 'bool':
-            if value == 'true': return True
-            if value == 'false': return False
-            if isinstance(value, bool): return value
+            if value == 'true':
+                return True
+            if value == 'false':
+                return False
+            if isinstance(value, bool):
+                return value
             raise TypeError(error_msg)
 
         try:
@@ -511,8 +514,10 @@ class Schema:
             raise TypeError(error_msg) from None
 
         if sc_type in ('str', 'file', 'dir'):
-            if isinstance(value, str): return value
-            else: raise TypeError(error_msg)
+            if isinstance(value, str):
+                return value
+            else:
+                raise TypeError(error_msg)
 
         if sc_type == 'enum':
             if isinstance(value, str):
@@ -570,14 +575,20 @@ class Schema:
             return value
 
         if field in ('lock', 'copy'):
-            if value == 'true': return True
-            if value == 'false': return False
-            if isinstance(value, bool): return value
-            else: raise TypeError(error_msg('bool'))
+            if value == 'true':
+                return True
+            if value == 'false':
+                return False
+            if isinstance(value, bool):
+                return value
+            else:
+                raise TypeError(error_msg('bool'))
 
         if field in ('node',):
-            if isinstance(value, dict): return value
-            else: raise TypeError(f'Invalid value {value} for field {field}: expected dict')
+            if isinstance(value, dict):
+                return value
+            else:
+                raise TypeError(f'Invalid value {value} for field {field}: expected dict')
 
         raise ValueError(f'Invalid field {field} for keypath {keypath}')
 
