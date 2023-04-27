@@ -1422,7 +1422,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             shorthelp="Task: reports",
             switch="-tool_task_report 'task metric step index <str>'",
             example=[
-                 "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
+                "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
                 "api: chip.set('tool','openroad','task','place','report','holdtns','place.log', step='place', index='0')"],
             schelp="""
             List of report files associated with a specific 'metric'. The file path

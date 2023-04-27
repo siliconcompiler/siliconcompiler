@@ -119,12 +119,12 @@ def remote_run(chip):
                     cur_step = msg_lines[0][msg_lines[0].find(': ')+2:]
                     cur_log = '\n'.join(msg_lines[1:])
                     chip.logger.info("Job is still running (%d seconds, step: %s)."%(
-                                    int(time.monotonic() - step_start), cur_step))
+                                     int(time.monotonic() - step_start), cur_step))
                     if cur_log:
                         chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
                 else:
                     chip.logger.info("Job is still running (%d seconds, step: unknown)"%(
-                                    int(time.monotonic() - step_start)))
+                                     int(time.monotonic() - step_start)))
         except Exception:
             # Sometimes an exception is raised if the request library cannot
             # reach the server due to a transient network issue.

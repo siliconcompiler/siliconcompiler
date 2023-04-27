@@ -770,7 +770,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         example = self.get(*keypath, field='example')
 
         examplestr = ("\nExamples:    " + example[0] + ''.join(
-                     ["\n             " + ex for ex in example[1:]]))
+                      ["\n             " + ex for ex in example[1:]]))
 
         #Removing multiple spaces and newlines
         helpstr = helpstr.rstrip()
