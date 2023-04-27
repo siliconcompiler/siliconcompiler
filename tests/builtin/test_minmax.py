@@ -29,8 +29,8 @@ def chip():
 
     threads = {
         'import': 1,
-        'syn' : N,
-        'teststep' : 1
+        'syn': N,
+        'teststep': 1
     }
 
     # Parallel flow for syn

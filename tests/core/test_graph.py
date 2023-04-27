@@ -26,19 +26,19 @@ def test_graph():
     chip = siliconcompiler.Chip('test')
 
     #RTL
-    chip.pipe('rtl', [{'import' : parse},
-                      {'syn' : syn_asic},
-                      {'export' : nop},])
+    chip.pipe('rtl', [{'import': parse},
+                      {'syn': syn_asic},
+                      {'export': nop},])
 
     #APR
-    chip.pipe('apr', [{'import' : nop},
-                      {'floorplan' : floorplan},
-                      {'physyn' : physyn},
-                      {'place' : place},
-                      {'cts' : cts},
-                      {'route' : route},
-                      {'dfm' : dfm},
-                      {'export' : export}])
+    chip.pipe('apr', [{'import': nop},
+                      {'floorplan': floorplan},
+                      {'physyn': physyn},
+                      {'place': place},
+                      {'cts': cts},
+                      {'route': route},
+                      {'dfm': dfm},
+                      {'export': export}])
 
     #SIGNOFF
     chip.node('signoff', 'import', nop)

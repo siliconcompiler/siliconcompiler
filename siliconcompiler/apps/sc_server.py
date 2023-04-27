@@ -53,7 +53,7 @@ def server_cmdline():
     for key,all_vals in cmdargs.items():
         switch = key.split('_')
         param = switch[0]
-        if len(switch) > 1 :
+        if len(switch) > 1:
             param = param + "_" + switch[1]
 
         if param not in def_cfg:

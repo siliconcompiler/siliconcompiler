@@ -439,7 +439,7 @@ def server_schema():
         'switch_args': '<num>',
         'type': ['int'],
         'defvalue': ['8080'],
-        'help' : ["TBD"]
+        'help': ["TBD"]
     }
 
     cfg['cluster'] = {
@@ -456,8 +456,8 @@ def server_schema():
         'switch': '-nfs_mount',
         'switch_args': '<str>',
         'type': ['string'],
-        'defvalue' : ['/nfs/sc_compute'],
-        'help' : ["TBD"]
+        'defvalue': ['/nfs/sc_compute'],
+        'help': ["TBD"]
     }
 
     cfg['auth'] = {
@@ -465,8 +465,8 @@ def server_schema():
         'switch': '-auth',
         'switch_args': '<str>',
         'type': ['bool'],
-        'defvalue' : [''],
-        'help' : ["TBD"]
+        'defvalue': [''],
+        'help': ["TBD"]
     }
 
     return cfg

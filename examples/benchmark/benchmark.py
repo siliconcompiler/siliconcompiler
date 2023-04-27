@@ -10,9 +10,9 @@ def main():
     target = "skywater130_demo"
     jobname = 'job0'
 
-    examples = [{'heartbeat' : 1000},
-                {'picorv32' : 1000},
-                {'aes' : 1500}]
+    examples = [{'heartbeat': 1000},
+                {'picorv32': 1000},
+                {'aes': 1500}]
 
     results = {}
 

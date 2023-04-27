@@ -19,15 +19,15 @@ def main():
 
     #IMPORT
     #APR
-    chip.pipe('apr', [{'import' : 'nop'},
-                      {'syn' : 'yosys'},
-                      {'floorplan' : 'openroad'},
-                      {'physyn' : 'openroad'},
-                      {'place' : 'openroad'},
-                      {'cts' : 'openroad'},
-                      {'route' : 'openroad'},
-                      {'dfm' : 'openroad'},
-                      {'export' : 'klayout'}])
+    chip.pipe('apr', [{'import': 'nop'},
+                      {'syn': 'yosys'},
+                      {'floorplan': 'openroad'},
+                      {'physyn': 'openroad'},
+                      {'place': 'openroad'},
+                      {'cts': 'openroad'},
+                      {'route': 'openroad'},
+                      {'dfm': 'openroad'},
+                      {'export': 'klayout'}])
 
     #SIGNOFF
     chip.node('signoff', 'import', 'nop')
