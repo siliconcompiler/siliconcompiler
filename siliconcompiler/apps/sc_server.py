@@ -30,7 +30,7 @@ def server_cmdline():
                    '\n\n' +
                    '\n'.join(def_cfg[k]['help']) +
                    '\n\n---------------------------------------------------------\n')
-        if def_cfg[k]['type'][-1] == 'bool': #scalar
+        if def_cfg[k]['type'][-1] == 'bool':  # scalar
             parser.add_argument(def_cfg[k]['switch'],
                                 metavar=def_cfg[k]['switch_args'],
                                 dest=keystr,
