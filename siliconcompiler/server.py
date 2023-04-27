@@ -124,7 +124,7 @@ class Server:
                 chip_cfg = params['chip_cfg']
 
         # Process input parameters
-        job_params, response = self.__handle_request(params['params'])
+        job_params, response = self.__check_request(params['params'])
         if response is not None:
             return response
 
@@ -181,7 +181,7 @@ class Server:
         # Process input parameters
         params = await request.json()
         params['job_hash'] = request.match_info.get('job_hash', '')
-        job_params, response = self.__handle_request(params)
+        job_params, response = self.__check_request(params)
         if response is not None:
             return response
 
@@ -213,7 +213,7 @@ class Server:
         '''
 
         # Process input parameters
-        job_params, response = self.__handle_request(await request.json())
+        job_params, response = self.__check_request(await request.json())
         if response is not None:
             return response
 
@@ -250,7 +250,7 @@ class Server:
         '''
 
         # Process input parameters
-        job_params, response = self.__handle_request(await request.json())
+        job_params, response = self.__check_request(await request.json())
         if response is not None:
             return response
 
@@ -319,7 +319,7 @@ class Server:
             return False
         return (password == self.user_keys[username]['password'])
 
-    def __handle_request(self, request):
+    def __check_request(self, request):
         params = {}
 
         # Get the job hash value, and verify it is a 32-char hex string.
