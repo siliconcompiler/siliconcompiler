@@ -41,7 +41,7 @@ def pre_process(chip):
     task = chip._get_task(step, index)
     tool = "genfasm"
 
-    chip.add('tool', tool, 'task', task, 'option',  [f"--route_chan_width {find_chann_width()}" ], step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'option',  [f"--route_chan_width {find_chann_width()}"], step=step, index=index)
 
 ################################
 # Find the final channel width from the VPR report

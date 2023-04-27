@@ -4,7 +4,6 @@ max-line-length = 100
 # Intial ignore list will be reduced as each issue is addressed
 ignore =
     C901,
-    E202,
     E203,
     E211,
     E221,

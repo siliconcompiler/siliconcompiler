@@ -800,7 +800,7 @@ class Schema:
                 if step is None and index is None:
                     keypath = ','.join(key)
                 elif index is None:
-                    keypath = ','.join(key + [step, 'default'] )
+                    keypath = ','.join(key + [step, 'default'])
                 else:
                     keypath = ','.join(key + [step, index])
 
