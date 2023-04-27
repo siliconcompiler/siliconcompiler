@@ -192,7 +192,7 @@ class Sup:
         for item in remote.keys():
             if item == design:
                 for j in remote[item].keys():
-                    reg =  remote[item][j]
+                    reg = remote[item][j]
                     if ver is None:
                         foundit = True
                         self.chip.logger.info(f"Found package '{item}-{j}' in registry '{reg}'")

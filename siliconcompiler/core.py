@@ -3772,9 +3772,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if self.get('tool', tool, 'task', task,  'stdout', 'destination', step=step, index=index) == 'log':
                     stdout_file = step + "." + stdout_suffix
                 elif self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index) == 'output':
-                    stdout_file =  os.path.join('outputs', top + "." + stdout_suffix)
+                    stdout_file = os.path.join('outputs', top + "." + stdout_suffix)
                 elif self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index) == 'none':
-                    stdout_file =  os.devnull
+                    stdout_file = os.devnull
                 else:
                     destination = self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index)
                     self.logger.error(f'stdout/destination has no support for {destination}. Use [log|output|none].')
@@ -3784,9 +3784,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index) == 'log':
                     stderr_file = step + "." + stderr_suffix
                 elif self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index) == 'output':
-                    stderr_file =  os.path.join('outputs', top + "." + stderr_suffix)
+                    stderr_file = os.path.join('outputs', top + "." + stderr_suffix)
                 elif self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index) == 'none':
-                    stderr_file =  os.devnull
+                    stderr_file = os.devnull
                 else:
                     destination = self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index)
                     self.logger.error(f'stderr/destination has no support for {destination}. Use [log|output|none].')
@@ -4393,7 +4393,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.schema.record_history()
 
         # Storing manifest in job root directory
-        filepath =  os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
+        filepath = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
 
     ###########################################################################
