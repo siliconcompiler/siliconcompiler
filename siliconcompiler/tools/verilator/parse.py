@@ -26,7 +26,7 @@ def setup(chip):
     task = chip._get_task(step, index)
     design = chip.top()
 
-    chip.add('tool', tool, 'task', task, 'option',  ['--lint-only', '--debug'], step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'option', ['--lint-only', '--debug'], step=step, index=index)
     chip.add('tool', tool, 'task', task, 'require', ",".join(['input', 'rtl', 'verilog']), step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', f'{design}.v', step=step, index=index)
     for value in chip.get('option', 'define'):

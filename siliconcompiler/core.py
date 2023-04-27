@@ -3769,7 +3769,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 stdout_file = ''
                 stdout_suffix = self.get('tool', tool, 'task', task, 'stdout', 'suffix', step=step, index=index)
-                if self.get('tool', tool, 'task', task,  'stdout', 'destination', step=step, index=index) == 'log':
+                if self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index) == 'log':
                     stdout_file = step + "." + stdout_suffix
                 elif self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index) == 'output':
                     stdout_file = os.path.join('outputs', top + "." + stdout_suffix)
@@ -3793,8 +3793,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self._haltstep(step, index)
 
                 with open(stdout_file, 'w') as stdout_writer, \
-                     open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader,  \
-                     open(stderr_file, 'w') as stderr_writer,  \
+                     open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader, \
+                     open(stderr_file, 'w') as stderr_writer, \
                      open(stderr_file, 'r', errors='replace_with_warning') as stderr_reader:
                     # Use separate reader/writer file objects as hack to display
                     # live output in non-blocking way, so we can monitor the

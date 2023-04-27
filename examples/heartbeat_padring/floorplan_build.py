@@ -272,7 +272,7 @@ def core_floorplan(fp):
         ('tech_cfg', 13.445, 3, 18), # enable_vdda_h
         ('tech_cfg', 16.665, 4, 18), # enable_vswitch_h
         ('tech_cfg', 69.105, 5, 18), # enable_vddio
-        ('tech_cfg',  7.465, 6, 18), # ib_mode_sel
+        ('tech_cfg', 7.465, 6, 18), # ib_mode_sel
         ('tech_cfg', 10.685, 7, 18), # vtrip_sel
         ('tech_cfg', 65.885, 8, 18), # slow
         ('tech_cfg', 22.645, 9, 18), # hld_ovr

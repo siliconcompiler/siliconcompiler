@@ -42,14 +42,14 @@ def setup(chip):
     chip.set('tool', tool, 'format', 'tcl')
 
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'refdir',  refdir, step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'script',  script, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=False)
 
     # set options
     options = []
     options.append('-noc')
     options.append('-dnull')
-    chip.set('tool', tool, 'task', task, 'option',  options, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'option', options, step=step, index=index, clobber=False)
 
     design = chip.top()
     if chip.valid('input', 'layout', 'gds'):

@@ -22,7 +22,7 @@ def setup(chip):
 
     design = chip.top()
     option = f'"runMain SCDriver --module {design} -o ../outputs/{design}.v"'
-    chip.set('tool', tool, 'task', task, 'option',  option, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index)
 
     # Input/Output requirements
     chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
