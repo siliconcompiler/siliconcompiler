@@ -125,8 +125,7 @@ def _minmax(chip, *steps, op=None):
                 scaled = max_val[metric]
             score = score + scaled * weight
 
-        if ((op == 'minimum' and score < best_score) or
-            (op == 'maximum' and score > best_score)):
+        if ((op == 'minimum' and score < best_score) or (op == 'maximum' and score > best_score)):
             best_score = score
             winner = (step,index)
 
