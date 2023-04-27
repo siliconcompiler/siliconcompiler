@@ -75,8 +75,8 @@ html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
     'collapse_navigation': False,
     'logo_only': True,
-#    'display_version': True,
-#    'navigation_depth': 4,
+    # 'display_version': True,
+    # 'navigation_depth': 4,
 }
 
 # Custom sidebar templates, must be a dictionary that maps document names
