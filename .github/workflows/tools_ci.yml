@@ -191,6 +191,7 @@ jobs:
 
       - name: Run tests
         run: |
+          /start_slurm.sh
           python3 -m venv clean_env
           source clean_env/bin/activate
           cd $GITHUB_WORKSPACE
