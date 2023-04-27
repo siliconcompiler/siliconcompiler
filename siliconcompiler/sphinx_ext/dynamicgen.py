@@ -51,7 +51,7 @@ def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=
             value, _, _ = values[0]
             val_type = schema.get(*kp, field='type')
             # Don't display false booleans
-            if val_type == 'bool' and value == False:
+            if val_type == 'bool' and value is False:
                 continue
             if val_type.startswith('['):
                 if len(value) > 1:

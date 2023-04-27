@@ -125,7 +125,7 @@ def test_set_valid_keypath_to_none():
     # arbitrary step/index
     jobscheduler = chip.get('option', 'scheduler', 'name', step='syn', index=0)
     assert jobscheduler is None
-    assert chip._error == False
+    assert chip._error is False
 
 def test_set_field_error():
     chip = siliconcompiler.Chip('test')
@@ -133,7 +133,7 @@ def test_set_field_error():
     chip.set('input', 'doc', 'txt', 'asdf', field='copy')
     # expect copy flag unchanged and error triggered
     assert chip.get('input', 'doc', 'txt', field='copy') is True
-    assert chip._error == True
+    assert chip._error is True
 
 def test_set_invalid_field():
     chip = siliconcompiler.Chip('test')
@@ -155,7 +155,7 @@ def test_no_clobber_false():
     chip.set('option', 'remote', False)
     chip.set('option', 'remote', True, clobber=False)
 
-    assert chip.get('option', 'remote') == False
+    assert chip.get('option', 'remote') is False
 
 def test_get_no_side_effect():
     '''Test that get() of keypaths that don't exist yet doesn't create them.'''
@@ -173,15 +173,15 @@ def test_get_no_side_effect():
 def test_unset():
     chip = siliconcompiler.Chip('test')
     chip.set('option', 'remote', True)
-    assert chip.get('option', 'remote') == True
+    assert chip.get('option', 'remote') is True
 
     # Clearing a keypath resets it to default value
     chip.unset('option','remote')
-    assert chip.get('option', 'remote') == False
+    assert chip.get('option', 'remote') is False
 
     # Able to set a keypath after it's been cleared even if clobber=False
     chip.set('option', 'remote', True, clobber=False)
-    assert chip.get('option', 'remote') == True
+    assert chip.get('option', 'remote') is True
 
     # Make sure unset() clears values and pernode field
     chip.set('input', 'doc', 'txt', 'foo.txt')
