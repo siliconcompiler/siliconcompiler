@@ -345,7 +345,7 @@ class Server:
                 return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
 
         # Determine if the job is running.
-        if "%s%s_%s"%(username, job_hash, jobid) in self.sc_jobs:
+        if "%s%s_%s" % (username, job_hash, jobid) in self.sc_jobs:
             return web.Response(text="Job is currently running on the cluster.")
         else:
             return web.Response(text="Job has no running steps.")
