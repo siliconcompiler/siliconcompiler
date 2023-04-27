@@ -48,185 +48,184 @@ from tools.klayout.klayout_show import show
 
 def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
               macro_lefs, config_file='', seal_file='', timestamps=True):
-  # Expand layers in json
-  def expand_cfg_layers(cfg):
-    layers = cfg['layers']
-    expand = [layer for layer in layers if 'layers' in layers[layer]]
-    for layer in expand:
-      for i, (name, num) in enumerate(zip(layers[layer]['names'],
-                                          layers[layer]['layers'])):
-        new_layer = copy.deepcopy(layers[layer])
-        del new_layer['names']
-        new_layer['name'] = name
-        del new_layer['layers']
-        new_layer['layer'] = num
-        layers[name] = new_layer
-      del layers[layer]
+    # Expand layers in json
+    def expand_cfg_layers(cfg):
+        layers = cfg['layers']
+        expand = [layer for layer in layers if 'layers' in layers[layer]]
+        for layer in expand:
+            for i, (name, num) in enumerate(zip(layers[layer]['names'],
+                                                layers[layer]['layers'])):
+                new_layer = copy.deepcopy(layers[layer])
+                del new_layer['names']
+                new_layer['name'] = name
+                del new_layer['layers']
+                new_layer['layer'] = num
+                layers[name] = new_layer
+            del layers[layer]
 
-  def read_cfg():
-    print('INFO: Reading config file: ' + config_file)
-    with open(config_file, 'r') as f:
-      cfg = json.load(f)
+    def read_cfg():
+        print('INFO: Reading config file: ' + config_file)
+        with open(config_file, 'r') as f:
+            cfg = json.load(f)
 
-    expand_cfg_layers(cfg)
-    cfg = cfg['layers'] # ignore the rest
+        expand_cfg_layers(cfg)
+        cfg = cfg['layers'] # ignore the rest
 
-    # Map gds layers & datatype to KLayout indices
-    # These are arrays for the different mask numbers
-    for layer, vals in cfg.items():
-      layer = vals['layer']
-      for key in ('opc', 'non-opc'):
-        if key not in vals:
-          continue
-        data = vals[key]
-        if isinstance(data['datatype'], int):
-          data['datatype'] = [data['datatype']] # convert to array
-        data['klayout'] = [main_layout.find_layer(layer, datatype)
-                          for datatype in data['datatype']]
+        # Map gds layers & datatype to KLayout indices
+        # These are arrays for the different mask numbers
+        for layer, vals in cfg.items():
+            layer = vals['layer']
+            for key in ('opc', 'non-opc'):
+                if key not in vals:
+                    continue
+                data = vals[key]
+                if isinstance(data['datatype'], int):
+                    data['datatype'] = [data['datatype']] # convert to array
+                data['klayout'] = [main_layout.find_layer(layer, datatype)
+                                  for datatype in data['datatype']]
 
-    return cfg
+        return cfg
 
-  #match a line like:
-  # - LAYER M2 + MASK 2 + OPC RECT ( 3000 3000 ) ( 5000 5000 ) ;
-  rect_pat = re.compile(r'''
-    \s*\-\ LAYER\ (?P<layer>\S+)  # The layer name
-    (?:                           # Non-capturing group
-    \s+\+\ MASK\ (?P<mask>\d+)    # Mask, None if absent
-    )?
-    (?P<opc>                      # OPC, None if absent
-    \s+\+\ OPC
-    )?
-    \s+RECT\
-    \(\ (?P<xlo>\d+)\ (?P<ylo>\d+)\ \)\   # rect lower-left pt
-    \(\ (?P<xhi>\d+)\ (?P<yhi>\d+)\ \)\ ; # rect upper-right pt
-    ''',
-                        re.VERBOSE)
+    #match a line like:
+    # - LAYER M2 + MASK 2 + OPC RECT ( 3000 3000 ) ( 5000 5000 ) ;
+    rect_pat = re.compile(r'''
+      \s*\-\ LAYER\ (?P<layer>\S+)  # The layer name
+      (?:                           # Non-capturing group
+      \s+\+\ MASK\ (?P<mask>\d+)    # Mask, None if absent
+      )?
+      (?P<opc>                      # OPC, None if absent
+      \s+\+\ OPC
+      )?
+      \s+RECT\
+      \(\ (?P<xlo>\d+)\ (?P<ylo>\d+)\ \)\   # rect lower-left pt
+      \(\ (?P<xhi>\d+)\ (?P<yhi>\d+)\ \)\ ; # rect upper-right pt
+      ''',
+                          re.VERBOSE)
 
-  def read_fills(top):
-    if config_file == '':
-      print('WARNING: no fill config file specified')
-      return
-    # KLayout doesn't support FILL in DEF so we have to side load them :(
-    cfg = read_cfg()
-    in_fills = False
-    units = None
-    with open(in_def) as fp:
-      for line in fp:
-        if in_fills:
-          if re.match('END FILLS', line):
-            break # done with fills; don't care what follows
-          m = re.match(rect_pat, line)
-          if not m:
-            raise Exception('Unrecognized fill: ' + line)
-          opc_type = 'opc' if m.group('opc') else 'non-opc'
-          mask = m.group('mask')
-          if not mask: #uncolored just uses first entry
-            mask = 0
-          else:
-            mask = int(mask) - 1 # DEF is 1-based indexing
-          layer = cfg[m.group('layer')][opc_type]['klayout'][mask]
-          xlo = int(m.group('xlo')) / units
-          ylo = int(m.group('ylo')) / units
-          xhi = int(m.group('xhi')) / units
-          yhi = int(m.group('yhi')) / units
-          top.shapes(layer).insert(pya.DBox(xlo, ylo, xhi, yhi))
-        elif re.match('FILLS \d+ ;', line):
-          in_fills = True
-        elif not units:
-          m = re.match('UNITS DISTANCE MICRONS (\d+)', line)
-          if m:
-            units = float(m.group(1))
+    def read_fills(top):
+        if config_file == '':
+            print('WARNING: no fill config file specified')
+            return
+        # KLayout doesn't support FILL in DEF so we have to side load them :(
+        cfg = read_cfg()
+        in_fills = False
+        units = None
+        with open(in_def) as fp:
+            for line in fp:
+                if in_fills:
+                    if re.match('END FILLS', line):
+                        break # done with fills; don't care what follows
+                    m = re.match(rect_pat, line)
+                    if not m:
+                        raise Exception('Unrecognized fill: ' + line)
+                    opc_type = 'opc' if m.group('opc') else 'non-opc'
+                    mask = m.group('mask')
+                    if not mask: #uncolored just uses first entry
+                        mask = 0
+                    else:
+                        mask = int(mask) - 1 # DEF is 1-based indexing
+                    layer = cfg[m.group('layer')][opc_type]['klayout'][mask]
+                    xlo = int(m.group('xlo')) / units
+                    ylo = int(m.group('ylo')) / units
+                    xhi = int(m.group('xhi')) / units
+                    yhi = int(m.group('yhi')) / units
+                    top.shapes(layer).insert(pya.DBox(xlo, ylo, xhi, yhi))
+                elif re.match('FILLS \d+ ;', line):
+                    in_fills = True
+                elif not units:
+                    m = re.match('UNITS DISTANCE MICRONS (\d+)', line)
+                    if m:
+                        units = float(m.group(1))
 
-  # Load technology file
-  tech = pya.Technology()
-  tech.load(tech_file)
-  layoutOptions = tech.load_layout_options
-  layoutOptions.lefdef_config.macro_resolution_mode = 1
-  pathed_files = set()
-  for fn in layoutOptions.lefdef_config.lef_files:
-    if fn[0:2] == './':
-      pathed_files.add(foundry_lefs + fn[1:])
-    else:
-      pathed_files.add(fn)
+    # Load technology file
+    tech = pya.Technology()
+    tech.load(tech_file)
+    layoutOptions = tech.load_layout_options
+    layoutOptions.lefdef_config.macro_resolution_mode = 1
+    pathed_files = set()
+    for fn in layoutOptions.lefdef_config.lef_files:
+        if fn[0:2] == './':
+            pathed_files.add(foundry_lefs + fn[1:])
+        else:
+            pathed_files.add(fn)
 
-  for lef in macro_lefs:
-    pathed_files.add(lef)
+    for lef in macro_lefs:
+        pathed_files.add(lef)
 
-  layoutOptions.lefdef_config.lef_files = list(pathed_files)
-  layoutOptions.lefdef_config.read_lef_with_def = False
+    layoutOptions.lefdef_config.lef_files = list(pathed_files)
+    layoutOptions.lefdef_config.read_lef_with_def = False
 
-  # Load def file
-  main_layout = pya.Layout()
-  main_layout.read(in_def, layoutOptions)
+    # Load def file
+    main_layout = pya.Layout()
+    main_layout.read(in_def, layoutOptions)
 
-  # List cells
-  def_cells = []
-  for def_cell in main_layout.each_cell():
-    def_cells.append(def_cell.name)
-  print(f"[INFO] Read in {len(def_cells)} cells from DEF file")
+    # List cells
+    def_cells = []
+    for def_cell in main_layout.each_cell():
+        def_cells.append(def_cell.name)
+    print(f"[INFO] Read in {len(def_cells)} cells from DEF file")
 
-  def_cells.remove(design_name)
+    def_cells.remove(design_name)
 
-  # Load in the gds to merge
-  print("[INFO] Merging GDS/OAS files...")
-  for fil in in_files:
-    macro_layout = pya.Layout()
-    macro_layout.read(fil)
-    print(f"[INFO] Read in {fil}")
-    for fil_cell in macro_layout.top_cells():
-      subcell = main_layout.cell(fil_cell.name)
-      if subcell:
-        print(f"[INFO] Merging in {fil_cell.name}")
-        subcell.copy_tree(fil_cell)
-        if fil_cell.name in def_cells:
-          def_cells.remove(fil_cell.name)
+    # Load in the gds to merge
+    print("[INFO] Merging GDS/OAS files...")
+    for fil in in_files:
+        macro_layout = pya.Layout()
+        macro_layout.read(fil)
+        print(f"[INFO] Read in {fil}")
+        for fil_cell in macro_layout.top_cells():
+            subcell = main_layout.cell(fil_cell.name)
+            if subcell:
+                print(f"[INFO] Merging in {fil_cell.name}")
+                subcell.copy_tree(fil_cell)
+                if fil_cell.name in def_cells:
+                    def_cells.remove(fil_cell.name)
 
-  # Copy the top level only to a new layout
-  print("[INFO] Copying toplevel cell '{0}'".format(design_name))
-  top_only_layout = pya.Layout()
-  top_only_layout.dbu = main_layout.dbu
-  top = top_only_layout.create_cell(design_name)
-  top.copy_tree(main_layout.cell(design_name))
+    # Copy the top level only to a new layout
+    print("[INFO] Copying toplevel cell '{0}'".format(design_name))
+    top_only_layout = pya.Layout()
+    top_only_layout.dbu = main_layout.dbu
+    top = top_only_layout.create_cell(design_name)
+    top.copy_tree(main_layout.cell(design_name))
 
-  read_fills(top)
+    read_fills(top)
 
-  print("[INFO] Checking for missing GDS/OAS...")
-  missing_cell = False
-  for check_cell in def_cells:
-    check_cell = main_layout.cell(check_cell)
-    if check_cell.is_empty():
-      missing_cell = True
-      print("[ERROR] LEF Cell '{0}' has no matching GDS/OAS cell. Cell will be empty".format(i.name))
+    print("[INFO] Checking for missing GDS/OAS...")
+    missing_cell = False
+    for check_cell in def_cells:
+        check_cell = main_layout.cell(check_cell)
+        if check_cell.is_empty():
+            missing_cell = True
+            print("[ERROR] LEF Cell '{0}' has no matching GDS/OAS cell. Cell will be empty".format(i.name))
 
-  if not missing_cell:
-    print("[INFO] All LEF cells have matching GDS/OAS cells")
+    if not missing_cell:
+        print("[INFO] All LEF cells have matching GDS/OAS cells")
 
-  print("[INFO] Checking for orphan cell in the final layout...")
-  orphan_cell = False
-  for i in top_only_layout.each_cell():
-    if i.name != design_name and i.parent_cells() == 0:
-      orphan_cell = True
-      print("[ERROR] Found orphan cell '{0}'".format(i.name))
-      errors += 1
+    print("[INFO] Checking for orphan cell in the final layout...")
+    orphan_cell = False
+    for i in top_only_layout.each_cell():
+        if i.name != design_name and i.parent_cells() == 0:
+            orphan_cell = True
+            print("[ERROR] Found orphan cell '{0}'".format(i.name))
+            errors += 1
 
-  if seal_file:
+    if seal_file:
+        top_cell = top_only_layout.top_cell()
 
-    top_cell = top_only_layout.top_cell()
+        print("[INFO] Reading seal GDS/OAS file...")
+        print("\t{0}".format(seal_file))
+        top_only_layout.read(seal_file)
 
-    print("[INFO] Reading seal GDS/OAS file...")
-    print("\t{0}".format(seal_file))
-    top_only_layout.read(seal_file)
+        for cell in top_only_layout.top_cells():
+            if cell != top_cell:
+                print("[INFO] Merging '{0}' as child of '{1}'".format(cell.name, top_cell.name))
+                top.insert(pya.CellInstArray(cell.cell_index(), pya.Trans()))
 
-    for cell in top_only_layout.top_cells():
-      if cell != top_cell:
-        print("[INFO] Merging '{0}' as child of '{1}'".format(cell.name, top_cell.name))
-        top.insert(pya.CellInstArray(cell.cell_index(), pya.Trans()))
-
-  # Write out the GDS
-  print("[INFO] Writing out GDS/OAS '{0}'".format(out_file))
-  write_options = pya.SaveLayoutOptions()
-  write_options.gds2_write_timestamps = timestamps
-  top_only_layout.write(out_file, write_options)
+    # Write out the GDS
+    print("[INFO] Writing out GDS/OAS '{0}'".format(out_file))
+    write_options = pya.SaveLayoutOptions()
+    write_options.gds2_write_timestamps = timestamps
+    top_only_layout.write(out_file, write_options)
 
 schema = Schema(manifest='sc_manifest.json')
 
@@ -246,50 +245,50 @@ sc_mainlib = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)[0]
 
 tech_file = None
 for s in sc_streams:
-  if schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup):
-    tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup)[0]
-    break
+    if schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup):
+        tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup)[0]
+        break
 
 design = schema.get('option', 'entrypoint')
 if not design:
     design = schema.get('design')
 
 if schema.valid('input', 'layout', 'def') and schema.get('input', 'layout', 'def', step=sc_step, index=sc_index):
-  in_def = schema.get('input', 'layout', 'def', step=sc_step, index=sc_index)[0]
+    in_def = schema.get('input', 'layout', 'def', step=sc_step, index=sc_index)[0]
 else:
-  in_def = os.path.join('inputs', f'{design}.def')
+    in_def = os.path.join('inputs', f'{design}.def')
 out_file = os.path.join('outputs', f'{design}.{sc_stream}')
 
 libs = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)
 if 'macrolib' in schema.getkeys('asic'):
-  libs += schema.get('asic', 'macrolib', step=sc_step, index=sc_index)
+    libs += schema.get('asic', 'macrolib', step=sc_step, index=sc_index)
 
 in_files = []
 for lib in libs:
-  for s in sc_streams:
-    if schema.valid('library', lib, 'output', sc_stackup, s):
-      in_files.extend(schema.get('library', lib, 'output', sc_stackup, s, step=sc_step, index=sc_index))
-      break
+    for s in sc_streams:
+        if schema.valid('library', lib, 'output', sc_stackup, s):
+            in_files.extend(schema.get('library', lib, 'output', sc_stackup, s, step=sc_step, index=sc_index))
+            break
 
 foundry_lef = os.path.dirname(schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef', step=sc_step, index=sc_index)[0])
 
 macro_lefs = []
 if 'macrolib' in schema.getkeys('asic'):
-  for lib in schema.get('asic', 'macrolib', step=sc_step, index=sc_index):
-    macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef', step=sc_step, index=sc_index))
+    for lib in schema.get('asic', 'macrolib', step=sc_step, index=sc_index):
+        macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef', step=sc_step, index=sc_index))
 
 if 'timestamps' in sc_klayout_vars:
-  sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'timestamps', step=sc_step, index=sc_index) == ['true']
+    sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'timestamps', step=sc_step, index=sc_index) == ['true']
 else:
-  sc_timestamps = False
+    sc_timestamps = False
 
 if 'screenshot' in sc_klayout_vars:
-  sc_screenshot = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'screenshot', step=sc_step, index=sc_index) == ['true']
+    sc_screenshot = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'screenshot', step=sc_step, index=sc_index) == ['true']
 else:
-  sc_screenshot = True
+    sc_screenshot = True
 
 gds_export(design, in_def, in_files, out_file, tech_file, foundry_lef, macro_lefs,
            config_file='', seal_file='', timestamps=sc_timestamps)
 
 if sc_screenshot:
-  show(schema, out_file, f'outputs/{design}.png', screenshot=True)
+    show(schema, out_file, f'outputs/{design}.png', screenshot=True)

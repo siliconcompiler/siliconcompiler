@@ -34,11 +34,11 @@ def test_sc_configure_interactive(monkeypatch):
 
     # Use sys.stdin to simulate user input.
     with open('cfg_stdin.txt', 'w') as wf:
-         wf.write(f'{server_name}\n{username}\n{password}\n')
+        wf.write(f'{server_name}\n{username}\n{password}\n')
     with open('cfg_stdin.txt', 'r') as rf:
-         sys.stdin = rf
+        sys.stdin = rf
 
-         sc_configure.main()
+        sc_configure.main()
 
     # Check that generated credentials match the expected values.
     generated_creds = {}
@@ -63,11 +63,11 @@ def test_sc_configure_override_y(monkeypatch):
 
     # Use sys.stdin to simulate user input.
     with open('cfg_stdin.txt', 'w') as wf:
-         wf.write(f'y\n{server_name}\n{username}\n{password}\n')
+        wf.write(f'y\n{server_name}\n{username}\n{password}\n')
     with open('cfg_stdin.txt', 'r') as rf:
-         sys.stdin = rf
+        sys.stdin = rf
 
-         sc_configure.main()
+        sc_configure.main()
 
     # Check that generated credentials match the expected values.
     generated_creds = {}
@@ -92,11 +92,11 @@ def test_sc_configure_override_n(monkeypatch):
 
     # Use sys.stdin to simulate user input.
     with open('cfg_stdin.txt', 'w') as wf:
-         wf.write(f'n\n{server_name}\n{username}\n{password}\n')
+        wf.write(f'n\n{server_name}\n{username}\n{password}\n')
     with open('cfg_stdin.txt', 'r') as rf:
-         sys.stdin = rf
+        sys.stdin = rf
 
-         sc_configure.main()
+        sc_configure.main()
 
     # Check that the existing credentials were not overridden.
     generated_creds = {}

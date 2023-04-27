@@ -286,8 +286,8 @@ class Server:
 
         # Determine if the job is running.
         for job in self.sc_jobs:
-          if job_hash in job:
-            return web.Response(text="Error: job is still running.")
+            if job_hash in job:
+                return web.Response(text="Error: job is still running.")
 
         # Delete job hash directory, only if it exists.
         # TODO: This assumes no malicious input.
