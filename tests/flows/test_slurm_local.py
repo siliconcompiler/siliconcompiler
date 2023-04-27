@@ -2,7 +2,8 @@ import os
 import pytest
 
 @pytest.mark.eda
-@pytest.mark.skip(reason='Skipped until CI container is updated to include a local Slurm controller.')
+@pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_slurm_local_py(gcd_chip):
     '''Basic Python API test: build the GCD example using only Python code.
        Note: Requires that the test runner be connected to a cluster, or configured
@@ -10,7 +11,7 @@ def test_slurm_local_py(gcd_chip):
     '''
 
     # Inserting value into configuration
-    gcd_chip.set('option', 'scheduler', 'slurm')
+    gcd_chip.set('option', 'scheduler', 'name', 'slurm')
 
     # Run the chip's build process synchronously.
     gcd_chip.run()
@@ -19,7 +20,9 @@ def test_slurm_local_py(gcd_chip):
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
 
 @pytest.mark.eda
-@pytest.mark.skip(reason='Skipped until CI container is updated to include a local Slurm controller.')
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.skip(reason='Skipped until test can be fixed')
 def test_slurm_local_py_script_override(gcd_chip):
     '''Basic Python API test: build the GCD example using only Python code.
        Note: Requires that the test runner be connected to a cluster, or configured
@@ -27,7 +30,7 @@ def test_slurm_local_py_script_override(gcd_chip):
     '''
 
     # Inserting value into configuration
-    gcd_chip.set('option', 'scheduler', 'slurm')
+    gcd_chip.set('option', 'scheduler', 'name', 'slurm')
     os.makedirs('build/configs')
     gcd_chip.write_manifest('build/configs/import0.json')
     with open('build/configs/import0.sh', 'w') as slurm_script:
