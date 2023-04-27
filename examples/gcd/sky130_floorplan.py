@@ -1,7 +1,7 @@
 import math
 
 def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
-             vlayer, stdcell_pin_vdd, stdcell_pin_vss, stdcell_pin_width):
+              vlayer, stdcell_pin_vdd, stdcell_pin_vss, stdcell_pin_width):
     '''Generates PDN for a block-level design. '''
     if vdd not in fp.nets:
         fp.add_net(vdd, [stdcell_pin_vdd], 'power')

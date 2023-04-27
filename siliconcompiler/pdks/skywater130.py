@@ -107,9 +107,9 @@ def setup(chip):
     # PEX
     for corner in ["minimum", "typical", "maximum"]:
         pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, corner,
-            pdkdir + '/pex/openroad/'+corner+'.tcl')
+                pdkdir + '/pex/openroad/'+corner+'.tcl')
         pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, corner,
-            pdkdir + '/pex/openroad/'+corner+'.rules')
+                pdkdir + '/pex/openroad/'+corner+'.rules')
 
     return pdk
 

@@ -88,7 +88,7 @@ def main():
         if not manifest:
             design = os.path.splitext(os.path.basename(filename))[0]
             chip.logger.error(f'Unable to automatically find manifest for design {design}. '
-                'Please provide a manifest explicitly using -cfg.')
+                              'Please provide a manifest explicitly using -cfg.')
             sys.exit(1)
         chip.read_manifest(manifest)
     elif not chip.get('option', 'cfg'):

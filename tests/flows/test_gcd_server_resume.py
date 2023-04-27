@@ -5,9 +5,9 @@ import pytest
 
 ###########################
 @pytest.mark.skip(reason=
-    "Need to figure out how to handle check_manifest() call which fails on "
-    "local import step since setup for tools running remotely hasn't been "
-    "performed")
+                  "Need to figure out how to handle check_manifest() call which fails on "
+                  "local import step since setup for tools running remotely hasn't been "
+                  "performed")
 @pytest.mark.eda
 def test_gcd_server(gcd_chip):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD

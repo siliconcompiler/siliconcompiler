@@ -49,7 +49,7 @@ def remote_preprocess(chip, steplist):
     if any([step not in remote_steplist for step, _ in entry_steps]) or (len(remote_steplist) == 1):
         chip.error('Remote flows must be organized such that the starting task(s) are run before '
                    'all other steps, and at least one other task is included.\n'
-                  f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
+                   f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
                    fatal=True)
     # Setup up tools for all local functions
     for local_step, index in entry_steps:
@@ -190,9 +190,9 @@ def request_remote_run(chip):
         # Return to start of file
         upload_file.seek(0)
         resp = requests.post(redirect_url,
-                            files={'import': upload_file,
-                                   'params': json.dumps(post_params)},
-                            allow_redirects=False)
+                             files={'import': upload_file,
+                                    'params': json.dumps(post_params)},
+                             allow_redirects=False)
         if resp.status_code == 302:
             redirect_url = resp.headers['Location']
         elif resp.status_code >= 400:

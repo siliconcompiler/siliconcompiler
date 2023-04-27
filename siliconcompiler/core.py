@@ -567,13 +567,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         step, index, val = remainder.split(' ', 2)
                     except ValueError:
                         self.error(f"Invalid value '{item}' for switch {switchstr}. "
-                            "Requires step and index before final value.")
+                                   "Requires step and index before final value.")
                 elif pernode == 'optional':
                     # Split on spaces, preserving items that are grouped in quotes
                     items = shlex.split(remainder)
                     if len(items) > 3:
                         self.error(f"Invalid value '{item}'' for switch {switchstr}. "
-                            "Too many arguments, please wrap multiline strings in quotes.")
+                                   "Too many arguments, please wrap multiline strings in quotes.")
                         continue
                     elif len(items) == 3:
                         step, index, val = items
@@ -996,11 +996,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # TODO: this message should be pushed down into Schema.set()
                 # once we have a static logger.
                 if clobber:
-                    self.logger.debug(f'Failed to set value for {keypath}: '
-                        'parameter is locked')
+                    self.logger.debug(f'Failed to set value for {keypath}: parameter is locked')
                 else:
                     self.logger.debug(f'Failed to set value for {keypath}: '
-                        'clobber is False and parameter may be locked')
+                                      'clobber is False and parameter may be locked')
         except (ValueError, TypeError) as e:
             self.error(e)
 
@@ -1062,7 +1061,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # TODO: this message should be pushed down into Schema.add()
                 # once we have a static logger.
                 self.logger.debug(f'Failed to add value for {keypath}: '
-                    'parameter may be locked')
+                                  'parameter may be locked')
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
@@ -1630,7 +1629,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
                         if not os.path.isfile(cfg):
                             self.logger.error(f'{step}{index} relies on {in_step}{in_index} from job {in_job}, '
-                                'but this task has not been run.')
+                                              'but this task has not been run.')
                             error = True
                         continue
                     if in_step in steplist and in_index in indexlist[in_step]:
@@ -1640,7 +1639,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         # this task has already completed successfully, OK
                         continue
                     self.logger.error(f'{step}{index} relies on {in_step}{in_index}, '
-                        'but this task has not been run and is not in the current steplist.')
+                                      'but this task has not been run and is not in the current steplist.')
                     error = True
 
         #2. Check libary names
@@ -1816,7 +1815,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     for inp in inputs:
                         if inp in all_inputs:
                             self.logger.error(f'Invalid flow: {step}{index} '
-                                f'receives {inp} from multiple input tasks')
+                                              f'receives {inp} from multiple input tasks')
                             return False
                         all_inputs.add(inp)
 
@@ -1824,7 +1823,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for requirement in requirements:
                     if requirement not in all_inputs:
                         self.logger.error(f'Invalid flow: {step}{index} will '
-                            f'not receive required input {requirement}.')
+                                          f'not receive required input {requirement}.')
                         return False
 
         return True
@@ -3620,8 +3619,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
             if not replay:
-                utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/', dirs_exist_ok=True,
-                    ignore=[f'{design}.pkg.json'], link=True)
+                utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/',
+                               dirs_exist_ok=True,
+                               ignore=[f'{design}.pkg.json'],
+                               link=True)
 
         ##################
         # Check manifest
@@ -4174,8 +4175,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.status['remote_cfg'] = { "address": _metadata.default_server }
             if (not 'address' in self.status['remote_cfg']):
                 self.error('Improperly formatted remote server configuration - '
-                    'please run "sc-configure" and enter your server address and '
-                    'credentials.', fatal=True)
+                           'please run "sc-configure" and enter your server address and '
+                           'credentials.', fatal=True)
 
             # Pre-process: Run an starting nodes locally, and upload the
             # in-progress build directory to the remote server.
@@ -4232,7 +4233,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 stepdir = self._getworkdir(step=failed_step)[:-1]
                 self.error(f'Run() failed on step {failed_step}! '
-                    f'See logs in {stepdir} for error details.', fatal=True)
+                           f'See logs in {stepdir} for error details.', fatal=True)
         else:
             status = {}
 
@@ -4318,7 +4319,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # with an explicit error.
                 if len(tasks_to_run) > 0 and len(running_tasks) == 0:
                     self.error('Tasks left to run, but no '
-                        'running tasks. Steplist may be invalid.', fatal=True)
+                               'running tasks. Steplist may be invalid.', fatal=True)
 
                 # Check for completed tasks.
                 # TODO: consider staying in this section of loop until a task

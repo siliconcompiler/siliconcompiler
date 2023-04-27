@@ -47,13 +47,13 @@ from schema import Schema
 from tools.klayout.klayout_show import show
 
 def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
-              macro_lefs, config_file='', seal_file='', timestamps=True):
+               macro_lefs, config_file='', seal_file='', timestamps=True):
     # Expand layers in json
     def expand_cfg_layers(cfg):
         layers = cfg['layers']
         expand = [layer for layer in layers if 'layers' in layers[layer]]
         for layer in expand:
-            for i, (name, num) in enumerate(zip(layers[layer]['names'],
+            for _, (name, num) in enumerate(zip(layers[layer]['names'],
                                                 layers[layer]['layers'])):
                 new_layer = copy.deepcopy(layers[layer])
                 del new_layer['names']
@@ -82,25 +82,24 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
                 if isinstance(data['datatype'], int):
                     data['datatype'] = [data['datatype']] # convert to array
                 data['klayout'] = [main_layout.find_layer(layer, datatype)
-                                  for datatype in data['datatype']]
+                                   for datatype in data['datatype']]
 
         return cfg
 
     #match a line like:
     # - LAYER M2 + MASK 2 + OPC RECT ( 3000 3000 ) ( 5000 5000 ) ;
     rect_pat = re.compile(r'''
-      \s*\-\ LAYER\ (?P<layer>\S+)  # The layer name
-      (?:                           # Non-capturing group
-      \s+\+\ MASK\ (?P<mask>\d+)    # Mask, None if absent
-      )?
-      (?P<opc>                      # OPC, None if absent
-      \s+\+\ OPC
-      )?
-      \s+RECT\
-      \(\ (?P<xlo>\d+)\ (?P<ylo>\d+)\ \)\   # rect lower-left pt
-      \(\ (?P<xhi>\d+)\ (?P<yhi>\d+)\ \)\ ; # rect upper-right pt
-      ''',
-                          re.VERBOSE)
+        \s*\-\ LAYER\ (?P<layer>\S+)  # The layer name
+        (?:                           # Non-capturing group
+        \s+\+\ MASK\ (?P<mask>\d+)    # Mask, None if absent
+        )?
+        (?P<opc>                      # OPC, None if absent
+        \s+\+\ OPC
+        )?
+        \s+RECT\
+        \(\ (?P<xlo>\d+)\ (?P<ylo>\d+)\ \)\   # rect lower-left pt
+        \(\ (?P<xhi>\d+)\ (?P<yhi>\d+)\ \)\ ; # rect upper-right pt
+        ''', re.VERBOSE)
 
     def read_fills(top):
         if config_file == '':
