@@ -283,7 +283,6 @@ class Server:
         build_dir = os.path.join(self.nfs_mount, job_hash)
         chip.set('option', 'builddir', build_dir)
         chip.set('option', 'remote', False)
-        chip.unset('option', 'credentials')
 
         os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
         chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
