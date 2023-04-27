@@ -4166,7 +4166,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 with open(cfg_file, 'r') as cfgf:
                     self.status['remote_cfg'] = json.loads(cfgf.read())
             else:
-                self.logger.warning('Could not find remote server configuration: defaulting to ' + \
+                self.logger.warning('Could not find remote server configuration: defaulting to ' +
                                     _metadata.default_server)
                 self.status['remote_cfg'] = {
                     "address": _metadata.default_server

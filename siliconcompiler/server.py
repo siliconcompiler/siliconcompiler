@@ -65,8 +65,8 @@ class Server:
                         'password': mapping['password'],
                     }
             except Exception:
-                self.logger.warning("Could not find well-formatted 'users.json' "\
-                                    "file in the server's working directory. "\
+                self.logger.warning("Could not find well-formatted 'users.json' "
+                                    "file in the server's working directory. "
                                     "(User : Key) mappings were not imported.")
 
         # Create a minimal web server to process the 'remote_run' API call.
