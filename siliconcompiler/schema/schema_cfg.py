@@ -155,8 +155,7 @@ def schema_cfg():
 
     # input/output
     io = {'input': ['Input', True],
-          'output': ['Output', False]
-    }
+          'output': ['Output', False]}
 
     filetype = 'default'
     fileset = 'default'
@@ -1928,8 +1927,7 @@ def schema_record(cfg, step='default', index='default'):
                'kernelversion' : ['O/S kernel version',
                                   '5.11.0-34-generic',
                                   """Used for platforms that support a distinction
-                                  between os kernels and os distributions."""]
-    }
+                                  between os kernels and os distributions."""]}
 
     for item,val in records.items():
         helpext = trim(val[2])

@@ -53,8 +53,7 @@ def _deferstep(chip, step, index, status):
                        '--partition', partition,
                        '--chdir', chip.get('option', 'builddir'),
                        '--job-name', f'{job_hash}_{step}{index}',
-                       '--output', output_file,
-                       ]
+                       '--output', output_file]
         # Only specify an account if accounting is required for this cluster/run.
         if 'slurm_account' in chip.status:
             username = chip.status['slurm_account']
