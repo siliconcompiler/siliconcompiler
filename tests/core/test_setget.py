@@ -116,7 +116,7 @@ def test_get_invalid_keypath_continue():
     chip = siliconcompiler.Chip('test')
     chip.set('option', 'continue', True)
     ret_val = chip.get('option', None)
-    assert ret_val == None
+    assert ret_val is None
 
 def test_set_valid_keypath_to_none():
     chip = siliconcompiler.Chip('test')
@@ -124,7 +124,7 @@ def test_set_valid_keypath_to_none():
     chip.set('option', 'scheduler', 'name', None)
     # arbitrary step/index
     jobscheduler = chip.get('option', 'scheduler', 'name', step='syn', index=0)
-    assert jobscheduler == None
+    assert jobscheduler is None
     assert chip._error == False
 
 def test_set_field_error():
@@ -245,7 +245,7 @@ def test_signature_type():
     chip = siliconcompiler.Chip('test')
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.set('option', 'quiet', ['xyz'], field='signature')
-    assert chip.get('option', 'quiet', field='signature') == None
+    assert chip.get('option', 'quiet', field='signature') is None
 
     chip.set('option', 'quiet', 'xyz', field='signature')
     assert chip.get('option', 'quiet', field='signature') == 'xyz'
