@@ -2871,12 +2871,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         print(string.strip(), file=checks[suffix]['report'])
                         #selectively print to display
                         if display:
-                                if suffix == 'errors':
-                                    self.logger.error(string.strip())
-                                elif suffix == 'warnings':
-                                    self.logger.warning(string.strip())
-                                else:
-                                    self.logger.info(f'{suffix}: {string.strip()}')
+                            if suffix == 'errors':
+                                self.logger.error(string.strip())
+                            elif suffix == 'warnings':
+                                self.logger.warning(string.strip())
+                            else:
+                                self.logger.info(f'{suffix}: {string.strip()}')
 
         for suffix in checks:
             checks[suffix]['report'].close()

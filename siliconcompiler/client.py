@@ -267,7 +267,7 @@ def delete_job(chip):
                              data=json.dumps(post_params),
                              allow_redirects=False)
         if resp.status_code == 302:
-                redirect_url = resp.headers['Location']
+            redirect_url = resp.headers['Location']
         else:
             response = resp.text
             return response
