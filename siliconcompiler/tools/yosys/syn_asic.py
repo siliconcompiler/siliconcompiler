@@ -150,7 +150,7 @@ def prepare_synthesis_libraries(chip):
         chip.get('option', 'quiet', step=step, index=index),
     )
 
-    #### Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
+    # Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
 
     # mark libs with dont_use since ABC cannot get this information via its commands
     # this also ensures the liberty files have been decompressed and corrected formatting

@@ -458,7 +458,7 @@ def top_floorplan(fp):
         fp.place_pins([pin_name], x + pin_offset_width, pin_offset_depth,
                       0, 0, pin_dim, pin_dim, 'm5')
 
-    ## Connections to vddio pins (Note: no VDDIO in this design)
+    # Connections to vddio pins (Note: no VDDIO in this design)
     pin_width = 23.9
     pin_offsets = (0.495, 50.39)
     pad_h = fp.available_cells[VDDIO].height
