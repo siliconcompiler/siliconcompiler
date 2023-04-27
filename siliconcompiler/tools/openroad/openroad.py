@@ -235,7 +235,7 @@ def setup(chip, mode='batch'):
         ('psm_enable', 'true', 'true/false, when true enables IR drop analysis'),
         ('debug_level', None, 'list of "tool key level" to enable debugging of OpenROAD'),
         ('sdc_buffer', None, 'Buffer cell to use when auto generating timing constraints')
-        ]:
+    ]:
         if value:
             chip.set('tool', tool, 'task', task, 'var', variable, value, step=step, index=index, clobber=False)
         if helptext:

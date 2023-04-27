@@ -19,7 +19,7 @@ from siliconcompiler.tools.builtin import minimum
     ['import', 'place'],
     ['import', 'place', 'placemin'],
     ['import', 'place', 'placemin', 'cts']
-    ])
+])
 def test_flowstatus(scroot, steplist):
     netlist = os.path.join(scroot, 'tests', 'data', 'oh_fifo_sync_freepdk45.vg')
     def_file = os.path.join(scroot, 'tests', 'data', 'oh_fifo_sync.def')
