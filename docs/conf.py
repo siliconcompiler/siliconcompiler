@@ -77,12 +77,12 @@ html_logo = 'sc_logo_with_text.png'
 html_logo = 'sc_logo_with_text.png'
 
 html_theme_options = {
-  'collapse_navigation': True,
-#    'logo_only': True,
-#    'display_version': True,
-#    'navigation_depth': 4,
-  "show_toc_level": 2,   # this automatically displays two levels
-  "logo": {
+   'collapse_navigation': True,
+#     'logo_only': True,
+#     'display_version': True,
+#     'navigation_depth': 4,
+   "show_toc_level": 2,   # this automatically displays two levels
+   "logo": {
       "image_light": html_logo,
       "image_dark": html_logo,
   },
