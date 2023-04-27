@@ -257,7 +257,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
 
-        if loglevel=='DEBUG':
+        if loglevel == 'DEBUG':
             prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
         else:
             prefix = '| %(levelname)-7s'
@@ -1087,8 +1087,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._add_input_output('input', filename, fileset, filetype, iomap)
     # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
-    input.__doc__= input.__doc__.replace("{iotable}",
-                                         utils.format_fileset_type_table())
+    input.__doc__ = input.__doc__.replace("{iotable}",
+                                          utils.format_fileset_type_table())
 
     ###########################################################################
     def output(self, filename, fileset=None, filetype=None, iomap=None):
@@ -2176,7 +2176,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.info(f"Found package {dep}-{ver} in cache")
             elif auto and not islocal:
                 self._install_package(cache, dep, ver, remote)
-                local[dep]=ver
+                local[dep] = ver
 
             # look through dependency package files
             package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
@@ -2782,7 +2782,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 options["-e"] = True
             elif switches[i] in options.keys():
                 options[switches[i]] = True
-            elif switches[i] !='':
+            elif switches[i] != '':
                 print("ERROR",switches[i])
 
         #REGEX
@@ -3048,7 +3048,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Custom reporting modes
         paramlist = []
         for item in self.getkeys('option', 'param'):
-            paramlist.append(item+"="+self.get('option', 'param', item))
+            paramlist.append(item + "=" + self.get('option', 'param', item))
 
         if paramlist:
             paramstr = ', '.join(paramlist)
@@ -3058,7 +3058,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         info_list = ["SUMMARY:\n",
                      "design : " + self.top(),
                      "params : " + paramstr,
-                     "jobdir : "+ jobdir,
+                     "jobdir : " + jobdir,
                      ]
 
         if self.get('option', 'mode') == 'asic':
@@ -4752,17 +4752,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # supported relational oprations
         # >, >=, <=, <. ==, !=
         if op == ">":
-            return bool(value>goal)
+            return bool(value > goal)
         elif op == ">=":
-            return bool(value>=goal)
+            return bool(value >= goal)
         elif op == "<":
-            return bool(value<goal)
+            return bool(value < goal)
         elif op == "<=":
-            return bool(value<=goal)
+            return bool(value <= goal)
         elif op == "==":
-            return bool(value==goal)
+            return bool(value == goal)
         elif op == "!=":
-            return bool(value!=goal)
+            return bool(value != goal)
         else:
             self.error(f"Illegal comparison operation {op}")
 

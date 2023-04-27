@@ -139,7 +139,7 @@ def main():
 
     sc_exit = schema.get('tool', 'klayout', 'task', task, 'var', 'show_exit', step=step, index=index) == ["true"]
 
-    show(schema, sc_filename, f'outputs/{design}.png', screenshot=(step=='screenshot'))
+    show(schema, sc_filename, f'outputs/{design}.png', screenshot=(step == 'screenshot'))
 
     if sc_exit:
         pya.Application.instance().exit(0)

@@ -778,7 +778,7 @@ class Schema:
                 valstr = f'[list {valstr}]'
 
             # TODO: Temp fix to get rid of empty args
-            if valstr=='':
+            if valstr == '':
                 valstr = '[list ]'
 
             outstr = f"{prefix} {keystr} {valstr}\n"

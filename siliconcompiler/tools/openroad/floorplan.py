@@ -20,7 +20,7 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'require', ",".join(['input', 'asic', 'floorplan']), step=step, index=index)
 
     if (not chip.valid('input', 'netlist', 'verilog') or not chip.get('input', 'netlist', 'verilog', step=step, index=index)):
-        chip.add('tool', tool, 'task', task, 'input', design +'.vg', step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'input', design + '.vg', step=step, index=index)
 
     if chip.valid('tool', tool, 'task', task, 'file', 'padring'):
         chip.add('tool', tool, 'task', task, 'require', ','.join(['tool', tool, 'task', task, 'file', 'padring']))

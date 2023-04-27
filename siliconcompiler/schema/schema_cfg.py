@@ -549,7 +549,7 @@ def schema_pdk(cfg, stackup='default'):
             that depend on the tool setup and device technology. Pseudo-standardized
             device types include spice, em (electromigration), and aging.""")
 
-    corner='default'
+    corner = 'default'
     scparam(cfg, ['pdk', pdkname, 'pexmodel', tool, stackup, corner],
             sctype='[file]',
             scope='global',
@@ -652,7 +652,7 @@ def schema_pdk(cfg, stackup='default'):
     # EDA vars
     ###############
 
-    key='default'
+    key = 'default'
     scparam(cfg, ['pdk', pdkname, 'file', tool, key, stackup],
             sctype='[file]',
             scope='global',
@@ -950,7 +950,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             (step,index) tuple.""")
 
     # flowgraph metric weights
-    metric='default'
+    metric = 'default'
     scparam(cfg,['flowgraph', flow, step, index, 'weight', metric],
             sctype='float',
             shorthelp="Flowgraph: metric weights",

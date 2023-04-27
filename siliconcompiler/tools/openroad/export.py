@@ -36,7 +36,7 @@ def setup(chip):
     for corner in chip.get('tool', tool, 'task', task, 'var', 'pex_corners', step=step, index=index):
         chip.add('tool', tool, 'task', task, 'require', ",".join(['pdk', pdk, 'pexmodel', 'openroad-openrcx', stackup, corner]), step=step, index=index)
 
-    chip.add('tool', tool, 'task', task, 'input', design +'.def', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'input', design + '.def', step=step, index=index)
 
     # Add outputs LEF
     chip.add('tool', tool, 'task', task, 'output', design + '.lef', step=step, index=index)

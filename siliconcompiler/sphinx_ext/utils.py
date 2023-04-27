@@ -17,7 +17,7 @@ def build_table(items, colwidths=None, colspec=None):
     that hints at sizing in PDF output.
     '''
     if colwidths is None:
-        colwidths = [1]* len(items[0]) # default to equal spacing
+        colwidths = [1] * len(items[0]) # default to equal spacing
     else:
         assert len(colwidths) == len(items[0])
 

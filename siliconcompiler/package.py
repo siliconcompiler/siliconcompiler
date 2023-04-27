@@ -117,7 +117,7 @@ class Sup:
         remote = self.chip._build_index(self.registry)
 
         # Allow name to be with or without version
-        m =re.match(r'(.*?)-([\d\.]+)$',name)
+        m = re.match(r'(.*?)-([\d\.]+)$',name)
         if m:
             design = m.group(1)
             version = m.group(2)
@@ -130,7 +130,7 @@ class Sup:
         deps[design] = [version]
 
         #TODO: allow for installing one package only (nodep tree)
-        auto=True
+        auto = True
         self.chip._find_deps(self.cache, local, remote, design, deps, auto)
 
         return 0
@@ -149,7 +149,7 @@ class Sup:
         '''
 
         # Allow name to be with or without version
-        m =re.match(r'(.*?)-([\d\.]+)$',name)
+        m = re.match(r'(.*?)-([\d\.]+)$',name)
         if m:
             design = m.group(1)
             ver = m.group(2)
