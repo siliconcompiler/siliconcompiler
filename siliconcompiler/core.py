@@ -3792,9 +3792,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self._haltstep(step, index)
 
                 with open(stdout_file, 'w') as stdout_writer, \
-                    open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader,  \
-                    open(stderr_file, 'w') as stderr_writer,  \
-                    open(stderr_file, 'r', errors='replace_with_warning') as stderr_reader:
+                     open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader,  \
+                     open(stderr_file, 'w') as stderr_writer,  \
+                     open(stderr_file, 'r', errors='replace_with_warning') as stderr_reader:
                     # Use separate reader/writer file objects as hack to display
                     # live output in non-blocking way, so we can monitor the
                     # timeout. Based on https://stackoverflow.com/a/18422264.
