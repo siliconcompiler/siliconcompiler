@@ -55,12 +55,12 @@ def run(chip):
                         in_pin = la[1]
                         in_net = la[4]
                     # TODO: We should not use hardcoded prefixes for power nets to ignore.
-                    elif ('LAYER' in l) and (not 'vcc' in in_pin) and (not 'vss' in in_pin):
+                    elif ('LAYER' in l) and ('vcc' not in in_pin) and ('vss' not in in_pin):
                         la = l.strip().split()
                         in_layer = la[2]
                         pin_w = abs(int(la[8]) - int(la[4]))
                         pin_h = abs(int(la[9]) - int(la[5]))
-                    elif ('PLACED' in l) and (not 'vcc' in in_pin) and (not 'vss' in in_pin):
+                    elif ('PLACED' in l) and ('vcc' not in in_pin) and ('vss' not in in_pin):
                         la = l.strip().split()
                         pin_locs[in_pin] = {'layer': in_layer,
                                             'net': in_net,

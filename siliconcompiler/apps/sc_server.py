@@ -69,7 +69,7 @@ def server_cmdline():
 
     # Ensure that the default 'value' fields exist.
     for key in def_cfg:
-        if (not 'value' in def_cfg[key]) and ('defvalue' in def_cfg[key]):
+        if ('value' not in def_cfg[key]) and ('defvalue' in def_cfg[key]):
             def_cfg[key]['value'] = def_cfg[key]['defvalue']
 
     return def_cfg

@@ -37,9 +37,9 @@ def main():
     try:
         with open(cfg_file, 'r') as cfgf:
             remote_cfg = json.loads(cfgf.read())
-        if (not 'username' in remote_cfg) or \
-           (not 'password' in remote_cfg) or \
-           (not 'address' in remote_cfg):
+        if ('username' not in remote_cfg) or \
+           ('password' not in remote_cfg) or \
+           ('address' not in remote_cfg):
             print('Error reading remote configuration file.')
             sys.exit(1)
     except Exception:
@@ -69,8 +69,8 @@ def main():
         # Get the JSON response values.
         user_info = resp.json()
         if (resp.status_code != 200) or \
-           (not 'compute_time' in user_info) or \
-           (not 'bandwidth_kb' in user_info):
+           ('compute_time' not in user_info) or \
+           ('bandwidth_kb' not in user_info):
             print('Error fetching user information from the remote server.')
             sys.exit(1)
 

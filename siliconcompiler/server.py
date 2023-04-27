@@ -314,9 +314,9 @@ class Server:
         NEVER store production passwords as plaintext!
         '''
 
-        if not username in self.user_keys:
+        if username not in self.user_keys:
             return False
-        return (password == self.user_keys[username]['password'])
+        return password == self.user_keys[username]['password']
 
     def __check_request(self, request):
         params = {}
