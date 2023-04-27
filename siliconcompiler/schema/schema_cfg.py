@@ -830,32 +830,32 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
 
     # Related clock
     scparam(cfg, ['datasheet', design, 'pin', name, 'clk', mode],
-                sctype='str',
-                shorthelp="Datasheet: pin related clock",
-                switch="-datasheet_pin_clk 'design name mode <str>'",
-                example=[
-                    f"cli: -datasheet_pin_clk 'mydevice ina global clka'",
-                    f"api: chip.set('datasheet','mydevice','pin','ina','clk','global','clka')"],
+            sctype='str',
+            shorthelp="Datasheet: pin related clock",
+            switch="-datasheet_pin_clk 'design name mode <str>'",
+            example=[
+                f"cli: -datasheet_pin_clk 'mydevice ina global clka'",
+                f"api: chip.set('datasheet','mydevice','pin','ina','clk','global','clka')"],
             schelp="""Pin related clock specified on a per mode basis.""")
 
     # Related supply
     scparam(cfg, ['datasheet', design, 'pin', name, 'supply', mode],
-                sctype='str',
-                shorthelp="Datasheet: pin related power supply",
-                switch="-datasheet_pin_supply 'design name mode <str>'",
-                example=[
-                    f"cli: -datasheet_pin_supply 'mydevice ina global vdd'",
-                    f"api: chip.set('datasheet','mydevice','pin','ina','supply','global','vdd')"],
+            sctype='str',
+            shorthelp="Datasheet: pin related power supply",
+            switch="-datasheet_pin_supply 'design name mode <str>'",
+            example=[
+                f"cli: -datasheet_pin_supply 'mydevice ina global vdd'",
+                f"api: chip.set('datasheet','mydevice','pin','ina','supply','global','vdd')"],
             schelp="""Pin related power supply specified on a per mode basis.""")
 
     # Related ground
     scparam(cfg, ['datasheet', design, 'pin', name, 'ground', mode],
-                sctype='str',
-                shorthelp="Datasheet: pin related ground",
-                switch="-datasheet_pin_ground 'design name mode <str>'",
-                example=[
-                    f"cli: -datasheet_pin_ground 'mydevice ina ground vss'",
-                    f"api: chip.set('datasheet','mydevice','pin','ina','ground','global','vss')"],
+            sctype='str',
+            shorthelp="Datasheet: pin related ground",
+            switch="-datasheet_pin_ground 'design name mode <str>'",
+            example=[
+                f"cli: -datasheet_pin_ground 'mydevice ina ground vss'",
+                f"api: chip.set('datasheet','mydevice','pin','ina','ground','global','vss')"],
             schelp="""Pin related ground rail specified on a per mode basis.""")
 
     # Standard
@@ -1912,9 +1912,9 @@ def schema_record(cfg, step='default', index='default'):
                                """The tool version captured corresponds to the 'tool'
                                parameter within the 'eda' dictionary."""],
                'toolpath': ['tool path',
-                             '/usr/bin/openroad',
-                             """Full path to tool executable used to run this
-                             task."""],
+                            '/usr/bin/openroad',
+                            """Full path to tool executable used to run this
+                            task."""],
                'toolargs': ['tool CLI arguments',
                             '-I include/ foo.v',
                             'Arguments passed to tool via CLI.'],

@@ -25,20 +25,20 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
     vdd_ring_height = vss_ring_height - 4 * hwidth
 
     fp.place_ring(vdd, vdd_ring_left, vdd_ring_bottom, vdd_ring_width,
-                    vdd_ring_height, hwidth, vwidth, hlayer, vlayer)
+                  vdd_ring_height, hwidth, vwidth, hlayer, vlayer)
     fp.place_ring(vss, vss_ring_left, vss_ring_bottom, vss_ring_width,
-                    vss_ring_height, hwidth, vwidth, hlayer, vlayer)
+                  vss_ring_height, hwidth, vwidth, hlayer, vlayer)
     # Horizontal stripes
     spacing = 2 * (hspacing + hwidth)
     n_hori = int(core_h // (hspacing + hwidth))
 
     bottom = core_bottom + hspacing
     fp.place_wires([vdd] * (n_hori // 2), vdd_ring_left, bottom, 0, spacing,
-                vdd_ring_width, hwidth, hlayer, shape='stripe')
+                   vdd_ring_width, hwidth, hlayer, shape='stripe')
 
     bottom = core_bottom + hspacing + (hspacing + hwidth)
     fp.place_wires([vss] * (n_hori // 2), vss_ring_left, bottom, 0, spacing,
-                vss_ring_width, hwidth, hlayer, shape='stripe')
+                   vss_ring_width, hwidth, hlayer, shape='stripe')
 
     # Vertical stripes
     spacing = 2 * (vspacing + vwidth)
@@ -46,11 +46,11 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
 
     left = core_left + vspacing
     fp.place_wires([vdd] * (n_vert // 2), left, vdd_ring_bottom, spacing, 0,
-                vwidth, vdd_ring_height, vlayer, shape='stripe')
+                   vwidth, vdd_ring_height, vlayer, shape='stripe')
 
     left = core_left + vspacing + (vspacing + vwidth)
     fp.place_wires([vss] * (n_vert // 2), left, vss_ring_bottom, spacing, 0,
-                vwidth, vss_ring_height, vlayer, shape='stripe')
+                   vwidth, vss_ring_height, vlayer, shape='stripe')
 
     # Power stripes
     rows = len(fp.rows)
@@ -65,11 +65,11 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
 
     bottom = core_bottom - stripe_w/2
     fp.place_wires([vdd] * npwr, core_left, bottom, 0, spacing,
-                        core_w, stripe_w, stripe_layer, 'followpin')
+                   core_w, stripe_w, stripe_layer, 'followpin')
 
     bottom = core_bottom - stripe_w/2 + fp.stdcell_height
     fp.place_wires([vss] * ngnd, core_left, bottom, 0, spacing,
-                        core_w, stripe_w, stripe_layer, 'followpin')
+                   core_w, stripe_w, stripe_layer, 'followpin')
 
 
     # move here until test can be rebuilt
