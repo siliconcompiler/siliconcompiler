@@ -275,30 +275,14 @@ class Server:
         API handler for the 'check user' endpoint.
         '''
 
-        # Retrieve the JSON parameters.
-        params = await request.json()
-        username = ''
-        if 'username' in params:
-            username = params['username']
+        # Process input parameters
+        job_params, response = self.__check_request(await request.json())
+        if response is not None:
+            return response
 
-        # Check for authentication parameters.
-        use_auth = False
-        if ('username' in params) or ('key' in params):
-            if self.cfg['auth']['value'][-1]:
-                if ('username' in params) and ('key' in params):
-                    username = params['username']
-                    key = params['key']
-                    if not username in self.user_keys.keys():
-                        return web.Response(text="Error: invalid username provided.", status=404)
-                    # Authenticate the user.
-                    if self.auth_password(username, key):
-                        use_auth = True
-                    else:
-                        return web.Response(text="Authentication error.", status=403)
-                else:
-                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
-            else:
-                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
+        username = job_params['username']
+        if not username:
+            return self.__response("Invalid username provided", status=400)
 
         resp = {
             'compute_time': self.user_keys[username]['compute_time'],
