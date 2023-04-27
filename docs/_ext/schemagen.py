@@ -5,7 +5,7 @@ from sphinx.util.docutils import SphinxDirective
 
 import siliconcompiler
 from siliconcompiler.schema import Schema
-from siliconcompiler.sphinx_ext.utils import *
+from siliconcompiler.sphinx_ext.utils import strong, code, para, keypath, build_table, build_section_with_target
 from siliconcompiler.schema import utils
 
 # Main Sphinx plugin

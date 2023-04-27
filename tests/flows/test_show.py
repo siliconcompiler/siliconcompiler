@@ -14,7 +14,7 @@ def adjust_exe_options(chip, headless):
     for step in ('show', 'screenshot'):
         # adjust options to ensure programs exit
         for tool in ('klayout', 'openroad'):
-            chip.set('tool', tool, 'task', step, 'var', 'show_exit', 'true',)
+            chip.set('tool', tool, 'task', step, 'var', 'show_exit', 'true')
 
 @pytest.fixture
 def display():
@@ -30,8 +30,8 @@ def display():
 @pytest.mark.quick
 @pytest.mark.parametrize('tool', ['klayout', 'openroad'])
 @pytest.mark.parametrize('project, testfile',
-    [('freepdk45_demo', 'heartbeat_freepdk45.def'),
-     ('skywater130_demo', 'heartbeat_sky130.def')])
+                         [('freepdk45_demo', 'heartbeat_freepdk45.def'),
+                          ('skywater130_demo', 'heartbeat_sky130.def')])
 @pytest.mark.timeout(60)
 def test_show(project, testfile, tool, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
@@ -49,8 +49,8 @@ def test_show(project, testfile, tool, datadir, display, headless=True):
 @pytest.mark.quick
 @pytest.mark.parametrize('tool', ['klayout', 'openroad'])
 @pytest.mark.parametrize('project, testfile',
-    [('freepdk45_demo', 'heartbeat_freepdk45.def'),
-     ('skywater130_demo', 'heartbeat_sky130.def')])
+                         [('freepdk45_demo', 'heartbeat_freepdk45.def'),
+                          ('skywater130_demo', 'heartbeat_sky130.def')])
 @pytest.mark.timeout(60)
 def test_screenshot(project, testfile, tool, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
@@ -113,5 +113,5 @@ if __name__ == "__main__":
     test_show('skywater130_demo', 'heartbeat_sky130.def', 'klayout', datadir(__file__),
               None, headless=True)
     test_screenshot('skywater130_demo', 'heartbeat_sky130.def', 'openroad', datadir(__file__),
-              None, headless=True)
+                    None, headless=True)
     test_show_nopdk(datadir(__file__), None)

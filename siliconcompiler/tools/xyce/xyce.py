@@ -21,16 +21,16 @@ import os
 ################################
 def setup(chip):
 
-     tool = 'xyce'
-     step = chip.get('arg','step')
-     index = chip.get('arg','index')
-     task = chip._get_task(step, index)
+    tool = 'xyce'
+    step = chip.get('arg','step')
+    index = chip.get('arg','index')
+    task = chip._get_task(step, index)
 
-     clobber = False
+    clobber = False
 
-     chip.set('tool', tool, 'exe', tool)
-     chip.set('tool', tool, 'version', '0.0', clobber=clobber)
-     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=clobber)
+    chip.set('tool', tool, 'exe', tool)
+    chip.set('tool', tool, 'version', '0.0', clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=clobber)
 
 ##################################################
 if __name__ == "__main__":

@@ -2,19 +2,16 @@
 
 from aiohttp import web
 import asyncio
-import base64
 import json
 import logging as log
 import os
 import re
 import shutil
 import uuid
-import tempfile
 import tarfile
 
 from siliconcompiler import Chip
 from siliconcompiler import Schema
-from siliconcompiler import utils
 
 class Server:
     """

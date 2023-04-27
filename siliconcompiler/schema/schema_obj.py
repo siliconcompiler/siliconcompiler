@@ -558,7 +558,7 @@ class Schema:
             # Restricted allowed values
             if not (isinstance(value, str) and value in ('never', 'optional', 'required')):
                 raise TypeError(f'Invalid value {value} for field {field}: '
-                    'expected one of "never", "optional", or "required"')
+                                'expected one of "never", "optional", or "required"')
             return value
 
         if field in (
@@ -779,7 +779,7 @@ class Schema:
 
             # TODO: Temp fix to get rid of empty args
             if valstr=='':
-                valstr = f'[list ]'
+                valstr = '[list ]'
 
             outstr = f"{prefix} {keystr} {valstr}\n"
 

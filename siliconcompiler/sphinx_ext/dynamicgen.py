@@ -6,6 +6,8 @@ from docutils import nodes
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 from sphinx.util.docutils import SphinxDirective
+from sphinx.domains.std import StandardDomain
+from sphinx.addnodes import pending_xref
 import docutils
 
 import importlib
@@ -14,8 +16,8 @@ import os
 import subprocess
 
 import siliconcompiler
-from siliconcompiler.schema import utils
-from siliconcompiler.sphinx_ext.utils import *
+from siliconcompiler.schema import Schema, utils
+from siliconcompiler.sphinx_ext.utils import strong, code, para, keypath, build_table, build_list, build_section, build_section_with_target, link, image, get_ref_id, literalblock
 
 #############
 # Helpers
@@ -791,7 +793,7 @@ def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=Non
         prb = inliner.problematic(rawtext, rawtext, msg)
         return [prb], [msg]
 
-class SCDomain(sphinx.domains.std.StandardDomain):
+class SCDomain(StandardDomain):
     name = 'sc'
 
     # Override in StandardDomain so xref is literal instead of inline
@@ -809,7 +811,7 @@ class SCDomain(sphinx.domains.std.StandardDomain):
             # set more info in contnode; in case the
             # get_relative_uri call raises NoUri,
             # the builder will then have to resolve these
-            contnode = sphinx.addnodes.pending_xref('')
+            contnode = pending_xref('')
             contnode['refdocname'] = docname
             contnode['refsectname'] = sectname
             newnode['refuri'] = builder.get_relative_uri(

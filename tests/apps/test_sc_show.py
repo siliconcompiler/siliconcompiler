@@ -31,7 +31,7 @@ def heartbeat_dir(tmpdir_factory):
 
 @pytest.mark.parametrize('flags', [
     ['-design', 'heartbeat']
-    ])
+])
 @pytest.mark.eda
 @pytest.mark.quick
 def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
@@ -65,7 +65,7 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
     ['-input', 'layout gds build/heartbeat/job0/export/0/outputs/heartbeat.gds'],
     ['-input', 'layout def build/heartbeat/job0/export/0/inputs/heartbeat.def',
      '-cfg', 'build/heartbeat/job0/export/0/outputs/heartbeat.pkg.json']
-    ])
+])
 @pytest.mark.eda
 @pytest.mark.quick
 def test_sc_show(flags, monkeypatch, heartbeat_dir):

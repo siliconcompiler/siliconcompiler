@@ -47,9 +47,9 @@ def setup(chip):
 
     # filler
     lib.add('asic', 'cells', 'filler', ['sky130_fd_sc_hd__fill_1',
-                                         'sky130_fd_sc_hd__fill_2',
-                                         'sky130_fd_sc_hd__fill_4',
-                                         'sky130_fd_sc_hd__fill_8'])
+                                        'sky130_fd_sc_hd__fill_2',
+                                        'sky130_fd_sc_hd__fill_4',
+                                        'sky130_fd_sc_hd__fill_8'])
 
     # Tapcell
     lib.add('asic', 'cells','tap', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
