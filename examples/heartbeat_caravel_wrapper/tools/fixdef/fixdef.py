@@ -37,26 +37,24 @@ def run(chip):
             # 2. Add overlaps in the 'SPECIALNETS' section.
             # Assumptions: 'PINS' comes before 'SPECIALNETS', and there is only one 'PINS' section.
             for line in f:
-                l = line
-
                 # We don't care about lines before the 'PINS' section; write them verbatim to new DEF.
                 if not in_pins:
-                    wf.write(l)
+                    wf.write(line)
                     # Start paying attention at the start of the 'PINS' section.
-                    if l.strip().startswith('PINS'):
+                    if line.strip().startswith('PINS'):
                         in_pins = 1
                 # Note name, dimensions, and net of each non-power pin. (Power nets should go thru PDN)
                 elif in_pins == 1:
-                    wf.write(l)
-                    if l.strip().startswith('END PINS'):
+                    wf.write(line)
+                    if line.strip().startswith('END PINS'):
                         in_pins = 2
-                    elif l.strip().startswith('-'):
-                        la = l.strip().split()
+                    elif line.strip().startswith('-'):
+                        la = line.strip().split()
                         in_pin = la[1]
                         in_net = la[4]
                     # TODO: We should not use hardcoded prefixes for power nets to ignore.
-                    elif ('LAYER' in l) and ('vcc' not in in_pin) and ('vss' not in in_pin):
-                        la = l.strip().split()
+                    elif ('LAYER' in line) and ('vcc' not in in_pin) and ('vss' not in in_pin):
+                        la = line.strip().split()
                         in_layer = la[2]
                         pin_w = abs(int(la[8]) - int(la[4]))
                         pin_h = abs(int(la[9]) - int(la[5]))
@@ -71,16 +69,16 @@ def run(chip):
                 # After the 'PINS' section, look for 'SPECIALNETS' section and add tracks over each pin.
                 # This section may not exist; create it if we find 'END NETS' before 'SPECIALNETS'
                 elif in_pins == 2:
-                    if l.strip().startswith('SPECIALNETS'):
-                        la = l.strip().split()
+                    if line.strip().startswith('SPECIALNETS'):
+                        la = line.strip().split()
                         numnets = int(la[1]) + len(pin_locs)
                         wf.write('SPECIALNETS %i ;\n' % numnets)
                     # (There may not be a SPECIALNETS section in the DEF output)
-                    elif l.strip().startswith('END NETS'):
-                        wf.write(l)
+                    elif line.strip().startswith('END NETS'):
+                        wf.write(line)
                         numnets = len(pin_locs)
                         wf.write('SPECIALNETS %i ;\n' % numnets)
-                    elif (l.strip() == 'END SPECIALNETS') or (l.strip() == 'END DESIGN'):
+                    elif (line.strip() == 'END SPECIALNETS') or (line.strip() == 'END DESIGN'):
                         for k, v in pin_locs.items():
                             ml = 0
                             if v['layer'] == 'met2':
@@ -98,13 +96,13 @@ def run(chip):
                             wf.write('    - %s ( PIN %s ) + USE SIGNAL\n' % (v['net'], k))
                             wf.write('      + ROUTED %s %i + SHAPE STRIPE ( %i %i ) ( %i %i )\n' % (v['layer'], int(ml), xl, yb, xr, yu))
                             wf.write('      NEW %s %i + SHAPE STRIPE ( %i %i ) ( %i %i ) ;\n' % (v['layer'], int(ml), xl, yb, xr, yu))
-                        if l.strip() == 'END DESIGN':
+                        if line.strip() == 'END DESIGN':
                             wf.write('END SPECIALNETS\n')
-                        wf.write(l)
+                        wf.write(line)
                         in_pins = 3
                     else:
-                        wf.write(l)
+                        wf.write(line)
                 elif in_pins == 3:
-                    wf.write(l)
+                    wf.write(line)
 
     return 0
