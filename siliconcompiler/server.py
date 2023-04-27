@@ -2,19 +2,16 @@
 
 from aiohttp import web
 import asyncio
-import base64
 import json
 import logging as log
 import os
 import re
 import shutil
 import uuid
-import tempfile
 import tarfile
 
 from siliconcompiler import Chip
 from siliconcompiler import Schema
-from siliconcompiler import utils
 
 class Server:
     """
@@ -295,8 +292,8 @@ class Server:
 
         # Determine if the job is running.
         for job in self.sc_jobs:
-          if job_hash in job:
-            return web.Response(text="Error: job is still running.")
+            if job_hash in job:
+                return web.Response(text="Error: job is still running.")
 
         # Delete job hash directory, only if it exists.
         # TODO: This assumes no malicious input.

@@ -79,11 +79,11 @@ def _minmax(chip, *steps, op=None):
                     real = chip.get('metric', metric, step=step, index=index)
                     if real is None:
                         chip.error(f'Metric {metric} has goal for {step}{index} '
-                            'but it has not been set.', fatal=True)
+                                   'but it has not been set.', fatal=True)
                     if abs(real) > goal:
                         chip.logger.warning(f"Step {step}{index} failed "
-                            f"because it didn't meet goals for '{metric}' "
-                            "metric.")
+                                            f"because it didn't meet goals for '{metric}' "
+                                            "metric.")
                         failed[step][index] = True
 
     # Calculate max/min values for each metric
@@ -117,7 +117,7 @@ def _minmax(chip, *steps, op=None):
             real = chip.get('metric', metric, step=step, index=index)
             if real is None:
                 chip.error(f'Metric {metric} has weight for {step}{index} '
-                    'but it has not been set.', fatal=True)
+                           'but it has not been set.', fatal=True)
 
             if not (max_val[metric] - min_val[metric]) == 0:
                 scaled = (real - min_val[metric]) / (max_val[metric] - min_val[metric])
@@ -125,8 +125,7 @@ def _minmax(chip, *steps, op=None):
                 scaled = max_val[metric]
             score = score + scaled * weight
 
-        if ((op == 'minimum' and score < best_score) or
-            (op == 'maximum' and score > best_score)):
+        if ((op == 'minimum' and score < best_score) or (op == 'maximum' and score > best_score)):
             best_score = score
             winner = (step,index)
 

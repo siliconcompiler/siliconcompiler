@@ -48,8 +48,7 @@ class Sup:
 
         #TODO: Add packaging specific checks
         for keylist in self.chip.allkeys():
-            if (keylist[0] in ('package') and
-                keylist[1] in ('version', 'description', 'license')):
+            if (keylist[0] in ('package') and keylist[1] in ('version', 'description', 'license')):
                 if self.chip.get(*keylist) in ("null", None, []):
                     self.chip.logger.error(f"Package missing {keylist} information.")
                     check_ok = False

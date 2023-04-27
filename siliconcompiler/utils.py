@@ -83,7 +83,7 @@ class PbPrimitive:
                 return port
         return None
 
- # This class parses the FPGA architecture file and stores all the information provided for every primitive
+# This class parses the FPGA architecture file and stores all the information provided for every primitive
 class Arch:
 
     def __init__(self, arch_file_name):
