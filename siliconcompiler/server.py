@@ -276,7 +276,7 @@ class Server:
         '''
 
         # Process input parameters
-        job_params, response = self.__check_request(await request.json())
+        job_params, response = self.__check_request(await request.json(), require_job_hash=False)
         if response is not None:
             return response
 
@@ -347,17 +347,18 @@ class Server:
             return False
         return (password == self.user_keys[username]['password'])
 
-    def __check_request(self, request):
+    def __check_request(self, request, require_job_hash=True):
         params = {}
 
-        # Get the job hash value, and verify it is a 32-char hex string.
-        if 'job_hash' not in request:
-            return (params, self.__response("Error: no job hash provided.", status=400))
+        if require_job_hash:
+            # Get the job hash value, and verify it is a 32-char hex string.
+            if 'job_hash' not in request:
+                return (params, self.__response("Error: no job hash provided.", status=400))
 
-        if not re.match("^[0-9A-Za-z]{32}$", request['job_hash']):
-            return (params, self.__response("Error: invalid job hash.", status=400))
+            if not re.match("^[0-9A-Za-z]{32}$", request['job_hash']):
+                return (params, self.__response("Error: invalid job hash.", status=400))
 
-        params['job_hash'] = request['job_hash']
+            params['job_hash'] = request['job_hash']
 
         # Check for authentication parameters.
         params['username'] = None
