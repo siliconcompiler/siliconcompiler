@@ -56,7 +56,7 @@ def terminate_process(pid, timeout=3):
 # This class holds all the information about a single primitive defined in the FPGA arch file
 class PbPrimitive:
 
-    def __init__ (self, name, blif_model):
+    def __init__(self, name, blif_model):
         self.name = name
         self.blif_model = blif_model
         self.ports = []

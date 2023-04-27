@@ -174,11 +174,11 @@ def place_pdn(fp):
             if pad_type == VDD:
                 fp.place_wires(['_vdd'], -pow_gap, y + offset, 0, 0,
                                vdd_ring_left + vwidth + pow_gap, pin_width, 'm3')
-                fp.place_pins (['_vdd'], 0, y + offset, 0, 0,
-                               vdd_ring_left + vwidth, pin_width, 'm3', use='power')
+                fp.place_pins(['_vdd'], 0, y + offset, 0, 0,
+                              vdd_ring_left + vwidth, pin_width, 'm3', use='power')
             elif pad_type == VDDIO:
-                fp.place_pins (['_vddio'], 0, y + offset, 0, 0,
-                               margin_left, pin_width, 'm3')
+                fp.place_pins(['_vddio'], 0, y + offset, 0, 0,
+                              margin_left, pin_width, 'm3')
             elif pad_type == VSS:
                 fp.place_wires(['_vss'], -pow_gap, y + offset, 0, 0,
                                vss_ring_left + vwidth + pow_gap, pin_width, 'm3')
@@ -468,25 +468,25 @@ def top_floorplan(fp):
     for pad_type, y in we_pads:
         if pad_type == VDDIO:
             for offset in pin_offsets:
-                fp.place_wires (['_vddio'], pad_h, y + offset, 0, 0,
-                                margin_left + pow_gap, pin_width, 'm3')
+                fp.place_wires(['_vddio'], pad_h, y + offset, 0, 0,
+                               margin_left + pow_gap, pin_width, 'm3')
     margin_top = core_h - (margin_bottom + place_h)
     for pad_type, x in no_pads:
         if pad_type == VDDIO:
             for offset in pin_offsets:
-                fp.place_wires (['_vddio'], x + offset, top_h - pad_h - (margin_top + pow_gap), 0, 0,
-                                pin_width, margin_top + pow_gap, 'm3')
+                fp.place_wires(['_vddio'], x + offset, top_h - pad_h - (margin_top + pow_gap), 0, 0,
+                               pin_width, margin_top + pow_gap, 'm3')
     margin_right = core_w - (margin_left + place_w)
     for pad_type, y in ea_pads:
         if pad_type == VDDIO:
             for offset in pin_offsets:
-                fp.place_wires (['_vddio'], top_w - pad_h - (margin_right + pow_gap), y + offset, 0, 0,
-                                margin_right + pow_gap, pin_width, 'm3')
+                fp.place_wires(['_vddio'], top_w - pad_h - (margin_right + pow_gap), y + offset, 0, 0,
+                               margin_right + pow_gap, pin_width, 'm3')
     for pad_type, x in so_pads:
         if pad_type == VDDIO:
             for offset in pin_offsets:
-                fp.place_wires (['_vddio'], x + offset, pad_h, 0, 0,
-                                pin_width, margin_bottom + pow_gap, 'm3')
+                fp.place_wires(['_vddio'], x + offset, pad_h, 0, 0,
+                               pin_width, margin_bottom + pow_gap, 'm3')
 
     # Place padring corners.
     fp.place_macros([('corner_sw', CORNER)], 0, 0, 0, 0, 'S')
