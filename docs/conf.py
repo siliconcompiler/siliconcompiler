@@ -12,11 +12,11 @@
 #
 import os
 import sys
+from datetime import date
+
 sys.path.insert(0, os.path.abspath('../siliconcompiler'))
 import siliconcompiler
 sys.path.append(os.path.abspath('./_ext'))
-
-from datetime import date
 
 
 # -- Project information -----------------------------------------------------

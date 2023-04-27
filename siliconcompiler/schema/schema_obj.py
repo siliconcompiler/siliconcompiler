@@ -779,7 +779,7 @@ class Schema:
 
             # TODO: Temp fix to get rid of empty args
             if valstr=='':
-                valstr = f'[list ]'
+                valstr = '[list ]'
 
             outstr = f"{prefix} {keystr} {valstr}\n"
 

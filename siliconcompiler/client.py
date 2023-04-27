@@ -109,28 +109,28 @@ def remote_run(chip):
     # Check the job's progress periodically until it finishes.
     is_busy = True
     while is_busy:
-      time.sleep(30)
-      try:
-          is_busy_info = is_job_busy(chip)
-          is_busy = is_busy_info['busy']
-          if is_busy:
-              if (':' in is_busy_info['message']):
-                  msg_lines = is_busy_info['message'].splitlines()
-                  cur_step = msg_lines[0][msg_lines[0].find(': ')+2:]
-                  cur_log = '\n'.join(msg_lines[1:])
-                  chip.logger.info("Job is still running (%d seconds, step: %s)."%(
-                                   int(time.monotonic() - step_start), cur_step))
-                  if cur_log:
-                      chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
-              else:
-                  chip.logger.info(f"Job is still running (%d seconds, step: unknown)"%(
-                                   int(time.monotonic() - step_start)))
-      except Exception:
-          # Sometimes an exception is raised if the request library cannot
-          # reach the server due to a transient network issue.
-          # Retrying ensures that jobs don't break off when the connection drops.
-          is_busy = True
-          chip.logger.info("Unknown network error encountered: retrying.")
+        time.sleep(30)
+        try:
+            is_busy_info = is_job_busy(chip)
+            is_busy = is_busy_info['busy']
+            if is_busy:
+                if (':' in is_busy_info['message']):
+                    msg_lines = is_busy_info['message'].splitlines()
+                    cur_step = msg_lines[0][msg_lines[0].find(': ')+2:]
+                    cur_log = '\n'.join(msg_lines[1:])
+                    chip.logger.info("Job is still running (%d seconds, step: %s)."%(
+                                    int(time.monotonic() - step_start), cur_step))
+                    if cur_log:
+                        chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
+                else:
+                    chip.logger.info("Job is still running (%d seconds, step: unknown)"%(
+                                    int(time.monotonic() - step_start)))
+        except Exception:
+            # Sometimes an exception is raised if the request library cannot
+            # reach the server due to a transient network issue.
+            # Retrying ensures that jobs don't break off when the connection drops.
+            is_busy = True
+            chip.logger.info("Unknown network error encountered: retrying.")
     chip.logger.info("Remote job run completed! Fetching results...")
 
 ###################################

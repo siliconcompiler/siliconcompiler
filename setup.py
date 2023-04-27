@@ -4,7 +4,6 @@ import glob
 import os
 import shutil
 import sys
-import subprocess
 from setuptools import find_packages
 
 # Hack to get version number since it's considered bad practice to import your
@@ -31,7 +30,7 @@ else:
     from setuptools import setup
 
 with open("README.md", "r", encoding="utf-8") as readme:
-  long_desc = readme.read()
+    long_desc = readme.read()
 
 def parse_reqs():
     '''Parse out each requirement category from requirements.txt'''
@@ -80,8 +79,8 @@ for app in os.listdir('siliconcompiler/apps'):
 # won't have to perform many installs anyways, this seems like a worthwhile
 # tradeoff.
 if os.path.isdir('_skbuild'):
-     print("Note: removing existing _skbuild/ directory.")
-     shutil.rmtree('_skbuild')
+    print("Note: removing existing _skbuild/ directory.")
+    shutil.rmtree('_skbuild')
 
 if not on_rtd:
     skbuild_args = {

@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-_file_path = os.path.dirname(__file__)
-_tools_path = os.path.abspath(os.path.join(_file_path, '..'))
 import sys
-sys.path.append(_tools_path)
 
 import argparse
 import docker
@@ -13,6 +10,10 @@ from jinja2 import Template
 import json
 import shutil
 import requests
+
+_file_path = os.path.dirname(__file__)
+_tools_path = os.path.abspath(os.path.join(_file_path, '..'))
+sys.path.append(_tools_path)
 
 # Import tools which contains all the version information
 import _tools
@@ -150,8 +151,8 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         'extra_commands': extracmds
     }
     copy_files = []
-    for f in ('_tools.json', 
-              '_tools.py', 
+    for f in ('_tools.json',
+              '_tools.py',
               template_opts['install_script']):
         copy_files.append(os.path.join(_tools_path, f))
     assemble_docker_file(name, tag, docker_file, template_opts, output_dir, copy_files=copy_files)
@@ -165,7 +166,7 @@ def make_sc_tools_docker(tools, output_dir):
     skip_build = []
     for tool in _tools.get_tools():
         if _tools.get_field(tool, 'docker-skip'):
-           skip_build.append(tool)
+            skip_build.append(tool)
 
     template_opts = {
         'tools': tools,
@@ -192,7 +193,7 @@ def build_docker(docker_file, image_name):
 
     client = docker.from_env()
     try:
-        client.images.build(path=os.path.dirname(docker_file), 
+        client.images.build(path=os.path.dirname(docker_file),
                             tag=image_name,
                             dockerfile=os.path.basename(docker_file),
                             container_limits=container_limits)
