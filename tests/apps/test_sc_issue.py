@@ -35,7 +35,7 @@ def heartbeat_dir(tmpdir_factory):
     (['-generate', '-cfg', 'build/heartbeat/job0/place/0/outputs/heartbeat.pkg.json', '-arg_step', 'syn', '-arg_index', '0'], 'sc_issue_heartbeat_job0_syn0_*.tar.gz'),
     (['-generate', '-cfg', 'build/heartbeat/job0/place/0/outputs/heartbeat.pkg.json', '-arg_step', 'place', '-arg_index', '0'], 'sc_issue_heartbeat_job0_place0_*.tar.gz'),
     (['-generate', '-cfg', 'build/heartbeat/job0/heartbeat.pkg.json', '-arg_step', 'place', '-arg_index', '0'], 'sc_issue_heartbeat_job0_place0_*.tar.gz')
-    ])
+])
 @pytest.mark.eda
 @pytest.mark.quick
 def test_sc_issue_generate_success(flags, outputfileglob, monkeypatch, heartbeat_dir):
@@ -49,7 +49,7 @@ def test_sc_issue_generate_success(flags, outputfileglob, monkeypatch, heartbeat
 
 @pytest.mark.parametrize('flags', [
     ['-generate', '-cfg', 'build/heartbeat/job0/heartbeat.pkg.json']
-    ])
+])
 @pytest.mark.eda
 @pytest.mark.quick
 def test_sc_issue_generate_fail(flags, monkeypatch, heartbeat_dir):

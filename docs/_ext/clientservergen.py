@@ -4,8 +4,6 @@ import json
 from docutils import nodes
 from sphinx.util.docutils import SphinxDirective
 
-from sphinx.util import logging
-
 def add_prop_attr_row(prop, attr, tbody, key = None):
     desc_row = nodes.row()
     tbody += desc_row
@@ -50,7 +48,6 @@ def add_table_row(prop, tbody):
 # Main Sphinx plugin
 class RemoteAPIGen(SphinxDirective):
     def run(self):
-        logger = logging.getLogger(__name__)
         self.env.note_dependency(__file__)
 
         # List of documentation objects to return.
@@ -73,7 +70,6 @@ class RemoteAPIGen(SphinxDirective):
             section = nodes.section(ids = [nodes.make_id(title_str)])
             section += nodes.title(text = title_str)
             # Add a table describing the schema.
-            relevant_keys = ['description', 'type', 'minLength', 'pattern', 'items', 'default']
             table = nodes.table()
             tgroup = nodes.tgroup(cols = 3)
             tgroup += nodes.colspec(colwidth=10)

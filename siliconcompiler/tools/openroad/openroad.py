@@ -235,7 +235,7 @@ def setup(chip, mode='batch'):
         ('psm_enable', 'true', 'true/false, when true enables IR drop analysis'),
         ('debug_level', None, 'list of "tool key level" to enable debugging of OpenROAD'),
         ('sdc_buffer', None, 'Buffer cell to use when auto generating timing constraints')
-        ]:
+    ]:
         if value:
             chip.set('tool', tool, 'task', task, 'var', variable, value, step=step, index=index, clobber=False)
         if helptext:
@@ -348,7 +348,8 @@ def post_process(chip):
             ('macros', 'sc__metric__design__instance__count__macros', True, None),
             ('nets', 'sc__metric__design__nets', True, None),
             ('registers', 'sc__metric__design__registers', True, None),
-            ('buffers', 'sc__metric__design__buffers', True, None)]:
+            ('buffers', 'sc__metric__design__buffers', True, None)
+        ]:
             if or_metric in metrics:
                 # Check for INF timing
                 if or_unit == 'time' and value > 1e38:

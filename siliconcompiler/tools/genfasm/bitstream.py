@@ -25,9 +25,9 @@ def setup(chip):
 
     options.append(blif)
 
-    options.extend( [ f"--net_file inputs/{topmodule}.net",
-                f"--place_file inputs/{topmodule}.place",
-                f"--route_file inputs/{topmodule}.route"])
+    options.extend([f"--net_file inputs/{topmodule}.net",
+                    f"--place_file inputs/{topmodule}.place",
+                    f"--route_file inputs/{topmodule}.route"])
 
     chip.add('tool', tool, 'task', task, 'option',  options, step=step, index=index)
 

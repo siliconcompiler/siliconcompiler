@@ -49,7 +49,7 @@ def remote_preprocess(chip, steplist):
     if any([step not in remote_steplist for step, _ in entry_steps]) or (len(remote_steplist) == 1):
         chip.error('Remote flows must be organized such that the starting task(s) are run before '
                    'all other steps, and at least one other task is included.\n'
-                  f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
+                   f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
                    fatal=True)
     # Setup up tools for all local functions
     for local_step, index in entry_steps:
@@ -109,28 +109,28 @@ def remote_run(chip):
     # Check the job's progress periodically until it finishes.
     is_busy = True
     while is_busy:
-      time.sleep(30)
-      try:
-          is_busy_info = is_job_busy(chip)
-          is_busy = is_busy_info['busy']
-          if is_busy:
-              if (':' in is_busy_info['message']):
-                  msg_lines = is_busy_info['message'].splitlines()
-                  cur_step = msg_lines[0][msg_lines[0].find(': ')+2:]
-                  cur_log = '\n'.join(msg_lines[1:])
-                  chip.logger.info("Job is still running (%d seconds, step: %s)."%(
-                                   int(time.monotonic() - step_start), cur_step))
-                  if cur_log:
-                      chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
-              else:
-                  chip.logger.info(f"Job is still running (%d seconds, step: unknown)"%(
-                                   int(time.monotonic() - step_start)))
-      except Exception:
-          # Sometimes an exception is raised if the request library cannot
-          # reach the server due to a transient network issue.
-          # Retrying ensures that jobs don't break off when the connection drops.
-          is_busy = True
-          chip.logger.info("Unknown network error encountered: retrying.")
+        time.sleep(30)
+        try:
+            is_busy_info = is_job_busy(chip)
+            is_busy = is_busy_info['busy']
+            if is_busy:
+                if (':' in is_busy_info['message']):
+                    msg_lines = is_busy_info['message'].splitlines()
+                    cur_step = msg_lines[0][msg_lines[0].find(': ')+2:]
+                    cur_log = '\n'.join(msg_lines[1:])
+                    chip.logger.info("Job is still running (%d seconds, step: %s)."%(
+                                     int(time.monotonic() - step_start), cur_step))
+                    if cur_log:
+                        chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
+                else:
+                    chip.logger.info("Job is still running (%d seconds, step: unknown)"%(
+                                     int(time.monotonic() - step_start)))
+        except Exception:
+            # Sometimes an exception is raised if the request library cannot
+            # reach the server due to a transient network issue.
+            # Retrying ensures that jobs don't break off when the connection drops.
+            is_busy = True
+            chip.logger.info("Unknown network error encountered: retrying.")
     chip.logger.info("Remote job run completed! Fetching results...")
 
 ###################################
@@ -190,9 +190,9 @@ def request_remote_run(chip):
         # Return to start of file
         upload_file.seek(0)
         resp = requests.post(redirect_url,
-                            files={'import': upload_file,
-                                   'params': json.dumps(post_params)},
-                            allow_redirects=False)
+                             files={'import': upload_file,
+                                    'params': json.dumps(post_params)},
+                             allow_redirects=False)
         if resp.status_code == 302:
             redirect_url = resp.headers['Location']
         elif resp.status_code >= 400:
@@ -267,7 +267,7 @@ def delete_job(chip):
                              data=json.dumps(post_params),
                              allow_redirects=False)
         if resp.status_code == 302:
-                redirect_url = resp.headers['Location']
+            redirect_url = resp.headers['Location']
         else:
             response = resp.text
             return response

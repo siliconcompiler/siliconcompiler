@@ -12,11 +12,11 @@
 #
 import os
 import sys
+from datetime import date
+
 sys.path.insert(0, os.path.abspath('../siliconcompiler'))
 import siliconcompiler
 sys.path.append(os.path.abspath('./_ext'))
-
-from datetime import date
 
 
 # -- Project information -----------------------------------------------------
@@ -75,8 +75,8 @@ html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
     'collapse_navigation': False,
     'logo_only': True,
-#    'display_version': True,
-#    'navigation_depth': 4,
+    # 'display_version': True,
+    # 'navigation_depth': 4,
 }
 
 # Custom sidebar templates, must be a dictionary that maps document names
@@ -111,8 +111,8 @@ latex_preamble = r"""\newcommand{\origunderscore}{}
 """
 
 latex_elements = {
-  'extraclassoptions': 'openany,oneside', # Don't add blank pages after some chapters
-  'preamble': latex_preamble
+    'extraclassoptions': 'openany,oneside', # Don't add blank pages after some chapters
+    'preamble': latex_preamble
 }
 
 # -- Options for autodoc -----------------------------------------------------
