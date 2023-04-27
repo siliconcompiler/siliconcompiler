@@ -90,7 +90,7 @@ See https://docs.siliconcompiler.com for more information
     packlist = args.name
     registry = args.registry
 
-    if packlist==[]:
+    if packlist == []:
         packlist is None
 
     if command in ('clear'):

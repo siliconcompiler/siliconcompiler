@@ -100,8 +100,9 @@ def show(schema, input_path, output_path, screenshot=False):
 
     # Hide layers that shouldn't be shown in the current view.
     for layer in layout_view.each_layer():
-        layer_name = layer.name[ : layer.name.find(' - ')]
-        layer_ldt = layer.name[(layer.name.find(' - ') + len(' - ')) : ]
+        layer_break = layer.name.find(' - ')
+        layer_name = layer.name[:layer_break]
+        layer_ldt = layer.name[(layer_break + 3):]
         if (layer_name in sc_hide_layers) or (layer_ldt in sc_hide_layers):
             layer.visible = False
 
@@ -138,7 +139,7 @@ def main():
 
     sc_exit = schema.get('tool', 'klayout', 'task', task, 'var', 'show_exit', step=step, index=index) == ["true"]
 
-    show(schema, sc_filename, f'outputs/{design}.png', screenshot=(step=='screenshot'))
+    show(schema, sc_filename, f'outputs/{design}.png', screenshot=(step == 'screenshot'))
 
     if sc_exit:
         pya.Application.instance().exit(0)

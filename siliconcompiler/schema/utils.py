@@ -46,7 +46,7 @@ def escape_val_tcl(val, typestr):
         escaped_val = (val.replace('\\', '\\\\') # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
                           .replace('[', '\\[')   # escape '[' to avoid command substition
                           .replace('"', '\\"'))  # escape '"' to avoid string terminating early
-        return '"' +  escaped_val + '"'
+        return '"' + escaped_val + '"'
     else:
         # floats/ints just become strings
         return str(val)

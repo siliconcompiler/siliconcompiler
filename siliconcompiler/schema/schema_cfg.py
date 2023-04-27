@@ -549,7 +549,7 @@ def schema_pdk(cfg, stackup='default'):
             that depend on the tool setup and device technology. Pseudo-standardized
             device types include spice, em (electromigration), and aging.""")
 
-    corner='default'
+    corner = 'default'
     scparam(cfg, ['pdk', pdkname, 'pexmodel', tool, stackup, corner],
             sctype='[file]',
             scope='global',
@@ -652,7 +652,7 @@ def schema_pdk(cfg, stackup='default'):
     # EDA vars
     ###############
 
-    key='default'
+    key = 'default'
     scparam(cfg, ['pdk', pdkname, 'file', tool, key, stackup],
             sctype='[file]',
             scope='global',
@@ -772,7 +772,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
 
     # Absolute max temperatures
     metrics = {'storagetemp': 'storage temperature limits',
-               'junctiontemp' :'junction temperature limits'}
+               'junctiontemp': 'junction temperature limits'}
 
     for item, val in metrics.items():
         scparam(cfg, ['datasheet', design, 'limits', item],
@@ -950,7 +950,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             (step,index) tuple.""")
 
     # flowgraph metric weights
-    metric='default'
+    metric = 'default'
     scparam(cfg,['flowgraph', flow, step, index, 'weight', metric],
             sctype='float',
             shorthelp="Flowgraph: metric weights",
@@ -1169,8 +1169,8 @@ def schema_tool(cfg, tool='default'):
             sctype='str',
             shorthelp="Tool: file format",
             switch="-tool_format 'tool <file>'",
-            example=[ "cli: -tool_format 'yosys tcl'",
-                      "api: chip.set('tool','yosys','format','tcl')"],
+            example=["cli: -tool_format 'yosys tcl'",
+                     "api: chip.set('tool','yosys','format','tcl')"],
             schelp="""
             File format for tool manifest handoff. Supported formats are tcl,
             yaml, and json.""")
@@ -1552,9 +1552,9 @@ def schema_arg(cfg):
 def schema_metric(cfg, step='default', index='default'):
 
     metrics = {'errors': 'errors',
-               'warnings' :'warnings',
-               'drvs' : 'design rule violations',
-               'unconstrained' : 'unconstrained timing paths'}
+               'warnings': 'warnings',
+               'drvs': 'design rule violations',
+               'unconstrained': 'unconstrained timing paths'}
 
     for item, val in metrics.items():
         scparam(cfg, ['metric', item],
@@ -1599,8 +1599,8 @@ def schema_metric(cfg, step='default', index='default'):
             so the metric will be task and tool dependent.""")
 
     metrics = {'luts': 'FPGA LUTs',
-               'dsps' :'FPGA DSP slices',
-               'brams' : 'FPGA BRAM tiles'}
+               'dsps': 'FPGA DSP slices',
+               'brams': 'FPGA BRAM tiles'}
 
     for item, val in metrics.items():
         scparam(cfg, ['metric', item],
@@ -1620,7 +1620,7 @@ def schema_metric(cfg, step='default', index='default'):
                 device families.""")
 
     metrics = {'cellarea': 'cell area (ignoring fillers)',
-               'totalarea' :'physical die area'}
+               'totalarea': 'physical die area'}
 
     for item, val in metrics.items():
         scparam(cfg, ['metric', item],
@@ -1652,7 +1652,7 @@ def schema_metric(cfg, step='default', index='default'):
                'averagepower': 'average workload power',
                'dozepower': 'power consumed while in low frequency operating mode',
                'idlepower': 'power while not performing useful work',
-               'leakagepower' :'leakage power with rails active but without any dynamic switching activity',
+               'leakagepower': 'leakage power with rails active but without any dynamic switching activity',
                'sleeppower': 'power consumed with some or all power rails gated off'}
 
     for item, val in metrics.items():
@@ -1867,43 +1867,43 @@ def schema_record(cfg, step='default', index='default'):
     records = {'userid': ['userid',
                           'wiley',
                           ''],
-               'publickey' : ['public key',
-                              '<key>',
-                              ''],
-               'machine' : ['machine name',
-                            'carbon',
-                            '(myhost, localhost, ...'],
-               'macaddr' : ['MAC address',
-                            '<addr>',
-                            ''],
-               'ipaddr' : ['IP address',
+               'publickey': ['public key',
+                             '<key>',
+                             ''],
+               'machine': ['machine name',
+                           'carbon',
+                           '(myhost, localhost, ...'],
+               'macaddr': ['MAC address',
                            '<addr>',
                            ''],
-               'platform' : ['platform name',
-                             'linux',
-                             '(linux, windows, freebsd)'],
-               'distro' : ['distro name',
-                           'ubuntu',
-                           '(ubuntu, redhat, centos)'],
-               'arch' : ['hardware architecture',
-                         'x86_64',
-                         '(x86_64, rv64imafdc)'],
-               'starttime' : ['start time',
-                              '2021-09-06 12:20:20',
-                              'Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC'],
-               'endtime' : ['end time',
-                            '2021-09-06 12:20:20',
-                            'Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC'],
-               'region' : ['cloud region',
-                           'US Gov Boston',
-                           """Recommended naming methodology:
+               'ipaddr': ['IP address',
+                          '<addr>',
+                          ''],
+               'platform': ['platform name',
+                            'linux',
+                            '(linux, windows, freebsd)'],
+               'distro': ['distro name',
+                          'ubuntu',
+                          '(ubuntu, redhat, centos)'],
+               'arch': ['hardware architecture',
+                        'x86_64',
+                        '(x86_64, rv64imafdc)'],
+               'starttime': ['start time',
+                             '2021-09-06 12:20:20',
+                             'Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC'],
+               'endtime': ['end time',
+                           '2021-09-06 12:20:20',
+                           'Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC'],
+               'region': ['cloud region',
+                          'US Gov Boston',
+                          """Recommended naming methodology:
 
-                           * local: node is the local machine
-                           * onprem: node in on-premises IT infrastructure
-                           * public: generic public cloud
-                           * govcloud: generic US government cloud
-                           * <region>: cloud and entity specific region string name
-                           """],
+                          * local: node is the local machine
+                          * onprem: node in on-premises IT infrastructure
+                          * public: generic public cloud
+                          * govcloud: generic US government cloud
+                          * <region>: cloud and entity specific region string name
+                          """],
                'scversion': ['software version',
                              '1.0',
                              """Version number for the SiliconCompiler software."""],
@@ -1924,10 +1924,10 @@ def schema_record(cfg, step='default', index='default'):
                              systems, extracting information from is platform dependent.
                              For Linux based operating systems, the 'osversion' is the
                              version of the distro."""],
-               'kernelversion' : ['O/S kernel version',
-                                  '5.11.0-34-generic',
-                                  """Used for platforms that support a distinction
-                                  between os kernels and os distributions."""]}
+               'kernelversion': ['O/S kernel version',
+                                 '5.11.0-34-generic',
+                                 """Used for platforms that support a distinction
+                                 between os kernels and os distributions."""]}
 
     for item,val in records.items():
         helpext = trim(val[2])
@@ -1953,17 +1953,17 @@ def schema_unit(cfg):
     '''
 
     units = {
-        'time' : 'ns',
-        'length' : 'um',
-        'mass' : 'g',
-        'temperature' : 'C',
-        'capacitance' : 'pf',
-        'resistance' : 'ohm',
-        'inductance' : 'nh',
-        'voltage' : 'mv',
-        'current' : 'mA',
-        'power' : 'mw',
-        'energy' : 'pj'
+        'time': 'ns',
+        'length': 'um',
+        'mass': 'g',
+        'temperature': 'C',
+        'capacitance': 'pf',
+        'resistance': 'ohm',
+        'inductance': 'nh',
+        'voltage': 'mv',
+        'current': 'mA',
+        'power': 'mw',
+        'energy': 'pj'
     }
 
     for item,val in units.items():

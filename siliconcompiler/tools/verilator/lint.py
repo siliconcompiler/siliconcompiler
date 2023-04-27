@@ -17,5 +17,5 @@ def setup(chip):
     task = chip._get_task(step, index)
     design = chip.top()
 
-    chip.add('tool', tool, 'task', task, 'option',  ['--lint-only', '--debug'], step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'option', ['--lint-only', '--debug'], step=step, index=index)
     chip.set('tool', tool, 'task', task, 'input', f'inputs/{design}.v', step=step, index=index)

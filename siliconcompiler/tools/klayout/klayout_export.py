@@ -119,7 +119,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
                         raise Exception('Unrecognized fill: ' + line)
                     opc_type = 'opc' if m.group('opc') else 'non-opc'
                     mask = m.group('mask')
-                    if not mask: #uncolored just uses first entry
+                    if not mask:  # uncolored just uses first entry
                         mask = 0
                     else:
                         mask = int(mask) - 1 # DEF is 1-based indexing

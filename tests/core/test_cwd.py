@@ -6,7 +6,7 @@ import siliconcompiler
 import sys
 
 @pytest.mark.quick
-@pytest.mark.skipif(sys.platform=='win32', reason='Windows throws a permission denied error if we try to delete a directory which a process is currently inhabiting.')
+@pytest.mark.skipif(sys.platform == 'win32', reason='Windows throws a permission denied error if we try to delete a directory which a process is currently inhabiting.')
 def test_cwd():
     os.mkdir('tmp_test_cwd')
     os.chdir('tmp_test_cwd')

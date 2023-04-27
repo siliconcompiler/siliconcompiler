@@ -76,7 +76,7 @@ def setup(chip, mode='batch'):
         clobber = False
 
     # Fixed for tool
-    setup_tool(chip, exit=(mode=='batch' or is_screenshot), clobber=clobber)
+    setup_tool(chip, exit=(mode == 'batch' or is_screenshot), clobber=clobber)
 
     # normalizing thread count based on parallelism and local
     threads = os.cpu_count()

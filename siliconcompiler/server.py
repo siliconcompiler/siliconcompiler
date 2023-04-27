@@ -143,9 +143,8 @@ class Server:
         chip.status['jobhash'] = job_hash
 
         # Ensure that the job's root directory exists.
-        build_dir = os.path.join(self.nfs_mount, job_hash)
-        jobs_dir  = os.path.join(build_dir, design)
-        job_dir   = os.path.join(jobs_dir, job_name)
+        job_root = os.path.join(self.nfs_mount, job_hash)
+        job_dir = os.path.join(job_root, design, job_name)
         os.makedirs(job_dir, exist_ok=True)
 
         # Move the uploaded archive and un-zip it.
@@ -158,13 +157,13 @@ class Server:
             os.remove(tmp_file)
 
         # Create the working directory for the given 'job hash' if necessary.
-        chip.set('option', 'builddir', build_dir)
+        chip.set('option', 'builddir', job_root)
 
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('option', 'remote', False)
 
         # Write JSON config to shared compute storage.
-        os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
+        os.makedirs(os.path.join(job_root, 'configs'), exist_ok=True)
 
         # Run the job with the configured clustering option. (Non-blocking)
         asyncio.ensure_future(self.remote_sc(chip, job_params['username']))
@@ -258,7 +257,7 @@ class Server:
         username = job_params['username']
 
         # Determine if the job is running.
-        if "%s%s"%(username, job_hash) in self.sc_jobs:
+        if "%s%s" % (username, job_hash) in self.sc_jobs:
             return web.Response(text="Job is currently running on the cluster.")
         else:
             return web.Response(text="Job has no running steps.")
@@ -381,7 +380,7 @@ def server_schema():
         'switch_args': '<num>',
         'type': ['int'],
         'defvalue': ['8080'],
-        'help' : ["TBD"]
+        'help': ["TBD"]
     }
 
     cfg['cluster'] = {
@@ -398,8 +397,8 @@ def server_schema():
         'switch': '-nfs_mount',
         'switch_args': '<str>',
         'type': ['string'],
-        'defvalue' : ['/nfs/sc_compute'],
-        'help' : ["TBD"]
+        'defvalue': ['/nfs/sc_compute'],
+        'help': ["TBD"]
     }
 
     cfg['auth'] = {
@@ -407,8 +406,8 @@ def server_schema():
         'switch': '-auth',
         'switch_args': '<str>',
         'type': ['bool'],
-        'defvalue' : [''],
-        'help' : ["TBD"]
+        'defvalue': [''],
+        'help': ["TBD"]
     }
 
     return cfg

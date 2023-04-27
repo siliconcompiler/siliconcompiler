@@ -22,7 +22,7 @@ def setup(chip):
     task = chip._get_task(step, index)
     design = chip.top()
 
-    chip.add('tool', tool, 'task', task, 'option',  ['--cc', '--exe'], step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'option', ['--cc', '--exe'], step=step, index=index)
     chip.set('tool', tool, 'task', task, 'input', f'{design}.v', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'option', f'-o ../outputs/{design}.vexe', step=step, index=index)
 

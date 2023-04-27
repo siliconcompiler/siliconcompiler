@@ -85,7 +85,7 @@ def test_setget():
 
     chip.write_manifest('allvals.json')
 
-    assert(error==0)
+    assert error == 0
 
 def test_set_field_bool():
     chip = siliconcompiler.Chip('test')

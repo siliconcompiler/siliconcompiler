@@ -257,7 +257,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
 
-        if loglevel=='DEBUG':
+        if loglevel == 'DEBUG':
             prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
         else:
             prefix = '| %(levelname)-7s'
@@ -789,9 +789,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         fullstr = ("-"*80 +
                    "\nDescription: " + description +
                    "\nSwitch:      " + switchstr +
-                   "\nType:        " + typestr  +
-                   "\nRequirement: " + requirement   +
-                   "\nDefault:     " + defstr   +
+                   "\nType:        " + typestr +
+                   "\nRequirement: " + requirement +
+                   "\nDefault:     " + defstr +
                    examplestr +
                    "\nHelp:        " + para_list[0] + "\n")
         for line in para_list[1:]:
@@ -1087,8 +1087,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._add_input_output('input', filename, fileset, filetype, iomap)
     # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
-    input.__doc__= input.__doc__.replace("{iotable}",
-                                         utils.format_fileset_type_table())
+    input.__doc__ = input.__doc__.replace("{iotable}",
+                                          utils.format_fileset_type_table())
 
     ###########################################################################
     def output(self, filename, fileset=None, filetype=None, iomap=None):
@@ -2176,7 +2176,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.info(f"Found package {dep}-{ver} in cache")
             elif auto and not islocal:
                 self._install_package(cache, dep, ver, remote)
-                local[dep]=ver
+                local[dep] = ver
 
             # look through dependency package files
             package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
@@ -2231,7 +2231,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        return(0)
+        return 0
 
     ###########################################################################
 
@@ -2756,13 +2756,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Partial list of supported grep options
         options = {
-            '-v' : False, # Invert the sense of matching
-            '-i' : False, # Ignore case distinctions in patterns and data
-            '-E' : False, # Interpret PATTERNS as extended regular expressions.
-            '-e' : False, # Safe interpretation of pattern starting with "-"
-            '-x' : False, # Select only matches that exactly match the whole line.
-            '-o' : False, # Print only the match parts of a matching line
-            '-w' : False} # Select only lines containing matches that form whole words.
+            '-v': False, # Invert the sense of matching
+            '-i': False, # Ignore case distinctions in patterns and data
+            '-E': False, # Interpret PATTERNS as extended regular expressions.
+            '-e': False, # Safe interpretation of pattern starting with "-"
+            '-x': False, # Select only matches that exactly match the whole line.
+            '-o': False, # Print only the match parts of a matching line
+            '-w': False} # Select only lines containing matches that form whole words.
 
         # Split into repeating switches and everything else
         match = re.match(r'\s*((?:\-\w\s)*)(.*)', args)
@@ -2782,7 +2782,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 options["-e"] = True
             elif switches[i] in options.keys():
                 options[switches[i]] = True
-            elif switches[i] !='':
+            elif switches[i] != '':
                 print("ERROR",switches[i])
 
         #REGEX
@@ -3048,7 +3048,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Custom reporting modes
         paramlist = []
         for item in self.getkeys('option', 'param'):
-            paramlist.append(item+"="+self.get('option', 'param', item))
+            paramlist.append(item + "=" + self.get('option', 'param', item))
 
         if paramlist:
             paramstr = ', '.join(paramlist)
@@ -3058,7 +3058,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         info_list = ["SUMMARY:\n",
                      "design : " + self.top(),
                      "params : " + paramstr,
-                     "jobdir : "+ jobdir,
+                     "jobdir : " + jobdir,
                      ]
 
         if self.get('option', 'mode') == 'asic':
@@ -3769,12 +3769,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 stdout_file = ''
                 stdout_suffix = self.get('tool', tool, 'task', task, 'stdout', 'suffix', step=step, index=index)
-                if self.get('tool', tool, 'task', task,  'stdout', 'destination', step=step, index=index) == 'log':
+                if self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index) == 'log':
                     stdout_file = step + "." + stdout_suffix
                 elif self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index) == 'output':
-                    stdout_file =  os.path.join('outputs', top + "." + stdout_suffix)
+                    stdout_file = os.path.join('outputs', top + "." + stdout_suffix)
                 elif self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index) == 'none':
-                    stdout_file =  os.devnull
+                    stdout_file = os.devnull
                 else:
                     destination = self.get('tool', tool, 'task', task, 'stdout', 'destination', step=step, index=index)
                     self.logger.error(f'stdout/destination has no support for {destination}. Use [log|output|none].')
@@ -3784,17 +3784,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index) == 'log':
                     stderr_file = step + "." + stderr_suffix
                 elif self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index) == 'output':
-                    stderr_file =  os.path.join('outputs', top + "." + stderr_suffix)
+                    stderr_file = os.path.join('outputs', top + "." + stderr_suffix)
                 elif self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index) == 'none':
-                    stderr_file =  os.devnull
+                    stderr_file = os.devnull
                 else:
                     destination = self.get('tool', tool, 'task', task, 'stderr', 'destination', step=step, index=index)
                     self.logger.error(f'stderr/destination has no support for {destination}. Use [log|output|none].')
                     self._haltstep(step, index)
 
                 with open(stdout_file, 'w') as stdout_writer, \
-                     open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader,  \
-                     open(stderr_file, 'w') as stderr_writer,  \
+                     open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader, \
+                     open(stderr_file, 'w') as stderr_writer, \
                      open(stderr_file, 'r', errors='replace_with_warning') as stderr_reader:
                     # Use separate reader/writer file objects as hack to display
                     # live output in non-blocking way, so we can monitor the
@@ -4172,7 +4172,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 self.logger.warning('Could not find remote server configuration: defaulting to ' + \
                                     _metadata.default_server)
-                self.status['remote_cfg'] = { "address": _metadata.default_server }
+                self.status['remote_cfg'] = {
+                    "address": _metadata.default_server
+                }
             if (not 'address' in self.status['remote_cfg']):
                 self.error('Improperly formatted remote server configuration - '
                            'please run "sc-configure" and enter your server address and '
@@ -4391,7 +4393,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.schema.record_history()
 
         # Storing manifest in job root directory
-        filepath =  os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
+        filepath = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
 
     ###########################################################################
@@ -4516,14 +4518,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 continue
             for index in self.getkeys('flowgraph', 'showflow', step):
                 show_tool, _ = self._get_tool_task(step, index, flow='showflow')
-                self.set('tool', show_tool, 'task', taskname , 'var', 'show_filetype', filetype, step=step, index=index)
-                self.set('tool', show_tool, 'task', taskname , 'var', 'show_filepath', filepath, step=step, index=index)
+                self.set('tool', show_tool, 'task', taskname, 'var', 'show_filetype', filetype, step=step, index=index)
+                self.set('tool', show_tool, 'task', taskname, 'var', 'show_filepath', filepath, step=step, index=index)
                 if sc_step:
-                    self.set('tool', show_tool, 'task', taskname , 'var', 'show_step', sc_step, step=step, index=index)
+                    self.set('tool', show_tool, 'task', taskname, 'var', 'show_step', sc_step, step=step, index=index)
                 if sc_index:
-                    self.set('tool', show_tool, 'task', taskname , 'var', 'show_index', sc_index, step=step, index=index)
+                    self.set('tool', show_tool, 'task', taskname, 'var', 'show_index', sc_index, step=step, index=index)
                 if sc_job:
-                    self.set('tool', show_tool, 'task', taskname , 'var', 'show_job', sc_job, step=step, index=index)
+                    self.set('tool', show_tool, 'task', taskname, 'var', 'show_job', sc_job, step=step, index=index)
 
         # run show flow
         try:
@@ -4750,17 +4752,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # supported relational oprations
         # >, >=, <=, <. ==, !=
         if op == ">":
-            return(bool(value>goal))
+            return bool(value > goal)
         elif op == ">=":
-            return(bool(value>=goal))
+            return bool(value >= goal)
         elif op == "<":
-            return(bool(value<goal))
+            return bool(value < goal)
         elif op == "<=":
-            return(bool(value<=goal))
+            return bool(value <= goal)
         elif op == "==":
-            return(bool(value==goal))
+            return bool(value == goal)
         elif op == "!=":
-            return(bool(value!=goal))
+            return bool(value != goal)
         else:
             self.error(f"Illegal comparison operation {op}")
 

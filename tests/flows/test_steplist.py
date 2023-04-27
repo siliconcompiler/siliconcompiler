@@ -44,7 +44,7 @@ def test_steplist_keep_reports(gcd_chip):
     # Run a new step from a fresh chip object
     fresh_chip.set('option', 'steplist', ['floorplan'])
     fresh_chip.run()
-    assert fresh_chip.get('tool', 'yosys',  'task', 'syn_asic', 'report', 'cellarea', step='syn', index='0') == report
+    assert fresh_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea', step='syn', index='0') == report
 
 @pytest.mark.eda
 def test_old_resume(gcd_chip):
