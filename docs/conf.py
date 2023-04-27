@@ -111,8 +111,8 @@ latex_preamble = r"""\newcommand{\origunderscore}{}
 """
 
 latex_elements = {
-  'extraclassoptions': 'openany,oneside', # Don't add blank pages after some chapters
-  'preamble': latex_preamble
+    'extraclassoptions': 'openany,oneside', # Don't add blank pages after some chapters
+    'preamble': latex_preamble
 }
 
 # -- Options for autodoc -----------------------------------------------------
