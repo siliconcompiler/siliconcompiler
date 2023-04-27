@@ -4,14 +4,14 @@ import os
 
 def test_leflib(scroot):
     path = os.path.join(scroot,
-                       'third_party',
-                       'pdks',
-                       'skywater',
-                       'skywater130',
-                       'pdk',
-                       'v0_0_2',
-                       'apr',
-                       'sky130_fd_sc_hd.tlef')
+                        'third_party',
+                        'pdks',
+                        'skywater',
+                        'skywater130',
+                        'pdk',
+                        'v0_0_2',
+                        'apr',
+                        'sky130_fd_sc_hd.tlef')
 
     data = leflib.parse(path)
     assert data['version'] == 5.7

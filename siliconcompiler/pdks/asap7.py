@@ -95,9 +95,9 @@ def setup(chip):
 
     # PEX
     pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
-        pdkdir + '/pex/openroad/typical.tcl')
+            pdkdir + '/pex/openroad/typical.tcl')
     pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, 'typical',
-        pdkdir + '/pex/openroad/typical.rules')
+            pdkdir + '/pex/openroad/typical.rules')
 
     return pdk
 

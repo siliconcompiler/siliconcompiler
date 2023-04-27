@@ -1,7 +1,5 @@
 from docutils import nodes
 import sphinx.addnodes
-from sphinx.util.nodes import nested_parse_with_titles
-from docutils.statemachine import ViewList
 
 from siliconcompiler.schema import Schema
 

@@ -1,7 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 import argparse
-import os
 
 from siliconcompiler.server import server_schema
 from siliconcompiler.server import Server

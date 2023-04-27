@@ -52,8 +52,7 @@ def _deferstep(chip, step, index, status):
                     '--partition', partition,
                     '--chdir', chip.cwd,
                     '--job-name', job_name,
-                    '--output', output_file
-                    ]
+                    '--output', output_file]
 
     # The script defining this Chip object may specify feature(s) to
     # ensure that the job runs on a specific subset of available nodes.
@@ -155,8 +154,8 @@ def _deferstep(chip, step, index, status):
 
 def _get_slurm_partitions():
     partitions = subprocess.run(['sinfo', '--json'],
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.STDOUT)
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
     #partitions.wait()
     if partitions.returncode != 0:
         raise RuntimeError('Unable to determine partitions in slurm')
