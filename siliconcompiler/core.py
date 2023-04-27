@@ -2231,7 +2231,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        return(0)
+        return 0
 
     ###########################################################################
 
@@ -4752,17 +4752,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # supported relational oprations
         # >, >=, <=, <. ==, !=
         if op == ">":
-            return(bool(value>goal))
+            return bool(value>goal)
         elif op == ">=":
-            return(bool(value>=goal))
+            return bool(value>=goal)
         elif op == "<":
-            return(bool(value<goal))
+            return bool(value<goal)
         elif op == "<=":
-            return(bool(value<=goal))
+            return bool(value<=goal)
         elif op == "==":
-            return(bool(value==goal))
+            return bool(value==goal)
         elif op == "!=":
-            return(bool(value!=goal))
+            return bool(value!=goal)
         else:
             self.error(f"Illegal comparison operation {op}")
 
