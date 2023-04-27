@@ -130,7 +130,6 @@ def prepare_synthesis_libraries(chip):
 
     corner = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner', step=step, index=index)[0]
 
-
     # mark dff libery file with dont use
     dff_liberty_file = chip.find_files('tool', tool, 'task', task, 'file', 'dff_liberty', step=step, index=index)[0]
     dff_dont_use = []

@@ -72,7 +72,6 @@ def main():
 
     paraflow_end = time.time()
 
-
     ###################################
     # Benchmark calculation
 

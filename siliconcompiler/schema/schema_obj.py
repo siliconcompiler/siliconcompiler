@@ -607,7 +607,6 @@ class Schema:
             'value' in cfg['node'][step][index]
         )
 
-
     @staticmethod
     def _is_leaf(cfg):
         # 'shorthelp' chosen arbitrarily: any mandatory field with a consistent

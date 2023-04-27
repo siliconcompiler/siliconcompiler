@@ -3074,7 +3074,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         info = '\n'.join(info_list)
 
-
         print("-"*135)
         print(info, "\n")
 
@@ -4286,7 +4285,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     processes[step+index] = multiprocessing.Process(target=self._runtask,
                                                                     args=(step, index, status))
 
-
             # We have to deinit the chip's logger before spawning the processes
             # since the logger object is not serializable. _runtask_safe will
             # reinitialize the logger in each new process, and we reinitialize
@@ -4357,7 +4355,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     stepstr = step + index
                     if status[stepstr] != TaskStatus.PENDING:
                         self.set('flowgraph', flow, step, index, 'status', status[stepstr])
-
 
             # Merge cfg back from last executed tasks.
             for step, index in self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist):

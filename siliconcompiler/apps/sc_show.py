@@ -37,7 +37,6 @@ def main():
 
     """
 
-
     # TODO: this is a hack to get around design name requirement: since legal
     # design names probably can't contain spaces, we can detect if it is unset.
     UNSET_DESIGN = '  unset  '

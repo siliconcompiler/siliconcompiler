@@ -217,7 +217,6 @@ class Sup:
 
         '''
 
-
         supfile = self.search(name)
 
         self.chip.read_manifest(supfile)

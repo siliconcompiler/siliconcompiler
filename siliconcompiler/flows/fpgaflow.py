@@ -101,7 +101,6 @@ def setup(chip, flowname='fpgaflow'):
     return flow
 
 ##################################################
-
 def flow_lookup(partname):
     '''
     Returns a flow,vendor tuple based on a partnumber
@@ -166,7 +165,6 @@ def flow_lookup(partname):
     return (vendor, flow)
 
 ##################################################
-
 def task_lookup(flow, step):
     '''
     Return tool based on flow and step combo.
@@ -200,7 +198,6 @@ def task_lookup(flow, step):
             return vpr_apr
         elif step == "bitstream":
             return genfasm_bitstream
-
 
     return None
 

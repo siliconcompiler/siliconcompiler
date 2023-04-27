@@ -71,7 +71,6 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
     fp.place_wires([vss] * ngnd, core_left, bottom, 0, spacing,
                    core_w, stripe_w, stripe_layer, 'followpin')
 
-
     # move here until test can be rebuilt
     from siliconcompiler.floorplan import _layer_i
     vlayer_i = _layer_i(fp.layers[vlayer]['sc_name'])

@@ -177,7 +177,6 @@ def schema_cfg():
                 the fileset names should match the the name of the flowgraph being
                 executed.""")
 
-
     # Constraints
     cfg = schema_constraint(cfg)
 
@@ -588,7 +587,6 @@ def schema_pdk(cfg, stackup='default'):
             types of EDA databases. Layer maps are specified on a per metal
             stackup basis. The 'src' and 'dst' can be names of SC supported tools
             or file formats (like 'gds').""")
-
 
     scparam(cfg, ['pdk', pdkname, 'display', tool, stackup],
             sctype='[file]',
@@ -2646,7 +2644,6 @@ def schema_option(cfg):
             support Verilog integer literals (64'h4, 2'b0, 4) and strings.
             Name of the top level module to compile.""")
 
-
     scparam(cfg,['option', 'cmdfile'],
             sctype='[file]',
             shorthelp="Design compilation command file",
@@ -3615,7 +3612,6 @@ def schema_constraint(cfg):
             specific metal stack name or an integer with '1' being the lowest
             routing layer. Wildcards ('*') can be used for net names.""")
 
-
     scparam(cfg, ['constraint', 'net', name, 'shield'],
             sctype='str',
             pernode='optional',
@@ -3743,7 +3739,6 @@ def schema_constraint(cfg):
             is supplied.""")
 
     return cfg
-
 
 ##############################################################################
 # Main routine
