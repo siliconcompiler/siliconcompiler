@@ -47,7 +47,7 @@ def pre_process(chip):
 # Find the final channel width from the VPR report
 ##########################;######
 def find_chann_width():
-    vpr_std_out = f"inputs/vpr_stdout.log"
+    vpr_std_out = "inputs/vpr_stdout.log"
     with open(vpr_std_out, 'r') as vpr_report:
         for line in vpr_report:
             match = re.search(r"Circuit successfully routed with a channel width factor of (\d+)", line)

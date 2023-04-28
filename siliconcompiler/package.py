@@ -55,7 +55,7 @@ class Sup:
 
         # Exit on errors
         if not check_ok:
-            self.chip.logger.error(f"Exiting due to previous errors.")
+            self.chip.logger.error("Exiting due to previous errors.")
             sys.exit()
 
         return 0

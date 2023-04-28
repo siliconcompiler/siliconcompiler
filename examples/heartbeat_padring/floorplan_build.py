@@ -378,7 +378,7 @@ def top_floorplan(fp):
         indices[pad_type] += 1
         if pad_type == GPIO:
             pad_name = f'padring.we_pads\\[0\\].i0.padio\\[{i}\\].i0.gpio'
-            pin_name = f'we_pad'
+            pin_name = 'we_pad'
         else:
             if pad_type == VDD:
                 pin_name = 'vdd'
@@ -421,7 +421,7 @@ def top_floorplan(fp):
         indices[pad_type] += 1
         if pad_type == GPIO:
             pad_name = f'padring.ea_pads\\[0\\].i0.padio\\[{i}\\].i0.gpio'
-            pin_name = f'ea_pad'
+            pin_name = 'ea_pad'
         else:
             if pad_type == VDD:
                 pin_name = 'vdd'

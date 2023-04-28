@@ -56,7 +56,7 @@ def main():
             wall_end = time.time()
             walltime = round((wall_end - wall_start),2)
             results[design][n] = walltime
-            with open(f"results.txt", 'w') as f:
+            with open("results.txt", 'w') as f:
                 f.write(results)
 
 if __name__ == '__main__':

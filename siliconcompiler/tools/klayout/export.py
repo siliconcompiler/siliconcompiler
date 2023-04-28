@@ -58,7 +58,7 @@ def setup(chip):
                 chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', stackup, default_stream]), step=step, index=index)
             chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', stackup, 'lef']), step=step, index=index)
     else:
-        chip.error(f'Stackup and targetlib paremeters required for Klayout.')
+        chip.error('Stackup and targetlib paremeters required for Klayout.')
 
     # Input/Output requirements for default flow
     design = chip.top()

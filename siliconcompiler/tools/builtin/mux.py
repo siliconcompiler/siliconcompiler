@@ -18,7 +18,7 @@ def setup(chip):
     pass
 
 def _select_inputs(chip, step, index):
-    chip.logger.info(f"Running builtin task 'mux'")
+    chip.logger.info("Running builtin task 'mux'")
     
     flow = chip.get('option', 'flow')
     inputs = chip.get('flowgraph', flow, step, index, 'input')

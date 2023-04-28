@@ -130,7 +130,7 @@ def setup(chip, mode='batch'):
                     chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', corner, delaymodel]), step=step, index=index)
             chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', stackup, 'lef']), step=step, index=index)
     else:
-        chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
+        chip.error('Stackup and logiclib parameters required for OpenROAD.')
 
     chip.set('tool', tool, 'task', task, 'var', 'timing_corners', sorted(get_corners(chip)), step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'timing_corners', 'list of timing corners to use', field='help')

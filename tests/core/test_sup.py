@@ -47,7 +47,7 @@ def test_sup():
     chip = sc.Chip('top')
     chip.load_target('freepdk45_demo')
     chip.set('option', 'registry', registry)
-    chip.set('package', 'version', f"0.0.0")
+    chip.set('package', 'version', "0.0.0")
     chip.set('package', 'license', 'MIT')
     chip.set('package', 'description', 'sup?')
     for i in ('a', 'b', 'c'):
@@ -98,7 +98,7 @@ def test_sup_circ_import():
         chip = sc.Chip('top')
         chip.load_target('freepdk45_demo')
         chip.set('option', 'registry', registry)
-        chip.set('package', 'version', f"0.0.0")
+        chip.set('package', 'version', "0.0.0")
         chip.set('package', 'license', 'MIT')
         chip.set('package', 'description', 'sup?')
         chip.set('package', 'dependency', i, '0.0.0')

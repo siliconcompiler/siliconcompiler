@@ -2534,7 +2534,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 hash_value = hashobj.hexdigest()
                 hashlist.append(hash_value)
             else:
-                self.error(f"Internal hashing error, file not found")
+                self.error("Internal hashing error, file not found")
         # compare previous hash to new hash
         oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
         for i,item in enumerate(oldhash):
@@ -3628,7 +3628,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if not self.get('option', 'skipcheck'):
             if not self.check_manifest():
-                self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
+                self.logger.error("Fatal error in check_manifest()! See previous errors.")
                 self._haltstep(step, index)
 
         ##################
@@ -3722,7 +3722,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Start CPU Timer
-        self.logger.debug(f"Starting executable")
+        self.logger.debug("Starting executable")
         cpu_start = time.time()
 
         ##################

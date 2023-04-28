@@ -739,8 +739,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: device features",
             switch="-datasheet_feature 'design name <float>'",
             example=[
-                f"cli: -datasheet_feature 'mydevice ram 64e6'",
-                f"api: chip.set('datasheet','mydevice','feature','ram', 1e9)"],
+                "cli: -datasheet_feature 'mydevice ram 64e6'",
+                "api: chip.set('datasheet','mydevice','feature','ram', 1e9)"],
             schelp="""Quantity of a specified feature. The 'unit'
             field should be used to specify the units used when unclear.""")
 
@@ -750,8 +750,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: device footprint",
             switch="-datasheet_footprint 'design <str>'",
             example=[
-                f"cli: -datasheet_footprint 'mydsp bga169'",
-                f"api: chip.set('datasheet','mydsp', 'footprint','bga169')"],
+                "cli: -datasheet_footprint 'mydsp bga169'",
+                "api: chip.set('datasheet','mydsp', 'footprint','bga169')"],
             schelp="""List of available physical footprints for the named
             device specified as strings. Strings can either be official
             standard footprint names or a custom naming methodology used in
@@ -763,8 +763,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: absolute voltage limits",
             switch="-datasheet_limits_voltage 'design pin <(float,float)>'",
             example=[
-                f"cli: -datasheet_limits_voltage 'mydevice vdd (-0.4,1.1)'",
-                f"api: chip.set('datasheet','mydevice','limits','voltage','vdd', (-0.4,1.1))"],
+                "cli: -datasheet_limits_voltage 'mydevice vdd (-0.4,1.1)'",
+                "api: chip.set('datasheet','mydevice','limits','voltage','vdd', (-0.4,1.1))"],
             schelp="""Device absolute minimum/maximum voltage not to be
             exceeded, specified on a per pin basis.""")
 
@@ -789,8 +789,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin map",
             switch="-datasheet_pin_map 'design name package <str>'",
             example=[
-                f"cli: -datasheet_pin_map 'mydevice in0 bga512 B4'",
-                f"api: chip.set('datasheet','mydevice','pin','in0','map','bga512','B4')"],
+                "cli: -datasheet_pin_map 'mydevice in0 bga512 B4'",
+                "api: chip.set('datasheet','mydevice','pin','in0','map','bga512','B4')"],
             schelp="""Signal to package pin mapping specified on a per package basis.""")
 
     # Pin type
@@ -799,8 +799,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin type",
             switch="-datasheet_pin_type 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_type 'mydevice vdd type power'",
-                f"api: chip.set('datasheet','mydevice','pin','vdd','type','global','power')"],
+                "cli: -datasheet_pin_type 'mydevice vdd type power'",
+                "api: chip.set('datasheet','mydevice','pin','vdd','type','global','power')"],
             schelp="""Pin type specified on a per mode basis. Acceptable pin types
             include: digital, analog, clk, power, ground""")
 
@@ -810,8 +810,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin direction",
             switch="-datasheet_pin_dir 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_dir 'mydevice clk global input'",
-                f"api: chip.set('datasheet','mydevice','pin','clk','dir','global','input')"],
+                "cli: -datasheet_pin_dir 'mydevice clk global input'",
+                "api: chip.set('datasheet','mydevice','pin','clk','dir','global','input')"],
             schelp="""Pin direction specified on a per mode basis. Acceptable pin
             directions include: input, output, inout.""")
 
@@ -821,8 +821,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin complement",
             switch="-datasheet_pin_complement 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_complement 'mydevice ina global inb'",
-                f"api: chip.set('datasheet','mydevice','pin','ina','complement','global','inb')"],
+                "cli: -datasheet_pin_complement 'mydevice ina global inb'",
+                "api: chip.set('datasheet','mydevice','pin','ina','complement','global','inb')"],
             schelp="""Pin complement specified on a per mode basis for differential
             signals.""")
 
@@ -832,8 +832,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin related clock",
             switch="-datasheet_pin_clk 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_clk 'mydevice ina global clka'",
-                f"api: chip.set('datasheet','mydevice','pin','ina','clk','global','clka')"],
+                "cli: -datasheet_pin_clk 'mydevice ina global clka'",
+                "api: chip.set('datasheet','mydevice','pin','ina','clk','global','clka')"],
             schelp="""Pin related clock specified on a per mode basis.""")
 
     # Related supply
@@ -842,8 +842,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin related power supply",
             switch="-datasheet_pin_supply 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_supply 'mydevice ina global vdd'",
-                f"api: chip.set('datasheet','mydevice','pin','ina','supply','global','vdd')"],
+                "cli: -datasheet_pin_supply 'mydevice ina global vdd'",
+                "api: chip.set('datasheet','mydevice','pin','ina','supply','global','vdd')"],
             schelp="""Pin related power supply specified on a per mode basis.""")
 
     # Related ground
@@ -852,8 +852,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin related ground",
             switch="-datasheet_pin_ground 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_ground 'mydevice ina ground vss'",
-                f"api: chip.set('datasheet','mydevice','pin','ina','ground','global','vss')"],
+                "cli: -datasheet_pin_ground 'mydevice ina ground vss'",
+                "api: chip.set('datasheet','mydevice','pin','ina','ground','global','vss')"],
             schelp="""Pin related ground rail specified on a per mode basis.""")
 
     # Standard
@@ -862,8 +862,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin standard",
             switch="-datasheet_pin_standard 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_standard 'mydevice ba0 global ddr4'",
-                f"api: chip.set('datasheet','mydevice','pin','ina','standard','global','ddr4')"],
+                "cli: -datasheet_pin_standard 'mydevice ba0 global ddr4'",
+                "api: chip.set('datasheet','mydevice','pin','ina','standard','global','ddr4')"],
             schelp="""Pin communication standard specified on a per mode basis.""")
 
     # Reset value
@@ -872,8 +872,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin reset value",
             switch="-datasheet_pin_resetvalue 'design name mode <str>'",
             example=[
-                f"cli: -datasheet_pin_resetvalue 'mydevice clk global weak1'",
-                f"api: chip.set('datasheet','mydevice','pin','clk','resetvalue','global','weak1')"],
+                "cli: -datasheet_pin_resetvalue 'mydevice clk global weak1'",
+                "api: chip.set('datasheet','mydevice','pin','clk','resetvalue','global','weak1')"],
             schelp="""Pin reset value specified on a per mode basis. Legal reset
             values include weak1, weak0, strong0, strong1, highz.""")
 
@@ -1639,8 +1639,8 @@ def schema_metric(cfg, step='default', index='default'):
             shorthelp="Metric: area utilization",
             switch="-metric_utilization step index <float>",
             example=[
-                f"cli: -metric_utilization 'place 0 50.00'",
-                f"api: chip.set('metric', 'utilization', 50.00, step='place', index=0)"],
+                "cli: -metric_utilization 'place 0 50.00'",
+                "api: chip.set('metric', 'utilization', 50.00, step='place', index=0)"],
             pernode='required',
             schelp="""
             Metric tracking the area utilization of the design calculated as
@@ -1678,8 +1678,8 @@ def schema_metric(cfg, step='default', index='default'):
             shorthelp="Metric: peak IR drop",
             switch="-metric_irdrop 'step index <float>'",
             example=[
-                f"cli: -metric_irdrop 'place 0 0.05'",
-                f"api: chip.set('metric', 'irdrop', 0.05, step='place', index=0)"],
+                "cli: -metric_irdrop 'place 0 0.05'",
+                "api: chip.set('metric', 'irdrop', 0.05, step='place', index=0)"],
             pernode='required',
             schelp="""
             Metric tracking the peak IR drop in the design based on extracted
@@ -2545,8 +2545,8 @@ def schema_option(cfg):
             shorthelp="Option: auto install packages",
             switch="-autoinstall <bool>",
             example=[
-                f"cli: -autoinstall true'",
-                f"api: chip.set('option', 'autoinstall', True)"],
+                "cli: -autoinstall true'",
+                "api: chip.set('option', 'autoinstall', True)"],
             schelp="""
             Enables automatic installation of missing dependencies from
             the registry.""")
@@ -2556,8 +2556,8 @@ def schema_option(cfg):
             shorthelp="Option: package registry",
             switch="-registry <dir>",
             example=[
-                f"cli: -registry '~/myregistry'",
-                f"api: chip.set('option','registry','~/myregistry')"],
+                "cli: -registry '~/myregistry'",
+                "api: chip.set('option','registry','~/myregistry')"],
             schelp="""
             List of Silicon Unified Packager (SUP) registry directories.
             Directories can be local file system folders or
@@ -2852,8 +2852,8 @@ def schema_package(cfg):
             shorthelp="Package: dependency list",
             switch="-package_depgraph 'module <(str,str)>'",
             example=[
-                f"cli: -package_depgraph 'top (cpu,1.0.1)'",
-                f"api: chip.set('package','depgraph','top',('cpu','1.0.1'))"],
+                "cli: -package_depgraph 'top (cpu,1.0.1)'",
+                "api: chip.set('package','depgraph','top',('cpu','1.0.1'))"],
             schelp="""
             List of Silicon Unified Packager (SUP) dependencies
             used by the design specified on a per module basis a
@@ -2865,8 +2865,8 @@ def schema_package(cfg):
             shorthelp="Package: name",
             switch="-package_name <str>",
             example=[
-                f"cli: -package_name yac",
-                f"api: chip.set('package','name','yac')"],
+                "cli: -package_name yac",
+                "api: chip.set('package','name','yac')"],
             schelp="""Package name.""")
 
     scparam(cfg,['package', 'version'],
@@ -2875,8 +2875,8 @@ def schema_package(cfg):
             shorthelp="Package: version",
             switch="-package_version <str>",
             example=[
-                f"cli: -package_version 1.0",
-                f"api: chip.set('package','version','1.0')"],
+                "cli: -package_version 1.0",
+                "api: chip.set('package','version','1.0')"],
             schelp="""Package version. Can be a branch, tag, commit hash,
             or a semver compatible version.""")
 
@@ -2886,8 +2886,8 @@ def schema_package(cfg):
             shorthelp="Package: description",
             switch="-package_description <str>",
             example=[
-                f"cli: -package_description 'Yet another cpu'",
-                f"api: chip.set('package','description','Yet another cpu')"],
+                "cli: -package_description 'Yet another cpu'",
+                "api: chip.set('package','description','Yet another cpu')"],
             schelp="""Package short one line description for package
             managers and summary reports.""")
 
@@ -2897,8 +2897,8 @@ def schema_package(cfg):
             shorthelp="Package: keyword",
             switch="-package_keyword <str>",
             example=[
-                f"cli: -package_keyword cpu",
-                f"api: chip.set('package','keyword','cpu')"],
+                "cli: -package_keyword cpu",
+                "api: chip.set('package','keyword','cpu')"],
             schelp="""Package keyword(s) used to characterize package.""")
 
     scparam(cfg,['package', 'homepage'],
@@ -2907,8 +2907,8 @@ def schema_package(cfg):
             shorthelp="Package: project homepage",
             switch="-package_homepage <str>",
             example=[
-                f"cli: -package_homepage index.html",
-                f"api: chip.set('package','homepage','index.html')"],
+                "cli: -package_homepage index.html",
+                "api: chip.set('package','homepage','index.html')"],
             schelp="""Package homepage.""")
 
     scparam(cfg,['package', 'doc', 'homepage'],
@@ -2917,8 +2917,8 @@ def schema_package(cfg):
             shorthelp="Package: documentation homepage",
             switch="-package_doc_homepage <str>",
             example=[
-                f"cli: -package_doc_homepage index.html",
-                f"api: chip.set('package','doc', 'homepage','index.html')"],
+                "cli: -package_doc_homepage index.html",
+                "api: chip.set('package','doc', 'homepage','index.html')"],
             schelp="""
             Package documentation homepage. Filepath to design docs homepage.
             Complex designs can can include a long non standard list of
@@ -2951,8 +2951,8 @@ def schema_package(cfg):
             shorthelp="Package: code repository",
             switch="-package_repo <str>",
             example=[
-                f"cli: -package_repo 'git@github.com:aolofsson/oh.git'",
-                f"api: chip.set('package','repo','git@github.com:aolofsson/oh.git')"],
+                "cli: -package_repo 'git@github.com:aolofsson/oh.git'",
+                "api: chip.set('package','repo','git@github.com:aolofsson/oh.git')"],
             schelp="""Package IP address to source code repository.""")
 
     scparam(cfg,['package', 'dependency', module],
@@ -2961,8 +2961,8 @@ def schema_package(cfg):
             shorthelp="Package: version dependencies",
             switch="-package_dependency 'module <str>'",
             example=[
-                f"cli: -package_dependency 'hello 1.0'",
-                f"api: chip.set('package','dependency','hello','1.0')"],
+                "cli: -package_dependency 'hello 1.0'",
+                "api: chip.set('package','dependency','hello','1.0')"],
             schelp="""Package dependencies specified as a key value pair.
             Versions shall follow the semver standard.""")
 
@@ -2972,8 +2972,8 @@ def schema_package(cfg):
             shorthelp="Package: qualified targets",
             switch="-package_target <str>",
             example=[
-                f"cli: -package_target 'asicflow_freepdk45'",
-                f"api: chip.set('package','target','asicflow_freepdk45')"],
+                "cli: -package_target 'asicflow_freepdk45'",
+                "api: chip.set('package','target','asicflow_freepdk45')"],
             schelp="""Package list of qualified compilation targets.""")
 
     scparam(cfg,['package', 'license'],
@@ -2982,8 +2982,8 @@ def schema_package(cfg):
             shorthelp="Package: license identifiers",
             switch="-package_license <str>",
             example=[
-                f"cli: -package_license 'Apache-2.0'",
-                f"api: chip.set('package','license','Apache-2.0')"],
+                "cli: -package_license 'Apache-2.0'",
+                "api: chip.set('package','license','Apache-2.0')"],
             schelp="""Package list of SPDX license identifiers.""")
 
     scparam(cfg,['package', 'licensefile'],
@@ -2992,8 +2992,8 @@ def schema_package(cfg):
             shorthelp="Package: license files",
             switch="-package_licensefile <file>",
             example=[
-                f"cli: -package_licensefile './LICENSE'",
-                f"api: chip.set('package','licensefile','./LICENSE')"],
+                "cli: -package_licensefile './LICENSE'",
+                "api: chip.set('package','licensefile','./LICENSE')"],
             schelp="""Package list of license files for to be
             applied in cases when a SPDX identifier is not available.
             (eg. proprietary licenses).list of SPDX license identifiers.""")
@@ -3004,8 +3004,8 @@ def schema_package(cfg):
             shorthelp="Package: location",
             switch="-package_location <file>",
             example=[
-                f"cli: -package_location 'mars'",
-                f"api: chip.set('package','location','mars')"],
+                "cli: -package_location 'mars'",
+                "api: chip.set('package','location','mars')"],
             schelp="""Package country of origin specified as standardized
             international country codes. The field can be left blank
             if the location is unknown or global.""")
@@ -3016,8 +3016,8 @@ def schema_package(cfg):
             shorthelp="Package: sponsoring organization",
             switch="-package_organization <str>",
             example=[
-                f"cli: -package_organization 'humanity'",
-                f"api: chip.set('package','organization','humanity')"],
+                "cli: -package_organization 'humanity'",
+                "api: chip.set('package','organization','humanity')"],
             schelp="""Package sponsoring organization. The field can be left
             blank if not applicable.""")
 
@@ -3027,8 +3027,8 @@ def schema_package(cfg):
             shorthelp="Package: public key",
             switch="-package_publickey <str>",
             example=[
-                f"cli: -package_publickey '6EB695706EB69570'",
-                f"api: chip.set('package','publickey','6EB695706EB69570')"],
+                "cli: -package_publickey '6EB695706EB69570'",
+                "api: chip.set('package','publickey','6EB695706EB69570')"],
             schelp="""Package public project key.""")
 
     record = ['name',

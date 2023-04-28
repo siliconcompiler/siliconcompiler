@@ -7,7 +7,7 @@ def setup(chip):
     pass
 
 def _select_inputs(chip, step, index):
-    chip.logger.info(f"Running builtin task 'nop'")
+    chip.logger.info("Running builtin task 'nop'")
     
     flow = chip.get('option', 'flow')
     return chip.get('flowgraph', flow, step, index, 'input')

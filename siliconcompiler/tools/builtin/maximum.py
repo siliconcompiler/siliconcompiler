@@ -20,7 +20,7 @@ def setup(chip):
     pass
 
 def _select_inputs(chip, step, index):
-    chip.logger.info(f"Running builtin task 'maximum'")
+    chip.logger.info("Running builtin task 'maximum'")
     
     flow = chip.get('option', 'flow')
     inputs = chip.get('flowgraph', flow, step, index, 'input')
