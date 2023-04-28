@@ -1,9 +1,6 @@
 import siliconcompiler as sc
-from siliconcompiler.package import Sup
 import pytest
-import shutil
 import os
-import sys
 
 @pytest.mark.skip(reason='Test takes a while and SUP logic is going to be modified')
 def test_sup():

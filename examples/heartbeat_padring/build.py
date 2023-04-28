@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import Chip, Library
+from siliconcompiler import Chip
 from siliconcompiler.libs import sky130io
 
 ###

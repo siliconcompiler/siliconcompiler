@@ -1,5 +1,4 @@
 import re
-import pytest
 
 import siliconcompiler
 

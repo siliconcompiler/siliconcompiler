@@ -1,7 +1,4 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import os
-import siliconcompiler
-
 import pytest
 
 @pytest.mark.eda

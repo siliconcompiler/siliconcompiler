@@ -1,6 +1,5 @@
 import json
 import os
-import siliconcompiler
 import subprocess
 import time
 

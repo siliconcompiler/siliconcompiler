@@ -1,5 +1,4 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import os
 import shutil
 
 from siliconcompiler.core import Chip

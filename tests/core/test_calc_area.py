@@ -1,6 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
-import os
 import pytest
 
 @pytest.mark.skip(reason="non critical, fix once schema settles")

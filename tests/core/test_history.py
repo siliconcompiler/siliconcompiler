@@ -1,4 +1,3 @@
-import os
 import siliconcompiler
 
 def test_history(datadir):
