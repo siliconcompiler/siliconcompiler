@@ -113,7 +113,7 @@ def assemble_docker_file(name, tag, template, options, output_dir, copy_files=No
 
     with open(os.path.join(docker_dir, 'Dockerfile'), 'w') as f:
         f.write(tool_template.render(options))
-    
+
     if copy_files:
         for cp_file in copy_files:
             shutil.copy(cp_file, docker_dir)
@@ -225,7 +225,7 @@ def _get_tool_images(tool=None):
     for tool_name, _ in _get_tools():
         tool_image_name, tool_tag, _ = tool_image_details(tool_name)
         tool_images[tool_name] = get_image_name(tool_image_name, tool_tag)
-    
+
     if tool:
         return tool_images[tool]
     else:

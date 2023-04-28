@@ -1083,7 +1083,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 def schema_tool(cfg, tool='default'):
 
     version = 'default'
-    
+
     scparam(cfg, ['tool', tool, 'exe'],
             sctype='str',
             shorthelp="Tool: executable name",
@@ -1106,7 +1106,7 @@ def schema_tool(cfg, tool='default'):
             package information about the tool including the list of included
             components, licenses, and copyright. The SBOM file is generally
             provided as in a a standardized open data format such as SPDX.""")
-    
+
     scparam(cfg, ['tool', tool, 'path'],
             sctype='dir',
             pernode='optional',

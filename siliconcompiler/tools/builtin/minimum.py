@@ -20,7 +20,7 @@ def setup(chip):
 
 def _select_inputs(chip, step, index):
     chip.logger.info("Running builtin task 'minimum'")
-    
+
     flow = chip.get('option', 'flow')
     inputs = chip.get('flowgraph', flow, step, index, 'input')
 
