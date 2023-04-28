@@ -2,7 +2,6 @@ import json
 import os
 import pytest
 import subprocess
-import sys
 import time
 
 from unittest.mock import Mock
@@ -45,6 +44,7 @@ def test_picorv32_sram_remote(setup_example_test):
 
     # Mock the _runstep method.
     old__runtask = chip._runtask
+
     def mocked_runtask(*args, **kwargs):
         if args[0] == 'import':
             old__runtask(*args)

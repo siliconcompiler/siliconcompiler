@@ -78,8 +78,8 @@ def _deferstep(chip, step, index, status):
     if not os.path.isfile(script_path):
         with open(script_path, 'w') as sf:
             sf.write('#!/bin/bash\n')
-            sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '\
-                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '\
+            sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '
+                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '
                      f"-design {shlex.quote(chip.top())}\n")
             # In case of error(s) which prevents the SC build script from completing, ensure the
             # file mutex for job completion is set in shared storage. This lockfile signals the server

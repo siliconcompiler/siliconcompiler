@@ -38,7 +38,7 @@ def remote_preprocess(chip, steplist):
     '''
 
     # Assign a new 'job_hash' to the chip if necessary.
-    if not 'jobhash' in chip.status:
+    if 'jobhash' not in chip.status:
         job_hash = uuid.uuid4().hex
         chip.status['jobhash'] = job_hash
 

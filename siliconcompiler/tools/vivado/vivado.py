@@ -106,8 +106,10 @@ def _parse_utilization(chip, step, index):
             chip._record_metric(step, index, 'registers', vals['regs'], 'reports/total_utilization.rpt')
 
         total_bram = 0
-        if 'bram' in vals: total_bram += vals['bram']
-        if 'uram' in vals: total_bram += vals['uram']
+        if 'bram' in vals:
+            total_bram += vals['bram']
+        if 'uram' in vals:
+            total_bram += vals['uram']
         if 'bram' in vals or 'uram' in vals:
             chip._record_metric(step, index, 'brams', total_bram, 'reports/total_utilization.rpt')
 

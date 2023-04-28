@@ -72,8 +72,8 @@ class Server:
                     if 'bandwidth' in mapping:
                         self.user_keys[username]['bandwidth'] = mapping['bandwidth']
             except Exception:
-                self.logger.warning("Could not find well-formatted 'users.json' "\
-                                    "file in the server's working directory. "\
+                self.logger.warning("Could not find well-formatted 'users.json' "
+                                    "file in the server's working directory. "
                                     "(User : Key) mappings were not imported.")
 
         # Create a minimal web server to process the 'remote_run' API call.
@@ -343,9 +343,9 @@ class Server:
         NEVER store production passwords as plaintext!
         '''
 
-        if not username in self.user_keys:
+        if username not in self.user_keys:
             return False
-        return (password == self.user_keys[username]['password'])
+        return password == self.user_keys[username]['password']
 
     def __check_request(self, request, require_job_hash=True):
         params = {}

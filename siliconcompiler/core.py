@@ -585,8 +585,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     val = remainder
 
                 msg = f'Command line argument entered: {args} Value: {val}'
-                if step is not None: msg += f' Step: {step}'
-                if index is not None: msg += f' Index: {index}'
+                if step is not None:
+                    msg += f' Step: {step}'
+                if index is not None:
+                    msg += f' Index: {index}'
                 self.logger.info(msg)
 
                 # Storing in manifest
@@ -799,7 +801,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                        " "*13 + line.lstrip() + "\n")
 
         return fullstr
-
 
     ###########################################################################
     def valid(self, *keypath, valid_keypaths=None, default_valid=False):
@@ -2414,7 +2415,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if os.path.isfile(logfile):
                 tar.add(os.path.abspath(logfile), arcname=logfile)
 
-
     ###########################################################################
     def archive(self, step=None, index=None, all_files=False, archive_name=None):
         '''Archive a job directory.
@@ -2575,7 +2575,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         return 0
-
 
     ###########################################################################
     def calc_area(self, step=None, index=None):
@@ -3076,7 +3075,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             info_list.extend(["partname : "+self.get('fpga','partname')])
 
         info = '\n'.join(info_list)
-
 
         print("-"*135)
         print(info, "\n")
@@ -4170,12 +4168,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 with open(cfg_file, 'r') as cfgf:
                     self.status['remote_cfg'] = json.loads(cfgf.read())
             else:
-                self.logger.warning('Could not find remote server configuration: defaulting to ' + \
+                self.logger.warning('Could not find remote server configuration: defaulting to ' +
                                     _metadata.default_server)
                 self.status['remote_cfg'] = {
                     "address": _metadata.default_server
                 }
-            if (not 'address' in self.status['remote_cfg']):
+            if ('address' not in self.status['remote_cfg']):
                 self.error('Improperly formatted remote server configuration - '
                            'please run "sc-configure" and enter your server address and '
                            'credentials.', fatal=True)
@@ -4289,7 +4287,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     processes[step+index] = multiprocessing.Process(target=self._runtask,
                                                                     args=(step, index, status))
 
-
             # We have to deinit the chip's logger before spawning the processes
             # since the logger object is not serializable. _runtask_safe will
             # reinitialize the logger in each new process, and we reinitialize
@@ -4360,7 +4357,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     stepstr = step + index
                     if status[stepstr] != TaskStatus.PENDING:
                         self.set('flowgraph', flow, step, index, 'status', status[stepstr])
-
 
             # Merge cfg back from last executed tasks.
             for step, index in self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist):
@@ -4986,7 +4982,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         raise SiliconCompilerError(msg) from None
 
-
     #######################################
     def _record_metric(self, step, index, metric, value, source, source_unit=None):
         '''
@@ -5022,7 +5017,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             tool, task = self._get_tool_task(step, index, flow=flow)
 
             self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
-
 
     #######################################
     def _clear_metric(self, step, index, metric):

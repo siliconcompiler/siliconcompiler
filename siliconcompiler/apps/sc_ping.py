@@ -66,8 +66,8 @@ def main():
         # Get the JSON response values.
         user_info = resp.json()
         if (resp.status_code != 200) or \
-           (not 'compute_time' in user_info) or \
-           (not 'bandwidth_kb' in user_info):
+           ('compute_time' not in user_info) or \
+           ('bandwidth_kb' not in user_info):
             print('Error fetching user information from the remote server.')
             return 1
 
