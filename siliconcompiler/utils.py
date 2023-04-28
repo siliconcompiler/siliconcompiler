@@ -3,6 +3,7 @@ import shutil
 import psutil
 import xml.etree.ElementTree as ET
 import re
+from pathlib import Path
 
 PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -56,7 +57,7 @@ def terminate_process(pid, timeout=3):
 # This class holds all the information about a single primitive defined in the FPGA arch file
 class PbPrimitive:
 
-    def __init__ (self, name, blif_model):
+    def __init__(self, name, blif_model):
         self.name = name
         self.blif_model = blif_model
         self.ports = []
@@ -68,10 +69,10 @@ class PbPrimitive:
         num_pins = port.attrib['num_pins']
         port_class = port.attrib.get('port_class')
 
-        new_port = { 'port_type': port_type,
-                     'port_name': port_name,
-                     'num_pins': num_pins,
-                     'port_class': port_class }
+        new_port = {'port_type': port_type,
+                    'port_name': port_name,
+                    'num_pins': num_pins,
+                    'port_class': port_class}
 
         self.ports.append(new_port)
 
@@ -215,7 +216,7 @@ def format_fileset_type_table(indent=12):
     Generate a table to use in the __doc__ of the input function which auto
     updates based on the iomap
     '''
-    table  = "filetype  | fileset    | suffix (case insensitive)\n"
+    table = "filetype  | fileset    | suffix (case insensitive)\n"
     indent = " " * indent
     table += f"{indent}----------|------------|---------------------------------------------\n"
 
@@ -230,3 +231,8 @@ def format_fileset_type_table(indent=12):
         table += f"{indent}{filetype:<10}| {fileset:<11}| {ext}\n"
 
     return table
+
+def default_credentials_file():
+    cfg_file = os.path.join(Path.home(), '.sc', 'credentials')
+
+    return cfg_file

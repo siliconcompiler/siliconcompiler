@@ -3,14 +3,15 @@ import json
 import os
 import requests
 import sys
+import argparse
 
-from pathlib import Path
+from siliconcompiler.utils import default_credentials_file
+
 from siliconcompiler import Chip
 from siliconcompiler.client import get_base_url
 
 def main():
     progname = "sc-ping"
-    switchlist = []
     description = """
     -----------------------------------------------------------
     SC app that loads a remote configuration file, and pings the server
@@ -18,42 +19,38 @@ def main():
     -----------------------------------------------------------
     """
 
-    # Return early and print a help string if necessary.
-    if (len(sys.argv) > 1) and \
-       ((sys.argv[1] == '--help') or (sys.argv[1] == '-h')):
-        print('Usage: sc-ping')
-        print('Prints remote user account information.')
-        print('Requires a remote configuration file (run "sc-configure")')
-        sys.exit(0)
+    # Argument Parser
+    parser = argparse.ArgumentParser(prog=progname,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     description=description)
 
-    # Find the config file/directory path.
-    cfg_dir = os.path.join(Path.home(), '.sc')
-    cfg_file = os.path.join(cfg_dir, 'credentials')
+    parser.add_argument('credential', nargs='?', default=default_credentials_file())
+
+    #Parsing args and converting to dict
+    cmdargs = vars(parser.parse_args())
+    cfg_file = cmdargs['credential']
 
     # Check the configuration.
     if not os.path.isfile(cfg_file):
         print('Error: Remote configuration was not found. Please run "sc-configure".')
-        sys.exit(1)
+        return 1
+
     try:
         with open(cfg_file, 'r') as cfgf:
             remote_cfg = json.loads(cfgf.read())
-        if (not 'username' in remote_cfg) or \
-           (not 'password' in remote_cfg) or \
-           (not 'address' in remote_cfg):
-            print('Error reading remote configuration file.')
-            sys.exit(1)
     except Exception:
         print('Error reading remote configuration file.')
-        sys.exit(1)
+        return 1
 
     # Create the chip object and generate the request
     chip = Chip('ping')
     chip.status['remote_cfg'] = remote_cfg
     request_url = get_base_url(chip) + '/check_user/'
-    post_params = {
-        'username': remote_cfg['username'],
-        'key': remote_cfg['password'],
-    }
+    post_params = {}
+    if 'username' in remote_cfg:
+        post_params['username'] = remote_cfg['username']
+    if 'password' in remote_cfg:
+        post_params['key'] = remote_cfg['password']
 
     # Make the request and print its response.
     try:
@@ -69,19 +66,19 @@ def main():
         # Get the JSON response values.
         user_info = resp.json()
         if (resp.status_code != 200) or \
-           (not 'compute_time' in user_info) or \
-           (not 'bandwidth_kb' in user_info):
+           ('compute_time' not in user_info) or \
+           ('bandwidth_kb' not in user_info):
             print('Error fetching user information from the remote server.')
-            sys.exit(1)
+            return 1
 
         # Print the user's account info, and return.
-        print(f'User {remote_cfg["username"]} validated successfully!')
+        print(f'User {remote_cfg["username"]}:')
         print(f'  Remaining compute time: {(user_info["compute_time"]/60.0):.2f} minutes')
         print(f'  Remaining results bandwidth: {user_info["bandwidth_kb"]} KiB')
-        return
+        return 0
     except Exception:
         print('Error fetching user information from the remote server.')
-        sys.exit(1)
+        return 1
 
 #########################
 if __name__ == "__main__":

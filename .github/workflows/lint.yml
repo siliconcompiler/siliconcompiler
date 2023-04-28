@@ -34,6 +34,6 @@ jobs:
       - name: Install Requirements
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install -r ./requirements.txt
+          python3 -m pip install .[test]
       - name: Lint with Flake8
         run: flake8 --statistics .

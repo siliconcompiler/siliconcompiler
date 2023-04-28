@@ -94,7 +94,7 @@ def test_surelog_preproc_regression(datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skipif(sys.platform=='win32', reason='Replay script not supported on Windows')
+@pytest.mark.skipif(sys.platform == 'win32', reason='Replay script not supported on Windows')
 def test_replay(scroot):
     src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"

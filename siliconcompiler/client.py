@@ -38,7 +38,7 @@ def remote_preprocess(chip, steplist):
     '''
 
     # Assign a new 'job_hash' to the chip if necessary.
-    if not 'jobhash' in chip.status:
+    if 'jobhash' not in chip.status:
         job_hash = uuid.uuid4().hex
         chip.status['jobhash'] = job_hash
 
@@ -118,12 +118,12 @@ def remote_run(chip):
                     msg_lines = is_busy_info['message'].splitlines()
                     cur_step = msg_lines[0][msg_lines[0].find(': ')+2:]
                     cur_log = '\n'.join(msg_lines[1:])
-                    chip.logger.info("Job is still running (%d seconds, step: %s)."%(
+                    chip.logger.info("Job is still running (%d seconds, step: %s)." % (
                                      int(time.monotonic() - step_start), cur_step))
                     if cur_log:
                         chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
                 else:
-                    chip.logger.info("Job is still running (%d seconds, step: unknown)"%(
+                    chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
                                      int(time.monotonic() - step_start)))
         except Exception:
             # Sometimes an exception is raised if the request library cannot
@@ -299,7 +299,7 @@ def fetch_results_request(chip):
     redirect_url = remote_run_url
     can_redirect = False
     while redirect_url:
-        with open('%s.tar.gz'%job_hash, 'wb') as zipf:
+        with open(f'{job_hash}.tar.gz', 'wb') as zipf:
             resp = requests.post(redirect_url,
                                  data=json.dumps(post_params),
                                  allow_redirects=can_redirect,

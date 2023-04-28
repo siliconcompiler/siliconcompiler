@@ -61,12 +61,19 @@ class Server:
                 with open(json_path, 'r') as users_file:
                     users_json = json.loads(users_file.read())
                 for mapping in users_json['users']:
-                    self.user_keys[mapping['username']] = {
+                    username = mapping['username']
+                    self.user_keys[username] = {
                         'password': mapping['password'],
+                        'compute_time': 0,
+                        'bandwidth': 0
                     }
+                    if 'compute_time' in mapping:
+                        self.user_keys[username]['compute_time'] = mapping['compute_time']
+                    if 'bandwidth' in mapping:
+                        self.user_keys[username]['bandwidth'] = mapping['bandwidth']
             except Exception:
-                self.logger.warning("Could not find well-formatted 'users.json' "\
-                                    "file in the server's working directory. "\
+                self.logger.warning("Could not find well-formatted 'users.json' "
+                                    "file in the server's working directory. "
                                     "(User : Key) mappings were not imported.")
 
         # Create a minimal web server to process the 'remote_run' API call.
@@ -74,6 +81,7 @@ class Server:
         self.app.add_routes([
             web.post('/remote_run/', self.handle_remote_run),
             web.post('/check_progress/', self.handle_check_progress),
+            web.post('/check_user/', self.handle_check_user),
             web.post('/delete_job/', self.handle_delete_job),
             web.post('/get_results/{job_hash}.tar.gz', self.handle_get_results),
         ])
@@ -118,33 +126,15 @@ class Server:
             elif part.name == 'params':
                 # Get the job parameters.
                 params = await part.json()
-                job_params = params['params']
-                cfg = params['chip_cfg']
 
-        # Get the job hash value, and verify it is a 32-char hex string.
-        if not 'job_hash' in job_params:
-            return web.Response(text="Error: no job hash provided.")
-        job_hash = job_params['job_hash']
-        if not re.match("^[0-9A-Za-z]{32}$", job_hash):
-            return web.Response(text="Error: invalid job hash.")
-        # Check for authentication parameters.
-        use_auth = False
-        if ('username' in job_params) or ('key' in job_params):
-            if self.cfg['auth']['value'][-1]:
-                if ('username' in job_params) and ('key' in job_params):
-                    username = job_params['username']
-                    key = job_params['key']
-                    if not username in self.user_keys.keys():
-                        return web.Response(text="Error: invalid username provided.", status=404)
-                    # Authenticate the user.
-                    if self.auth_password(username, key):
-                        use_auth = True
-                    else:
-                        return web.Response(text="Authentication error.", status=403)
-                else:
-                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
-            else:
-                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
+                if 'chip_cfg' not in params:
+                    return self.__response('Manifest not provided.', status=400)
+                chip_cfg = params['chip_cfg']
+
+        # Process input parameters
+        job_params, response = self.__check_request(params['params'])
+        if response is not None:
+            return response
 
         # Create a dummy Chip object to make schema traversal easier.
         # TODO: if this is a dummy Chip we should be able to use Schema class,
@@ -152,17 +142,17 @@ class Server:
         # start with a dummy name, as this will be overwritten
         chip = Chip('server')
         # Add provided schema
-        chip.schema = Schema(cfg=cfg)
+        chip.schema = Schema(cfg=chip_cfg)
 
         # Fetch some common values.
-        design = chip.get('design')
+        design = chip.design
         job_name = chip.get('option', 'jobname')
-        job_nameid = f'{job_name}'
+        job_hash = job_params['job_hash']
         chip.status['jobhash'] = job_hash
 
         # Ensure that the job's root directory exists.
         job_root = os.path.join(self.nfs_mount, job_hash)
-        job_dir  = os.path.join(job_root, design, job_name)
+        job_dir = os.path.join(job_root, design, job_name)
         os.makedirs(job_dir, exist_ok=True)
 
         # Move the uploaded archive and un-zip it.
@@ -174,34 +164,20 @@ class Server:
         if os.path.exists(tmp_file):
             os.remove(tmp_file)
 
-        # Reset 'build' directory in NFS storage.
-        build_dir = os.path.join(self.nfs_mount, job_hash)
-        jobs_dir = os.path.join(build_dir, chip.get('design'))
-        job_nameid = f"{chip.get('option', 'jobname')}"
-
         # Create the working directory for the given 'job hash' if necessary.
-        os.makedirs(jobs_dir, exist_ok=True)
-        chip.set('option', 'builddir', build_dir, clobber=True)
-        # Link to the 'import' directory if necessary.
-        os.makedirs(os.path.join(jobs_dir, job_nameid), exist_ok=True)
+        chip.set('option', 'builddir', job_root)
 
         # Remove 'remote' JSON config value to run locally on compute node.
-        chip.set('option', 'remote', False, clobber=True)
-        chip.set('option', 'credentials', '', clobber=True)
+        chip.set('option', 'remote', False)
 
         # Write JSON config to shared compute storage.
-        os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
+        os.makedirs(os.path.join(job_root, 'configs'), exist_ok=True)
 
         # Run the job with the configured clustering option. (Non-blocking)
-        if use_auth:
-            asyncio.ensure_future(self.remote_sc(chip,
-                                                 username))
-        else:
-            asyncio.ensure_future(self.remote_sc(chip, None))
+        asyncio.ensure_future(self.remote_sc(chip, job_params['username']))
 
         # Return a response to the client.
-        response_text = f"Starting job: {job_hash}"
-        return web.Response(text=response_text)
+        return web.Response(text=f"Starting job: {job_hash}")
 
     ####################
     async def handle_get_results(self, request):
@@ -209,30 +185,14 @@ class Server:
         API handler to redirect 'get_results' POST calls.
         '''
 
-        # Retrieve the job hash.
-        job_hash = request.match_info.get('job_hash', None)
-        if not job_hash:
-            return web.Response(text="Error: no job hash provided.")
+        # Process input parameters
         params = await request.json()
+        params['job_hash'] = request.match_info.get('job_hash', '')
+        job_params, response = self.__check_request(params)
+        if response is not None:
+            return response
 
-        # Check whether to use authentication.
-        use_auth = False
-        if ('username' in params) or ('key' in params):
-            if self.cfg['auth']['value'][-1]:
-                if ('username' in params) and ('key' in params):
-                    username = params['username']
-                    key = params['key']
-                    if not username in self.user_keys.keys():
-                        return web.Response(text="Error: invalid username provided.", status=404)
-                    # Authenticate the user.
-                    if self.auth_password(username, key):
-                        use_auth = True
-                    else:
-                        return web.Response(text="Authentication error.", status=403)
-                else:
-                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
-            else:
-                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
+        job_hash = job_params['job_hash']
 
         resp = web.StreamResponse(
             status = 200,
@@ -249,6 +209,7 @@ class Server:
             await resp.write(zipf.read())
 
         await resp.write_eof()
+
         return resp
 
     ####################
@@ -256,45 +217,27 @@ class Server:
         '''
         API handler for 'delete_job' requests. Delete a job from shared
         cloud compute storage.
-
         '''
 
-        # Retrieve the JSON parameters.
-        params = await request.json()
-        if not 'job_hash' in params:
-            return web.Response(text="Error: no job hash provided.")
-        job_hash = params['job_hash']
+        # Process input parameters
+        job_params, response = self.__check_request(await request.json())
+        if response is not None:
+            return response
 
-        # Check for authentication parameters.
-        use_auth = False
-        if ('username' in params) or ('key' in params):
-            if self.cfg['auth']['value'][-1]:
-                if ('username' in params) and ('key' in params):
-                    username = params['username']
-                    key = params['key']
-                    if not username in self.user_keys.keys():
-                        return web.Response(text="Error: invalid username provided.", status=404)
-                    # Authenticate the user.
-                    if self.auth_password(username, key):
-                        use_auth = True
-                    else:
-                        return web.Response(text="Authentication error.", status=403)
-                else:
-                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
-            else:
-                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
+        job_hash = job_params['job_hash']
 
         # Determine if the job is running.
         for job in self.sc_jobs:
             if job_hash in job:
-                return web.Response(text="Error: job is still running.")
+                return self.__response("Error: job is still running.", status=400)
 
         # Delete job hash directory, only if it exists.
         # TODO: This assumes no malicious input.
         # Again, we will need a more mature server framework to implement
         # good access control and security policies for a public-facing service.
-        if not '..' in job_hash:
-            build_dir = os.path.join(self.nfs_mount, job_hash)
+        build_dir = os.path.join(self.nfs_mount, job_hash)
+        check_dir = os.path.dirname(build_dir)
+        if check_dir == self.nfs_mount:
             if os.path.exists(build_dir):
                 shutil.rmtree(build_dir)
 
@@ -313,42 +256,41 @@ class Server:
         information about the job's progress and intermediary outputs.
         '''
 
-        # Retrieve the JSON parameters.
-        params = await request.json()
-        if not 'job_hash' in params:
-            return web.Response(text="Error: no job hash provided.")
-        job_hash = params['job_hash']
-        if not 'job_id' in params:
-            return web.Response(text="Error: no job ID provided.")
-        jobid = params['job_id']
-        username = ''
-        if 'username' in params:
-            username = params['username']
+        # Process input parameters
+        job_params, response = self.__check_request(await request.json())
+        if response is not None:
+            return response
 
-        # Check for authentication parameters.
-        use_auth = False
-        if ('username' in params) or ('key' in params):
-            if self.cfg['auth']['value'][-1]:
-                if ('username' in params) and ('key' in params):
-                    username = params['username']
-                    key = params['key']
-                    if not username in self.user_keys.keys():
-                        return web.Response(text="Error: invalid username provided.", status=404)
-                    # Authenticate the user.
-                    if self.auth_password(username, key):
-                        use_auth = True
-                    else:
-                        return web.Response(text="Authentication error.", status=403)
-                else:
-                    return web.Response(text="Error: some authentication parameters are missing.", status=400)
-            else:
-                return web.Response(text="Error: authentication parameters were passed in, but this server does not support that feature.", status=500)
+        job_hash = job_params['job_hash']
+        username = job_params['username']
 
         # Determine if the job is running.
-        if "%s%s_%s"%(username, job_hash, jobid) in self.sc_jobs:
+        if "%s%s" % (username, job_hash) in self.sc_jobs:
             return web.Response(text="Job is currently running on the cluster.")
         else:
             return web.Response(text="Job has no running steps.")
+
+    ####################
+    async def handle_check_user(self, request):
+        '''
+        API handler for the 'check user' endpoint.
+        '''
+
+        # Process input parameters
+        job_params, response = self.__check_request(await request.json(), require_job_hash=False)
+        if response is not None:
+            return response
+
+        username = job_params['username']
+        if not username:
+            return self.__response("Invalid username provided", status=400)
+
+        resp = {
+            'compute_time': self.user_keys[username]['compute_time'],
+            'bandwidth_kb': self.user_keys[username]['bandwidth']
+        }
+
+        return web.json_response(resp)
 
     ####################
     async def remote_sc(self, chip, username):
@@ -359,7 +301,6 @@ class Server:
 
         # Assemble core job parameters.
         job_hash = chip.status['jobhash']
-        top_module = chip.top()
         job_nameid = chip.get('option', 'jobname')
 
         # Mark the job run as busy.
@@ -372,14 +313,13 @@ class Server:
         build_dir = os.path.join(self.nfs_mount, job_hash)
         chip.set('option', 'builddir', build_dir)
         chip.set('option', 'remote', False)
-        chip.unset('option', 'credentials')
 
         os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
         chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
 
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Run the job with slurm clustering.
-            chip.set('option', 'jobscheduler', 'slurm')
+            chip.set('option', 'scheduler', 'name', 'slurm')
 
         chip.run()
 
@@ -393,7 +333,7 @@ class Server:
         self.sc_jobs.pop(sc_job_name)
 
     ####################
-    def auth_password(self, username, password):
+    def __auth_password(self, username, password):
         '''
         Helper method to authenticate a username : password combination.
         This minimal implementation of the API uses a simple string match, because
@@ -403,9 +343,40 @@ class Server:
         NEVER store production passwords as plaintext!
         '''
 
-        if not username in self.user_keys:
+        if username not in self.user_keys:
             return False
-        return (password == self.user_keys[username]['password'])
+        return password == self.user_keys[username]['password']
+
+    def __check_request(self, request, require_job_hash=True):
+        params = {}
+
+        if require_job_hash:
+            # Get the job hash value, and verify it is a 32-char hex string.
+            if 'job_hash' not in request:
+                return (params, self.__response("Error: no job hash provided.", status=400))
+
+            if not re.match("^[0-9A-Za-z]{32}$", request['job_hash']):
+                return (params, self.__response("Error: invalid job hash.", status=400))
+
+            params['job_hash'] = request['job_hash']
+
+        # Check for authentication parameters.
+        params['username'] = None
+        if self.cfg['auth']['value'][-1]:
+            if ('username' in request) and ('key' in request):
+                # Authenticate the user.
+                if not self.__auth_password(request['username'], request['key']):
+                    return (params, self.__response("Authentication error.", status=403))
+
+                params['username'] = request['username']
+            else:
+                return (params, self.__response("Error: some authentication parameters are missing.", status=400))
+
+        return (params, None)
+
+    ###################
+    def __response(self, message, status=200):
+        return web.json_response({'message': message}, status=status)
 
     ###################
     @property
@@ -439,7 +410,7 @@ def server_schema():
         'switch_args': '<num>',
         'type': ['int'],
         'defvalue': ['8080'],
-        'help' : ["TBD"]
+        'help': ["TBD"]
     }
 
     cfg['cluster'] = {
@@ -456,8 +427,8 @@ def server_schema():
         'switch': '-nfs_mount',
         'switch_args': '<str>',
         'type': ['string'],
-        'defvalue' : ['/nfs/sc_compute'],
-        'help' : ["TBD"]
+        'defvalue': ['/nfs/sc_compute'],
+        'help': ["TBD"]
     }
 
     cfg['auth'] = {
@@ -465,8 +436,8 @@ def server_schema():
         'switch': '-auth',
         'switch_args': '<str>',
         'type': ['bool'],
-        'defvalue' : [''],
-        'help' : ["TBD"]
+        'defvalue': [''],
+        'help': ["TBD"]
     }
 
     return cfg

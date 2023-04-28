@@ -8,9 +8,9 @@ def test_help():
     chip = siliconcompiler.Chip('test')
     allkeys = chip.allkeys()
     for key in allkeys:
-        shorthelp=chip.get(*key, field='shorthelp')
-        typestr=chip.get(*key, field='type')
-        scope=chip.get(*key, field='scope')
+        shorthelp = chip.get(*key, field='shorthelp')
+        typestr = chip.get(*key, field='type')
+        scope = chip.get(*key, field='scope')
         keystr = ','.join(key)
         group = key[0]
         row = [scope,f",{group}", f",{typestr}", f',"{shorthelp}"', f',"{keystr}"']

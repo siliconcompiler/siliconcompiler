@@ -28,7 +28,7 @@ def test_leflib_complete(datadir):
     data = leflib.parse(path)
 
     assert data['version'] == 5.8
-    assert data['fixedmask'] == True
+    assert data['fixedmask'] is True
     # There's a "USEMINSPACING PIN" statement, but it gets skipped since it's
     # obsolete syntax in 5.8
     assert data['useminspacing'] == {'OBS': 'OFF'}
@@ -63,7 +63,7 @@ def test_leflib_complete(datadir):
     assert rx['width'] == 1
     assert rx['direction'] == 'HORIZONTAL'
 
-    assert data['maxviastack'] == { 'value': 4, 'range': {'bottom': 'm1', 'top': 'm7'}}
+    assert data['maxviastack'] == {'value': 4, 'range': {'bottom': 'm1', 'top': 'm7'}}
     assert data
 
     # 11 viarules defined, but two are skipped because they are "turn-vias"
@@ -85,8 +85,8 @@ def test_leflib_complete(datadir):
     assert vialist12['vias'] == ['VIACENTER12']
 
     via12 = data['viarules']['via12']
-    assert via12['generate'] == True
-    assert via12['default'] == True
+    assert via12['generate'] is True
+    assert via12['default'] is True
 
     assert len(via12['layers']) == 3
     assert via12['layers'][0] == {

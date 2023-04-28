@@ -4,6 +4,7 @@
 import argparse
 import json
 import os
+import tempfile
 
 tools = None
 data_file = os.path.join(os.path.dirname(__file__), "_tools.json")
@@ -14,7 +15,7 @@ def bump_commit(tools, tool):
     if "git-url" not in tools[tool]:
         return None
 
-    import git, tempfile
+    import git
 
     with tempfile.TemporaryDirectory(prefix=tool) as repo_work_dir:
         repo = git.Repo.clone_from(tools[tool]["git-url"], repo_work_dir)
@@ -27,7 +28,7 @@ def bump_version(tools, tool):
     if "git-url" not in tools[tool]:
         return None
 
-    import git, tempfile
+    import git
 
     with tempfile.TemporaryDirectory(prefix=tool) as repo_work_dir:
         repo = git.Repo.clone_from(tools[tool]["git-url"], repo_work_dir)

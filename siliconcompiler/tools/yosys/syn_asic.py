@@ -85,7 +85,9 @@ def setup_asic(chip):
             chip.add('tool', tool, 'task', task, 'require', ",".join(key0), step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner', get_synthesis_corner(chip), step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', get_dff_liberty_file(chip), step=step, index=index, clobber=False)
+    dff_liberty_file = get_dff_liberty_file(chip)
+    if dff_liberty_file:
+        chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', dff_liberty_file, step=step, index=index, clobber=False)
     chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'synthesis_corner']), step=step, index=index)
     chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'file', 'dff_liberty']), step=step, index=index)
 
@@ -130,7 +132,6 @@ def prepare_synthesis_libraries(chip):
 
     corner = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner', step=step, index=index)[0]
 
-
     # mark dff libery file with dont use
     dff_liberty_file = chip.find_files('tool', tool, 'task', task, 'file', 'dff_liberty', step=step, index=index)[0]
     dff_dont_use = []
@@ -150,7 +151,7 @@ def prepare_synthesis_libraries(chip):
         chip.get('option', 'quiet', step=step, index=index),
     )
 
-    #### Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
+    # Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
 
     # mark libs with dont_use since ABC cannot get this information via its commands
     # this also ensures the liberty files have been decompressed and corrected formatting

@@ -39,7 +39,7 @@ def setup(chip):
     threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
     options.append(f"--num_workers {threads}")
 
-    chip.add('tool', tool, 'task', task, 'option',  options, step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
 #############################################
 # Runtime pre processing

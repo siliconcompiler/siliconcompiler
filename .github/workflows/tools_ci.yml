@@ -191,10 +191,10 @@ jobs:
 
       - name: Run tests
         run: |
+          /start_slurm.sh
           python3 -m venv clean_env
           source clean_env/bin/activate
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
-          python3 -m pip install -r requirements.txt
-          python3 -m pip install -e .
+          python3 -m pip install .[test]
           pytest -n auto --import-mode=append -m "eda and quick"

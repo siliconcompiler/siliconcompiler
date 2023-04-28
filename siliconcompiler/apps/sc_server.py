@@ -30,7 +30,7 @@ def server_cmdline():
                    '\n\n' +
                    '\n'.join(def_cfg[k]['help']) +
                    '\n\n---------------------------------------------------------\n')
-        if def_cfg[k]['type'][-1] == 'bool': #scalar
+        if def_cfg[k]['type'][-1] == 'bool':  # scalar
             parser.add_argument(def_cfg[k]['switch'],
                                 metavar=def_cfg[k]['switch_args'],
                                 dest=keystr,
@@ -53,7 +53,7 @@ def server_cmdline():
     for key,all_vals in cmdargs.items():
         switch = key.split('_')
         param = switch[0]
-        if len(switch) > 1 :
+        if len(switch) > 1:
             param = param + "_" + switch[1]
 
         if param not in def_cfg:
@@ -69,7 +69,7 @@ def server_cmdline():
 
     # Ensure that the default 'value' fields exist.
     for key in def_cfg:
-        if (not 'value' in def_cfg[key]) and ('defvalue' in def_cfg[key]):
+        if ('value' not in def_cfg[key]) and ('defvalue' in def_cfg[key]):
             def_cfg[key]['value'] = def_cfg[key]['defvalue']
 
     return def_cfg

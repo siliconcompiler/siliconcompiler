@@ -28,9 +28,9 @@ def setup(chip):
     lib.add('asic', 'site', libtype, 'unithddbl')
 
     # model files
-    lib.add('output', 'slow',    'nldm', libdir+'/lib/sky130_fd_sc_hd__ss_n40C_1v40.lib.gz')
+    lib.add('output', 'slow', 'nldm', libdir+'/lib/sky130_fd_sc_hd__ss_n40C_1v40.lib.gz')
     lib.add('output', 'typical', 'nldm', libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib.gz')
-    lib.add('output', 'fast',    'nldm', libdir+'/lib/sky130_fd_sc_hd__ff_100C_1v95.lib.gz')
+    lib.add('output', 'fast', 'nldm', libdir+'/lib/sky130_fd_sc_hd__ff_100C_1v95.lib.gz')
 
     lib.add('output', stackup, 'lef', libdir+'/lef/sky130_fd_sc_hd_merged.lef')
     lib.add('output', stackup, 'gds', libdir+'/gds/sky130_fd_sc_hd.gds')

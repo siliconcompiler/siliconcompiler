@@ -47,5 +47,5 @@ def test_metric_clear(chip):
     assert chip.get('tool', tool, 'task', task, 'report', 'cells', step='floorplan', index='0') == ['report.txt']
 
     chip._clear_metric('floorplan', '0', 'cells')
-    assert chip.get('metric', 'cells', step='floorplan', index='0') == None
+    assert chip.get('metric', 'cells', step='floorplan', index='0') is None
     assert chip.get('tool', tool, 'task', task, 'report', 'cells', step='floorplan', index='0') == []

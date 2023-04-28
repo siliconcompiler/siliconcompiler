@@ -71,6 +71,7 @@ jobs:
 
       - name: Run tests with Python ${{ matrix.python-version }}
         run: |
+          /start_slurm.sh
           export PYENV_ROOT="$HOME/.pyenv"
           export PATH="$PYENV_ROOT/bin:$PATH"
           eval "$(pyenv init -)"
@@ -82,6 +83,5 @@ jobs:
           source clean_env/bin/activate
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
-          python3 -m pip install -r requirements.txt
-          python3 -m pip install -e .
+          python3 -m pip install .[test]
           pytest -n auto --import-mode=append

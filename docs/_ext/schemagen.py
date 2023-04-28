@@ -22,8 +22,8 @@ class SchemaGen(SphinxDirective):
 
     def process_schema(self, schema, parents=[]):
         if 'help' in schema:
-            entries = [[strong('Description'),   para(schema['shorthelp'])],
-                       [strong('Type'),          para(schema['type'])]]
+            entries = [[strong('Description'), para(schema['shorthelp'])],
+                       [strong('Type'), para(schema['type'])]]
 
             if schema['pernode'] != 'never':
                 entries.append([strong('Per step/index'), para(schema['pernode'])])
@@ -35,7 +35,7 @@ class SchemaGen(SphinxDirective):
                 entries.append([strong('Unit'), para(schema['unit'])])
 
             entries.extend([[strong('Default Value'), para(schema['defvalue'])],
-                            [strong('CLI Switch'),    code(schema['switch'])]])
+                            [strong('CLI Switch'), code(schema['switch'])]])
 
             for example in schema['example']:
                 name, ex = example.split(':', 1)

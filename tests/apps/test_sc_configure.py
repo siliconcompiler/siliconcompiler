@@ -20,8 +20,8 @@ def test_sc_configure_cmdarg(monkeypatch):
         generated_creds = json.loads(cf.read())
 
     assert generated_creds['address'] == server_name
-    assert not 'username' in generated_creds
-    assert not 'password' in generated_creds
+    assert 'username' not in generated_creds
+    assert 'password' not in generated_creds
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -104,5 +104,5 @@ def test_sc_configure_override_n(monkeypatch):
         generated_creds = json.loads(cf.read())
 
     assert generated_creds['address'] != server_name
-    assert not 'username' in generated_creds
-    assert not 'password' in generated_creds
+    assert 'username' not in generated_creds
+    assert 'password' not in generated_creds

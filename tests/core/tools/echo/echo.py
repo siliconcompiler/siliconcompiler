@@ -5,7 +5,7 @@ def setup(chip):
     task = chip._get_task(step, index)
 
     chip.set('tool', tool, 'exe', tool)
-    chip.set('tool', tool, 'task', task, 'option',  step + index, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'option', step + index, step=step, index=index, clobber=False)
 
 def parse_version(stdout):
     '''

@@ -68,9 +68,9 @@ def setup(chip, flowname='fpgaflow'):
 
     #Setting up pipeline
     #TODO: Going forward we want to standardize steps
-    if  flowtype in ('vivado', 'quartus'):
+    if flowtype in ('vivado', 'quartus'):
         flowpipe = ['syn_fpga', 'place', 'route', 'bitstream']
-    elif flowtype =='vpr':
+    elif flowtype == 'vpr':
         flowpipe = ['syn_vpr', 'apr', 'bitstream']
     else:
         flowpipe = ['syn_fpga', 'apr', 'bitstream']
@@ -101,7 +101,6 @@ def setup(chip, flowname='fpgaflow'):
     return flow
 
 ##################################################
-
 def flow_lookup(partname):
     '''
     Returns a flow,vendor tuple based on a partnumber
@@ -166,7 +165,6 @@ def flow_lookup(partname):
     return (vendor, flow)
 
 ##################################################
-
 def task_lookup(flow, step):
     '''
     Return tool based on flow and step combo.
@@ -200,7 +198,6 @@ def task_lookup(flow, step):
             return vpr_apr
         elif step == "bitstream":
             return genfasm_bitstream
-
 
     return None
 

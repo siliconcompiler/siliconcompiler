@@ -76,19 +76,19 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
 
     #step --> task
     tasks = {
-        'syn' : syn_asic,
-        'synmin' : minimum,
-        'floorplan' : floorplan,
-        'floorplanmin' : minimum,
-        'physyn' : physyn,
-        'physynmin' : minimum,
-        'place' : place,
-        'placemin' : minimum,
-        'cts' : cts,
-        'ctsmin' : minimum,
-        'route' : route,
-        'routemin' : minimum,
-        'dfm' : dfm
+        'syn': syn_asic,
+        'synmin': minimum,
+        'floorplan': floorplan,
+        'floorplanmin': minimum,
+        'physyn': physyn,
+        'physynmin': minimum,
+        'place': place,
+        'placemin': minimum,
+        'cts': cts,
+        'ctsmin': minimum,
+        'route': route,
+        'routemin': minimum,
+        'dfm': dfm
     }
 
     np = {
