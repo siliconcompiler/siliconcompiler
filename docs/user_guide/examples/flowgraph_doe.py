@@ -27,7 +27,6 @@ chip.node(flow, 'import', parse)
 # create node for each syn strategy (first node called import and last node called synmin)
 # and connect all synth nodes to both the first node and last node
 for index in range(len(syn_strategies)):
-#    chip.node(flow, 'syn', 'yosys', 'syn_asic', index=str(index))
     chip.node(flow, 'syn', syn_asic, index=str(index))
     chip.edge(flow, 'import', 'syn', head_index=str(index))
     chip.edge(flow, 'syn', 'synmin', tail_index=str(index))

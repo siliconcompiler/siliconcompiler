@@ -23,7 +23,7 @@ chip.load_target('freepdk45_demo')             # load freepdk45
 # start of flowgraph setup <docs reference>
 flow = 'synflow'
 chip.node(flow, 'import', parse)               # use surelog for import
-chip.node(flow, 'syn',  syn_asic)              # use yosys for synthesis
+chip.node(flow, 'syn', syn_asic)               # use yosys for synthesis
 chip.edge(flow, 'import', 'syn')               # perform syn after import
 chip.set('option', 'flow', flow)
 # end of flowgraph setup <docs reference>

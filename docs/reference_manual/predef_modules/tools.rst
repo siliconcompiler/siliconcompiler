@@ -3,9 +3,10 @@
 Pre-Defined Tools
 ===================
 
-The following are examples are pre-built tool drivers that come with SiliconCompiler which you can use for your own builds.
+The following are examples of pre-built tool drivers that come with SiliconCompiler which you can use for your own builds.
 
-.. warning::
-   **[WIP]** Add more to link to companion modules tools
+.. rst-class:: page-break
+
+See the pre-built :ref:`targets <targets directory>` for examples on how these are used in conjunction with :ref:`pdks <pdk_directory>`, :ref:`flows <flows_directory>` and :ref:`libraries <libs_directory>`.
 
 .. toolgen::
