@@ -31,9 +31,3 @@ def setup(chip):
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'version', '0.0', clobber=clobber)
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=clobber)
-
-##################################################
-if __name__ == "__main__":
-
-    chip = make_docs()
-    chip.write_manifest("xyce.json")

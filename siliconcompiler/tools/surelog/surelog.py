@@ -196,9 +196,3 @@ def runtime_options(chip):
         cmdlist.append(f'-P{param}={value}')
 
     return cmdlist
-
-##################################################
-if __name__ == "__main__":
-
-    chip = make_docs()
-    chip.write_manifest("surelog.json")

@@ -41,7 +41,7 @@ import os
 import sys
 
 # SC_ROOT provided by CLI
-sys.path.append(SC_ROOT)
+sys.path.append(SC_ROOT) # noqa: F821
 
 from schema import Schema
 from tools.klayout.klayout_show import show
@@ -195,7 +195,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
         check_cell = main_layout.cell(check_cell)
         if check_cell.is_empty():
             missing_cell = True
-            print("[ERROR] LEF Cell '{0}' has no matching GDS/OAS cell. Cell will be empty".format(i.name))
+            print("[ERROR] LEF Cell '{0}' has no matching GDS/OAS cell. Cell will be empty".format(check_cell.name))
 
     if not missing_cell:
         print("[INFO] All LEF cells have matching GDS/OAS cells")
