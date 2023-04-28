@@ -38,7 +38,7 @@ def test_gcd_server_authenticated(gcd_chip, unused_tcp_port):
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
     with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps({'address': 'localhost', 
+        tmp_cred_file.write(json.dumps({'address': 'localhost',
                                         'port': unused_tcp_port,
                                         'username': 'test_user',
                                         'password': user_pwd
@@ -90,7 +90,7 @@ def test_gcd_server_not_authenticated(gcd_chip, unused_tcp_port):
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
     with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps({'address': 'localhost', 
+        tmp_cred_file.write(json.dumps({'address': 'localhost',
                                         'port': unused_tcp_port,
                                         'username': 'test_user',
                                         'password': user_pwd + '1'

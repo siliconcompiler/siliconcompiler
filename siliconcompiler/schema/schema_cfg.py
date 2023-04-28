@@ -1103,8 +1103,8 @@ def schema_tool(cfg, tool='default'):
             schelp="""
             Paths to software bill of material (SBOM) document file of the tool
             specified on a per version basis. The SBOM includes critical
-            package information about the tool including the list of included 
-            components, licenses, and copyright. The SBOM file is generally 
+            package information about the tool including the list of included
+            components, licenses, and copyright. The SBOM file is generally
             provided as in a a standardized open data format such as SPDX.""")
     
     scparam(cfg, ['tool', tool, 'path'],
