@@ -73,7 +73,7 @@ def main():
 
         # Print the user's account info, and return.
         print(f'User {remote_cfg["username"]}:')
-        print(f'  Remaining compute time: {(user_info["bandwidth_kb"]/60):.2f}) minutes')
+        print(f'  Remaining compute time: {(user_info["compute_time"]/60.0):.2f} minutes')
         print(f'  Remaining results bandwidth: {user_info["bandwidth_kb"]} KiB')
         return 0
     except Exception:
