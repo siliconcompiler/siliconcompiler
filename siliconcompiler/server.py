@@ -63,7 +63,9 @@ class Server:
                 for mapping in users_json['users']:
                     username = mapping['username']
                     self.user_keys[username] = {
-                        'password': mapping['password']
+                        'password': mapping['password'],
+                        'compute_time': 0,
+                        'bandwidth': 0
                     }
                     if 'compute_time' in mapping:
                         self.user_keys[username]['compute_time'] = mapping['compute_time']
