@@ -26,10 +26,9 @@ def server_cmdline():
     # Add supported schema arguments to the parser.
     for k,v in sorted(def_cfg.items()):
         keystr = str(k)
-        helpstr = (def_cfg[k]['short_help'] +
-                   '\n\n' +
-                   '\n'.join(def_cfg[k]['help']) +
-                   '\n\n---------------------------------------------------------\n')
+        helpstr = def_cfg[k]['short_help'] + \
+            '\n\n' + \
+            '\n'.join(def_cfg[k]['help'])
         if def_cfg[k]['type'][-1] == 'bool':  # scalar
             parser.add_argument(def_cfg[k]['switch'],
                                 metavar=def_cfg[k]['switch_args'],

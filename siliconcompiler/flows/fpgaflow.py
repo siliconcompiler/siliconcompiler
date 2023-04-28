@@ -124,11 +124,11 @@ def flow_lookup(partname):
     virtex7 = bool(re.match('^xc7v', partname))
     virtexultra = bool(re.match('^xcvu', partname))
 
-    xilinx = (spartan6 | spartan7 |
-              artix | artixultra |
-              kintex7 | kintexultra |
-              zynq | zynqultra |
-              virtex7 | virtexultra)
+    xilinx = spartan6 or spartan7 or \
+        artix or artixultra or \
+        kintex7 or kintexultra or \
+        zynq or zynqultra or \
+        virtex7 or virtexultra
 
     #############
     # intel
@@ -139,8 +139,7 @@ def flow_lookup(partname):
     cyclone10 = bool(re.match('^10cl', partname))
     stratix5 = bool(re.match('^5sg', partname))
 
-    intel = (cyclone10 | cyclone4 | cyclone5 |
-             stratix5)
+    intel = cyclone10 or cyclone4 or cyclone5 or stratix5
 
     ###########
     # yosys

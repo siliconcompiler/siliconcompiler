@@ -62,8 +62,7 @@ def setup_asic(chip):
             chip.add('tool', tool, 'task', task, 'require', ",".join(additional_require), step=step, index=index)
 
     # copy techmapping from libraries
-    for lib in (chip.get('asic', 'logiclib', step=step, index=index) +
-                chip.get('asic', 'macrolib', step=step, index=index)):
+    for lib in chip.get('asic', 'logiclib', step=step, index=index) + chip.get('asic', 'macrolib', step=step, index=index):
         if not chip.valid('library', lib, 'option', 'file', 'yosys_techmap'):
             continue
         for techmap in chip.find_files('library', lib, 'option', 'file', 'yosys_techmap'):

@@ -34,8 +34,7 @@ def checkarea(filelist, libdir, target):
     return 0
 
 def main(limit=-1):
-    oh_dir = (os.path.dirname(os.path.abspath(__file__)) +
-              "/../../third_party/designs/oh/")
+    oh_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../third_party/designs/oh/"
     #Checking asiclib
     libdir = os.path.join(oh_dir, 'asiclib', 'hdl')
     filelist = glob.glob(libdir + '/*.v')

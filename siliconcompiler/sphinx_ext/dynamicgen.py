@@ -38,11 +38,9 @@ def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=
 
     schema = Schema(rooted_cfg)
     for kp in schema.allkeys():
-        if (
-            skip_zero_weight and
-            len(kp) == 6 and kp[0] == 'flowgraph' and kp[-2] == 'weight' and
-            schema.get(*kp) == 0
-        ):
+        if skip_zero_weight and \
+           len(kp) == 6 and kp[0] == 'flowgraph' and kp[-2] == 'weight' and \
+           schema.get(*kp) == 0:
             continue
 
         values = schema._getvals(*kp, return_defvalue=False)
