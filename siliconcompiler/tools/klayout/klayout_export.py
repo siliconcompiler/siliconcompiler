@@ -129,10 +129,10 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
                     xhi = int(m.group('xhi')) / units
                     yhi = int(m.group('yhi')) / units
                     top.shapes(layer).insert(pya.DBox(xlo, ylo, xhi, yhi))
-                elif re.match('FILLS \d+ ;', line):
+                elif re.match(r'FILLS \d+ ;', line):
                     in_fills = True
                 elif not units:
-                    m = re.match('UNITS DISTANCE MICRONS (\d+)', line)
+                    m = re.match(r'UNITS DISTANCE MICRONS (\d+)', line)
                     if m:
                         units = float(m.group(1))
 
