@@ -85,7 +85,9 @@ def setup_asic(chip):
             chip.add('tool', tool, 'task', task, 'require', ",".join(key0), step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner', get_synthesis_corner(chip), step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', get_dff_liberty_file(chip), step=step, index=index, clobber=False)
+    dff_liberty_file = get_dff_liberty_file(chip)
+    if dff_liberty_file:
+        chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', dff_liberty_file, step=step, index=index, clobber=False)
     chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'synthesis_corner']), step=step, index=index)
     chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'file', 'dff_liberty']), step=step, index=index)
 
