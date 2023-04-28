@@ -1,4 +1,5 @@
 from siliconcompiler.core import Chip, SiliconCompilerError, TaskStatus
+from siliconcompiler.schema import Schema
 
 from siliconcompiler._metadata import version as __version__
 
@@ -12,5 +13,6 @@ __all__ = [
     "PDK",
     "Library",
     "Flow",
-    "Checklist"
+    "Checklist",
+    "Schema"
 ]
