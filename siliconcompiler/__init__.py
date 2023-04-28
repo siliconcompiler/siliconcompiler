@@ -1,4 +1,4 @@
-from siliconcompiler.core import *
+from siliconcompiler.core import Chip, SiliconCompilerError, TaskStatus
 
 from siliconcompiler._metadata import version as __version__
 

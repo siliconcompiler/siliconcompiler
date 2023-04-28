@@ -1,5 +1,3 @@
-from siliconcompiler.tools.surelog.surelog import *
-
 def setup(chip):
     chip.set('tool', 'dummy', 'exe', 'echo')
     chip.set('tool', 'dummy', 'vswitch', '--version')
