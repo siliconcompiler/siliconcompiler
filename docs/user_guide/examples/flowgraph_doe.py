@@ -23,7 +23,7 @@ for index in range(len(syn_strategies)):
     chip.node(flow, 'syn', 'yosys', 'syn_asic', index=str(index))
     chip.edge(flow, 'import', 'syn', head_index=str(index))
     chip.edge(flow, 'syn', 'synmin', tail_index=str(index))
-    chip.set('tool', 'yosys', 'task', 'syn_asic', 'var', 'strategy', syn_strategies[index], step=syn, index=index)
+    chip.set('tool', 'yosys', 'task', 'syn_asic', 'var', 'strategy', syn_strategies[index], step='syn', index=index)
 
     # set synthesis metrics that you want to optimize for
     for metric in ('cellarea', 'peakpower', 'standbypower'):
@@ -34,4 +34,4 @@ chip.node(flow, 'synmin', 'builtin', 'minimum')
 
 chip.set('option', 'flow', flow)
 chip.write_flowgraph("flowgraph_doe.svg")
-#chip.write_manifest("doe.json")
+chip.write_manifest("doe.json")
