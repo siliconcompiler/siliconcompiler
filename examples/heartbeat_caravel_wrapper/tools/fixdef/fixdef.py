@@ -74,12 +74,12 @@ def run(chip):
                     if l.strip().startswith('SPECIALNETS'):
                         la = l.strip().split()
                         numnets = int(la[1]) + len(pin_locs)
-                        wf.write('SPECIALNETS %i ;\n'%numnets)
+                        wf.write('SPECIALNETS %i ;\n' % numnets)
                     # (There may not be a SPECIALNETS section in the DEF output)
                     elif l.strip().startswith('END NETS'):
                         wf.write(l)
                         numnets = len(pin_locs)
-                        wf.write('SPECIALNETS %i ;\n'%numnets)
+                        wf.write('SPECIALNETS %i ;\n' % numnets)
                     elif (l.strip() == 'END SPECIALNETS') or (l.strip() == 'END DESIGN'):
                         for k, v in pin_locs.items():
                             ml = 0
@@ -95,9 +95,9 @@ def run(chip):
                                 xr = int(v['x'] + v['w'] / 2)
                                 yb = v['y']
                                 yu = v['y']
-                            wf.write('    - %s ( PIN %s ) + USE SIGNAL\n'%(v['net'], k))
-                            wf.write('      + ROUTED %s %i + SHAPE STRIPE ( %i %i ) ( %i %i )\n'%(v['layer'], int(ml), xl, yb, xr, yu))
-                            wf.write('      NEW %s %i + SHAPE STRIPE ( %i %i ) ( %i %i ) ;\n'%(v['layer'], int(ml), xl, yb, xr, yu))
+                            wf.write('    - %s ( PIN %s ) + USE SIGNAL\n' % (v['net'], k))
+                            wf.write('      + ROUTED %s %i + SHAPE STRIPE ( %i %i ) ( %i %i )\n' % (v['layer'], int(ml), xl, yb, xr, yu))
+                            wf.write('      NEW %s %i + SHAPE STRIPE ( %i %i ) ( %i %i ) ;\n' % (v['layer'], int(ml), xl, yb, xr, yu))
                         if l.strip() == 'END DESIGN':
                             wf.write('END SPECIALNETS\n')
                         wf.write(l)

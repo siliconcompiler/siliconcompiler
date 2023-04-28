@@ -32,7 +32,7 @@ def general_gui_setup(chip, task, exit):
 
     chip.set('tool', tool, 'task', task, 'var', 'show_exit', "true" if exit else "false", step=step, index=index, clobber=False)
 
-    ## Help
+    # Help
     chip.set('tool', tool, 'task', task, 'var', 'hide_layers', 'List of layers to hide', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'show_filepath', 'File to open', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'show_filetype', 'File type to look for in the inputs', field='help')

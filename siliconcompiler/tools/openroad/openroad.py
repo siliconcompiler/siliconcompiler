@@ -76,7 +76,7 @@ def setup(chip, mode='batch'):
         clobber = False
 
     # Fixed for tool
-    setup_tool(chip, exit=(mode=='batch' or is_screenshot), clobber=clobber)
+    setup_tool(chip, exit=(mode == 'batch' or is_screenshot), clobber=clobber)
 
     # normalizing thread count based on parallelism and local
     threads = os.cpu_count()
@@ -196,6 +196,7 @@ def setup(chip, mode='batch'):
     # set default values for openroad
     for variable, value, helptext in [
         ('ifp_tie_separation', '0', 'maximum distance between tie high/low cells in microns'),
+        ('ifp_snap_strategy', 'site', 'Snapping strategy to use when placing macros. Allowed values: none, site, manufacturing_grid'),
         ('pdn_enable', 'true', 'true/false, when true enables power grid generation'),
         ('gpl_routability_driven', 'true', 'true/false, when true global placement will consider the routability of the design'),
         ('gpl_timing_driven', 'true', 'true/false, when true global placement will consider the timing performance of the design'),

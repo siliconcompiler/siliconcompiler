@@ -55,7 +55,7 @@ def main():
                          'help': 'library to include in the testcase, if not provided all libraries will be added according to the -exclude_libraries flag',
                          'metavar': '<library>'},
         '-add_pdk': {'action': 'append',
-                     'help':  'pdk to include in the testcase, if not provided all libraries will be added according to the -exclude_pdks flag',
+                     'help': 'pdk to include in the testcase, if not provided all libraries will be added according to the -exclude_pdks flag',
                      'metavar': '<pdk>'},
 
         '-file': {'help': 'filename for the generated testcase',

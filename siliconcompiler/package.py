@@ -58,7 +58,7 @@ class Sup:
             self.chip.logger.error(f"Exiting due to previous errors.")
             sys.exit()
 
-        return(0)
+        return 0
 
     ############################################################################
     def publish(self, filename, registry=None,
@@ -99,7 +99,7 @@ class Sup:
             ofile = os.path.join(odir,f"{self.chip.design}-{version}.sup.gz")
             self.chip.write_manifest(ofile)
 
-        return(0)
+        return 0
 
     ############################################################################
     def install(self, name, nodeps=False):
@@ -117,7 +117,7 @@ class Sup:
         remote = self.chip._build_index(self.registry)
 
         # Allow name to be with or without version
-        m =re.match(r'(.*?)-([\d\.]+)$',name)
+        m = re.match(r'(.*?)-([\d\.]+)$',name)
         if m:
             design = m.group(1)
             version = m.group(2)
@@ -130,10 +130,10 @@ class Sup:
         deps[design] = [version]
 
         #TODO: allow for installing one package only (nodep tree)
-        auto=True
+        auto = True
         self.chip._find_deps(self.cache, local, remote, design, deps, auto)
 
-        return(0)
+        return 0
 
     ############################################################################
 
@@ -149,7 +149,7 @@ class Sup:
         '''
 
         # Allow name to be with or without version
-        m =re.match(r'(.*?)-([\d\.]+)$',name)
+        m = re.match(r'(.*?)-([\d\.]+)$',name)
         if m:
             design = m.group(1)
             ver = m.group(2)
@@ -162,7 +162,7 @@ class Sup:
         else:
             shutil.rmtree(os.path.join(self.cache, design, ver))
 
-        return(0)
+        return 0
 
     ############################################################################
 
@@ -178,7 +178,7 @@ class Sup:
         remote = self.chip._build_index(self.registry)
         local = self.chip._build_index(self.cache)
 
-        m =re.match(r'(.*?)-([\d\.]+)$',name)
+        m = re.match(r'(.*?)-([\d\.]+)$',name)
         if m:
             design = m.group(1)
             ver = m.group(2)
@@ -192,7 +192,7 @@ class Sup:
         for item in remote.keys():
             if item == design:
                 for j in remote[item].keys():
-                    reg =  remote[item][j]
+                    reg = remote[item][j]
                     if ver is None:
                         foundit = True
                         self.chip.logger.info(f"Found package '{item}-{j}' in registry '{reg}'")
@@ -243,4 +243,4 @@ class Sup:
         for item in all_packages:
             os.removedirs(item)
 
-        return(0)
+        return 0

@@ -7,7 +7,7 @@ def test_valid():
     chip = siliconcompiler.Chip('test')
     chip.load_target("freepdk45_demo")
     #basic
-    valid =  chip.valid('design')
+    valid = chip.valid('design')
     assert valid
     #nest
     valid = chip.valid('pdk', 'freepdk45', 'foundry')
@@ -20,7 +20,7 @@ def test_valid():
     assert valid
     #dynamic with default fields
     valid = chip.valid('constraint', 'timing', 'default', 'voltage')
-    assert  valid
+    assert valid
     #not working
     valid = chip.valid('blah')
     assert not valid

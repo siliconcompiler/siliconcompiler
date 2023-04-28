@@ -3,68 +3,74 @@ import shlex
 import subprocess
 import stat
 import time
+import uuid
+import json
 
 ###########################################################################
 def _deferstep(chip, step, index, status):
     '''
     Helper method to run an individual step on a slurm cluster.
-    If a base64-encoded 'decrypt_key' is set in the Chip's status
-    dictionary, the job's data is assumed to be encrypted,
-    and a more complex command is assembled to ensure that the data
-    is only decrypted temporarily in the compute node's local storage.
     '''
 
     # Determine which HPC job scheduler being used.
     scheduler_type = chip.get('option', 'scheduler', 'name', step=step, index=index)
 
+    if scheduler_type != 'slurm':
+        raise ValueError(f'{scheduler_type} is not a supported scheduler')
+
     # Determine which cluster parititon to use. (Default value can be overridden on per-step basis)
     partition = chip.get('option', 'scheduler', 'queue', step=step, index=index)
-    # Get the temporary UID associated with this job run.
-    job_hash = chip.status['jobhash']
+    if not partition:
+        partition = _get_slurm_partition()
 
-    # Job data is not encrypted, so it can be run in shared storage.
+    # Get the temporary UID associated with this job run.
+    if 'jobhash' in chip.status:
+        job_hash = chip.status['jobhash']
+    else:
+        # Generate a new uuid since it was not set
+        job_hash = uuid.uuid4().hex
+
+    job_name = f'{job_hash}_{step}{index}'
+
     # Write out the current schema for the compute node to pick up.
     job_dir = chip._getworkdir()
     cfg_dir = f'{job_dir}/configs'
     cfg_file = f'{cfg_dir}/{step}{index}.json'
     if not os.path.isdir(cfg_dir):
         os.mkdir(cfg_dir)
-    chip.unset('option', 'scheduler', 'name', step=step, index=index)
+    
+    # TODO: should be .unset, but due to inconsistant behavior around global / step-index unsetting
+    # cannot be used at the momment
+    chip.set('option', 'scheduler', 'name', None, step=step, index=index)
     chip.write_manifest(cfg_file)
 
-    if scheduler_type == 'slurm':
-        # The script defining this Chip object may specify feature(s) to
-        # ensure that the job runs on a specific subset of available nodes.
-        # TODO: Maybe we should add a Schema parameter for these values.
-        if 'slurm_constraint' in chip.status:
-            slurm_constraint = chip.status['slurm_constraint']
-        else:
-            slurm_constraint = 'SHARED'
+    # Set the log file location.
+    # TODO: May need to prepend ('option', 'builddir') and remove the '--chdir' arg if
+    # running on a locally-managed cluster control node instead of submitting to a server app.
+    #output_file = os.path.join(chip.get('option', 'builddir'),
+    output_file = os.path.join(chip._getworkdir(),
+                               f'sc_remote-{step}-{index}.log')
+    schedule_cmd = ['sbatch',
+                    '--exclusive',
+                    '--partition', partition,
+                    '--chdir', chip.cwd,
+                    '--job-name', job_name,
+                    '--output', output_file]
 
-        # Set the log file location.
-        # TODO: May need to prepend ('option', 'builddir') and remove the '--chdir' arg if
-        # running on a locally-managed cluster control node instead of submitting to a server app.
-        #output_file = os.path.join(chip.get('option', 'builddir'),
-        output_file = os.path.join(chip.get('design'),
-                                   chip.get('option', 'jobname'),
-                                   f'sc_remote-{step}-{index}.log')
-        schedule_cmd = ['sbatch', '--exclusive',
-                        '--constraint', slurm_constraint,
-                        '--partition', partition,
-                        '--chdir', chip.get('option', 'builddir'),
-                        '--job-name', f'{job_hash}_{step}{index}',
-                        '--output', output_file]
-        # Only specify an account if accounting is required for this cluster/run.
-        if 'slurm_account' in chip.status:
-            username = chip.status['slurm_account']
-            schedule_cmd.extend(['--account', username])
-        # Only delay the starting time if the 'defer' Schema option is specified.
-        defer_time = chip.get('option', 'scheduler', 'defer', step=step, index=index)
-        if defer_time:
-            schedule_cmd.extend(['--begin', defer_time])
-    elif scheduler_type == 'lsf':
-        # TODO: LSF support is untested and currently unsupported.
-        schedule_cmd = ['lsrun']
+    # The script defining this Chip object may specify feature(s) to
+    # ensure that the job runs on a specific subset of available nodes.
+    # TODO: Maybe we should add a Schema parameter for these values.
+    if 'slurm_constraint' in chip.status:
+        schedule_cmd.extend(['--constraint', chip.status['slurm_constraint']])
+
+    # Only specify an account if accounting is required for this cluster/run.
+    if 'slurm_account' in chip.status:
+        schedule_cmd.extend(['--account', chip.status['slurm_account']])
+
+    # Only delay the starting time if the 'defer' Schema option is specified.
+    defer_time = chip.get('option', 'scheduler', 'defer', step=step, index=index)
+    if defer_time:
+        schedule_cmd.extend(['--begin', defer_time])
 
     # Allow user-defined compute node execution script if it already exists on the filesystem.
     # Otherwise, create a minimal script to run the task using the SiliconCompiler CLI.
@@ -117,8 +123,8 @@ def _deferstep(chip, step, index, status):
                 # File size overrun; cancel the current task, and mark an error.
                 retcode = 1
                 sq_out = subprocess.run(['squeue',
-                                         '--partition', 'debug',
-                                         '--name', f'{job_hash}_{step}{index}',
+                                         '--partition', partition,
+                                         '--name', job_name,
                                          '--noheader'],
                                         stdout=subprocess.PIPE)
                 for line in sq_out.stdout.splitlines():
@@ -148,3 +154,16 @@ def _deferstep(chip, step, index, status):
 
     if retcode > 0:
         chip.logger.error(f'srun command for {step} failed.')
+
+def _get_slurm_partition():
+    partitions = subprocess.run(['sinfo', '--json'],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+    #partitions.wait()
+    if partitions.returncode != 0:
+        raise RuntimeError('Unable to determine partitions in slurm')
+
+    sinfo = json.loads(partitions.stdout.decode())
+
+    # Return the first listed partition
+    return sinfo['nodes'][0]['partitions'][0]

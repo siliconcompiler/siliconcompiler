@@ -71,6 +71,7 @@ jobs:
 
       - name: Run tests with Python ${{ matrix.python-version }}
         run: |
+          /start_slurm.sh
           export PYENV_ROOT="$HOME/.pyenv"
           export PATH="$PYENV_ROOT/bin:$PATH"
           eval "$(pyenv init -)"

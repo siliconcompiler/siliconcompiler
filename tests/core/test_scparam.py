@@ -36,9 +36,9 @@ def test_scparam():
     # golden version
     cfg_golden = {}
 
-    step='default'
-    index='default'
-    group='default'
+    step = 'default'
+    index = 'default'
+    group = 'default'
 
     cfg_golden['metric'] = {}
     cfg_golden['metric'][step] = {}

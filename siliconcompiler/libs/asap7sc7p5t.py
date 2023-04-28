@@ -112,9 +112,9 @@ def setup(chip):
     ASAP 7 7.5-track standard cell library.
     '''
     all_libs = {
-        'asap7sc7p5t_rvt' : 'R',
-        'asap7sc7p5t_lvt' : 'L',
-        'asap7sc7p5t_slvt' : 'SL'
+        'asap7sc7p5t_rvt': 'R',
+        'asap7sc7p5t_lvt': 'L',
+        'asap7sc7p5t_slvt': 'SL'
     }
 
     libs = []

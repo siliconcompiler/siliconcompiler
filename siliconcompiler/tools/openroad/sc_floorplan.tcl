@@ -247,6 +247,53 @@ dict for {side pins} $pin_order {
 
 # If manual macro placement is provided use that first
 if {[dict exists $sc_cfg constraint component]} {
+  set sc_snap_strategy [dict get $sc_cfg tool $sc_tool task $sc_task {var} ifp_snap_strategy]
+
+  if { $sc_snap_strategy == "manufacturing_grid" } {
+    if { [ord::get_db_tech] hasManufacturingGrid } {
+      set x_grid [[ord::get_db_tech] getManufacturingGrid]
+      set y_grid $x_grid
+    } else {
+      utl::warn FLW 1 "Manufacturing grid is not defined, defaulting to 'none' snapping strategy"
+      set x_grid 1
+      set y_grid 1
+    }
+  } elseif { $sc_snap_strategy == "site" } {
+    set x_grid 0
+    set y_grid 0
+    foreach row [[ord::get_db_block] getRows] {
+      set site [$row getSite]
+      if { [$site getClass] == "PAD" } {
+        continue
+      }
+
+      set site_height [$site getHeight]
+      set site_width  [$site getWidth]
+      if { $y_grid == 0 } {
+        set y_grid $site_height
+      } elseif { $y_grid > $site_height } {
+        set y_grid $site_height
+      }
+      if { $x_grid == 0 } {
+        set x_grid $site_width
+      } elseif { $x_grid > $site_width } {
+        set x_grid $site_width
+      }
+    }
+  } else {
+    set x_grid 1
+    set y_grid 1
+  }
+
+  if { $x_grid == 0 || $y_grid == 0 } {
+    utl::warn FLW 1 "Unable to determine snapping grid."
+    set x_grid 1
+    set y_grid 1
+  }
+
+  set x_grid [ord::dbu_to_microns $x_grid]
+  set y_grid [ord::dbu_to_microns $y_grid]
+
   dict for {name params} [dict get $sc_cfg constraint component] {
     set location [dict get $params placement]
     set rotation [dict get $params rotation]
@@ -256,7 +303,7 @@ if {[dict exists $sc_cfg constraint component]} {
     } else {
       set cell ""
     }
-    if { [dict exists $params halo] } {
+    if { [llength [dict get $params halo]] != 0 } {
       utl::warn FLW 1 "Halo is not supported in OpenROAD"
     }
 
@@ -277,9 +324,11 @@ if {[dict exists $sc_cfg constraint component]} {
     set height [ord::dbu_to_microns [$master getHeight]]
     set width [ord::dbu_to_microns [$master getWidth]]
 
-    # TODO: determine snapping method and apply
     set x_loc [expr [lindex $location 0] - $width / 2]
     set y_loc [expr [lindex $location 1] - $height / 2]
+
+    set x_loc [expr round($x_loc / $x_grid) * $x_grid]
+    set y_loc [expr round($y_loc / $y_grid) * $y_grid]
 
     set place_args []
     if { $cell != "" } {
