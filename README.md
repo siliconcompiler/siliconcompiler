@@ -92,8 +92,8 @@ To install the project from source (recommended for developers only).
 ```bash
 git clone https://github.com/siliconcompiler/siliconcompiler
 cd siliconcompiler
-python -m pip install -e .
-python -m pip install -e .[docs,test]  # Install dependencies for generating docs and running tests
+python -m pip install -e .             # Required install step
+python -m pip install -e .[docs,test]  # Optional install step for generating docs and running tests
 ```
 
 # Tool Installation
