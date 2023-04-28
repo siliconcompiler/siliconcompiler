@@ -61,9 +61,16 @@ class Server:
                 with open(json_path, 'r') as users_file:
                     users_json = json.loads(users_file.read())
                 for mapping in users_json['users']:
-                    self.user_keys[mapping['username']] = {
+                    username = mapping['username']
+                    self.user_keys[username] = {
                         'password': mapping['password'],
+                        'compute_time': 0,
+                        'bandwidth': 0
                     }
+                    if 'compute_time' in mapping:
+                        self.user_keys[username]['compute_time'] = mapping['compute_time']
+                    if 'bandwidth' in mapping:
+                        self.user_keys[username]['bandwidth'] = mapping['bandwidth']
             except Exception:
                 self.logger.warning("Could not find well-formatted 'users.json' "
                                     "file in the server's working directory. "
@@ -74,6 +81,7 @@ class Server:
         self.app.add_routes([
             web.post('/remote_run/', self.handle_remote_run),
             web.post('/check_progress/', self.handle_check_progress),
+            web.post('/check_user/', self.handle_check_user),
             web.post('/delete_job/', self.handle_delete_job),
             web.post('/get_results/{job_hash}.tar.gz', self.handle_get_results),
         ])
@@ -263,6 +271,28 @@ class Server:
             return web.Response(text="Job has no running steps.")
 
     ####################
+    async def handle_check_user(self, request):
+        '''
+        API handler for the 'check user' endpoint.
+        '''
+
+        # Process input parameters
+        job_params, response = self.__check_request(await request.json(), require_job_hash=False)
+        if response is not None:
+            return response
+
+        username = job_params['username']
+        if not username:
+            return self.__response("Invalid username provided", status=400)
+
+        resp = {
+            'compute_time': self.user_keys[username]['compute_time'],
+            'bandwidth_kb': self.user_keys[username]['bandwidth']
+        }
+
+        return web.json_response(resp)
+
+    ####################
     async def remote_sc(self, chip, username):
         '''
         Async method to delegate an '.run()' command to a host,
@@ -283,14 +313,13 @@ class Server:
         build_dir = os.path.join(self.nfs_mount, job_hash)
         chip.set('option', 'builddir', build_dir)
         chip.set('option', 'remote', False)
-        chip.unset('option', 'credentials')
 
         os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
         chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
 
         if self.cfg['cluster']['value'][-1] == 'slurm':
             # Run the job with slurm clustering.
-            chip.set('option', 'jobscheduler', 'slurm')
+            chip.set('option', 'scheduler', 'name', 'slurm')
 
         chip.run()
 
@@ -318,17 +347,18 @@ class Server:
             return False
         return password == self.user_keys[username]['password']
 
-    def __check_request(self, request):
+    def __check_request(self, request, require_job_hash=True):
         params = {}
 
-        # Get the job hash value, and verify it is a 32-char hex string.
-        if 'job_hash' not in request:
-            return (params, self.__response("Error: no job hash provided.", status=400))
+        if require_job_hash:
+            # Get the job hash value, and verify it is a 32-char hex string.
+            if 'job_hash' not in request:
+                return (params, self.__response("Error: no job hash provided.", status=400))
 
-        if not re.match("^[0-9A-Za-z]{32}$", request['job_hash']):
-            return (params, self.__response("Error: invalid job hash.", status=400))
+            if not re.match("^[0-9A-Za-z]{32}$", request['job_hash']):
+                return (params, self.__response("Error: invalid job hash.", status=400))
 
-        params['job_hash'] = request['job_hash']
+            params['job_hash'] = request['job_hash']
 
         # Check for authentication parameters.
         params['username'] = None
