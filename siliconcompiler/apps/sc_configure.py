@@ -2,10 +2,11 @@
 import os
 import sys
 import json
-from pathlib import Path
+import argparse
 from urllib.parse import urlparse
 
 from siliconcompiler._metadata import default_server
+from siliconcompiler.utils import default_credentials_file
 
 tos_str = '''Please review the SiliconCompiler cloud beta's terms of service:
 
@@ -27,7 +28,6 @@ def confirm_dialog(message):
 
 def main():
     progname = "sc-configure"
-    switchlist = []
     description = """
     -----------------------------------------------------------
     SC app that saves a remote configuration file for use with
@@ -36,18 +36,23 @@ def main():
     -----------------------------------------------------------
     """
 
+    # Argument Parser
+    parser = argparse.ArgumentParser(prog=progname,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     description=description)
+
+    parser.add_argument('-file', metavar='<file>', default=default_credentials_file(), help='Path to credentials file')
+    parser.add_argument('server', nargs='?', help='URL to a server')
+
+    #Parsing args and converting to dict
+    cmdargs = vars(parser.parse_args())
+
     default_server_name = urlparse(default_server).hostname
 
-    # Return early and print a help string if necessary.
-    if (len(sys.argv) > 1) and \
-       ((sys.argv[1] == '--help') or (sys.argv[1] == '-h')):
-        print('Usage: sc-configure')
-        print('Generates the remote configuration file.')
-        sys.exit(0)
-
     # Find the config file/directory path.
-    cfg_dir = os.path.join(Path.home(), '.sc')
-    cfg_file = os.path.join(cfg_dir, 'credentials')
+    cfg_file = cmdargs['file']
+    cfg_dir = os.path.dirname(cfg_file)
+
     # Create directory if it doesn't exist.
     if not os.path.isdir(cfg_dir):
         os.makedirs(cfg_dir)
@@ -55,15 +60,14 @@ def main():
     # If an existing config file exists, prompt the user to overwrite it.
     if os.path.isfile(cfg_file):
         if not confirm_dialog('Overwrite existing remote configuration?'):
-            return
+            return 0
 
     config = {}
 
     # If a command-line argument is passed in, use that as a public server address.
-    interactive = len(sys.argv) <= 1
-    if not interactive:
-        print(f'Creating remote configuration file for public server: {sys.argv[1]}')
-        srv_addr = sys.argv[1]
+    if cmdargs['server']:
+        srv_addr = cmdargs['server']
+        print(f'Creating remote configuration file for public server: {srv_addr}')
     else:
         # If no arguments were passed in, interactively request credentials from the user.
         srv_addr = input('Remote server address:\n').replace(" ","")
@@ -76,7 +80,7 @@ def main():
         server = urlparse('https://' + srv_addr)
     if not server.hostname:
         print(f'Invalid address provided: {srv_addr}')
-        return
+        return 1
 
     if has_scheme:
         config['address'] = f'{server.scheme}://{server.hostname}'
@@ -90,7 +94,7 @@ def main():
     if server.port is not None:
         config['port'] = server.port
 
-    if not public_server and interactive:
+    if not public_server and not cmdargs['server']:
         username = server.username
         if not username:
             username = input('Remote username:\n').replace(" ","")
@@ -109,6 +113,8 @@ def main():
 
     # Let the user know that we finished successfully.
     print(f'Remote configuration saved to: {cfg_file}')
+
+    return 0
 
 #########################
 if __name__ == "__main__":
