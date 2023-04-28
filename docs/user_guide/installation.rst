@@ -25,6 +25,10 @@ Open up a terminal and enter the following command sequence.
 .. note::
    Currently Ubuntu on ARM64 is not supported. It is planned to be included as part of the next release.
    
+.. note::
+   If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
+   You can make sure you have this dependency by running ``sudo apt install graphviz xdot``
+
 Skip ahead to `SC Install`_.
 
 RHEL (>=RHEL 7)
@@ -46,6 +50,11 @@ Open up a terminal and enter the following command sequence.
    source ./venv/bin/activate                                         # active virtual env (bash/zsh)
    pip install --upgrade pip                                          # upgrade Pip
 
+.. note::
+   If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
+   You can make sure you have this dependency by running ``sudo yum -y install graphviz xdot``
+
+	     
 Skip ahead to `SC Install`_.
 
 macOS (>=10.15)
@@ -62,6 +71,12 @@ Open up a terminal and enter the following command sequence.
    python3 -m venv  ./venv                                # create a virtual env
    source ./venv/bin/activate                             # active virtual env
 
+.. note::
+   If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
+   You can make sure you have this dependency by running ``brew install graphviz xdot``
+
+
+   
 Skip ahead to `SC Install`_.
 
 Windows (>= Windows 10)
@@ -79,7 +94,9 @@ From the command shell, enter the following sequence to create and activate a vi
   python -m venv  .\venv
   .\venv\Scripts\activate
 
-
+.. note::
+   If you plan to generate any docs or create any flowgraphs, you'll also need to `install Graphviz <https://graphviz.org/download/#windows>`_.
+   
 .. _SC Install:
 
 
