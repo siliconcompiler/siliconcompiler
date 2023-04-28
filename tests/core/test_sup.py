@@ -103,7 +103,7 @@ def test_sup_circ_import():
         chip.set('package', 'description', 'sup?')
         chip.set('package', 'dependency', i, '0.0.0')
         chip.set('option', 'autoinstall', True)
-        with pytest.raises(sc.SiliconCompilerError) as pytest_wrapped_e:
+        with pytest.raises(sc.SiliconCompilerError):
             chip.update()
 
 #########################

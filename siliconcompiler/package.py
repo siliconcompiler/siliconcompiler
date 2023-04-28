@@ -87,7 +87,6 @@ class Sup:
 
         # extract basic information
         version = self.chip.get('package', 'version')
-        ifile = f"{self.chip.design}-{version}.sup.gz"
 
         if re.match(r'http', registry):
             #TODO
@@ -174,7 +173,6 @@ class Sup:
         '''
 
         remote = self.chip._build_index(self.registry)
-        local = self.chip._build_index(self.cache)
 
         m = re.match(r'(.*?)-([\d\.]+)$',name)
         if m:

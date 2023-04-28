@@ -44,6 +44,7 @@ def setup_pdk(chip):
     # DPW Settings
     ##################
 
+    chip.set('pdk','wafersize', wafersize)
     chip.set('pdk','edgemargin', 2)
     chip.set('pdk','hscribe', 0.1)
     chip.set('pdk','vscribe', 0.1)

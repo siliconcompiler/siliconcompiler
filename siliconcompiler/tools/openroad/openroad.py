@@ -300,7 +300,6 @@ def post_process(chip):
     #Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool = 'openroad'
 
     # parsing log file
     with open("reports/metrics.json", 'r') as f:

@@ -15,7 +15,7 @@ def test_cwd():
     # The act of creating a Chip object should raise a SiliconCompilerError
     # if the current working directory does not exist.
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-        chip = siliconcompiler.Chip('my_design')
+        siliconcompiler.Chip('my_design')
 
 #########################
 if __name__ == "__main__":

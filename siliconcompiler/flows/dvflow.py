@@ -2,6 +2,7 @@ import siliconcompiler
 
 from siliconcompiler.tools.surelog import parse as surelog_parse
 from siliconcompiler.tools.verilator import compile
+from siliconcompiler.tools.builtin import verify
 
 ############################################################################
 # DOCS
@@ -55,9 +56,10 @@ def setup(chip, np=1):
         # 'refsim': ('verilator', 'refsim'),
         # 'sim': ('verilator', 'sim'),
         # 'compare': ('verilator', 'compare'),
-        'signoff': 'builtin.verify'
+        'signoff': verify
     }
 
+    prevstep = None
     # Flow setup
     for step in flowpipe:
         task = tasks[step]

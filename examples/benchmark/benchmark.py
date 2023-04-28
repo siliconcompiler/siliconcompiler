@@ -7,8 +7,6 @@ from siliconcompiler.flows import asicflow
 
 def main():
     rootdir = os.path.dirname(__file__)
-    target = "skywater130_demo"
-    jobname = 'job0'
 
     examples = [{'heartbeat': 1000},
                 {'picorv32': 1000},

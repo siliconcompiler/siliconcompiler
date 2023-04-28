@@ -36,7 +36,6 @@ def setup(chip):
     step = chip.get('arg','step')
     index = chip.get('arg','index')
     task = chip._get_task(step, index)
-    design = chip.top()
 
     # Standard Setup
     chip.set('tool', tool, 'exe', 'yosys')
@@ -89,7 +88,6 @@ def syn_post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 

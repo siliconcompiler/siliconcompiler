@@ -1257,13 +1257,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         """Internal find_files() that allows you to skip step/index for optional
         params, regardless of [option, strict]."""
 
-        copyall = self.get('option', 'copyall', job=job)
         paramtype = self.get(*keypath, field='type', job=job)
-
-        if 'file' in paramtype or 'dir' in paramtype:
-            copy = self.get(*keypath, field='copy', job=job)
-        else:
-            copy = False
 
         if 'file' not in paramtype and 'dir' not in paramtype:
             self.error('Can only call find_files on file or dir types')

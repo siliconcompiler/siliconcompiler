@@ -363,7 +363,6 @@ def top_floorplan(fp):
     indices[VDDIO] = 0
     indices[VSSIO] = 0
     gpio_h = fp.available_cells[GPIO].height
-    pow_h = fp.available_cells[VDD].height
     corner_w = fp.available_cells[CORNER].width
     corner_h = fp.available_cells[CORNER].height
     fill_cell_h = fp.available_cells[FILL_CELLS[0]].height

@@ -46,8 +46,6 @@ def build_core():
     # (Un-comment to display a summary report)
     core_chip.summary()
 
-    design = core_chip.top()
-
     # Setup outputs
     stackup = core_chip.get('option', 'stackup')
     core_chip.set('output', stackup, 'lef', core_chip.find_result('lef', step='export', index='1'))
