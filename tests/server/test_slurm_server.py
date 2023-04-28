@@ -22,6 +22,7 @@ def gcd_remote_test(gcd_chip, unused_tcp_port):
 
     # Mock the _runstep method.
     old__runtask = gcd_chip._runtask
+
     def mocked_runtask(*args, **kwargs):
         if args[0] == 'import':
             old__runtask(*args)
