@@ -1,4 +1,4 @@
-from migen import *
+from migen import Module, Signal, Cat, Replicate
 from migen.fhdl.verilog import convert
 
 import siliconcompiler

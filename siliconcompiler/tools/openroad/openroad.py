@@ -130,7 +130,7 @@ def setup(chip, mode='batch'):
                     chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', corner, delaymodel]), step=step, index=index)
             chip.add('tool', tool, 'task', task, 'require', ",".join(['library', lib, 'output', stackup, 'lef']), step=step, index=index)
     else:
-        chip.error(f'Stackup and logiclib parameters required for OpenROAD.')
+        chip.error('Stackup and logiclib parameters required for OpenROAD.')
 
     chip.set('tool', tool, 'task', task, 'var', 'timing_corners', sorted(get_corners(chip)), step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'timing_corners', 'list of timing corners to use', field='help')
@@ -300,7 +300,6 @@ def post_process(chip):
     #Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool = 'openroad'
 
     # parsing log file
     with open("reports/metrics.json", 'r') as f:
@@ -352,11 +351,12 @@ def post_process(chip):
             ('buffers', 'sc__metric__design__buffers', True, None)
         ]:
             if or_metric in metrics:
+                value = metrics[or_metric]
+
                 # Check for INF timing
                 if or_unit == 'time' and value > 1e38:
                     or_use = False
 
-                value = metrics[or_metric]
                 if or_unit:
                     if or_unit in or_units:
                         or_unit = or_units[or_unit]

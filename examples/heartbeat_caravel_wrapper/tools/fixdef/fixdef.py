@@ -58,8 +58,8 @@ def run(chip):
                         in_layer = la[2]
                         pin_w = abs(int(la[8]) - int(la[4]))
                         pin_h = abs(int(la[9]) - int(la[5]))
-                    elif ('PLACED' in l) and ('vcc' not in in_pin) and ('vss' not in in_pin):
-                        la = l.strip().split()
+                    elif ('PLACED' in line) and ('vcc' not in in_pin) and ('vss' not in in_pin):
+                        la = line.strip().split()
                         pin_locs[in_pin] = {'layer': in_layer,
                                             'net': in_net,
                                             'x': int(la[3]),

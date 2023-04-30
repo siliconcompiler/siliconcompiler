@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import math
-import shutil
 
 from siliconcompiler.core import Chip
 from siliconcompiler.libs import sky130io
@@ -363,7 +362,6 @@ def top_floorplan(fp):
     indices[VDDIO] = 0
     indices[VSSIO] = 0
     gpio_h = fp.available_cells[GPIO].height
-    pow_h = fp.available_cells[VDD].height
     corner_w = fp.available_cells[CORNER].width
     corner_h = fp.available_cells[CORNER].height
     fill_cell_h = fp.available_cells[FILL_CELLS[0]].height
@@ -378,7 +376,7 @@ def top_floorplan(fp):
         indices[pad_type] += 1
         if pad_type == GPIO:
             pad_name = f'padring.we_pads\\[0\\].i0.padio\\[{i}\\].i0.gpio'
-            pin_name = f'we_pad'
+            pin_name = 'we_pad'
         else:
             if pad_type == VDD:
                 pin_name = 'vdd'
@@ -421,7 +419,7 @@ def top_floorplan(fp):
         indices[pad_type] += 1
         if pad_type == GPIO:
             pad_name = f'padring.ea_pads\\[0\\].i0.padio\\[{i}\\].i0.gpio'
-            pin_name = f'ea_pad'
+            pin_name = 'ea_pad'
         else:
             if pad_type == VDD:
                 pin_name = 'vdd'
@@ -502,89 +500,3 @@ def top_floorplan(fp):
 
     # Place core design inside the padring.
     fp.place_macros([('core', 'heartbeat')], gpio_h, gpio_h, 0, 0, 'N')
-
-def build_core():
-    # Build the core internal design.
-    core_chip = configure_chip('heartbeat')
-    core_chip.write_manifest('heartbeat_manifest.json')
-    # move here until test can be rebuilt
-    from siliconcompiler.floorplan import Floorplan
-    core_fp = Floorplan(core_chip)
-    core_floorplan(core_fp)
-    core_fp.write_def('heartbeat.def')
-    core_fp.write_lef('heartbeat.lef')
-
-    # Configure the Chip object for a full build.
-    core_chip.set('input', 'asic', 'floorplan.def', 'heartbeat.def', clobber=True)
-    core_chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'pdn_enable', 'False', clobber=True)
-    core_chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'place_density', '0.1', clobber=True)
-    core_chip.input('heartbeat.v')
-    core_chip.clock(pin='clk', period=20)
-
-    # Run the ASIC build flow with the resulting floorplan.
-    core_chip.run()
-    # (Un-comment to display a summary report)
-    core_chip.summary()
-
-    # Copy stream files for padring integration.
-    design = core_chip.top()
-    gds_result = core_chip.find_result('gds', step='export')
-    vg_result = core_chip.find_result('vg', step='dfm')
-    shutil.copy(gds_result, f'{design}.gds')
-    shutil.copy(vg_result, f'{design}.vg')
-
-def build_top():
-    # Build the top-level design, with padring.
-    chip = configure_chip('heartbeat_top')
-
-    # Use 'asictopflow' to combine the padring macros with the core 'heartbeat' macro.
-    flow = 'asictopflow'
-    chip.set('option', 'flow', flow)
-
-    # Configure inputs for the top-level design.
-    libname = 'heartbeat'
-    stackup = chip.get('asic', 'stackup')
-    lib = Chip(libname)
-    chip.add('asic', 'macrolib', libname)
-    lib.set('output', stackup, 'lef', 'heartbeat.lef')
-    lib.set('output', stackup, 'gds', 'heartbeat.gds')
-    lib.output('heartbeat.vg')
-    chip.use(lib)
-
-    fp = Floorplan(chip)
-    top_floorplan(fp)
-    fp.write_def('heartbeat_top.def')
-    chip.input('heartbeat_top.def')
-
-    chip.input('heartbeat_top.v')
-    chip.input('heartbeat.bb.v')
-    chip.input(f'{OH_PREFIX}/padring/hdl/oh_padring.v')
-    chip.input(f'{OH_PREFIX}/padring/hdl/oh_pads_domain.v')
-    chip.input(f'{OH_PREFIX}/padring/hdl/oh_pads_corner.v')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iobuf.v')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovdd.v')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovddio.v')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovss.v')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovssio.v')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iocorner.v')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iopoc.v')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iocut.v')
-    chip.input(f'{SKY130IO_PREFIX}/io/sky130_io.blackbox.v')
-    chip.write_manifest('top_manifest.json')
-
-    # There are errors in KLayout export
-    chip.set('option', 'flowcontinue', True)
-
-    # Run the top-level build.
-    chip.run()
-    # (Un-comment to display a summary report)
-    chip.summary()
-
-def main():
-    # Build the core design, which gets placed inside the padring.
-    build_core()
-    # Build the top-level design by stacking the core into the middle of the padring.
-    build_top()
-
-if __name__ == '__main__':
-    main()

@@ -8,8 +8,8 @@ def setup(chip):
     pass
 
 def _select_inputs(chip, step, index):
-    chip.logger.info(f"Running builtin task 'join'")
-    
+    chip.logger.info("Running builtin task 'join'")
+
     flow = chip.get('option', 'flow')
     return list(chip.get('flowgraph', flow, step, index, 'input'))
 

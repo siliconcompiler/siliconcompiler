@@ -1,5 +1,4 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import os
 import shutil
 
 from siliconcompiler.core import Chip
@@ -70,8 +69,6 @@ def build_core():
     core_chip.add('asic', 'corearea', (CORE_W - MARGIN_W, CORE_H - MARGIN_H))
 
     # No routing on met4-met5.
-    stackup = core_chip.get('asic', 'stackup')
-    libtype = 'unithd'
     core_chip.set('asic', 'maxlayer', 'met3')
 
     # Build the core design.

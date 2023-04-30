@@ -1,8 +1,6 @@
 import os
 import subprocess
 
-import siliconcompiler
-
 import pytest
 
 @pytest.mark.eda

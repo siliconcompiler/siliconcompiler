@@ -38,7 +38,7 @@ def _deferstep(chip, step, index, status):
     cfg_file = f'{cfg_dir}/{step}{index}.json'
     if not os.path.isdir(cfg_dir):
         os.mkdir(cfg_dir)
-    
+
     # TODO: should be .unset, but due to inconsistant behavior around global / step-index unsetting
     # cannot be used at the momment
     chip.set('option', 'scheduler', 'name', None, step=step, index=index)

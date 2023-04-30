@@ -1,9 +1,8 @@
-[flake8],
+[flake8]
 extend-exclude = third_party,setup/deps,_skbuild
 max-line-length = 100
 # Intial ignore list will be reduced as each issue is addressed
 ignore =
-    C901,
     E226,
     E231,
     E251,
@@ -13,17 +12,4 @@ ignore =
     E305,
     E402,
     E501,
-    E722,
-    F401,
-    F403,
-    F405,
-    F541,
-    F811,
-    F821,
-    F841,
-    W291,
-    W292,
-    W293,
-    W391,
-    W504,
-    W605
+    E722

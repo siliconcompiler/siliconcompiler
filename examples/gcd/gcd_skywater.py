@@ -5,8 +5,6 @@ import siliconcompiler
 import os
 import sys
 
-from sky130_floorplan import make_floorplan
-
 def main():
     '''GCD example with custom floorplan and signoff steps.'''
 

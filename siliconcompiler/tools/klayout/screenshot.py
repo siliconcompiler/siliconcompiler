@@ -1,6 +1,6 @@
 from siliconcompiler.tools.klayout import klayout
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
-from siliconcompiler.tools.klayout.show import find_incoming_ext, general_gui_setup
+from siliconcompiler.tools.klayout.show import general_gui_setup
 
 def make_docs(chip):
     klayout.make_docs(chip)

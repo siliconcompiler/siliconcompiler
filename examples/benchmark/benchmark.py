@@ -7,8 +7,6 @@ from siliconcompiler.flows import asicflow
 
 def main():
     rootdir = os.path.dirname(__file__)
-    target = "skywater130_demo"
-    jobname = 'job0'
 
     examples = [{'heartbeat': 1000},
                 {'picorv32': 1000},
@@ -56,7 +54,7 @@ def main():
             wall_end = time.time()
             walltime = round((wall_end - wall_start),2)
             results[design][n] = walltime
-            with open(f"results.txt", 'w') as f:
+            with open("results.txt", 'w') as f:
                 f.write(results)
 
 if __name__ == '__main__':

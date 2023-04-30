@@ -37,7 +37,6 @@ def post_process(chip):
     '''
 
     design = chip.top()
-    step = chip.get('arg','step')
 
     # Post-process hack to collect vpp files
     # Creating single file "pickle' synthesis handoff

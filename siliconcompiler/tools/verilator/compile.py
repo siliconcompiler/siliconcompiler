@@ -31,7 +31,6 @@ def post_process(chip):
     '''
 
     design = chip.top()
-    step = chip.get('arg','step')
 
     # Run make to compile Verilated design into executable.
     # If we upgrade our minimum supported Verilog, we can remove this and

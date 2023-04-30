@@ -599,11 +599,9 @@ class Schema:
         A value counts as set if a user has set a global value OR a value for
         the provided step/index.
         '''
-        if (
-            Schema.GLOBAL_KEY in cfg['node'] and
-            Schema.GLOBAL_KEY in cfg['node'][Schema.GLOBAL_KEY] and
-            'value' in cfg['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]
-        ):
+        if Schema.GLOBAL_KEY in cfg['node'] and \
+           Schema.GLOBAL_KEY in cfg['node'][Schema.GLOBAL_KEY] and \
+           'value' in cfg['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]:
             # global value is set
             return True
 
@@ -612,11 +610,9 @@ class Schema:
         if index is None:
             index = Schema.GLOBAL_KEY
 
-        return (
-            step in cfg['node'] and
-            index in cfg['node'][step] and
+        return step in cfg['node'] and \
+            index in cfg['node'][step] and \
             'value' in cfg['node'][step][index]
-        )
 
     @staticmethod
     def _is_leaf(cfg):
@@ -885,10 +881,8 @@ class Schema:
 
         values = self._getvals(*keypath)
         defvalue = self.get(*keypath, field='defvalue')
-        value_empty = (
-            (defvalue in empty) and
+        value_empty = (defvalue in empty) and \
             all([value in empty for value, _, _ in values])
-        )
         return value_empty
 
     ###########################################################################

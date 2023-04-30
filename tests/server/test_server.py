@@ -170,7 +170,6 @@ def test_gcd_server_argstep_noimport(gcd_remote_test):
         gcd_chip.run()
 
 if __name__ == "__main__":
-    from tests.fixtures import gcd_chip
     if os.path.isdir('local_server_work'):
         os.rmdir('local_server_work')
     cur_dir = os.getcwd()

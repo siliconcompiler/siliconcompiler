@@ -17,11 +17,9 @@ def test_check_manifest():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
     chip.input('examples/gcd/gcd.v')
-    flow = chip.get('option', 'flow')
     index = "0"
     steps = ['import', 'syn']
     for step in steps:
-        tool = chip.get('flowgraph', flow, step, index, 'tool')
         chip.set('arg', 'step', step)
         chip.set('arg', 'index', index)
         module = chip._get_task_module(step, index)

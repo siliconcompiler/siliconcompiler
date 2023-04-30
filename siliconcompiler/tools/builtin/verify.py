@@ -15,8 +15,8 @@ def setup(chip):
     '''
 
 def _select_inputs(chip, step, index):
-    chip.logger.info(f"Running builtin task 'verify'")
-    
+    chip.logger.info("Running builtin task 'verify'")
+
     flow = chip.get('option', 'flow')
     inputs = chip.get('flowgraph', flow, step, index, 'input')
     if len(inputs) != 1:
@@ -32,7 +32,7 @@ def _select_inputs(chip, step, index):
         m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
         if not m:
             chip.error(f"Illegal verify criteria: {criteria}", fatal=True)
-        
+
         metric = m.group(1)
         op = m.group(2)
         goal = m.group(3)
@@ -40,7 +40,7 @@ def _select_inputs(chip, step, index):
             chip.error(f"Critera must use legal metrics only: {criteria}", fatal=True)
 
         value = chip.get('metric', metric, step=inputs[0], index=inputs[1])
-        
+
         if value is None:
             chip.error(f"Missing metric for {metric} in {inputs[0]}{inputs[1]}", fatal=True)
 
@@ -51,7 +51,7 @@ def _select_inputs(chip, step, index):
 
     if not passes:
         chip._haltstep(step, index)
-    
+
     return inputs
 
 def _gather_outputs(chip, step, index):

@@ -24,7 +24,6 @@ import math
 import pandas
 import pkgutil
 import graphviz
-import time
 import uuid
 import shlex
 import platform
@@ -38,7 +37,6 @@ import tempfile
 import packaging.version
 import packaging.specifiers
 from jinja2 import Environment, FileSystemLoader
-from pathlib import Path
 from PIL import Image, ImageFont, ImageDraw
 from siliconcompiler.client import remote_preprocess, remote_run, fetch_results
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
@@ -788,17 +786,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         para_list = para.wrap(text=helpstr)
 
         #Full Doc String
-        fullstr = ("-"*80 +
-                   "\nDescription: " + description +
-                   "\nSwitch:      " + switchstr +
-                   "\nType:        " + typestr +
-                   "\nRequirement: " + requirement +
-                   "\nDefault:     " + defstr +
-                   examplestr +
-                   "\nHelp:        " + para_list[0] + "\n")
+        fullstr = "-"*80
+        fullstr += "\nDescription: " + description
+        fullstr += "\nSwitch:      " + switchstr
+        fullstr += "\nType:        " + typestr
+        fullstr += "\nRequirement: " + requirement
+        fullstr += "\nDefault:     " + defstr
+        fullstr += examplestr
+        fullstr += "\nHelp:        " + para_list[0] + "\n"
         for line in para_list[1:]:
-            fullstr = (fullstr +
-                       " "*13 + line.lstrip() + "\n")
+            fullstr = fullstr + " "*13 + line.lstrip() + "\n"
 
         return fullstr
 
@@ -984,10 +981,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f'Setting {keypath} to {value}')
 
         # Special case to ensure loglevel is updated ASAP
-        if (
-            keypath == ['option', 'loglevel'] and field == 'value' and
-            step == self.get('arg', 'step') and index == self.get('arg', 'index')
-        ):
+        if keypath == ['option', 'loglevel'] and field == 'value' and \
+           step == self.get('arg', 'step') and index == self.get('arg', 'index'):
             self.logger.setLevel(value)
 
         try:
@@ -1259,13 +1254,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         """Internal find_files() that allows you to skip step/index for optional
         params, regardless of [option, strict]."""
 
-        copyall = self.get('option', 'copyall', job=job)
         paramtype = self.get(*keypath, field='type', job=job)
-
-        if 'file' in paramtype or 'dir' in paramtype:
-            copy = self.get(*keypath, field='copy', job=job)
-        else:
-            copy = False
 
         if 'file' not in paramtype and 'dir' not in paramtype:
             self.error('Can only call find_files on file or dir types')
@@ -2535,7 +2524,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 hash_value = hashobj.hexdigest()
                 hashlist.append(hash_value)
             else:
-                self.error(f"Internal hashing error, file not found")
+                self.error("Internal hashing error, file not found")
         # compare previous hash to new hash
         oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
         for i,item in enumerate(oldhash):
@@ -3111,10 +3100,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             show_metric = False
             for step, index in nodes:
-                if (
-                    metric in self.getkeys('flowgraph', flow, step, index, 'weight') and
-                    self.get('flowgraph', flow, step, index, 'weight', metric)
-                ):
+                if metric in self.getkeys('flowgraph', flow, step, index, 'weight') and \
+                   self.get('flowgraph', flow, step, index, 'weight', metric):
                     show_metric = True
 
                 value = self.get('metric', metric, step=step, index=index)
@@ -3258,8 +3245,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         if 'BROWSER' in os.environ:
                             subprocess.Popen([os.environ['BROWSER'], os.path.relpath(results_html)])
                         else:
-                            self.logger.warning('Unable to open results page in web browser:\n' +
-                                                os.path.abspath(os.path.join(web_dir, "report.html")))
+                            self.logger.warning(f'Unable to open results page in web browser:\n{results_html}')
 
     ###########################################################################
     def list_steps(self, flow=None):
@@ -3629,7 +3615,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if not self.get('option', 'skipcheck'):
             if not self.check_manifest():
-                self.logger.error(f"Fatal error in check_manifest()! See previous errors.")
+                self.logger.error("Fatal error in check_manifest()! See previous errors.")
                 self._haltstep(step, index)
 
         ##################
@@ -3723,7 +3709,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Start CPU Timer
-        self.logger.debug(f"Starting executable")
+        self.logger.debug("Starting executable")
         cpu_start = time.time()
 
         ##################
@@ -4168,8 +4154,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 with open(cfg_file, 'r') as cfgf:
                     self.status['remote_cfg'] = json.loads(cfgf.read())
             else:
-                self.logger.warning('Could not find remote server configuration: defaulting to ' +
-                                    _metadata.default_server)
+                self.logger.warning(f'Could not find remote server configuration: defaulting to {_metadata.default_server}')
                 self.status['remote_cfg'] = {
                     "address": _metadata.default_server
                 }

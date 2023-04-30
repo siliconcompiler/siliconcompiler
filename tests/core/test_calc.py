@@ -103,7 +103,7 @@ def test_calc_yield_murphy_with_stepindex():
     chip.set('constraint', 'outline', [(0,0), (150000, 75000)], step='floorplan', index='0')
     chip.set('constraint', 'outline', [(0,0), (75000, 75000)], step='floorplan', index='1')
     chip.set('constraint', 'outline', [(0,0), (5000, 5000)], step='floorplan', index='2')
-    
+
     # Rounding to int(1000x) to avoid noise in float
     assert int(1000*chip.calc_yield(step='floorplan', index='0', model='murphy')) == 288
     assert int(1000*chip.calc_yield(step='floorplan', index='1', model='murphy')) == 515

@@ -40,7 +40,6 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    tool = 'yosys'
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 

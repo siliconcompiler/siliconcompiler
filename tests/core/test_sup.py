@@ -1,9 +1,6 @@
 import siliconcompiler as sc
-from siliconcompiler.package import Sup
 import pytest
-import shutil
 import os
-import sys
 
 @pytest.mark.skip(reason='Test takes a while and SUP logic is going to be modified')
 def test_sup():
@@ -50,7 +47,7 @@ def test_sup():
     chip = sc.Chip('top')
     chip.load_target('freepdk45_demo')
     chip.set('option', 'registry', registry)
-    chip.set('package', 'version', f"0.0.0")
+    chip.set('package', 'version', "0.0.0")
     chip.set('package', 'license', 'MIT')
     chip.set('package', 'description', 'sup?')
     for i in ('a', 'b', 'c'):
@@ -101,12 +98,12 @@ def test_sup_circ_import():
         chip = sc.Chip('top')
         chip.load_target('freepdk45_demo')
         chip.set('option', 'registry', registry)
-        chip.set('package', 'version', f"0.0.0")
+        chip.set('package', 'version', "0.0.0")
         chip.set('package', 'license', 'MIT')
         chip.set('package', 'description', 'sup?')
         chip.set('package', 'dependency', i, '0.0.0')
         chip.set('option', 'autoinstall', True)
-        with pytest.raises(sc.SiliconCompilerError) as pytest_wrapped_e:
+        with pytest.raises(sc.SiliconCompilerError):
             chip.update()
 
 #########################

@@ -1,5 +1,3 @@
-import siliconcompiler
-
 import os
 
 import pytest

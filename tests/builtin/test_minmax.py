@@ -91,7 +91,6 @@ def test_all_failed(chip):
 
 def test_winner_failed(chip):
     flow = chip.get('option', 'flow')
-    N = len(chip.getkeys('flowgraph', flow, 'syn'))
 
     # set error bit on what would otherwise be winner
     chip.set('flowgraph', flow, 'syn', '9', 'status', siliconcompiler.TaskStatus.ERROR)
@@ -103,9 +102,6 @@ def test_winner_failed(chip):
     assert winner == ('syn', '8')
 
 def test_winner_fails_goal_negative(chip):
-    flow = chip.get('option', 'flow')
-    N = len(chip.getkeys('flowgraph', flow, 'syn'))
-
     chip.set('metric', 'setupwns', -1, step='syn', index='9')
 
     task = chip._get_task_module('teststep', '0')
@@ -116,7 +112,6 @@ def test_winner_fails_goal_negative(chip):
 
 def test_winner_fails_goal_positive(chip):
     flow = chip.get('option', 'flow')
-    N = len(chip.getkeys('flowgraph', flow, 'syn'))
 
     chip.set('flowgraph', flow, 'syn', '9', 'goal', 'errors', 0)
     chip.set('metric', 'errors', 1, step='syn', index='9')

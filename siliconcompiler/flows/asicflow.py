@@ -100,6 +100,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
         "route": route_np
     }
 
+    prevstep = None
     # Remove built in steps where appropriate
     flowpipe = []
     for step in longpipe:

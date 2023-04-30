@@ -35,18 +35,18 @@ def test_gcd_server(gcd_chip):
     gcd_chip.run()
 
     # Run another 'sc' step to resume, complete, and delete the prior job run.
-    sproc = subprocess.run(['sc',
-                            '-cfg', 'build/gcd/job0/floorplan0/sc_manifest.json',
-                            '-dir', 'build/',
-                            '-steplist', 'synopt',
-                            '-steplist', 'place',
-                            '-steplist', 'route',
-                            '-steplist', 'dfm',
-                            '-steplist', 'export',
-                            '-remote_addr', 'localhost',
-                            '-remote_port', '8082',
-                            '-loglevel', 'NOTSET'],
-                           stdout = subprocess.PIPE)
+    subprocess.run(['sc',
+                    '-cfg', 'build/gcd/job0/floorplan0/sc_manifest.json',
+                    '-dir', 'build/',
+                    '-steplist', 'synopt',
+                    '-steplist', 'place',
+                    '-steplist', 'route',
+                    '-steplist', 'dfm',
+                    '-steplist', 'export',
+                    '-remote_addr', 'localhost',
+                    '-remote_port', '8082',
+                    '-loglevel', 'NOTSET'],
+                   stdout = subprocess.PIPE)
 
     # Kill the server process.
     srv_proc.kill()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import Chip, Library
+from siliconcompiler import Chip
 from siliconcompiler.libs import sky130io
 
 ###
@@ -45,8 +45,6 @@ def build_core():
     core_chip.run()
     # (Un-comment to display a summary report)
     core_chip.summary()
-
-    design = core_chip.top()
 
     # Setup outputs
     stackup = core_chip.get('option', 'stackup')
