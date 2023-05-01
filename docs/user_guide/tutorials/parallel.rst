@@ -1,5 +1,5 @@
 Parallel Job Execution
-=========================
+======================
 
 Single threaded program performance has saturated, so if we want to make hardware compilation fast, we need to figure out how to make effective use of massively parallel hardware.
 

@@ -25,7 +25,7 @@ The diagram above shows a few examples of Schema parameters and methods for an o
 The following sections provide more detail on how information in the schema is initialized and manipulated.
   
 Schema Configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 The schema is "configured," or defined, based on its parameters.
 
@@ -144,7 +144,6 @@ If you ran the :ref:`asic demo`, you should have a manifest written out to ::
   
   build/<design>/job0/<design>.pkg.json
 
-
 The :meth:`.read_manifest()` and :meth:`.write_manifest()` Python API methods handle reading and writing the Schema to/from disk. Besides JSON, other supported export file formats include TCL, and YAML. By default, only non-empty values are written to disk.
 
 .. literalinclude:: examples/write_manifest.py
@@ -178,5 +177,3 @@ The :meth:`.write_manifest()` method above writes out the JSON file below, showi
 Additional Schema Information
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information. Another good resource is the schema configuration file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema/schema_cfg.py>`_.
-
-	     

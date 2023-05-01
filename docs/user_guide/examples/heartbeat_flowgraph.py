@@ -1,7 +1,6 @@
 ###
 # This is a docs example, referenced by its comments.
 #
-#   Runs to completion with SC v0.11.0
 ##
 
 import siliconcompiler                         # import python package

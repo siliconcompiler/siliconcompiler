@@ -150,12 +150,5 @@ latex_elements = {
 
 latex_use_modindex = False
 
-
 # -- Options for autodoc -----------------------------------------------------
 autodoc_mock_imports = ['siliconcompiler.leflib._leflib']
-
-
-
-
-
-   

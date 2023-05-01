@@ -1,8 +1,8 @@
 .. _execution_model:
 
-#########################################
+###################
 Compilation Process
-#########################################
+###################
 
 The complete SiliconCompiler compilation is handled by a single call to the :meth:`.run()` function. Within that function call, a static data :term:`flowgraph`, consisting of :term:`nodes <node>` and :term:`edges <edge>` is traversed and "executed."
 
@@ -16,10 +16,10 @@ The static flowgraph approach was chosen for a number reasons:
 * Ease of implementation (synchronization is hard)
 
 The Flowgraph
------------------
+-------------
 
 Nodes and Edges
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 
 A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where:
 
@@ -31,7 +31,7 @@ A SiliconCompiler flowgraph consists of a set of connected nodes and edges, wher
    :align: center
 
 Tasks
-^^^^^^^^^^^^^^^
+^^^^^
 SiliconCompiler breaks down a "task" into an atomic combination of a step and an index, where:
 
 1. A :term:`step` is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and
@@ -46,12 +46,12 @@ An example of this might be two parallel synthesis runs with different settings 
 See :ref:`using index for optimization` for more information on why using indices to buid your flowgraph are helpful.
 
 Execution
-^^^^^^^^^^^^^^^
+^^^^^^^^^
 
 Flowgraph execution is done through the :meth:`.run()` function which checks the flowgraph for correctness and then executes all tasks in the flowgraph from start to finish.
 
 Flowgraph Examples
----------------------
+------------------
 
 The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, called :ref:`asicflow <asicflow-ref>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.load_target()` function, which calls a :ref:`pre-defined PDK module <pdk_directory>` that `uses the asicflow flowgraph <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/skywater130_demo.py>`_.
 
@@ -59,14 +59,13 @@ The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, cal
 
 You can design your own chip compilation build flows by easily creating custom flowgraphs through:
 
-* :meth:`.node()`/:meth:`.edge()` methods (**recommended**), or
-* :meth:`.set()`/:meth:`.get()` methods
+* :meth:`.node()`/:meth:`.edge()` methods 
 
 The user is free to construct a flowgraph by defining any reasonable combination of steps and indices based on available tools and PDKs.
 
 
 A Two-Node Flowgraph 
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 The example below shows a snippet which creates a simple two-step (import + synthesis) compilation pipeline.
 
@@ -91,7 +90,7 @@ At this point, you can visually examine your flowgraph by using :meth:`.write_fl
    **[In Progress]** Insert link to tutorial which has step-by-step instruction on how to set up this flow with libs and pdk through run and execution.
    
 Using Index for Optimization
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The previous example did not include any mention of :term:`index`, so the index defaults to ``0``.
 

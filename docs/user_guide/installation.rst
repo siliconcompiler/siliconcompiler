@@ -5,7 +5,7 @@ Installation
 Installing Python
 -----------------
 
-Before installing the SiliconCompiler package you will need to set up a Python environment. Currently Python 3.6-3.10 is supported.
+Before installing the SiliconCompiler package you will need to set up a Python environment. Currently Python 3 is supported.
 The following sections will walk you through how to install the appropriate python dependencies and start a Python virtual environment. Note that at any time, if you need to exit the Python virtual environment, type 'deactivate' and hit enter. 
 
 .. _Python install:
@@ -16,7 +16,7 @@ Open up a terminal and enter the following command sequence.
 
 .. code-block:: bash
 
-    python3 --version                                      # check for Python 3.6 - 3.10
+    python3 --version                                      # check for Python 3
     sudo apt update                                        # update package information
     sudo apt install python3-dev python3-pip python3-venv  # install dependencies
     python3 -m venv  ./venv                                # create a virtual env
@@ -45,7 +45,7 @@ Open up a terminal and enter the following command sequence.
    sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms  # enable Red Hat Software Collections repository
    sudo yum -y install rh-python36                                    # install Python 3.6
    scl enable rh-python36 bash                                        # enable Python in current environment
-   python3 --version                                                  # check for Python 3.6 - 3.10
+   python3 --version                                                  # check for Python 3
    python3 -m venv ./venv                                             # create a virtual env
    source ./venv/bin/activate                                         # active virtual env (bash/zsh)
    pip install --upgrade pip                                          # upgrade Pip
@@ -67,7 +67,7 @@ Open up a terminal and enter the following command sequence.
    export PATH="/usr/local/opt/python/libexec/bin:$PATH"
    brew update
    brew install python
-   python3 --version                                      # check for Python 3.6 - 3.10
+   python3 --version                                      # check for Python 3
    python3 -m venv  ./venv                                # create a virtual env
    source ./venv/bin/activate                             # active virtual env
 

@@ -39,8 +39,3 @@ This guide provides an overview for users. You will also want to look at API Ref
 
    glossary
    faq
-      
-
-
-	      
-	  

@@ -1,7 +1,7 @@
 Bluespec frontend
 --------------------
 
-SiliconCompiler has a Bluespec frontend that enables you to `build :ref:`Bluespec <bluespec <>` designs for any supported SC target.  To get started using Bluespec with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and download bsc or install it from source following the directions `here <https://github.com/B-Lang-org/bsc#download>`_. For Ubuntu 20.04, we've additionally provided a `bluespec setup script <https://github.com/siliconcompiler/siliconcompiler/blob/main/setup/install-bluespec.sh>`_ to build it from source automatically.
+SiliconCompiler has a Bluespec frontend that enables you to build :ref:`bluespec` designs for any supported SC target.  To get started using Bluespec with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and download bsc or install it from source following the directions `here <https://github.com/B-Lang-org/bsc#download>`_. For Ubuntu 20.04, we've additionally provided a `bluespec setup script <https://github.com/siliconcompiler/siliconcompiler/blob/main/setup/install-bluespec.sh>`_ to build it from source automatically.
 
 To build a Bluespec design, the only things you need to do differently from a configuration perspective are:
 
