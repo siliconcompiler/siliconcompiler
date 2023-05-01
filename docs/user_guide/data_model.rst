@@ -81,7 +81,7 @@ The following example shows how to create a chip object and manipulate the :ref:
    ['fulladder.v', 'halfadder.v']
 
 
-The :class:`~siliconcompiler.core.Chip` object provides many useful helper functions. For example, in the :ref:`quickstart guide <define design>` , the :meth:`.input()` helper function was used to set the chip timing constraints file, a simpler call than using :meth:`.set()`.
+The :class:`~siliconcompiler.core.Chip` object provides many useful :ref:`helper functions <core api>`. For example, in the :ref:`quickstart guide <define design>` , the :meth:`.input()` helper function was used to set the chip timing constraints file, a simpler call than using :meth:`.set()`.
 
 .. code-block:: python
 
@@ -92,14 +92,47 @@ The :class:`~siliconcompiler.core.Chip` object provides many useful helper funct
    ['fulladder.sdc']
    
    
-:meth:`.getkeys()` is another example of a useful function, provided by :class:`~siliconcompiler.core.Chip`, for checking your parameters.
+:meth:`.getkeys()` is another example of a useful function, provided by :ref:`the chip object <core api>`, for checking your parameters.
 
 .. code-block:: python
 
    >>> chip.getkeys('input')
    ['rtl', 'constraint']   
    
-See :class:`siliconcompiler.core.Chip` for more information on methods which can be used to manipulate Schema parameters.   
+   >>> chip.getkeys('input', 'rtl')
+   ['verilog']
+
+   >>> chip.getkeys('input', 'constraint')
+   ['sdc']
+
+You can see from the example above that using the :meth:`.getkeys()` function, you're able to query the subtree of the parameter called ``input``, where the parameter tree can be visually represented as: ::
+    
+    └── input
+       ├── constraint
+       │   └── sdc
+       └── rtl
+           └── verilog
+
+If you further go one step further down, you'll see that ``verilog`` is a leaf parameter, so the :meth:`.getkeys()` function returns its parameter fields.
+
+.. code-block:: python
+
+   >>> chip.getkeys('input', 'rtl', 'verilog')
+   ['defvalue', 'type', 'scope', 'require', 'lock', 'switch', 'shorthelp', 'example', 'help', 'notes', 'pernode', 'node', 'hashalgo', 'copy']
+
+
+Parameter fields are standardized variables which help to define the parameter. In the case below, you can see that :meth:`.get()` can also be used to query parameter fields to provide more information about the parameters:
+
+.. code-block:: python 
+
+   >>> chip.get('input', 'rtl', 'verilog', field='type')
+   '[file]'
+
+   >>> chip.get('input', 'rtl', 'verilog', field='example')
+   ["cli: -input 'rtl verilog hello_world.v'", "api: chip.set(input, 'rtl','verilog','hello_world.v')"]
+
+
+:meth:`getkeys` is just one useful helpfer function; see :ref:`core api` for more information on methods which can be used to manipulate Schema parameters.   
 
 
 Manifest

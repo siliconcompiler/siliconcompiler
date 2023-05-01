@@ -69,14 +69,14 @@ In addition to design parameters, you can also set up your PDK and libraries. Th
 Specify Run Location
 ^^^^^^^^^^^^^^^^^^^^^
 
-Next, the :keypath:`option,remote` parameter of the chip object is directly being accessed by the :ref:`set` method to ``True``. This means it's run in the cloud. If you were to remove this, it would run on your :ref:`local machine <Local Run>`.::
+Next, the :keypath:`option,remote` parameter of the chip object is directly being accessed by the :meth:`.set()` method to ``True``. This means it's run in the cloud. If you were to remove this, it would run on your :ref:`local machine <Local Run>`.::
 
   chip.set('option', 'remote', True)        # run remote in the cloud
 
 
 Design Compilation
 ^^^^^^^^^^^^^^^^^^^^^^^^
-Now that the design compilation is set up, it's time to :ref:`run` the compilation and print the results with :ref:`summary`. ::
+Now that the design compilation is set up, it's time to :meth:`.run()` the compilation and print the results with :meth:`.summary()`. ::
   
         chip.run()                                # run compilation of design and target
         chip.summary()                            # print results summary

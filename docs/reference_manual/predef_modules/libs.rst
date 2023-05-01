@@ -7,7 +7,7 @@ The following are examples are pre-built libraries that come with SiliconCompile
 
 .. rst-class:: page-break
 
-See the pre-built :ref:`targets <targets directory>` for examples on how these are used in conjunction with :ref:`pdks <pdk_directory>`, :ref:`tools <tools_directory>` and :ref:`flows <flows_directory>`.
+See the pre-built :ref:`targets <targets_directory>` for examples on how these are used in conjunction with :ref:`pdks <pdk_directory>`, :ref:`tools <tools_directory>` and :ref:`flows <flows_directory>`.
 
    
 .. libgen::
