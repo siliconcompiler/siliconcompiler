@@ -27,7 +27,7 @@ chip.edge(flow, 'import', 'syn')               # perform syn after import
 chip.set('option', 'flow', flow)
 # end of flowgraph setup <docs reference>
 
-# writes out the flowgraph 
+# writes out the flowgraph
 chip.write_flowgraph("heartbeat_flowgraph.svg")
 
 # compiles and sumarizes design info

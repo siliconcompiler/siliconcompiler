@@ -7,7 +7,7 @@
 import siliconcompiler
 
 # import pre-defined python packages for setting up tools used in flowgraph
-from siliconcompiler.tools.surelog import parse 
+from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.builtin import minimum
 

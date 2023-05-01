@@ -86,7 +86,7 @@ html_theme_options = {
         "image_light": html_logo,
         "image_dark": html_logo,
     },
-    "github_url": "https://github.com/siliconcompiler/siliconcompiler",  # these are top right 
+    "github_url": "https://github.com/siliconcompiler/siliconcompiler",  # these are top right
 
     # Add light/dark mode and documentation version switcher:
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
@@ -134,7 +134,7 @@ latex_preamble = r"""\newcommand{\origunderscore}{}
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, document class [howto/manual]).
 
-_stdauthor = author 
+_stdauthor = author
 
 latex_documents = [
     ('index_pdf', 'siliconcompiler.tex', 'SiliconCompiler',
