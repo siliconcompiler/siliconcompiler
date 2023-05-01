@@ -5080,7 +5080,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if keypath[0:4] == ['tool', tool, 'task', task]:
                     # Get files associated with testcase tool / task
                     copy = True
-                    if len(keypath) > 5:
+                    if len(keypath) >= 5:
                         if keypath[4] in ('output', 'input', 'report'):
                             # Skip input, output, and report files
                             copy = False
@@ -5088,6 +5088,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Check keys that might be found in libraries
             if keypath[-2:] == ['option', 'build']:
                 # Avoid build directory
+                copy = False
+            if keypath[-2:] == ['option', 'scpath']:
+                # Avoid all of scpath
                 copy = False
             elif keypath[-2:] == ['option', 'credentials']:
                 # Exclude credentials file
