@@ -58,7 +58,7 @@ def main():
                         description=description,
                         input_map=input_map)
 
-    #Error checking
+    # Error checking
     design = chip.get('design')
     design_set = design != UNSET_DESIGN
 

@@ -25,12 +25,12 @@ def test_graph():
 
     chip = siliconcompiler.Chip('test')
 
-    #RTL
+    # RTL
     chip.pipe('rtl', [{'import': parse},
                       {'syn': syn_asic},
                       {'export': nop},])
 
-    #APR
+    # APR
     chip.pipe('apr', [{'import': nop},
                       {'floorplan': floorplan},
                       {'physyn': physyn},
@@ -40,7 +40,7 @@ def test_graph():
                       {'dfm': dfm},
                       {'export': export}])
 
-    #SIGNOFF
+    # SIGNOFF
     chip.node('signoff', 'import', nop)
     chip.node('signoff', 'extspice', extspice)
     chip.node('signoff', 'drc', drc)
@@ -53,7 +53,7 @@ def test_graph():
     chip.edge('signoff', 'lvs', 'export')
     chip.edge('signoff', 'drc', 'export')
 
-    #TOP
+    # TOP
     chip.graph("top", "rtl", name="rtl")
     chip.graph("top", "apr", name="apr")
     chip.graph("top", "signoff", name="dv")

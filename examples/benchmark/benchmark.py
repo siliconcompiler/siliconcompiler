@@ -46,10 +46,10 @@ def main():
             for i in range(int(n)):
                 chip.set('eda','openroad','threads', 'route',str(i),1)
 
-            #RUN
+            # RUN
             chip.run()
 
-            #OBSERVE/RECORD
+            # OBSERVE/RECORD
             chip.summary()
             wall_end = time.time()
             walltime = round((wall_end - wall_start),2)

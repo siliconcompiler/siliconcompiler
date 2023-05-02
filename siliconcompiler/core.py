@@ -303,7 +303,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ###########################################################################
     def _get_switches(self, schema, *keypath):
         '''Helper function for parsing switches and metavars for a keypath.'''
-        #Switch field fully describes switch format
+        # Switch field fully describes switch format
         switch = schema.get(*keypath, field='switch')
 
         if switch is None:
@@ -404,7 +404,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Iterate over all keys from an empty schema to add parser arguments
         for keypath in schema.allkeys():
-            #Fetch fields from leaf cell
+            # Fetch fields from leaf cell
             helpstr = schema.get(*keypath, field='shorthelp')
             typestr = schema.get(*keypath, field='type')
 
@@ -423,9 +423,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         const='true',
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
-                #list type arguments
+                # list type arguments
                 elif re.match(r'\[', typestr):
-                    #all the rest
+                    # all the rest
                     parser.add_argument(*switchstrs,
                                         metavar=metavar,
                                         dest=dest,
@@ -433,7 +433,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
                 else:
-                    #all the rest
+                    # all the rest
                     parser.add_argument(*switchstrs,
                                         metavar=metavar,
                                         dest=dest,
@@ -445,18 +445,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                 nargs='*',
                                 help='Input files with filetype inferred by extension')
 
-        #Preprocess sys.argv to enable linux commandline switch formats
-        #(gcc, verilator, etc)
+        # Preprocess sys.argv to enable linux commandline switch formats
+        # (gcc, verilator, etc)
         scargs = []
 
         # Iterate from index 1, otherwise we end up with script name as a
         # 'source' positional argument
         for item in sys.argv[1:]:
-            #Split switches with one character and a number after (O0,O1,O2)
+            # Split switches with one character and a number after (O0,O1,O2)
             opt = re.match(r'(\-\w)(\d+)', item)
-            #Split assign switches (-DCFG_ASIC=1)
+            # Split assign switches (-DCFG_ASIC=1)
             assign = re.search(r'(\-\w)(\w+\=\w+)', item)
-            #Split plusargs (+incdir+/path)
+            # Split plusargs (+incdir+/path)
             plusarg = re.search(r'(\+\w+\+)(.*)', item)
             if opt:
                 scargs.append(opt.group(1))
@@ -481,7 +481,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # rewrite additional_args with new dest infomation
             additional_args = arg_dests
 
-        #Grab argument from pre-process sysargs
+        # Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
 
         extra_params = None
@@ -759,7 +759,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.logger.debug('Fetching help for %s', keypath)
 
-        #Fetch Values
+        # Fetch Values
 
         description = self.get(*keypath, field='shorthelp')
         typestr = self.get(*keypath, field='type')
@@ -772,7 +772,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         examplestr = ("\nExamples:    " + example[0] + ''.join(
                       ["\n             " + ex for ex in example[1:]]))
 
-        #Removing multiple spaces and newlines
+        # Removing multiple spaces and newlines
         helpstr = helpstr.rstrip()
         helpstr = helpstr.replace("\n", "")
         helpstr = ' '.join(helpstr.split())
@@ -781,11 +781,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             example[idx] = ' '.join(item.split())
             example[idx] = example[idx].replace(", ", ",")
 
-        #Wrap text
+        # Wrap text
         para = textwrap.TextWrapper(width=60)
         para_list = para.wrap(text=helpstr)
 
-        #Full Doc String
+        # Full Doc String
         fullstr = "-" * 80
         fullstr += "\nDescription: " + description
         fullstr += "\nSwitch:      " + switchstr
@@ -1380,7 +1380,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for keypath in self.allkeys():
             paramtype = self.get(*keypath, field='type')
             if not ('file' in paramtype or 'dir' in paramtype):
-                #only do something if type is file or dir
+                # only do something if type is file or dir
                 continue
 
             values = self.schema._getvals(*keypath)
@@ -1437,7 +1437,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 continue
             if partial and not self._key_may_be_updated(keylist):
                 continue
-            #only read in valid keypaths without 'default'
+            # only read in valid keypaths without 'default'
             key_valid = True
             if check:
                 key_valid = dest.valid(*keylist, default_valid=True)
@@ -1596,13 +1596,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not steplist:
             steplist = self.list_steps()
 
-        #1. Checking that flowgraph and steplist are legal
+        # 1. Checking that flowgraph and steplist are legal
         if flow not in self.getkeys('flowgraph'):
             error = True
             self.logger.error(f"flowgraph {flow} not defined.")
 
         indexlist = {}
-        #TODO: refactor
+        # TODO: refactor
         for step in steplist:
             if self.get('option', 'indexlist'):
                 indexlist[step] = self.get('option', 'indexlist')
@@ -1632,7 +1632,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                       'but this task has not been run and is not in the current steplist.')
                     error = True
 
-        #2. Check libary names
+        # 2. Check libary names
         libraries = set()
         for val, step, index in self.schema._getvals('asic', 'logiclib'):
             if step in steplist and index in indexlist[step]:
@@ -1643,7 +1643,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 error = True
                 self.logger.error(f"Target library {library} not found.")
 
-        #3. Check requirements list
+        # 3. Check requirements list
         allkeys = self.allkeys()
         for key in allkeys:
             keypath = ",".join(key)
@@ -1657,7 +1657,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     error = True
                     self.logger.error(f"Mode requirement missing for [{keypath}].")
 
-        #4. Check if tool/task modules exists
+        # 4. Check if tool/task modules exists
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool = self.get('flowgraph', flow, step, index, 'tool')
@@ -1672,7 +1672,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     task_module = self.get('flowgraph', flow, step, index, 'taskmodule')
                     self.logger.error(f"Task module {task_module} for {tool_name}/{task_name} could not be found or loaded for {step}{index}.")
 
-        #5. Check per tool parameter requirements (when tool exists)
+        # 5. Check per tool parameter requirements (when tool exists)
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool, task = self._get_tool_task(step, index, flow=flow)
@@ -2107,7 +2107,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         index = {}
         for item in dirlist:
             if re.match(r'http', item):
-                #TODO
+                # TODO
                 pass
             else:
                 packages = os.listdir(item)
@@ -2153,7 +2153,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # install missing dependencies
         depgraph[design] = []
         for dep in deps.keys():
-            #TODO: Proper PEP semver matching
+            # TODO: Proper PEP semver matching
             ver = list(deps[dep])[0]
             depgraph[design].append((dep,ver))
             islocal = False
@@ -2496,7 +2496,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         keypathstr = ','.join(keypath)
-        #TODO: Insert into find_files?
+        # TODO: Insert into find_files?
         if 'file' not in self.get(*keypath, field='type'):
             self.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
             return []
@@ -2511,7 +2511,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f"Unable to use {algo} as the hashing algorithm for [{keypathstr}].")
             return []
 
-        #cycle through all paths
+        # cycle through all paths
         hashlist = []
         if filelist:
             self.logger.info(f'Computing hash value for [{keypathstr}]')
@@ -2673,27 +2673,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Variable dpw gets gross dies per wafer value based on the chip manifest.
         '''
 
-        #PDK information
+        # PDK information
         pdk = self.get('option', 'pdk')
         wafersize = self.get('pdk', pdk, 'wafersize')
         edgemargin = self.get('pdk', pdk, 'edgemargin')
         hscribe = self.get('pdk', pdk, 'hscribe')
         vscribe = self.get('pdk', pdk, 'vscribe')
 
-        #Design parameters
+        # Design parameters
         diesize = self.get('constraint', 'outline', step=step, index=index)
 
         # Convert to mm
         diewidth = (diesize[1][0] - diesize[0][0]) / 1000.0
         dieheight = (diesize[1][1] - diesize[0][1]) / 1000.0
 
-        #Derived parameters
+        # Derived parameters
         radius = wafersize / 2 - edgemargin
         stepwidth = diewidth + hscribe
         stepheight = dieheight + vscribe
 
-        #Raster dies out from center until you touch edge margin
-        #Work quadrant by quadrant
+        # Raster dies out from center until you touch edge margin
+        # Work quadrant by quadrant
         dies = 0
         for quad in ('q1', 'q2', 'q3', 'q4'):
             x = 0
@@ -2710,7 +2710,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif quad == "q4":
                 xincr = stepwidth
                 yincr = -stepheight
-            #loop through all y values from center
+            # loop through all y values from center
             while math.hypot(0, y) < radius:
                 y = y + yincr
                 x = xincr
@@ -2773,8 +2773,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif switches[i] != '':
                 print("ERROR",switches[i])
 
-        #REGEX
-        #TODO: add all the other optinos
+        # REGEX
+        # TODO: add all the other optinos
         match = re.search(rf"({pattern})", line)
         if bool(match) == bool(options["-v"]):
             return None
@@ -2854,9 +2854,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             string = self.grep(item, string)
                     if string is not None:
                         matches[suffix] += 1
-                        #always print to file
+                        # always print to file
                         print(string.strip(), file=checks[suffix]['report'])
-                        #selectively print to display
+                        # selectively print to display
                         if display:
                             if suffix == 'errors':
                                 self.logger.error(string.strip())
@@ -3268,7 +3268,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if flow is None:
             flow = self.get('option', 'flow')
 
-        #Get length of paths from step to root
+        # Get length of paths from step to root
         depth = {}
         for step in self.getkeys('flowgraph', flow):
             depth[step] = 0
@@ -3276,7 +3276,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if len(list(path)) > depth[step]:
                     depth[step] = len(path)
 
-        #Sort steps based on path lenghts
+        # Sort steps based on path lenghts
         sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
         return list(sorted_dict.keys())
 
@@ -4460,7 +4460,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         filepath = os.path.abspath(filename)
 
-        #Check that file exists
+        # Check that file exists
         if not os.path.isfile(filepath):
             self.logger.error(f"Invalid filepath {filepath}.")
             return False
@@ -4618,7 +4618,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         replay_cmdlist = [*nice_cmdlist, cmd, *cmd_args]
         cmdlist = [*nice_cmdlist, *cmdlist]
 
-        #create replay file
+        # create replay file
         script_name = 'replay.sh'
         with open(script_name, 'w') as f:
             print('#!/bin/bash', file=f)

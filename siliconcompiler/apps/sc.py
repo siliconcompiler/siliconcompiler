@@ -1,6 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-#Standard Modules
+# Standard Modules
 import os
 import sys
 

@@ -66,8 +66,8 @@ def setup(chip, flowname='fpgaflow'):
     if flowtype != 'vpr':
         _, flowtype = flow_lookup(partname)
 
-    #Setting up pipeline
-    #TODO: Going forward we want to standardize steps
+    # Setting up pipeline
+    # TODO: Going forward we want to standardize steps
     if flowtype in ('vivado', 'quartus'):
         flowpipe = ['syn_fpga', 'place', 'route', 'bitstream']
     elif flowtype == 'vpr':

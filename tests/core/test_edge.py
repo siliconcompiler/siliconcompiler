@@ -16,14 +16,14 @@ def test_edge():
 
     flow = 'test'
     chip.set('option', 'flow', flow)
-    #nodes
+    # nodes
     chip.node(flow, 'import', parse)
     for i in range(syn_np):
         chip.node(flow, 'syn', syn_asic, index=i)
     chip.node(flow, 'synmin', minimum)
     chip.node(flow, 'floorplan', floorplan)
 
-    #edges
+    # edges
     for i in range(syn_np):
         chip.edge(flow, 'import', 'syn', head_index=i)
         chip.edge(flow, 'syn', 'synmin', tail_index=i)

@@ -78,7 +78,7 @@ def runtime_options(chip):
 
     cmdlist = []
 
-    #resolve paths using chip.find_files
+    # resolve paths using chip.find_files
 
     return cmdlist
 
@@ -87,8 +87,8 @@ def parse_version(stdout):
     Version check based on stdout
     Depends on tool reported string
     '''
-    #version = stdout.split()[1]
-    #return version.split('+')[0]
+    # version = stdout.split()[1]
+    # return version.split('+')[0]
     return 0
 
 def pre_process(chip):

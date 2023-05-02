@@ -116,7 +116,7 @@ def place_pdn(fp):
     # Add power nets to the floorplan.
     fp.add_net('_vdd', ['VPWR'], 'power')
     fp.add_net('_vss', ['VGND'], 'ground')
-    #fp.add_net('_vddio', [], 'power')
+    # fp.add_net('_vddio', [], 'power')
 
     # Add power ring.
     vss_ring_left = margin_left - 4 * vwidth

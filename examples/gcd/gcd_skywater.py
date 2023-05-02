@@ -25,8 +25,8 @@ def main():
     # 1) RTL2GDS
 
     # Disabled due to segfault in sky130
-    #def_path = make_floorplan(chip)
-    #chip.set('input', 'asic', 'floorplan.def', def_path)
+    # def_path = make_floorplan(chip)
+    # chip.set('input', 'asic', 'floorplan.def', def_path)
 
     chip.set('option', 'jobname', 'rtl2gds')
     chip.run()

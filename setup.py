@@ -124,7 +124,7 @@ setup(
     # Once this issue is resolved, we should switch to setting
     # include_package_data to True instead of manually specifying package_data.
 
-    #include_package_data=True,
+    # include_package_data=True,
     package_data={
         'siliconcompiler': get_package_data('templates', 'siliconcompiler') + get_package_data('data', 'siliconcompiler'),
         'siliconcompiler.tools': get_package_data('.', 'siliconcompiler/tools'),

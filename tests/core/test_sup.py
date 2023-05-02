@@ -31,7 +31,7 @@ def test_sup():
             l2.set('package', 'license', 'MIT')
             l2.set('package', 'description', 'sup?')
             l2.write_manifest(f"{builddir}/{dep2}/job0/export/outputs/{dep2}.pkg.json")
-        #don't move
+        # don't move
         l1.write_manifest(f"{builddir}/{i}/job0/export/outputs/{i}.pkg.json")
 
     # 2. Package up dependecies using sup
@@ -56,8 +56,8 @@ def test_sup():
     chip.update()
 
     # 4. Dump updated manifest and depgraph
-    #chip.write_manifest('top.tcl')
-    #chip.write_depgraph('tree.png')
+    # chip.write_manifest('top.tcl')
+    # chip.write_depgraph('tree.png')
 
 #########################
 @pytest.mark.skip(reason='SUP logic is going to be modified')

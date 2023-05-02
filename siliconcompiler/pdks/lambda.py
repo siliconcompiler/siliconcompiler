@@ -23,7 +23,7 @@ def setup_pdk(chip):
     chip.set('pdk','process', 'lambda')
     chip.set('pdk','version', 'r1p0')
 
-    #User arguments
+    # User arguments
     if 'node' in chip.getkeys('techarg'):
         node = float(chip.get('techarg', 'node')[0])
         stackup = chip.get('techarg', 'stackup')
@@ -60,14 +60,14 @@ def setup_pdk(chip):
     # APR Settings
     ##################
 
-    #1. Derive lambda value from node
-    #2. Parse metalstack value
-    #3. Specify metal stack relative to ambda value
-    #4. Auto-generate design rules and lambda.tech
+    # 1. Derive lambda value from node
+    # 2. Parse metalstack value
+    # 3. Specify metal stack relative to ambda value
+    # 4. Auto-generate design rules and lambda.tech
 
     # Routing Grid Definitions
 
-    #TODO: variable based on metalstack
+    # TODO: variable based on metalstack
 
     ###############################################
     # Libraries (TBD)

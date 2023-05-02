@@ -26,7 +26,7 @@ def main():
 
     parser.add_argument('credential', nargs='?', default=default_credentials_file())
 
-    #Parsing args and converting to dict
+    # Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
     cfg_file = cmdargs['credential']
 

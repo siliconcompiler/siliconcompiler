@@ -601,7 +601,7 @@ def schema_pdk(cfg, stackup='default'):
             all layers in the PDK. The display configuration file is entered on a
             stackup and tool basis.""")
 
-    #TODO: create firm list of accepted files
+    # TODO: create firm list of accepted files
     libarch = 'default'
     scparam(cfg, ['pdk', pdkname, 'aprtech', tool, stackup, libarch, filetype],
             sctype='[file]',
@@ -2128,7 +2128,7 @@ def schema_option(cfg):
             (O99) = Experimental highest possible effort, may be unstable
             """)
 
-    #TODO: with modular flows does this go away?
+    # TODO: with modular flows does this go away?
     scparam(cfg, ['option','frontend'],
             sctype='str',
             scope='job',
@@ -2268,7 +2268,7 @@ def schema_option(cfg):
             enables multiple levels of transparent job, step, and index
             introspection.""")
 
-    #TODO: remove?
+    # TODO: remove?
     scparam(cfg, ['option','jobinput','default','default'],
             sctype='str',
             scope='job',

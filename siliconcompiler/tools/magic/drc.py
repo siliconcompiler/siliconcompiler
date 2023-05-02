@@ -34,5 +34,5 @@ def post_process(chip):
                 drvs = errors.group(1)
     chip._record_metric(step, index, 'drvs', drvs, report_path)
 
-    #TODO: return error code
+    # TODO: return error code
     return 0

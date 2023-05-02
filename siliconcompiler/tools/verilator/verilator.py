@@ -55,7 +55,7 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'option', ['-Wno-fatal', '-Wno-UNOPTFLAT'], step=step, index=index)
 
     # Converting user setting to verilator specific filter
-    #for warning in chip.get('tool', tool, 'task', task, step, index, 'warningoff'):
+    # for warning in chip.get('tool', tool, 'task', task, step, index, 'warningoff'):
     #    chip.add('tool', tool, 'task', task, 'option', f'-Wno-{warning}', step=step, index=index)
 
     # User runtime option

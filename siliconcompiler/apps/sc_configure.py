@@ -44,7 +44,7 @@ def main():
     parser.add_argument('-file', metavar='<file>', default=default_credentials_file(), help='Path to credentials file')
     parser.add_argument('server', nargs='?', help='URL to a server')
 
-    #Parsing args and converting to dict
+    # Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
 
     default_server_name = urlparse(default_server).hostname

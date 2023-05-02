@@ -12,7 +12,7 @@ def chip():
     # Create instance of Chip class
     chip = siliconcompiler.Chip('oh_add')
 
-    #sequence
+    # sequence
     flowpipe = ['import',
                 'syn',
                 'teststep']
@@ -46,9 +46,9 @@ def chip():
                 chip.node(flow, step, task[step], index=index)
                 chip.edge(flow, flowpipe[i - 1], step, tail_index=0, head_index=index)
 
-            #weight
+            # weight
             chip.set('flowgraph', flow, step, str(index), 'weight', 'cellarea', 1.0)
-            #goal
+            # goal
             chip.set('flowgraph', flow, step, str(index), 'goal', 'setupwns', 0.0)
             chip.set('metric', 'setupwns', 0.0, step=step, index=index)
 

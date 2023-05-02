@@ -15,18 +15,18 @@
 # SPDX-License-Identifier: Apache-2.0
 
 #
-#---------------------------------------------------------
+# ---------------------------------------------------------
 # LVS failure check
 #
 # This is a Python script that parses the comp.json
 # output from netgen and reports on the number of
 # errors in the top-level netlist.
 #
-#---------------------------------------------------------
+# ---------------------------------------------------------
 # Written by Tim Edwards
 # efabless, inc.
 # Pulled from qflow GUI as standalone script Aug 20, 2018
-#---------------------------------------------------------
+# ---------------------------------------------------------
 
 import re
 import json

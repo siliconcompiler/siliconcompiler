@@ -23,29 +23,29 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
         "route_np": route_np
     }
 
-    #1. Load PDK, flow, libs combo
+    # 1. Load PDK, flow, libs combo
     chip.use(asap7)
     chip.use(asicflow, **asic_flow_args)
     chip.use(asap7sc7p5t)
 
-    #2. Setup default show tools
+    # 2. Setup default show tools
     utils.set_common_showtools(chip)
 
-    #3. Select default flow/PDK
+    # 3. Select default flow/PDK
     chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow')
     chip.set('option', 'pdk', 'asap7')
     chip.set('option', 'stackup', '10M')
 
-    #4. Select libraries
+    # 4. Select libraries
     chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt')
 
-    #5. Project specific design choices
+    # 5. Project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 0.270)
 
-    #6. Timing corners
+    # 6. Timing corners
     pex_corner = 'typical'
 
     chip.set('constraint', 'timing', 'slow', 'libcorner', 'slow')

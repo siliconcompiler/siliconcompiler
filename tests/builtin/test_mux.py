@@ -12,7 +12,7 @@ def chip():
     # Create instance of Chip class
     chip = siliconcompiler.Chip('oh_add')
 
-    #sequence
+    # sequence
     flowpipe = ['import',
                 'syn',
                 'teststep']

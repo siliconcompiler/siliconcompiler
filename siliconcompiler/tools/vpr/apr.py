@@ -17,7 +17,7 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
 
-    #TO-DO: PRIOROTIZE the post-routing packing results?
+    # TO-DO: PRIOROTIZE the post-routing packing results?
     design = chip.top()
     chip.set('tool', tool, 'task', task, 'output', design + '.net', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.place', step=step, index=index)
@@ -47,7 +47,7 @@ def setup(chip):
 
 def pre_process(chip):
 
-    #have to rename the net connected to unhooked pins from $undef to unconn
+    # have to rename the net connected to unhooked pins from $undef to unconn
     # as VPR uses unconn keywords to identify unconnected pins
 
     step = chip.get('arg','step')
@@ -78,5 +78,5 @@ def post_process(chip):
         shutil.copy(file, 'outputs')
     design = chip.top()
     shutil.copy(f'inputs/{design}.blif', 'outputs')
-    #TODO: return error code
+    # TODO: return error code
     return 0

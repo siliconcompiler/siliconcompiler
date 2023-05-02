@@ -15,13 +15,13 @@ def setup(chip):
     Demonstration target for running the open-source fpgaflow.
     '''
 
-    #1. Load flow
+    # 1. Load flow
     chip.use(fpgaflow)
 
-    #2. Setup default show tools
+    # 2. Setup default show tools
     utils.set_common_showtools(chip)
 
-    #3. Select default flow
+    # 3. Select default flow
     chip.set('option', 'mode', 'fpga')
     chip.set('option', 'flow', 'fpgaflow')
 

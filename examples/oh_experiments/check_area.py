@@ -35,7 +35,7 @@ def checkarea(filelist, libdir, target):
 
 def main(limit=-1):
     oh_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../third_party/designs/oh/"
-    #Checking asiclib
+    # Checking asiclib
     libdir = os.path.join(oh_dir, 'asiclib', 'hdl')
     filelist = glob.glob(libdir + '/*.v')
     dontcheck = ['asic_keeper.v',

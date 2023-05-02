@@ -39,7 +39,7 @@ def setup_fpga(chip):
 ################################
 def create_vpr_lib(chip):
 
-    #copy the VPR techmap library to the input directory
+    # copy the VPR techmap library to the input directory
     step = chip.get('arg','step')
     index = chip.get('arg','index')
 
@@ -53,7 +53,7 @@ def create_vpr_lib(chip):
     max_lut_size = arch.find_max_lut_size()
     max_mem_addr_width = arch.find_memory_addr_width()
 
-    #render the template placeholders
+    # render the template placeholders
     data = {
         "max_lut_size": max_lut_size,
         "memory_addr_width": max_mem_addr_width,

@@ -1,6 +1,6 @@
 import siliconcompiler
 
-#design to eda, eda to pdk
+# design to eda, eda to pdk
 designers = 4
 firewall = 1
 pdks = 4

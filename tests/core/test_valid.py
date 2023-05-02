@@ -5,22 +5,22 @@ def test_valid():
 
     chip = siliconcompiler.Chip('test')
     chip.load_target("freepdk45_demo")
-    #basic
+    # basic
     valid = chip.valid('design')
     assert valid
-    #nest
+    # nest
     valid = chip.valid('pdk', 'freepdk45', 'foundry')
     assert valid
-    #dynamic valid
+    # dynamic valid
     valid = chip.valid('pdk', 'freepdk45', 'aprtech', 'openroad', '10M', '10t', 'lef')
     assert valid
-    #valid b/c of default (valid for set), changed metal stack to something not yet loaded
+    # valid b/c of default (valid for set), changed metal stack to something not yet loaded
     valid = chip.valid('pdk', 'freepdk45', 'aprtech', 'openroad', 'M10', '10t', 'lef', default_valid=True)
     assert valid
-    #dynamic with default fields
+    # dynamic with default fields
     valid = chip.valid('constraint', 'timing', 'default', 'voltage')
     assert valid
-    #not working
+    # not working
     valid = chip.valid('blah')
     assert not valid
 

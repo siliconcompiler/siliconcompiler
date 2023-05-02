@@ -74,7 +74,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
                 'routemin',
                 'dfm']
 
-    #step --> task
+    # step --> task
     tasks = {
         'syn': syn_asic,
         'synmin': minimum,

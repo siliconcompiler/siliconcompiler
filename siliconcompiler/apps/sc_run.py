@@ -21,7 +21,7 @@ def main():
                         switchlist=switchlist,
                         description=description)
 
-    #Error checking
+    # Error checking
     if not chip.get('cfg'):
         print(f"{progname} error: the following arguments are required: -cfg")
         return 1

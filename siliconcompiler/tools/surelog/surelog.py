@@ -62,8 +62,8 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WRN:', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[(ERR|FTL|SNT):', step=step, index=index, clobber=False)
 
-    #warnings_off = chip.get('tool', tool, 'warningoff')
-    #for warning in warnings_off:
+    # warnings_off = chip.get('tool', tool, 'warningoff')
+    # for warning in warnings_off:
     #    chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}')
 
 def parse_version(stdout):
@@ -166,7 +166,7 @@ def runtime_options(chip):
     src_files = chip.find_files('input', 'rtl', 'verilog', step=step, index=index)
 
     # TODO: add back later
-    #for item in chip.getkeys('library'):
+    # for item in chip.getkeys('library'):
     #    src_files.extend(chip.find_files('library', item, 'input', 'verilog'))
 
     for value in _remove_dups(chip, 'source', src_files):

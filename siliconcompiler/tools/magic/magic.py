@@ -32,7 +32,7 @@ def setup(chip):
     task = chip._get_task(step, index)
 
     # magic used for drc and lvs
-    #if step not in ('drc', 'extspice'):
+    # if step not in ('drc', 'extspice'):
     #    raise ValueError(f"Magic tool doesn't support step {step}.")
     script = 'sc_magic.tcl'
 

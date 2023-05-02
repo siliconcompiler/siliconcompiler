@@ -24,7 +24,7 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
         "route_np": route_np
     }
 
-    #1. Load PDK, flow, libs
+    # 1. Load PDK, flow, libs
     chip.use(skywater130)
     chip.use(asicflow, **asic_flow_args)
     chip.use(asictopflow)
@@ -32,24 +32,24 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.use(sky130hd)
     chip.use(oh_tapeout)
 
-    #2. Setup default show tools
+    # 2. Setup default show tools
     utils.set_common_showtools(chip)
 
-    #3. Set default targets
+    # 3. Set default targets
     chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'skywater130')
     chip.set('option', 'stackup', '5M1LI')
 
-    #4. Set project specific design choices
+    # 4. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd')
 
-    #5. get project specific design choices
+    # 5. get project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 4.6)
 
-    #6. Timing corners
+    # 6. Timing corners
     chip.set('constraint', 'timing', 'slow', 'libcorner', 'slow')
     chip.set('constraint', 'timing', 'slow', 'pexcorner', 'maximum')
     chip.set('constraint', 'timing', 'slow', 'mode', 'func')

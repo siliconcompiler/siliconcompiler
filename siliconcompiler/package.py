@@ -14,7 +14,7 @@ class Sup:
 
     def __init__(self, design, registry=None):
 
-        #TODO: when starting sup, do we know the
+        # TODO: when starting sup, do we know the
         self.chip = siliconcompiler.Chip(design)
 
         # Local cache location
@@ -46,7 +46,7 @@ class Sup:
         self.chip.read_manifest(filename, clobber=True)
         check_ok = self.chip.check_manifest()
 
-        #TODO: Add packaging specific checks
+        # TODO: Add packaging specific checks
         for keylist in self.chip.allkeys():
             if (keylist[0] in ('package') and keylist[1] in ('version', 'description', 'license')):
                 if self.chip.get(*keylist) in ("null", None, []):
@@ -89,7 +89,7 @@ class Sup:
         version = self.chip.get('package', 'version')
 
         if re.match(r'http', registry):
-            #TODO
+            # TODO
             pass
         else:
             self.chip.logger.info(f"Publishing {self.chip.design}-{version} package to registry '{registry}'")
@@ -122,13 +122,13 @@ class Sup:
             version = m.group(2)
         else:
             design = name
-            #TODO: fix to take the latest ver
+            # TODO: fix to take the latest ver
             version = list(remote[design].keys())[0]
 
         deps = {}
         deps[design] = [version]
 
-        #TODO: allow for installing one package only (nodep tree)
+        # TODO: allow for installing one package only (nodep tree)
         auto = True
         self.chip._find_deps(self.cache, local, remote, design, deps, auto)
 
@@ -180,10 +180,10 @@ class Sup:
             ver = m.group(2)
         else:
             design = name
-            #TODO: handle multiple versions
+            # TODO: handle multiple versions
             ver = None
 
-        #TODO: handle multiple registries
+        # TODO: handle multiple registries
         foundit = False
         for item in remote.keys():
             if item == design:

@@ -103,7 +103,7 @@ def setup(chip, mode='batch'):
         chip.logger.error(f'{delaymodel} delay model is not supported by {tool}, only nldm')
 
     if stackup and targetlibs:
-        #Note: only one footprint supported in mainlib
+        # Note: only one footprint supported in mainlib
         chip.add('tool', tool, 'task', task, 'require', ",".join(['asic', 'logiclib']), step=step, index=index)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['option', 'stackup',]), step=step, index=index)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['library', mainlib, 'asic', 'site', libtype]), step=step, index=index)
@@ -297,7 +297,7 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    #Check log file for errors and statistics
+    # Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 

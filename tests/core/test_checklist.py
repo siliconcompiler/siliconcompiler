@@ -17,12 +17,12 @@ def test_checklist():
     chip.set('tool', 'yosys', 'task', 'syn_asic', 'report', 'errors', 'yosys.log', step='syn', index='0')
     chip.schema.record_history()
 
-    #automated fail
+    # automated fail
     chip.set('checklist','iso', 'd0', 'criteria', 'errors==0')
     chip.set('checklist','iso', 'd0', 'task', ('job0', 'syn', '0'))
     assert not chip.check_checklist('iso', ['d0'])
 
-    #automated pass
+    # automated pass
     chip.set('checklist', 'iso', 'd1', 'criteria', 'errors<2')
     chip.set('checklist','iso', 'd1', 'task', ('job0', 'syn', '0'))
     assert chip.check_checklist('iso', ['d1'])
@@ -40,7 +40,7 @@ def test_missing_check_checklist():
     chip = siliconcompiler.Chip('test')
     chip.load_target('freepdk45_demo')
 
-    #automated fail
+    # automated fail
     chip.set('checklist','iso', 'd1', 'criteria', 'errors==0')
     chip.set('checklist','iso', 'd1', 'task', ('job0', 'syn', '0'))
     assert not chip.check_checklist('iso', ['d0'])

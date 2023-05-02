@@ -17,7 +17,7 @@ def server_cmdline():
 
     def_cfg = server_schema()
 
-    #Argument Parser
+    # Argument Parser
     parser = argparse.ArgumentParser(prog='sc-server',
                                      formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50),
                                      prefix_chars='-+',
@@ -45,7 +45,7 @@ def server_cmdline():
                                 help=helpstr,
                                 default=argparse.SUPPRESS)
 
-    #Parsing args and converting to dict
+    # Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
 
     # Generate nested cfg dictionary.
@@ -58,7 +58,7 @@ def server_cmdline():
         if param not in def_cfg:
             def_cfg[param] = {}
 
-        #(Omit checks for stdcell, maro, etc; server args are simple.)
+        # (Omit checks for stdcell, maro, etc; server args are simple.)
 
         if 'value' not in def_cfg[param]:
             def_cfg[param] = {}
@@ -78,10 +78,10 @@ def server_cmdline():
 ###############################################
 
 def main():
-    #Command line inputs and default 'server_schema' config values.
+    # Command line inputs and default 'server_schema' config values.
     cmdlinecfg = server_cmdline()
 
-    #Create the Server class instance.
+    # Create the Server class instance.
     Server(cmdlinecfg)
 
 if __name__ == '__main__':
