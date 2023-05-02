@@ -108,7 +108,7 @@ def test_replay(scroot):
     chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
     chip.set('option', 'quiet', True)
-    chip.set('option', 'clean', True) # replay should work even with clean=True
+    chip.set('option', 'clean', True)  # replay should work even with clean=True
     chip.set('tool', 'surelog', 'task', step, 'env', 'SLOG_ENV', 'SUCCESS', step=step, index='0')
 
     chip.run()

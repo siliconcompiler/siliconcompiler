@@ -41,7 +41,7 @@ import os
 import sys
 
 # SC_ROOT provided by CLI
-sys.path.append(SC_ROOT) # noqa: F821
+sys.path.append(SC_ROOT)  # noqa: F821
 
 from schema import Schema
 from tools.klayout.klayout_show import show
@@ -69,7 +69,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
             cfg = json.load(f)
 
         expand_cfg_layers(cfg)
-        cfg = cfg['layers'] # ignore the rest
+        cfg = cfg['layers']  # ignore the rest
 
         # Map gds layers & datatype to KLayout indices
         # These are arrays for the different mask numbers
@@ -80,7 +80,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
                     continue
                 data = vals[key]
                 if isinstance(data['datatype'], int):
-                    data['datatype'] = [data['datatype']] # convert to array
+                    data['datatype'] = [data['datatype']]  # convert to array
                 data['klayout'] = [main_layout.find_layer(layer, datatype)
                                    for datatype in data['datatype']]
 
@@ -113,7 +113,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
             for line in fp:
                 if in_fills:
                     if re.match('END FILLS', line):
-                        break # done with fills; don't care what follows
+                        break  # done with fills; don't care what follows
                     m = re.match(rect_pat, line)
                     if not m:
                         raise Exception('Unrecognized fill: ' + line)
@@ -122,7 +122,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
                     if not mask:  # uncolored just uses first entry
                         mask = 0
                     else:
-                        mask = int(mask) - 1 # DEF is 1-based indexing
+                        mask = int(mask) - 1  # DEF is 1-based indexing
                     layer = cfg[m.group('layer')][opc_type]['klayout'][mask]
                     xlo = int(m.group('xlo')) / units
                     ylo = int(m.group('ylo')) / units

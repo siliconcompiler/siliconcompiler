@@ -103,12 +103,12 @@ def place_pdn(fp):
     _, (core_w, core_h), (place_w, place_h), (margin_left, margin_bottom) = dims
     we_pads, no_pads, ea_pads, so_pads = define_io_placement(fp)
 
-    n_vert = 4 # how many vertical straps to place
-    vwidth = 5 # width of vertical straps in microns
-    n_hori = 4 # how many horizontal straps to place
-    hwidth = 5 # width of horizontal straps
-    vlayer = 'm4' # metal layer for vertical straps
-    hlayer = 'm5' # metal layer for horizontal straps
+    n_vert = 4  # how many vertical straps to place
+    vwidth = 5  # width of vertical straps in microns
+    n_hori = 4  # how many horizontal straps to place
+    hwidth = 5  # width of horizontal straps
+    vlayer = 'm4'  # metal layer for vertical straps
+    hlayer = 'm5'  # metal layer for horizontal straps
     # Calculate even spacing for straps
     vpitch = (core_w - n_vert * vwidth) / (n_vert + 1)
     hpitch = (core_h - n_hori * hwidth) / (n_hori + 1)
@@ -261,28 +261,28 @@ def core_floorplan(fp):
     # Define I/O cell signals.
     pins = [
         # (name, offset from cell edge, # bit in vector, width of vector)
-        ('din', 75.085, 0, 1), # in
-        ('dout', 19.885, 0, 1), # out
-        ('ie', 41.505, 0, 1), # inp_dis
-        ('oen', 4.245, 0, 1), # oe_n
-        ('tech_cfg', 31.845, 0, 18), # hld_h_n
-        ('tech_cfg', 35.065, 1, 18), # enable_h
-        ('tech_cfg', 38.285, 2, 18), # enable_inp_h
-        ('tech_cfg', 13.445, 3, 18), # enable_vdda_h
-        ('tech_cfg', 16.665, 4, 18), # enable_vswitch_h
-        ('tech_cfg', 69.105, 5, 18), # enable_vddio
-        ('tech_cfg', 7.465, 6, 18), # ib_mode_sel
-        ('tech_cfg', 10.685, 7, 18), # vtrip_sel
-        ('tech_cfg', 65.885, 8, 18), # slow
-        ('tech_cfg', 22.645, 9, 18), # hld_ovr
-        ('tech_cfg', 50.705, 10, 18), # analog_en
-        ('tech_cfg', 29.085, 11, 18), # analog_sel
-        ('tech_cfg', 44.265, 12, 18), # analog_pol
-        ('tech_cfg', 47.485, 13, 18), # dm[0]
-        ('tech_cfg', 56.685, 14, 18), # dm[1]
-        ('tech_cfg', 25.865, 15, 18), # dm[2]
-        ('tech_cfg', 78.305, 16, 18), # tie_lo_esd
-        ('tech_cfg', 71.865, 17, 18), # tie_hi_esd
+        ('din', 75.085, 0, 1),  # in
+        ('dout', 19.885, 0, 1),  # out
+        ('ie', 41.505, 0, 1),  # inp_dis
+        ('oen', 4.245, 0, 1),  # oe_n
+        ('tech_cfg', 31.845, 0, 18),  # hld_h_n
+        ('tech_cfg', 35.065, 1, 18),  # enable_h
+        ('tech_cfg', 38.285, 2, 18),  # enable_inp_h
+        ('tech_cfg', 13.445, 3, 18),  # enable_vdda_h
+        ('tech_cfg', 16.665, 4, 18),  # enable_vswitch_h
+        ('tech_cfg', 69.105, 5, 18),  # enable_vddio
+        ('tech_cfg', 7.465, 6, 18),  # ib_mode_sel
+        ('tech_cfg', 10.685, 7, 18),  # vtrip_sel
+        ('tech_cfg', 65.885, 8, 18),  # slow
+        ('tech_cfg', 22.645, 9, 18),  # hld_ovr
+        ('tech_cfg', 50.705, 10, 18),  # analog_en
+        ('tech_cfg', 29.085, 11, 18),  # analog_sel
+        ('tech_cfg', 44.265, 12, 18),  # analog_pol
+        ('tech_cfg', 47.485, 13, 18),  # dm[0]
+        ('tech_cfg', 56.685, 14, 18),  # dm[1]
+        ('tech_cfg', 25.865, 15, 18),  # dm[2]
+        ('tech_cfg', 78.305, 16, 18),  # tie_lo_esd
+        ('tech_cfg', 71.865, 17, 18),  # tie_hi_esd
     ]
     pin_width = 0.28
     pin_depth = 1
@@ -298,7 +298,7 @@ def core_floorplan(fp):
     we_gpio_pos = [pos for pad, pos in we_pads if pad == GPIO]
     pin_x = 0
     for i, pad_y in enumerate(we_gpio_pos):
-        pad_y -= gpio_h # account for padring height
+        pad_y -= gpio_h  # account for padring height
         for pin, offset, bit, width in pins:
             # Construct name based on side, pin name, and bit # in vector
             name = f'we_{pin}[{i * width + bit}]'

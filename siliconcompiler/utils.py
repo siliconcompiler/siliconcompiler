@@ -64,7 +64,7 @@ class PbPrimitive:
 
     def add_port(self, port):
 
-        port_type = port.tag # can be input | output | clock
+        port_type = port.tag  # can be input | output | clock
         port_name = port.attrib['name']
         num_pins = port.attrib['num_pins']
         port_class = port.attrib.get('port_class')
@@ -88,9 +88,9 @@ class Arch:
 
     def __init__(self, arch_file_name):
         self.arch_file = ET.parse(arch_file_name)
-        self.complexblocklist = self.arch_file.find("complexblocklist") # finding the tag that contains all the pb_types
+        self.complexblocklist = self.arch_file.find("complexblocklist")  # finding the tag that contains all the pb_types
         self.pb_primitives = []
-        self.find_pb_primitives(self.complexblocklist) # only the primitives (pb_types that have the blif_model attribute) will be stored
+        self.find_pb_primitives(self.complexblocklist)  # only the primitives (pb_types that have the blif_model attribute) will be stored
 
     # Find the pb_types that possess the 'blif_model' attribute and add them to the pb_primitives list
     def find_pb_primitives(self, root):

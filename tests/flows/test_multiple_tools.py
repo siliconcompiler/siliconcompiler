@@ -13,8 +13,8 @@ def create_fake_surelog():
         # hardcoded to check that fake license server env is provided, then
         # dump a version
         f.write('#!/bin/sh\n')
-        f.write('set -o nounset\n') # quit early if script tries to expand unset var
-        f.write(': $ACME_LICENSE\n') # try to expand license server var
+        f.write('set -o nounset\n')  # quit early if script tries to expand unset var
+        f.write(': $ACME_LICENSE\n')  # try to expand license server var
         f.write('echo VERSION: 0.0\n')
     # executable
     os.chmod('surelog', 0o755)

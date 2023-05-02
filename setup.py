@@ -36,7 +36,7 @@ def parse_reqs():
     '''Parse out each requirement category from requirements.txt'''
     install_reqs = []
     extras_reqs = {}
-    current_section = None # default to install
+    current_section = None  # default to install
 
     with open('requirements.txt', 'r') as reqs_file:
         for line in reqs_file.readlines():

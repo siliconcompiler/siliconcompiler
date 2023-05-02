@@ -28,8 +28,8 @@ def main():
 
     ####################################
     design = 'heartbeat'
-    N = 2 # parallel flows, change based on your machine
-    M = 2 # parallel indices, change based on your machine
+    N = 2  # parallel flows, change based on your machine
+    M = 2  # parallel indices, change based on your machine
 
     ####################################
     # 1. All serial

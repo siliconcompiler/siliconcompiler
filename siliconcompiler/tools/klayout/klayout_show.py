@@ -117,7 +117,7 @@ def show(schema, input_path, output_path, screenshot=False):
 
 def main():
     # SC_ROOT provided by CLI, and is only accessible when this is main module
-    sys.path.append(SC_ROOT) # noqa: F821
+    sys.path.append(SC_ROOT)  # noqa: F821
     from schema import Schema
 
     schema = Schema(manifest='sc_manifest.json')

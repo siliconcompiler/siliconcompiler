@@ -9,8 +9,8 @@ def setup(chip):
     process = 'skywater130'
     stackup = '5M1LI'
     version = 'v0_0_2'
-    libname = 'sky130hd' # not sure if this should be something else
-    libtype = 'unithd' # TODO: update this
+    libname = 'sky130hd'  # not sure if this should be something else
+    libtype = 'unithd'  # TODO: update this
 
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, version)
 

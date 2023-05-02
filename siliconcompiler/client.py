@@ -314,7 +314,7 @@ def fetch_results_request(chip):
                 return 0
             else:
                 msg_json = {}
-                try: # (An unexpected server error may not return JSON with a message)
+                try:  # (An unexpected server error may not return JSON with a message)
                     msg_json = resp.json()
                     msg = f': {msg_json["message"]}' if 'message' in msg_json else '.'
                 except requests.exceptions.JSONDecodeError:

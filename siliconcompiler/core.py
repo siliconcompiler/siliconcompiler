@@ -2744,13 +2744,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Partial list of supported grep options
         options = {
-            '-v': False, # Invert the sense of matching
-            '-i': False, # Ignore case distinctions in patterns and data
-            '-E': False, # Interpret PATTERNS as extended regular expressions.
-            '-e': False, # Safe interpretation of pattern starting with "-"
-            '-x': False, # Select only matches that exactly match the whole line.
-            '-o': False, # Print only the match parts of a matching line
-            '-w': False} # Select only lines containing matches that form whole words.
+            '-v': False,  # Invert the sense of matching
+            '-i': False,  # Ignore case distinctions in patterns and data
+            '-E': False,  # Interpret PATTERNS as extended regular expressions.
+            '-e': False,  # Safe interpretation of pattern starting with "-"
+            '-x': False,  # Select only matches that exactly match the whole line.
+            '-o': False,  # Print only the match parts of a matching line
+            '-w': False}  # Select only lines containing matches that form whole words.
 
         # Split into repeating switches and everything else
         match = re.match(r'\s*((?:\-\w\s)*)(.*)', args)
@@ -3140,7 +3140,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             nodes_to_show = [n for n in nodes if n in selected_tasks]
 
-        colwidth = 8 # minimum col width
+        colwidth = 8  # minimum col width
         row_labels = [' ' + metric for metric in metrics_to_show]
         column_labels = [f'{step}{index}'.center(colwidth) for step, index in nodes_to_show]
         column_labels.insert(0, 'units')
@@ -3671,7 +3671,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         veropt = self.get('tool', tool, 'vswitch')
         exe = self._getexe(tool, step, index)
         version = None
-        toolpath = exe # For record
+        toolpath = exe  # For record
         if exe is not None:
             exe_path, exe_base = os.path.split(exe)
             if veropt:
@@ -3748,7 +3748,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         data = os.read(fd, 1024)
                         log_writer.write(data)
                         return data
-                    import pty # Note: this import throws exception on Windows
+                    import pty  # Note: this import throws exception on Windows
                     retcode = pty.spawn(cmdlist, read)
             else:
                 stdout_file = ''
