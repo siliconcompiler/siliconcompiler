@@ -3,7 +3,7 @@ PDKs
 
 Process Design Kits (PDKs) for leading process nodes generally include hundreds of files, documents, and configuration parameters, resulting in significant startup times in porting a design to a new node. The SiliconCompiler project minimizes per design PDK setup efforts by offering a way to package PDKs as standardized reusable objects, and making them available as named modules which can be loaded by the :meth:`.use()` function.
 
-A complete set of supported open PDKs can be found in the :ref:`PDK Directory`. The table below shows the function interfaces supported in setting up PDKs.
+A complete set of supported open PDKs can be found in the :ref:`pdk_directory`. The table below shows the function interfaces supported in setting up PDKs.
 
 setup(chip)
 -----------------

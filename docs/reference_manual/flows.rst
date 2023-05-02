@@ -1,4 +1,0 @@
-Flows directory
-=================
-
-.. flowgen::

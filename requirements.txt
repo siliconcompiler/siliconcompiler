@@ -30,8 +30,9 @@ cmake
 # Docs dependencies
 #:docs
 Sphinx >= 3.5.4
-sphinx-rtd-theme >= 0.5.2
 pip-licenses
+pydata-sphinx-theme==0.9.0
+sphinx-design
 
 # Testing dependencies
 #:test

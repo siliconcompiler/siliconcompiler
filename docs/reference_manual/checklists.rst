@@ -1,4 +1,0 @@
-Checklists directory
-====================
-
-.. checklistgen::

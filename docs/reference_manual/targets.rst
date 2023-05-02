@@ -1,4 +1,0 @@
-Targets directory
-====================
-
-.. targetgen::

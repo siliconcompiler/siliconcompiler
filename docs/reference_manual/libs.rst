@@ -1,4 +1,0 @@
-Libraries directory
-====================
-
-.. libgen::
