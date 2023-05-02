@@ -4,24 +4,24 @@ import json
 from docutils import nodes
 from sphinx.util.docutils import SphinxDirective
 
-def add_prop_attr_row(prop, attr, tbody, key = None):
+def add_prop_attr_row(prop, attr, tbody, key=None):
     desc_row = nodes.row()
     tbody += desc_row
     desc_row += nodes.entry()
     desc_key_entry = nodes.entry()
     desc_row += desc_key_entry
-    desc_key_entry += nodes.strong(text = key if key else attr)
+    desc_key_entry += nodes.strong(text=key if key else attr)
     desc_text_entry = nodes.entry()
     desc_row += desc_text_entry
-    desc_text_entry += nodes.paragraph(text = prop[attr])
+    desc_text_entry += nodes.paragraph(text=prop[attr])
 
 def add_table_row(prop, tbody):
     # Create title / header row for this schema property.
     title_row = nodes.row()
     tbody += title_row
-    title_entry = nodes.entry(morecols = 2)
+    title_entry = nodes.entry(morecols=2)
     title_row += title_entry
-    title_entry += nodes.strong(text = prop['title'])
+    title_entry += nodes.strong(text=prop['title'])
     # Add the property description, if available.
     if 'description' in prop:
         add_prop_attr_row(prop, 'description', tbody)
@@ -31,19 +31,19 @@ def add_table_row(prop, tbody):
         if prop['type'] == 'array':
             # Process 'items' keyword with constraints on item types.
             if 'type' in prop['items']:
-                add_prop_attr_row(prop['items'], 'type', tbody, key = 'entry type')
+                add_prop_attr_row(prop['items'], 'type', tbody, key='entry type')
             if 'pattern' in prop['items']:
-                add_prop_attr_row(prop['items'], 'pattern', tbody, key = 'entry regex match')
+                add_prop_attr_row(prop['items'], 'pattern', tbody, key='entry regex match')
             if 'minLength' in prop['items']:
-                add_prop_attr_row(prop['items'], 'minLength', tbody, key = 'minimum length for each entry')
+                add_prop_attr_row(prop['items'], 'minLength', tbody, key='minimum length for each entry')
     # Add type-specific parameters: 'minLength/pattern' for strings,
     if 'pattern' in prop:
-        add_prop_attr_row(prop, 'pattern', tbody, key = 'regex match')
+        add_prop_attr_row(prop, 'pattern', tbody, key='regex match')
     if 'minLength' in prop:
-        add_prop_attr_row(prop, 'minLength', tbody, key = 'minimum string length')
+        add_prop_attr_row(prop, 'minLength', tbody, key='minimum string length')
     # Add default value, if available.
     if 'default' in prop:
-        add_prop_attr_row(prop, 'type', tbody, key = 'default value')
+        add_prop_attr_row(prop, 'type', tbody, key='default value')
 
 # Main Sphinx plugin
 class RemoteAPIGen(SphinxDirective):
@@ -57,7 +57,7 @@ class RemoteAPIGen(SphinxDirective):
         api_schemas = glob.iglob('server_schema/*.json')
 
         # Create a top-level section node to contain the individual API tables.
-        top_section = nodes.section(ids = [nodes.make_id('server_top')])
+        top_section = nodes.section(ids=[nodes.make_id('server_top')])
 
         # Process each API individually, adding its doc components to the
         # array which we will return.
@@ -67,11 +67,11 @@ class RemoteAPIGen(SphinxDirective):
 
             # Create a title heading for the section.
             title_str = api_schema['title'].strip('/')
-            section = nodes.section(ids = [nodes.make_id(title_str)])
-            section += nodes.title(text = title_str)
+            section = nodes.section(ids=[nodes.make_id(title_str)])
+            section += nodes.title(text=title_str)
             # Add a table describing the schema.
             table = nodes.table()
-            tgroup = nodes.tgroup(cols = 3)
+            tgroup = nodes.tgroup(cols=3)
             tgroup += nodes.colspec(colwidth=10)
             tgroup += nodes.colspec(colwidth=50)
             tgroup += nodes.colspec(colwidth=100)
@@ -82,7 +82,7 @@ class RemoteAPIGen(SphinxDirective):
                 add_table_row(api_schema['properties'][prop], tbody)
             section += table
             # Add the endpoint's description.
-            section += nodes.paragraph(text = api_schema['description'])
+            section += nodes.paragraph(text=api_schema['description'])
             top_section += section
 
         # Done; return the array of document objects.

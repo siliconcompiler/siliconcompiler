@@ -4,10 +4,9 @@ import subprocess
 import pytest
 
 ###########################
-@pytest.mark.skip(reason=
-                  "Need to figure out how to handle check_manifest() call which fails on "
-                  "local import step since setup for tools running remotely hasn't been "
-                  "performed")
+@pytest.mark.skip(reason="Need to figure out how to handle check_manifest() call which fails on "
+                         "local import step since setup for tools running remotely hasn't been "
+                         "performed")
 @pytest.mark.eda
 def test_gcd_server(gcd_chip):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -21,7 +20,7 @@ def test_gcd_server(gcd_chip):
                                      '-nfs_mount', './local_server_work',
                                      '-cluster', 'local',
                                      '-port', '8082'],
-                                    stdout = f)
+                                    stdout=f)
 
     # Ensure that klayout doesn't open its GUI after results are retrieved.
     os.environ['DISPLAY'] = ''
@@ -46,7 +45,7 @@ def test_gcd_server(gcd_chip):
                     '-remote_addr', 'localhost',
                     '-remote_port', '8082',
                     '-loglevel', 'NOTSET'],
-                   stdout = subprocess.PIPE)
+                   stdout=subprocess.PIPE)
 
     # Kill the server process.
     srv_proc.kill()

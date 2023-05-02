@@ -256,7 +256,7 @@ def core_floorplan(fp):
     _, (core_w, core_h), (place_w, place_h), (margin_left, margin_bottom) = dims
     diearea = [(0, 0), (core_w, core_h)]
     corearea = [(margin_left, margin_bottom), (place_w + margin_left, place_h + margin_bottom)]
-    fp.create_diearea(diearea, corearea = corearea)
+    fp.create_diearea(diearea, corearea=corearea)
 
     # Define I/O cell signals.
     pins = [

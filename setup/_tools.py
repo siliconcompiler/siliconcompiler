@@ -70,8 +70,8 @@ if __name__ == "__main__":
     supported_fields = ", ".join(supported_fields)
 
     parser = argparse.ArgumentParser(
-        prog = "SiliconCompiler Tool Helper",
-        description = "Maintains current known good versions for all install scripts to use")
+        prog="SiliconCompiler Tool Helper",
+        description="Maintains current known good versions for all install scripts to use")
     parser.add_argument("--tool", type=str, help=f"Tool name, supported options: {supported_tools}")
     parser.add_argument("--json_tools", action="store_true", help="Flag to get json matrix used by github to update tools")
 

@@ -23,8 +23,8 @@ def test_time():
 def test_si():
     value = 1e5
     assert units.format_si(value, 'Hz') == '100.000k'
-    assert units.format_si(value, 'Hz', digits = 0) == '100k'
-    assert units.format_si(value, 'Hz', margin = 0) == '0.100M'
+    assert units.format_si(value, 'Hz', digits=0) == '100k'
+    assert units.format_si(value, 'Hz', margin=0) == '0.100M'
 
     assert units.format_si(1.1e9, 'Hz') == '1.100G'
 

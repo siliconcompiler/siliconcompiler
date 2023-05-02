@@ -84,7 +84,7 @@ class CategorySummary(SphinxDirective):
 
         # List of documentation objects to return.
         new_doc = []
-        section = nodes.section(ids = [nodes.make_id(f'{category}_summary')])
+        section = nodes.section(ids=[nodes.make_id(f'{category}_summary')])
 
         chip = siliconcompiler.Chip('<design>')
 

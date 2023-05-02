@@ -36,14 +36,14 @@ def server_cmdline():
                                 action='store_const',
                                 const=['True'],
                                 help=helpstr,
-                                default = argparse.SUPPRESS)
+                                default=argparse.SUPPRESS)
         else:
             parser.add_argument(def_cfg[k]['switch'],
                                 metavar=def_cfg[k]['switch_args'],
                                 dest=keystr,
                                 action='append',
                                 help=helpstr,
-                                default = argparse.SUPPRESS)
+                                default=argparse.SUPPRESS)
 
     #Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())

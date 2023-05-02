@@ -133,7 +133,7 @@ setup(
 
     python_requires=">=3.6",
     install_requires=install_reqs,
-    extras_require = extras_req,
+    extras_require=extras_req,
     entry_points={"console_scripts": entry_points_apps},
     **skbuild_args
 )

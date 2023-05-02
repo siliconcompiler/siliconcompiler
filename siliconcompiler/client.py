@@ -359,7 +359,7 @@ def fetch_results(chip):
     # unzipped directory (including encrypted archives).
     utils.copytree(job_hash,
                    local_dir,
-                   dirs_exist_ok = True)
+                   dirs_exist_ok=True)
     shutil.rmtree(job_hash)
 
     # Print a message pointing to the results.

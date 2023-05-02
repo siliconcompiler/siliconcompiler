@@ -720,7 +720,7 @@ def schema_pdk(cfg, stackup='default'):
                 sctype='[file]',
                 scope='global',
                 shorthelp=f"PDK: {item}",
-                switch= f"-pdk_doc_{item} 'pdkname <file>'",
+                switch=f"-pdk_doc_{item} 'pdkname <file>'",
                 example=[f"cli: -pdk_doc_{item} 'asap7 {item}.pdf'",
                          f"api: chip.set('pdk','asap7','doc',{item},'{item}.pdf')"],
                 schelp=f"""Filepath to {item} document.""")
@@ -1066,7 +1066,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             sctype='[(str,str)]',
             shorthelp="Flowgraph: task select record",
             switch="-flowgraph_select 'flow step index <(str,str)>'",
-            example= [
+            example=[
                 "cli: -flowgraph_select 'asicflow cts 0 (place,42)'",
                 "api:  chip.set('flowgraph','asicflow', 'cts','0','select',('place','42'))"],
             schelp="""
@@ -2690,8 +2690,8 @@ def schema_option(cfg):
             unit='s',
             shorthelp="Option: Timeout value",
             switch="-timeout <str>",
-            example= ["cli: -timeout 3600",
-                      "api: chip.set('option', 'timeout', 3600)"],
+            example=["cli: -timeout 3600",
+                     "api: chip.set('option', 'timeout', 3600)"],
             schelp="""
             Timeout value in seconds. The timeout value is compared
             against the wall time tracked by the SC runtime to determine
@@ -2702,8 +2702,8 @@ def schema_option(cfg):
             sctype='bool',
             shorthelp="Option: Strict checking",
             switch="-strict <bool>",
-            example= ["cli: -strict true",
-                      "api: chip.set('option', 'strict', True)"],
+            example=["cli: -strict true",
+                     "api: chip.set('option', 'strict', True)"],
             schelp="""
             Enable additional strict checking in the SC Python API. When this
             parameter is set to True, users must provide step and index keyword
@@ -2736,8 +2736,8 @@ def schema_option(cfg):
             pernode='optional',
             shorthelp="Option: Scheduler core constraint",
             switch="-cores <int>",
-            example= ["cli: -cores 48",
-                      "api: chip.set('option', 'scheduler', 'cores', '48')"],
+            example=["cli: -cores 48",
+                     "api: chip.set('option', 'scheduler', 'cores', '48')"],
             schelp="""
             Specifies the number cpu cores required to run the job.
             For the slurm scheduler, this translates to the '-c'
@@ -2751,8 +2751,8 @@ def schema_option(cfg):
             pernode='optional',
             shorthelp="Option: Scheduler memory constraint",
             switch="-memory <str>",
-            example= ["cli: -memory 8000",
-                      "api: chip.set('option', 'scheduler', 'memory', '8000')"],
+            example=["cli: -memory 8000",
+                     "api: chip.set('option', 'scheduler', 'memory', '8000')"],
             schelp="""
             Specifies the amount of memory required to run the job,
             specified in MB. For the slurm scheduler, this translates to
@@ -2765,8 +2765,8 @@ def schema_option(cfg):
             pernode='optional',
             shorthelp="Option: Scheduler queue",
             switch="-queue <str>",
-            example= ["cli: -queue nightrun",
-                      "api: chip.set('option', 'scheduler', 'queue', 'nightrun')"],
+            example=["cli: -queue nightrun",
+                     "api: chip.set('option', 'scheduler', 'queue', 'nightrun')"],
             schelp="""
             Send the job to the specified queue. With slurm, this
             translates to 'partition'. The queue name must match
@@ -2779,8 +2779,8 @@ def schema_option(cfg):
             pernode='optional',
             shorthelp="Option: Scheduler start time",
             switch="-defer <str>",
-            example= ["cli: -defer 16:00",
-                      "api: chip.set('option', 'scheduler', 'defer', '16:00')"],
+            example=["cli: -defer 16:00",
+                     "api: chip.set('option', 'scheduler', 'defer', '16:00')"],
             schelp="""
             Defer initiation of job until the specified time. The parameter
             is pass through string for remote job scheduler such as slurm.
@@ -3214,8 +3214,8 @@ def schema_asic(cfg):
             pernode='optional',
             shorthelp="ASIC: delay model",
             switch="-asic_delaymodel <str>",
-            example= ["cli: -asic_delaymodel ccs",
-                      "api: chip.set('asic', 'delaymodel', 'ccs')"],
+            example=["cli: -asic_delaymodel ccs",
+                     "api: chip.set('asic', 'delaymodel', 'ccs')"],
             schelp="""
             Delay model to use for the target libs. Supported values
             are nldm and ccs.""")
@@ -3670,8 +3670,8 @@ def schema_constraint(cfg):
             scope='job',
             shorthelp="Constraint: Layout outline",
             switch="-constraint_outline <[(float,float)]>",
-            example= ["cli: -constraint_outline '(0,0)'",
-                      "api: chip.set('constraint', 'outline', (0,0))"],
+            example=["cli: -constraint_outline '(0,0)'",
+                     "api: chip.set('constraint', 'outline', (0,0))"],
             schelp="""
             List of (x,y) points that define the outline physical layout
             physical design. Simple rectangle areas can be defined with two points,
@@ -3685,8 +3685,8 @@ def schema_constraint(cfg):
             scope='job',
             shorthelp="Constraint: Layout core area",
             switch="-constraint_corearea <[(float,float)]>",
-            example= ["cli: -constraint_corearea '(0,0)'",
-                      "api: chip.set('constraint', 'corearea', (0,0))"],
+            example=["cli: -constraint_corearea '(0,0)'",
+                     "api: chip.set('constraint', 'corearea', (0,0))"],
             schelp="""
             List of (x,y) points that define the outline of the core area for the
             physical design. Simple rectangle areas can be defined with two points,
@@ -3700,8 +3700,8 @@ def schema_constraint(cfg):
             scope='job',
             shorthelp="Constraint: Layout core margin",
             switch="-constraint_coremargin <float>",
-            example= ["cli: -constraint_coremargin 1",
-                      "api: chip.set('constraint', 'coremargin', '1')"],
+            example=["cli: -constraint_coremargin 1",
+                     "api: chip.set('constraint', 'coremargin', '1')"],
             schelp="""
             Halo/margin between the outline and core area for fully
             automated layout sizing and floorplanning, specified in
@@ -3713,8 +3713,8 @@ def schema_constraint(cfg):
             scope='job',
             shorthelp="Constraint: Layout density",
             switch="-constraint_density <float>",
-            example= ["cli: -constraint_density 30",
-                      "api: chip.set('constraint', 'density', '30')"],
+            example=["cli: -constraint_density 30",
+                     "api: chip.set('constraint', 'density', '30')"],
             schelp="""
             Target density based on the total design cells area reported
             after synthesis/elaboration. This number is used when no outline
@@ -3729,8 +3729,8 @@ def schema_constraint(cfg):
             scope='job',
             shorthelp="Constraint: Layout aspect ratio",
             switch="-constraint_aspectratio <float>",
-            example= ["cli: -constraint_aspectratio 2.0",
-                      "api: chip.set('constraint', 'aspectratio', '2.0')"],
+            example=["cli: -constraint_aspectratio 2.0",
+                     "api: chip.set('constraint', 'aspectratio', '2.0')"],
             schelp="""
             Height to width ratio of the block for automated floorplanning.
             Values below 0.1 and above 10 should be avoided as they will likely fail

@@ -3209,16 +3209,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # default encoding is not UTF-8.
                 with open(results_html, 'w', encoding='utf-8') as wf:
                     wf.write(env.get_template('sc_report.j2').render(
-                        design = design,
-                        nodes = nodes,
-                        errors = errors,
-                        metrics = metrics,
-                        metrics_unit = metrics_unit,
-                        reports = reports,
-                        manifest = self.schema.cfg,
-                        pruned_cfg = pruned_cfg,
-                        metric_keys = metrics_to_show,
-                        img_data = img_data,
+                        design=design,
+                        nodes=nodes,
+                        errors=errors,
+                        metrics=metrics,
+                        metrics_unit=metrics_unit,
+                        reports=reports,
+                        manifest=self.schema.cfg,
+                        pruned_cfg=pruned_cfg,
+                        metric_keys=metrics_to_show,
+                        img_data=img_data,
                     ))
 
                 self.logger.info(f'Generated HTML report at {results_html}')

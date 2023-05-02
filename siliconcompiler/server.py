@@ -92,7 +92,7 @@ class Server:
         self.app.router.add_static('/get_results/', self.nfs_mount)
 
         # Start the async server.
-        web.run_app(self.app, port = int(self.cfg['port']['value'][-1]))
+        web.run_app(self.app, port=int(self.cfg['port']['value'][-1]))
 
     ####################
     async def handle_remote_run(self, request):
@@ -195,9 +195,9 @@ class Server:
         job_hash = job_params['job_hash']
 
         resp = web.StreamResponse(
-            status = 200,
-            reason = 'OK',
-            headers = {
+            status=200,
+            reason='OK',
+            headers={
                 'Content-Type': 'application/x-tar',
                 'Content-Disposition': f'attachment; filename="{job_hash}.tar.gz"'
             },
