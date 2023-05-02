@@ -16,7 +16,7 @@ _tools_path = os.path.abspath(os.path.join(_file_path, '..'))
 sys.path.append(_tools_path)
 
 # Import tools which contains all the version information
-import _tools
+import _tools  # noqa E402
 
 _registry = None
 

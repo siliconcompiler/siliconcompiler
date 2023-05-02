@@ -29,7 +29,7 @@ def test_graph():
     # RTL
     chip.pipe('rtl', [{'import': parse},
                       {'syn': syn_asic},
-                      {'export': nop},])
+                      {'export': nop}])
 
     # APR
     chip.pipe('apr', [{'import': nop},

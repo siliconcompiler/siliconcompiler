@@ -43,8 +43,8 @@ import sys
 # SC_ROOT provided by CLI
 sys.path.append(SC_ROOT)  # noqa: F821
 
-from schema import Schema
-from tools.klayout.klayout_show import show
+from schema import Schema  # noqa E402
+from tools.klayout.klayout_show import show  # noqa E402
 
 
 def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,

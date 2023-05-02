@@ -97,8 +97,8 @@ def _cast(val, sctype):
         subtype = sctype.strip('[]')
         return [_cast(val.strip('[]'), subtype)]
     elif sctype.startswith('('):
-        vals = val.strip('()').split(', ')
-        subtypes = sctype.strip('()').split(', ')
+        vals = val.strip('()').split(',')
+        subtypes = sctype.strip('()').split(',')
         return tuple(_cast(v.strip(), subtype.strip()) for v, subtype in zip(vals, subtypes))
     elif sctype == 'float':
         return float(val)

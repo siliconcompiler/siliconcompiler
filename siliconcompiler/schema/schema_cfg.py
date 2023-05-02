@@ -2137,7 +2137,7 @@ def schema_option(cfg):
             shorthelp="Compilation frontend",
             switch="-frontend <frontend>",
             example=["cli: -frontend systemverilog",
-                     "api: chip.set('option', 'frontend', 'systemverilog')"],
+                     "api: chip.set('option','frontend', 'systemverilog')"],
             schelp="""
             Specifies the frontend that flows should use for importing and
             processing source files. Default option is 'verilog', also supports

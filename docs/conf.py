@@ -15,7 +15,7 @@ import sys
 from datetime import date
 
 sys.path.insert(0, os.path.abspath('../siliconcompiler'))
-import siliconcompiler
+import siliconcompiler  # noqa E402
 sys.path.append(os.path.abspath('./_ext'))
 
 

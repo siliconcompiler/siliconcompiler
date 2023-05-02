@@ -107,7 +107,7 @@ def setup(chip, mode='batch'):
     if stackup and targetlibs:
         # Note: only one footprint supported in mainlib
         chip.add('tool', tool, 'task', task, 'require', ",".join(['asic', 'logiclib']), step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'require', ",".join(['option', 'stackup',]), step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require', ",".join(['option', 'stackup']), step=step, index=index)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['library', mainlib, 'asic', 'site', libtype]), step=step, index=index)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']), step=step, index=index)
 
