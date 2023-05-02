@@ -1,5 +1,6 @@
 import siliconcompiler
 
+
 def main():
     chip = siliconcompiler.Chip('binary_4_bit_adder_top')
     chip.input('binary_4_bit_adder_top.vhd')
@@ -16,6 +17,7 @@ def main():
     chip.set('option', 'flow', flow)
 
     chip.run()
+
 
 if __name__ == '__main__':
     main()

@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import pytest
 
+
 # unit routine
 def run_design(datadir, design, N, job):
 
@@ -16,6 +17,7 @@ def run_design(datadir, design, N, job):
     chip.set('steplist', ['import', 'syn'])
     chip.load_target("freepdk45_demo")
     chip.run()
+
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -50,13 +52,14 @@ def test_doe(oh_dir):
     chip = siliconcompiler.Chip()
     prev_area = 0
     for i in range(len(N)):
-        jobname = 'job'+str(i)
+        jobname = 'job' + str(i)
         chip.read_manifest(f"build/{design}/{jobname}/syn/0/outputs/{design}.pkg.json", job=jobname)
-        area = chip.get('metric','syn','0','cellarea','real', job=jobname)
+        area = chip.get('metric', 'syn', '0', 'cellarea', 'real', job=jobname)
 
         # expect to have increasing area as we increase adder width
         assert area > prev_area
         prev_area = area
+
 
 if __name__ == "__main__":
     oh_dir = os.path.join('third_party', 'designs', 'oh')

@@ -14,10 +14,10 @@ import os
 import sys
 import shutil
 
+
 ################################
 # Setup Tool (pre executable)
 ################################
-
 def setup(chip):
     ''' Sets up default settings common to running Surelog.
     '''
@@ -25,8 +25,8 @@ def setup(chip):
     tool = 'surelog'
     # Nothing in this method should rely on the value of 'step' or 'index', but they are used
     # as schema keys in some important places, so we still need to fetch them.
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     exe = tool
     task = chip._get_task(step, index)
 
@@ -62,9 +62,10 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WRN:', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[(ERR|FTL|SNT):', step=step, index=index, clobber=False)
 
-    #warnings_off = chip.get('tool', tool, 'warningoff')
-    #for warning in warnings_off:
+    # warnings_off = chip.get('tool', tool, 'warningoff')
+    # for warning in warnings_off:
     #    chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}')
+
 
 def parse_version(stdout):
     # Surelog --version output looks like:
@@ -74,10 +75,10 @@ def parse_version(stdout):
     # grab version # by splitting on whitespace
     return stdout.split()[1]
 
+
 ################################
 #  Custom runtime options
 ################################
-
 def _remove_dups(chip, type, file_set):
     new_files = []
     for f in file_set:
@@ -86,6 +87,7 @@ def _remove_dups(chip, type, file_set):
         else:
             chip.logger.warning(f"Removing duplicate '{type}' inputs: {f}")
     return new_files
+
 
 def runtime_options(chip):
 
@@ -166,7 +168,7 @@ def runtime_options(chip):
     src_files = chip.find_files('input', 'rtl', 'verilog', step=step, index=index)
 
     # TODO: add back later
-    #for item in chip.getkeys('library'):
+    # for item in chip.getkeys('library'):
     #    src_files.extend(chip.find_files('library', item, 'input', 'verilog'))
 
     for value in _remove_dups(chip, 'source', src_files):

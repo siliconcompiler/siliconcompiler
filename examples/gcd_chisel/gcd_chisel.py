@@ -2,6 +2,7 @@
 
 import siliconcompiler
 
+
 def main():
     chip = siliconcompiler.Chip('GCD')
     chip.input('GCD.scala')
@@ -12,6 +13,7 @@ def main():
     chip.run()
     chip.summary()
     chip.show()
+
 
 if __name__ == '__main__':
     main()

@@ -5,6 +5,7 @@ import pytest
 
 from siliconcompiler.tools.verilator import parse
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_verilator(oh_dir):
@@ -27,6 +28,7 @@ def test_verilator(oh_dir):
 
     # check that compilation succeeded
     assert chip.find_result('v', step=step) is not None
+
 
 #########################
 if __name__ == "__main__":

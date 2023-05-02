@@ -10,6 +10,7 @@ import sys
 
 PACKAGE_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
+
 def escape_val_tcl(val, typestr):
     '''Recursive helper function for converting Python values to safe TCL
     values, based on the SC type string.'''
@@ -34,22 +35,23 @@ def escape_val_tcl(val, typestr):
         # use {}, since this requires adding permanent backslashes to any
         # curly braces inside the string.
         # Source: https://www.tcl.tk/man/tcl8.4/TclCmd/Tcl.html (section [4] on)
-        escaped_val = (val.replace('\\', '\\\\') # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
-                          .replace('[', '\\[')   # escape '[' to avoid command substition
-                          .replace('$', '\\$')   # escape '$' to avoid variable substition
-                          .replace('"', '\\"'))  # escape '"' to avoid string terminating early
+        escaped_val = (val.replace('\\', '\\\\')  # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
+                          .replace('[', '\\[')    # escape '[' to avoid command substition
+                          .replace('$', '\\$')    # escape '$' to avoid variable substition
+                          .replace('"', '\\"'))   # escape '"' to avoid string terminating early
         return '"' + escaped_val + '"'
     elif typestr in ('file', 'dir'):
         # Replace $VAR with $env(VAR) for tcl
         val = re.sub(r'\$(\w+)', r'$env(\1)', val)
         # Same escapes as applied to string, minus $ (since we want to resolve env vars).
-        escaped_val = (val.replace('\\', '\\\\') # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
-                          .replace('[', '\\[')   # escape '[' to avoid command substition
-                          .replace('"', '\\"'))  # escape '"' to avoid string terminating early
+        escaped_val = (val.replace('\\', '\\\\')  # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
+                          .replace('[', '\\[')    # escape '[' to avoid command substition
+                          .replace('"', '\\"'))   # escape '"' to avoid string terminating early
         return '"' + escaped_val + '"'
     else:
         # floats/ints just become strings
         return str(val)
+
 
 def trim(docstring):
     '''Helper function for cleaning up indentation of docstring.

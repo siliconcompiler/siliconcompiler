@@ -4,6 +4,7 @@ import os
 
 import pytest
 
+
 @pytest.fixture
 def setup_example_test(scroot, monkeypatch):
     '''Sets up test to run a SiliconCompiler example.

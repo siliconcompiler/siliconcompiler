@@ -5,6 +5,7 @@ import sys
 
 from siliconcompiler.apps import sc_configure
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_sc_configure_cmdarg(monkeypatch):
@@ -22,6 +23,7 @@ def test_sc_configure_cmdarg(monkeypatch):
     assert generated_creds['address'] == server_name
     assert 'username' not in generated_creds
     assert 'password' not in generated_creds
+
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -48,6 +50,7 @@ def test_sc_configure_interactive(monkeypatch):
     assert generated_creds['address'] == server_name
     assert generated_creds['username'] == username
     assert generated_creds['password'] == password
+
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -77,6 +80,7 @@ def test_sc_configure_override_y(monkeypatch):
     assert generated_creds['address'] == server_name
     assert generated_creds['username'] == username
     assert generated_creds['password'] == password
+
 
 @pytest.mark.eda
 @pytest.mark.quick

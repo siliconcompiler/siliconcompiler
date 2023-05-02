@@ -4,6 +4,7 @@ import pytest
 
 # No CLI test due to sc-show
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)

@@ -1,5 +1,6 @@
 import siliconcompiler
 
+
 def main():
     chip = siliconcompiler.Chip('mkFibOne')
     chip.input('FibOne.bsv')
@@ -10,6 +11,7 @@ def main():
     chip.run()
     chip.summary()
     chip.show()
+
 
 if __name__ == '__main__':
     main()

@@ -2,13 +2,14 @@ import os
 
 from siliconcompiler.tools.netgen import count_lvs
 
+
 def setup(chip):
     '''
     Perform LVS on the supplied netlists
     '''
 
     tool = 'netgen'
-    refdir = 'tools/'+tool
+    refdir = 'tools/' + tool
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
@@ -45,10 +46,10 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', '^Warning:', step=step, index=index, clobber=False)
 
+
 ################################
 # Post_process (post executable)
 ################################
-
 def post_process(chip):
     ''' Tool specific function to run after step execution
 

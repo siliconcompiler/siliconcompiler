@@ -6,6 +6,7 @@ from siliconcompiler.tools.netgen import lvs
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import join
 
+
 def setup(chip):
     '''A flow for running LVS/DRC signoff on a GDS layout.
 
@@ -37,6 +38,7 @@ def setup(chip):
         flow.set('flowgraph', flowname, step, '0', 'goal', 'errors', 0)
 
     return flow
+
 
 ##################################################
 if __name__ == "__main__":

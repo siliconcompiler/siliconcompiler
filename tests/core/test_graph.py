@@ -21,16 +21,17 @@ from siliconcompiler.tools.builtin import minimum
 from tests.core.tools.fake import fake_in
 from tests.core.tools.fake import fake_out
 
+
 def test_graph():
 
     chip = siliconcompiler.Chip('test')
 
-    #RTL
+    # RTL
     chip.pipe('rtl', [{'import': parse},
                       {'syn': syn_asic},
-                      {'export': nop},])
+                      {'export': nop}])
 
-    #APR
+    # APR
     chip.pipe('apr', [{'import': nop},
                       {'floorplan': floorplan},
                       {'physyn': physyn},
@@ -40,7 +41,7 @@ def test_graph():
                       {'dfm': dfm},
                       {'export': export}])
 
-    #SIGNOFF
+    # SIGNOFF
     chip.node('signoff', 'import', nop)
     chip.node('signoff', 'extspice', extspice)
     chip.node('signoff', 'drc', drc)
@@ -53,7 +54,7 @@ def test_graph():
     chip.edge('signoff', 'lvs', 'export')
     chip.edge('signoff', 'drc', 'export')
 
-    #TOP
+    # TOP
     chip.graph("top", "rtl", name="rtl")
     chip.graph("top", "apr", name="apr")
     chip.graph("top", "signoff", name="dv")
@@ -61,6 +62,7 @@ def test_graph():
     chip.edge("top", "apr.export", "dv.import")
 
     chip.write_flowgraph("top.png", flow="top")
+
 
 def test_graph_entry():
 
@@ -79,12 +81,14 @@ def test_graph_entry():
 
     assert chip._get_flowgraph_entry_nodes() == [('premin', '0'), ('premin', '1')]
 
+
 def test_graph_exit():
 
     chip = siliconcompiler.Chip('foo')
     chip.load_target('freepdk45_demo')
 
     assert chip._get_flowgraph_exit_nodes() == [('export', '0'), ('export', '1')]
+
 
 def test_graph_exit_with_steplist():
 
@@ -94,6 +98,7 @@ def test_graph_exit_with_steplist():
     steps = ['import', 'syn', 'floorplan']
 
     assert chip._get_flowgraph_exit_nodes(steplist=steps) == [('floorplan', '0')]
+
 
 #########################
 if __name__ == "__main__":

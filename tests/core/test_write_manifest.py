@@ -5,6 +5,7 @@ import pytest
 
 import siliconcompiler
 
+
 def test_write_manifest():
 
     chip = siliconcompiler.Chip('top')
@@ -18,6 +19,7 @@ def test_write_manifest():
     chip.write_manifest('top.csv')
     chip.write_manifest('top.tcl', prune=False)
     chip.write_manifest('top.yaml')
+
 
 def test_advanced_tcl(monkeypatch):
     # Tkinter module is part of Python standard library, but may not be
@@ -65,6 +67,7 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
     assert tcl_eval('[dict get $sc_cfg option quiet]') == 'true'
     assert tcl_eval('[dict get $sc_cfg input rtl verilog]') == 'rtl/design.v'
 
+
 def test_csv():
     chip = siliconcompiler.Chip('test')
     chip.input('source.v')
@@ -88,6 +91,7 @@ def test_csv():
     assert data['asic,logiclib'] == 'mainlib'
     assert data['asic,logiclib,syn,default'] == 'synlib'
     assert data['asic,logiclib,syn,1'] == 'syn1lib'
+
 
 #########################
 if __name__ == "__main__":

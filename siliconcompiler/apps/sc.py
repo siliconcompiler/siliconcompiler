@@ -1,11 +1,12 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-#Standard Modules
+# Standard Modules
 import os
 import sys
 
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
+
 
 ###########################
 def main():
@@ -66,8 +67,8 @@ def main():
         chip.load_target('skywater130_demo')
 
     # Storing user entered steplist/args before running
-    if chip.get('arg','step'):
-        steplist = [chip.get('arg','step')]
+    if chip.get('arg', 'step'):
+        steplist = [chip.get('arg', 'step')]
     else:
         steplist = chip.get('option', 'steplist')
 
@@ -76,6 +77,7 @@ def main():
 
     # Print Job Summary
     chip.summary(steplist=steplist)
+
 
 #########################
 if __name__ == "__main__":

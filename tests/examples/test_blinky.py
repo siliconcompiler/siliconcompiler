@@ -3,6 +3,7 @@ import subprocess
 
 import pytest
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_py(setup_example_test):
@@ -12,6 +13,7 @@ def test_py(setup_example_test):
     blinky.main()
 
     assert os.path.isfile('build/blinky/job0/bitstream/0/outputs/blinky.bit')
+
 
 @pytest.mark.eda
 @pytest.mark.quick

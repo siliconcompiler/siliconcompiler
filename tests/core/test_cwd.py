@@ -5,6 +5,7 @@ import shutil
 import siliconcompiler
 import sys
 
+
 @pytest.mark.quick
 @pytest.mark.skipif(sys.platform == 'win32', reason='Windows throws a permission denied error if we try to delete a directory which a process is currently inhabiting.')
 def test_cwd():
@@ -16,6 +17,7 @@ def test_cwd():
     # if the current working directory does not exist.
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         siliconcompiler.Chip('my_design')
+
 
 #########################
 if __name__ == "__main__":

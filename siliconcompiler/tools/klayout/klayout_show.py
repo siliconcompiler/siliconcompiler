@@ -3,6 +3,7 @@ import pya
 import os
 import sys
 
+
 def show(schema, input_path, output_path, screenshot=False):
     # Extract info from manifest
     flow = schema.get('option', 'flow')
@@ -115,9 +116,10 @@ def show(schema, input_path, output_path, screenshot=False):
         gds_img = layout_view.get_image(horizontal_resolution, vertical_resolution)
         gds_img.save(output_path, 'PNG')
 
+
 def main():
     # SC_ROOT provided by CLI, and is only accessible when this is main module
-    sys.path.append(SC_ROOT) # noqa: F821
+    sys.path.append(SC_ROOT)  # noqa: F821
     from schema import Schema
 
     schema = Schema(manifest='sc_manifest.json')
@@ -143,6 +145,7 @@ def main():
 
     if sc_exit:
         pya.Application.instance().exit(0)
+
 
 if __name__ == '__main__':
     main()

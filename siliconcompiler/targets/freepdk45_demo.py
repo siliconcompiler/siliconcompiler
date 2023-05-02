@@ -5,10 +5,10 @@ from siliconcompiler.pdks import freepdk45
 from siliconcompiler.flows import lintflow, asicflow, asictopflow
 from siliconcompiler.libs import nangate45
 
+
 ####################################################
 # Target Setup
 ####################################################
-
 def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
     FreePDK45 demo target
@@ -23,36 +23,37 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
         "route_np": route_np
     }
 
-    #1. Load PDK, flow, libs combo
+    # 1. Load PDK, flow, libs combo
     chip.use(freepdk45)
     chip.use(lintflow)
     chip.use(asicflow, **asic_flow_args)
     chip.use(asictopflow)
     chip.use(nangate45)
 
-    #2. Setup default show tools
+    # 2. Setup default show tools
     utils.set_common_showtools(chip)
 
-    #3. Set flow and pdk
+    # 3. Set flow and pdk
     chip.set('option', 'mode', 'asic')
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'freepdk45')
     chip.set('option', 'stackup', '10M')
 
-    #4. Select libraries
+    # 4. Select libraries
     chip.set('asic', 'logiclib', 'nangate45')
 
-    #5 Set project specific design choices
+    # 5. Set project specific design choices
     chip.set('asic', 'delaymodel', 'nldm')
     chip.set('constraint', 'density', 10)
     chip.set('constraint', 'coremargin', 1.9)
 
-    #6. Timing corners
+    # 6. Timing corners
     corner = 'typical'
     chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
     chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)
     chip.set('constraint', 'timing', 'worst', 'mode', 'func')
-    chip.set('constraint', 'timing', 'worst', 'check', ['setup','hold'])
+    chip.set('constraint', 'timing', 'worst', 'check', ['setup', 'hold'])
+
 
 #########################
 if __name__ == "__main__":

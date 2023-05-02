@@ -1,20 +1,23 @@
 import siliconcompiler
 
+
 def make_docs():
     '''Utility for adding via definitions to a gate-level netlist.'''
     chip = siliconcompiler.Chip('<design>')
     return setup(chip)
+
 
 def setup(chip):
     tool = 'addvias'
     design = chip.get('design')
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    #TODO fix
+    # TODO fix
     task = step
 
     chip.set('tool', tool, 'task', task, 'input', f'{design}.vg', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'output', f'{design}.vg', step=step, index=index)
+
 
 def run(chip):
     design = chip.get('design')

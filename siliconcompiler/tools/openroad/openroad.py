@@ -16,16 +16,17 @@ import os
 import json
 from jinja2 import Template
 
+
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
     chip.load_target("asap7_demo")
 
+
 ################################
 # Setup Tool (pre executable)
 ################################
-
 def setup_tool(chip, exit=True, clobber=True):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
@@ -44,13 +45,14 @@ def setup_tool(chip, exit=True, clobber=True):
     option += " -metrics reports/metrics.json"
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
+
 def setup(chip, mode='batch'):
 
     # default tool settings, note, not additive!
 
     tool = 'openroad'
     script = 'sc_apr.tcl'
-    refdir = 'tools/'+tool
+    refdir = 'tools/' + tool
 
     design = chip.top()
 
@@ -82,7 +84,7 @@ def setup(chip, mode='batch'):
     threads = os.cpu_count()
     if not chip.get('option', 'remote') and step in chip.getkeys('flowgraph', flow):
         np = len(chip.getkeys('flowgraph', flow, step))
-        threads = int(math.ceil(os.cpu_count()/np))
+        threads = int(math.ceil(os.cpu_count() / np))
 
     # Input/Output requirements for default asicflow steps
 
@@ -103,9 +105,9 @@ def setup(chip, mode='batch'):
         chip.logger.error(f'{delaymodel} delay model is not supported by {tool}, only nldm')
 
     if stackup and targetlibs:
-        #Note: only one footprint supported in mainlib
+        # Note: only one footprint supported in mainlib
         chip.add('tool', tool, 'task', task, 'require', ",".join(['asic', 'logiclib']), step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'require', ",".join(['option', 'stackup',]), step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require', ",".join(['option', 'stackup']), step=step, index=index)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['library', mainlib, 'asic', 'site', libtype]), step=step, index=index)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']), step=step, index=index)
 
@@ -263,10 +265,10 @@ def setup(chip, mode='batch'):
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WARNING|^Warning', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[ERROR', step=step, index=index, clobber=False)
 
+
 ################################
 # Version Check
 ################################
-
 def parse_version(stdout):
     # stdout will be in one of the following forms:
     # - 1 08de3b46c71e329a10aa4e753dcfeba2ddf54ddd
@@ -283,21 +285,22 @@ def parse_version(stdout):
     else:
         return pieces[0]
 
+
 def normalize_version(version):
     if '.' in version:
         return version.lstrip('v')
     else:
         return '0'
 
+
 ################################
 # Post_process (post executable)
 ################################
-
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    #Check log file for errors and statistics
+    # Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
@@ -320,7 +323,7 @@ def post_process(chip):
 
         or_units['distance'] = 'um'  # always microns
         or_units['power'] = 'W'  # always watts
-        or_units['area'] = or_units['distance']+'^2'
+        or_units['area'] = f"{or_units['distance']}^2"
         or_units['frequency'] = 'Hz'  # always hertz
 
         has_timing = True
@@ -392,8 +395,8 @@ def post_process(chip):
         if drvs is not None:
             chip._record_metric(step, index, 'drvs', drvs, "reports/metrics.json")
 
-######
 
+######
 def get_pex_corners(chip):
 
     step = chip.get('arg', 'step')
@@ -407,6 +410,7 @@ def get_pex_corners(chip):
 
     return list(corners)
 
+
 def get_corners(chip):
 
     step = chip.get('arg', 'step')
@@ -419,6 +423,7 @@ def get_corners(chip):
             corners.update(libcorner)
 
     return list(corners)
+
 
 def get_corner_by_check(chip, check):
 
@@ -436,13 +441,16 @@ def get_corner_by_check(chip, check):
     # if not specified, just pick the first corner available
     return get_corners(chip)[0]
 
+
 def get_power_corner(chip):
 
     return get_corner_by_check(chip, "power")
 
+
 def get_setup_corner(chip):
 
     return get_corner_by_check(chip, "setup")
+
 
 def build_pex_corners(chip):
 
@@ -497,6 +505,7 @@ def build_pex_corners(chip):
 
                 f.write("\n")
                 f.write("{0}\n\n".format(64 * "#"))
+
 
 ##################################################
 if __name__ == "__main__":

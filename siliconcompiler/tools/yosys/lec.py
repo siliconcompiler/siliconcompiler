@@ -4,6 +4,7 @@ from siliconcompiler.tools.yosys.yosys import setup as setup_tool
 from siliconcompiler.tools.yosys.syn_asic import setup_asic
 from siliconcompiler.tools.yosys.syn_fpga import setup_fpga
 
+
 def setup(chip):
     '''
     Perform logical equivalence checks
@@ -31,17 +32,18 @@ def setup(chip):
     # Input/output requirements.
     if (not chip.valid('input', 'netlist', 'verilog') or not chip.get('input', 'netlist', 'verilog', step=step, index=index)):
         chip.set('tool', tool, 'task', task, 'input', design + '.vg', step=step, index=index)
-    #if not chip.get('input', 'rtl', 'verilog'):
+    # if not chip.get('input', 'rtl', 'verilog'):
         # TODO: Not sure this logic makes sense? Seems like reverse of tcl
-        #chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
+        # chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
+
 
 ##################################################
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     with open(step + ".log") as f:
         for line in f:

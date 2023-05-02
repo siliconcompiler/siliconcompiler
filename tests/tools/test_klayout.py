@@ -8,6 +8,7 @@ from siliconcompiler.tools.klayout import export
 
 from siliconcompiler.tools.builtin import nop
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_klayout(datadir):

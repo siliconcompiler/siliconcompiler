@@ -8,6 +8,7 @@ import pytest
 import siliconcompiler
 from siliconcompiler.core import SiliconCompilerError
 
+
 def test_find_sc_file(datadir):
 
     chip = siliconcompiler.Chip('test')
@@ -23,6 +24,7 @@ def test_find_sc_file(datadir):
     with pytest.raises(SiliconCompilerError):
         assert chip._find_sc_file('my_file_that_doesnt_exist.blah') is None
 
+
 def test_find_sc_file_env(datadir):
     '''Ensure we can find files on a custom path by setting the SCPATH env
     variable.'''
@@ -35,6 +37,7 @@ def test_find_sc_file_env(datadir):
     env = {'SCPATH': os.path.join(datadir, 'sclib')}
     with mock.patch.dict(os.environ, env, clear=True):
         assert chip._find_sc_file('test.txt', missing_ok=True) is not None
+
 
 def test_find_sc_file_relative(datadir):
     '''Ensure we can find files based on a relative path added to scpath.'''
@@ -51,6 +54,7 @@ def test_find_sc_file_relative(datadir):
 
     assert chip._find_sc_file('test.txt', missing_ok=True) is not None
 
+
 def test_find_sc_file_cwd():
     chip = siliconcompiler.Chip('test')
     mydir = os.getcwd()
@@ -60,6 +64,7 @@ def test_find_sc_file_cwd():
     # Should be relative to starting directory
     assert chip._find_sc_file('.') == mydir
     os.chdir(mydir)
+
 
 def test_invalid_script():
     '''Regression test: find_files(missing_ok=False) should error out if script
@@ -71,6 +76,7 @@ def test_invalid_script():
 
     with pytest.raises(SiliconCompilerError):
         chip.find_files('tool', 'yosys', 'task', 'syn_asic', 'script', missing_ok=False, step='syn', index='0')
+
 
 #########################
 if __name__ == "__main__":

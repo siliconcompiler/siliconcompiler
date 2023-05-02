@@ -1,6 +1,7 @@
 from siliconcompiler.tools.builtin import _common
 from siliconcompiler.tools.builtin import minimum
 
+
 def setup(chip):
     '''
     Selects the task with the maximum metric score from a list of inputs.
@@ -19,6 +20,7 @@ def setup(chip):
     '''
     pass
 
+
 def _select_inputs(chip, step, index):
     chip.logger.info("Running builtin task 'maximum'")
 
@@ -32,11 +34,14 @@ def _select_inputs(chip, step, index):
 
     return sel_inputs
 
+
 def _gather_outputs(chip, step, index):
     return minimum._gather_outputs(chip, step, index)
 
+
 def run(chip):
     return _common.run(chip)
+
 
 def post_process(chip):
     _common.post_process(chip)

@@ -4,6 +4,7 @@ import subprocess
 
 import pytest
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
@@ -17,6 +18,7 @@ def test_self_test():
     assert chip.get('metric', 'holdslack', step='export', index='1') < 10.0
     assert chip.get('metric', 'setupslack', step='export', index='1') >= 0.0
     assert chip.get('metric', 'setupslack', step='export', index='1') < 10.0
+
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -34,6 +36,7 @@ def test_self_test_cli():
     assert chip.get('metric', 'holdslack', step='export', index='1') < 10.0
     assert chip.get('metric', 'setupslack', step='export', index='1') >= 0.0
     assert chip.get('metric', 'setupslack', step='export', index='1') < 10.0
+
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)

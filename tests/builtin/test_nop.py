@@ -3,6 +3,7 @@ import siliconcompiler
 
 from siliconcompiler.tools.builtin import nop
 
+
 ##################################
 def test_nop():
     '''API test for nop methods
@@ -18,6 +19,7 @@ def test_nop():
     chip.edge('test', 'nop1', 'nop2')
     chip.check_manifest()
     chip.write_flowgraph("nop.png")
+
 
 #########################
 if __name__ == "__main__":

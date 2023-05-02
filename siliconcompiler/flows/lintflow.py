@@ -3,6 +3,7 @@ import siliconcompiler
 from siliconcompiler.tools.surelog import parse as surelog_parse
 from siliconcompiler.tools.verilator import lint
 
+
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
@@ -26,6 +27,7 @@ def setup(chip):
         prevstep = step
 
     return flow
+
 
 ##################################################
 if __name__ == "__main__":

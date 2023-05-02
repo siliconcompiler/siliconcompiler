@@ -5,6 +5,7 @@ import os
 
 import pytest
 
+
 @pytest.mark.quick
 def test_check_filepaths_pass():
     chip = siliconcompiler.Chip('gcd')
@@ -19,6 +20,7 @@ def test_check_filepaths_pass():
 
     assert chip.check_filepaths()
 
+
 @pytest.mark.quick
 def test_check_filepaths_faildir():
     chip = siliconcompiler.Chip('gcd')
@@ -29,6 +31,7 @@ def test_check_filepaths_faildir():
         f.write('test')
 
     assert not chip.check_filepaths()
+
 
 @pytest.mark.quick
 def test_check_filepaths_failfile():

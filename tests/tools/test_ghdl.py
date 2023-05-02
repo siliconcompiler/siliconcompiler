@@ -5,6 +5,7 @@ import pytest
 
 from siliconcompiler.tools.ghdl import convert
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_ghdl(datadir):
@@ -23,6 +24,7 @@ def test_ghdl(datadir):
 
     # check that compilation succeeded
     assert chip.find_result('v', step='import') is not None
+
 
 #########################
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ import siliconcompiler
 from siliconcompiler.apps import sc_show
 from siliconcompiler import Chip
 
+
 # TODO: I think moving back to something like a tarfile would be nice here to
 # remove the dependency on EDA tools. Maybe make that tarfile the single source
 # of truth rather than gcd.pkg.json.
@@ -28,6 +29,7 @@ def heartbeat_dir(tmpdir_factory):
     chip.run()
 
     return cwd
+
 
 @pytest.mark.parametrize('flags', [
     ['-design', 'heartbeat']
@@ -59,6 +61,7 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
 
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
     assert sc_show.main() == 0
+
 
 @pytest.mark.parametrize('flags', [
     ['-input', 'layout def build/heartbeat/job0/dfm/0/outputs/heartbeat.def'],

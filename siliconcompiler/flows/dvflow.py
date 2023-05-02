@@ -4,11 +4,13 @@ from siliconcompiler.tools.surelog import parse as surelog_parse
 from siliconcompiler.tools.verilator import compile
 from siliconcompiler.tools.builtin import verify
 
+
 ############################################################################
 # DOCS
 ############################################################################
 def make_docs(chip):
     return setup(chip, np=5)
+
 
 #############################################################################
 # Flowgraph Setup
@@ -63,19 +65,19 @@ def setup(chip, np=1):
     # Flow setup
     for step in flowpipe:
         task = tasks[step]
-        #start
+        # start
         if step == 'import':
             flow.node(flowname, step, task)
-        #serial
+        # serial
         elif step == 'compile':
             flow.node(flowname, step, task)
             flow.edge(flowname, prevstep, step)
-        #fork
+        # fork
         elif step == 'testgen':
             for index in range(np):
                 flow.node(flowname, step, task, index=index)
                 flow.edge(flowname, prevstep, step, head_index=index)
-        #join
+        # join
         elif step == 'signoff':
             flow.node(flowname, step, task)
             for index in range(np):
@@ -88,6 +90,7 @@ def setup(chip, np=1):
         prevstep = step
 
     return flow
+
 
 ##################################################
 if __name__ == "__main__":

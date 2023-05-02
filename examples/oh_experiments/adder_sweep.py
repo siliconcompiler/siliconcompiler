@@ -9,9 +9,10 @@ except ImportError:
 
 oh_dir = "../../third_party/designs/oh/"
 
+
 def main():
     # datawidths to check
-    datawidths = [8,16,32,64]
+    datawidths = [8, 16, 32, 64]
     source = os.path.join(oh_dir, 'mathlib', 'hdl', 'oh_add.v')
     design = 'oh_add'
 
@@ -22,9 +23,9 @@ def main():
         chip.load_target("freepdk45_demo")
         chip.input(source)
         chip.set('option', 'quiet', True)
-        chip.set('option','relax', True)
-        chip.set('option','steplist', ['import', 'syn'])
-        chip.set('option','param','N',str(n))
+        chip.set('option', 'relax', True)
+        chip.set('option', 'steplist', ['import', 'syn'])
+        chip.set('option', 'param', 'N', str(n))
         chip.run()
 
         area.append(chip.get('metric', 'cellarea', step='syn', index='0'))
@@ -39,6 +40,7 @@ def main():
         print('areas:', area)
         print('Install matplotlib to automatically plot this data!')
         return area
+
 
 if __name__ == '__main__':
     main()

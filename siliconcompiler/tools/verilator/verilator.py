@@ -16,11 +16,13 @@ Installation: https://verilator.org/guide/latest/install.html
 
 import os
 
+
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
     chip.load_target("freepdk45_demo")
+
 
 def setup(chip):
     ''' Per tool function that returns a dynamic options string based on
@@ -28,8 +30,8 @@ def setup(chip):
     '''
 
     tool = 'verilator'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     design = chip.top()
 
@@ -55,7 +57,7 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'option', ['-Wno-fatal', '-Wno-UNOPTFLAT'], step=step, index=index)
 
     # Converting user setting to verilator specific filter
-    #for warning in chip.get('tool', tool, 'task', task, step, index, 'warningoff'):
+    # for warning in chip.get('tool', tool, 'task', task, step, index, 'warningoff'):
     #    chip.add('tool', tool, 'task', task, 'option', f'-Wno-{warning}', step=step, index=index)
 
     # User runtime option
@@ -65,6 +67,7 @@ def setup(chip):
 ################################
 #  Custom runtime options
 ################################
+
 
 def runtime_options(chip):
     '''
@@ -100,9 +103,11 @@ def runtime_options(chip):
 # Version Check
 ################################
 
+
 def parse_version(stdout):
     # Verilator 4.104 2020-11-14 rev v4.104
     return stdout.split()[1]
+
 
 ##################################################
 if __name__ == "__main__":

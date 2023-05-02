@@ -4,6 +4,7 @@
 import os
 import siliconcompiler
 
+
 def main(root='.'):
     '''Simple asicflow example.'''
 
@@ -17,11 +18,12 @@ def main(root='.'):
     chip.set('option', 'skipcheck', True)
     chip.set('option', 'novercheck', True)
     chip.set('option', 'nodisplay', True)
-    chip.set('constraint', 'outline', [(0,0), (100.13,100.8)])
-    chip.set('constraint', 'corearea', [(10.07,11.2), (90.25,91)])
+    chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
+    chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
     chip.load_target("freepdk45_demo")
     chip.run()
     chip.summary()
+
 
 if __name__ == '__main__':
     main(root=os.path.dirname(__file__))

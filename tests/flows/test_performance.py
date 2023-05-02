@@ -5,6 +5,7 @@ import time
 
 import pytest
 
+
 @pytest.fixture
 def run_scalability_test(scroot):
     # TODO: I think we're just about at a point where we can pull in code from
@@ -41,9 +42,9 @@ def run_scalability_test(scroot):
 # gave a bit of overhead to account for normal variation run-to-run, but we
 # might need to tune these more to not get false positives.
 
+
 # These tests don't require EDA tools installed, but marking them as EDA so they
 # only run daily on our runner (which is also faster than GH machines).
-
 @pytest.mark.eda
 @pytest.mark.skip(reason='Test runner is slow')
 def test_long_serial(run_scalability_test):
@@ -56,6 +57,7 @@ def test_long_serial(run_scalability_test):
 
         # Should take <1 sec per task for each trial
         assert time_per_task < 1
+
 
 @pytest.mark.eda
 @pytest.mark.skip(reason='Test runner is slow')

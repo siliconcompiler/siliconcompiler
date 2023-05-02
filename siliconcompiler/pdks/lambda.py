@@ -2,10 +2,10 @@
 import os
 import siliconcompiler
 
+
 ####################################################
 # PDK Setup
 ####################################################
-
 def setup_pdk(chip):
     '''
     Setup package for the scalable lambda technology.
@@ -19,11 +19,11 @@ def setup_pdk(chip):
     ###############################################
 
     # Process details
-    chip.set('pdk','foundry', 'virtual')
-    chip.set('pdk','process', 'lambda')
-    chip.set('pdk','version', 'r1p0')
+    chip.set('pdk', 'foundry', 'virtual')
+    chip.set('pdk', 'process', 'lambda')
+    chip.set('pdk', 'version', 'r1p0')
 
-    #User arguments
+    # User arguments
     if 'node' in chip.getkeys('techarg'):
         node = float(chip.get('techarg', 'node')[0])
         stackup = chip.get('techarg', 'stackup')
@@ -31,8 +31,8 @@ def setup_pdk(chip):
         node = 45
         stackup = "M10"
 
-    chip.set('pdk','node', node)
-    chip.set('pdk','stackup', stackup)
+    chip.set('pdk', 'node', node)
+    chip.set('pdk', 'stackup', stackup)
 
     # Wafer Size
     if node > 130:
@@ -44,30 +44,30 @@ def setup_pdk(chip):
     # DPW Settings
     ##################
 
-    chip.set('pdk','wafersize', wafersize)
-    chip.set('pdk','edgemargin', 2)
-    chip.set('pdk','hscribe', 0.1)
-    chip.set('pdk','vscribe', 0.1)
-    chip.set('pdk','d0', 1.25)
+    chip.set('pdk', 'wafersize', wafersize)
+    chip.set('pdk', 'edgemargin', 2)
+    chip.set('pdk', 'hscribe', 0.1)
+    chip.set('pdk', 'vscribe', 0.1)
+    chip.set('pdk', 'd0', 1.25)
 
     # LUT + interpolation
     tapmax = 100
     tapoffset = 0
-    chip.set('pdk','tapmax', tapmax)
-    chip.set('pdk','tapoffset', tapoffset)
+    chip.set('pdk', 'tapmax', tapmax)
+    chip.set('pdk', 'tapoffset', tapoffset)
 
     ##################
     # APR Settings
     ##################
 
-    #1. Derive lambda value from node
-    #2. Parse metalstack value
-    #3. Specify metal stack relative to ambda value
-    #4. Auto-generate design rules and lambda.tech
+    # 1. Derive lambda value from node
+    # 2. Parse metalstack value
+    # 3. Specify metal stack relative to ambda value
+    # 4. Auto-generate design rules and lambda.tech
 
     # Routing Grid Definitions
 
-    #TODO: variable based on metalstack
+    # TODO: variable based on metalstack
 
     ###############################################
     # Libraries (TBD)
@@ -76,6 +76,7 @@ def setup_pdk(chip):
     ###############################################
     # Methodology (TBD)
     ###############################################
+
 
 #########################
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def setup(chip):
     '''
     Skywater130 standard cell library.
@@ -9,8 +10,8 @@ def setup(chip):
     process = 'skywater130'
     stackup = '5M1LI'
     version = 'v0_0_2'
-    libname = 'sky130hd' # not sure if this should be something else
-    libtype = 'unithd' # TODO: update this
+    libname = 'sky130hd'  # not sure if this should be something else
+    libtype = 'unithd'  # TODO: update this
 
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, version)
 
@@ -28,13 +29,13 @@ def setup(chip):
     lib.add('asic', 'site', libtype, 'unithddbl')
 
     # model files
-    lib.add('output', 'slow', 'nldm', libdir+'/lib/sky130_fd_sc_hd__ss_n40C_1v40.lib.gz')
-    lib.add('output', 'typical', 'nldm', libdir+'/lib/sky130_fd_sc_hd__tt_025C_1v80.lib.gz')
-    lib.add('output', 'fast', 'nldm', libdir+'/lib/sky130_fd_sc_hd__ff_100C_1v95.lib.gz')
+    lib.add('output', 'slow', 'nldm', libdir + '/lib/sky130_fd_sc_hd__ss_n40C_1v40.lib.gz')
+    lib.add('output', 'typical', 'nldm', libdir + '/lib/sky130_fd_sc_hd__tt_025C_1v80.lib.gz')
+    lib.add('output', 'fast', 'nldm', libdir + '/lib/sky130_fd_sc_hd__ff_100C_1v95.lib.gz')
 
-    lib.add('output', stackup, 'lef', libdir+'/lef/sky130_fd_sc_hd_merged.lef')
-    lib.add('output', stackup, 'gds', libdir+'/gds/sky130_fd_sc_hd.gds')
-    lib.add('output', stackup, 'cdl', libdir+'/cdl/sky130_fd_sc_hd.cdl')
+    lib.add('output', stackup, 'lef', libdir + '/lef/sky130_fd_sc_hd_merged.lef')
+    lib.add('output', stackup, 'gds', libdir + '/gds/sky130_fd_sc_hd.gds')
+    lib.add('output', stackup, 'cdl', libdir + '/cdl/sky130_fd_sc_hd.cdl')
 
     # antenna cells
     lib.add('asic', 'cells', 'antenna', 'sky130_fd_sc_hd__diode_2')
@@ -52,7 +53,7 @@ def setup(chip):
                                         'sky130_fd_sc_hd__fill_8'])
 
     # Tapcell
-    lib.add('asic', 'cells','tap', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
+    lib.add('asic', 'cells', 'tap', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
 
     # Endcap
     lib.add('asic', 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')
@@ -115,9 +116,9 @@ def setup(chip):
     lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v')
 
     # Openroad specific files
-    lib.set('option', 'file', 'openroad_pdngen', libdir+'/apr/openroad/pdngen.tcl')
-    lib.set('option', 'file', 'openroad_global_connect', libdir+'/apr/openroad/global_connect.tcl')
-    lib.set('option', 'file', 'openroad_tapcells', libdir+'/apr/openroad/tapcell.tcl')
+    lib.set('option', 'file', 'openroad_pdngen', libdir + '/apr/openroad/pdngen.tcl')
+    lib.set('option', 'file', 'openroad_global_connect', libdir + '/apr/openroad/global_connect.tcl')
+    lib.set('option', 'file', 'openroad_tapcells', libdir + '/apr/openroad/tapcell.tcl')
 
     lib.set('option', 'var', 'yosys_driver_cell', "sky130_fd_sc_hd__buf_4")
     lib.set('option', 'var', 'yosys_buffer_cell', "sky130_fd_sc_hd__buf_4")
@@ -130,6 +131,7 @@ def setup(chip):
         lib.set('option', 'var', f'{tool}_tielow_port', "LO")
 
     return lib
+
 
 #########################
 if __name__ == "__main__":

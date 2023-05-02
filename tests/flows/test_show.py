@@ -7,6 +7,7 @@ import sys
 
 from unittest import mock
 
+
 def adjust_exe_options(chip, headless):
     if not headless:
         return
@@ -15,6 +16,7 @@ def adjust_exe_options(chip, headless):
         # adjust options to ensure programs exit
         for tool in ('klayout', 'openroad'):
             chip.set('tool', tool, 'task', step, 'var', 'show_exit', 'true')
+
 
 @pytest.fixture
 def display():
@@ -25,6 +27,7 @@ def display():
         display.stop()
     else:
         yield False
+
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -44,6 +47,7 @@ def test_show(project, testfile, tool, datadir, display, headless=True):
 
     path = os.path.join(datadir, testfile)
     assert chip.show(path)
+
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -66,6 +70,7 @@ def test_screenshot(project, testfile, tool, datadir, display, headless=True):
     assert screenshot_path
     assert os.path.exists(screenshot_path)
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(60)
@@ -87,6 +92,7 @@ def test_show_lyp(datadir, display, headless=True):
     path = os.path.join(datadir, 'heartbeat_freepdk45.def')
     assert chip.show(path)
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(60)
@@ -104,6 +110,7 @@ def test_show_nopdk(datadir, display):
     env = {'SCPATH': ''}
     with mock.patch.dict(os.environ, env):
         assert chip.show(testfile)
+
 
 #########################
 if __name__ == "__main__":

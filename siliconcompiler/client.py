@@ -14,6 +14,7 @@ import tempfile
 from siliconcompiler._metadata import default_server
 from siliconcompiler import utils
 
+
 ###################################
 def get_base_url(chip):
     '''Helper method to get the root URL for API calls, given a Chip object.
@@ -31,6 +32,7 @@ def get_base_url(chip):
     else:
         remote_protocol = 'https://' if str(remote_port) == '443' else 'http://'
     return remote_protocol + remote_host
+
 
 ###################################
 def remote_preprocess(chip, steplist):
@@ -81,6 +83,7 @@ def remote_preprocess(chip, steplist):
     chip.unset('arg', 'index')
     chip.set('option', 'steplist', remote_steplist, clobber=True)
 
+
 ###################################
 def remote_run(chip):
     '''Helper method to run a job stage on a remote compute cluster.
@@ -116,7 +119,7 @@ def remote_run(chip):
             if is_busy:
                 if (':' in is_busy_info['message']):
                     msg_lines = is_busy_info['message'].splitlines()
-                    cur_step = msg_lines[0][msg_lines[0].find(': ')+2:]
+                    cur_step = msg_lines[0][msg_lines[0].find(': ') + 2:]
                     cur_log = '\n'.join(msg_lines[1:])
                     chip.logger.info("Job is still running (%d seconds, step: %s)." % (
                                      int(time.monotonic() - step_start), cur_step))
@@ -132,6 +135,7 @@ def remote_run(chip):
             is_busy = True
             chip.logger.info("Unknown network error encountered: retrying.")
     chip.logger.info("Remote job run completed! Fetching results...")
+
 
 ###################################
 def request_remote_run(chip):
@@ -205,6 +209,7 @@ def request_remote_run(chip):
 
     upload_file.close()
 
+
 ###################################
 def is_job_busy(chip):
     '''Helper method to make an async request asking the remote server
@@ -241,6 +246,7 @@ def is_job_busy(chip):
             info['message'] = resp.text
             return info
 
+
 ###################################
 def delete_job(chip):
     '''Helper method to delete a job from shared remote storage.
@@ -271,6 +277,7 @@ def delete_job(chip):
         else:
             response = resp.text
             return response
+
 
 ###################################
 def fetch_results_request(chip):
@@ -314,13 +321,14 @@ def fetch_results_request(chip):
                 return 0
             else:
                 msg_json = {}
-                try: # (An unexpected server error may not return JSON with a message)
+                try:  # (An unexpected server error may not return JSON with a message)
                     msg_json = resp.json()
                     msg = f': {msg_json["message"]}' if 'message' in msg_json else '.'
                 except requests.exceptions.JSONDecodeError:
                     msg = '.'
                 chip.logger.warning(f'Could not fetch results{msg}')
                 return resp.status_code
+
 
 ###################################
 def fetch_results(chip):
@@ -359,7 +367,7 @@ def fetch_results(chip):
     # unzipped directory (including encrypted archives).
     utils.copytree(job_hash,
                    local_dir,
-                   dirs_exist_ok = True)
+                   dirs_exist_ok=True)
     shutil.rmtree(job_hash)
 
     # Print a message pointing to the results.

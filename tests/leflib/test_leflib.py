@@ -2,6 +2,7 @@ from siliconcompiler import leflib
 
 import os
 
+
 def test_leflib(scroot):
     path = os.path.join(scroot,
                         'third_party',
@@ -16,8 +17,10 @@ def test_leflib(scroot):
     data = leflib.parse(path)
     assert data['version'] == 5.7
 
+
 def test_leflib_garbage():
     assert leflib.parse('asdf') is None
+
 
 def test_leflib_complete(datadir):
     # This file contains nonsense and some things that are technically illegal,
@@ -141,6 +144,7 @@ def test_leflib_complete(datadir):
         'rect': (6.6, -0.6, 9.6, 0.6),
         'mask': 0
     }
+
 
 if __name__ == '__main__':
     from fixtures import datadir

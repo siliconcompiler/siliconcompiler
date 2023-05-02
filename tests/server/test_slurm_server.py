@@ -9,6 +9,7 @@ from unittest.mock import Mock
 
 SERVER_STARTUP_DELAY = 10
 
+
 @pytest.fixture
 def gcd_remote_test(gcd_chip, unused_tcp_port):
 

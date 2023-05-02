@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def setup(chip):
     '''
     Nangate open standard cell library for FreePDK45.
@@ -39,26 +40,26 @@ def setup(chip):
 
     # timing
     lib.add('output', corner, 'nldm',
-            libdir+'/lib/NangateOpenCellLibrary_typical.lib')
+            libdir + '/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
     lib.add('output', stackup, 'lef',
-            libdir+'/lef/NangateOpenCellLibrary.macro.mod.lef')
+            libdir + '/lef/NangateOpenCellLibrary.macro.mod.lef')
 
     # gds
     lib.add('output', stackup, 'gds',
-            libdir+'/gds/NangateOpenCellLibrary.gds')
+            libdir + '/gds/NangateOpenCellLibrary.gds')
 
     # cdl
     lib.add('output', stackup, 'cdl',
-            libdir+'/cdl/NangateOpenCellLibrary.cdl')
+            libdir + '/cdl/NangateOpenCellLibrary.cdl')
 
     # clock buffers
-    lib.add('asic', 'cells','clkbuf', "BUF_X4")
+    lib.add('asic', 'cells', 'clkbuf', "BUF_X4")
 
     # tie cells
-    lib.add('asic', 'cells','tie', ["LOGIC1_X1",
-                                    "LOGIC0_X1"])
+    lib.add('asic', 'cells', 'tie', ["LOGIC1_X1",
+                                     "LOGIC0_X1"])
 
     # hold cells
     lib.add('asic', 'cells', 'hold', "BUF_X1")
@@ -76,10 +77,10 @@ def setup(chip):
                                          "OAI211_X1"])
 
     # Tapcell
-    lib.add('asic', 'cells','tap', "TAPCELL_X1")
+    lib.add('asic', 'cells', 'tap', "TAPCELL_X1")
 
     # Endcap
-    lib.add('asic', 'cells','endcap', "TAPCELL_X1")
+    lib.add('asic', 'cells', 'endcap', "TAPCELL_X1")
 
     # Techmap
     lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
@@ -107,6 +108,7 @@ def setup(chip):
         lib.set('option', 'var', f'{tool}_tielow_port', "Z")
 
     return lib
+
 
 #########################
 if __name__ == "__main__":

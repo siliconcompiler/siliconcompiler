@@ -1,5 +1,6 @@
 import siliconcompiler
 
+
 def setup(chip):
     '''Subset of OH! library tapeout checklist.
 
@@ -32,6 +33,7 @@ def setup(chip):
                   'Is there a written specification?')
 
     return checklist
+
 
 ##################################################
 if __name__ == "__main__":

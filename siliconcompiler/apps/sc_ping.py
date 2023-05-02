@@ -10,6 +10,7 @@ from siliconcompiler.utils import default_credentials_file
 from siliconcompiler import Chip
 from siliconcompiler.client import get_base_url
 
+
 def main():
     progname = "sc-ping"
     description = """
@@ -26,7 +27,7 @@ def main():
 
     parser.add_argument('credential', nargs='?', default=default_credentials_file())
 
-    #Parsing args and converting to dict
+    # Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
     cfg_file = cmdargs['credential']
 
@@ -79,6 +80,7 @@ def main():
     except Exception:
         print('Error fetching user information from the remote server.')
         return 1
+
 
 #########################
 if __name__ == "__main__":

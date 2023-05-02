@@ -5,6 +5,7 @@ import time
 
 import pytest
 
+
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
@@ -56,6 +57,7 @@ def test_gcd_server_authenticated(gcd_chip, unused_tcp_port):
 
     # Verify that GDS file was generated and returned.
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
+
 
 ###########################
 @pytest.mark.eda

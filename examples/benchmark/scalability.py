@@ -11,6 +11,7 @@ import siliconcompiler
 
 import sys
 
+
 def run_long_serial(N, steps_to_run):
     chip = siliconcompiler.Chip()
     flow = 'test_long_serial'
@@ -24,6 +25,7 @@ def run_long_serial(N, steps_to_run):
     chip.set('mode', 'sim')
     chip.pipe(flow, pipe)
     chip.run()
+
 
 def run_wide_parallel(N):
     chip = siliconcompiler.Chip()
@@ -42,6 +44,7 @@ def run_wide_parallel(N):
     chip.set('mode', 'sim')
     chip.run()
 
+
 def main():
     num_tasks = int(sys.argv[2])
     if sys.argv[1] == 'serial':
@@ -50,6 +53,7 @@ def main():
     elif sys.argv[1] == 'parallel':
         run_wide_parallel(num_tasks)
     return
+
 
 if __name__ == '__main__':
     main()

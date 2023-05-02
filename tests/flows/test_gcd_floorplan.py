@@ -1,5 +1,6 @@
 import pytest
 
+
 @pytest.mark.skip(reason='Skipping until floorplan API has been updated.')
 def setup_floorplan(fp):
     cell_h = fp.stdcell_height
@@ -19,10 +20,11 @@ def setup_floorplan(fp):
     height = 1 * fp.layers[metal]['width']
 
     spacing_we = die_h / (len(in_pins) + 1)
-    fp.place_pins(in_pins, 0, spacing_we - height/2, 0, spacing_we, width, height, metal, snap=True) # west
+    fp.place_pins(in_pins, 0, spacing_we - height / 2, 0, spacing_we, width, height, metal, snap=True)  # west
 
     spacing_ea = die_h / (len(out_pins) + 1)
-    fp.place_pins(out_pins, die_w - width, spacing_ea - height/2, 0, spacing_ea, width, height, metal, snap=True) # east
+    fp.place_pins(out_pins, die_w - width, spacing_ea - height / 2, 0, spacing_ea, width, height, metal, snap=True)  # east
+
 
 ##################################
 @pytest.mark.eda
@@ -45,6 +47,7 @@ def test_gcd_floorplan(gcd_chip):
     gcd_chip.run()
 
     assert gcd_chip.find_result('gds', step='export') is not None
+
 
 if __name__ == '__main__':
     from tests.fixtures import gcd_chip

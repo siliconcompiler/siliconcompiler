@@ -10,6 +10,7 @@ from unittest.mock import Mock
 
 SERVER_STARTUP_DELAY = 10
 
+
 @pytest.fixture
 def gcd_remote_test(gcd_chip, unused_tcp_port):
 
@@ -76,6 +77,7 @@ def test_gcd_server(gcd_remote_test):
     # Verify that GDS and SVG files were generated and returned.
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
 
+
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
@@ -105,6 +107,7 @@ def test_gcd_server_partial(gcd_remote_test):
     # Verify that the following physyn step was not run.
     assert not os.path.isfile('build/gcd/job0/physyn/0/outputs/gcd.odb')
 
+
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
@@ -125,6 +128,7 @@ def test_gcd_server_partial_noeda(gcd_remote_test):
     # Run the remote job.
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
+
 
 ###########################
 @pytest.mark.eda
@@ -147,6 +151,7 @@ def test_gcd_server_partial_noimport(gcd_remote_test):
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
 
+
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
@@ -168,6 +173,7 @@ def test_gcd_server_argstep_noimport(gcd_remote_test):
     # Run the remote job.
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
+
 
 if __name__ == "__main__":
     if os.path.isdir('local_server_work'):

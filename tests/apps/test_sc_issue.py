@@ -7,6 +7,7 @@ import siliconcompiler
 from siliconcompiler.apps import sc_issue
 from siliconcompiler import utils
 
+
 # TODO: I think moving back to something like a tarfile would be nice here to
 # remove the dependency on EDA tools. Maybe make that tarfile the single source
 # of truth rather than gcd.pkg.json.
@@ -30,6 +31,7 @@ def heartbeat_dir(tmpdir_factory):
 
     return cwd
 
+
 @pytest.mark.parametrize('flags,outputfileglob', [
     (['-generate', '-cfg', 'build/heartbeat/job0/syn/0/outputs/heartbeat.pkg.json'], 'sc_issue_heartbeat_job0_syn0_*.tar.gz'),
     (['-generate', '-cfg', 'build/heartbeat/job0/place/0/outputs/heartbeat.pkg.json', '-arg_step', 'syn', '-arg_index', '0'], 'sc_issue_heartbeat_job0_syn0_*.tar.gz'),
@@ -47,6 +49,7 @@ def test_sc_issue_generate_success(flags, outputfileglob, monkeypatch, heartbeat
     assert sc_issue.main() == 0
     assert os.path.exists(glob.glob(outputfileglob)[0])
 
+
 @pytest.mark.parametrize('flags', [
     ['-generate', '-cfg', 'build/heartbeat/job0/heartbeat.pkg.json']
 ])
@@ -59,6 +62,7 @@ def test_sc_issue_generate_fail(flags, monkeypatch, heartbeat_dir):
 
     monkeypatch.setattr('sys.argv', ['sc-issue'] + flags)
     assert sc_issue.main() == 1
+
 
 @pytest.mark.eda
 @pytest.mark.quick

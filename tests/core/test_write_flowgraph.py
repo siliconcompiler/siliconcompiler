@@ -5,6 +5,7 @@ import os
 from siliconcompiler.pdks import freepdk45
 from siliconcompiler.flows import dvflow
 
+
 def test_write_flowgraph_serial():
 
     ################################################
@@ -17,6 +18,7 @@ def test_write_flowgraph_serial():
 
     assert os.path.isfile('serial.png')
 
+
 def test_write_flowgraph_forkjoin():
 
     ################################################
@@ -28,6 +30,7 @@ def test_write_flowgraph_forkjoin():
     chip.write_flowgraph('forkjoin.png')
 
     assert os.path.isfile('forkjoin.png')
+
 
 def test_write_flowgraph_pipes():
 

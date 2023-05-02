@@ -6,6 +6,7 @@ import time
 import uuid
 import json
 
+
 ###########################################################################
 def _deferstep(chip, step, index, status):
     '''
@@ -47,7 +48,6 @@ def _deferstep(chip, step, index, status):
     # Set the log file location.
     # TODO: May need to prepend ('option', 'builddir') and remove the '--chdir' arg if
     # running on a locally-managed cluster control node instead of submitting to a server app.
-    #output_file = os.path.join(chip.get('option', 'builddir'),
     output_file = os.path.join(chip._getworkdir(),
                                f'sc_remote-{step}-{index}.log')
     schedule_cmd = ['sbatch',
@@ -155,11 +155,12 @@ def _deferstep(chip, step, index, status):
     if retcode > 0:
         chip.logger.error(f'srun command for {step} failed.')
 
+
 def _get_slurm_partition():
     partitions = subprocess.run(['sinfo', '--json'],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
-    #partitions.wait()
+
     if partitions.returncode != 0:
         raise RuntimeError('Unable to determine partitions in slurm')
 

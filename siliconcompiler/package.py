@@ -4,6 +4,7 @@ import re
 import shutil
 import siliconcompiler
 
+
 class Sup:
     '''SiliconCompiler Unified Package (SUP) class.
 
@@ -14,7 +15,7 @@ class Sup:
 
     def __init__(self, design, registry=None):
 
-        #TODO: when starting sup, do we know the
+        # TODO: when starting sup, do we know the
         self.chip = siliconcompiler.Chip(design)
 
         # Local cache location
@@ -23,7 +24,7 @@ class Sup:
         else:
             home = os.environ['HOME']
 
-        self.cache = os.path.join(home,'.sc','registry')
+        self.cache = os.path.join(home, '.sc', 'registry')
 
         # List of remote registries
         if registry is None:
@@ -46,7 +47,7 @@ class Sup:
         self.chip.read_manifest(filename, clobber=True)
         check_ok = self.chip.check_manifest()
 
-        #TODO: Add packaging specific checks
+        # TODO: Add packaging specific checks
         for keylist in self.chip.allkeys():
             if (keylist[0] in ('package') and keylist[1] in ('version', 'description', 'license')):
                 if self.chip.get(*keylist) in ("null", None, []):
@@ -89,13 +90,13 @@ class Sup:
         version = self.chip.get('package', 'version')
 
         if re.match(r'http', registry):
-            #TODO
+            # TODO
             pass
         else:
             self.chip.logger.info(f"Publishing {self.chip.design}-{version} package to registry '{registry}'")
             odir = os.path.join(registry, self.chip.design, version)
             os.makedirs(odir, exist_ok=True)
-            ofile = os.path.join(odir,f"{self.chip.design}-{version}.sup.gz")
+            ofile = os.path.join(odir, f"{self.chip.design}-{version}.sup.gz")
             self.chip.write_manifest(ofile)
 
         return 0
@@ -116,19 +117,19 @@ class Sup:
         remote = self.chip._build_index(self.registry)
 
         # Allow name to be with or without version
-        m = re.match(r'(.*?)-([\d\.]+)$',name)
+        m = re.match(r'(.*?)-([\d\.]+)$', name)
         if m:
             design = m.group(1)
             version = m.group(2)
         else:
             design = name
-            #TODO: fix to take the latest ver
+            # TODO: fix to take the latest ver
             version = list(remote[design].keys())[0]
 
         deps = {}
         deps[design] = [version]
 
-        #TODO: allow for installing one package only (nodep tree)
+        # TODO: allow for installing one package only (nodep tree)
         auto = True
         self.chip._find_deps(self.cache, local, remote, design, deps, auto)
 
@@ -147,7 +148,7 @@ class Sup:
         '''
 
         # Allow name to be with or without version
-        m = re.match(r'(.*?)-([\d\.]+)$',name)
+        m = re.match(r'(.*?)-([\d\.]+)$', name)
         if m:
             design = m.group(1)
             ver = m.group(2)
@@ -174,16 +175,16 @@ class Sup:
 
         remote = self.chip._build_index(self.registry)
 
-        m = re.match(r'(.*?)-([\d\.]+)$',name)
+        m = re.match(r'(.*?)-([\d\.]+)$', name)
         if m:
             design = m.group(1)
             ver = m.group(2)
         else:
             design = name
-            #TODO: handle multiple versions
+            # TODO: handle multiple versions
             ver = None
 
-        #TODO: handle multiple registries
+        # TODO: handle multiple registries
         foundit = False
         for item in remote.keys():
             if item == design:

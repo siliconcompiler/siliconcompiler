@@ -6,6 +6,7 @@ import tarfile
 import json
 import importlib
 
+
 def main():
     progname = "sc-issue"
     chip = siliconcompiler.Chip(progname)
@@ -162,6 +163,7 @@ def main():
         chip._runtask(step, index, {}, replay=True)
 
         return 0
+
 
 #########################
 if __name__ == "__main__":

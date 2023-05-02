@@ -20,6 +20,7 @@ except ImportError:
 from .schema_cfg import schema_cfg
 from .utils import escape_val_tcl, PACKAGE_ROOT
 
+
 class Schema:
     """Object for storing and accessing configuration values corresponding to
     the SiliconCompiler schema.
@@ -422,7 +423,7 @@ class Schema:
         '''
 
         # initialize new dict
-        jobname = self.get('option','jobname')
+        jobname = self.get('option', 'jobname')
         self.cfg['history'][jobname] = {}
 
         # copy in all empty values of scope job
@@ -774,7 +775,7 @@ class Schema:
             else:
                 value = self.get(*key)
 
-            #create a TCL dict
+            # create a TCL dict
             keystr = ' '.join([escape_val_tcl(keypart, 'str') for keypart in key])
 
             valstr = escape_val_tcl(value, typestr)
@@ -789,7 +790,7 @@ class Schema:
 
             outstr = f"{prefix} {keystr} {valstr}\n"
 
-            #print out all non default values
+            # print out all non default values
             if 'default' not in key:
                 fout.write(outstr)
 
@@ -809,7 +810,7 @@ class Schema:
                 else:
                     keypath = ','.join(key + [step, index])
 
-                if isinstance(value,list):
+                if isinstance(value, list):
                     for item in value:
                         csvwriter.writerow([keypath, item])
                 else:
@@ -830,7 +831,7 @@ class Schema:
         # branches have been removed, not elegant, but stupid-simple
         # "good enough"
 
-        #10 should be enough for anyone...
+        # 10 should be enough for anyone...
         maxdepth = 10
 
         for _ in range(maxdepth):
@@ -845,10 +846,10 @@ class Schema:
         '''
         cfg = self._search(*keypath)
 
-        #Prune when the default & value are set to the following
-        #Loop through all keys starting at the top
+        # Prune when the default & value are set to the following
+        # Loop through all keys starting at the top
         for k in list(cfg.keys()):
-            #removing all default/template keys
+            # removing all default/template keys
             # reached a default subgraph, delete it
             if k == 'default':
                 del cfg[k]
@@ -860,10 +861,10 @@ class Schema:
             elif 'defvalue' in cfg[k].keys():
                 if self._is_empty(*keypath, k, keeplists=keeplists):
                     del cfg[k]
-            #removing stale branches
+            # removing stale branches
             elif not cfg[k]:
                 cfg.pop(k)
-            #keep traversing tree
+            # keep traversing tree
             else:
                 self._prune(*keypath, k, keeplists=keeplists)
 
@@ -904,6 +905,7 @@ class Schema:
         schema = Schema()
         schema.cfg = self.cfg['history'][job]
         return schema
+
 
 if _has_yaml:
     class YamlIndentDumper(yaml.Dumper):

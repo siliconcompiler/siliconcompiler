@@ -16,25 +16,26 @@ Installation: https://github.com/YosysHQ/yosys
 import re
 import json
 
+
 ######################################################################
 # Make Docs
 ######################################################################
 def make_docs(chip):
     chip.load_target("asap7_demo")
 
+
 ################################
 # Setup Tool (pre executable)
 ################################
-
 def setup(chip):
     ''' Tool specific function to run before step execution
     '''
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'yosys'
-    refdir = 'tools/'+tool
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    refdir = 'tools/' + tool
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     # Standard Setup
@@ -50,18 +51,20 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', "Warning:", step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'errors', "^ERROR", step=step, index=index, clobber=False)
 
+
 ################################
 # Version Check
 ################################
-
 def parse_version(stdout):
     # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
     return stdout.split()[1]
+
 
 def normalize_version(version):
     # Replace '+', which represents a "local version label", with '-', which is
     # an "implicit post release number".
     return version.replace('+', '-')
+
 
 def syn_setup(chip):
     ''' Helper method for configs specific to synthesis tasks.
@@ -71,8 +74,8 @@ def syn_setup(chip):
     setup(chip)
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     design = chip.top()
 
@@ -83,13 +86,14 @@ def syn_setup(chip):
     chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
 
+
 ##################################################
 def syn_post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     with open("reports/stat.json", 'r') as f:
         metrics = json.load(f)
@@ -111,6 +115,7 @@ def syn_post_process(chip):
                 registers += int(line_registers[0])
     if registers is not None:
         chip._record_metric(step, index, 'registers', registers, f"{step}.log")
+
 
 ##################################################
 if __name__ == "__main__":

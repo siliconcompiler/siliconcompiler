@@ -152,7 +152,7 @@ def is_base_binary_unit(unit):
     return unit in BINARY_TYPES
 
 
-def format_si(value, unit, margin = 3, digits = 3):
+def format_si(value, unit, margin=3, digits=3):
     '''
     Format a number as an SI number.
 
@@ -181,7 +181,7 @@ def format_si(value, unit, margin = 3, digits = 3):
     return f'{value:.{digits}f}'
 
 
-def format_binary(value, unit, digits = 3):
+def format_binary(value, unit, digits=3):
     '''
     Format a number as a binary number.
 

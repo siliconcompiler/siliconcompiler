@@ -6,6 +6,7 @@ from siliconcompiler.tools.yosys import lec
 
 from siliconcompiler.tools.builtin import nop
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_yosys_lec(datadir):
@@ -31,6 +32,7 @@ def test_yosys_lec(datadir):
 
     assert errors == 0
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_yosys_lec_broken(datadir):
@@ -45,7 +47,7 @@ def test_yosys_lec_broken(datadir):
     chip.node(flow, 'import', nop)
     chip.node(flow, 'lec', lec)
     chip.edge(flow, 'import', 'lec')
-    chip.set('option','flow', flow)
+    chip.set('option', 'flow', flow)
 
     chip.input(os.path.join(lec_dir, 'foo_broken.v'))
     chip.input(os.path.join(lec_dir, 'foo_broken.vg'))
@@ -55,6 +57,7 @@ def test_yosys_lec_broken(datadir):
     errors = chip.get('metric', 'drvs', step='lec', index='0')
 
     assert errors == 2
+
 
 if __name__ == "__main__":
     from tests.fixtures import datadir

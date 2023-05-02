@@ -1,16 +1,19 @@
 from siliconcompiler.tools.builtin import _common
 
+
 def setup(chip):
     '''
     A no-operation that passes inputs to outputs.
     '''
     pass
 
+
 def _select_inputs(chip, step, index):
     chip.logger.info("Running builtin task 'nop'")
 
     flow = chip.get('option', 'flow')
     return chip.get('flowgraph', flow, step, index, 'input')
+
 
 def _gather_outputs(chip, step, index):
     '''Return set of filenames that are guaranteed to be in outputs
@@ -26,8 +29,10 @@ def _gather_outputs(chip, step, index):
 
     return []
 
+
 def run(chip):
     return _common.run(chip)
+
 
 def post_process(chip):
     _common.post_process(chip)

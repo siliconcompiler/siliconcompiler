@@ -29,6 +29,7 @@ SCROOT = '../..'
 OH_PREFIX = f'{SCROOT}/third_party/designs/oh'
 SKY130IO_PREFIX = f'{SCROOT}/third_party/pdks/skywater/skywater130/libs/sky130io/v0_0_2'
 
+
 def configure_chip(design):
     # Minimal Chip object construction.
     chip = Chip(design)
@@ -44,6 +45,7 @@ def configure_chip(design):
     chip.set('option', 'showtool', 'def', 'klayout')
     chip.set('option', 'showtool', 'gds', 'klayout')
     return chip
+
 
 def define_dimensions(fp):
     # Define placement area for the core design.
@@ -66,6 +68,7 @@ def define_dimensions(fp):
     # Return dimensions as tuples.
     return (top_w, top_h), (core_w, core_h), (place_w, place_h), (margin_left, margin_bottom)
 
+
 def calculate_even_spacing(fp, pads, distance, start):
     n = len(pads)
     pads_width = sum(fp.available_cells[pad].width for pad in pads)
@@ -78,6 +81,7 @@ def calculate_even_spacing(fp, pads, distance, start):
         pos += fp.available_cells[pad].width + spacing
 
     return io_pos
+
 
 def define_io_placement(fp):
     # Define I/O pad locations. Since this design only has three I/Os,
@@ -97,18 +101,19 @@ def define_io_placement(fp):
 
     return we_io_pos, no_io_pos, ea_io_pos, so_io_pos
 
+
 def place_pdn(fp):
     # Simple PDN placement within the core, no macros to worry about.
     dims = define_dimensions(fp)
     _, (core_w, core_h), (place_w, place_h), (margin_left, margin_bottom) = dims
     we_pads, no_pads, ea_pads, so_pads = define_io_placement(fp)
 
-    n_vert = 4 # how many vertical straps to place
-    vwidth = 5 # width of vertical straps in microns
-    n_hori = 4 # how many horizontal straps to place
-    hwidth = 5 # width of horizontal straps
-    vlayer = 'm4' # metal layer for vertical straps
-    hlayer = 'm5' # metal layer for horizontal straps
+    n_vert = 4  # how many vertical straps to place
+    vwidth = 5  # width of vertical straps in microns
+    n_hori = 4  # how many horizontal straps to place
+    hwidth = 5  # width of horizontal straps
+    vlayer = 'm4'  # metal layer for vertical straps
+    hlayer = 'm5'  # metal layer for horizontal straps
     # Calculate even spacing for straps
     vpitch = (core_w - n_vert * vwidth) / (n_vert + 1)
     hpitch = (core_h - n_hori * hwidth) / (n_hori + 1)
@@ -116,7 +121,7 @@ def place_pdn(fp):
     # Add power nets to the floorplan.
     fp.add_net('_vdd', ['VPWR'], 'power')
     fp.add_net('_vss', ['VGND'], 'ground')
-    #fp.add_net('_vddio', [], 'power')
+    # fp.add_net('_vddio', [], 'power')
 
     # Add power ring.
     vss_ring_left = margin_left - 4 * vwidth
@@ -240,15 +245,16 @@ def place_pdn(fp):
     stripe_w = 0.48
     spacing = 2 * fp.stdcell_height
 
-    bottom = margin_bottom - stripe_w/2
+    bottom = margin_bottom - stripe_w / 2
     fp.place_wires(['_vdd'] * math.ceil(len(fp.rows) / 2), margin_left, bottom, 0, spacing,
                    place_w, stripe_w, 'm1', 'followpin')
 
-    bottom = margin_bottom - stripe_w/2 + fp.stdcell_height
+    bottom = margin_bottom - stripe_w / 2 + fp.stdcell_height
     fp.place_wires(['_vss'] * math.floor(len(fp.rows) / 2), margin_left, bottom, 0, spacing,
                    place_w, stripe_w, 'm1', 'followpin')
 
     fp.insert_vias(layers=[('m1', 'm4'), ('m3', 'm4'), ('m3', 'm5'), ('m4', 'm5')])
+
 
 def core_floorplan(fp):
     # Core floorplan definition.
@@ -256,33 +262,33 @@ def core_floorplan(fp):
     _, (core_w, core_h), (place_w, place_h), (margin_left, margin_bottom) = dims
     diearea = [(0, 0), (core_w, core_h)]
     corearea = [(margin_left, margin_bottom), (place_w + margin_left, place_h + margin_bottom)]
-    fp.create_diearea(diearea, corearea = corearea)
+    fp.create_diearea(diearea, corearea=corearea)
 
     # Define I/O cell signals.
     pins = [
         # (name, offset from cell edge, # bit in vector, width of vector)
-        ('din', 75.085, 0, 1), # in
-        ('dout', 19.885, 0, 1), # out
-        ('ie', 41.505, 0, 1), # inp_dis
-        ('oen', 4.245, 0, 1), # oe_n
-        ('tech_cfg', 31.845, 0, 18), # hld_h_n
-        ('tech_cfg', 35.065, 1, 18), # enable_h
-        ('tech_cfg', 38.285, 2, 18), # enable_inp_h
-        ('tech_cfg', 13.445, 3, 18), # enable_vdda_h
-        ('tech_cfg', 16.665, 4, 18), # enable_vswitch_h
-        ('tech_cfg', 69.105, 5, 18), # enable_vddio
-        ('tech_cfg', 7.465, 6, 18), # ib_mode_sel
-        ('tech_cfg', 10.685, 7, 18), # vtrip_sel
-        ('tech_cfg', 65.885, 8, 18), # slow
-        ('tech_cfg', 22.645, 9, 18), # hld_ovr
-        ('tech_cfg', 50.705, 10, 18), # analog_en
-        ('tech_cfg', 29.085, 11, 18), # analog_sel
-        ('tech_cfg', 44.265, 12, 18), # analog_pol
-        ('tech_cfg', 47.485, 13, 18), # dm[0]
-        ('tech_cfg', 56.685, 14, 18), # dm[1]
-        ('tech_cfg', 25.865, 15, 18), # dm[2]
-        ('tech_cfg', 78.305, 16, 18), # tie_lo_esd
-        ('tech_cfg', 71.865, 17, 18), # tie_hi_esd
+        ('din', 75.085, 0, 1),  # in
+        ('dout', 19.885, 0, 1),  # out
+        ('ie', 41.505, 0, 1),  # inp_dis
+        ('oen', 4.245, 0, 1),  # oe_n
+        ('tech_cfg', 31.845, 0, 18),  # hld_h_n
+        ('tech_cfg', 35.065, 1, 18),  # enable_h
+        ('tech_cfg', 38.285, 2, 18),  # enable_inp_h
+        ('tech_cfg', 13.445, 3, 18),  # enable_vdda_h
+        ('tech_cfg', 16.665, 4, 18),  # enable_vswitch_h
+        ('tech_cfg', 69.105, 5, 18),  # enable_vddio
+        ('tech_cfg', 7.465, 6, 18),  # ib_mode_sel
+        ('tech_cfg', 10.685, 7, 18),  # vtrip_sel
+        ('tech_cfg', 65.885, 8, 18),  # slow
+        ('tech_cfg', 22.645, 9, 18),  # hld_ovr
+        ('tech_cfg', 50.705, 10, 18),  # analog_en
+        ('tech_cfg', 29.085, 11, 18),  # analog_sel
+        ('tech_cfg', 44.265, 12, 18),  # analog_pol
+        ('tech_cfg', 47.485, 13, 18),  # dm[0]
+        ('tech_cfg', 56.685, 14, 18),  # dm[1]
+        ('tech_cfg', 25.865, 15, 18),  # dm[2]
+        ('tech_cfg', 78.305, 16, 18),  # tie_lo_esd
+        ('tech_cfg', 71.865, 17, 18),  # tie_hi_esd
     ]
     pin_width = 0.28
     pin_depth = 1
@@ -298,7 +304,7 @@ def core_floorplan(fp):
     we_gpio_pos = [pos for pad, pos in we_pads if pad == GPIO]
     pin_x = 0
     for i, pad_y in enumerate(we_gpio_pos):
-        pad_y -= gpio_h # account for padring height
+        pad_y -= gpio_h  # account for padring height
         for pin, offset, bit, width in pins:
             # Construct name based on side, pin name, and bit # in vector
             name = f'we_{pin}[{i * width + bit}]'
@@ -347,6 +353,7 @@ def core_floorplan(fp):
 
     # Place PDN grid.
     place_pdn(fp)
+
 
 def top_floorplan(fp):
     # Create top-level die area.

@@ -2,6 +2,7 @@ import argparse
 import sys
 import siliconcompiler as sc
 
+
 def main():
 
     progname = "sup"
@@ -57,7 +58,7 @@ See https://docs.siliconcompiler.com for more information
         formatter_class=argparse.RawDescriptionHelpFormatter)
 
     # Function to execute
-    parser.add_argument('command',help="command to run")
+    parser.add_argument('command', help="command to run")
 
     # Package Name
     parser.add_argument('name',

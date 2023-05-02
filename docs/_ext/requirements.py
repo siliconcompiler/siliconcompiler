@@ -10,6 +10,7 @@ from siliconcompiler.sphinx_ext.utils import strong, code, para, build_table, no
 
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
+
 # Main Sphinx plugin
 class Requirements(SphinxDirective):
     def run(self):
@@ -51,6 +52,7 @@ class Requirements(SphinxDirective):
 
         return [bullet_list]
 
+
 class RequirementsLicenses(SphinxDirective):
     option_spec = {'version': directives.flag}
 
@@ -91,6 +93,7 @@ class RequirementsLicenses(SphinxDirective):
 
         body = build_table(entries)
         return body
+
 
 def setup(app):
     app.add_directive('requirements', Requirements)

@@ -4,18 +4,19 @@ import shutil
 # Directory inside step/index dir to store bsc intermediate results.
 VLOG_DIR = 'verilog'
 
+
 def setup(chip):
     '''
     Performs high level synthesis to generate a verilog output
     '''
 
     tool = 'bluespec'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     # Standard Setup
-    refdir = 'tools/'+tool
+    refdir = 'tools/' + tool
     chip.set('tool', tool, 'exe', 'bsc')
     # This is technically the 'verbose' flag, but used alone it happens to give
     # us the version and exit cleanly, so we'll use it here.
@@ -26,25 +27,25 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'task', task,'output', chip.top() + '.v', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
     chip.add('tool', tool, 'task', task, 'require', 'input,hll,bsv')
 
+
 ################################
 # Pre-process
 ################################
-
 def pre_process(chip):
     # bsc requires its output directory exists before being called.
     if os.path.isdir(VLOG_DIR):
         shutil.rmtree(VLOG_DIR)
     os.makedirs(VLOG_DIR)
 
+
 ################################
 # Post-process (post executable)
 ################################
-
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''

@@ -5,33 +5,33 @@
 #
 # License: BSD 3-Clause.
 #
-#Copyright (c) 2018, The Regents of the University of California
-#All rights reserved.
+# Copyright (c) 2018, The Regents of the University of California
+# All rights reserved.
 #
-#Redistribution and use in source and binary forms, with or without
-#modification, are permitted provided that the following conditions are met:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
 #
-#* Redistributions of source code must retain the above copyright notice, this
+# * Redistributions of source code must retain the above copyright notice, this
 #  list of conditions and the following disclaimer.
 #
-#* Redistributions in binary form must reproduce the above copyright notice,
+# * Redistributions in binary form must reproduce the above copyright notice,
 #  this list of conditions and the following disclaimer in the documentation
 #  and/or other materials provided with the distribution.
 #
-#* Neither the name of the copyright holder nor the names of its
+# * Neither the name of the copyright holder nor the names of its
 #  contributors may be used to endorse or promote products derived from
 #  this software without specific prior written permission.
 #
-#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-#AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-#IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-#DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-#FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-#DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-#SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-#CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-#OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pya
 import re
@@ -41,10 +41,11 @@ import os
 import sys
 
 # SC_ROOT provided by CLI
-sys.path.append(SC_ROOT) # noqa: F821
+sys.path.append(SC_ROOT)  # noqa: F821
 
-from schema import Schema
-from tools.klayout.klayout_show import show
+from schema import Schema  # noqa E402
+from tools.klayout.klayout_show import show  # noqa E402
+
 
 def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
                macro_lefs, config_file='', seal_file='', timestamps=True):
@@ -69,7 +70,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
             cfg = json.load(f)
 
         expand_cfg_layers(cfg)
-        cfg = cfg['layers'] # ignore the rest
+        cfg = cfg['layers']  # ignore the rest
 
         # Map gds layers & datatype to KLayout indices
         # These are arrays for the different mask numbers
@@ -80,13 +81,13 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
                     continue
                 data = vals[key]
                 if isinstance(data['datatype'], int):
-                    data['datatype'] = [data['datatype']] # convert to array
+                    data['datatype'] = [data['datatype']]  # convert to array
                 data['klayout'] = [main_layout.find_layer(layer, datatype)
                                    for datatype in data['datatype']]
 
         return cfg
 
-    #match a line like:
+    # match a line like:
     # - LAYER M2 + MASK 2 + OPC RECT ( 3000 3000 ) ( 5000 5000 ) ;
     rect_pat = re.compile(r'''
         \s*\-\ LAYER\ (?P<layer>\S+)  # The layer name
@@ -113,7 +114,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
             for line in fp:
                 if in_fills:
                     if re.match('END FILLS', line):
-                        break # done with fills; don't care what follows
+                        break  # done with fills; don't care what follows
                     m = re.match(rect_pat, line)
                     if not m:
                         raise Exception('Unrecognized fill: ' + line)
@@ -122,7 +123,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
                     if not mask:  # uncolored just uses first entry
                         mask = 0
                     else:
-                        mask = int(mask) - 1 # DEF is 1-based indexing
+                        mask = int(mask) - 1  # DEF is 1-based indexing
                     layer = cfg[m.group('layer')][opc_type]['klayout'][mask]
                     xlo = int(m.group('xlo')) / units
                     ylo = int(m.group('ylo')) / units
@@ -222,6 +223,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
     write_options = pya.SaveLayoutOptions()
     write_options.gds2_write_timestamps = timestamps
     top_only_layout.write(out_file, write_options)
+
 
 schema = Schema(manifest='sc_manifest.json')
 

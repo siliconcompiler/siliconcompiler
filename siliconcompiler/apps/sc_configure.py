@@ -15,6 +15,7 @@ https://www.siliconcompiler.com/terms-of-service
 In particular, please ensure that you have the right to distribute any IP which is contained in designs that you upload to the service. This public service, provided by SiliconCompiler, is not intended to process proprietary IP.
 '''
 
+
 def confirm_dialog(message):
     confirmed = False
     while not confirmed:
@@ -25,6 +26,7 @@ def confirm_dialog(message):
         elif (oin == 'y') or (oin == 'Y'):
             confirmed = True
     return confirmed
+
 
 def main():
     progname = "sc-configure"
@@ -44,7 +46,7 @@ def main():
     parser.add_argument('-file', metavar='<file>', default=default_credentials_file(), help='Path to credentials file')
     parser.add_argument('server', nargs='?', help='URL to a server')
 
-    #Parsing args and converting to dict
+    # Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())
 
     default_server_name = urlparse(default_server).hostname
@@ -70,7 +72,7 @@ def main():
         print(f'Creating remote configuration file for public server: {srv_addr}')
     else:
         # If no arguments were passed in, interactively request credentials from the user.
-        srv_addr = input('Remote server address:\n').replace(" ","")
+        srv_addr = input('Remote server address:\n').replace(" ", "")
 
     server = urlparse(srv_addr)
     has_scheme = True
@@ -97,10 +99,10 @@ def main():
     if not public_server and not cmdargs['server']:
         username = server.username
         if not username:
-            username = input('Remote username:\n').replace(" ","")
+            username = input('Remote username:\n').replace(" ", "")
         user_pass = server.password
         if not user_pass:
-            user_pass = input('Remote password:\n').replace(" ","")
+            user_pass = input('Remote password:\n').replace(" ", "")
 
         if username:
             config['username'] = username
@@ -115,6 +117,7 @@ def main():
     print(f'Remote configuration saved to: {cfg_file}')
 
     return 0
+
 
 #########################
 if __name__ == "__main__":

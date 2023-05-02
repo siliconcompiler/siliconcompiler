@@ -15,7 +15,7 @@ import sys
 from datetime import date
 
 sys.path.insert(0, os.path.abspath('../siliconcompiler'))
-import siliconcompiler
+import siliconcompiler  # noqa E402
 sys.path.append(os.path.abspath('./_ext'))
 
 
@@ -78,9 +78,9 @@ html_logo = 'sc_logo_with_text.png'
 
 html_theme_options = {
     "collapse_navigation": True,
-    #'logo_only': True,
-    #'display_version': True,
-    #'navigation_depth': 4,
+    # 'logo_only': True,
+    # 'display_version': True,
+    # 'navigation_depth': 4,
     "show_toc_level": 2,   # this automatically displays two levels
     "logo": {
         "image_light": html_logo,
@@ -142,11 +142,11 @@ latex_documents = [
 ]
 
 latex_elements = {
-    'extraclassoptions': 'openany,oneside', # Don't add blank pages after some chapters
+    'extraclassoptions': 'openany,oneside',  # Don't add blank pages after some chapters
     'preamble': latex_preamble
 }
 
-#latex_logo = '_images/sc_logo_with_text.png'
+# latex_logo = '_images/sc_logo_with_text.png'
 
 latex_use_modindex = False
 

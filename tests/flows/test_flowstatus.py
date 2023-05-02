@@ -13,6 +13,7 @@ from siliconcompiler.tools.openroad import cts
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import minimum
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.parametrize('steplist', [
@@ -69,6 +70,7 @@ def test_flowstatus(scroot, steplist):
     assert chip.get('flowgraph', flow, 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
     assert chip.get('flowgraph', flow, 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_long_branch(scroot):
@@ -119,6 +121,7 @@ def test_long_branch(scroot):
 
     assert chip.get('flowgraph', flow, 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
     assert chip.get('flowgraph', flow, 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
+
 
 @pytest.mark.eda
 @pytest.mark.quick

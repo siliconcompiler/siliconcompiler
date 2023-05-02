@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def setup(chip):
     '''
     Skywater130 I/O library.
@@ -40,6 +41,7 @@ def setup(chip):
                                         'sky130_ef_io__com_bus_slice_20um'])
 
     return lib
+
 
 #########################
 if __name__ == "__main__":

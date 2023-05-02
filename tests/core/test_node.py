@@ -4,6 +4,7 @@ import pytest
 
 from siliconcompiler.tools.builtin import join
 
+
 @pytest.mark.quick
 def test_builtin():
     chip = siliconcompiler.Chip('test')
@@ -12,6 +13,7 @@ def test_builtin():
 
     assert chip.get('flowgraph', flow, 'A', '0', 'tool') == "builtin"
     assert chip.get('flowgraph', flow, 'A', '0', 'task') == "join"
+
 
 @pytest.mark.quick
 def test_import_task():
@@ -23,6 +25,7 @@ def test_import_task():
     assert chip.get('flowgraph', flow, 'A', '0', 'tool') == "yosys"
     assert chip.get('flowgraph', flow, 'A', '0', 'task') == "syn_asic"
     assert chip.get('flowgraph', flow, 'A', '0', 'taskmodule') == "siliconcompiler.tools.yosys.syn_asic"
+
 
 @pytest.mark.quick
 def test_string_task():

@@ -36,6 +36,7 @@ def test_surelog(scroot, clean):
     intermediate_dir = os.path.join(workdir, 'slpp_all')
     assert os.path.isdir(intermediate_dir) != clean
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_surelog_duplicate_inputs(scroot):
@@ -68,6 +69,7 @@ def test_surelog_duplicate_inputs(scroot):
                 module_count += 1
     assert module_count == 1
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_surelog_preproc_regression(datadir):
@@ -92,6 +94,7 @@ def test_surelog_preproc_regression(datadir):
     with open(result, 'r') as vlog:
         assert "`MEM_ROOT" not in vlog.read()
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.skipif(sys.platform == 'win32', reason='Replay script not supported on Windows')
@@ -108,7 +111,7 @@ def test_replay(scroot):
     chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
     chip.set('option', 'quiet', True)
-    chip.set('option', 'clean', True) # replay should work even with clean=True
+    chip.set('option', 'clean', True)  # replay should work even with clean=True
     chip.set('tool', 'surelog', 'task', step, 'env', 'SLOG_ENV', 'SUCCESS', step=step, index='0')
 
     chip.run()
@@ -125,6 +128,7 @@ def test_replay(scroot):
 
     assert p.returncode == 0
     assert p.stdout.decode('ascii').rstrip().split('\n')[-1] == 'SUCCESS'
+
 
 if __name__ == "__main__":
     from tests.fixtures import scroot

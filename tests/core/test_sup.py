@@ -2,6 +2,7 @@ import siliconcompiler as sc
 import pytest
 import os
 
+
 @pytest.mark.skip(reason='Test takes a while and SUP logic is going to be modified')
 def test_sup():
     ''' SUP basic test
@@ -22,7 +23,7 @@ def test_sup():
         l1.set('package', 'license', 'MIT')
         l1.set('package', 'description', 'sup?')
         for j in ('0', '1', '2'):
-            dep2 = i+j
+            dep2 = i + j
             os.makedirs(f"{builddir}/{dep2}/job0/export/outputs", exist_ok=True)
             l1.add('package', 'dependency', dep2, f"0.0.{j}")
             l2 = sc.Chip(dep2)
@@ -31,7 +32,7 @@ def test_sup():
             l2.set('package', 'license', 'MIT')
             l2.set('package', 'description', 'sup?')
             l2.write_manifest(f"{builddir}/{dep2}/job0/export/outputs/{dep2}.pkg.json")
-        #don't move
+        # don't move
         l1.write_manifest(f"{builddir}/{i}/job0/export/outputs/{i}.pkg.json")
 
     # 2. Package up dependecies using sup
@@ -39,7 +40,7 @@ def test_sup():
         p = sc.package.Sup(i)
         p.publish(f"{builddir}/{i}/job0/export/outputs/{i}.pkg.json", registry)
         for j in ('0', '1', '2'):
-            dep2 = i+j
+            dep2 = i + j
             p = sc.package.Sup(dep2)
             p.publish(f"{builddir}/{dep2}/job0/export/outputs/{dep2}.pkg.json", registry)
 
@@ -56,8 +57,9 @@ def test_sup():
     chip.update()
 
     # 4. Dump updated manifest and depgraph
-    #chip.write_manifest('top.tcl')
-    #chip.write_depgraph('tree.png')
+    # chip.write_manifest('top.tcl')
+    # chip.write_depgraph('tree.png')
+
 
 #########################
 @pytest.mark.skip(reason='SUP logic is going to be modified')
@@ -105,6 +107,7 @@ def test_sup_circ_import():
         chip.set('option', 'autoinstall', True)
         with pytest.raises(sc.SiliconCompilerError):
             chip.update()
+
 
 #########################
 if __name__ == "__main__":

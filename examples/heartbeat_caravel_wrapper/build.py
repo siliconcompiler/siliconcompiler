@@ -30,12 +30,13 @@ CORE_W = 899.76
 CORE_H = 598.4
 # Margins are set to ~10mm, snapped to placement site dimensions (0.46mm x 2.72mm in sky130hd)
 MARGIN_W = 9.66
-#MARGIN_W = 9.52
+# MARGIN_W = 9.52
 MARGIN_H = 8.16
-#MARGIN_H = 6.256
+# MARGIN_H = 6.256
 
 # Path to 'caravel' repository root.
 CARAVEL_ROOT = '/path/to/caravel'
+
 
 def configure_chip(design):
     # Minimal Chip object construction.
@@ -44,6 +45,7 @@ def configure_chip(design):
     chip.use(mpwflow)
     chip.set('option', 'flow', 'mpwflow')
     return chip
+
 
 def build_core():
     # Harden the 'heartbeat' module. Following the example set in 'user_proj_example',
@@ -59,8 +61,8 @@ def build_core():
 
     # Optional: These configurations can add padding around cells during the placement steps,
     # which can help to reduce routing congestion at the expense of placement density.
-    #core_chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_global_place', ['2'])
-    #core_chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_detail_place', ['2'])
+    # core_chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_global_place', ['2'])
+    # core_chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_detail_place', ['2'])
 
     # Set user design die/core area.
     core_chip.set('asic', 'diearea', (0, 0))
@@ -80,13 +82,14 @@ def build_core():
     shutil.copy(core_chip.find_result('def', step='dfm'), f'{design}.def')
     shutil.copy(core_chip.find_result('lef', step='dfm'), f'{design}.lef')
 
+
 def build_top():
     # The 'hearbeat' RTL goes in a modified 'user_project_wrapper' object, see sources.
     design = 'user_project_wrapper'
     chip = configure_chip(design)
     chip.set('tool', 'openroad', 'var', 'place', '0', 'place_density', ['0.15'])
-    #chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_global_place', ['2'])
-    #chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_detail_place', ['2'])
+    # chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_global_place', ['2'])
+    # chip.add('tool', 'openroad', 'var', 'place', '0', 'pad_detail_place', ['2'])
     chip.set('tool', 'openroad', 'var', 'route', '0', 'grt_allow_congestion', ['true'])
     chip.clock('user_clock2', period=20)
 
@@ -119,14 +122,14 @@ def build_top():
     chip.set('input', 'asic', 'floorplan.def', f'{CARAVEL_ROOT}/def/user_project_wrapper.def')
 
     # (No?) filler cells in the top-level wrapper.
-    #chip.set('library', 'sky130hd', 'cells', 'filler', [])
-    #chip.add('library', 'sky130hd', 'cells', 'ignore', 'sky130_fd_sc_hd__conb_1')
+    # chip.set('library', 'sky130hd', 'cells', 'filler', [])
+    # chip.add('library', 'sky130hd', 'cells', 'ignore', 'sky130_fd_sc_hd__conb_1')
 
     # (No?) tapcells in the top-level wrapper.
     libtype = 'unithd'
 
     # No I/O buffers in the top-level wrapper, but keep tie-hi/lo cells.
-    #chip.set('library', 'sky130hd', 'cells', 'tie', [])
+    # chip.set('library', 'sky130hd', 'cells', 'tie', [])
     chip.set('asic', 'cells', 'buf', [])
 
     # Create PDN-generation script.
@@ -142,6 +145,7 @@ add_global_connection -net vssd1 -pin_pattern "^GROUND$" -ground
 global_connect
 
 set_voltage_domain -name Core -power vccd1 -ground vssd1
+
 
 define_pdn_grid -name core_grid -macro -grid_over_pg_pins -default -voltage_domain Core -starts_with POWER
 add_pdn_stripe -grid core_grid -layer met1 -width 0.48 -starts_with POWER -followpins
@@ -166,11 +170,13 @@ place_cell -inst_name mprj -origin {1188.64 1689.12} -orient R0 -status FIRM
     # Add via definitions to the gate-level netlist.
     shutil.copy(chip.find_result('vg', step='addvias'), f'{design}.vg')
 
+
 def main():
     # Build the core design, which gets placed inside the padring.
     build_core()
     # Build the top-level design by stacking the core into the middle of the padring.
     build_top()
+
 
 if __name__ == '__main__':
     main()

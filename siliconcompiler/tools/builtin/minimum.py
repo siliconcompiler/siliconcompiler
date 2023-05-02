@@ -1,5 +1,6 @@
 from siliconcompiler.tools.builtin import _common
 
+
 def setup(chip):
     '''
     Selects the task with the minimum metric score from a list of inputs.
@@ -18,6 +19,7 @@ def setup(chip):
     '''
     pass
 
+
 def _select_inputs(chip, step, index):
     chip.logger.info("Running builtin task 'minimum'")
 
@@ -30,6 +32,7 @@ def _select_inputs(chip, step, index):
         chip.logger.info(f"Selected '{sel_inputs[0]}{sel_inputs[1]}' with score {score:.3f}")
 
     return sel_inputs
+
 
 def _gather_outputs(chip, step, index):
     '''Return set of filenames that are guaranteed to be in outputs
@@ -45,8 +48,10 @@ def _gather_outputs(chip, step, index):
 
     return []
 
+
 def run(chip):
     return _common.run(chip)
+
 
 def post_process(chip):
     _common.post_process(chip)

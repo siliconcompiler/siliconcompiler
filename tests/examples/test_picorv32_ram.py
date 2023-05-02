@@ -6,6 +6,7 @@ import time
 
 from unittest.mock import Mock
 
+
 # Run as a daily test, because this takes a long time to build.
 @pytest.mark.eda
 @pytest.mark.timeout(900)
@@ -19,6 +20,7 @@ def test_picorv32_sram(setup_example_test):
 
     # Verify that GDS file was generated.
     assert os.path.isfile('build/picorv32_top/job0/export/0/outputs/picorv32_top.gds')
+
 
 # Run remotely, using the minimal development server.
 # TODO: Until we merge in some client.py changes to use GDS/LEF files which get copied into the build

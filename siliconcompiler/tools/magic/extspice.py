@@ -1,6 +1,7 @@
 
 from siliconcompiler.tools.magic.magic import setup as setup_tool
 
+
 def setup(chip):
     '''
     Extract spice netlists from a GDS file for simulation use

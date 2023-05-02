@@ -1,6 +1,7 @@
 import pytest
 import re
 
+
 @pytest.mark.eda
 def test_gcd_infer_diesize(gcd_chip):
     '''Test inferring diesize from density/aspectratio/margin arguments
@@ -26,6 +27,7 @@ def test_gcd_infer_diesize(gcd_chip):
             break
 
     assert diearea == ('0', '0', '200260', '201600')
+
 
 if __name__ == '__main__':
     from tests.fixtures import gcd_chip

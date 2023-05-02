@@ -11,12 +11,14 @@ from siliconcompiler.tools.icepack import bitstream as icestorm_bitstream
 from siliconcompiler.tools.genfasm import bitstream as genfasm_bitstream
 from siliconcompiler.tools.vivado import bitstream as vivado_bitstream
 
+
 ############################################################################
 # DOCS
 ############################################################################
 def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40')
     return setup(chip)
+
 
 ############################################################################
 # Flowgraph Setup
@@ -66,8 +68,8 @@ def setup(chip, flowname='fpgaflow'):
     if flowtype != 'vpr':
         _, flowtype = flow_lookup(partname)
 
-    #Setting up pipeline
-    #TODO: Going forward we want to standardize steps
+    # Setting up pipeline
+    # TODO: Going forward we want to standardize steps
     if flowtype in ('vivado', 'quartus'):
         flowpipe = ['syn_fpga', 'place', 'route', 'bitstream']
     elif flowtype == 'vpr':
@@ -88,17 +90,18 @@ def setup(chip, flowname='fpgaflow'):
         if prevstep:
             flow.edge(flowname, prevstep, step)
         # Hard goals
-        for metric in ('errors','warnings','drvs','unconstrained',
-                       'holdwns','holdtns', 'holdpaths',
+        for metric in ('errors', 'warnings', 'drvs', 'unconstrained',
+                       'holdwns', 'holdtns', 'holdpaths',
                        'setupwns', 'setuptns', 'setuppaths'):
             flow.set('flowgraph', flowname, step, index, 'goal', metric, 0)
         # Metrics
-        for metric in ('luts','dsps','brams','registers',
-                       'pins','peakpower','leakagepower'):
+        for metric in ('luts', 'dsps', 'brams', 'registers',
+                       'pins', 'peakpower', 'leakagepower'):
             flow.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
         prevstep = step
 
     return flow
+
 
 ##################################################
 def flow_lookup(partname):
@@ -163,6 +166,7 @@ def flow_lookup(partname):
 
     return (vendor, flow)
 
+
 ##################################################
 def task_lookup(flow, step):
     '''
@@ -199,6 +203,7 @@ def task_lookup(flow, step):
             return genfasm_bitstream
 
     return None
+
 
 ##################################################
 if __name__ == "__main__":

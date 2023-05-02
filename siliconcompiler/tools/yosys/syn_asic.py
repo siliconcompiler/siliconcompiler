@@ -4,8 +4,10 @@ import os
 import re
 import siliconcompiler.tools.yosys.markDontUse as markDontUse
 
+
 def make_docs(chip):
     chip.load_target("asap7_demo")
+
 
 def setup(chip):
     '''
@@ -18,13 +20,14 @@ def setup(chip):
     # ASIC-specific setup.
     setup_asic(chip)
 
+
 def setup_asic(chip):
     ''' Helper method for configs specific to ASIC steps (both syn and lec).
     '''
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     chip.add('tool', tool, 'task', task, 'require', ",".join(['asic', 'logiclib']), step=step, index=index)
@@ -118,14 +121,15 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file', 'File to use for the DFF mapping stage of Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'add_buffers', 'True/False, flag to indicate whether to add buffers or not.', field='help')
 
+
 ################################
 # mark cells dont use and format liberty files for yosys and abc
 ################################
 def prepare_synthesis_libraries(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
 
@@ -183,11 +187,12 @@ def prepare_synthesis_libraries(chip):
             for lib_file in get_synthesis_libraries(lib):
                 process_lib_file(libtype, lib, lib_file, dont_use)
 
+
 def create_abc_synthesis_constraints(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     abc_driver = chip.get('tool', tool, 'task', task, 'var', 'abc_constraint_driver', step=step, index=index)
@@ -211,11 +216,12 @@ def create_abc_synthesis_constraints(chip):
                 abc_load *= 1000
             f.write(f"set_load {abc_load}\n")
 
+
 def get_synthesis_corner(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     syn_corner = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner', step=step, index=index)
@@ -239,11 +245,12 @@ def get_synthesis_corner(chip):
 
     return corner
 
+
 def get_dff_liberty_file(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     dff_liberty = None
@@ -278,8 +285,8 @@ def get_dff_liberty_file(chip):
 def get_abc_period(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     abc_clock_period = chip.get('tool', tool, 'task', task, 'var', 'abc_clock_period', step=step, index=index)
@@ -338,11 +345,12 @@ def get_abc_period(chip):
 
     return int(period)
 
+
 def get_abc_driver(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     abc_driver = chip.get('tool', tool, 'task', task, 'var', 'abc_constraint_driver', step=step, index=index)
@@ -357,6 +365,7 @@ def get_abc_driver(chip):
 
     return abc_driver
 
+
 ##################################################
 def pre_process(chip):
     ''' Tool specific function to run before step execution
@@ -365,6 +374,7 @@ def pre_process(chip):
     prepare_synthesis_libraries(chip)
     create_abc_synthesis_constraints(chip)
     return
+
 
 def post_process(chip):
     syn_post_process(chip)

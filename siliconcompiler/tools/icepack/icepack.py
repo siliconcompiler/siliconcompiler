@@ -10,6 +10,7 @@ Sources: https://github.com/YosysHQ/icestorm
 Installation: https://github.com/YosysHQ/icestorm
 '''
 
+
 #####################################################################
 # Make Docs
 #####################################################################
@@ -18,10 +19,10 @@ def make_docs(chip):
     setup(chip)
     return chip
 
+
 ################################
 #  Custom runtime options
 ################################
-
 def runtime_options(chip):
     ''' Custom runtime options, returnst list of command line options.
     '''
@@ -33,6 +34,7 @@ def runtime_options(chip):
     cmdlist.append("outputs/" + topmodule + ".bit")
 
     return cmdlist
+
 
 ##################################################
 if __name__ == "__main__":

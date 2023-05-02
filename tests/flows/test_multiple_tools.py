@@ -8,16 +8,18 @@ from siliconcompiler.tools.surelog import parse
 
 from siliconcompiler.tools.builtin import nop
 
+
 def create_fake_surelog():
     with open('surelog', 'w') as f:
         # hardcoded to check that fake license server env is provided, then
         # dump a version
         f.write('#!/bin/sh\n')
-        f.write('set -o nounset\n') # quit early if script tries to expand unset var
-        f.write(': $ACME_LICENSE\n') # try to expand license server var
+        f.write('set -o nounset\n')  # quit early if script tries to expand unset var
+        f.write(': $ACME_LICENSE\n')  # try to expand license server var
         f.write('echo VERSION: 0.0\n')
     # executable
     os.chmod('surelog', 0o755)
+
 
 @pytest.mark.eda
 @pytest.mark.quick

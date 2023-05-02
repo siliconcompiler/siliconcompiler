@@ -1,6 +1,7 @@
 import os
 import re
 
+
 def setup(chip):
     '''
     Generates a bitstream
@@ -20,7 +21,7 @@ def setup(chip):
 
     options = []
 
-    for arch in chip.get('fpga','arch'):
+    for arch in chip.get('fpga', 'arch'):
         options.append(arch)
 
     options.append(blif)
@@ -31,21 +32,23 @@ def setup(chip):
 
     chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
+
 #############################################
 # Runtime pre processing
 #############################################
 def pre_process(chip):
 
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     tool = "genfasm"
 
     chip.add('tool', tool, 'task', task, 'option', [f"--route_chan_width {find_chann_width()}"], step=step, index=index)
 
+
 ################################
 # Find the final channel width from the VPR report
-##########################;######
+################################
 def find_chann_width():
     vpr_std_out = "inputs/vpr_stdout.log"
     with open(vpr_std_out, 'r') as vpr_report:

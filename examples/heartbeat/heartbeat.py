@@ -2,6 +2,7 @@
 
 import siliconcompiler                        # import python package
 
+
 def main():
     chip = siliconcompiler.Chip('heartbeat')  # create chip object
     chip.input('heartbeat.v')                 # define list of source files
@@ -10,6 +11,7 @@ def main():
     chip.run()                                # run compilation
     chip.summary()                            # print results summary
     chip.show()                               # show layout file
+
 
 if __name__ == '__main__':
     main()

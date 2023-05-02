@@ -1,6 +1,7 @@
 
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 
+
 def setup(chip):
     '''
     Generate a GDSII file from an input DEF file

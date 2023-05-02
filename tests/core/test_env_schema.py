@@ -3,6 +3,7 @@ import os
 import pytest
 import multiprocessing
 
+
 @pytest.mark.skipif(
     multiprocessing.get_start_method() != 'fork',
     reason="Mocking _runtask() does not work with the multiprocessing 'spawn' start method"

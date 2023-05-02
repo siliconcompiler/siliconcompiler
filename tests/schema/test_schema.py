@@ -3,6 +3,7 @@ import pytest
 from siliconcompiler.schema import Schema
 from siliconcompiler.schema.schema_cfg import scparam
 
+
 def test_list_of_lists():
     cfg = {}
     scparam(cfg, ['test'], sctype='[[str]]', shorthelp='Test')
@@ -11,6 +12,7 @@ def test_list_of_lists():
     schema.set('test', [['foo']])
 
     assert schema.get('test') == [['foo']]
+
 
 def test_pernode_mandatory():
     cfg = {}
@@ -25,12 +27,14 @@ def test_pernode_mandatory():
     # Should succeed
     assert schema.set('test', 'foo', step='syn', index=0)
 
+
 def test_empty():
     schema = Schema()
     assert schema._is_empty('package', 'version')
 
     schema.set('package', 'version', '1.0')
     assert not schema._is_empty('package', 'version')
+
 
 def test_add_keypath_error():
     schema = Schema()

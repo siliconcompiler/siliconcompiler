@@ -5,6 +5,7 @@ import siliconcompiler
 import os
 import sys
 
+
 def main():
     '''GCD example with custom floorplan and signoff steps.'''
 
@@ -25,8 +26,8 @@ def main():
     # 1) RTL2GDS
 
     # Disabled due to segfault in sky130
-    #def_path = make_floorplan(chip)
-    #chip.set('input', 'asic', 'floorplan.def', def_path)
+    # def_path = make_floorplan(chip)
+    # chip.set('input', 'asic', 'floorplan.def', def_path)
 
     chip.set('option', 'jobname', 'rtl2gds')
     chip.run()
@@ -84,6 +85,7 @@ def main():
         sys.exit(1)
 
     chip.write_manifest('gcd.checked.pkg.json')
+
 
 if __name__ == '__main__':
     main()

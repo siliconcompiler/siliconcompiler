@@ -3,12 +3,14 @@ from siliconcompiler import SiliconCompilerError
 from siliconcompiler.tools.builtin import nop
 import importlib
 
+
 ############################################################################
 # DOCS
 ############################################################################
 def make_docs(chip):
     chip.load_target('freepdk45_demo')
     return setup(chip, filetype='gds', np=3)
+
 
 ###########################################################################
 # Flowgraph Setup
@@ -82,6 +84,7 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
         flow.edge(flowname, 'import', stepname, head_index=idx, tail_index=0)
 
     return flow
+
 
 ##################################################
 if __name__ == "__main__":

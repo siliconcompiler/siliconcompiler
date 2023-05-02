@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import pytest
 
+
 @pytest.mark.eda
 def test_steplist_repeat(gcd_chip, capfd):
     '''Regression test for #458.'''

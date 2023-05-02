@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
 
+
 ##################################
 def test_lock():
     '''API test for show method
@@ -13,6 +14,7 @@ def test_lock():
     chip.set('design', "FAIL")
 
     assert (chip.get('design') == "gcd")
+
 
 #########################
 if __name__ == "__main__":

@@ -7,12 +7,13 @@ from siliconcompiler.tools.yosys import syn_asic
 
 from siliconcompiler.tools.builtin import verify
 
+
 @pytest.fixture
 def chip():
     # Create instance of Chip class
     chip = siliconcompiler.Chip('oh_add')
 
-    #sequence
+    # sequence
     flowpipe = ['import',
                 'syn',
                 'teststep']
@@ -29,12 +30,12 @@ def chip():
     for i, step in enumerate(flowpipe):
         if step == "teststep":
             chip.node(flow, step, task[step])
-            chip.edge(flow, flowpipe[i-1], step)
+            chip.edge(flow, flowpipe[i - 1], step)
         elif step == 'import':
             chip.node(flow, step, task[step])
         else:
             chip.node(flow, step, task[step])
-            chip.edge(flow, flowpipe[i-1], step)
+            chip.edge(flow, flowpipe[i - 1], step)
 
     # creating fake syn results
     for metric in chip.getkeys('flowgraph', flow, 'syn', '0', 'weight'):
@@ -42,6 +43,7 @@ def chip():
             chip.set('metric', metric, 1000 + 42.0, step='syn', index='0')
 
     return chip
+
 
 ##################################
 def test_verify_pass(chip):
@@ -53,6 +55,7 @@ def test_verify_pass(chip):
 
     assert winner == ('syn', '0')
 
+
 ##################################
 def test_verify_pass_greater(chip):
     flow = chip.get('option', 'flow')
@@ -63,6 +66,7 @@ def test_verify_pass_greater(chip):
 
     assert winner == ('syn', '0')
 
+
 ##################################
 def test_verify_fail(chip):
     flow = chip.get('option', 'flow')
@@ -71,6 +75,7 @@ def test_verify_fail(chip):
     task = chip._get_task_module('teststep', '0')
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         task._select_inputs(chip, 'teststep', '0')
+
 
 ##################################
 def test_verify_pass_two_metrics(chip):
@@ -83,6 +88,7 @@ def test_verify_pass_two_metrics(chip):
 
     assert winner == ('syn', '0')
 
+
 ##################################
 def test_verify_partial_fail(chip):
     flow = chip.get('option', 'flow')
@@ -92,6 +98,7 @@ def test_verify_partial_fail(chip):
     task = chip._get_task_module('teststep', '0')
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         task._select_inputs(chip, 'teststep', '0')
+
 
 ##################################
 def test_verify_partial_missing(chip):

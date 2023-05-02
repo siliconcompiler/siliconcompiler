@@ -5,9 +5,10 @@ import re
 import gzip
 import argparse  # argument parsing
 
+
 def processLibertyFile(input_file, output_file, dont_use, quiet=False):
     # Convert * wildcards to regex wildcards
-    patternList = [du.replace('*','.*') for du in dont_use]
+    patternList = [du.replace('*', '.*') for du in dont_use]
 
     # Read input file
     if not quiet:
@@ -21,7 +22,7 @@ def processLibertyFile(input_file, output_file, dont_use, quiet=False):
 
     # Pattern to match a cell header
     cell_pattern = r"[\"]*|[\"]*"
-    pattern = r"(^\s*cell\s*\(\s*([\"]*"+cell_pattern.join(patternList)+r"[\"]*)\)\s*\{)"
+    pattern = r"(^\s*cell\s*\(\s*([\"]*" + cell_pattern.join(patternList) + r"[\"]*)\)\s*\{)"
 
     # print(pattern)
     replace = r"\1\n    dont_use : true;"
@@ -57,6 +58,7 @@ def processLibertyFile(input_file, output_file, dont_use, quiet=False):
     f = open(output_file, "w")
     f.write(content)
     f.close()
+
 
 if __name__ == "__main__":
     # Parse and validate arguments

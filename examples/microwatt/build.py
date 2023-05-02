@@ -3,6 +3,7 @@ import siliconcompiler
 
 microwatt_wd = "../../third_party/designs/microwatt/"
 
+
 def add_sources(chip):
     chip.input(microwatt_wd + 'decode_types.vhdl')
     chip.input(microwatt_wd + 'common.vhdl')
@@ -53,13 +54,14 @@ def add_sources(chip):
     chip.input(microwatt_wd + 'fpga/top-generic.vhdl')
     chip.input(microwatt_wd + 'dmi_dtm_dummy.vhdl')
 
+
 def main():
     chip = siliconcompiler.Chip('core')
     add_sources(chip)
 
     cwd = os.getcwd() + '/' + microwatt_wd
     chip.add('option', 'define', 'MEMORY_SIZE=8192')
-    chip.add('option', 'define', 'RAM_INIT_FILE='+cwd+'/hello_world/hello_world.hex')
+    chip.add('option', 'define', 'RAM_INIT_FILE=' + cwd + '/hello_world/hello_world.hex')
     chip.add('option', 'define', 'RESET_LOW=true')
     chip.add('option', 'define', 'CLK_INPUT=50000000')
     chip.add('option', 'define', 'CLK_FREQUENCY=40000000')
@@ -76,6 +78,7 @@ def main():
     chip.set('option', 'flow', flow)
 
     chip.run()
+
 
 if __name__ == '__main__':
     main()

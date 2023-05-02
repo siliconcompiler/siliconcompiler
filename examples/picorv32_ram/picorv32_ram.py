@@ -3,6 +3,7 @@
 import os
 import siliconcompiler
 
+
 def build_top(remote=False):
     # Core settings.
     design = 'picorv32_top'
@@ -28,8 +29,8 @@ def build_top(remote=False):
     chip.set('option', 'quiet', True)
 
     # Set die outline and core area.
-    chip.set('constraint', 'outline', [(0,0), (die_w, die_h)])
-    chip.set('constraint', 'corearea', [(10,10), (die_w-10, die_h-10)])
+    chip.set('constraint', 'outline', [(0, 0), (die_w, die_h)])
+    chip.set('constraint', 'corearea', [(10, 10), (die_w - 10, die_h - 10)])
 
     # Setup SRAM macro library.
     from sram import sky130_sram_2k
@@ -51,6 +52,7 @@ def build_top(remote=False):
     chip.set('option', 'remote', remote)
 
     return chip
+
 
 if __name__ == '__main__':
     # Prepare Chip object.

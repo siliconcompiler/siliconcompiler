@@ -47,12 +47,14 @@ from siliconcompiler import _metadata
 import psutil
 import subprocess
 
+
 class TaskStatus():
     # Could use Python 'enum' class here, but that doesn't work nicely with
     # schema.
     PENDING = 'pending'
     SUCCESS = 'success'
     ERROR = 'error'
+
 
 class Chip:
     """Object for configuring and executing hardware design flows.
@@ -303,7 +305,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ###########################################################################
     def _get_switches(self, schema, *keypath):
         '''Helper function for parsing switches and metavars for a keypath.'''
-        #Switch field fully describes switch format
+        # Switch field fully describes switch format
         switch = schema.get(*keypath, field='switch')
 
         if switch is None:
@@ -404,7 +406,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Iterate over all keys from an empty schema to add parser arguments
         for keypath in schema.allkeys():
-            #Fetch fields from leaf cell
+            # Fetch fields from leaf cell
             helpstr = schema.get(*keypath, field='shorthelp')
             typestr = schema.get(*keypath, field='type')
 
@@ -423,9 +425,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         const='true',
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
-                #list type arguments
+                # list type arguments
                 elif re.match(r'\[', typestr):
-                    #all the rest
+                    # all the rest
                     parser.add_argument(*switchstrs,
                                         metavar=metavar,
                                         dest=dest,
@@ -433,7 +435,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
                 else:
-                    #all the rest
+                    # all the rest
                     parser.add_argument(*switchstrs,
                                         metavar=metavar,
                                         dest=dest,
@@ -445,18 +447,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                 nargs='*',
                                 help='Input files with filetype inferred by extension')
 
-        #Preprocess sys.argv to enable linux commandline switch formats
-        #(gcc, verilator, etc)
+        # Preprocess sys.argv to enable linux commandline switch formats
+        # (gcc, verilator, etc)
         scargs = []
 
         # Iterate from index 1, otherwise we end up with script name as a
         # 'source' positional argument
         for item in sys.argv[1:]:
-            #Split switches with one character and a number after (O0,O1,O2)
+            # Split switches with one character and a number after (O0,O1,O2)
             opt = re.match(r'(\-\w)(\d+)', item)
-            #Split assign switches (-DCFG_ASIC=1)
+            # Split assign switches (-DCFG_ASIC=1)
             assign = re.search(r'(\-\w)(\w+\=\w+)', item)
-            #Split plusargs (+incdir+/path)
+            # Split plusargs (+incdir+/path)
             plusarg = re.search(r'(\+\w+\+)(.*)', item)
             if opt:
                 scargs.append(opt.group(1))
@@ -481,7 +483,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # rewrite additional_args with new dest infomation
             additional_args = arg_dests
 
-        #Grab argument from pre-process sysargs
+        # Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
 
         extra_params = None
@@ -498,7 +500,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         print(_metadata.banner)
         print("Authors:", ", ".join(_metadata.authors))
         print("Version:", _metadata.version, "\n")
-        print("-"*80)
+        print("-" * 80)
 
         # 1. set loglevel if set at command line
         if 'option_loglevel' in cmdargs.keys():
@@ -759,7 +761,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.logger.debug('Fetching help for %s', keypath)
 
-        #Fetch Values
+        # Fetch Values
 
         description = self.get(*keypath, field='shorthelp')
         typestr = self.get(*keypath, field='type')
@@ -772,7 +774,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         examplestr = ("\nExamples:    " + example[0] + ''.join(
                       ["\n             " + ex for ex in example[1:]]))
 
-        #Removing multiple spaces and newlines
+        # Removing multiple spaces and newlines
         helpstr = helpstr.rstrip()
         helpstr = helpstr.replace("\n", "")
         helpstr = ' '.join(helpstr.split())
@@ -781,12 +783,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             example[idx] = ' '.join(item.split())
             example[idx] = example[idx].replace(", ", ",")
 
-        #Wrap text
+        # Wrap text
         para = textwrap.TextWrapper(width=60)
         para_list = para.wrap(text=helpstr)
 
-        #Full Doc String
-        fullstr = "-"*80
+        # Full Doc String
+        fullstr = "-" * 80
         fullstr += "\nDescription: " + description
         fullstr += "\nSwitch:      " + switchstr
         fullstr += "\nType:        " + typestr
@@ -795,7 +797,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         fullstr += examplestr
         fullstr += "\nHelp:        " + para_list[0] + "\n"
         for line in para_list[1:]:
-            fullstr = fullstr + " "*13 + line.lstrip() + "\n"
+            fullstr = fullstr + " " * 13 + line.lstrip() + "\n"
 
         return fullstr
 
@@ -1380,7 +1382,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for keypath in self.allkeys():
             paramtype = self.get(*keypath, field='type')
             if not ('file' in paramtype or 'dir' in paramtype):
-                #only do something if type is file or dir
+                # only do something if type is file or dir
                 continue
 
             values = self.schema._getvals(*keypath)
@@ -1437,7 +1439,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 continue
             if partial and not self._key_may_be_updated(keylist):
                 continue
-            #only read in valid keypaths without 'default'
+            # only read in valid keypaths without 'default'
             key_valid = True
             if check:
                 key_valid = dest.valid(*keylist, default_valid=True)
@@ -1596,13 +1598,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not steplist:
             steplist = self.list_steps()
 
-        #1. Checking that flowgraph and steplist are legal
+        # 1. Checking that flowgraph and steplist are legal
         if flow not in self.getkeys('flowgraph'):
             error = True
             self.logger.error(f"flowgraph {flow} not defined.")
 
         indexlist = {}
-        #TODO: refactor
+        # TODO: refactor
         for step in steplist:
             if self.get('option', 'indexlist'):
                 indexlist[step] = self.get('option', 'indexlist')
@@ -1632,7 +1634,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                       'but this task has not been run and is not in the current steplist.')
                     error = True
 
-        #2. Check libary names
+        # 2. Check libary names
         libraries = set()
         for val, step, index in self.schema._getvals('asic', 'logiclib'):
             if step in steplist and index in indexlist[step]:
@@ -1643,7 +1645,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 error = True
                 self.logger.error(f"Target library {library} not found.")
 
-        #3. Check requirements list
+        # 3. Check requirements list
         allkeys = self.allkeys()
         for key in allkeys:
             keypath = ",".join(key)
@@ -1657,7 +1659,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     error = True
                     self.logger.error(f"Mode requirement missing for [{keypath}].")
 
-        #4. Check if tool/task modules exists
+        # 4. Check if tool/task modules exists
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool = self.get('flowgraph', flow, step, index, 'tool')
@@ -1672,7 +1674,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     task_module = self.get('flowgraph', flow, step, index, 'taskmodule')
                     self.logger.error(f"Task module {task_module} for {tool_name}/{task_name} could not be found or loaded for {step}{index}.")
 
-        #5. Check per tool parameter requirements (when tool exists)
+        # 5. Check per tool parameter requirements (when tool exists)
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool, task = self._get_tool_task(step, index, flow=flow)
@@ -2067,7 +2069,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # schema settings
         design = self.get('design')
         reglist = self.get('option', 'registry')
-        auto = self.get('option','autoinstall')
+        auto = self.get('option', 'autoinstall')
 
         # environment settings
         # Local cache location
@@ -2076,7 +2078,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             home = os.environ['HOME']
 
-        cache = os.path.join(home,'.sc','registry')
+        cache = os.path.join(home, '.sc', 'registry')
 
         # Indexing all local cache packages
         local = self._build_index(cache)
@@ -2107,7 +2109,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         index = {}
         for item in dirlist:
             if re.match(r'http', item):
-                #TODO
+                # TODO
                 pass
             else:
                 packages = os.listdir(item)
@@ -2136,9 +2138,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if ver not in list(remote[dep].keys()):
                 self.error(f"Package {dep}-{ver} not found in registry.")
 
-        ifile = os.path.join(remote[dep][ver],dep,ver,package)
-        odir = os.path.join(cache,dep,ver)
-        ofile = os.path.join(odir,package)
+        ifile = os.path.join(remote[dep][ver], dep, ver, package)
+        odir = os.path.join(cache, dep, ver)
+        ofile = os.path.join(odir, package)
 
         # Install package
         os.makedirs(odir, exist_ok=True)
@@ -2153,9 +2155,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # install missing dependencies
         depgraph[design] = []
         for dep in deps.keys():
-            #TODO: Proper PEP semver matching
+            # TODO: Proper PEP semver matching
             ver = list(deps[dep])[0]
-            depgraph[design].append((dep,ver))
+            depgraph[design].append((dep, ver))
             islocal = False
             if dep in local.keys():
                 if ver in local[dep]:
@@ -2169,7 +2171,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 local[dep] = ver
 
             # look through dependency package files
-            package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
+            package = os.path.join(cache, dep, ver, f"{dep}-{ver}.sup.gz")
             schema = Schema(manifest=package)
 
             # done if no more dependencies
@@ -2400,7 +2402,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 path = os.path.join(basedir, folder)
                 tar.add(os.path.abspath(path), arcname=path)
 
-            logfile = os.path.join(basedir, step+'.log')
+            logfile = os.path.join(basedir, f'{step}.log')
             if os.path.isfile(logfile):
                 tar.add(os.path.abspath(logfile), arcname=logfile)
 
@@ -2496,7 +2498,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         keypathstr = ','.join(keypath)
-        #TODO: Insert into find_files?
+        # TODO: Insert into find_files?
         if 'file' not in self.get(*keypath, field='type'):
             self.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
             return []
@@ -2511,7 +2513,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f"Unable to use {algo} as the hashing algorithm for [{keypathstr}].")
             return []
 
-        #cycle through all paths
+        # cycle through all paths
         hashlist = []
         if filelist:
             self.logger.info(f'Computing hash value for [{keypathstr}]')
@@ -2527,7 +2529,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error("Internal hashing error, file not found")
         # compare previous hash to new hash
         oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
-        for i,item in enumerate(oldhash):
+        for i, item in enumerate(oldhash):
             if item != hashlist[i]:
                 self.error(f"Hash mismatch for [{keypath}]")
 
@@ -2644,9 +2646,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         diearea = diearea / 10000.0**2
 
         if model == 'poisson':
-            dy = math.exp(-diearea * d0/100)
+            dy = math.exp(-diearea * d0 / 100)
         elif model == 'murphy':
-            dy = ((1-math.exp(-diearea * d0/100))/(diearea * d0/100))**2
+            dy = ((1 - math.exp(-diearea * d0 / 100)) / (diearea * d0 / 100))**2
         else:
             self.error(f'Unknown yield model: {model}')
 
@@ -2673,27 +2675,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Variable dpw gets gross dies per wafer value based on the chip manifest.
         '''
 
-        #PDK information
+        # PDK information
         pdk = self.get('option', 'pdk')
         wafersize = self.get('pdk', pdk, 'wafersize')
         edgemargin = self.get('pdk', pdk, 'edgemargin')
         hscribe = self.get('pdk', pdk, 'hscribe')
         vscribe = self.get('pdk', pdk, 'vscribe')
 
-        #Design parameters
+        # Design parameters
         diesize = self.get('constraint', 'outline', step=step, index=index)
 
         # Convert to mm
         diewidth = (diesize[1][0] - diesize[0][0]) / 1000.0
         dieheight = (diesize[1][1] - diesize[0][1]) / 1000.0
 
-        #Derived parameters
+        # Derived parameters
         radius = wafersize / 2 - edgemargin
         stepwidth = diewidth + hscribe
         stepheight = dieheight + vscribe
 
-        #Raster dies out from center until you touch edge margin
-        #Work quadrant by quadrant
+        # Raster dies out from center until you touch edge margin
+        # Work quadrant by quadrant
         dies = 0
         for quad in ('q1', 'q2', 'q3', 'q4'):
             x = 0
@@ -2710,7 +2712,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif quad == "q4":
                 xincr = stepwidth
                 yincr = -stepheight
-            #loop through all y values from center
+            # loop through all y values from center
             while math.hypot(0, y) < radius:
                 y = y + yincr
                 x = xincr
@@ -2744,13 +2746,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Partial list of supported grep options
         options = {
-            '-v': False, # Invert the sense of matching
-            '-i': False, # Ignore case distinctions in patterns and data
-            '-E': False, # Interpret PATTERNS as extended regular expressions.
-            '-e': False, # Safe interpretation of pattern starting with "-"
-            '-x': False, # Select only matches that exactly match the whole line.
-            '-o': False, # Print only the match parts of a matching line
-            '-w': False} # Select only lines containing matches that form whole words.
+            '-v': False,  # Invert the sense of matching
+            '-i': False,  # Ignore case distinctions in patterns and data
+            '-E': False,  # Interpret PATTERNS as extended regular expressions.
+            '-e': False,  # Safe interpretation of pattern starting with "-"
+            '-x': False,  # Select only matches that exactly match the whole line.
+            '-o': False,  # Print only the match parts of a matching line
+            '-w': False}  # Select only lines containing matches that form whole words.
 
         # Split into repeating switches and everything else
         match = re.match(r'\s*((?:\-\w\s)*)(.*)', args)
@@ -2764,17 +2766,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for i in range(len(switches)):
             if switches[i] == "-e":
                 if i != (len(switches)):
-                    pattern = ' '.join(switches[i+1:]) + " " + pattern
-                    switches = switches[0:i+1]
+                    pattern = ' '.join(switches[i + 1:]) + " " + pattern
+                    switches = switches[0:i + 1]
                     break
                 options["-e"] = True
             elif switches[i] in options.keys():
                 options[switches[i]] = True
             elif switches[i] != '':
-                print("ERROR",switches[i])
+                print("ERROR", switches[i])
 
-        #REGEX
-        #TODO: add all the other optinos
+        # REGEX
+        # TODO: add all the other optinos
         match = re.search(rf"({pattern})", line)
         if bool(match) == bool(options["-v"]):
             return None
@@ -2854,9 +2856,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             string = self.grep(item, string)
                     if string is not None:
                         matches[suffix] += 1
-                        #always print to file
+                        # always print to file
                         print(string.strip(), file=checks[suffix]['report'])
-                        #selectively print to display
+                        # selectively print to display
                         if display:
                             if suffix == 'errors':
                                 self.logger.error(string.strip())
@@ -3057,15 +3059,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if not step or step in steplist:
                     libraries.update(val)
 
-            info_list.extend(["foundry : " + self.get('pdk', pdk, 'foundry'),
-                              "process : " + pdk,
-                              "targetlibs : "+" ".join(libraries)])
+            info_list.extend([f"foundry : {self.get('pdk', pdk, 'foundry')}",
+                              f"process : {pdk}",
+                              f"targetlibs : f{' '.join(libraries)}"])
         elif self.get('option', 'mode') == 'fpga':
-            info_list.extend(["partname : "+self.get('fpga','partname')])
+            info_list.extend([f"partname : {self.get('fpga','partname')}"])
 
         info = '\n'.join(info_list)
 
-        print("-"*135)
+        print("-" * 135)
         print(info, "\n")
 
         # Collections for data
@@ -3140,7 +3142,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             nodes_to_show = [n for n in nodes if n in selected_tasks]
 
-        colwidth = 8 # minimum col width
+        colwidth = 8  # minimum col width
         row_labels = [' ' + metric for metric in metrics_to_show]
         column_labels = [f'{step}{index}'.center(colwidth) for step, index in nodes_to_show]
         column_labels.insert(0, 'units')
@@ -3162,7 +3164,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             print(df.to_string())
         else:
             print(' No metrics to display!')
-        print("-"*135)
+        print("-" * 135)
 
         # Create a report for the Chip object which can be viewed in a web browser.
         # Place report files in the build's root directory.
@@ -3209,16 +3211,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # default encoding is not UTF-8.
                 with open(results_html, 'w', encoding='utf-8') as wf:
                     wf.write(env.get_template('sc_report.j2').render(
-                        design = design,
-                        nodes = nodes,
-                        errors = errors,
-                        metrics = metrics,
-                        metrics_unit = metrics_unit,
-                        reports = reports,
-                        manifest = self.schema.cfg,
-                        pruned_cfg = pruned_cfg,
-                        metric_keys = metrics_to_show,
-                        img_data = img_data,
+                        design=design,
+                        nodes=nodes,
+                        errors=errors,
+                        metrics=metrics,
+                        metrics_unit=metrics_unit,
+                        reports=reports,
+                        manifest=self.schema.cfg,
+                        pruned_cfg=pruned_cfg,
+                        metric_keys=metrics_to_show,
+                        img_data=img_data,
                     ))
 
                 self.logger.info(f'Generated HTML report at {results_html}')
@@ -3268,7 +3270,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if flow is None:
             flow = self.get('option', 'flow')
 
-        #Get length of paths from step to root
+        # Get length of paths from step to root
         depth = {}
         for step in self.getkeys('flowgraph', flow):
             depth[step] = 0
@@ -3276,7 +3278,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if len(list(path)) > depth[step]:
                     depth[step] = len(path)
 
-        #Sort steps based on path lenghts
+        # Sort steps based on path lenghts
         sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
         return list(sorted_dict.keys())
 
@@ -3539,7 +3541,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Directory setup
         in_job = self._get_in_job(step, index)
 
-        workdir = self._getworkdir(step=step,index=index)
+        workdir = self._getworkdir(step=step, index=index)
         cwd = os.getcwd()
         if os.path.isdir(workdir) and not replay:
             shutil.rmtree(workdir)
@@ -3589,10 +3591,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Copy (link) output data from previous steps
 
-        if not self.get('flowgraph', flow, step, index,'input'):
+        if not self.get('flowgraph', flow, step, index, 'input'):
             all_inputs = []
         elif not self.get('flowgraph', flow, step, index, 'select'):
-            all_inputs = self.get('flowgraph', flow, step, index,'input')
+            all_inputs = self.get('flowgraph', flow, step, index, 'input')
         else:
             all_inputs = self.get('flowgraph', flow, step, index, 'select')
         for in_step, in_index in all_inputs:
@@ -3671,7 +3673,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         veropt = self.get('tool', tool, 'vswitch')
         exe = self._getexe(tool, step, index)
         version = None
-        toolpath = exe # For record
+        toolpath = exe  # For record
         if exe is not None:
             exe_path, exe_base = os.path.split(exe)
             if veropt:
@@ -3748,7 +3750,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         data = os.read(fd, 1024)
                         log_writer.write(data)
                         return data
-                    import pty # Note: this import throws exception on Windows
+                    import pty  # Note: this import throws exception on Windows
                     retcode = pty.spawn(cmdlist, read)
             else:
                 stdout_file = ''
@@ -3859,7 +3861,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Capture cpu runtime and memory footprint.
         cpu_end = time.time()
-        cputime = round((cpu_end - cpu_start),2)
+        cputime = round((cpu_end - cpu_start), 2)
         self._record_metric(step, index, 'exetime', cputime, None, source_unit='s')
         self._record_metric(step, index, 'memory', max_mem_bytes, None, source_unit='B')
 
@@ -3909,7 +3911,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Capture wall runtime and cpu cores
         wall_end = time.time()
-        walltime = round((wall_end - wall_start),2)
+        walltime = round((wall_end - wall_start), 2)
         self.set('metric', 'tasktime', walltime, step=step, index=index)
         self.logger.info(f"Finished task in {walltime}s")
 
@@ -3978,8 +3980,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ###########################################################################
     def _setup_task(self, step, index):
 
-        self.set('arg','step', step)
-        self.set('arg','index', index)
+        self.set('arg', 'step', step)
+        self.set('arg', 'index', index)
         tool, task = self._get_tool_task(step, index)
 
         # Run task setup.
@@ -3998,8 +4000,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Need to clear index, otherwise we will skip setting up other indices.
         # Clear step for good measure.
-        self.set('arg','step', None)
-        self.set('arg','index', None)
+        self.set('arg', 'step', None)
+        self.set('arg', 'index', None)
 
     ###########################################################################
     def run(self):
@@ -4050,7 +4052,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     m = re.match(stem + r'(\d+)', job)
                     if m:
                         jobid = max(jobid, int(m.group(1)))
-                self.set('option', 'jobname', f'{stem}{jobid+1}')
+                self.set('option', 'jobname', f'{stem}{jobid + 1}')
 
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
@@ -4135,9 +4137,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             os.environ[envvar] = val
 
         # Remote workflow: Dispatch the Chip to a remote server for processing.
-        if self.get('option','remote'):
+        if self.get('option', 'remote'):
             # Load the remote storage config into the status dictionary.
-            if self.get('option','credentials'):
+            if self.get('option', 'credentials'):
                 # Use the provided remote credentials file.
                 cfg_file = os.path.abspath(self.get('option', 'credentials')[-1])
 
@@ -4188,9 +4190,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self._init_logger(in_run=True)
 
             # Read back configuration from final manifest.
-            cfg = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
+            cfg = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
             if os.path.isfile(cfg):
-                local_dir = self.get('option','builddir')
+                local_dir = self.get('option', 'builddir')
                 self.read_manifest(cfg, clobber=True, clear=True)
                 self.set('option', 'builddir', local_dir)
                 # Un-set steplist so 'show'/etc flows will work on returned results.
@@ -4242,7 +4244,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
             check_ok = True
-            if not self.get('option','skipcheck'):
+            if not self.get('option', 'skipcheck'):
                 check_ok = self.check_manifest()
 
             # Check if there were errors before proceeding with run
@@ -4252,25 +4254,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error('Implementation errors encountered. See previous errors.', fatal=True)
 
             # For each task to run, prepare a process and store its dependencies
-            jobname = self.get('option','jobname')
+            jobname = self.get('option', 'jobname')
             tasks_to_run = {}
             processes = {}
             for step in steplist:
                 for index in indexlist[step]:
-                    if status[step+index] != TaskStatus.PENDING:
+                    nodename = f'{step}{index}'
+                    if status[nodename] != TaskStatus.PENDING:
                         continue
 
-                    inputs = [step+index for step, index in self.get('flowgraph', flow, step, index, 'input')]
+                    inputs = [f'{step}{index}' for step, index in self.get('flowgraph', flow, step, index, 'input')]
 
                     if (self._get_in_job(step, index) != jobname):
                         # If we specify a different job as input to this task,
                         # we assume we are good to run it.
-                        tasks_to_run[step+index] = []
+                        tasks_to_run[nodename] = []
                     else:
-                        tasks_to_run[step+index] = inputs
+                        tasks_to_run[nodename] = inputs
 
-                    processes[step+index] = multiprocessing.Process(target=self._runtask,
-                                                                    args=(step, index, status))
+                    processes[nodename] = multiprocessing.Process(target=self._runtask,
+                                                                  args=(step, index, status))
 
             # We have to deinit the chip's logger before spawning the processes
             # since the logger object is not serializable. _runtask_safe will
@@ -4357,7 +4360,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 os.listdir(os.path.dirname(lastdir))
 
                 lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
-                if status[step+index] == TaskStatus.SUCCESS:
+                if status[f'{step}{index}'] == TaskStatus.SUCCESS:
                     self._read_manifest(lastcfg, clobber=False, partial=True)
                 else:
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
@@ -4374,7 +4377,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.schema.record_history()
 
         # Storing manifest in job root directory
-        filepath = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
+        filepath = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
 
     ###########################################################################
@@ -4459,7 +4462,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         filepath = os.path.abspath(filename)
 
-        #Check that file exists
+        # Check that file exists
         if not os.path.isfile(filepath):
             self.logger.error(f"Invalid filepath {filepath}.")
             return False
@@ -4479,7 +4482,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         try:
             from siliconcompiler.flows import showflow
             self.use(showflow, filetype=filetype, screenshot=screenshot)
-        except:
+        except Exception:
             # restore environment
             self.schema = saved_config
             return False
@@ -4586,8 +4589,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 cmdlist.extend(shlex.split(option, posix=is_posix))
 
         envvars = {}
-        for key in self.getkeys('option','env'):
-            envvars[key] = self.get('option','env', key)
+        for key in self.getkeys('option', 'env'):
+            envvars[key] = self.get('option', 'env', key)
         for item in self.getkeys('tool', tool, 'licenseserver'):
             license_file = self.get('tool', tool, 'licenseserver', item, step=step, index=index)
             if license_file:
@@ -4617,7 +4620,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         replay_cmdlist = [*nice_cmdlist, cmd, *cmd_args]
         cmdlist = [*nice_cmdlist, *cmdlist]
 
-        #create replay file
+        # create replay file
         script_name = 'replay.sh'
         with open(script_name, 'w') as f:
             print('#!/bin/bash', file=f)
@@ -4810,10 +4813,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         if jobname is None:
-            jobname = self.get('option','jobname')
+            jobname = self.get('option', 'jobname')
 
         dirlist = [self.cwd,
-                   self.get('option','builddir'),
+                   self.get('option', 'builddir'),
                    self.get('design'),
                    jobname]
 
@@ -5155,7 +5158,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             tar.add(os.path.abspath(manifest_path), arcname='manifest.json')
             tar.add(os.path.abspath(issue_path), arcname='issue.json')
-            tar.add(collect_path, arcname=os.path.join(self.get('option','builddir'),
+            tar.add(collect_path, arcname=os.path.join(self.get('option', 'builddir'),
                                                        self.get('design'),
                                                        self.get('option', 'jobname'),
                                                        'sc_collected_files'))
@@ -5167,10 +5170,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Restore original schema
         self.schema = schema_copy
 
+
 ###############################################################################
 # Package Customization classes
 ###############################################################################
-
 class SiliconCompilerError(Exception):
     ''' Minimal Exception wrapper used to raise sc runtime errors.
     '''

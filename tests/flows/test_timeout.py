@@ -1,6 +1,7 @@
 import pytest
 import siliconcompiler
 
+
 @pytest.mark.eda
 def test_timeout(gcd_chip):
     # 0 seconds guarantees a timeout

@@ -16,14 +16,15 @@ Status: SC integration WIP
 
 import os
 
+
 ################################
 # Setup Tool (pre executable)
 ################################
 def setup(chip):
 
     tool = 'xyce'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     clobber = False

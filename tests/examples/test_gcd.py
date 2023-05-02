@@ -5,6 +5,7 @@ import subprocess
 
 import pytest
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
@@ -63,6 +64,7 @@ def test_py(setup_example_test):
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
@@ -71,6 +73,7 @@ def test_cli(setup_example_test):
 
     proc = subprocess.run(['bash', os.path.join(ex_dir, 'run.sh')])
     assert proc.returncode == 0
+
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -92,6 +95,7 @@ def test_py_sky130(setup_example_test):
     # Verify that the build was LVS and DRC clean.
     assert chip.get('metric', 'drvs', step='lvs', index='0') == 0
     assert chip.get('metric', 'drvs', step='drc', index='0') == 0
+
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)

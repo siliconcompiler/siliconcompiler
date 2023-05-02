@@ -26,6 +26,7 @@ from siliconcompiler.sphinx_ext.utils import strong, code, para, keypath, build_
 # We need this in a few places, so just make it global
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
+
 def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=False):
     '''Helper function for displaying values set in schema as a docutils table.'''
     table = [[strong('Keypath'), strong('Value')]]
@@ -76,6 +77,7 @@ def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=
     else:
         return None
 
+
 def build_config_recursive(schema, refdoc, keypath=None, sec_key_prefix=None):
     '''Helper function for displaying schema at each level as tables under nested
     sections.
@@ -97,7 +99,7 @@ def build_config_recursive(schema, refdoc, keypath=None, sec_key_prefix=None):
             val = schema.getdict(*keypath, key)
             leaves.update({key: val})
         else:
-            children = build_config_recursive(schema, refdoc, keypath=keypath+[key], sec_key_prefix=sec_key_prefix)
+            children = build_config_recursive(schema, refdoc, keypath=keypath + [key], sec_key_prefix=sec_key_prefix)
             child_sections.extend(children)
 
     schema_table = None
@@ -124,10 +126,12 @@ def build_config_recursive(schema, refdoc, keypath=None, sec_key_prefix=None):
 # Base class
 #############
 
+
 def flag_opt(argument):
     if argument is not None:
         raise ValueError('Flag should not have content')
     return True
+
 
 class DynamicGen(SphinxDirective):
     '''Base class for all three directives provided by this extension.
@@ -273,7 +277,7 @@ class DynamicGen(SphinxDirective):
         builtin = os.path.abspath(path).startswith(SC_ROOT)
 
         if builtin:
-            relpath = path[len(SC_ROOT)+1:]
+            relpath = path[len(SC_ROOT) + 1:]
             gh_root = 'https://github.com/siliconcompiler/siliconcompiler/blob/main'
             gh_link = f'{gh_root}/{relpath}'
             filename = os.path.basename(relpath)
@@ -285,8 +289,8 @@ class DynamicGen(SphinxDirective):
 
     def document_free_params(self, cfg, reference_prefix, s):
         key_path = ['tool', '<tool>', 'task', '<task>']
-        self._document_free_params(cfg, 'var', key_path+['var'], reference_prefix, s)
-        self._document_free_params(cfg, 'file', key_path+['file'], reference_prefix, s)
+        self._document_free_params(cfg, 'var', key_path + ['var'], reference_prefix, s)
+        self._document_free_params(cfg, 'file', key_path + ['file'], reference_prefix, s)
 
     def _document_free_params(self, cfg, type, key_path, reference_prefix, s):
         if type in cfg:
@@ -359,12 +363,12 @@ class DynamicGen(SphinxDirective):
 # Specialized extensions
 #########################
 
+
 class FlowGen(DynamicGen):
     PATH = 'flows'
 
     def extra_content(self, chip, modname):
         flow_path = os.path.join(self.env.app.outdir, f'_images/gen/{modname}.svg')
-        #chip.write_flowgraph(flow_path, fillcolor='#1c4587', fontcolor='#f1c232', border=False)
         chip.write_flowgraph(flow_path, flow=modname)
         return [image(flow_path, center=True)]
 
@@ -413,6 +417,7 @@ class FlowGen(DynamicGen):
 
         return settings
 
+
 class PDKGen(DynamicGen):
     PATH = 'pdks'
 
@@ -425,6 +430,7 @@ class PDKGen(DynamicGen):
         settings += build_config_recursive(chip.schema, self.env.docname, keypath=['pdk'], sec_key_prefix=['pdks', modname])
 
         return settings
+
 
 class LibGen(DynamicGen):
     PATH = 'libs'
@@ -458,6 +464,7 @@ class LibGen(DynamicGen):
         sections.append(settings)
 
         return sections
+
 
 class ToolGen(DynamicGen):
     PATH = 'tools'
@@ -629,7 +636,7 @@ class ToolGen(DynamicGen):
             taskmodule = importlib.util.module_from_spec(spec)
             try:
                 spec.loader.exec_module(taskmodule)
-            except:
+            except Exception:
                 # Module failed to load
                 # klayout imports pya which is only defined in klayout
                 continue
@@ -646,6 +653,7 @@ class ToolGen(DynamicGen):
             _, sections = zip(*sections)
         return sections
 
+
 class TargetGen(DynamicGen):
     PATH = 'targets'
 
@@ -657,7 +665,7 @@ class TargetGen(DynamicGen):
             for module in modules:
                 list_item = nodes.list_item()
                 # TODO: replace with proper docutils nodes: sphinx.addnodes.pending_xref
-                modkey = get_ref_id(refprefix+module)
+                modkey = get_ref_id(refprefix + module)
                 self.parse_rst(f':ref:`{module}<{modkey}>`', list_item)
                 modlist += list_item
 
@@ -698,6 +706,7 @@ class TargetGen(DynamicGen):
 
         return sections
 
+
 class AppGen(DynamicGen):
     PATH = 'apps'
 
@@ -711,6 +720,7 @@ class AppGen(DynamicGen):
         section += literalblock(output)
 
         return section
+
 
 class ChecklistGen(DynamicGen):
     PATH = 'checklists'
@@ -732,12 +742,13 @@ class ChecklistGen(DynamicGen):
         for key in cfg.keys():
             if key == 'default':
                 continue
-            settings += build_section(key, section_prefix+'-'+key)
+            settings += build_section(key, section_prefix + '-' + key)
             settings += build_schema_value_table(cfg[key], self.env.docname, keypath_prefix=[*section_key, key])
 
         sections.append(settings)
 
         return sections
+
 
 class ExampleGen(DynamicGen):
 
@@ -778,6 +789,7 @@ class ExampleGen(DynamicGen):
 
         return section
 
+
 def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=None):
     doc = inliner.document
     env = doc.settings.env
@@ -790,6 +802,7 @@ def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=Non
         msg = inliner.reporter.error(f'{rawtext}: {e}', line=lineno)
         prb = inliner.problematic(rawtext, rawtext, msg)
         return [prb], [msg]
+
 
 class SCDomain(StandardDomain):
     name = 'sc'
@@ -818,6 +831,7 @@ class SCDomain(StandardDomain):
                 newnode['refuri'] += '#' + labelid
         newnode.append(innernode)
         return newnode
+
 
 def setup(app):
     app.add_domain(SCDomain)

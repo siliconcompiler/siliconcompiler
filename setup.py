@@ -32,11 +32,12 @@ else:
 with open("README.md", "r", encoding="utf-8") as readme:
     long_desc = readme.read()
 
+
 def parse_reqs():
     '''Parse out each requirement category from requirements.txt'''
     install_reqs = []
     extras_reqs = {}
-    current_section = None # default to install
+    current_section = None  # default to install
 
     with open('requirements.txt', 'r') as reqs_file:
         for line in reqs_file.readlines():
@@ -55,6 +56,7 @@ def parse_reqs():
                 extras_reqs[current_section].append(line)
 
     return install_reqs, extras_reqs
+
 
 # Let us pass in generic arguments to CMake via an environment variable, since
 # our automated build servers need to pass in a certain argument when building
@@ -90,6 +92,7 @@ if not on_rtd:
 else:
     skbuild_args = {}
 
+
 def get_package_data(item, package):
     '''Used to compensate for poor glob support in package_data'''
     package_data = []
@@ -98,6 +101,7 @@ def get_package_data(item, package):
             # strip off directory and add to list
             package_data.append(f[len(package + '/'):])
     return package_data
+
 
 install_reqs, extras_req = parse_reqs()
 
@@ -124,7 +128,7 @@ setup(
     # Once this issue is resolved, we should switch to setting
     # include_package_data to True instead of manually specifying package_data.
 
-    #include_package_data=True,
+    # include_package_data=True,
     package_data={
         'siliconcompiler': get_package_data('templates', 'siliconcompiler') + get_package_data('data', 'siliconcompiler'),
         'siliconcompiler.tools': get_package_data('.', 'siliconcompiler/tools'),
@@ -133,7 +137,7 @@ setup(
 
     python_requires=">=3.6",
     install_requires=install_reqs,
-    extras_require = extras_req,
+    extras_require=extras_req,
     entry_points={"console_scripts": entry_points_apps},
     **skbuild_args
 )

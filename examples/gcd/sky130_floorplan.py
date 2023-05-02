@@ -1,5 +1,6 @@
 import math
 
+
 def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
               vlayer, stdcell_pin_vdd, stdcell_pin_vss, stdcell_pin_width):
     '''Generates PDN for a block-level design. '''
@@ -63,11 +64,11 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
     stripe_layer = fp.chip.get('library', mainlib, 'asic', 'pgmetal')
     spacing = 2 * fp.stdcell_height
 
-    bottom = core_bottom - stripe_w/2
+    bottom = core_bottom - stripe_w / 2
     fp.place_wires([vdd] * npwr, core_left, bottom, 0, spacing,
                    core_w, stripe_w, stripe_layer, 'followpin')
 
-    bottom = core_bottom - stripe_w/2 + fp.stdcell_height
+    bottom = core_bottom - stripe_w / 2 + fp.stdcell_height
     fp.place_wires([vss] * ngnd, core_left, bottom, 0, spacing,
                    core_w, stripe_w, stripe_layer, 'followpin')
 
@@ -80,6 +81,7 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
     else:
         gridlayers = vlayer, hlayer
     fp.insert_vias(layers=[(stripe_layer, vlayer), gridlayers])
+
 
 def generate_block_floorplan(fp, diearea, corearea, inputs, outputs, pdn=None):
     '''Generate a basic floorplan for a block-level design. '''
@@ -108,12 +110,13 @@ def generate_block_floorplan(fp, diearea, corearea, inputs, outputs, pdn=None):
     fp.place_pins(input_pins, 0, in_spacing, 0, in_spacing + width, depth, width, layer, snap=True)
 
     out_spacing = (die_height - len(output_pins) * width) / (len(output_pins) + 1)
-    fp.place_pins(output_pins, die_width-depth, out_spacing, 0, out_spacing + width, depth, width, layer, snap=True)
+    fp.place_pins(output_pins, die_width - depth, out_spacing, 0, out_spacing + width, depth, width, layer, snap=True)
 
     if pdn:
         place_pdn(fp, **pdn)
 
     return pdn
+
 
 def make_floorplan(chip):
     # move here until test can be rebuilt

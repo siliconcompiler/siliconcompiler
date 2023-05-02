@@ -14,18 +14,18 @@ Installation: https://github.com/trabucayre/openFPGALoader
 Status: SC integration WIP
 '''
 
+
 ################################
 # Setup Tool (pre executable)
 ################################
-
 def setup(chip):
     ''' openFPGALoader setup function
     '''
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'openfpgaloader'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     # tool setup

@@ -1,5 +1,6 @@
 import siliconcompiler
 
+
 def main():
     chip = siliconcompiler.Chip('blinky')
     chip.input('blinky.v')
@@ -9,6 +10,7 @@ def main():
 
     chip.run()
     chip.summary()
+
 
 if __name__ == '__main__':
     main()

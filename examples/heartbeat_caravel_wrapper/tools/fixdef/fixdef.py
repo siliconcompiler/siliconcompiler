@@ -1,5 +1,6 @@
 import siliconcompiler
 
+
 def make_docs():
     '''Utility for covering 'pin' data types with 'drawing' data types in a DEF
     file. This is required for the eFabless MPW prechecks, because the mask
@@ -8,6 +9,7 @@ def make_docs():
     '''
     chip = siliconcompiler.Chip('<design>')
     return setup(chip)
+
 
 def setup(chip):
     tool = 'fixdef'
@@ -18,6 +20,7 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'input', f'{design}.def', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'output', f'{design}.def', step=step, index=index)
+
 
 def run(chip):
     design = chip.get('design')

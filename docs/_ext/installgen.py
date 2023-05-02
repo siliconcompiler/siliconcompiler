@@ -9,6 +9,7 @@ from siliconcompiler.sphinx_ext.utils import nodes
 
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
+
 # Main Sphinx plugin
 class InstallScripts(SphinxDirective):
     def run(self):
@@ -54,6 +55,7 @@ class InstallScripts(SphinxDirective):
             bullet_list += item
 
         return [bullet_list]
+
 
 def setup(app):
     app.add_directive('installscripts', InstallScripts)

@@ -5,6 +5,7 @@ import os
 import re
 import sys
 
+
 def checkarea(filelist, libdir, target):
     '''
     Runs SC through synthesis and prints out the module name, cell count,
@@ -19,13 +20,13 @@ def checkarea(filelist, libdir, target):
 
     print("module", "cells", "area", sep=",")
     for item in filelist:
-        design = re.match(r'.*/(\w+)\.v',item).group(1)
+        design = re.match(r'.*/(\w+)\.v', item).group(1)
         chip = siliconcompiler.Chip(design)
         chip.load_target(target)
         chip.input(item)
         chip.add('option', 'ydir', libdir)
-        chip.set('option','quiet', True)
-        chip.set('option','steplist', ['import', 'syn'])
+        chip.set('option', 'quiet', True)
+        chip.set('option', 'steplist', ['import', 'syn'])
         chip.run()
         cells = chip.get('metric', 'cells', step='syn', index='0')
         area = chip.get('metric', 'cellarea', step='syn', index='0')
@@ -33,9 +34,10 @@ def checkarea(filelist, libdir, target):
 
     return 0
 
+
 def main(limit=-1):
     oh_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../third_party/designs/oh/"
-    #Checking asiclib
+    # Checking asiclib
     libdir = os.path.join(oh_dir, 'asiclib', 'hdl')
     filelist = glob.glob(libdir + '/*.v')
     dontcheck = ['asic_keeper.v',
@@ -48,6 +50,7 @@ def main(limit=-1):
 
     filelist = filelist[0:limit]
     return checkarea(filelist, libdir, 'freepdk45_demo')
+
 
 #########################
 if __name__ == "__main__":

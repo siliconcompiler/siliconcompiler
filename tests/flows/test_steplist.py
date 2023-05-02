@@ -4,6 +4,7 @@ import siliconcompiler
 
 import pytest
 
+
 @pytest.mark.eda
 def test_steplist(gcd_chip):
     # Initial run
@@ -28,6 +29,7 @@ def test_steplist(gcd_chip):
     gcd_chip.run()
     assert gcd_chip.find_result('def', step='floorplan')
 
+
 @pytest.mark.eda
 def test_steplist_keep_reports(gcd_chip):
     '''Regression test for making sure that reports from previous steps are
@@ -45,6 +47,7 @@ def test_steplist_keep_reports(gcd_chip):
     fresh_chip.set('option', 'steplist', ['floorplan'])
     fresh_chip.run()
     assert fresh_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea', step='syn', index='0') == report
+
 
 @pytest.mark.eda
 def test_old_resume(gcd_chip):
@@ -66,6 +69,7 @@ def test_old_resume(gcd_chip):
 
     assert mtime_after > mtime_before
 
+
 @pytest.mark.eda
 def test_invalid(gcd_chip):
     # Invalid steplist, need to run import first
@@ -74,6 +78,7 @@ def test_invalid(gcd_chip):
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         # Should be caught by check_manifest()
         gcd_chip.run()
+
 
 @pytest.mark.eda
 def test_invalid_jobinput(gcd_chip):

@@ -13,10 +13,10 @@ except ImportError:
 
 SCHEMA_VERSION = '0.32.0'
 
+
 #############################################################################
 # PARAM DEFINITION
 #############################################################################
-
 def scparam(cfg,
             keypath,
             sctype=None,
@@ -69,13 +69,13 @@ def scparam(cfg,
 
         # setting values based on types
         # note (bools are never lists)
-        if re.match(r'bool',sctype):
+        if re.match(r'bool', sctype):
             require = 'all'
             if defvalue is None:
                 defvalue = False
-        if re.match(r'\[',sctype) and signature is None:
+        if re.match(r'\[', sctype) and signature is None:
             signature = []
-        if re.match(r'\[',sctype) and defvalue is None:
+        if re.match(r'\[', sctype) and defvalue is None:
             defvalue = []
 
         # mandatory for all
@@ -103,17 +103,17 @@ def scparam(cfg,
             cfg['unit'] = unit
 
         # file only values
-        if re.search(r'file',sctype):
+        if re.search(r'file', sctype):
             cfg['hashalgo'] = hashalgo
             cfg['copy'] = copy
 
-        if re.search(r'dir',sctype):
+        if re.search(r'dir', sctype):
             cfg['copy'] = copy
+
 
 #############################################################################
 # CHIP CONFIGURATION
 #############################################################################
-
 def schema_cfg():
     '''Method for defining Chip configuration schema
     All the keys defined in this dictionary are reserved words.
@@ -130,7 +130,7 @@ def schema_cfg():
     cfg['history'] = {}
     cfg['library'] = {}
 
-    scparam(cfg,['schemaversion'],
+    scparam(cfg, ['schemaversion'],
             sctype='str',
             scope='global',
             defvalue=SCHEMA_VERSION,
@@ -142,7 +142,7 @@ def schema_cfg():
             schelp="""SiliconCompiler schema version number.""")
 
     # Design topmodule/entrypoint
-    scparam(cfg,['design'],
+    scparam(cfg, ['design'],
             sctype='str',
             scope='global',
             require='all',
@@ -161,7 +161,7 @@ def schema_cfg():
     fileset = 'default'
 
     for item, val in io.items():
-        scparam(cfg,[item, fileset, filetype],
+        scparam(cfg, [item, fileset, filetype],
                 sctype='[file]',
                 pernode='optional',
                 copy=val[1],
@@ -208,15 +208,15 @@ def schema_cfg():
 
     return cfg
 
+
 ###############################################################################
 # FPGA
 ###############################################################################
-
 def schema_fpga(cfg):
     ''' FPGA configuration
     '''
 
-    scparam(cfg,['fpga', 'arch'],
+    scparam(cfg, ['fpga', 'arch'],
             sctype='[file]',
             copy=True,
             shorthelp="FPGA: architecture file",
@@ -230,7 +230,7 @@ def schema_fpga(cfg):
             enough information to enable compilation and the 'arch' parameter is
             optional.""")
 
-    scparam(cfg,['fpga', 'vendor'],
+    scparam(cfg, ['fpga', 'vendor'],
             sctype='str',
             shorthelp="FPGA: vendor name",
             switch="-fpga_vendor <str>",
@@ -241,7 +241,7 @@ def schema_fpga(cfg):
             name and to select the eda tool flow in case 'edaflow' is
             unspecified.""")
 
-    scparam(cfg,['fpga', 'partname'],
+    scparam(cfg, ['fpga', 'partname'],
             sctype='str',
             require='fpga',
             shorthelp="FPGA: part name",
@@ -253,7 +253,7 @@ def schema_fpga(cfg):
             tool. The part name must be an exact string match to the partname
             hard coded within the FPGA eda tool.""")
 
-    scparam(cfg,['fpga', 'board'],
+    scparam(cfg, ['fpga', 'board'],
             sctype='str',
             shorthelp="FPGA: board name",
             switch="-fpga_board <str>",
@@ -265,7 +265,7 @@ def schema_fpga(cfg):
             hard coded within the FPGA eda tool. The parameter is optional and can
             be used in place of a partname and pin constraints for some tools.""")
 
-    scparam(cfg,['fpga', 'program'],
+    scparam(cfg, ['fpga', 'program'],
             sctype='bool',
             shorthelp="FPGA: program enable",
             switch="-fpga_program <bool>",
@@ -273,7 +273,7 @@ def schema_fpga(cfg):
                      "api:  chip.set('fpga', 'program', True)"],
             schelp="""Specifies that the bitstream should be loaded into an FPGA.""")
 
-    scparam(cfg,['fpga', 'flash'],
+    scparam(cfg, ['fpga', 'flash'],
             sctype='bool',
             shorthelp="FPGA: flash enable",
             switch="-fpga_flash <bool>",
@@ -284,10 +284,10 @@ def schema_fpga(cfg):
 
     return cfg
 
+
 ###############################################################################
 # PDK
 ###############################################################################
-
 def schema_pdk(cfg, stackup='default'):
     ''' Process design kit configuration
     '''
@@ -324,7 +324,7 @@ def schema_pdk(cfg, stackup='default'):
             optimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,
             10, 7, 5, 3.""")
 
-    scparam(cfg,['pdk', pdkname, 'lambda'],
+    scparam(cfg, ['pdk', pdkname, 'lambda'],
             sctype='float',
             defvalue='1e-06',
             scope='global',
@@ -601,7 +601,7 @@ def schema_pdk(cfg, stackup='default'):
             all layers in the PDK. The display configuration file is entered on a
             stackup and tool basis.""")
 
-    #TODO: create firm list of accepted files
+    # TODO: create firm list of accepted files
     libarch = 'default'
     scparam(cfg, ['pdk', pdkname, 'aprtech', tool, stackup, libarch, filetype],
             sctype='[file]',
@@ -694,7 +694,7 @@ def schema_pdk(cfg, stackup='default'):
     # Docs
     ###############
 
-    scparam(cfg,['pdk', pdkname, 'doc', 'homepage'],
+    scparam(cfg, ['pdk', pdkname, 'doc', 'homepage'],
             sctype='[file]',
             scope='global',
             shorthelp="PDK: documentation homepage",
@@ -716,21 +716,21 @@ def schema_pdk(cfg, stackup='default'):
                 'tutorial']
 
     for item in doctypes:
-        scparam(cfg,['pdk', pdkname, 'doc', item],
+        scparam(cfg, ['pdk', pdkname, 'doc', item],
                 sctype='[file]',
                 scope='global',
                 shorthelp=f"PDK: {item}",
-                switch= f"-pdk_doc_{item} 'pdkname <file>'",
+                switch=f"-pdk_doc_{item} 'pdkname <file>'",
                 example=[f"cli: -pdk_doc_{item} 'asap7 {item}.pdf'",
                          f"api: chip.set('pdk','asap7','doc',{item},'{item}.pdf')"],
                 schelp=f"""Filepath to {item} document.""")
 
     return cfg
 
+
 ###############################################################################
 # Datasheet
 ###############################################################################
-
 def schema_datasheet(cfg, design='default', name='default', mode='default'):
 
     # Device Features
@@ -878,17 +878,17 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             values include weak1, weak0, strong0, strong1, highz.""")
 
     # DC levels
-    metrics = {'vol': ['low output voltage level', (-0.2,0,0.2), 'V'],
-               'voh': ['high output voltage level', (4.6,4.8,5.2), 'V'],
+    metrics = {'vol': ['low output voltage level', (-0.2, 0, 0.2), 'V'],
+               'voh': ['high output voltage level', (4.6, 4.8, 5.2), 'V'],
                'vil': ['low input voltage level', (-0.2, 0, 1.0), 'V'],
                'vih': ['high input voltage level', (1.4, 1.8, 2.2), 'V'],
                'vcm': ['common mode voltage', (0.3, 1.2, 1.6), 'V'],
                'vdiff': ['differential voltage', (0.2, 0.3, 0.9), 'V'],
-               'vnoise': ['random voltage noise', (0,0.01,0.1), 'V'],
+               'vnoise': ['random voltage noise', (0, 0.01, 0.1), 'V'],
                'vhbm': ['HBM ESD tolerance', (200, 250, 300), 'V'],
-               'vcdm': ['CDM ESD tolerance', (125,150,175), 'V'],
-               'vmm': ['MM ESD tolerance', (100,125,150), 'V'],
-               'rdiff': ['differential pair resistance', (45,50,55), 'ohm'],
+               'vcdm': ['CDM ESD tolerance', (125, 150, 175), 'V'],
+               'vmm': ['MM ESD tolerance', (100, 125, 150), 'V'],
+               'rdiff': ['differential pair resistance', (45, 50, 55), 'ohm'],
                'rpullup': ['pullup resistance', (1000, 1200, 3000), 'ohm'],
                'rpulldown': ['pulldown resistance', (1000, 1200, 3000), 'ohm'],
                'idrive': ['drive current', (10e-3, 12e-3, 15e-3), 'A'],
@@ -930,14 +930,14 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
 
     return cfg
 
+
 ###############################################################################
 # Flow Configuration
 ###############################################################################
-
 def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
     # flowgraph input
-    scparam(cfg,['flowgraph', flow, step, index, 'input'],
+    scparam(cfg, ['flowgraph', flow, step, index, 'input'],
             sctype='[(str,str)]',
             shorthelp="Flowgraph: step input",
             switch="-flowgraph_input 'flow step index <(str,str)>'",
@@ -949,7 +949,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
     # flowgraph metric weights
     metric = 'default'
-    scparam(cfg,['flowgraph', flow, step, index, 'weight', metric],
+    scparam(cfg, ['flowgraph', flow, step, index, 'weight', metric],
             sctype='float',
             shorthelp="Flowgraph: metric weights",
             switch="-flowgraph_weight 'flow step index metric <float>'",
@@ -960,7 +960,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             effective "goodness" score for a step by calculating the sum all step
             real metrics results by the corresponding per step weights.""")
 
-    scparam(cfg,['flowgraph', flow, step, index, 'goal', metric],
+    scparam(cfg, ['flowgraph', flow, step, index, 'goal', metric],
             sctype='float',
             shorthelp="Flowgraph: metric goals",
             switch="-flowgraph_goal 'flow step index metric <float>'",
@@ -974,7 +974,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             the goal for that metric, if set.""")
 
     # flowgraph tool
-    scparam(cfg,['flowgraph', flow, step, index, 'tool'],
+    scparam(cfg, ['flowgraph', flow, step, index, 'tool'],
             sctype='str',
             shorthelp="Flowgraph: tool selection",
             switch="-flowgraph_tool 'flow step <str>'",
@@ -985,7 +985,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             is ignored for builtin tasks.""")
 
     # task (belonging to tool)
-    scparam(cfg,['flowgraph', flow, step, index, 'task'],
+    scparam(cfg, ['flowgraph', flow, step, index, 'task'],
             sctype='str',
             shorthelp="Flowgraph: task selection",
             switch="-flowgraph_task 'flow step <str>'",
@@ -995,7 +995,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             schelp="""Name of the tool associated task used for step execution. Builtin
             task names include: minimum, maximum, join, verify, mux. """)
 
-    scparam(cfg,['flowgraph', flow, step, index, 'taskmodule'],
+    scparam(cfg, ['flowgraph', flow, step, index, 'taskmodule'],
             sctype='str',
             shorthelp="Flowgraph: task module",
             switch="-flowgraph_taskmodule 'flow step <str>'",
@@ -1005,7 +1005,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             schelp="""Full python module name of the task module used for task setup and execution.""")
 
     # flowgraph arguments
-    scparam(cfg,['flowgraph', flow, step, index, 'args'],
+    scparam(cfg, ['flowgraph', flow, step, index, 'args'],
             sctype='[str]',
             shorthelp="Flowgraph: setup arguments",
             switch="-flowgraph_args 'flow step index <str>'",
@@ -1016,7 +1016,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             step and per index basis.""")
 
     # flowgraph valid bits
-    scparam(cfg,['flowgraph', flow, step, index, 'valid'],
+    scparam(cfg, ['flowgraph', flow, step, index, 'valid'],
             sctype='bool',
             shorthelp="Flowgraph: task valid bit",
             switch="-flowgraph_valid 'flow step index <str>'",
@@ -1029,7 +1029,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             should not be run.""")
 
     # flowgraph timeout value
-    scparam(cfg,['flowgraph', flow, step, index, 'timeout'],
+    scparam(cfg, ['flowgraph', flow, step, index, 'timeout'],
             sctype='float',
             unit='s',
             shorthelp="Flowgraph: task timeout value",
@@ -1046,7 +1046,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             a negative return on investment.""")
 
     # flowgraph status
-    scparam(cfg,['flowgraph', flow, step, index, 'status'],
+    scparam(cfg, ['flowgraph', flow, step, index, 'status'],
             sctype='enum',
             enum=["pending", "success", "error"],
             shorthelp="Flowgraph: task status",
@@ -1062,11 +1062,11 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             An empty value indicates the task has not yet been completed.""")
 
     # flowgraph select
-    scparam(cfg,['flowgraph', flow, step, index, 'select'],
+    scparam(cfg, ['flowgraph', flow, step, index, 'select'],
             sctype='[(str,str)]',
             shorthelp="Flowgraph: task select record",
             switch="-flowgraph_select 'flow step index <(str,str)>'",
-            example= [
+            example=[
                 "cli: -flowgraph_select 'asicflow cts 0 (place,42)'",
                 "api:  chip.set('flowgraph','asicflow', 'cts','0','select',('place','42'))"],
             schelp="""
@@ -1190,6 +1190,7 @@ def schema_tool(cfg, tool='default'):
             """)
 
     return cfg
+
 
 def schema_task(cfg, tool='default', task='default', step='default', index='default'):
 
@@ -1507,10 +1508,10 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
 
     return cfg
 
+
 ###########################################################################
 #  Function arguments
 ###########################################################################
-
 def schema_arg(cfg):
 
     scparam(cfg, ['arg', 'step'],
@@ -1543,10 +1544,10 @@ def schema_arg(cfg):
 
     return cfg
 
+
 ###########################################################################
 # Metrics to Track
 ###########################################################################
-
 def schema_metric(cfg, step='default', index='default'):
 
     metrics = {'errors': 'errors',
@@ -1853,10 +1854,10 @@ def schema_metric(cfg, step='default', index='default'):
 
     return cfg
 
+
 ###########################################################################
 # Design Tracking
 ###########################################################################
-
 def schema_record(cfg, step='default', index='default'):
 
     # setting up local data structure
@@ -1927,7 +1928,7 @@ def schema_record(cfg, step='default', index='default'):
                                  """Used for platforms that support a distinction
                                  between os kernels and os distributions."""]}
 
-    for item,val in records.items():
+    for item, val in records.items():
         helpext = trim(val[2])
         scparam(cfg, ['record', item],
                 sctype='str',
@@ -1941,10 +1942,10 @@ def schema_record(cfg, step='default', index='default'):
 
     return cfg
 
+
 ###########################################################################
 # Global units
 ###########################################################################
-
 def schema_unit(cfg):
     '''
 
@@ -1964,7 +1965,7 @@ def schema_unit(cfg):
         'energy': 'pj'
     }
 
-    for item,val in units.items():
+    for item, val in units.items():
         scparam(cfg, ['unit', item],
                 sctype='str',
                 defvalue=val,
@@ -1979,10 +1980,10 @@ def schema_unit(cfg):
 
     return cfg
 
+
 ###########################################################################
 # Run Options
 ###########################################################################
-
 def schema_option(cfg):
     ''' Technology agnostic run time options
     '''
@@ -2050,7 +2051,7 @@ def schema_option(cfg):
             sim: simulation to verify design and compilation
             """)
 
-    scparam(cfg, ['option','target'],
+    scparam(cfg, ['option', 'target'],
             sctype='str',
             scope='job',
             shorthelp="Compilation target",
@@ -2063,7 +2064,7 @@ def schema_option(cfg):
             may load multiple flows and libraries.
             """)
 
-    scparam(cfg, ['option','pdk'],
+    scparam(cfg, ['option', 'pdk'],
             sctype='str',
             scope='job',
             shorthelp="PDK target",
@@ -2073,7 +2074,7 @@ def schema_option(cfg):
             schelp="""
             Target PDK used during compilation.""")
 
-    scparam(cfg, ['option','uselambda'],
+    scparam(cfg, ['option', 'uselambda'],
             sctype='bool',
             scope='job',
             shorthelp="Use lambda scaling",
@@ -2095,7 +2096,7 @@ def schema_option(cfg):
             Target stackup used during compilation. The stackup is required
             parameter for PDKs with multiple metal stackups.""")
 
-    scparam(cfg, ['option','flow'],
+    scparam(cfg, ['option', 'flow'],
             sctype='str',
             scope='job',
             shorthelp="Flow target",
@@ -2106,7 +2107,7 @@ def schema_option(cfg):
             Sets the flow for the current run. The flow name
             must match up with a 'flow' in the flowgraph""")
 
-    scparam(cfg, ['option','optmode'],
+    scparam(cfg, ['option', 'optmode'],
             sctype='str',
             pernode='optional',
             scope='job',
@@ -2128,8 +2129,8 @@ def schema_option(cfg):
             (O99) = Experimental highest possible effort, may be unstable
             """)
 
-    #TODO: with modular flows does this go away?
-    scparam(cfg, ['option','frontend'],
+    # TODO: with modular flows does this go away?
+    scparam(cfg, ['option', 'frontend'],
             sctype='str',
             scope='job',
             defvalue='verilog',
@@ -2143,7 +2144,7 @@ def schema_option(cfg):
             'systemverilog' and 'chisel'. When using the Python API, this parameter
             must be configured before calling load_target().""")
 
-    scparam(cfg, ['option','cfg'],
+    scparam(cfg, ['option', 'cfg'],
             sctype='[file]',
             scope='job',
             shorthelp="Configuration manifest",
@@ -2268,8 +2269,8 @@ def schema_option(cfg):
             enables multiple levels of transparent job, step, and index
             introspection.""")
 
-    #TODO: remove?
-    scparam(cfg, ['option','jobinput','default','default'],
+    # TODO: remove?
+    scparam(cfg, ['option', 'jobinput', 'default', 'default'],
             sctype='str',
             scope='job',
             shorthelp="Input job name",
@@ -2566,7 +2567,7 @@ def schema_option(cfg):
             <name>/<name>-<version>.json(.<gz>)?
             """)
 
-    scparam(cfg,['option', 'entrypoint'],
+    scparam(cfg, ['option', 'entrypoint'],
             sctype='str',
             shorthelp="Program entry point",
             switch="-entrypoint <str>",
@@ -2575,7 +2576,7 @@ def schema_option(cfg):
             schelp="""Alternative entrypoint for compilation and
             simulation. The default entry point is 'design'.""")
 
-    scparam(cfg,['option', 'idir'],
+    scparam(cfg, ['option', 'idir'],
             sctype='[dir]',
             shorthelp="Design search paths",
             switch=['+incdir+<dir>', '-I <dir>'],
@@ -2586,7 +2587,7 @@ def schema_option(cfg):
             Search paths to look for files included in the design using
             the ```include`` statement.""")
 
-    scparam(cfg,['option', 'ydir'],
+    scparam(cfg, ['option', 'ydir'],
             sctype='[dir]',
             shorthelp="Design module search paths",
             switch='-y <dir>',
@@ -2598,7 +2599,7 @@ def schema_option(cfg):
             source list. The import engine will look for modules inside
             files with the specified +libext+ param suffix.""")
 
-    scparam(cfg,['option', 'vlib'],
+    scparam(cfg, ['option', 'vlib'],
             sctype='[file]',
             shorthelp="Design libraries",
             switch='-v <file>',
@@ -2608,7 +2609,7 @@ def schema_option(cfg):
             List of library files to be read in. Modules found in the
             libraries are not interpreted as root modules.""")
 
-    scparam(cfg,['option', 'define'],
+    scparam(cfg, ['option', 'define'],
             sctype='[str]',
             shorthelp="Design pre-processor symbol",
             switch="-D<str>",
@@ -2616,7 +2617,7 @@ def schema_option(cfg):
                      "api: chip.set('option','define','CFG_ASIC=1')"],
             schelp="""Symbol definition for source preprocessor.""")
 
-    scparam(cfg,['option', 'libext'],
+    scparam(cfg, ['option', 'libext'],
             sctype='[str]',
             shorthelp="Design file extensions",
             switch="+libext+<str>",
@@ -2630,7 +2631,7 @@ def schema_option(cfg):
             module matches.""")
 
     name = 'default'
-    scparam(cfg,['option', 'param', name],
+    scparam(cfg, ['option', 'param', name],
             sctype='str',
             shorthelp="Design parameter",
             switch="-param 'name <str>'",
@@ -2644,7 +2645,7 @@ def schema_option(cfg):
             support Verilog integer literals (64'h4, 2'b0, 4) and strings.
             Name of the top level module to compile.""")
 
-    scparam(cfg,['option', 'cmdfile'],
+    scparam(cfg, ['option', 'cmdfile'],
             sctype='[file]',
             shorthelp="Design compilation command file",
             switch='-f <file>',
@@ -2658,7 +2659,7 @@ def schema_option(cfg):
             the file varies and depends on the tool used. SC simply passes on
             the filepath toe the tool executable.""")
 
-    scparam(cfg,['option', 'flowcontinue'],
+    scparam(cfg, ['option', 'flowcontinue'],
             sctype='bool',
             pernode='optional',
             shorthelp="Flow continue-on-error",
@@ -2671,7 +2672,7 @@ def schema_option(cfg):
             metric is greater than 0. Note that the flow will always cease
             executing if the tool returns a nonzero status code. """)
 
-    scparam(cfg,['option', 'continue'],
+    scparam(cfg, ['option', 'continue'],
             sctype='bool',
             pernode='optional',
             shorthelp='Implementation continue-on-error',
@@ -2690,8 +2691,8 @@ def schema_option(cfg):
             unit='s',
             shorthelp="Option: Timeout value",
             switch="-timeout <str>",
-            example= ["cli: -timeout 3600",
-                      "api: chip.set('option', 'timeout', 3600)"],
+            example=["cli: -timeout 3600",
+                     "api: chip.set('option', 'timeout', 3600)"],
             schelp="""
             Timeout value in seconds. The timeout value is compared
             against the wall time tracked by the SC runtime to determine
@@ -2702,8 +2703,8 @@ def schema_option(cfg):
             sctype='bool',
             shorthelp="Option: Strict checking",
             switch="-strict <bool>",
-            example= ["cli: -strict true",
-                      "api: chip.set('option', 'strict', True)"],
+            example=["cli: -strict true",
+                     "api: chip.set('option', 'strict', True)"],
             schelp="""
             Enable additional strict checking in the SC Python API. When this
             parameter is set to True, users must provide step and index keyword
@@ -2736,8 +2737,8 @@ def schema_option(cfg):
             pernode='optional',
             shorthelp="Option: Scheduler core constraint",
             switch="-cores <int>",
-            example= ["cli: -cores 48",
-                      "api: chip.set('option', 'scheduler', 'cores', '48')"],
+            example=["cli: -cores 48",
+                     "api: chip.set('option', 'scheduler', 'cores', '48')"],
             schelp="""
             Specifies the number cpu cores required to run the job.
             For the slurm scheduler, this translates to the '-c'
@@ -2751,8 +2752,8 @@ def schema_option(cfg):
             pernode='optional',
             shorthelp="Option: Scheduler memory constraint",
             switch="-memory <str>",
-            example= ["cli: -memory 8000",
-                      "api: chip.set('option', 'scheduler', 'memory', '8000')"],
+            example=["cli: -memory 8000",
+                     "api: chip.set('option', 'scheduler', 'memory', '8000')"],
             schelp="""
             Specifies the amount of memory required to run the job,
             specified in MB. For the slurm scheduler, this translates to
@@ -2765,8 +2766,8 @@ def schema_option(cfg):
             pernode='optional',
             shorthelp="Option: Scheduler queue",
             switch="-queue <str>",
-            example= ["cli: -queue nightrun",
-                      "api: chip.set('option', 'scheduler', 'queue', 'nightrun')"],
+            example=["cli: -queue nightrun",
+                     "api: chip.set('option', 'scheduler', 'queue', 'nightrun')"],
             schelp="""
             Send the job to the specified queue. With slurm, this
             translates to 'partition'. The queue name must match
@@ -2779,8 +2780,8 @@ def schema_option(cfg):
             pernode='optional',
             shorthelp="Option: Scheduler start time",
             switch="-defer <str>",
-            example= ["cli: -defer 16:00",
-                      "api: chip.set('option', 'scheduler', 'defer', '16:00')"],
+            example=["cli: -defer 16:00",
+                     "api: chip.set('option', 'scheduler', 'defer', '16:00')"],
             schelp="""
             Defer initiation of job until the specified time. The parameter
             is pass through string for remote job scheduler such as slurm.
@@ -2837,10 +2838,10 @@ def schema_option(cfg):
 
     return cfg
 
+
 ############################################
 # Package information
 ############################################
-
 def schema_package(cfg):
 
     userid = 'default'
@@ -2859,7 +2860,7 @@ def schema_package(cfg):
             used by the design specified on a per module basis a
             list of string tuples ('name','version').""")
 
-    scparam(cfg,['package', 'name'],
+    scparam(cfg, ['package', 'name'],
             sctype='str',
             scope='global',
             shorthelp="Package: name",
@@ -2869,7 +2870,7 @@ def schema_package(cfg):
                 "api: chip.set('package','name','yac')"],
             schelp="""Package name.""")
 
-    scparam(cfg,['package', 'version'],
+    scparam(cfg, ['package', 'version'],
             sctype='str',
             scope='global',
             shorthelp="Package: version",
@@ -2880,7 +2881,7 @@ def schema_package(cfg):
             schelp="""Package version. Can be a branch, tag, commit hash,
             or a semver compatible version.""")
 
-    scparam(cfg,['package', 'description'],
+    scparam(cfg, ['package', 'description'],
             sctype='str',
             scope='global',
             shorthelp="Package: description",
@@ -2891,7 +2892,7 @@ def schema_package(cfg):
             schelp="""Package short one line description for package
             managers and summary reports.""")
 
-    scparam(cfg,['package', 'keyword'],
+    scparam(cfg, ['package', 'keyword'],
             sctype='str',
             scope='global',
             shorthelp="Package: keyword",
@@ -2901,7 +2902,7 @@ def schema_package(cfg):
                 "api: chip.set('package','keyword','cpu')"],
             schelp="""Package keyword(s) used to characterize package.""")
 
-    scparam(cfg,['package', 'homepage'],
+    scparam(cfg, ['package', 'homepage'],
             sctype='str',
             scope='global',
             shorthelp="Package: project homepage",
@@ -2911,7 +2912,7 @@ def schema_package(cfg):
                 "api: chip.set('package','homepage','index.html')"],
             schelp="""Package homepage.""")
 
-    scparam(cfg,['package', 'doc', 'homepage'],
+    scparam(cfg, ['package', 'doc', 'homepage'],
             sctype='str',
             scope='global',
             shorthelp="Package: documentation homepage",
@@ -2935,7 +2936,7 @@ def schema_package(cfg):
                 'tutorial']
 
     for item in doctypes:
-        scparam(cfg,['package', 'doc', item],
+        scparam(cfg, ['package', 'doc', item],
                 sctype='[file]',
                 scope='global',
                 shorthelp=f"Package: {item} document",
@@ -2945,7 +2946,7 @@ def schema_package(cfg):
                     f"api: chip.set('package','doc',{item},'{item}.pdf')"],
                 schelp=f""" Package list of {item} documents.""")
 
-    scparam(cfg,['package', 'repo'],
+    scparam(cfg, ['package', 'repo'],
             sctype='[str]',
             scope='global',
             shorthelp="Package: code repository",
@@ -2955,7 +2956,7 @@ def schema_package(cfg):
                 "api: chip.set('package','repo','git@github.com:aolofsson/oh.git')"],
             schelp="""Package IP address to source code repository.""")
 
-    scparam(cfg,['package', 'dependency', module],
+    scparam(cfg, ['package', 'dependency', module],
             sctype='[str]',
             scope='global',
             shorthelp="Package: version dependencies",
@@ -2966,7 +2967,7 @@ def schema_package(cfg):
             schelp="""Package dependencies specified as a key value pair.
             Versions shall follow the semver standard.""")
 
-    scparam(cfg,['package', 'target'],
+    scparam(cfg, ['package', 'target'],
             sctype='[str]',
             scope='global',
             shorthelp="Package: qualified targets",
@@ -2976,7 +2977,7 @@ def schema_package(cfg):
                 "api: chip.set('package','target','asicflow_freepdk45')"],
             schelp="""Package list of qualified compilation targets.""")
 
-    scparam(cfg,['package', 'license'],
+    scparam(cfg, ['package', 'license'],
             sctype='[str]',
             scope='global',
             shorthelp="Package: license identifiers",
@@ -2986,7 +2987,7 @@ def schema_package(cfg):
                 "api: chip.set('package','license','Apache-2.0')"],
             schelp="""Package list of SPDX license identifiers.""")
 
-    scparam(cfg,['package', 'licensefile'],
+    scparam(cfg, ['package', 'licensefile'],
             sctype='[file]',
             scope='global',
             shorthelp="Package: license files",
@@ -2998,7 +2999,7 @@ def schema_package(cfg):
             applied in cases when a SPDX identifier is not available.
             (eg. proprietary licenses).list of SPDX license identifiers.""")
 
-    scparam(cfg,['package', 'location'],
+    scparam(cfg, ['package', 'location'],
             sctype='[str]',
             scope='global',
             shorthelp="Package: location",
@@ -3010,7 +3011,7 @@ def schema_package(cfg):
             international country codes. The field can be left blank
             if the location is unknown or global.""")
 
-    scparam(cfg,['package', 'organization'],
+    scparam(cfg, ['package', 'organization'],
             sctype='[str]',
             scope='global',
             shorthelp="Package: sponsoring organization",
@@ -3021,7 +3022,7 @@ def schema_package(cfg):
             schelp="""Package sponsoring organization. The field can be left
             blank if not applicable.""")
 
-    scparam(cfg,['package', 'publickey'],
+    scparam(cfg, ['package', 'publickey'],
             sctype='str',
             scope='global',
             shorthelp="Package: public key",
@@ -3039,7 +3040,7 @@ def schema_package(cfg):
               'publickey']
 
     for item in record:
-        scparam(cfg,['package', 'author', userid, item],
+        scparam(cfg, ['package', 'author', userid, item],
                 sctype='str',
                 scope='global',
                 shorthelp=f"Package: author {item}",
@@ -3052,17 +3053,17 @@ def schema_package(cfg):
 
     return cfg
 
+
 ############################################
 # Design Checklist
 ############################################
-
 def schema_checklist(cfg):
 
     item = 'default'
     standard = 'default'
     metric = 'default'
 
-    scparam(cfg,['checklist', standard, item, 'description'],
+    scparam(cfg, ['checklist', standard, item, 'description'],
             sctype='str',
             scope='global',
             shorthelp="Checklist: item description",
@@ -3073,7 +3074,7 @@ def schema_checklist(cfg):
             schelp="""
             A short one line description of the checklist item.""")
 
-    scparam(cfg,['checklist', standard, item, 'requirement'],
+    scparam(cfg, ['checklist', standard, item, 'requirement'],
             sctype='str',
             scope='global',
             shorthelp="Checklist: item requirement",
@@ -3085,7 +3086,7 @@ def schema_checklist(cfg):
             A complete requirement description of the checklist item
             entered as a multi-line string.""")
 
-    scparam(cfg,['checklist', standard, item, 'dataformat'],
+    scparam(cfg, ['checklist', standard, item, 'dataformat'],
             sctype='str',
             scope='global',
             shorthelp="Checklist: item data format",
@@ -3097,7 +3098,7 @@ def schema_checklist(cfg):
             Free text description of the type of data files acceptable as
             checklist signoff validation.""")
 
-    scparam(cfg,['checklist', standard, item, 'rationale'],
+    scparam(cfg, ['checklist', standard, item, 'rationale'],
             sctype='[str]',
             scope='global',
             shorthelp="Checklist: item rational",
@@ -3110,7 +3111,7 @@ def schema_checklist(cfg):
             unique alphanumeric code used by the standard or a short one line
             or single word description.""")
 
-    scparam(cfg,['checklist', standard, item, 'criteria'],
+    scparam(cfg, ['checklist', standard, item, 'criteria'],
             sctype='[str]',
             scope='global',
             shorthelp="Checklist: item criteria",
@@ -3124,7 +3125,7 @@ def schema_checklist(cfg):
             a metric, a relational operator, and a value in the form.
             'metric op value'.""")
 
-    scparam(cfg,['checklist', standard, item, 'task'],
+    scparam(cfg, ['checklist', standard, item, 'task'],
             sctype='[(str,str,str)]',
             scope='global',
             shorthelp="Checklist: item task",
@@ -3137,7 +3138,7 @@ def schema_checklist(cfg):
             The parameter should be left empty for manual and for tool
             flows that bypass the SC infrastructure.""")
 
-    scparam(cfg,['checklist', standard, item, 'report'],
+    scparam(cfg, ['checklist', standard, item, 'report'],
             sctype='[file]',
             scope='global',
             shorthelp="Checklist: item report",
@@ -3149,7 +3150,7 @@ def schema_checklist(cfg):
             Filepath to report(s) of specified type documenting the successful
             validation of the checklist item.""")
 
-    scparam(cfg,['checklist', standard, item, 'waiver', metric],
+    scparam(cfg, ['checklist', standard, item, 'waiver', metric],
             sctype='[file]',
             scope='global',
             shorthelp="Checklist: item metric waivers",
@@ -3161,7 +3162,7 @@ def schema_checklist(cfg):
             Filepath to report(s) documenting waivers for the checklist
             item specified on a per metric basis.""")
 
-    scparam(cfg,['checklist', standard, item, 'ok'],
+    scparam(cfg, ['checklist', standard, item, 'ok'],
             sctype='bool',
             scope='global',
             shorthelp="Checklist: item ok",
@@ -3176,10 +3177,10 @@ def schema_checklist(cfg):
 
     return cfg
 
+
 ###########################
 # ASIC Setup
 ###########################
-
 def schema_asic(cfg):
     '''ASIC Automated Place and Route Parameters'''
 
@@ -3214,8 +3215,8 @@ def schema_asic(cfg):
             pernode='optional',
             shorthelp="ASIC: delay model",
             switch="-asic_delaymodel <str>",
-            example= ["cli: -asic_delaymodel ccs",
-                      "api: chip.set('asic', 'delaymodel', 'ccs')"],
+            example=["cli: -asic_delaymodel ccs",
+                     "api: chip.set('asic', 'delaymodel', 'ccs')"],
             schelp="""
             Delay model to use for the target libs. Supported values
             are nldm and ccs.""")
@@ -3253,7 +3254,7 @@ def schema_asic(cfg):
                 all cells containing the string 'eco' could be marked as dont use
                 for the tool.""")
 
-    scparam(cfg,['asic', 'libarch'],
+    scparam(cfg, ['asic', 'libarch'],
             sctype='str',
             pernode='optional',
             shorthelp="ASIC: library architecture",
@@ -3267,7 +3268,7 @@ def schema_asic(cfg):
             might have 'libarchs' called 9t and 12t.""")
 
     libarch = 'default'
-    scparam(cfg,['asic', 'site', libarch],
+    scparam(cfg, ['asic', 'site', libarch],
             sctype='[str]',
             pernode='optional',
             shorthelp="ASIC: Library sites",
@@ -3280,17 +3281,17 @@ def schema_asic(cfg):
 
     return cfg
 
+
 ############################################
 # Constraints
 ############################################
-
 def schema_constraint(cfg):
 
     # TIMING
 
     scenario = 'default'
 
-    scparam(cfg,['constraint', 'timing', scenario, 'voltage'],
+    scparam(cfg, ['constraint', 'timing', scenario, 'voltage'],
             sctype='float',
             pernode='optional',
             unit='V',
@@ -3301,7 +3302,7 @@ def schema_constraint(cfg):
                      "api: chip.set('constraint', 'timing', 'worst','voltage', '0.9')"],
             schelp="""Operating voltage applied to the scenario.""")
 
-    scparam(cfg,['constraint', 'timing', scenario, 'temperature'],
+    scparam(cfg, ['constraint', 'timing', scenario, 'temperature'],
             sctype='float',
             pernode='optional',
             unit='C',
@@ -3312,7 +3313,7 @@ def schema_constraint(cfg):
                      "api: chip.set('constraint', 'timing', 'worst', 'temperature','125')"],
             schelp="""Chip temperature applied to the scenario specified in degrees C.""")
 
-    scparam(cfg,['constraint', 'timing', scenario, 'libcorner'],
+    scparam(cfg, ['constraint', 'timing', scenario, 'libcorner'],
             sctype='[str]',
             pernode='optional',
             scope='job',
@@ -3323,7 +3324,7 @@ def schema_constraint(cfg):
             schelp="""List of characterization corners used to select
             timing files for all logiclibs and macrolibs.""")
 
-    scparam(cfg,['constraint', 'timing', scenario, 'pexcorner'],
+    scparam(cfg, ['constraint', 'timing', scenario, 'pexcorner'],
             sctype='str',
             pernode='optional',
             scope='job',
@@ -3335,7 +3336,7 @@ def schema_constraint(cfg):
             'pexcorner' string must match a corner found in the pdk
             pexmodel setup.""")
 
-    scparam(cfg,['constraint', 'timing', scenario, 'opcond'],
+    scparam(cfg, ['constraint', 'timing', scenario, 'opcond'],
             sctype='str',
             pernode='optional',
             scope='job',
@@ -3347,7 +3348,7 @@ def schema_constraint(cfg):
             can be used to access specific conditions within the library
             timing models from the 'logiclib' timing models.""")
 
-    scparam(cfg,['constraint', 'timing', scenario, 'mode'],
+    scparam(cfg, ['constraint', 'timing', scenario, 'mode'],
             sctype='str',
             pernode='optional',
             scope='job',
@@ -3358,7 +3359,7 @@ def schema_constraint(cfg):
             schelp="""Operating mode for the scenario. Operating mode strings
             can be values such as test, functional, standby.""")
 
-    scparam(cfg,['constraint', 'timing', scenario, 'file'],
+    scparam(cfg, ['constraint', 'timing', scenario, 'file'],
             sctype='[file]',
             pernode='optional',
             scope='job',
@@ -3373,7 +3374,7 @@ def schema_constraint(cfg):
             'constraint' parameter. If no constraints are found, a default
             constraint file is used based on the clock definitions.""")
 
-    scparam(cfg,['constraint', 'timing', scenario, 'check'],
+    scparam(cfg, ['constraint', 'timing', scenario, 'check'],
             sctype='[str]',
             pernode='optional',
             scope='job',
@@ -3670,8 +3671,8 @@ def schema_constraint(cfg):
             scope='job',
             shorthelp="Constraint: Layout outline",
             switch="-constraint_outline <[(float,float)]>",
-            example= ["cli: -constraint_outline '(0,0)'",
-                      "api: chip.set('constraint', 'outline', (0,0))"],
+            example=["cli: -constraint_outline '(0,0)'",
+                     "api: chip.set('constraint', 'outline', (0,0))"],
             schelp="""
             List of (x,y) points that define the outline physical layout
             physical design. Simple rectangle areas can be defined with two points,
@@ -3685,8 +3686,8 @@ def schema_constraint(cfg):
             scope='job',
             shorthelp="Constraint: Layout core area",
             switch="-constraint_corearea <[(float,float)]>",
-            example= ["cli: -constraint_corearea '(0,0)'",
-                      "api: chip.set('constraint', 'corearea', (0,0))"],
+            example=["cli: -constraint_corearea '(0,0)'",
+                     "api: chip.set('constraint', 'corearea', (0,0))"],
             schelp="""
             List of (x,y) points that define the outline of the core area for the
             physical design. Simple rectangle areas can be defined with two points,
@@ -3700,8 +3701,8 @@ def schema_constraint(cfg):
             scope='job',
             shorthelp="Constraint: Layout core margin",
             switch="-constraint_coremargin <float>",
-            example= ["cli: -constraint_coremargin 1",
-                      "api: chip.set('constraint', 'coremargin', '1')"],
+            example=["cli: -constraint_coremargin 1",
+                     "api: chip.set('constraint', 'coremargin', '1')"],
             schelp="""
             Halo/margin between the outline and core area for fully
             automated layout sizing and floorplanning, specified in
@@ -3713,8 +3714,8 @@ def schema_constraint(cfg):
             scope='job',
             shorthelp="Constraint: Layout density",
             switch="-constraint_density <float>",
-            example= ["cli: -constraint_density 30",
-                      "api: chip.set('constraint', 'density', '30')"],
+            example=["cli: -constraint_density 30",
+                     "api: chip.set('constraint', 'density', '30')"],
             schelp="""
             Target density based on the total design cells area reported
             after synthesis/elaboration. This number is used when no outline
@@ -3729,8 +3730,8 @@ def schema_constraint(cfg):
             scope='job',
             shorthelp="Constraint: Layout aspect ratio",
             switch="-constraint_aspectratio <float>",
-            example= ["cli: -constraint_aspectratio 2.0",
-                      "api: chip.set('constraint', 'aspectratio', '2.0')"],
+            example=["cli: -constraint_aspectratio 2.0",
+                     "api: chip.set('constraint', 'aspectratio', '2.0')"],
             schelp="""
             Height to width ratio of the block for automated floorplanning.
             Values below 0.1 and above 10 should be avoided as they will likely fail
@@ -3739,6 +3740,7 @@ def schema_constraint(cfg):
             is supplied.""")
 
     return cfg
+
 
 ##############################################################################
 # Main routine

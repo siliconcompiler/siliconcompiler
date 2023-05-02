@@ -9,6 +9,7 @@ from siliconcompiler.tools.openroad import cts
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import minimum
 
+
 @pytest.fixture
 def gcd_with_metrics(gcd_chip):
     steps = gcd_chip.list_steps()
@@ -27,12 +28,14 @@ def gcd_with_metrics(gcd_chip):
 
     return gcd_chip
 
+
 def test_summary(gcd_with_metrics):
     gcd_with_metrics.summary()
 
+
 def test_steplist(gcd_with_metrics, capfd):
     with capfd.disabled():
-        gcd_with_metrics.set('option','steplist', ['syn'])
+        gcd_with_metrics.set('option', 'steplist', ['syn'])
 
     gcd_with_metrics.summary()
     stdout, _ = capfd.readouterr()
@@ -42,12 +45,13 @@ def test_steplist(gcd_with_metrics, capfd):
     assert 'import0' not in stdout
     assert 'syn0' in stdout
 
+
 def test_parallel_path(capfd):
     with capfd.disabled():
         chip = siliconcompiler.Chip('test')
 
         flow = 'test'
-        chip.set('option','flow', flow)
+        chip.set('option', 'flow', flow)
         chip.node(flow, 'import', nop)
         chip.node(flow, 'ctsmin', minimum)
 

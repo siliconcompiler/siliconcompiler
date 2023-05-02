@@ -1,6 +1,10 @@
 import os
 import siliconcompiler
 
+
+####################################################
+# PDK Setup
+####################################################
 def setup(chip):
     '''
     The asap7 PDK was developed at ASU in collaboration with ARM Research.
@@ -59,14 +63,14 @@ def setup(chip):
     # APR tech file
     for tool in ('openroad', 'klayout', 'magic'):
         pdk.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
-                pdkdir+'/apr/asap7_tech.lef')
+                pdkdir + '/apr/asap7_tech.lef')
 
     pdk.set('pdk', process, 'minlayer', stackup, 'M2')
     pdk.set('pdk', process, 'maxlayer', stackup, 'M7')
 
     # Klayout setup file
-    pdk.set('pdk', process, 'layermap','klayout','def','gds',stackup,
-            pdkdir+'/setup/klayout/asap7.lyt')
+    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup,
+            pdkdir + '/setup/klayout/asap7.lyt')
 
     pdk.set('pdk', process, 'display', 'klayout', stackup,
             pdkdir + '/setup/klayout/asap7.lyp')
@@ -100,6 +104,7 @@ def setup(chip):
             pdkdir + '/pex/openroad/typical.rules')
 
     return pdk
+
 
 #########################
 if __name__ == "__main__":

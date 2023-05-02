@@ -6,6 +6,7 @@ import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
 from siliconcompiler.targets.utils import set_common_showtools
 
+
 def _get_manifest(dirname):
     # pkg.json file may have a different name from the design due to the entrypoint
     manifest = glob.glob(os.path.join(dirname, '*.pkg.json'))
@@ -17,6 +18,7 @@ def _get_manifest(dirname):
     if not manifest or not os.path.isfile(manifest):
         return None
     return manifest
+
 
 def main():
     progname = "sc-show"
@@ -58,7 +60,7 @@ def main():
                         description=description,
                         input_map=input_map)
 
-    #Error checking
+    # Error checking
     design = chip.get('design')
     design_set = design != UNSET_DESIGN
 
@@ -107,6 +109,7 @@ def main():
     success = chip.show(filename)
 
     return 0 if success else 1
+
 
 #########################
 if __name__ == "__main__":

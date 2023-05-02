@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def test_check_logfile(datadir):
 
     chip = siliconcompiler.Chip('gcd')

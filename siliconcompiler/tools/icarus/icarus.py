@@ -11,6 +11,7 @@ Sources: https://github.com/steveicarus/iverilog
 Installation: https://github.com/steveicarus/iverilog
 '''
 
+
 ####################################################################
 # Make Docs
 ####################################################################
@@ -19,10 +20,10 @@ def make_docs(chip):
     setup(chip)
     return chip
 
+
 ################################
 #  Custom runtime options
 ################################
-
 def runtime_options(chip):
 
     ''' Custom runtime options, returns list of command line options.
@@ -34,28 +35,29 @@ def runtime_options(chip):
     cmdlist = []
 
     # source files
-    for value in chip.find_files('option','ydir'):
+    for value in chip.find_files('option', 'ydir'):
         cmdlist.append('-y ' + value)
-    for value in chip.find_files('option','vlib'):
+    for value in chip.find_files('option', 'vlib'):
         cmdlist.append('-v ' + value)
-    for value in chip.find_files('option','idir'):
+    for value in chip.find_files('option', 'idir'):
         cmdlist.append('-I' + value)
-    for value in chip.get('option','define'):
+    for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('option','cmdfile'):
+    for value in chip.find_files('option', 'cmdfile'):
         cmdlist.append('-f ' + value)
     for value in chip.find_files('input', 'rtl', 'verilog', step=step, index=index):
         cmdlist.append(value)
 
     return cmdlist
 
+
 ################################
 # Version Check
 ################################
-
 def parse_version(stdout):
     # First line: Icarus Verilog version 10.1 (stable) ()
     return stdout.split()[3]
+
 
 ##################################################
 if __name__ == "__main__":

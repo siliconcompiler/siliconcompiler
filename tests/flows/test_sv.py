@@ -2,6 +2,7 @@ import siliconcompiler
 import os
 import pytest
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_sv(datadir):

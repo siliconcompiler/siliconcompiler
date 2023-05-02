@@ -1,6 +1,7 @@
 
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
 
+
 def setup(chip):
     '''
     Lints Verilog source. Takes in a single pickled Verilog file from

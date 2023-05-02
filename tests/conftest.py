@@ -5,6 +5,7 @@ import pytest
 import siliconcompiler
 from tests import fixtures
 
+
 def pytest_addoption(parser):
     helpstr = ("Run all tests in current working directory. Default is to run "
                "each test in an isolated per-test temporary directory.")
@@ -13,8 +14,10 @@ def pytest_addoption(parser):
         "--cwd", action="store_true", help=helpstr
     )
 
+
 def pytest_generate_tests(metafunc):
     os.environ['SCPATH'] = os.path.join(fixtures.scroot(), 'siliconcompiler')
+
 
 @pytest.fixture(autouse=True)
 def test_wrapper(tmp_path, request):
@@ -31,6 +34,7 @@ def test_wrapper(tmp_path, request):
         os.chdir(topdir)
     else:
         yield
+
 
 @pytest.fixture(autouse=True)
 def use_strict(monkeypatch, request):
@@ -50,16 +54,19 @@ def use_strict(monkeypatch, request):
 
     monkeypatch.setattr(siliconcompiler.Chip, '__init__', mock_init)
 
+
 @pytest.fixture
 def scroot():
     '''Returns an absolute path to the SC root directory.'''
     return fixtures.scroot()
+
 
 @pytest.fixture
 def datadir(request):
     '''Returns an absolute path to the current test directory's local data
     directory.'''
     return fixtures.datadir(request.fspath)
+
 
 @pytest.fixture
 def gcd_chip():
@@ -74,20 +81,24 @@ def gcd_chip():
 # to separately document which tests require submodules, and makes it easier to
 # specify tests in CI systems.
 
+
 def clone_submodule(dir):
     scroot = fixtures.scroot()
     subprocess.run(['git', 'submodule', 'update', '--init', '--recursive', dir], cwd=scroot)
     return os.path.join(scroot, dir)
+
 
 @pytest.fixture(scope='session')
 def picorv32_dir():
     dir = os.path.join('third_party', 'designs', 'picorv32')
     return clone_submodule(dir)
 
+
 @pytest.fixture(scope='session')
 def oh_dir():
     dir = os.path.join('third_party', 'designs', 'oh')
     return clone_submodule(dir)
+
 
 @pytest.fixture(scope='session')
 def microwatt_dir():

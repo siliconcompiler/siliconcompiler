@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def _setup_lib(chip, libname, suffix):
     lib = siliconcompiler.Library(chip, libname)
 
@@ -19,23 +20,23 @@ def _setup_lib(chip, libname, suffix):
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
 
     # rev
-    lib.set('package', 'version',rev)
+    lib.set('package', 'version', rev)
 
     # todo: remove later
     lib.set('option', 'pdk', 'asap7')
 
     # timing
     for corner_name, lib_corner in corners.items():
-        lib.add('output', corner_name, 'nldm', libdir+'/nldm/'+libname+'_' + lib_corner + '.lib.gz')
+        lib.add('output', corner_name, 'nldm', libdir + '/nldm/' + libname + '_' + lib_corner + '.lib.gz')
 
     # lef
-    lib.add('output', stackup, 'lef', libdir+'/lef/'+libname+'.lef')
+    lib.add('output', stackup, 'lef', libdir + '/lef/' + libname + '.lef')
 
     # gds
-    lib.add('output', stackup, 'gds', libdir+'/gds/'+libname+'.gds')
+    lib.add('output', stackup, 'gds', libdir + '/gds/' + libname + '.gds')
 
     # cdl
-    lib.add('output', stackup, 'cdl', libdir+'/netlist/'+libname+'.cdl')
+    lib.add('output', stackup, 'cdl', libdir + '/netlist/' + libname + '.cdl')
 
     # lib arch
     lib.set('asic', 'libarch', libtype)
@@ -76,7 +77,7 @@ def _setup_lib(chip, libname, suffix):
     lib.add('asic', 'cells', 'tap', f"TAPCELL_ASAP7_75t_{suffix}")
 
     # Endcap
-    lib.add('asic', 'cells','endcap', f"DECAPx1_ASAP7_75t_{suffix}")
+    lib.add('asic', 'cells', 'endcap', f"DECAPx1_ASAP7_75t_{suffix}")
 
     # Yosys techmap
     lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
@@ -107,6 +108,7 @@ def _setup_lib(chip, libname, suffix):
 
     return lib
 
+
 def setup(chip):
     '''
     ASAP 7 7.5-track standard cell library.
@@ -122,6 +124,7 @@ def setup(chip):
         libs.append(_setup_lib(chip, libname, suffix))
 
     return libs
+
 
 #########################
 if __name__ == "__main__":

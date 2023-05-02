@@ -11,28 +11,29 @@ Sources: https://github.com/RTimothyEdwards/magic
 
 import os
 
+
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
     chip.load_target("freepdk45_demo")
 
+
 ################################
 # Setup Tool (pre executable)
 ################################
-
 def setup(chip):
     ''' Setup function for 'magic' tool
     '''
 
     tool = 'magic'
-    refdir = 'tools/'+tool
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    refdir = 'tools/' + tool
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     # magic used for drc and lvs
-    #if step not in ('drc', 'extspice'):
+    # if step not in ('drc', 'extspice'):
     #    raise ValueError(f"Magic tool doesn't support step {step}.")
     script = 'sc_magic.tcl'
 
@@ -60,12 +61,13 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^Error', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'warning', step=step, index=index, clobber=False)
 
+
 ################################
 # Version Check
 ################################
-
 def parse_version(stdout):
     return stdout.strip('\n')
+
 
 ##################################################
 if __name__ == "__main__":

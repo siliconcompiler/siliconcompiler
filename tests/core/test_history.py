@@ -1,5 +1,6 @@
 import siliconcompiler
 
+
 def test_history(datadir):
 
     chip = siliconcompiler.Chip('gcd')
@@ -15,6 +16,7 @@ def test_history(datadir):
 
     # record new manifest
     chip.write_manifest("history.json")
+
 
 #########################
 if __name__ == "__main__":

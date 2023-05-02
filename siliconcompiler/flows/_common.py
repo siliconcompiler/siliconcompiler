@@ -5,6 +5,7 @@ from siliconcompiler.tools.bluespec import convert as bluespec_convert
 from siliconcompiler.tools.ghdl import convert as ghdl_convert
 from siliconcompiler.tools.sv2v import convert as sv2v_convert
 
+
 def setup_frontend(chip):
     '''
     Return list of frontend steps to be prepended to flowgraph as list of

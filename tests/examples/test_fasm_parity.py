@@ -4,6 +4,7 @@ import pytest
 
 from siliconcompiler.flows import fpgaflow
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_parity(scroot):

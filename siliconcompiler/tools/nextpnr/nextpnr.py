@@ -9,6 +9,7 @@ Sources: https://github.com/YosysHQ/nextpnr
 Installation: https://github.com/YosysHQ/nextpnr
 '''
 
+
 #####################################################################
 # Make Docs
 #####################################################################
@@ -17,10 +18,10 @@ def make_docs(chip):
     setup(chip)
     return chip
 
+
 ################################
 #  Custom runtime options
 ################################
-
 def runtime_options(chip):
     ''' Custom runtime options, returns list of command line options.
     '''
@@ -43,10 +44,10 @@ def runtime_options(chip):
 
     return options
 
+
 ################################
 # Version Check
 ################################
-
 def parse_version(stdout):
     # Examples:
     # nextpnr-ice40 -- Next Generation Place and Route (Version c73d4cf6)

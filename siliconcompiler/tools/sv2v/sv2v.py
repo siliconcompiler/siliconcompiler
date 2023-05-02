@@ -16,6 +16,7 @@ Installation: https://github.com/zachjs/sv2v
 
 from siliconcompiler.tools.sv2v import convert
 
+
 ####################################################################
 # Make Docs
 ####################################################################
@@ -23,9 +24,11 @@ def make_docs(chip):
     convert.setup(chip)
     return chip
 
+
 def parse_version(stdout):
     # 0.0.7-130-g1aa30ea
     return '-'.join(stdout.split('-')[:-1])
+
 
 ##################################################
 if __name__ == "__main__":

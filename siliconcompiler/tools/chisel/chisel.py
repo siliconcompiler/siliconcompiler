@@ -16,12 +16,14 @@ installed. Instructions: https://www.scala-sbt.org/download.html.
 
 from siliconcompiler.tools.chisel import convert
 
+
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
     convert.setup(chip)
     return chip
+
 
 def parse_version(stdout):
     # sbt version in this project: 1.5.5
@@ -34,10 +36,10 @@ def parse_version(stdout):
 
     return None
 
+
 ################################
 #  Custom runtime options
 ################################
-
 def runtime_options(chip):
 
     cmdlist = []

@@ -2,6 +2,7 @@ import os
 import siliconcompiler
 import pytest
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(180)
@@ -40,6 +41,7 @@ def test_parameterized_instantiation(datadir):
     chip.set('option', 'jobname', 'job2')
     chip.run()
     assert os.path.isfile(f"build/{design}/job2/syn/0/outputs/{design}.vg")
+
 
 if __name__ == "__main__":
     from tests.fixtures import datadir

@@ -2,6 +2,7 @@ import siliconcompiler
 
 from siliconcompiler.tools.builtin import join
 
+
 def test_list_steps():
     chip = siliconcompiler.Chip('test')
     flow = 'test'

@@ -14,12 +14,14 @@ from siliconcompiler.tools.klayout import export as klayout_export
 
 from siliconcompiler.tools.builtin import minimum
 
+
 ############################################################################
 # DOCS
 ############################################################################
 def make_docs(chip):
     n = 3
     return setup(chip, syn_np=n, floorplan_np=n, physyn_np=n, place_np=n, cts_np=n, route_np=n)
+
 
 ###########################################################################
 # Flowgraph Setup
@@ -74,7 +76,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
                 'routemin',
                 'dfm']
 
-    #step --> task
+    # step --> task
     tasks = {
         'syn': syn_asic,
         'synmin': minimum,
@@ -160,6 +162,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
     flow.edge(flowname, prevstep, 'export', head_index=1)
 
     return flow
+
 
 ##################################################
 if __name__ == "__main__":
