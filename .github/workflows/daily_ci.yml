@@ -85,3 +85,55 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install .[test]
           pytest -n auto --import-mode=append
+
+  zerosoc:
+    name: 'ZeroSOC'
+    needs: docker_image
+    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.docker_image.outputs.sc_tools }}
+      credentials:
+        username: ${{ secrets.PACKAGES_ACTOR }}
+        password: ${{ secrets.PACKAGES_TOKEN }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config: ["flat", "hierarchy"]
+
+    steps:
+      - name: Checkout SiliconCompiler
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Checkout ZeroSOC
+        uses: actions/checkout@v3
+        with:
+          repository: siliconcompiler/zerosoc
+          path: zerosoc
+          submodules: true
+
+      - name: Run flat
+        if: matrix.config == 'flat'
+        run: |
+          python3 -m venv clean_env
+          source clean_env/bin/activate
+          cd $GITHUB_WORKSPACE
+          python3 -m pip install --upgrade pip
+          python3 -m pip install .
+          cd $GITHUB_WORKSPACE/zerosoc
+          ./build.py --top-flat
+
+      - name: Run hierarchy
+        if: matrix.config == 'hierarchy'
+        run: |
+          python3 -m venv clean_env
+          source clean_env/bin/activate
+          cd $GITHUB_WORKSPACE
+          python3 -m pip install --upgrade pip
+          python3 -m pip install .
+          cd $GITHUB_WORKSPACE/zerosoc
+          ./build.py --core-only
+          ./build.py --top-only
