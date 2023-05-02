@@ -50,7 +50,7 @@ def setup(chip, mode='batch'):
 
     tool = 'openroad'
     script = 'sc_apr.tcl'
-    refdir = 'tools/'+tool
+    refdir = 'tools/' + tool
 
     design = chip.top()
 
@@ -82,7 +82,7 @@ def setup(chip, mode='batch'):
     threads = os.cpu_count()
     if not chip.get('option', 'remote') and step in chip.getkeys('flowgraph', flow):
         np = len(chip.getkeys('flowgraph', flow, step))
-        threads = int(math.ceil(os.cpu_count()/np))
+        threads = int(math.ceil(os.cpu_count() / np))
 
     # Input/Output requirements for default asicflow steps
 
@@ -320,7 +320,7 @@ def post_process(chip):
 
         or_units['distance'] = 'um'  # always microns
         or_units['power'] = 'W'  # always watts
-        or_units['area'] = or_units['distance']+'^2'
+        or_units['area'] = f"{or_units['distance']}^2"
         or_units['frequency'] = 'Hz'  # always hertz
 
         has_timing = True

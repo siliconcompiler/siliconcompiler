@@ -39,19 +39,19 @@ def setup(chip):
 
     # timing
     lib.add('output', corner, 'nldm',
-            libdir+'/lib/NangateOpenCellLibrary_typical.lib')
+            libdir + '/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
     lib.add('output', stackup, 'lef',
-            libdir+'/lef/NangateOpenCellLibrary.macro.mod.lef')
+            libdir + '/lef/NangateOpenCellLibrary.macro.mod.lef')
 
     # gds
     lib.add('output', stackup, 'gds',
-            libdir+'/gds/NangateOpenCellLibrary.gds')
+            libdir + '/gds/NangateOpenCellLibrary.gds')
 
     # cdl
     lib.add('output', stackup, 'cdl',
-            libdir+'/cdl/NangateOpenCellLibrary.cdl')
+            libdir + '/cdl/NangateOpenCellLibrary.cdl')
 
     # clock buffers
     lib.add('asic', 'cells','clkbuf', "BUF_X4")

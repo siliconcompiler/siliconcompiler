@@ -498,7 +498,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         print(_metadata.banner)
         print("Authors:", ", ".join(_metadata.authors))
         print("Version:", _metadata.version, "\n")
-        print("-"*80)
+        print("-" * 80)
 
         # 1. set loglevel if set at command line
         if 'option_loglevel' in cmdargs.keys():
@@ -786,7 +786,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         para_list = para.wrap(text=helpstr)
 
         #Full Doc String
-        fullstr = "-"*80
+        fullstr = "-" * 80
         fullstr += "\nDescription: " + description
         fullstr += "\nSwitch:      " + switchstr
         fullstr += "\nType:        " + typestr
@@ -795,7 +795,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         fullstr += examplestr
         fullstr += "\nHelp:        " + para_list[0] + "\n"
         for line in para_list[1:]:
-            fullstr = fullstr + " "*13 + line.lstrip() + "\n"
+            fullstr = fullstr + " " * 13 + line.lstrip() + "\n"
 
         return fullstr
 
@@ -2400,7 +2400,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 path = os.path.join(basedir, folder)
                 tar.add(os.path.abspath(path), arcname=path)
 
-            logfile = os.path.join(basedir, step+'.log')
+            logfile = os.path.join(basedir, f'{step}.log')
             if os.path.isfile(logfile):
                 tar.add(os.path.abspath(logfile), arcname=logfile)
 
@@ -2644,9 +2644,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         diearea = diearea / 10000.0**2
 
         if model == 'poisson':
-            dy = math.exp(-diearea * d0/100)
+            dy = math.exp(-diearea * d0 / 100)
         elif model == 'murphy':
-            dy = ((1-math.exp(-diearea * d0/100))/(diearea * d0/100))**2
+            dy = ((1 - math.exp(-diearea * d0 / 100)) / (diearea * d0 / 100))**2
         else:
             self.error(f'Unknown yield model: {model}')
 
@@ -2764,8 +2764,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for i in range(len(switches)):
             if switches[i] == "-e":
                 if i != (len(switches)):
-                    pattern = ' '.join(switches[i+1:]) + " " + pattern
-                    switches = switches[0:i+1]
+                    pattern = ' '.join(switches[i + 1:]) + " " + pattern
+                    switches = switches[0:i + 1]
                     break
                 options["-e"] = True
             elif switches[i] in options.keys():
@@ -3057,15 +3057,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if not step or step in steplist:
                     libraries.update(val)
 
-            info_list.extend(["foundry : " + self.get('pdk', pdk, 'foundry'),
-                              "process : " + pdk,
-                              "targetlibs : "+" ".join(libraries)])
+            info_list.extend([f"foundry : {self.get('pdk', pdk, 'foundry')}",
+                              f"process : {pdk}",
+                              f"targetlibs : f{' '.join(libraries)}"])
         elif self.get('option', 'mode') == 'fpga':
-            info_list.extend(["partname : "+self.get('fpga','partname')])
+            info_list.extend([f"partname : {self.get('fpga','partname')}"])
 
         info = '\n'.join(info_list)
 
-        print("-"*135)
+        print("-" * 135)
         print(info, "\n")
 
         # Collections for data
@@ -3162,7 +3162,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             print(df.to_string())
         else:
             print(' No metrics to display!')
-        print("-"*135)
+        print("-" * 135)
 
         # Create a report for the Chip object which can be viewed in a web browser.
         # Place report files in the build's root directory.
@@ -4050,7 +4050,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     m = re.match(stem + r'(\d+)', job)
                     if m:
                         jobid = max(jobid, int(m.group(1)))
-                self.set('option', 'jobname', f'{stem}{jobid+1}')
+                self.set('option', 'jobname', f'{stem}{jobid + 1}')
 
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
@@ -4257,20 +4257,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             processes = {}
             for step in steplist:
                 for index in indexlist[step]:
-                    if status[step+index] != TaskStatus.PENDING:
+                    nodename = f'{step}{index}'
+                    if status[nodename] != TaskStatus.PENDING:
                         continue
 
-                    inputs = [step+index for step, index in self.get('flowgraph', flow, step, index, 'input')]
+                    inputs = [f'{step}{index}' for step, index in self.get('flowgraph', flow, step, index, 'input')]
 
                     if (self._get_in_job(step, index) != jobname):
                         # If we specify a different job as input to this task,
                         # we assume we are good to run it.
-                        tasks_to_run[step+index] = []
+                        tasks_to_run[nodename] = []
                     else:
-                        tasks_to_run[step+index] = inputs
+                        tasks_to_run[nodename] = inputs
 
-                    processes[step+index] = multiprocessing.Process(target=self._runtask,
-                                                                    args=(step, index, status))
+                    processes[nodename] = multiprocessing.Process(target=self._runtask,
+                                                                  args=(step, index, status))
 
             # We have to deinit the chip's logger before spawning the processes
             # since the logger object is not serializable. _runtask_safe will
@@ -4357,7 +4358,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 os.listdir(os.path.dirname(lastdir))
 
                 lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
-                if status[step+index] == TaskStatus.SUCCESS:
+                if status[f'{step}{index}'] == TaskStatus.SUCCESS:
                     self._read_manifest(lastcfg, clobber=False, partial=True)
                 else:
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)

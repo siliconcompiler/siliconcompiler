@@ -8,7 +8,7 @@ def setup(chip):
     '''
 
     tool = 'netgen'
-    refdir = 'tools/'+tool
+    refdir = 'tools/' + tool
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)

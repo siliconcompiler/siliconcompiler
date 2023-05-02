@@ -59,14 +59,14 @@ def setup(chip):
     # APR tech file
     for tool in ('openroad', 'klayout', 'magic'):
         pdk.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
-                pdkdir+'/apr/asap7_tech.lef')
+                pdkdir + '/apr/asap7_tech.lef')
 
     pdk.set('pdk', process, 'minlayer', stackup, 'M2')
     pdk.set('pdk', process, 'maxlayer', stackup, 'M7')
 
     # Klayout setup file
     pdk.set('pdk', process, 'layermap','klayout','def','gds',stackup,
-            pdkdir+'/setup/klayout/asap7.lyt')
+            pdkdir + '/setup/klayout/asap7.lyt')
 
     pdk.set('pdk', process, 'display', 'klayout', stackup,
             pdkdir + '/setup/klayout/asap7.lyp')

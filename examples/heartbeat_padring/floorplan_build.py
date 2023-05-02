@@ -240,11 +240,11 @@ def place_pdn(fp):
     stripe_w = 0.48
     spacing = 2 * fp.stdcell_height
 
-    bottom = margin_bottom - stripe_w/2
+    bottom = margin_bottom - stripe_w / 2
     fp.place_wires(['_vdd'] * math.ceil(len(fp.rows) / 2), margin_left, bottom, 0, spacing,
                    place_w, stripe_w, 'm1', 'followpin')
 
-    bottom = margin_bottom - stripe_w/2 + fp.stdcell_height
+    bottom = margin_bottom - stripe_w / 2 + fp.stdcell_height
     fp.place_wires(['_vss'] * math.floor(len(fp.rows) / 2), margin_left, bottom, 0, spacing,
                    place_w, stripe_w, 'm1', 'followpin')
 

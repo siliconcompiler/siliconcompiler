@@ -68,20 +68,20 @@ def setup(chip):
     # TODO: remove libtype
     for tool in ('openroad', 'klayout', 'magic'):
         pdk.set('pdk', process,'aprtech',tool,stackup, libtype,'lef',
-                pdkdir+'/apr/sky130_fd_sc_hd.tlef')
+                pdkdir + '/apr/sky130_fd_sc_hd.tlef')
 
     pdk.set('pdk', process, 'minlayer', stackup, 'met1')
     pdk.set('pdk', process, 'maxlayer', stackup, 'met5')
 
     # DRC Runsets
-    pdk.set('pdk', process,'drc', 'runset', 'magic', stackup, 'basic', pdkdir+'/setup/magic/sky130A.tech')
+    pdk.set('pdk', process,'drc', 'runset', 'magic', stackup, 'basic', pdkdir + '/setup/magic/sky130A.tech')
 
     # LVS Runsets
-    pdk.set('pdk', process,'lvs', 'runset', 'netgen', stackup, 'basic', pdkdir+'/setup/netgen/lvs_setup.tcl')
+    pdk.set('pdk', process,'lvs', 'runset', 'netgen', stackup, 'basic', pdkdir + '/setup/netgen/lvs_setup.tcl')
 
     # Layer map and display file
-    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup, pdkdir+'/setup/klayout/skywater130.lyt')
-    pdk.set('pdk', process, 'display', 'klayout', stackup, pdkdir+'/setup/klayout/sky130A.lyp')
+    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup, pdkdir + '/setup/klayout/skywater130.lyt')
+    pdk.set('pdk', process, 'display', 'klayout', stackup, pdkdir + '/setup/klayout/sky130A.lyp')
 
     # Openroad global routing grid derating
     openroad_layer_adjustments = {
@@ -107,9 +107,9 @@ def setup(chip):
     # PEX
     for corner in ["minimum", "typical", "maximum"]:
         pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, corner,
-                pdkdir + '/pex/openroad/'+corner+'.tcl')
+                pdkdir + '/pex/openroad/' + corner + '.tcl')
         pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, corner,
-                pdkdir + '/pex/openroad/'+corner+'.rules')
+                pdkdir + '/pex/openroad/' + corner + '.rules')
 
     return pdk
 

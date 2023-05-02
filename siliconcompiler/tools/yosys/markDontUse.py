@@ -21,7 +21,7 @@ def processLibertyFile(input_file, output_file, dont_use, quiet=False):
 
     # Pattern to match a cell header
     cell_pattern = r"[\"]*|[\"]*"
-    pattern = r"(^\s*cell\s*\(\s*([\"]*"+cell_pattern.join(patternList)+r"[\"]*)\)\s*\{)"
+    pattern = r"(^\s*cell\s*\(\s*([\"]*" + cell_pattern.join(patternList) + r"[\"]*)\)\s*\{)"
 
     # print(pattern)
     replace = r"\1\n    dont_use : true;"

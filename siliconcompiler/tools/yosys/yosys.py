@@ -32,7 +32,7 @@ def setup(chip):
 
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'yosys'
-    refdir = 'tools/'+tool
+    refdir = 'tools/' + tool
     step = chip.get('arg','step')
     index = chip.get('arg','index')
     task = chip._get_task(step, index)

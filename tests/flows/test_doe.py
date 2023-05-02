@@ -50,7 +50,7 @@ def test_doe(oh_dir):
     chip = siliconcompiler.Chip()
     prev_area = 0
     for i in range(len(N)):
-        jobname = 'job'+str(i)
+        jobname = 'job' + str(i)
         chip.read_manifest(f"build/{design}/{jobname}/syn/0/outputs/{design}.pkg.json", job=jobname)
         area = chip.get('metric','syn','0','cellarea','real', job=jobname)
 

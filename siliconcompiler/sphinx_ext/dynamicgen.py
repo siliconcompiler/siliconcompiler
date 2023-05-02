@@ -97,7 +97,7 @@ def build_config_recursive(schema, refdoc, keypath=None, sec_key_prefix=None):
             val = schema.getdict(*keypath, key)
             leaves.update({key: val})
         else:
-            children = build_config_recursive(schema, refdoc, keypath=keypath+[key], sec_key_prefix=sec_key_prefix)
+            children = build_config_recursive(schema, refdoc, keypath=keypath + [key], sec_key_prefix=sec_key_prefix)
             child_sections.extend(children)
 
     schema_table = None
@@ -273,7 +273,7 @@ class DynamicGen(SphinxDirective):
         builtin = os.path.abspath(path).startswith(SC_ROOT)
 
         if builtin:
-            relpath = path[len(SC_ROOT)+1:]
+            relpath = path[len(SC_ROOT) + 1:]
             gh_root = 'https://github.com/siliconcompiler/siliconcompiler/blob/main'
             gh_link = f'{gh_root}/{relpath}'
             filename = os.path.basename(relpath)
@@ -285,8 +285,8 @@ class DynamicGen(SphinxDirective):
 
     def document_free_params(self, cfg, reference_prefix, s):
         key_path = ['tool', '<tool>', 'task', '<task>']
-        self._document_free_params(cfg, 'var', key_path+['var'], reference_prefix, s)
-        self._document_free_params(cfg, 'file', key_path+['file'], reference_prefix, s)
+        self._document_free_params(cfg, 'var', key_path + ['var'], reference_prefix, s)
+        self._document_free_params(cfg, 'file', key_path + ['file'], reference_prefix, s)
 
     def _document_free_params(self, cfg, type, key_path, reference_prefix, s):
         if type in cfg:
@@ -657,7 +657,7 @@ class TargetGen(DynamicGen):
             for module in modules:
                 list_item = nodes.list_item()
                 # TODO: replace with proper docutils nodes: sphinx.addnodes.pending_xref
-                modkey = get_ref_id(refprefix+module)
+                modkey = get_ref_id(refprefix + module)
                 self.parse_rst(f':ref:`{module}<{modkey}>`', list_item)
                 modlist += list_item
 
@@ -732,7 +732,7 @@ class ChecklistGen(DynamicGen):
         for key in cfg.keys():
             if key == 'default':
                 continue
-            settings += build_section(key, section_prefix+'-'+key)
+            settings += build_section(key, section_prefix + '-' + key)
             settings += build_schema_value_table(cfg[key], self.env.docname, keypath_prefix=[*section_key, key])
 
         sections.append(settings)

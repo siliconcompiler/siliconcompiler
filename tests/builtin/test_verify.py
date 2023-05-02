@@ -29,12 +29,12 @@ def chip():
     for i, step in enumerate(flowpipe):
         if step == "teststep":
             chip.node(flow, step, task[step])
-            chip.edge(flow, flowpipe[i-1], step)
+            chip.edge(flow, flowpipe[i - 1], step)
         elif step == 'import':
             chip.node(flow, step, task[step])
         else:
             chip.node(flow, step, task[step])
-            chip.edge(flow, flowpipe[i-1], step)
+            chip.edge(flow, flowpipe[i - 1], step)
 
     # creating fake syn results
     for metric in chip.getkeys('flowgraph', flow, 'syn', '0', 'weight'):

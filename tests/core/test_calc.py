@@ -61,13 +61,13 @@ def test_calc_yield_poisson():
     chip.load_target('freepdk45_demo')
 
     chip.set('constraint', 'outline', [(0,0), (150000, 75000)])
-    assert int(1000*chip.calc_yield()) == 245
+    assert int(1000 * chip.calc_yield()) == 245
 
     chip.set('constraint', 'outline', [(0,0), (75000, 75000)])
-    assert int(1000*chip.calc_yield()) == 495
+    assert int(1000 * chip.calc_yield()) == 495
 
     chip.set('constraint', 'outline', [(0,0), (5000, 5000)])
-    assert int(1000*chip.calc_yield()) == 996
+    assert int(1000 * chip.calc_yield()) == 996
 
 def test_calc_yield_poisson_with_stepindex():
     chip = siliconcompiler.Chip('test')
@@ -77,9 +77,9 @@ def test_calc_yield_poisson_with_stepindex():
     chip.set('constraint', 'outline', [(0,0), (75000, 75000)], step='floorplan', index='1')
     chip.set('constraint', 'outline', [(0,0), (5000, 5000)], step='floorplan', index='2')
 
-    assert int(1000*chip.calc_yield(step='floorplan', index='0')) == 245
-    assert int(1000*chip.calc_yield(step='floorplan', index='1')) == 495
-    assert int(1000*chip.calc_yield(step='floorplan', index='2')) == 996
+    assert int(1000 * chip.calc_yield(step='floorplan', index='0')) == 245
+    assert int(1000 * chip.calc_yield(step='floorplan', index='1')) == 495
+    assert int(1000 * chip.calc_yield(step='floorplan', index='2')) == 996
 
 @pytest.mark.nostrict
 def test_calc_yield_murphy():
@@ -88,13 +88,13 @@ def test_calc_yield_murphy():
 
     chip.set('constraint', 'outline', [(0,0), (150000, 75000)])
     # Rounding to int(1000x) to avoid noise in float
-    assert int(1000*chip.calc_yield(model='murphy')) == 288
+    assert int(1000 * chip.calc_yield(model='murphy')) == 288
 
     chip.set('constraint', 'outline', [(0,0), (75000, 75000)])
-    assert int(1000*chip.calc_yield(model='murphy')) == 515
+    assert int(1000 * chip.calc_yield(model='murphy')) == 515
 
     chip.set('constraint', 'outline', [(0,0), (5000, 5000)])
-    assert int(1000*chip.calc_yield(model='murphy')) == 996
+    assert int(1000 * chip.calc_yield(model='murphy')) == 996
 
 def test_calc_yield_murphy_with_stepindex():
     chip = siliconcompiler.Chip('test')
@@ -105,9 +105,9 @@ def test_calc_yield_murphy_with_stepindex():
     chip.set('constraint', 'outline', [(0,0), (5000, 5000)], step='floorplan', index='2')
 
     # Rounding to int(1000x) to avoid noise in float
-    assert int(1000*chip.calc_yield(step='floorplan', index='0', model='murphy')) == 288
-    assert int(1000*chip.calc_yield(step='floorplan', index='1', model='murphy')) == 515
-    assert int(1000*chip.calc_yield(step='floorplan', index='2', model='murphy')) == 996
+    assert int(1000 * chip.calc_yield(step='floorplan', index='0', model='murphy')) == 288
+    assert int(1000 * chip.calc_yield(step='floorplan', index='1', model='murphy')) == 515
+    assert int(1000 * chip.calc_yield(step='floorplan', index='2', model='murphy')) == 996
 
 #########################
 if __name__ == "__main__":

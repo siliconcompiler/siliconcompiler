@@ -116,7 +116,7 @@ def remote_run(chip):
             if is_busy:
                 if (':' in is_busy_info['message']):
                     msg_lines = is_busy_info['message'].splitlines()
-                    cur_step = msg_lines[0][msg_lines[0].find(': ')+2:]
+                    cur_step = msg_lines[0][msg_lines[0].find(': ') + 2:]
                     cur_log = '\n'.join(msg_lines[1:])
                     chip.logger.info("Job is still running (%d seconds, step: %s)." % (
                                      int(time.monotonic() - step_start), cur_step))

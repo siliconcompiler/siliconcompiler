@@ -26,16 +26,16 @@ def _setup_lib(chip, libname, suffix):
 
     # timing
     for corner_name, lib_corner in corners.items():
-        lib.add('output', corner_name, 'nldm', libdir+'/nldm/'+libname+'_' + lib_corner + '.lib.gz')
+        lib.add('output', corner_name, 'nldm', libdir + '/nldm/' + libname + '_' + lib_corner + '.lib.gz')
 
     # lef
-    lib.add('output', stackup, 'lef', libdir+'/lef/'+libname+'.lef')
+    lib.add('output', stackup, 'lef', libdir + '/lef/' + libname + '.lef')
 
     # gds
-    lib.add('output', stackup, 'gds', libdir+'/gds/'+libname+'.gds')
+    lib.add('output', stackup, 'gds', libdir + '/gds/' + libname + '.gds')
 
     # cdl
-    lib.add('output', stackup, 'cdl', libdir+'/netlist/'+libname+'.cdl')
+    lib.add('output', stackup, 'cdl', libdir + '/netlist/' + libname + '.cdl')
 
     # lib arch
     lib.set('asic', 'libarch', libtype)

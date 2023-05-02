@@ -10,8 +10,8 @@ import time
 def run_design(design, M, job):
 
     chip = siliconcompiler.Chip(design, loglevel='INFO')
-    chip.input(design+'.v')
-    chip.input(design+'.sdc')
+    chip.input(f'{design}.v')
+    chip.input(f'{design}.sdc')
     chip.set('option', 'jobname', job)
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
@@ -75,9 +75,9 @@ def main():
     ###################################
     # Benchmark calculation
 
-    paraflow_time = round(paraflow_end - paraflow_start,2)
-    parastep_time = round(parastep_end - parastep_start,2)
-    serial_time = round(serial_end - serial_start,2)
+    paraflow_time = round(paraflow_end - paraflow_start, 2)
+    parastep_time = round(parastep_end - parastep_start, 2)
+    serial_time = round(serial_end - serial_start, 2)
 
     print(f" Serial = {serial_time}s\n",
           f"Parallel steps = {parastep_time}s\n",

@@ -19,5 +19,5 @@ def setup(chip):
 
     # Only one task (compile)
     chip.add('tool', tool, 'task', task, 'require', 'input,rtl,verilog', step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'option', '-o outputs/'+design+'.vvp', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'option', f'-o outputs/{design}.vvp', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)

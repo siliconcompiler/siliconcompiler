@@ -15,7 +15,7 @@ def setup(chip):
     task = chip._get_task(step, index)
 
     # Standard Setup
-    refdir = 'tools/'+tool
+    refdir = 'tools/' + tool
     chip.set('tool', tool, 'exe', 'bsc')
     # This is technically the 'verbose' flag, but used alone it happens to give
     # us the version and exit cleanly, so we'll use it here.

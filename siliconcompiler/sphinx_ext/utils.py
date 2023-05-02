@@ -68,7 +68,7 @@ def build_section_with_target(text, key, ctx):
     return sec
 
 def get_ref_id(key):
-    return nodes.make_id(key+"-ref")
+    return nodes.make_id(key + "-ref")
 
 def para(text):
     return nodes.paragraph(text=text)
@@ -148,7 +148,7 @@ def keypath(key_path, refdoc, key_text=None):
     if key_text:
         text_parts = key_text
     text = f"[{', '.join(text_parts)}]"
-    refid = get_ref_id('param-'+'-'.join(key_parts))
+    refid = get_ref_id('param-' + '-'.join(key_parts))
 
     opt = {'refdoc': refdoc,
            'refdomain': 'sc',

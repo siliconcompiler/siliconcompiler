@@ -63,11 +63,11 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
     stripe_layer = fp.chip.get('library', mainlib, 'asic', 'pgmetal')
     spacing = 2 * fp.stdcell_height
 
-    bottom = core_bottom - stripe_w/2
+    bottom = core_bottom - stripe_w / 2
     fp.place_wires([vdd] * npwr, core_left, bottom, 0, spacing,
                    core_w, stripe_w, stripe_layer, 'followpin')
 
-    bottom = core_bottom - stripe_w/2 + fp.stdcell_height
+    bottom = core_bottom - stripe_w / 2 + fp.stdcell_height
     fp.place_wires([vss] * ngnd, core_left, bottom, 0, spacing,
                    core_w, stripe_w, stripe_layer, 'followpin')
 
@@ -108,7 +108,7 @@ def generate_block_floorplan(fp, diearea, corearea, inputs, outputs, pdn=None):
     fp.place_pins(input_pins, 0, in_spacing, 0, in_spacing + width, depth, width, layer, snap=True)
 
     out_spacing = (die_height - len(output_pins) * width) / (len(output_pins) + 1)
-    fp.place_pins(output_pins, die_width-depth, out_spacing, 0, out_spacing + width, depth, width, layer, snap=True)
+    fp.place_pins(output_pins, die_width - depth, out_spacing, 0, out_spacing + width, depth, width, layer, snap=True)
 
     if pdn:
         place_pdn(fp, **pdn)

@@ -13,7 +13,7 @@ def main(limit=0):
 
     # Plugging design into SC
     chip = siliconcompiler.Chip(design)
-    chip.input(rootdir+'/mathlib/hdl/'+design+'.v')
+    chip.input(rootdir + '/mathlib/hdl/' + design + '.v')
     chip.set('option', 'param', 'N', str(N))
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
@@ -40,7 +40,7 @@ def main(limit=0):
         # Setting a unique jobid
         oldid = chip.get('option', 'jobname')
         match = re.match(r'(.*)(\d+)$', oldid)
-        newid = match.group(1) + str(int(match.group(2))+1)
+        newid = match.group(1) + str(int(match.group(2)) + 1)
         chip.set('option', 'jobname', newid)
 
         # Specifying that imports are copied from job0
@@ -55,7 +55,7 @@ def main(limit=0):
 
         # compare result
         print(N, new_area, old_area, newid, chip.get('option', 'jobname'))
-        if (new_area/old_area) > 2.1:
+        if (new_area / old_area) > 2.1:
             print("Stopping, area is exploding")
             break
 

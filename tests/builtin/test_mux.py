@@ -39,18 +39,18 @@ def chip():
             if step == "teststep":
                 chip.node(flow, step, task[step], index=index)
                 for j in range(N):
-                    chip.edge(flow, flowpipe[i-1], step, tail_index=j)
+                    chip.edge(flow, flowpipe[i - 1], step, tail_index=j)
             elif step == 'import':
                 chip.node(flow, step, task[step], index=index)
             else:
                 chip.node(flow, step, task[step], index=index)
-                chip.edge(flow, flowpipe[i-1], step, tail_index=0, head_index=index)
+                chip.edge(flow, flowpipe[i - 1], step, tail_index=0, head_index=index)
 
     # creating fake syn results
     for index in range(N):
         for metric in chip.getkeys('flowgraph', flow, 'syn', str(index), 'weight'):
             if metric != 'setupwns':
-                chip.set('metric', metric, 1000-index*1 + 42.0, step='syn', index=index)
+                chip.set('metric', metric, 1000 - index * 1 + 42.0, step='syn', index=index)
             else:
                 chip.set('metric', metric, index % 3, step='syn', index=index)
 

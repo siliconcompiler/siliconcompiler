@@ -12,7 +12,7 @@ def setup(chip):
     task = chip._get_task(step, index)
 
     # Standard Setup
-    refdir = 'tools/'+tool
+    refdir = 'tools/' + tool
     chip.set('tool', tool, 'exe', 'sbt')
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=1.5.5', clobber=False)

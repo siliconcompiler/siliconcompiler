@@ -33,7 +33,7 @@ def main():
             chip.input(os.path.join(rootdir, f"{design}.v"))
             chip.input(os.path.join(rootdir, f"{design}.sdc"))
             chip.set('constraint', 'outline', [(0,0), (size,size)])
-            chip.set('constraint', 'corearea', [(10,10), (size-10,size-10)])
+            chip.set('constraint', 'corearea', [(10, 10), (size - 10, size - 10)])
 
             # load flow
             chip.set('flowarg', 'syn_np', n)

@@ -23,10 +23,12 @@ def main():
 
     #Error checking
     if not chip.get('cfg'):
-        print(progname+": error: the following arguments are required: -cfg")
-        sys.exit()
+        print(f"{progname} error: the following arguments are required: -cfg")
+        return 1
     else:
         chip.run()
+
+    return 0
 
 #########################
 if __name__ == "__main__":

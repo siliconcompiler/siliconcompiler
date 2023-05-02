@@ -22,7 +22,7 @@ def test_sup():
         l1.set('package', 'license', 'MIT')
         l1.set('package', 'description', 'sup?')
         for j in ('0', '1', '2'):
-            dep2 = i+j
+            dep2 = i + j
             os.makedirs(f"{builddir}/{dep2}/job0/export/outputs", exist_ok=True)
             l1.add('package', 'dependency', dep2, f"0.0.{j}")
             l2 = sc.Chip(dep2)
@@ -39,7 +39,7 @@ def test_sup():
         p = sc.package.Sup(i)
         p.publish(f"{builddir}/{i}/job0/export/outputs/{i}.pkg.json", registry)
         for j in ('0', '1', '2'):
-            dep2 = i+j
+            dep2 = i + j
             p = sc.package.Sup(dep2)
             p.publish(f"{builddir}/{dep2}/job0/export/outputs/{dep2}.pkg.json", registry)
 
