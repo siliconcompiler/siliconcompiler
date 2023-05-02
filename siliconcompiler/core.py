@@ -4031,10 +4031,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Runs the execution flow defined by the flowgraph dictionary.
         '''
 
-        flow = self.get('option', 'flow')
-        if flow is None:
-            self.error("['option', 'flow'] must be set before calling run()",
-                       fatal=True)
+        # Check required settings before attempting run()
+        for key in (['option', 'flow'],
+                    ['option', 'mode']):
+            if self.get(*key) is None:
+                self.error(f"{key} must be set before calling run()",
+                           fatal=True)
 
         # Auto-update jobname if ['option', 'jobincr'] is True
         # Do this before initializing logger so that it picks up correct jobname
@@ -4056,6 +4058,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._init_logger(in_run=True)
 
         # Check if flowgraph is complete and valid
+        flow = self.get('option', 'flow')
         if not self._check_flowgraph(flow=flow):
             self.error(f"{flow} flowgraph contains errors and cannot be run.",
                        fatal=True)
