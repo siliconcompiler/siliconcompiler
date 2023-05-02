@@ -126,6 +126,7 @@ def test_replay(scroot):
     assert p.returncode == 0
     assert p.stdout.decode('ascii').rstrip().split('\n')[-1] == 'SUCCESS'
 
+
 if __name__ == "__main__":
     from tests.fixtures import scroot
     from tests.fixtures import datadir

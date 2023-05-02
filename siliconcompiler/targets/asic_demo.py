@@ -28,6 +28,7 @@ def setup(chip):
     # Add source files.
     chip.input(os.path.join(os.path.dirname(__file__), '..', 'data', f'{design}.v'))
 
+
 #########################
 if __name__ == "__main__":
     target = siliconcompiler.Chip('<target>')

@@ -54,6 +54,7 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.set('constraint', 'timing', 'worst', 'mode', 'func')
     chip.set('constraint', 'timing', 'worst', 'check', ['setup','hold'])
 
+
 #########################
 if __name__ == "__main__":
     target = siliconcompiler.Chip('<target>')

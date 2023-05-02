@@ -14,6 +14,7 @@ def test_lock():
 
     assert (chip.get('design') == "gcd")
 
+
 #########################
 if __name__ == "__main__":
     test_lock()

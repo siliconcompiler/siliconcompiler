@@ -112,6 +112,7 @@ def syn_post_process(chip):
     if registers is not None:
         chip._record_metric(step, index, 'registers', registers, f"{step}.log")
 
+
 ##################################################
 if __name__ == "__main__":
 

@@ -161,6 +161,7 @@ def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, plac
 
     return flow
 
+
 ##################################################
 if __name__ == "__main__":
     flow = make_docs(siliconcompiler.Chip('<flow>'))

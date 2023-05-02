@@ -93,6 +93,7 @@ def test_defvalue():
     schema.add('asic', 'logiclib', 'mylib')
     assert schema.cfg['asic']['logiclib']['defvalue'] == []
 
+
 #########################
 if __name__ == "__main__":
     test_scparam()

@@ -193,6 +193,7 @@ def test_check_missing_task_module():
 
     assert not chip.check_manifest()
 
+
 #########################
 if __name__ == "__main__":
     test_check_manifest()

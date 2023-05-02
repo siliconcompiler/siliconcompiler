@@ -25,6 +25,7 @@ def setup(chip):
     chip.set('option', 'mode', 'fpga')
     chip.set('option', 'flow', 'fpgaflow')
 
+
 #########################
 if __name__ == "__main__":
     target = make_docs(siliconcompiler.Chip('<target>'))

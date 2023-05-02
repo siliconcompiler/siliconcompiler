@@ -498,6 +498,7 @@ def build_pex_corners(chip):
                 f.write("\n")
                 f.write("{0}\n\n".format(64 * "#"))
 
+
 ##################################################
 if __name__ == "__main__":
 

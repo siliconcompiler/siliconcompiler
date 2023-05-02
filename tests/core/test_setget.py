@@ -253,6 +253,7 @@ def test_signature_type():
     chip.set('asic', 'logiclib', ['xyz'], field='signature')
     assert chip.get('asic', 'logiclib', field='signature') == ['xyz']
 
+
 #########################
 if __name__ == "__main__":
     test_setget()

@@ -33,6 +33,7 @@ def setup(chip):
 
     return checklist
 
+
 ##################################################
 if __name__ == "__main__":
     checklist = setup(siliconcompiler.Chip('<checklist>'))

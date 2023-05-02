@@ -27,6 +27,7 @@ def parse_version(stdout):
     # 0.0.7-130-g1aa30ea
     return '-'.join(stdout.split('-')[:-1])
 
+
 ##################################################
 if __name__ == "__main__":
 

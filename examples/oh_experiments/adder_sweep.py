@@ -40,5 +40,6 @@ def main():
         print('Install matplotlib to automatically plot this data!')
         return area
 
+
 if __name__ == '__main__':
     main()

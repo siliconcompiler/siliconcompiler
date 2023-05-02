@@ -19,6 +19,7 @@ def test_nop():
     chip.check_manifest()
     chip.write_flowgraph("nop.png")
 
+
 #########################
 if __name__ == "__main__":
     test_nop()

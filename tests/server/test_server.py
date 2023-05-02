@@ -169,6 +169,7 @@ def test_gcd_server_argstep_noimport(gcd_remote_test):
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
 
+
 if __name__ == "__main__":
     if os.path.isdir('local_server_work'):
         os.rmdir('local_server_work')

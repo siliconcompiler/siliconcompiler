@@ -52,6 +52,7 @@ def build_top(remote=False):
 
     return chip
 
+
 if __name__ == '__main__':
     # Prepare Chip object.
     chip = build_top()

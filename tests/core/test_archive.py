@@ -17,6 +17,7 @@ def test_archive(oh_dir):
 
     assert os.path.isfile('oh_parity_job0.tgz')
 
+
 #########################
 if __name__ == "__main__":
     test_archive()

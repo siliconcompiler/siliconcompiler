@@ -67,6 +67,7 @@ def setup(chip):
 def parse_version(stdout):
     return stdout.strip('\n')
 
+
 ##################################################
 if __name__ == "__main__":
 

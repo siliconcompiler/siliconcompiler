@@ -28,6 +28,7 @@ def test_verilator(oh_dir):
     # check that compilation succeeded
     assert chip.find_result('v', step=step) is not None
 
+
 #########################
 if __name__ == "__main__":
     oh_dir = os.path.join('third_party', 'designs', 'oh')

@@ -46,6 +46,7 @@ def test_gcd_floorplan(gcd_chip):
 
     assert gcd_chip.find_result('gds', step='export') is not None
 
+
 if __name__ == '__main__':
     from tests.fixtures import gcd_chip
     test_gcd_floorplan(gcd_chip())

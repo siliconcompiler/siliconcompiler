@@ -95,6 +95,7 @@ def test_graph_exit_with_steplist():
 
     assert chip._get_flowgraph_exit_nodes(steplist=steps) == [('floorplan', '0')]
 
+
 #########################
 if __name__ == "__main__":
     test_graph()

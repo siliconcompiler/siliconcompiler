@@ -14,6 +14,7 @@ def make_docs(chip):
     setup(chip)
     return chip
 
+
 ##################################################
 if __name__ == "__main__":
     chip = make_docs()

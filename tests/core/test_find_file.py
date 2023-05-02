@@ -72,6 +72,7 @@ def test_invalid_script():
     with pytest.raises(SiliconCompilerError):
         chip.find_files('tool', 'yosys', 'task', 'syn_asic', 'script', missing_ok=False, step='syn', index='0')
 
+
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir

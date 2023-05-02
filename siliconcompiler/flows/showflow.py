@@ -83,6 +83,7 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
 
     return flow
 
+
 ##################################################
 if __name__ == "__main__":
     flow = make_docs(siliconcompiler.Chip('<flow>'))

@@ -3740,6 +3740,7 @@ def schema_constraint(cfg):
 
     return cfg
 
+
 ##############################################################################
 # Main routine
 if __name__ == "__main__":

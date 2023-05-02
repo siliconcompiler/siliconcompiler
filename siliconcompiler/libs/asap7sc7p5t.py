@@ -123,6 +123,7 @@ def setup(chip):
 
     return libs
 
+
 #########################
 if __name__ == "__main__":
     for lib in setup(siliconcompiler.Chip('<lib>')):

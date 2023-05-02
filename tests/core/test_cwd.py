@@ -17,6 +17,7 @@ def test_cwd():
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         siliconcompiler.Chip('my_design')
 
+
 #########################
 if __name__ == "__main__":
     test_cwd()

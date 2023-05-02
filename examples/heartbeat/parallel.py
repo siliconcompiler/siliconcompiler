@@ -83,5 +83,6 @@ def main():
           f"Parallel steps = {parastep_time}s\n",
           f"Parallel flows = {paraflow_time}s\n")
 
+
 if __name__ == '__main__':
     main()

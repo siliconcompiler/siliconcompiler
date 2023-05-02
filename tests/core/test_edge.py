@@ -31,6 +31,7 @@ def test_edge():
     chip.write_flowgraph('flow.png')
     assert os.path.isfile('flow.png')
 
+
 #########################
 if __name__ == "__main__":
     test_edge()

@@ -13,6 +13,7 @@ def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
     chip.load_target("fpgaflow_demo")
 
+
 tool = 'vivado'
 
 def setup(chip):

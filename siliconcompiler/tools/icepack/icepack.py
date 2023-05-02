@@ -34,6 +34,7 @@ def runtime_options(chip):
 
     return cmdlist
 
+
 ##################################################
 if __name__ == "__main__":
 

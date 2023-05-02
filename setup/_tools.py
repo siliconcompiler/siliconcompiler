@@ -61,6 +61,7 @@ def get_field(tool, field):
 def get_tools():
     return list(tools.keys())
 
+
 if __name__ == "__main__":
     supported_tools = ", ".join(get_tools())
     supported_fields = set()

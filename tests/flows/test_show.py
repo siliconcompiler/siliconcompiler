@@ -105,6 +105,7 @@ def test_show_nopdk(datadir, display):
     with mock.patch.dict(os.environ, env):
         assert chip.show(testfile)
 
+
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir

@@ -38,5 +38,6 @@ def rtl2gds(design='picorv32',
 
     return chip
 
+
 if __name__ == '__main__':
     rtl2gds()

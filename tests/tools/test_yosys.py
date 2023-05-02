@@ -56,6 +56,7 @@ def test_yosys_lec_broken(datadir):
 
     assert errors == 2
 
+
 if __name__ == "__main__":
     from tests.fixtures import datadir
     test_yosys_lec(datadir(__file__))

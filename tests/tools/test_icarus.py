@@ -32,6 +32,7 @@ def test_icarus(oh_dir):
     # check that compilation succeeded
     assert chip.find_result('vvp', step='compile') is not None
 
+
 #########################
 if __name__ == "__main__":
     oh_dir = os.path.join('third_party', 'designs', 'oh')

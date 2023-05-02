@@ -106,6 +106,7 @@ def test_sup_circ_import():
         with pytest.raises(sc.SiliconCompilerError):
             chip.update()
 
+
 #########################
 if __name__ == "__main__":
     test_sup()

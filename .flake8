@@ -5,7 +5,6 @@ max-line-length = 100
 ignore =
     E231,
     E302,
-    E305,
     E402,
     E501,
     E722

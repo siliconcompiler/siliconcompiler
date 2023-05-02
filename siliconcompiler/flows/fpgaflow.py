@@ -200,6 +200,7 @@ def task_lookup(flow, step):
 
     return None
 
+
 ##################################################
 if __name__ == "__main__":
     flow = make_docs(siliconcompiler.Chip('<flow>'))

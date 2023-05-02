@@ -104,6 +104,7 @@ def parse_version(stdout):
     # Verilator 4.104 2020-11-14 rev v4.104
     return stdout.split()[1]
 
+
 ##################################################
 if __name__ == "__main__":
 

@@ -106,6 +106,7 @@ def count_LVS_failures(filename):
 
     return [failures, netfail, devfail, pinfail, propfail, netdiff, devdiff]
 
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Parses netgen lvs')

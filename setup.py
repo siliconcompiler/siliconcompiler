@@ -56,6 +56,7 @@ def parse_reqs():
 
     return install_reqs, extras_reqs
 
+
 # Let us pass in generic arguments to CMake via an environment variable, since
 # our automated build servers need to pass in a certain argument when building
 # wheels on Windows.
@@ -98,6 +99,7 @@ def get_package_data(item, package):
             # strip off directory and add to list
             package_data.append(f[len(package + '/'):])
     return package_data
+
 
 install_reqs, extras_req = parse_reqs()
 

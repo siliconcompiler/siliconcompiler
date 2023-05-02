@@ -27,6 +27,7 @@ def setup(chip):
 
     return flow
 
+
 ##################################################
 if __name__ == "__main__":
     flow = setup(siliconcompiler.Chip('<flow>'))

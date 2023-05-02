@@ -6,5 +6,6 @@ from siliconcompiler.apps import sc
 def main():
     sc.main()
 
+
 if __name__ == '__main__':
     main()

@@ -85,5 +85,6 @@ def main():
 
     chip.write_manifest('gcd.checked.pkg.json')
 
+
 if __name__ == '__main__':
     main()

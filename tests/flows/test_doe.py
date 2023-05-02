@@ -58,6 +58,7 @@ def test_doe(oh_dir):
         assert area > prev_area
         prev_area = area
 
+
 if __name__ == "__main__":
     oh_dir = os.path.join('third_party', 'designs', 'oh')
     test_doe(oh_dir)

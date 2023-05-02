@@ -100,5 +100,6 @@ def main():
     # Build the top-level design by stacking the core into the middle of the padring.
     build_top(core)
 
+
 if __name__ == '__main__':
     main()

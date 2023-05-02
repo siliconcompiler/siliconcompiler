@@ -89,6 +89,7 @@ def test_csv():
     assert data['asic,logiclib,syn,default'] == 'synlib'
     assert data['asic,logiclib,syn,1'] == 'syn1lib'
 
+
 #########################
 if __name__ == "__main__":
     test_write_manifest()

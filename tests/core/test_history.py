@@ -16,6 +16,7 @@ def test_history(datadir):
     # record new manifest
     chip.write_manifest("history.json")
 
+
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir

@@ -58,6 +58,7 @@ def processLibertyFile(input_file, output_file, dont_use, quiet=False):
     f.write(content)
     f.close()
 
+
 if __name__ == "__main__":
     # Parse and validate arguments
     # ==============================================================================

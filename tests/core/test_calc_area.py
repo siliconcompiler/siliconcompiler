@@ -17,6 +17,7 @@ def test_calc_area():
     area = chip.calc_area()
     assert (area == 300.0)
 
+
 #########################
 if __name__ == "__main__":
     test_calc_area()

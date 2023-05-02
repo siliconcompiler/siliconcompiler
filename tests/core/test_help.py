@@ -10,6 +10,7 @@ def test_help():
     for key in allkeys:
         print(chip.help(*key))
 
+
 #########################
 if __name__ == "__main__":
     test_help()

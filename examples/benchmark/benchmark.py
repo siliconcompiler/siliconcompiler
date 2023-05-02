@@ -57,5 +57,6 @@ def main():
             with open("results.txt", 'w') as f:
                 f.write(results)
 
+
 if __name__ == '__main__':
     main()

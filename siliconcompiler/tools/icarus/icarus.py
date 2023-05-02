@@ -57,6 +57,7 @@ def parse_version(stdout):
     # First line: Icarus Verilog version 10.1 (stable) ()
     return stdout.split()[3]
 
+
 ##################################################
 if __name__ == "__main__":
 

@@ -27,6 +27,7 @@ def test_gcd_infer_diesize(gcd_chip):
 
     assert diearea == ('0', '0', '200260', '201600')
 
+
 if __name__ == '__main__':
     from tests.fixtures import gcd_chip
     test_gcd_infer_diesize(gcd_chip())

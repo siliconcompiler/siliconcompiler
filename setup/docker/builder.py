@@ -231,6 +231,7 @@ def _get_tool_images(tool=None):
     else:
         return [tool_images[tool] for tool, _ in _get_tools()]
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('SC Docker Builder')
     parser.add_argument('--registry',

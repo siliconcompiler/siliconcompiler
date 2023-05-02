@@ -905,6 +905,7 @@ class Schema:
         schema.cfg = self.cfg['history'][job]
         return schema
 
+
 if _has_yaml:
     class YamlIndentDumper(yaml.Dumper):
         def increase_indent(self, flow=False, indentless=False):

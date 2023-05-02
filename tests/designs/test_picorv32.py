@@ -15,6 +15,7 @@ def test_picorv32(picorv32_dir):
 
     assert chip.find_result('v', step='import') is not None
 
+
 if __name__ == "__main__":
     from tests.fixtures import scroot
     test_picorv32(scroot())

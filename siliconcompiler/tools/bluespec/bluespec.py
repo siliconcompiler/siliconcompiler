@@ -22,6 +22,7 @@ def make_docs(chip):
     convert.setup(chip)
     return chip
 
+
 # Directory inside step/index dir to store bsc intermediate results.
 VLOG_DIR = 'verilog'
 

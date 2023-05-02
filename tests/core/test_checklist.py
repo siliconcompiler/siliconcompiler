@@ -55,6 +55,7 @@ def test_missing_checklist():
 
     assert not chip.check_checklist('iso')
 
+
 #########################
 if __name__ == "__main__":
     test_checklist()

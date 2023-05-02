@@ -69,6 +69,7 @@ def test_changed_algorithm(algorithm, expected):
     print(chip.hash_files('input', 'rtl', 'verilog'))
     assert chip.hash_files('input', 'rtl', 'verilog') == [expected]
 
+
 #########################
 if __name__ == "__main__":
     test_changed_algorithm('md5')

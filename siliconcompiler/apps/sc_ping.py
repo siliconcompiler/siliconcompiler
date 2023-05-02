@@ -80,6 +80,7 @@ def main():
         print('Error fetching user information from the remote server.')
         return 1
 
+
 #########################
 if __name__ == "__main__":
     sys.exit(main())

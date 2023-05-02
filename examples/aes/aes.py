@@ -40,5 +40,6 @@ def rtl2gds(design='aes',
 
     return chip
 
+
 if __name__ == '__main__':
     rtl2gds()
