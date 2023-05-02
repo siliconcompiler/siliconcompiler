@@ -628,7 +628,7 @@ class ToolGen(DynamicGen):
             taskmodule = importlib.util.module_from_spec(spec)
             try:
                 spec.loader.exec_module(taskmodule)
-            except:
+            except Exception:
                 # Module failed to load
                 # klayout imports pya which is only defined in klayout
                 continue

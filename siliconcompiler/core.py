@@ -4480,7 +4480,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         try:
             from siliconcompiler.flows import showflow
             self.use(showflow, filetype=filetype, screenshot=screenshot)
-        except:
+        except Exception:
             # restore environment
             self.schema = saved_config
             return False
