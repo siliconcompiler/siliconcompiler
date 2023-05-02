@@ -8,7 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Packages we rely on
-find_package(PythonExtensions REQUIRED)
+find_package(PythonInterp)
+find_package(PythonLibs)
+find_package(PythonExtensions)
 find_package(Cython REQUIRED)
 
 execute_process(
