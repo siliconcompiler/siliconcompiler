@@ -2,6 +2,7 @@ import os
 import siliconcompiler
 import pytest
 
+
 @pytest.mark.eda
 def test_picorv32(picorv32_dir):
     source = os.path.join(picorv32_dir, 'picorv32.v')

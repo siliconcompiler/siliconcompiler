@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def setup(chip):
     '''
     Nangate open standard cell library for FreePDK45.

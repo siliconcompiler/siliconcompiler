@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
 
+
 def test_help():
     '''API test for help method
     '''

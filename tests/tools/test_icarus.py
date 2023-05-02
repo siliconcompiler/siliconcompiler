@@ -7,6 +7,7 @@ from siliconcompiler.tools.icarus import compile
 
 from siliconcompiler.tools.builtin import nop
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_icarus(oh_dir):

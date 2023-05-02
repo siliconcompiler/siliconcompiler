@@ -1,5 +1,6 @@
 import siliconcompiler
 
+
 def main():
     chip = siliconcompiler.Chip('gcd')
     chip.input('gcd.c')

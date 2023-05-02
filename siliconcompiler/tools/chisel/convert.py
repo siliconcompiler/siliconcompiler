@@ -1,6 +1,7 @@
 import os
 import shutil
 
+
 def setup(chip):
     '''
     Performs high level synthesis to generate a verilog output
@@ -28,6 +29,7 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'keep', ['build.sbt', 'SCDriver.scala'], step=step, index=index)
+
 
 def pre_process(chip):
     tool = 'chisel'

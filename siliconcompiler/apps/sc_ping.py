@@ -10,6 +10,7 @@ from siliconcompiler.utils import default_credentials_file
 from siliconcompiler import Chip
 from siliconcompiler.client import get_base_url
 
+
 def main():
     progname = "sc-ping"
     description = """

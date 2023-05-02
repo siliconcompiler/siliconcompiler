@@ -2,6 +2,7 @@
 
 import siliconcompiler                        # import python package
 
+
 def main():
     chip = siliconcompiler.Chip('heartbeat')  # create chip object
     chip.input('heartbeat.v')                 # define list of source files

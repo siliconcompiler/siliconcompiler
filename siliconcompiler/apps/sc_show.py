@@ -6,6 +6,7 @@ import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
 from siliconcompiler.targets.utils import set_common_showtools
 
+
 def _get_manifest(dirname):
     # pkg.json file may have a different name from the design due to the entrypoint
     manifest = glob.glob(os.path.join(dirname, '*.pkg.json'))
@@ -17,6 +18,7 @@ def _get_manifest(dirname):
     if not manifest or not os.path.isfile(manifest):
         return None
     return manifest
+
 
 def main():
     progname = "sc-show"

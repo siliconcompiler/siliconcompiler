@@ -3,6 +3,7 @@ import subprocess
 
 import pytest
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_design_inference(scroot):

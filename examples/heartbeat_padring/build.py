@@ -18,6 +18,7 @@ SCROOT = '../..'
 OH_PREFIX = f'{SCROOT}/third_party/designs/oh'
 SKY130IO_PREFIX = f'{SCROOT}/third_party/pdks/skywater/skywater130/libs/sky130io/v0_0_2'
 
+
 def configure_chip(design):
     # Minimal Chip object construction.
     chip = Chip(design)
@@ -30,6 +31,7 @@ def configure_chip(design):
     chip.set('tool', 'openroad', 'task', 'export', 'var', 'write_cdl', 'false')
 
     return chip
+
 
 def build_core():
     # Build the core internal design.
@@ -55,6 +57,7 @@ def build_core():
         core_chip.set('output', libcorner, 'nldm', core_chip.find_result(f'{libcorner}.lib', step='export', index='1'))
 
     return core_chip
+
 
 def build_top(core_chip):
     # Build the top-level design, with padring.
@@ -93,6 +96,7 @@ def build_top(core_chip):
     chip.run()
     # (Un-comment to display a summary report)
     chip.summary()
+
 
 def main():
     # Build the core design, which gets placed inside the padring.

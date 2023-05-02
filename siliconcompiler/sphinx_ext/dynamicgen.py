@@ -26,6 +26,7 @@ from siliconcompiler.sphinx_ext.utils import strong, code, para, keypath, build_
 # We need this in a few places, so just make it global
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
+
 def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=False):
     '''Helper function for displaying values set in schema as a docutils table.'''
     table = [[strong('Keypath'), strong('Value')]]
@@ -76,6 +77,7 @@ def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=
     else:
         return None
 
+
 def build_config_recursive(schema, refdoc, keypath=None, sec_key_prefix=None):
     '''Helper function for displaying schema at each level as tables under nested
     sections.
@@ -124,10 +126,12 @@ def build_config_recursive(schema, refdoc, keypath=None, sec_key_prefix=None):
 # Base class
 #############
 
+
 def flag_opt(argument):
     if argument is not None:
         raise ValueError('Flag should not have content')
     return True
+
 
 class DynamicGen(SphinxDirective):
     '''Base class for all three directives provided by this extension.
@@ -359,6 +363,7 @@ class DynamicGen(SphinxDirective):
 # Specialized extensions
 #########################
 
+
 class FlowGen(DynamicGen):
     PATH = 'flows'
 
@@ -412,6 +417,7 @@ class FlowGen(DynamicGen):
 
         return settings
 
+
 class PDKGen(DynamicGen):
     PATH = 'pdks'
 
@@ -424,6 +430,7 @@ class PDKGen(DynamicGen):
         settings += build_config_recursive(chip.schema, self.env.docname, keypath=['pdk'], sec_key_prefix=['pdks', modname])
 
         return settings
+
 
 class LibGen(DynamicGen):
     PATH = 'libs'
@@ -457,6 +464,7 @@ class LibGen(DynamicGen):
         sections.append(settings)
 
         return sections
+
 
 class ToolGen(DynamicGen):
     PATH = 'tools'
@@ -645,6 +653,7 @@ class ToolGen(DynamicGen):
             _, sections = zip(*sections)
         return sections
 
+
 class TargetGen(DynamicGen):
     PATH = 'targets'
 
@@ -697,6 +706,7 @@ class TargetGen(DynamicGen):
 
         return sections
 
+
 class AppGen(DynamicGen):
     PATH = 'apps'
 
@@ -710,6 +720,7 @@ class AppGen(DynamicGen):
         section += literalblock(output)
 
         return section
+
 
 class ChecklistGen(DynamicGen):
     PATH = 'checklists'
@@ -737,6 +748,7 @@ class ChecklistGen(DynamicGen):
         sections.append(settings)
 
         return sections
+
 
 class ExampleGen(DynamicGen):
 
@@ -777,6 +789,7 @@ class ExampleGen(DynamicGen):
 
         return section
 
+
 def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=None):
     doc = inliner.document
     env = doc.settings.env
@@ -789,6 +802,7 @@ def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=Non
         msg = inliner.reporter.error(f'{rawtext}: {e}', line=lineno)
         prb = inliner.problematic(rawtext, rawtext, msg)
         return [prb], [msg]
+
 
 class SCDomain(StandardDomain):
     name = 'sc'
@@ -817,6 +831,7 @@ class SCDomain(StandardDomain):
                 newnode['refuri'] += '#' + labelid
         newnode.append(innernode)
         return newnode
+
 
 def setup(app):
     app.add_domain(SCDomain)

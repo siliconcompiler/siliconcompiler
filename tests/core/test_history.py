@@ -1,5 +1,6 @@
 import siliconcompiler
 
+
 def test_history(datadir):
 
     chip = siliconcompiler.Chip('gcd')

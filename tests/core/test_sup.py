@@ -2,6 +2,7 @@ import siliconcompiler as sc
 import pytest
 import os
 
+
 @pytest.mark.skip(reason='Test takes a while and SUP logic is going to be modified')
 def test_sup():
     ''' SUP basic test
@@ -58,6 +59,7 @@ def test_sup():
     # 4. Dump updated manifest and depgraph
     # chip.write_manifest('top.tcl')
     # chip.write_depgraph('tree.png')
+
 
 #########################
 @pytest.mark.skip(reason='SUP logic is going to be modified')

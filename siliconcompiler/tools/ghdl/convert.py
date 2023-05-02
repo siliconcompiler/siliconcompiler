@@ -1,5 +1,6 @@
 import os
 
+
 def setup(chip):
     '''
     Imports VHDL and converts it to verilog

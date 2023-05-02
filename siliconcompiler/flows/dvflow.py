@@ -4,11 +4,13 @@ from siliconcompiler.tools.surelog import parse as surelog_parse
 from siliconcompiler.tools.verilator import compile
 from siliconcompiler.tools.builtin import verify
 
+
 ############################################################################
 # DOCS
 ############################################################################
 def make_docs(chip):
     return setup(chip, np=5)
+
 
 #############################################################################
 # Flowgraph Setup

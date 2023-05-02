@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def setup(chip):
     '''
     Skywater130 standard cell library.

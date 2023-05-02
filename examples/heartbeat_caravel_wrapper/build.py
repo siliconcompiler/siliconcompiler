@@ -37,6 +37,7 @@ MARGIN_H = 8.16
 # Path to 'caravel' repository root.
 CARAVEL_ROOT = '/path/to/caravel'
 
+
 def configure_chip(design):
     # Minimal Chip object construction.
     chip = Chip(design)
@@ -44,6 +45,7 @@ def configure_chip(design):
     chip.use(mpwflow)
     chip.set('option', 'flow', 'mpwflow')
     return chip
+
 
 def build_core():
     # Harden the 'heartbeat' module. Following the example set in 'user_proj_example',
@@ -79,6 +81,7 @@ def build_core():
     shutil.copy(core_chip.find_result('vg', step='dfm'), f'{design}.vg')
     shutil.copy(core_chip.find_result('def', step='dfm'), f'{design}.def')
     shutil.copy(core_chip.find_result('lef', step='dfm'), f'{design}.lef')
+
 
 def build_top():
     # The 'hearbeat' RTL goes in a modified 'user_project_wrapper' object, see sources.
@@ -143,6 +146,7 @@ global_connect
 
 set_voltage_domain -name Core -power vccd1 -ground vssd1
 
+
 define_pdn_grid -name core_grid -macro -grid_over_pg_pins -default -voltage_domain Core -starts_with POWER
 add_pdn_stripe -grid core_grid -layer met1 -width 0.48 -starts_with POWER -followpins
 add_pdn_connect -grid core_grid -layers {met1 met4}
@@ -165,6 +169,7 @@ place_cell -inst_name mprj -origin {1188.64 1689.12} -orient R0 -status FIRM
 
     # Add via definitions to the gate-level netlist.
     shutil.copy(chip.find_result('vg', step='addvias'), f'{design}.vg')
+
 
 def main():
     # Build the core design, which gets placed inside the padring.

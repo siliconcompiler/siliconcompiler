@@ -3,6 +3,7 @@ from siliconcompiler.schema import Schema
 
 import re
 
+
 def setup(chip):
     '''
     Tests an assertion on an input task.
@@ -13,6 +14,7 @@ def setup(chip):
     'metric==0.0'.
     The allowed conditional operators are: >, <, >=, <=, ==
     '''
+
 
 def _select_inputs(chip, step, index):
     chip.logger.info("Running builtin task 'verify'")
@@ -54,6 +56,7 @@ def _select_inputs(chip, step, index):
 
     return inputs
 
+
 def _gather_outputs(chip, step, index):
     flow = chip.get('option', 'flow')
 
@@ -65,8 +68,10 @@ def _gather_outputs(chip, step, index):
 
     return []
 
+
 def run(chip):
     return _common.run(chip)
+
 
 def post_process(chip):
     _common.post_process(chip)

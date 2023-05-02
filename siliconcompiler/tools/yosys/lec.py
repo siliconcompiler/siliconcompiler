@@ -4,6 +4,7 @@ from siliconcompiler.tools.yosys.yosys import setup as setup_tool
 from siliconcompiler.tools.yosys.syn_asic import setup_asic
 from siliconcompiler.tools.yosys.syn_fpga import setup_fpga
 
+
 def setup(chip):
     '''
     Perform logical equivalence checks
@@ -34,6 +35,7 @@ def setup(chip):
     # if not chip.get('input', 'rtl', 'verilog'):
         # TODO: Not sure this logic makes sense? Seems like reverse of tcl
         # chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
+
 
 ##################################################
 def post_process(chip):

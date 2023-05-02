@@ -7,6 +7,7 @@ from pathlib import Path
 
 PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
 
+
 def copytree(src, dst, ignore=[], dirs_exist_ok=False, link=False):
     '''Simple implementation of shutil.copytree to give us a dirs_exist_ok
     option in Python < 3.8.
@@ -29,6 +30,7 @@ def copytree(src, dst, ignore=[], dirs_exist_ok=False, link=False):
             os.link(srcfile, dstfile)
         else:
             shutil.copy2(srcfile, dstfile)
+
 
 def terminate_process(pid, timeout=3):
     '''Terminates a process and all its (grand+)children.
@@ -83,6 +85,7 @@ class PbPrimitive:
                 return port
         return None
 
+
 # This class parses the FPGA architecture file and stores all the information provided for every primitive
 class Arch:
 
@@ -128,12 +131,14 @@ class Arch:
 
         return max_add_size
 
+
 def get_file_ext(filename):
     '''Get base file extension for a given path, disregarding .gz.'''
     if filename.endswith('.gz'):
         filename = os.path.splitext(filename)[0]
     filetype = os.path.splitext(filename)[1].lower().lstrip('.')
     return filetype
+
 
 def get_default_iomap():
     """
@@ -231,6 +236,7 @@ def format_fileset_type_table(indent=12):
         table += f"{indent}{filetype:<10}| {fileset:<11}| {ext}\n"
 
     return table
+
 
 def default_credentials_file():
     cfg_file = os.path.join(Path.home(), '.sc', 'credentials')

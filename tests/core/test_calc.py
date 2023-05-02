@@ -2,6 +2,7 @@
 import siliconcompiler
 import pytest
 
+
 @pytest.mark.nostrict
 def test_calc_area():
 
@@ -15,6 +16,7 @@ def test_calc_area():
     chip.set('constraint', 'outline', [(0,0), (0,20), (10,20), (10,10), (20,10), (20,0)])
     assert chip.calc_area() == 300.0
 
+
 def test_calc_area_with_stepindex():
     chip = siliconcompiler.Chip('test')
 
@@ -26,6 +28,7 @@ def test_calc_area_with_stepindex():
 
     assert chip.calc_area(step='floorplan', index='0') == 100.0
     assert chip.calc_area(step='floorplan', index='1') == 300.0
+
 
 @pytest.mark.nostrict
 def test_calc_dpw():
@@ -42,6 +45,7 @@ def test_calc_dpw():
     chip.set('constraint', 'outline', [(0,0), (5000, 5000)])
     assert chip.calc_dpw() == 2520
 
+
 def test_calc_dpw_with_stepindex():
 
     chip = siliconcompiler.Chip('test')
@@ -54,6 +58,7 @@ def test_calc_dpw_with_stepindex():
     assert chip.calc_dpw(step='floorplan', index='0') == 0
     assert chip.calc_dpw(step='floorplan', index='1') == 4
     assert chip.calc_dpw(step='floorplan', index='2') == 2520
+
 
 @pytest.mark.nostrict
 def test_calc_yield_poisson():
@@ -69,6 +74,7 @@ def test_calc_yield_poisson():
     chip.set('constraint', 'outline', [(0,0), (5000, 5000)])
     assert int(1000 * chip.calc_yield()) == 996
 
+
 def test_calc_yield_poisson_with_stepindex():
     chip = siliconcompiler.Chip('test')
     chip.load_target('freepdk45_demo')
@@ -80,6 +86,7 @@ def test_calc_yield_poisson_with_stepindex():
     assert int(1000 * chip.calc_yield(step='floorplan', index='0')) == 245
     assert int(1000 * chip.calc_yield(step='floorplan', index='1')) == 495
     assert int(1000 * chip.calc_yield(step='floorplan', index='2')) == 996
+
 
 @pytest.mark.nostrict
 def test_calc_yield_murphy():
@@ -95,6 +102,7 @@ def test_calc_yield_murphy():
 
     chip.set('constraint', 'outline', [(0,0), (5000, 5000)])
     assert int(1000 * chip.calc_yield(model='murphy')) == 996
+
 
 def test_calc_yield_murphy_with_stepindex():
     chip = siliconcompiler.Chip('test')

@@ -7,6 +7,7 @@ from siliconcompiler.tools.yosys import syn_asic
 
 from siliconcompiler.tools.builtin import minimum
 
+
 @pytest.fixture
 def chip():
     # Create instance of Chip class
@@ -60,6 +61,7 @@ def chip():
 
     return chip
 
+
 ##################################
 def test_minimum(chip):
     '''API test for min/max() methods
@@ -69,6 +71,7 @@ def test_minimum(chip):
 
     assert winner == ('syn', '9')
 
+
 def test_maximum(chip):
     flow = chip.get('option', 'flow')
     chip.set('flowgraph', flow, 'teststep', '0', 'taskmodule', 'siliconcompiler.tools.builtin.maximum')
@@ -76,6 +79,7 @@ def test_maximum(chip):
     winner = task._select_inputs(chip, 'teststep', '0')
 
     assert winner == ('syn', '0')
+
 
 def test_all_failed(chip):
     flow = chip.get('option', 'flow')
@@ -89,6 +93,7 @@ def test_all_failed(chip):
 
     assert winner is None
 
+
 def test_winner_failed(chip):
     flow = chip.get('option', 'flow')
 
@@ -101,6 +106,7 @@ def test_winner_failed(chip):
     # winner should be second-best, not syn9
     assert winner == ('syn', '8')
 
+
 def test_winner_fails_goal_negative(chip):
     chip.set('metric', 'setupwns', -1, step='syn', index='9')
 
@@ -109,6 +115,7 @@ def test_winner_fails_goal_negative(chip):
 
     # winner should be second-best, not syn9
     assert winner == ('syn', '8')
+
 
 def test_winner_fails_goal_positive(chip):
     flow = chip.get('option', 'flow')

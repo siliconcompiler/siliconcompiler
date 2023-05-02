@@ -3,6 +3,7 @@
 import os
 import siliconcompiler
 
+
 def rtl2gds(design='picorv32',
             target="skywater130_demo",
             sdc=None,

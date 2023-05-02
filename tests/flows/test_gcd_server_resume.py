@@ -3,6 +3,7 @@ import subprocess
 
 import pytest
 
+
 ###########################
 @pytest.mark.skip(reason="Need to figure out how to handle check_manifest() call which fails on "
                          "local import step since setup for tools running remotely hasn't been "

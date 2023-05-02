@@ -16,16 +16,17 @@ import os
 import json
 from jinja2 import Template
 
+
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
     chip.load_target("asap7_demo")
 
+
 ################################
 # Setup Tool (pre executable)
 ################################
-
 def setup_tool(chip, exit=True, clobber=True):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
@@ -43,6 +44,7 @@ def setup_tool(chip, exit=True, clobber=True):
 
     option += " -metrics reports/metrics.json"
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
+
 
 def setup(chip, mode='batch'):
 
@@ -263,10 +265,10 @@ def setup(chip, mode='batch'):
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WARNING|^Warning', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[ERROR', step=step, index=index, clobber=False)
 
+
 ################################
 # Version Check
 ################################
-
 def parse_version(stdout):
     # stdout will be in one of the following forms:
     # - 1 08de3b46c71e329a10aa4e753dcfeba2ddf54ddd
@@ -283,16 +285,17 @@ def parse_version(stdout):
     else:
         return pieces[0]
 
+
 def normalize_version(version):
     if '.' in version:
         return version.lstrip('v')
     else:
         return '0'
 
+
 ################################
 # Post_process (post executable)
 ################################
-
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
@@ -392,8 +395,8 @@ def post_process(chip):
         if drvs is not None:
             chip._record_metric(step, index, 'drvs', drvs, "reports/metrics.json")
 
-######
 
+######
 def get_pex_corners(chip):
 
     step = chip.get('arg', 'step')
@@ -407,6 +410,7 @@ def get_pex_corners(chip):
 
     return list(corners)
 
+
 def get_corners(chip):
 
     step = chip.get('arg', 'step')
@@ -419,6 +423,7 @@ def get_corners(chip):
             corners.update(libcorner)
 
     return list(corners)
+
 
 def get_corner_by_check(chip, check):
 
@@ -436,13 +441,16 @@ def get_corner_by_check(chip, check):
     # if not specified, just pick the first corner available
     return get_corners(chip)[0]
 
+
 def get_power_corner(chip):
 
     return get_corner_by_check(chip, "power")
 
+
 def get_setup_corner(chip):
 
     return get_corner_by_check(chip, "setup")
+
 
 def build_pex_corners(chip):
 

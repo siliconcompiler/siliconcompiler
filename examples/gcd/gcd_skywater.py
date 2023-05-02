@@ -5,6 +5,7 @@ import siliconcompiler
 import os
 import sys
 
+
 def main():
     '''GCD example with custom floorplan and signoff steps.'''
 

@@ -5,10 +5,10 @@ from siliconcompiler.pdks import freepdk45
 from siliconcompiler.flows import lintflow, asicflow, asictopflow
 from siliconcompiler.libs import nangate45
 
+
 ####################################################
 # Target Setup
 ####################################################
-
 def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
     FreePDK45 demo target

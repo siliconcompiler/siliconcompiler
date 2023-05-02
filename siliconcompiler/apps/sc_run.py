@@ -2,6 +2,7 @@
 import sys
 import siliconcompiler
 
+
 def main():
     progname = "sc-run"
     chip = siliconcompiler.Chip(progname)

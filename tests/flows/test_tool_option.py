@@ -8,6 +8,7 @@ from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import minimum
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_tool_option(scroot):
@@ -51,6 +52,7 @@ def test_tool_option(scroot):
     assert chip.find_result('pkg.json', step='place', index='0') is not None
     assert chip.find_result('pkg.json', step='place', index='1') is not None
 
+
 @pytest.fixture
 def chip(scroot):
     '''Chip fixture to reuse for next few tests.
@@ -85,6 +87,7 @@ def chip(scroot):
 
     return chip
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_failed_branch_min(chip):
@@ -116,6 +119,7 @@ def test_failed_branch_min(chip):
     chip.set('flowgraph', flow, 'place', '0', 'weight', 'warnings', 0)
     chip.summary()
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_all_failed_min(chip):
@@ -137,6 +141,7 @@ def test_all_failed_min(chip):
 
     # check that compilation failed
     assert chip.find_result('def', step='placemin') is None
+
 
 @pytest.mark.eda
 @pytest.mark.quick

@@ -9,6 +9,7 @@ except ImportError:
 
 oh_dir = "../../third_party/designs/oh/"
 
+
 def main():
     # datawidths to check
     datawidths = [8,16,32,64]

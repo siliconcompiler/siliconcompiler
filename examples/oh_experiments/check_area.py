@@ -5,6 +5,7 @@ import os
 import re
 import sys
 
+
 def checkarea(filelist, libdir, target):
     '''
     Runs SC through synthesis and prints out the module name, cell count,
@@ -32,6 +33,7 @@ def checkarea(filelist, libdir, target):
         print(design, cells, area, sep=",")
 
     return 0
+
 
 def main(limit=-1):
     oh_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../third_party/designs/oh/"

@@ -7,6 +7,7 @@ from siliconcompiler.tools.yosys import syn_asic
 
 from siliconcompiler.tools.builtin import verify
 
+
 @pytest.fixture
 def chip():
     # Create instance of Chip class
@@ -43,6 +44,7 @@ def chip():
 
     return chip
 
+
 ##################################
 def test_verify_pass(chip):
     flow = chip.get('option', 'flow')
@@ -52,6 +54,7 @@ def test_verify_pass(chip):
     winner = task._select_inputs(chip, 'teststep', '0')
 
     assert winner == ('syn', '0')
+
 
 ##################################
 def test_verify_pass_greater(chip):
@@ -63,6 +66,7 @@ def test_verify_pass_greater(chip):
 
     assert winner == ('syn', '0')
 
+
 ##################################
 def test_verify_fail(chip):
     flow = chip.get('option', 'flow')
@@ -71,6 +75,7 @@ def test_verify_fail(chip):
     task = chip._get_task_module('teststep', '0')
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         task._select_inputs(chip, 'teststep', '0')
+
 
 ##################################
 def test_verify_pass_two_metrics(chip):
@@ -83,6 +88,7 @@ def test_verify_pass_two_metrics(chip):
 
     assert winner == ('syn', '0')
 
+
 ##################################
 def test_verify_partial_fail(chip):
     flow = chip.get('option', 'flow')
@@ -92,6 +98,7 @@ def test_verify_partial_fail(chip):
     task = chip._get_task_module('teststep', '0')
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         task._select_inputs(chip, 'teststep', '0')
+
 
 ##################################
 def test_verify_partial_missing(chip):

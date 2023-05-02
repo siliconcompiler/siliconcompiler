@@ -2,10 +2,10 @@
 import os
 import siliconcompiler
 
+
 ####################################################
 # PDK Setup
 ####################################################
-
 def setup(chip):
     '''
     The 'skywater130' Open Source PDK is a collaboration between Google and

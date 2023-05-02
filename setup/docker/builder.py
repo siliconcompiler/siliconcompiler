@@ -20,6 +20,7 @@ import _tools
 
 _registry = None
 
+
 # Image information methods
 def base_image_details():
     '''
@@ -27,6 +28,7 @@ def base_image_details():
     '''
     docker_file = os.path.join(_file_path, 'toolbase.docker')
     return 'sc_tool_builder', get_file_hash(docker_file), docker_file
+
 
 def tool_image_details(tool):
     '''
@@ -42,6 +44,7 @@ def tool_image_details(tool):
 
     return f'sc_{tool}', tag, docker_file
 
+
 def tools_image_details(tools):
     '''
     Details about the sc_tools image, which contains all the tools
@@ -54,6 +57,7 @@ def tools_image_details(tools):
     hash.update(get_file_hash(docker_file).encode('utf-8'))
 
     return 'sc_tools', hash.hexdigest(), docker_file
+
 
 def check_image(image_name):
     '''
@@ -77,6 +81,7 @@ def check_image(image_name):
 
     return False
 
+
 def get_file_hash(f):
     '''
     Returns the sha1 hex digest for the content of the input file (f)
@@ -86,6 +91,7 @@ def get_file_hash(f):
         return hash.hexdigest()
     raise FileExistsError(f'Unable to process {f}')
 
+
 def get_image_name(name, tag):
     '''
     Returns the image name with tag
@@ -94,6 +100,7 @@ def get_image_name(name, tag):
     if _registry:
         image_name = f'{_registry}/{image_name}'
     return image_name
+
 
 def assemble_docker_file(name, tag, template, options, output_dir, copy_files=None):
     '''
@@ -118,12 +125,14 @@ def assemble_docker_file(name, tag, template, options, output_dir, copy_files=No
         for cp_file in copy_files:
             shutil.copy(cp_file, docker_dir)
 
+
 def make_base_tool_docker(output_dir):
     '''
     Generate the base tool builder dockerfile
     '''
     name, tag, docker_file = base_image_details()
     assemble_docker_file(name, tag, docker_file, {}, output_dir)
+
 
 def make_tool_docker(tool, output_dir, reference_tool=None):
     '''
@@ -158,6 +167,7 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         copy_files.append(os.path.join(_tools_path, f))
     assemble_docker_file(name, tag, docker_file, template_opts, output_dir, copy_files=copy_files)
 
+
 def make_sc_tools_docker(tools, output_dir):
     '''
     Generate sc_tools dockerfile which contains all the tools
@@ -186,6 +196,7 @@ def make_sc_tools_docker(tools, output_dir):
 
     assemble_docker_file(name, tag, docker_file, template_opts, output_dir, copy_files=cp_files)
 
+
 def build_docker(docker_file, image_name):
     '''
     Helper function to build the input docker image
@@ -204,6 +215,7 @@ def build_docker(docker_file, image_name):
     except Exception as e:
         print(f'Failed to build {image_name}: {e}')
 
+
 def _get_tools():
     '''
     Helper function to provide a list of tools
@@ -215,6 +227,7 @@ def _get_tools():
         if not _tools.get_field(tool, 'docker-skip'):
             tools.append((tool, _tools.get_field(tool, 'docker-depends')))
     return tools
+
 
 def _get_tool_images(tool=None):
     '''

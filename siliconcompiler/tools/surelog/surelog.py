@@ -14,10 +14,10 @@ import os
 import sys
 import shutil
 
+
 ################################
 # Setup Tool (pre executable)
 ################################
-
 def setup(chip):
     ''' Sets up default settings common to running Surelog.
     '''
@@ -66,6 +66,7 @@ def setup(chip):
     # for warning in warnings_off:
     #    chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}')
 
+
 def parse_version(stdout):
     # Surelog --version output looks like:
     # VERSION: 1.13
@@ -74,10 +75,10 @@ def parse_version(stdout):
     # grab version # by splitting on whitespace
     return stdout.split()[1]
 
+
 ################################
 #  Custom runtime options
 ################################
-
 def _remove_dups(chip, type, file_set):
     new_files = []
     for f in file_set:
@@ -86,6 +87,7 @@ def _remove_dups(chip, type, file_set):
         else:
             chip.logger.warning(f"Removing duplicate '{type}' inputs: {f}")
     return new_files
+
 
 def runtime_options(chip):
 

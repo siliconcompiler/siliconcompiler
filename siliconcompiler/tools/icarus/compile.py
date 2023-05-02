@@ -1,5 +1,6 @@
 import os
 
+
 def setup(chip):
     '''
     Compile the input verilog into a vvp file that can be simulated.

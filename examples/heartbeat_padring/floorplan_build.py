@@ -29,6 +29,7 @@ SCROOT = '../..'
 OH_PREFIX = f'{SCROOT}/third_party/designs/oh'
 SKY130IO_PREFIX = f'{SCROOT}/third_party/pdks/skywater/skywater130/libs/sky130io/v0_0_2'
 
+
 def configure_chip(design):
     # Minimal Chip object construction.
     chip = Chip(design)
@@ -44,6 +45,7 @@ def configure_chip(design):
     chip.set('option', 'showtool', 'def', 'klayout')
     chip.set('option', 'showtool', 'gds', 'klayout')
     return chip
+
 
 def define_dimensions(fp):
     # Define placement area for the core design.
@@ -66,6 +68,7 @@ def define_dimensions(fp):
     # Return dimensions as tuples.
     return (top_w, top_h), (core_w, core_h), (place_w, place_h), (margin_left, margin_bottom)
 
+
 def calculate_even_spacing(fp, pads, distance, start):
     n = len(pads)
     pads_width = sum(fp.available_cells[pad].width for pad in pads)
@@ -78,6 +81,7 @@ def calculate_even_spacing(fp, pads, distance, start):
         pos += fp.available_cells[pad].width + spacing
 
     return io_pos
+
 
 def define_io_placement(fp):
     # Define I/O pad locations. Since this design only has three I/Os,
@@ -96,6 +100,7 @@ def define_io_placement(fp):
     so_io_pos = calculate_even_spacing(fp, so_io, top_w - corner_h - corner_w, corner_w)
 
     return we_io_pos, no_io_pos, ea_io_pos, so_io_pos
+
 
 def place_pdn(fp):
     # Simple PDN placement within the core, no macros to worry about.
@@ -250,6 +255,7 @@ def place_pdn(fp):
 
     fp.insert_vias(layers=[('m1', 'm4'), ('m3', 'm4'), ('m3', 'm5'), ('m4', 'm5')])
 
+
 def core_floorplan(fp):
     # Core floorplan definition.
     dims = define_dimensions(fp)
@@ -347,6 +353,7 @@ def core_floorplan(fp):
 
     # Place PDN grid.
     place_pdn(fp)
+
 
 def top_floorplan(fp):
     # Create top-level die area.

@@ -8,6 +8,7 @@ from tests.core.tools.fake import fake_in
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import minimum
 
+
 def test_check_flowgraph():
     chip = siliconcompiler.Chip('foo')
     chip.load_target('freepdk45_demo')
@@ -27,6 +28,7 @@ def test_check_flowgraph():
                 chip._setup_task(step, index)
 
     assert chip._check_flowgraph_io()
+
 
 def test_check_flowgraph_join():
 
@@ -49,6 +51,7 @@ def test_check_flowgraph_join():
 
     assert chip._check_flowgraph_io()
 
+
 def test_check_flowgraph_min():
 
     chip = siliconcompiler.Chip('foo')
@@ -69,6 +72,7 @@ def test_check_flowgraph_min():
     chip.set('tool', 'fake', 'task', 'fake_in', 'input', 'common.v', step='postmin', index='0')
 
     assert chip._check_flowgraph_io()
+
 
 def test_check_flowgraph_min_fail():
 

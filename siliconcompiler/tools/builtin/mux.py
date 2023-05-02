@@ -1,6 +1,7 @@
 from siliconcompiler.tools.builtin import _common
 import re
 
+
 def setup(chip):
     '''
     Selects a task from a list of inputs.
@@ -16,6 +17,7 @@ def setup(chip):
     the purpose of conditional flow execution and verification.
     '''
     pass
+
 
 def _select_inputs(chip, step, index):
     chip.logger.info("Running builtin task 'mux'")
@@ -43,6 +45,7 @@ def _select_inputs(chip, step, index):
 
     return sel_inputs
 
+
 def _gather_outputs(chip, step, index):
     flow = chip.get('option', 'flow')
 
@@ -54,8 +57,10 @@ def _gather_outputs(chip, step, index):
 
     return []
 
+
 def run(chip):
     return _common.run(chip)
+
 
 def post_process(chip):
     _common.post_process(chip)

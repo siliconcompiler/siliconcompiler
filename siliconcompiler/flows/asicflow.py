@@ -14,12 +14,14 @@ from siliconcompiler.tools.klayout import export as klayout_export
 
 from siliconcompiler.tools.builtin import minimum
 
+
 ############################################################################
 # DOCS
 ############################################################################
 def make_docs(chip):
     n = 3
     return setup(chip, syn_np=n, floorplan_np=n, physyn_np=n, place_np=n, cts_np=n, route_np=n)
+
 
 ###########################################################################
 # Flowgraph Setup

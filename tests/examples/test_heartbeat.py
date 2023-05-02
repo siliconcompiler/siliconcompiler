@@ -3,6 +3,7 @@ import subprocess
 
 import pytest
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
@@ -12,6 +13,7 @@ def test_py(setup_example_test):
     import heartbeat
     heartbeat.main()
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
@@ -20,6 +22,7 @@ def test_cli(setup_example_test):
 
     proc = subprocess.run(['bash', os.path.join(heartbeat_dir, 'run.sh')])
     assert proc.returncode == 0
+
 
 @pytest.mark.eda
 @pytest.mark.timeout(600)

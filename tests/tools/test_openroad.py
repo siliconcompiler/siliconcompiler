@@ -7,6 +7,7 @@ from siliconcompiler.tools.openroad import floorplan
 
 from siliconcompiler.tools.builtin import nop
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_openroad(scroot):

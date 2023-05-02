@@ -7,6 +7,7 @@ import sys
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
 
+
 ###########################
 def main():
     progname = "sc"

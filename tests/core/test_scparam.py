@@ -1,6 +1,7 @@
 from siliconcompiler.schema import Schema
 from siliconcompiler.schema.schema_cfg import scparam
 
+
 def test_scparam():
     cfg = {}
 
@@ -84,6 +85,7 @@ def test_scparam():
     }
 
     assert cfg == cfg_golden
+
 
 def test_defvalue():
     '''Regression test that changing list-type value doesn't change defvalue.'''

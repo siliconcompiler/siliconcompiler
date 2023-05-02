@@ -13,10 +13,10 @@ except ImportError:
 
 SCHEMA_VERSION = '0.32.0'
 
+
 #############################################################################
 # PARAM DEFINITION
 #############################################################################
-
 def scparam(cfg,
             keypath,
             sctype=None,
@@ -110,10 +110,10 @@ def scparam(cfg,
         if re.search(r'dir',sctype):
             cfg['copy'] = copy
 
+
 #############################################################################
 # CHIP CONFIGURATION
 #############################################################################
-
 def schema_cfg():
     '''Method for defining Chip configuration schema
     All the keys defined in this dictionary are reserved words.
@@ -208,10 +208,10 @@ def schema_cfg():
 
     return cfg
 
+
 ###############################################################################
 # FPGA
 ###############################################################################
-
 def schema_fpga(cfg):
     ''' FPGA configuration
     '''
@@ -284,10 +284,10 @@ def schema_fpga(cfg):
 
     return cfg
 
+
 ###############################################################################
 # PDK
 ###############################################################################
-
 def schema_pdk(cfg, stackup='default'):
     ''' Process design kit configuration
     '''
@@ -727,10 +727,10 @@ def schema_pdk(cfg, stackup='default'):
 
     return cfg
 
+
 ###############################################################################
 # Datasheet
 ###############################################################################
-
 def schema_datasheet(cfg, design='default', name='default', mode='default'):
 
     # Device Features
@@ -930,10 +930,10 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
 
     return cfg
 
+
 ###############################################################################
 # Flow Configuration
 ###############################################################################
-
 def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
     # flowgraph input
@@ -1190,6 +1190,7 @@ def schema_tool(cfg, tool='default'):
             """)
 
     return cfg
+
 
 def schema_task(cfg, tool='default', task='default', step='default', index='default'):
 
@@ -1507,10 +1508,10 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
 
     return cfg
 
+
 ###########################################################################
 #  Function arguments
 ###########################################################################
-
 def schema_arg(cfg):
 
     scparam(cfg, ['arg', 'step'],
@@ -1543,10 +1544,10 @@ def schema_arg(cfg):
 
     return cfg
 
+
 ###########################################################################
 # Metrics to Track
 ###########################################################################
-
 def schema_metric(cfg, step='default', index='default'):
 
     metrics = {'errors': 'errors',
@@ -1853,10 +1854,10 @@ def schema_metric(cfg, step='default', index='default'):
 
     return cfg
 
+
 ###########################################################################
 # Design Tracking
 ###########################################################################
-
 def schema_record(cfg, step='default', index='default'):
 
     # setting up local data structure
@@ -1941,10 +1942,10 @@ def schema_record(cfg, step='default', index='default'):
 
     return cfg
 
+
 ###########################################################################
 # Global units
 ###########################################################################
-
 def schema_unit(cfg):
     '''
 
@@ -1979,10 +1980,10 @@ def schema_unit(cfg):
 
     return cfg
 
+
 ###########################################################################
 # Run Options
 ###########################################################################
-
 def schema_option(cfg):
     ''' Technology agnostic run time options
     '''
@@ -2837,10 +2838,10 @@ def schema_option(cfg):
 
     return cfg
 
+
 ############################################
 # Package information
 ############################################
-
 def schema_package(cfg):
 
     userid = 'default'
@@ -3052,10 +3053,10 @@ def schema_package(cfg):
 
     return cfg
 
+
 ############################################
 # Design Checklist
 ############################################
-
 def schema_checklist(cfg):
 
     item = 'default'
@@ -3176,10 +3177,10 @@ def schema_checklist(cfg):
 
     return cfg
 
+
 ###########################
 # ASIC Setup
 ###########################
-
 def schema_asic(cfg):
     '''ASIC Automated Place and Route Parameters'''
 
@@ -3280,10 +3281,10 @@ def schema_asic(cfg):
 
     return cfg
 
+
 ############################################
 # Constraints
 ############################################
-
 def schema_constraint(cfg):
 
     # TIMING

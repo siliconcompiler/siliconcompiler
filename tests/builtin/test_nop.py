@@ -3,6 +3,7 @@ import siliconcompiler
 
 from siliconcompiler.tools.builtin import nop
 
+
 ##################################
 def test_nop():
     '''API test for nop methods

@@ -21,6 +21,7 @@ from siliconcompiler.tools.builtin import minimum
 from tests.core.tools.fake import fake_in
 from tests.core.tools.fake import fake_out
 
+
 def test_graph():
 
     chip = siliconcompiler.Chip('test')
@@ -62,6 +63,7 @@ def test_graph():
 
     chip.write_flowgraph("top.png", flow="top")
 
+
 def test_graph_entry():
 
     chip = siliconcompiler.Chip('foo')
@@ -79,12 +81,14 @@ def test_graph_entry():
 
     assert chip._get_flowgraph_entry_nodes() == [('premin', '0'), ('premin', '1')]
 
+
 def test_graph_exit():
 
     chip = siliconcompiler.Chip('foo')
     chip.load_target('freepdk45_demo')
 
     assert chip._get_flowgraph_exit_nodes() == [('export', '0'), ('export', '1')]
+
 
 def test_graph_exit_with_steplist():
 

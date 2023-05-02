@@ -3,6 +3,7 @@ from migen.fhdl.verilog import convert
 
 import siliconcompiler
 
+
 class Heartbeat(Module):
     def __init__(self, N=8):
         self.out = Signal()
@@ -12,6 +13,7 @@ class Heartbeat(Module):
 
         self.sync += self.counter_reg.eq(self.counter_reg + 1)
         self.sync += self.out.eq(self.counter_reg == Cat(Replicate(0, N - 1), 1))
+
 
 def main():
     heartbeat = Heartbeat()

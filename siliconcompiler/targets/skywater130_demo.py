@@ -6,10 +6,10 @@ from siliconcompiler.flows import asicflow, asictopflow, signoffflow
 from siliconcompiler.libs import sky130hd
 from siliconcompiler.checklists import oh_tapeout
 
+
 ####################################################
 # Target Setup
 ####################################################
-
 def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
     Skywater130 Demo Target

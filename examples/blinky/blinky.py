@@ -1,5 +1,6 @@
 import siliconcompiler
 
+
 def main():
     chip = siliconcompiler.Chip('blinky')
     chip.input('blinky.v')

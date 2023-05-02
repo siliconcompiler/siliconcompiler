@@ -1,5 +1,6 @@
 import siliconcompiler
 
+
 def main():
     chip = siliconcompiler.Chip('mkFibOne')
     chip.input('FibOne.bsv')

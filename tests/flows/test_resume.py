@@ -3,6 +3,7 @@ import siliconcompiler
 import pytest
 import os
 
+
 @pytest.mark.eda
 @pytest.mark.timeout(300)
 def test_resume(gcd_chip):

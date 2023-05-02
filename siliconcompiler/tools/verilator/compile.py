@@ -2,6 +2,7 @@ import subprocess
 
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
 
+
 def setup(chip):
     '''
     Compiles Verilog and C/C++ sources into an executable.  Takes in a single
@@ -25,6 +26,7 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'option', ['--cc', '--exe'], step=step, index=index)
     chip.set('tool', tool, 'task', task, 'input', f'{design}.v', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'option', f'-o ../outputs/{design}.vexe', step=step, index=index)
+
 
 def post_process(chip):
     ''' Tool specific function to run after step execution

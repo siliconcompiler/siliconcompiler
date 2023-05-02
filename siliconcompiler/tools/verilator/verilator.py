@@ -16,11 +16,13 @@ Installation: https://verilator.org/guide/latest/install.html
 
 import os
 
+
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
     chip.load_target("freepdk45_demo")
+
 
 def setup(chip):
     ''' Per tool function that returns a dynamic options string based on
@@ -66,6 +68,7 @@ def setup(chip):
 #  Custom runtime options
 ################################
 
+
 def runtime_options(chip):
     '''
     CLI options that involve filepaths (must be resolved at runtime, in case
@@ -99,6 +102,7 @@ def runtime_options(chip):
 ################################
 # Version Check
 ################################
+
 
 def parse_version(stdout):
     # Verilator 4.104 2020-11-14 rev v4.104

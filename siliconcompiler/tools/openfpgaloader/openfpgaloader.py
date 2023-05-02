@@ -14,10 +14,10 @@ Installation: https://github.com/trabucayre/openFPGALoader
 Status: SC integration WIP
 '''
 
+
 ################################
 # Setup Tool (pre executable)
 ################################
-
 def setup(chip):
     ''' openFPGALoader setup function
     '''

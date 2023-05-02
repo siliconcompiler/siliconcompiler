@@ -2,6 +2,7 @@ import re
 
 from siliconcompiler.tools.magic.magic import setup as setup_tool
 
+
 def setup(chip):
     '''
     Perform DRC checks
@@ -10,10 +11,10 @@ def setup(chip):
     # Generic tool setup
     setup_tool(chip)
 
+
 ################################
 # Post_process (post executable)
 ################################
-
 def post_process(chip):
     ''' Tool specific function to run after step execution
 

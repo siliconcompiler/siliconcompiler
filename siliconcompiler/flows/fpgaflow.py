@@ -11,12 +11,14 @@ from siliconcompiler.tools.icepack import bitstream as icestorm_bitstream
 from siliconcompiler.tools.genfasm import bitstream as genfasm_bitstream
 from siliconcompiler.tools.vivado import bitstream as vivado_bitstream
 
+
 ############################################################################
 # DOCS
 ############################################################################
 def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40')
     return setup(chip)
+
 
 ############################################################################
 # Flowgraph Setup
@@ -100,6 +102,7 @@ def setup(chip, flowname='fpgaflow'):
 
     return flow
 
+
 ##################################################
 def flow_lookup(partname):
     '''
@@ -162,6 +165,7 @@ def flow_lookup(partname):
         )
 
     return (vendor, flow)
+
 
 ##################################################
 def task_lookup(flow, step):

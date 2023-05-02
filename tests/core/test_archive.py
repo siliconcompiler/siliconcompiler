@@ -3,6 +3,7 @@ import siliconcompiler
 import os
 import pytest
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_archive(oh_dir):

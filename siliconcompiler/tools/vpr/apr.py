@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 
+
 def setup(chip):
     '''
     Perform automated place and route with VPR
@@ -45,6 +46,7 @@ def setup(chip):
 # Runtime pre processing
 #############################################
 
+
 def pre_process(chip):
 
     # have to rename the net connected to unhooked pins from $undef to unconn
@@ -65,6 +67,7 @@ def pre_process(chip):
 ################################
 # Post_process (post executable)
 ################################
+
 
 def post_process(chip):
     ''' Tool specific function to run after step execution

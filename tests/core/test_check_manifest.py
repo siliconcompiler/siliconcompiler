@@ -12,6 +12,7 @@ from tests.core.tools.echo import echo
 
 from siliconcompiler.tools.builtin import nop
 
+
 def test_check_manifest():
 
     chip = siliconcompiler.Chip('gcd')
@@ -35,6 +36,7 @@ def test_check_manifest():
     chip.set('arg', 'step', None)
     chip.set('arg', 'index', None)
     assert chip.check_manifest()
+
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -73,6 +75,7 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
 
     assert chip.check_manifest()
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_check_allowed_filepaths_fail(scroot, monkeypatch):
@@ -99,6 +102,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
 
     assert not chip.check_manifest()
 
+
 def test_check_missing_file_param():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
@@ -118,6 +122,7 @@ def test_check_missing_file_param():
              '/fake/timing/file.lib')
 
     assert not chip.check_manifest()
+
 
 @pytest.fixture
 def merge_flow_chip():
@@ -143,11 +148,13 @@ def merge_flow_chip():
 
     return chip
 
+
 def test_merged_graph_good(merge_flow_chip):
     merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'bar.out', step='parallel1', index='0')
     merge_flow_chip.set('tool', 'fake', 'task', 'bar', 'output', 'foo.out', step='parallel2', index='0')
 
     assert merge_flow_chip.check_manifest()
+
 
 def test_merged_graph_good_steplist():
     chip = siliconcompiler.Chip('test')
@@ -170,6 +177,7 @@ def test_merged_graph_good_steplist():
 
     assert chip.check_manifest()
 
+
 def test_merged_graph_bad_same(merge_flow_chip):
     # Two merged steps can't output the same thing
     merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'foo.out', step='parallel1', index='0')
@@ -177,11 +185,13 @@ def test_merged_graph_bad_same(merge_flow_chip):
 
     assert not merge_flow_chip.check_manifest()
 
+
 def test_merged_graph_bad_missing(merge_flow_chip):
     # bar doesn't provide necessary output
     merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'foo.out', step='parallel1', index='0')
 
     assert not merge_flow_chip.check_manifest()
+
 
 @pytest.mark.quick
 def test_check_missing_task_module():

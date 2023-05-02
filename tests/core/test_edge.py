@@ -8,6 +8,7 @@ from siliconcompiler.tools.openroad import floorplan
 
 from siliconcompiler.tools.builtin import minimum
 
+
 def test_edge():
 
     chip = siliconcompiler.Chip('test')

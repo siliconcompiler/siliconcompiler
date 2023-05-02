@@ -3,6 +3,7 @@ import subprocess
 
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
 
+
 def setup(chip):
     '''
     Preprocesses and pickles Verilog sources. Takes in a set of Verilog source
@@ -31,6 +32,7 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', f'{design}.v', step=step, index=index)
     for value in chip.get('option', 'define'):
         chip.add('tool', tool, 'task', task, 'option', '-D' + value, step=step, index=index)
+
 
 def post_process(chip):
     ''' Tool specific function to run after step execution

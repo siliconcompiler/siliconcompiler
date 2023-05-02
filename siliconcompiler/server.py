@@ -13,6 +13,7 @@ import tarfile
 from siliconcompiler import Chip
 from siliconcompiler import Schema
 
+
 class Server:
     """
     The core class for the siliconcompiler 'gateway' server, which can run
@@ -396,6 +397,7 @@ class Server:
 ###############################################
 # Configuration schema for `sc-server`
 ###############################################
+
 
 def server_schema():
     '''Method for defining Server configuration schema

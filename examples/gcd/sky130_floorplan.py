@@ -1,5 +1,6 @@
 import math
 
+
 def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
               vlayer, stdcell_pin_vdd, stdcell_pin_vss, stdcell_pin_width):
     '''Generates PDN for a block-level design. '''
@@ -81,6 +82,7 @@ def place_pdn(fp, vdd, vss, hwidth, hspacing, hlayer, vwidth, vspacing,
         gridlayers = vlayer, hlayer
     fp.insert_vias(layers=[(stripe_layer, vlayer), gridlayers])
 
+
 def generate_block_floorplan(fp, diearea, corearea, inputs, outputs, pdn=None):
     '''Generate a basic floorplan for a block-level design. '''
     fp.create_diearea(diearea, corearea)
@@ -114,6 +116,7 @@ def generate_block_floorplan(fp, diearea, corearea, inputs, outputs, pdn=None):
         place_pdn(fp, **pdn)
 
     return pdn
+
 
 def make_floorplan(chip):
     # move here until test can be rebuilt

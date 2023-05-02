@@ -4,6 +4,7 @@ import pytest
 
 import siliconcompiler
 
+
 @pytest.mark.eda
 @pytest.mark.timeout(300)
 def test_entrypoint(scroot):

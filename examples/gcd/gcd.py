@@ -4,6 +4,7 @@
 import os
 import siliconcompiler
 
+
 def main(root='.'):
     '''Simple asicflow example.'''
 

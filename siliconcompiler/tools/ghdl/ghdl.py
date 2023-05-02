@@ -14,6 +14,7 @@ Installation: https://github.com/ghdl/ghdl
 
 from siliconcompiler.tools.ghdl import convert
 
+
 #####################################################################
 # Make Docs
 #####################################################################
@@ -21,10 +22,10 @@ def make_docs(chip):
     convert.setup(chip)
     return chip
 
+
 ################################
 #  Custom runtime options
 ################################
-
 def runtime_options(chip):
 
     ''' Custom runtime options, returnst list of command line options.
@@ -63,10 +64,10 @@ def runtime_options(chip):
 
     return options
 
+
 ################################
 # Version Check
 ################################
-
 def parse_version(stdout):
     # first line: GHDL 2.0.0-dev (1.0.0.r827.ge49cb7b9) [Dunoon edition]
 

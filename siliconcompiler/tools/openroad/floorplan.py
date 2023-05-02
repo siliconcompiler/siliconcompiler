@@ -3,6 +3,7 @@ from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
 
+
 def setup(chip):
     '''
     Perform floorplanning, pin placements, macro placements and power grid generation
@@ -32,8 +33,10 @@ def setup(chip):
     if snap not in snaps_allowed:
         chip.error(f'{snap} is not a supported snapping strategy. Allowed values: {snaps_allowed}')
 
+
 def pre_process(chip):
     build_pex_corners(chip)
+
 
 def post_process(chip):
     or_post_process(chip)

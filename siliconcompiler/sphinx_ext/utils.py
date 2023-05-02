@@ -3,6 +3,7 @@ import sphinx.addnodes
 
 from siliconcompiler.schema import Schema
 
+
 # Docutils helpers
 def build_table(items, colwidths=None, colspec=None):
     '''Create table node.
@@ -50,10 +51,12 @@ def build_table(items, colwidths=None, colspec=None):
 
     return return_nodes
 
+
 def build_section(text, key):
     sec = nodes.section(ids=[get_ref_id(key)])
     sec += nodes.title(text=text)
     return sec
+
 
 def build_section_with_target(text, key, ctx):
     id = get_ref_id(key)
@@ -67,24 +70,30 @@ def build_section_with_target(text, key, ctx):
 
     return sec
 
+
 def get_ref_id(key):
     return nodes.make_id(key + "-ref")
+
 
 def para(text):
     return nodes.paragraph(text=text)
 
+
 def code(text):
     return nodes.literal(text=text)
+
 
 def literalblock(text):
     block = nodes.literal_block(text=text)
     block['language'] = 'none'
     return block
 
+
 def strong(text):
     p = nodes.paragraph()
     p += nodes.strong(text=text)
     return p
+
 
 def image(src, center=False):
     i = nodes.image()
@@ -93,10 +102,12 @@ def image(src, center=False):
         i['align'] = 'center'
     return i
 
+
 def link(url, text=None):
     if text is None:
         text = url
     return nodes.reference(internal=False, refuri=url, text=text)
+
 
 def build_list(items, enumerated=False):
     if enumerated:
@@ -111,6 +122,7 @@ def build_list(items, enumerated=False):
 
     return list
 
+
 # SC schema helpers
 def is_leaf(schema):
     if 'defvalue' in schema:
@@ -118,6 +130,7 @@ def is_leaf(schema):
     elif len(schema.keys()) == 1 and 'default' in schema:
         return is_leaf(schema['default'])
     return False
+
 
 def keypath(key_path, refdoc, key_text=None):
     '''Helper function for displaying Schema keypaths.'''

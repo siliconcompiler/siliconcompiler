@@ -3,6 +3,7 @@
 
 from siliconcompiler.apps import sc
 
+
 def main():
     sc.main()
 

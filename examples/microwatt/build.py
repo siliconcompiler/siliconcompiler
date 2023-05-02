@@ -3,6 +3,7 @@ import siliconcompiler
 
 microwatt_wd = "../../third_party/designs/microwatt/"
 
+
 def add_sources(chip):
     chip.input(microwatt_wd + 'decode_types.vhdl')
     chip.input(microwatt_wd + 'common.vhdl')
@@ -52,6 +53,7 @@ def add_sources(chip):
     chip.input(microwatt_wd + 'fpga/clk_gen_ecp5.vhd')
     chip.input(microwatt_wd + 'fpga/top-generic.vhdl')
     chip.input(microwatt_wd + 'dmi_dtm_dummy.vhdl')
+
 
 def main():
     chip = siliconcompiler.Chip('core')

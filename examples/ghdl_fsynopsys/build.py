@@ -1,5 +1,6 @@
 import siliconcompiler
 
+
 def main():
     chip = siliconcompiler.Chip('binary_4_bit_adder_top')
     chip.input('binary_4_bit_adder_top.vhd')

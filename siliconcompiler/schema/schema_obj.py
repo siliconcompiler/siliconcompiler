@@ -20,6 +20,7 @@ except ImportError:
 from .schema_cfg import schema_cfg
 from .utils import escape_val_tcl, PACKAGE_ROOT
 
+
 class Schema:
     """Object for storing and accessing configuration values corresponding to
     the SiliconCompiler schema.

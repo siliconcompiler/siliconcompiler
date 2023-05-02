@@ -15,6 +15,7 @@ https://www.siliconcompiler.com/terms-of-service
 In particular, please ensure that you have the right to distribute any IP which is contained in designs that you upload to the service. This public service, provided by SiliconCompiler, is not intended to process proprietary IP.
 '''
 
+
 def confirm_dialog(message):
     confirmed = False
     while not confirmed:
@@ -25,6 +26,7 @@ def confirm_dialog(message):
         elif (oin == 'y') or (oin == 'Y'):
             confirmed = True
     return confirmed
+
 
 def main():
     progname = "sc-configure"

@@ -15,16 +15,17 @@ from pathlib import Path
 import platform
 import shutil
 
+
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
     chip.load_target("freepdk45_demo")
 
+
 ####################################################################
 # Setup tool
 ####################################################################
-
 def setup(chip, mode="batch"):
     '''
     Setup function for Klayout
@@ -88,6 +89,7 @@ def setup(chip, mode="batch"):
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'(WARNING|warning)', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'ERROR', step=step, index=index, clobber=False)
 
+
 def runtime_options(chip):
     # Provide KLayout with path to SC package so the driver can import the
     # schema package directly. Since KL may be using a different Python
@@ -96,10 +98,10 @@ def runtime_options(chip):
     # This must be done at runtime to work in a remote context.
     return ['-rd', f'SC_ROOT={chip.scroot}']
 
+
 ################################
 # Version Check
 ################################
-
 def parse_version(stdout):
     # KLayout 0.26.11
     return stdout.split()[1]

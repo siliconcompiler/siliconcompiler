@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
 
+
 ##################################
 def test_lock():
     '''API test for show method

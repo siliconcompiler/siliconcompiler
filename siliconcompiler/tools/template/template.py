@@ -11,6 +11,7 @@ Installation: https://
 import os
 import siliconcompiler
 
+
 def make_docs():
 
     chip = siliconcompiler.Chip('<design>')
@@ -18,6 +19,7 @@ def make_docs():
     chip.set('arg','index','<index>')
     setup(chip)
     return chip
+
 
 def setup(chip):
     '''
@@ -71,6 +73,7 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', inputs, step=step, index=index)
     chip.add('tool', tool, 'task', task, 'require', requires, step=step, index=index)
 
+
 def runtime_options(chip):
     '''
     Custom runtime options, returns list of command line options.
@@ -82,6 +85,7 @@ def runtime_options(chip):
 
     return cmdlist
 
+
 def parse_version(stdout):
     '''
     Version check based on stdout
@@ -91,11 +95,13 @@ def parse_version(stdout):
     # return version.split('+')[0]
     return 0
 
+
 def pre_process(chip):
     '''
     Logic to run prior to executable
     '''
     pass
+
 
 def post_process(chip):
     '''

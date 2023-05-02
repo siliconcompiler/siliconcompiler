@@ -2,6 +2,7 @@
 from siliconcompiler import TaskStatus
 from siliconcompiler import utils
 
+
 ###########################################################################
 def _mux(chip, *steps, operations=None):
     '''
@@ -50,6 +51,7 @@ def _mux(chip, *steps, operations=None):
         candidates = steplist
 
     return (best_score, candidates[0])
+
 
 ###########################################################################
 def _minmax(chip, *steps, op=None):
@@ -131,8 +133,10 @@ def _minmax(chip, *steps, op=None):
 
     return (best_score, winner)
 
+
 def run(chip):
     return 0
+
 
 def post_process(chip):
     utils.copytree('inputs', 'outputs', dirs_exist_ok=True, link=True)

@@ -8,6 +8,7 @@ import siliconcompiler
 from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.verilator import compile
 
+
 @pytest.mark.eda
 def test_basic(scroot, datadir):
     chip = siliconcompiler.Chip('heartbeat')

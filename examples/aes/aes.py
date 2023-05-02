@@ -3,6 +3,7 @@
 import os
 import siliconcompiler
 
+
 def rtl2gds(design='aes',
             target="skywater130_demo",
             sdc=None,

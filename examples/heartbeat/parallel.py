@@ -6,6 +6,7 @@ import multiprocessing
 import siliconcompiler
 import time
 
+
 # Shared setup routine
 def run_design(design, M, job):
 
@@ -23,6 +24,7 @@ def run_design(design, M, job):
     }
     chip.load_target("freepdk45_demo", **asic_flow_args)
     chip.run()
+
 
 def main():
 

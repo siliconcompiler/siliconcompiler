@@ -2,6 +2,7 @@ import re
 
 import siliconcompiler
 
+
 def do_cli_test(args, monkeypatch, switchlist=None, input_map=None, additional_args=None):
     chip = siliconcompiler.Chip('test')
     monkeypatch.setattr('sys.argv', args)
@@ -9,6 +10,7 @@ def do_cli_test(args, monkeypatch, switchlist=None, input_map=None, additional_a
     # Store additional args in chip object to make testing easier
     chip.args = args
     return chip
+
 
 def test_cli_multi_source(monkeypatch):
     ''' Regression test for bug where CLI parser wasn't handling multiple
@@ -27,6 +29,7 @@ def test_cli_multi_source(monkeypatch):
     assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
     assert chip.get('option','target') == 'freepdk45_demo'
 
+
 def test_cli_include_flag(monkeypatch):
     ''' Regression test for bug where CLI parser wasn't handling multiple
     source files properly.
@@ -40,6 +43,7 @@ def test_cli_include_flag(monkeypatch):
     assert chip.get('input', 'rtl', 'verilog', step='import', index=0) == ['source.v']
     assert chip.get('option', 'idir') == ['include/inc1', 'include/inc2']
 
+
 def test_optmode(monkeypatch):
     '''Test optmode special handling.'''
     args = ['sc', '-O3']
@@ -49,6 +53,7 @@ def test_optmode(monkeypatch):
     # arbitrary step/index
     assert chip.get('option', 'optmode', step='import', index=0) == 'O3'
 
+
 def test_spaces_in_value(monkeypatch):
     desc = 'My package description'
     args = ['sc', '-package_description', desc]
@@ -57,12 +62,14 @@ def test_spaces_in_value(monkeypatch):
 
     assert chip.get('package', 'description') == desc
 
+
 def test_limited_switchlist(monkeypatch):
     args = ['sc', '-loglevel', 'DEBUG', '-var', 'foo bar']
     chip = do_cli_test(args, monkeypatch, switchlist=['-loglevel', '-var'])
 
     assert chip.get('option', 'loglevel', step='import', index=0) == 'DEBUG'
     assert chip.get('option', 'var', 'foo') == ['bar']
+
 
 def test_pernode_optional(monkeypatch):
     '''Ensure we can specify pernode overrides from CLI, and that they support
@@ -78,8 +85,10 @@ def test_pernode_optional(monkeypatch):
     assert chip.get('asic', 'logiclib', step='syn', index=0) == ['syn lib']
     assert chip.get('asic', 'logiclib', step='syn', index=1) == ['"syn1" lib']
 
+
 def test_pernode_required(monkeypatch):
     pass
+
 
 def _cast(val, sctype):
     if sctype.startswith('['):
@@ -100,6 +109,7 @@ def _cast(val, sctype):
     else:
         # everything else (str, file, dir) is treated like a string
         return val.strip('"')
+
 
 def test_additional_parameters(monkeypatch):
     args = ['sc',
@@ -132,6 +142,7 @@ def test_additional_parameters(monkeypatch):
     assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
     assert chip.get('option','target') == 'freepdk45_demo'
 
+
 def test_additional_parameters_not_used(monkeypatch):
     args = ['sc',
             '-input', 'rtl verilog examples/ibex/ibex_alu.v',
@@ -160,6 +171,7 @@ def test_additional_parameters_not_used(monkeypatch):
     sources = chip.get('input','rtl','verilog', step='import', index=0)
     assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
     assert chip.get('option','target') == 'freepdk45_demo'
+
 
 def test_cli_examples(monkeypatch):
     # Need to mock this function, since our cfg CLI example will try to call it

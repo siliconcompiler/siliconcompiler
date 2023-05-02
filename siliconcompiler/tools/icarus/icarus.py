@@ -11,6 +11,7 @@ Sources: https://github.com/steveicarus/iverilog
 Installation: https://github.com/steveicarus/iverilog
 '''
 
+
 ####################################################################
 # Make Docs
 ####################################################################
@@ -19,10 +20,10 @@ def make_docs(chip):
     setup(chip)
     return chip
 
+
 ################################
 #  Custom runtime options
 ################################
-
 def runtime_options(chip):
 
     ''' Custom runtime options, returns list of command line options.
@@ -49,10 +50,10 @@ def runtime_options(chip):
 
     return cmdlist
 
+
 ################################
 # Version Check
 ################################
-
 def parse_version(stdout):
     # First line: Icarus Verilog version 10.1 (stable) ()
     return stdout.split()[3]

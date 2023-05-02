@@ -9,12 +9,14 @@ import json
 import os
 import re
 
+
 def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
     chip.load_target("fpgaflow_demo")
 
 
 tool = 'vivado'
+
 
 def setup(chip):
     vendor = 'xilinx'
@@ -26,6 +28,7 @@ def setup(chip):
 
     # report_design_analysis -json flag requires Vivado 2021 or greater
     chip.set('tool', tool, 'version', '>=2021', clobber=False)
+
 
 def setup_task(chip, task):
     setup(chip)
@@ -46,12 +49,15 @@ def setup_task(chip, task):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^ERROR:', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^(CRITICAL )?WARNING:', step=step, index=index, clobber=False)
 
+
 def parse_version(stdout):
     # Vivado v2021.2 (64-bit)
     return stdout.split()[1]
 
+
 def normalize_version(version):
     return version.lstrip('v')
+
 
 def _parse_qor_summary(chip, step, index):
     if not os.path.isfile('qor_summary.json'):
@@ -77,6 +83,7 @@ def _parse_qor_summary(chip, step, index):
             chip._record_metric(step, index, 'holdwns', hold_wns, 'qor_summary.json', source_unit='ns')
         if hold_tns:
             chip._record_metric(step, index, 'holdtns', hold_tns, 'qor_summary.json', source_unit='ns')
+
 
 def _parse_utilization(chip, step, index):
     if not os.path.isfile('reports/total_utilization.rpt'):
@@ -113,6 +120,7 @@ def _parse_utilization(chip, step, index):
             total_bram += vals['uram']
         if 'bram' in vals or 'uram' in vals:
             chip._record_metric(step, index, 'brams', total_bram, 'reports/total_utilization.rpt')
+
 
 def post_process(chip):
     step = chip.get('arg', 'step')

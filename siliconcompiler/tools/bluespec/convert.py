@@ -4,6 +4,7 @@ import shutil
 # Directory inside step/index dir to store bsc intermediate results.
 VLOG_DIR = 'verilog'
 
+
 def setup(chip):
     '''
     Performs high level synthesis to generate a verilog output
@@ -31,20 +32,20 @@ def setup(chip):
     # Schema requirements
     chip.add('tool', tool, 'task', task, 'require', 'input,hll,bsv')
 
+
 ################################
 # Pre-process
 ################################
-
 def pre_process(chip):
     # bsc requires its output directory exists before being called.
     if os.path.isdir(VLOG_DIR):
         shutil.rmtree(VLOG_DIR)
     os.makedirs(VLOG_DIR)
 
+
 ################################
 # Post-process (post executable)
 ################################
-
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''

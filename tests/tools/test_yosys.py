@@ -6,6 +6,7 @@ from siliconcompiler.tools.yosys import lec
 
 from siliconcompiler.tools.builtin import nop
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_yosys_lec(datadir):
@@ -30,6 +31,7 @@ def test_yosys_lec(datadir):
     errors = chip.get('metric', 'drvs', step='lec', index='0')
 
     assert errors == 0
+
 
 @pytest.mark.eda
 @pytest.mark.quick

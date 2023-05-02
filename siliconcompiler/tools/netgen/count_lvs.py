@@ -32,6 +32,7 @@ import re
 import json
 import argparse
 
+
 def count_LVS_failures(filename):
     with open(filename, 'r') as cfile:
         lvsdata = json.load(cfile)

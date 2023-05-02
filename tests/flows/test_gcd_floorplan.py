@@ -1,5 +1,6 @@
 import pytest
 
+
 @pytest.mark.skip(reason='Skipping until floorplan API has been updated.')
 def setup_floorplan(fp):
     cell_h = fp.stdcell_height
@@ -23,6 +24,7 @@ def setup_floorplan(fp):
 
     spacing_ea = die_h / (len(out_pins) + 1)
     fp.place_pins(out_pins, die_w - width, spacing_ea - height / 2, 0, spacing_ea, width, height, metal, snap=True)  # east
+
 
 ##################################
 @pytest.mark.eda

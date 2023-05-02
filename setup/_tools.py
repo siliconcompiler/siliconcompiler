@@ -11,6 +11,7 @@ data_file = os.path.join(os.path.dirname(__file__), "_tools.json")
 with open(data_file, "r") as f:
     tools = json.load(f)
 
+
 def bump_commit(tools, tool):
     if "git-url" not in tools[tool]:
         return None
@@ -23,6 +24,7 @@ def bump_commit(tools, tool):
         return repo.head.commit.hexsha
 
     return None
+
 
 def bump_version(tools, tool):
     if "git-url" not in tools[tool]:
@@ -50,13 +52,16 @@ def bump_version(tools, tool):
 
     return None
 
+
 def has_tool(tool):
     return tool in tools
+
 
 def get_field(tool, field):
     if field not in tools[tool]:
         return None
     return tools[tool][field]
+
 
 def get_tools():
     return list(tools.keys())

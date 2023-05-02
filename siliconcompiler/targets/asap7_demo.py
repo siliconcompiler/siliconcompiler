@@ -5,10 +5,10 @@ from siliconcompiler.pdks import asap7
 from siliconcompiler.flows import asicflow
 from siliconcompiler.libs import asap7sc7p5t
 
+
 ####################################################
 # Target Setup
 ####################################################
-
 def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
     '''
     ASAP7 Demo Target

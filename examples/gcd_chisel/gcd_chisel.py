@@ -2,6 +2,7 @@
 
 import siliconcompiler
 
+
 def main():
     chip = siliconcompiler.Chip('GCD')
     chip.input('GCD.scala')

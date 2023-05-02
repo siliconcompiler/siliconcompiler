@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def _setup_lib(chip, libname, suffix):
     lib = siliconcompiler.Library(chip, libname)
 
@@ -106,6 +107,7 @@ def _setup_lib(chip, libname, suffix):
     lib.set('option', 'file', 'openroad_global_connect', libdir + '/apr/openroad/global_connect.tcl')
 
     return lib
+
 
 def setup(chip):
     '''

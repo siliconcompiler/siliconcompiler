@@ -3,6 +3,7 @@ import pytest
 
 import siliconcompiler
 
+
 def test_hash_files():
     chip = siliconcompiler.Chip('top')
 
@@ -19,6 +20,7 @@ def test_hash_files():
                 assert hashes == schema_hashes
                 assert len(hashes) == len(vals)
     chip.write_manifest("hashed.json")
+
 
 def test_err_mismatch():
     chip = siliconcompiler.Chip('top')
@@ -47,6 +49,7 @@ def test_err_mismatch():
     # No error since foo.txt was restored, and update=False in previous call
     # ensures original hash wasn't overwritten
     assert chip.hash_files('input', 'rtl', 'verilog', update=False) == ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+
 
 @pytest.mark.parametrize('algorithm,expected', [('md5', '14758f1afd44c09b7992073ccf00b43d'),
                                                 ('sha1', '988881adc9fc3655077dc2d4d757d480b5ea0e11'),

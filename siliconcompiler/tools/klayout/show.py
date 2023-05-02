@@ -1,9 +1,11 @@
 from siliconcompiler.tools.klayout import klayout
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 
+
 def make_docs(chip):
     klayout.make_docs(chip)
     chip.set('tool', 'klayout', 'task', 'show', 'var', 'show_filepath', '<path>')
+
 
 def general_gui_setup(chip, task, exit):
     # Generic tool setup.
@@ -38,6 +40,7 @@ def general_gui_setup(chip, task, exit):
     chip.set('tool', tool, 'task', task, 'var', 'show_filetype', 'File type to look for in the inputs', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'show_exit', 'true/false: true will cause kLayout to exit when complete', field='help')
 
+
 def setup(chip):
     '''
     Show a layout in kLayout
@@ -58,8 +61,8 @@ def setup(chip):
     option = ['-nc', '-rm']
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
-###############
 
+###############
 def find_incoming_ext(chip):
 
     step = chip.get('arg', 'step')

@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def gcd_chip():
     gcd_ex_dir = os.path.join(scroot(), 'examples', 'gcd')
 
@@ -17,9 +18,11 @@ def gcd_chip():
 
     return chip
 
+
 def scroot():
     mydir = os.path.dirname(__file__)
     return os.path.abspath(os.path.join(mydir, '..'))
+
 
 def datadir(file):
     mydir = os.path.dirname(file)

@@ -8,6 +8,7 @@ from siliconcompiler.schema import Schema
 from siliconcompiler.sphinx_ext.utils import strong, code, para, keypath, build_table, build_section_with_target
 from siliconcompiler.schema import utils
 
+
 # Main Sphinx plugin
 class SchemaGen(SphinxDirective):
 
@@ -74,6 +75,7 @@ class SchemaGen(SphinxDirective):
 
         return body
 
+
 class CategorySummary(SphinxDirective):
 
     option_spec = {'category': str}
@@ -107,6 +109,7 @@ class CategorySummary(SphinxDirective):
         new_doc += section
 
         return new_doc
+
 
 class CategoryGroupTable(SphinxDirective):
 
@@ -180,6 +183,7 @@ class CategoryGroupTable(SphinxDirective):
         table.append([strong('Total'), para(f'{total}'), para('')])
 
         return build_table(table)
+
 
 def setup(app):
     app.add_directive('schemagen', SchemaGen)

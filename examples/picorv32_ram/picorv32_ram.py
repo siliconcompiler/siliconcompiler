@@ -3,6 +3,7 @@
 import os
 import siliconcompiler
 
+
 def build_top(remote=False):
     # Core settings.
     design = 'picorv32_top'

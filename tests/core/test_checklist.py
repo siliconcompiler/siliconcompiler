@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def test_checklist():
     '''API test for help method
     '''
@@ -32,6 +33,7 @@ def test_checklist():
     chip.set('checklist', 'iso', 'd1', 'ok', True)
     assert chip.check_checklist('iso', ['d1'], check_ok=True)
 
+
 def test_missing_check_checklist():
     '''
     Check that check_checklist will generate an error on missing items
@@ -44,6 +46,7 @@ def test_missing_check_checklist():
     chip.set('checklist','iso', 'd1', 'criteria', 'errors==0')
     chip.set('checklist','iso', 'd1', 'task', ('job0', 'syn', '0'))
     assert not chip.check_checklist('iso', ['d0'])
+
 
 def test_missing_checklist():
     '''

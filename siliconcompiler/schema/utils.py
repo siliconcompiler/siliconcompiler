@@ -10,6 +10,7 @@ import sys
 
 PACKAGE_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
+
 def escape_val_tcl(val, typestr):
     '''Recursive helper function for converting Python values to safe TCL
     values, based on the SC type string.'''
@@ -50,6 +51,7 @@ def escape_val_tcl(val, typestr):
     else:
         # floats/ints just become strings
         return str(val)
+
 
 def trim(docstring):
     '''Helper function for cleaning up indentation of docstring.

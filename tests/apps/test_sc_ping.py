@@ -4,6 +4,7 @@ import os
 import subprocess
 import time
 
+
 ###########################
 def test_sc_ping(monkeypatch, unused_tcp_port):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD

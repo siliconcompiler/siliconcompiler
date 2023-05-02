@@ -47,12 +47,14 @@ from siliconcompiler import _metadata
 import psutil
 import subprocess
 
+
 class TaskStatus():
     # Could use Python 'enum' class here, but that doesn't work nicely with
     # schema.
     PENDING = 'pending'
     SUCCESS = 'success'
     ERROR = 'error'
+
 
 class Chip:
     """Object for configuring and executing hardware design flows.
@@ -5168,10 +5170,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Restore original schema
         self.schema = schema_copy
 
+
 ###############################################################################
 # Package Customization classes
 ###############################################################################
-
 class SiliconCompilerError(Exception):
     ''' Minimal Exception wrapper used to raise sc runtime errors.
     '''

@@ -1,6 +1,10 @@
 import os
 import siliconcompiler
 
+
+####################################################
+# PDK Setup
+####################################################
 def setup(chip):
     '''
     The asap7 PDK was developed at ASU in collaboration with ARM Research.

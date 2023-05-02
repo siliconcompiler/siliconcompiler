@@ -7,6 +7,7 @@ def setup(chip):
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'task', task, 'option', step + index, step=step, index=index, clobber=False)
 
+
 def parse_version(stdout):
     '''
     Version check based on stdout

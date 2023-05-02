@@ -11,16 +11,17 @@ Sources: https://github.com/RTimothyEdwards/magic
 
 import os
 
+
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
     chip.load_target("freepdk45_demo")
 
+
 ################################
 # Setup Tool (pre executable)
 ################################
-
 def setup(chip):
     ''' Setup function for 'magic' tool
     '''
@@ -60,10 +61,10 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^Error', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'warning', step=step, index=index, clobber=False)
 
+
 ################################
 # Version Check
 ################################
-
 def parse_version(stdout):
     return stdout.strip('\n')
 

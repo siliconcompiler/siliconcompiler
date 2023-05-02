@@ -15,6 +15,7 @@ Installation: https://github.com/B-Lang-org/bsc#download
 
 from siliconcompiler.tools.bluespec import convert
 
+
 ####################################################################
 # Make Docs
 ####################################################################
@@ -26,10 +27,10 @@ def make_docs(chip):
 # Directory inside step/index dir to store bsc intermediate results.
 VLOG_DIR = 'verilog'
 
+
 ################################
 # Setup Tool (pre executable)
 ################################
-
 def parse_version(stdout):
     # Examples:
     # Bluespec Compiler, version 2021.12.1-27-g9a7d5e05 (build 9a7d5e05)
@@ -38,10 +39,10 @@ def parse_version(stdout):
     long_version = stdout.split()[3]
     return long_version.split('-')[0]
 
+
 ################################
 #  Custom runtime options
 ################################
-
 def runtime_options(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')

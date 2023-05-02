@@ -4,6 +4,7 @@ import siliconcompiler
 
 from siliconcompiler.tools.builtin import nop
 
+
 def test_jobincr():
     chip = siliconcompiler.Chip('test')
     flow = 'test'

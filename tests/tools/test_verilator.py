@@ -5,6 +5,7 @@ import pytest
 
 from siliconcompiler.tools.verilator import parse
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_verilator(oh_dir):

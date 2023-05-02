@@ -1,5 +1,6 @@
 import os
 
+
 def setup(chip):
     '''
     Convert SystemVerilog to verilog

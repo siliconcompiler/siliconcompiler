@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def setup(chip):
     # Core values.
     design = 'sky130_sram_2k'

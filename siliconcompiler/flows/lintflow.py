@@ -3,6 +3,7 @@ import siliconcompiler
 from siliconcompiler.tools.surelog import parse as surelog_parse
 from siliconcompiler.tools.verilator import lint
 
+
 ###########################################################################
 # Flowgraph Setup
 ############################################################################

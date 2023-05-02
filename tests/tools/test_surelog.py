@@ -36,6 +36,7 @@ def test_surelog(scroot, clean):
     intermediate_dir = os.path.join(workdir, 'slpp_all')
     assert os.path.isdir(intermediate_dir) != clean
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_surelog_duplicate_inputs(scroot):
@@ -68,6 +69,7 @@ def test_surelog_duplicate_inputs(scroot):
                 module_count += 1
     assert module_count == 1
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_surelog_preproc_regression(datadir):
@@ -91,6 +93,7 @@ def test_surelog_preproc_regression(datadir):
 
     with open(result, 'r') as vlog:
         assert "`MEM_ROOT" not in vlog.read()
+
 
 @pytest.mark.eda
 @pytest.mark.quick

@@ -6,6 +6,7 @@ import tarfile
 import json
 import importlib
 
+
 def main():
     progname = "sc-issue"
     chip = siliconcompiler.Chip(progname)

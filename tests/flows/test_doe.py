@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import pytest
 
+
 # unit routine
 def run_design(datadir, design, N, job):
 
@@ -16,6 +17,7 @@ def run_design(datadir, design, N, job):
     chip.set('steplist', ['import', 'syn'])
     chip.load_target("freepdk45_demo")
     chip.run()
+
 
 @pytest.mark.eda
 @pytest.mark.quick

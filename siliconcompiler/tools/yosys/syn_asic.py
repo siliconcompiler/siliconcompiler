@@ -4,8 +4,10 @@ import os
 import re
 import siliconcompiler.tools.yosys.markDontUse as markDontUse
 
+
 def make_docs(chip):
     chip.load_target("asap7_demo")
+
 
 def setup(chip):
     '''
@@ -17,6 +19,7 @@ def setup(chip):
 
     # ASIC-specific setup.
     setup_asic(chip)
+
 
 def setup_asic(chip):
     ''' Helper method for configs specific to ASIC steps (both syn and lec).
@@ -118,6 +121,7 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file', 'File to use for the DFF mapping stage of Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'add_buffers', 'True/False, flag to indicate whether to add buffers or not.', field='help')
 
+
 ################################
 # mark cells dont use and format liberty files for yosys and abc
 ################################
@@ -183,6 +187,7 @@ def prepare_synthesis_libraries(chip):
             for lib_file in get_synthesis_libraries(lib):
                 process_lib_file(libtype, lib, lib_file, dont_use)
 
+
 def create_abc_synthesis_constraints(chip):
 
     tool = 'yosys'
@@ -211,6 +216,7 @@ def create_abc_synthesis_constraints(chip):
                 abc_load *= 1000
             f.write(f"set_load {abc_load}\n")
 
+
 def get_synthesis_corner(chip):
 
     tool = 'yosys'
@@ -238,6 +244,7 @@ def get_synthesis_corner(chip):
         corner = corner[0]
 
     return corner
+
 
 def get_dff_liberty_file(chip):
 
@@ -338,6 +345,7 @@ def get_abc_period(chip):
 
     return int(period)
 
+
 def get_abc_driver(chip):
 
     tool = 'yosys'
@@ -357,6 +365,7 @@ def get_abc_driver(chip):
 
     return abc_driver
 
+
 ##################################################
 def pre_process(chip):
     ''' Tool specific function to run before step execution
@@ -365,6 +374,7 @@ def pre_process(chip):
     prepare_synthesis_libraries(chip)
     create_abc_synthesis_constraints(chip)
     return
+
 
 def post_process(chip):
     syn_post_process(chip)

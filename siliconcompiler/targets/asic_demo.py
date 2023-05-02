@@ -1,6 +1,7 @@
 import os
 import siliconcompiler
 
+
 def setup(chip):
     '''
     "Self-test" target which builds a small 8-bit counter design as an ASIC,

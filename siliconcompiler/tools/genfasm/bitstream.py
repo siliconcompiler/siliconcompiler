@@ -1,6 +1,7 @@
 import os
 import re
 
+
 def setup(chip):
     '''
     Generates a bitstream
@@ -31,6 +32,7 @@ def setup(chip):
 
     chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
+
 #############################################
 # Runtime pre processing
 #############################################
@@ -42,6 +44,7 @@ def pre_process(chip):
     tool = "genfasm"
 
     chip.add('tool', tool, 'task', task, 'option', [f"--route_chan_width {find_chann_width()}"], step=step, index=index)
+
 
 ################################
 # Find the final channel width from the VPR report

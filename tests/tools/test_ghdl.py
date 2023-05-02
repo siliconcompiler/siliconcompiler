@@ -5,6 +5,7 @@ import pytest
 
 from siliconcompiler.tools.ghdl import convert
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_ghdl(datadir):

@@ -32,6 +32,7 @@ else:
 with open("README.md", "r", encoding="utf-8") as readme:
     long_desc = readme.read()
 
+
 def parse_reqs():
     '''Parse out each requirement category from requirements.txt'''
     install_reqs = []
@@ -90,6 +91,7 @@ if not on_rtd:
     }
 else:
     skbuild_args = {}
+
 
 def get_package_data(item, package):
     '''Used to compensate for poor glob support in package_data'''

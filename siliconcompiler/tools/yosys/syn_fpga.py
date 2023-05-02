@@ -4,9 +4,11 @@ import shutil
 from jinja2 import Template
 from siliconcompiler.utils import Arch
 
+
 def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
     chip.load_target("fpgaflow_demo")
+
 
 def setup(chip):
     '''
@@ -18,6 +20,7 @@ def setup(chip):
 
     # FPGA-specific setup.
     setup_fpga(chip)
+
 
 def setup_fpga(chip):
     ''' Helper method for configs specific to FPGA steps (both syn and lec).
@@ -33,6 +36,7 @@ def setup_fpga(chip):
     chip.add('tool', tool, 'task', task, 'require', ",".join(['fpga', 'partname']), step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '_netlist.json', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
+
 
 ################################
 # copy and render the VPR library
@@ -71,6 +75,7 @@ def create_vpr_lib(chip):
             with open(file, "w") as rendered_f:
                 rendered_f.write(template.render(data))
 
+
 ##################################################
 def pre_process(chip):
     ''' Tool specific function to run before step execution
@@ -80,6 +85,7 @@ def pre_process(chip):
     if chip.get('fpga', 'arch'):
         create_vpr_lib(chip)
         return
+
 
 ##################################################
 def post_process(chip):

@@ -1,6 +1,7 @@
 import os
 import pytest
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
@@ -18,6 +19,7 @@ def test_slurm_local_py(gcd_chip):
 
     # Verify that GDS file was generated.
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
+
 
 @pytest.mark.eda
 @pytest.mark.quick

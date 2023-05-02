@@ -1,6 +1,7 @@
 import os
 import shutil
 
+
 def setup(chip):
     '''
     Performs high level synthesis to generate a verilog output
@@ -26,10 +27,10 @@ def setup(chip):
     # Schema requirements
     chip.add('tool', tool, 'task', task, 'require', 'input,hll,c')
 
+
 ################################
 # Post_process (post executable)
 ################################
-
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''

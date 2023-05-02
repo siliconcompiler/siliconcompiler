@@ -2,10 +2,10 @@
 import os
 import siliconcompiler
 
+
 ####################################################
 # PDK Setup
 ####################################################
-
 def setup(chip):
     '''
     The freepdk45 PDK is a virtual PDK derived from the work done at

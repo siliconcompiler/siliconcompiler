@@ -3,13 +3,14 @@ from siliconcompiler.targets import utils
 
 from siliconcompiler.flows import fpgaflow
 
+
 def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
+
 
 ####################################################
 # Target Setup
 ####################################################
-
 def setup(chip):
     '''
     Demonstration target for running the open-source fpgaflow.

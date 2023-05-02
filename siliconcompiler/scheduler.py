@@ -6,6 +6,7 @@ import time
 import uuid
 import json
 
+
 ###########################################################################
 def _deferstep(chip, step, index, status):
     '''
@@ -153,6 +154,7 @@ def _deferstep(chip, step, index, status):
 
     if retcode > 0:
         chip.logger.error(f'srun command for {step} failed.')
+
 
 def _get_slurm_partition():
     partitions = subprocess.run(['sinfo', '--json'],

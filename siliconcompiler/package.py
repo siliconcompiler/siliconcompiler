@@ -4,6 +4,7 @@ import re
 import shutil
 import siliconcompiler
 
+
 class Sup:
     '''SiliconCompiler Unified Package (SUP) class.
 

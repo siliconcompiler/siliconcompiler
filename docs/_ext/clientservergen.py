@@ -4,6 +4,7 @@ import json
 from docutils import nodes
 from sphinx.util.docutils import SphinxDirective
 
+
 def add_prop_attr_row(prop, attr, tbody, key=None):
     desc_row = nodes.row()
     tbody += desc_row
@@ -14,6 +15,7 @@ def add_prop_attr_row(prop, attr, tbody, key=None):
     desc_text_entry = nodes.entry()
     desc_row += desc_text_entry
     desc_text_entry += nodes.paragraph(text=prop[attr])
+
 
 def add_table_row(prop, tbody):
     # Create title / header row for this schema property.
@@ -44,6 +46,7 @@ def add_table_row(prop, tbody):
     # Add default value, if available.
     if 'default' in prop:
         add_prop_attr_row(prop, 'type', tbody, key='default value')
+
 
 # Main Sphinx plugin
 class RemoteAPIGen(SphinxDirective):
@@ -88,6 +91,7 @@ class RemoteAPIGen(SphinxDirective):
         # Done; return the array of document objects.
         new_doc += top_section
         return new_doc
+
 
 def setup(app):
     app.add_directive('clientservergen', RemoteAPIGen)

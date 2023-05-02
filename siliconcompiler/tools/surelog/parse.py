@@ -2,6 +2,7 @@ import os
 
 from siliconcompiler.tools.surelog.surelog import setup as setup_tool
 
+
 ##################################################
 def setup(chip):
     '''
@@ -36,6 +37,7 @@ def setup(chip):
 
     # Schema requirements
     chip.add('tool', tool, 'task', task, 'require', ",".join(['input', 'rtl', 'verilog']), step=step, index=index)
+
 
 ##################################################
 def post_process(chip):

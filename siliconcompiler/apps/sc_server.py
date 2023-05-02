@@ -9,6 +9,7 @@ from siliconcompiler.server import Server
 # Helper method to parse sc-server command-line args.
 ###############################################
 
+
 def server_cmdline():
     '''
     Command-line parsing for sc-server variables.
@@ -76,6 +77,7 @@ def server_cmdline():
 ###############################################
 # Main method to run the sc-server application.
 ###############################################
+
 
 def main():
     # Command line inputs and default 'server_schema' config values.

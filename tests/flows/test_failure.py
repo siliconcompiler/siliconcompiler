@@ -3,6 +3,7 @@ import siliconcompiler
 
 import pytest
 
+
 @pytest.fixture
 def chip(datadir):
     # Create instance of Chip class
@@ -19,6 +20,7 @@ def chip(datadir):
     chip.add('option', 'steplist', 'syn')
 
     return chip
+
 
 @pytest.mark.eda
 def test_failure_notquiet(chip):
@@ -44,6 +46,7 @@ def test_failure_notquiet(chip):
     # Expect that synthesis doesn't run
     assert not os.path.isdir('build/bad/job0/syn/0/syn.log')
 
+
 @pytest.mark.eda
 def test_failure_quiet(chip):
     '''Test that SC exits early on errors with -quiet switch.
@@ -63,6 +66,7 @@ def test_failure_quiet(chip):
     assert chip.find_result('v', step='import') is None
     # Expect that synthesis doesn't run
     assert not os.path.isdir('build/bad/job0/syn/0/syn.log')
+
 
 @pytest.mark.quick
 def test_incomplete_flowgraph():

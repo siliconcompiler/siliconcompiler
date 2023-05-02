@@ -2,6 +2,7 @@ import argparse
 import sys
 import siliconcompiler as sc
 
+
 def main():
 
     progname = "sup"

@@ -2,6 +2,7 @@ import os
 import siliconcompiler
 import pytest
 
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(180)
