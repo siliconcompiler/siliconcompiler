@@ -16,7 +16,7 @@ def test_basic_setget(chip):
 
 def test_list_access(chip):
     # Check list access
-    inlist = ['import','syn']
+    inlist = ['import', 'syn']
     chip.set('option', 'steplist', inlist)
     assert inlist == chip.get('option', 'steplist')
 

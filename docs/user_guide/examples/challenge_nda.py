@@ -16,4 +16,4 @@ for i in range(pdks):
     chip.node('pdk', 'closed', index=i)
     chip.edge('proxy', 'pdk', tail_index=0, head_index=i)
 
-chip.write_flowgraph('../_images/siliconcompiler_proxy.png',fillcolor='#FFFFFF')
+chip.write_flowgraph('../_images/siliconcompiler_proxy.png', fillcolor='#FFFFFF')

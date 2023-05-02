@@ -10,7 +10,7 @@ def test_archive(oh_dir):
     srcdir = os.path.join(oh_dir, 'stdlib', 'hdl')
 
     chip = siliconcompiler.Chip('oh_parity')
-    chip.input(os.path.join(srcdir,'oh_parity.v'))
+    chip.input(os.path.join(srcdir, 'oh_parity.v'))
     chip.set('option', 'steplist', 'import')
     chip.load_target('freepdk45_demo')
     chip.run()

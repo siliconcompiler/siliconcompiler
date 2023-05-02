@@ -15,8 +15,8 @@ import siliconcompiler
 def make_docs():
 
     chip = siliconcompiler.Chip('<design>')
-    chip.set('arg','step','<step>')
-    chip.set('arg','index','<index>')
+    chip.set('arg', 'step', '<step>')
+    chip.set('arg', 'index', '<index>')
     setup(chip)
     return chip
 

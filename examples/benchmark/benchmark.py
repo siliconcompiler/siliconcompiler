@@ -21,19 +21,19 @@ def main():
         parent = os.path.abspath("..")
         rootdir = os.path.join(parent, design)
         results[design] = {}
-        for n in ['1','2','4','8','16']:
+        for n in ['1', '2', '4', '8', '16']:
             wall_start = time.time()
             chip = siliconcompiler.Chip(design)
             chip.set('jobname', f"job{n}")
             chip.load_target("skywater130_demo")
             chip.set('relax', True)
             chip.set('quiet', True)
-            chip.set('remote',False)
+            chip.set('remote', False)
 
             # load dsign
             chip.input(os.path.join(rootdir, f"{design}.v"))
             chip.input(os.path.join(rootdir, f"{design}.sdc"))
-            chip.set('constraint', 'outline', [(0,0), (size,size)])
+            chip.set('constraint', 'outline', [(0, 0), (size, size)])
             chip.set('constraint', 'corearea', [(10, 10), (size - 10, size - 10)])
 
             # load flow
@@ -45,7 +45,7 @@ def main():
 
             # Set router to 1 thread to not interfere with measurement
             for i in range(int(n)):
-                chip.set('eda','openroad','threads', 'route',str(i),1)
+                chip.set('eda', 'openroad', 'threads', 'route', str(i), 1)
 
             # RUN
             chip.run()
@@ -53,7 +53,7 @@ def main():
             # OBSERVE/RECORD
             chip.summary()
             wall_end = time.time()
-            walltime = round((wall_end - wall_start),2)
+            walltime = round((wall_end - wall_start), 2)
             results[design][n] = walltime
             with open("results.txt", 'w') as f:
                 f.write(results)

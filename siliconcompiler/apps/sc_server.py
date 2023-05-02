@@ -25,7 +25,7 @@ def server_cmdline():
                                      description="Silicon Compiler Collection Remote Job Server (sc-server)")
 
     # Add supported schema arguments to the parser.
-    for k,v in sorted(def_cfg.items()):
+    for k, _ in sorted(def_cfg.items()):
         keystr = str(k)
         helpstr = def_cfg[k]['short_help'] + \
             '\n\n' + \
@@ -50,7 +50,7 @@ def server_cmdline():
     cmdargs = vars(parser.parse_args())
 
     # Generate nested cfg dictionary.
-    for key,all_vals in cmdargs.items():
+    for key, all_vals in cmdargs.items():
         switch = key.split('_')
         param = switch[0]
         if len(switch) > 1:

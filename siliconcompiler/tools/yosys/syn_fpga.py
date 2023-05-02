@@ -27,8 +27,8 @@ def setup_fpga(chip):
     '''
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     design = chip.top()
 
@@ -44,8 +44,8 @@ def setup_fpga(chip):
 def create_vpr_lib(chip):
 
     # copy the VPR techmap library to the input directory
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     src = os.path.join(os.path.dirname(__file__), "vpr_yosyslib")
     dst = os.path.join(chip._getworkdir(step=step, index=index), "inputs", "vpr_yosyslib")

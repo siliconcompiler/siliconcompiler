@@ -2069,7 +2069,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # schema settings
         design = self.get('design')
         reglist = self.get('option', 'registry')
-        auto = self.get('option','autoinstall')
+        auto = self.get('option', 'autoinstall')
 
         # environment settings
         # Local cache location
@@ -2078,7 +2078,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             home = os.environ['HOME']
 
-        cache = os.path.join(home,'.sc','registry')
+        cache = os.path.join(home, '.sc', 'registry')
 
         # Indexing all local cache packages
         local = self._build_index(cache)
@@ -2138,9 +2138,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if ver not in list(remote[dep].keys()):
                 self.error(f"Package {dep}-{ver} not found in registry.")
 
-        ifile = os.path.join(remote[dep][ver],dep,ver,package)
-        odir = os.path.join(cache,dep,ver)
-        ofile = os.path.join(odir,package)
+        ifile = os.path.join(remote[dep][ver], dep, ver, package)
+        odir = os.path.join(cache, dep, ver)
+        ofile = os.path.join(odir, package)
 
         # Install package
         os.makedirs(odir, exist_ok=True)
@@ -2157,7 +2157,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for dep in deps.keys():
             # TODO: Proper PEP semver matching
             ver = list(deps[dep])[0]
-            depgraph[design].append((dep,ver))
+            depgraph[design].append((dep, ver))
             islocal = False
             if dep in local.keys():
                 if ver in local[dep]:
@@ -2171,7 +2171,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 local[dep] = ver
 
             # look through dependency package files
-            package = os.path.join(cache,dep,ver,f"{dep}-{ver}.sup.gz")
+            package = os.path.join(cache, dep, ver, f"{dep}-{ver}.sup.gz")
             schema = Schema(manifest=package)
 
             # done if no more dependencies
@@ -2529,7 +2529,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error("Internal hashing error, file not found")
         # compare previous hash to new hash
         oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
-        for i,item in enumerate(oldhash):
+        for i, item in enumerate(oldhash):
             if item != hashlist[i]:
                 self.error(f"Hash mismatch for [{keypath}]")
 
@@ -2773,7 +2773,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif switches[i] in options.keys():
                 options[switches[i]] = True
             elif switches[i] != '':
-                print("ERROR",switches[i])
+                print("ERROR", switches[i])
 
         # REGEX
         # TODO: add all the other optinos
@@ -3541,7 +3541,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Directory setup
         in_job = self._get_in_job(step, index)
 
-        workdir = self._getworkdir(step=step,index=index)
+        workdir = self._getworkdir(step=step, index=index)
         cwd = os.getcwd()
         if os.path.isdir(workdir) and not replay:
             shutil.rmtree(workdir)
@@ -3591,10 +3591,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Copy (link) output data from previous steps
 
-        if not self.get('flowgraph', flow, step, index,'input'):
+        if not self.get('flowgraph', flow, step, index, 'input'):
             all_inputs = []
         elif not self.get('flowgraph', flow, step, index, 'select'):
-            all_inputs = self.get('flowgraph', flow, step, index,'input')
+            all_inputs = self.get('flowgraph', flow, step, index, 'input')
         else:
             all_inputs = self.get('flowgraph', flow, step, index, 'select')
         for in_step, in_index in all_inputs:
@@ -3861,7 +3861,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Capture cpu runtime and memory footprint.
         cpu_end = time.time()
-        cputime = round((cpu_end - cpu_start),2)
+        cputime = round((cpu_end - cpu_start), 2)
         self._record_metric(step, index, 'exetime', cputime, None, source_unit='s')
         self._record_metric(step, index, 'memory', max_mem_bytes, None, source_unit='B')
 
@@ -3911,7 +3911,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Capture wall runtime and cpu cores
         wall_end = time.time()
-        walltime = round((wall_end - wall_start),2)
+        walltime = round((wall_end - wall_start), 2)
         self.set('metric', 'tasktime', walltime, step=step, index=index)
         self.logger.info(f"Finished task in {walltime}s")
 
@@ -3980,8 +3980,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ###########################################################################
     def _setup_task(self, step, index):
 
-        self.set('arg','step', step)
-        self.set('arg','index', index)
+        self.set('arg', 'step', step)
+        self.set('arg', 'index', index)
         tool, task = self._get_tool_task(step, index)
 
         # Run task setup.
@@ -4000,8 +4000,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Need to clear index, otherwise we will skip setting up other indices.
         # Clear step for good measure.
-        self.set('arg','step', None)
-        self.set('arg','index', None)
+        self.set('arg', 'step', None)
+        self.set('arg', 'index', None)
 
     ###########################################################################
     def run(self):
@@ -4137,9 +4137,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             os.environ[envvar] = val
 
         # Remote workflow: Dispatch the Chip to a remote server for processing.
-        if self.get('option','remote'):
+        if self.get('option', 'remote'):
             # Load the remote storage config into the status dictionary.
-            if self.get('option','credentials'):
+            if self.get('option', 'credentials'):
                 # Use the provided remote credentials file.
                 cfg_file = os.path.abspath(self.get('option', 'credentials')[-1])
 
@@ -4190,9 +4190,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self._init_logger(in_run=True)
 
             # Read back configuration from final manifest.
-            cfg = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
+            cfg = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
             if os.path.isfile(cfg):
-                local_dir = self.get('option','builddir')
+                local_dir = self.get('option', 'builddir')
                 self.read_manifest(cfg, clobber=True, clear=True)
                 self.set('option', 'builddir', local_dir)
                 # Un-set steplist so 'show'/etc flows will work on returned results.
@@ -4244,7 +4244,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Check validity of setup
             self.logger.info("Checking manifest before running.")
             check_ok = True
-            if not self.get('option','skipcheck'):
+            if not self.get('option', 'skipcheck'):
                 check_ok = self.check_manifest()
 
             # Check if there were errors before proceeding with run
@@ -4254,7 +4254,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error('Implementation errors encountered. See previous errors.', fatal=True)
 
             # For each task to run, prepare a process and store its dependencies
-            jobname = self.get('option','jobname')
+            jobname = self.get('option', 'jobname')
             tasks_to_run = {}
             processes = {}
             for step in steplist:
@@ -4377,7 +4377,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.schema.record_history()
 
         # Storing manifest in job root directory
-        filepath = os.path.join(self._getworkdir(),f"{self.get('design')}.pkg.json")
+        filepath = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
 
     ###########################################################################
@@ -4589,8 +4589,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 cmdlist.extend(shlex.split(option, posix=is_posix))
 
         envvars = {}
-        for key in self.getkeys('option','env'):
-            envvars[key] = self.get('option','env', key)
+        for key in self.getkeys('option', 'env'):
+            envvars[key] = self.get('option', 'env', key)
         for item in self.getkeys('tool', tool, 'licenseserver'):
             license_file = self.get('tool', tool, 'licenseserver', item, step=step, index=index)
             if license_file:
@@ -4813,10 +4813,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         if jobname is None:
-            jobname = self.get('option','jobname')
+            jobname = self.get('option', 'jobname')
 
         dirlist = [self.cwd,
-                   self.get('option','builddir'),
+                   self.get('option', 'builddir'),
                    self.get('design'),
                    jobname]
 
@@ -5158,7 +5158,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             tar.add(os.path.abspath(manifest_path), arcname='manifest.json')
             tar.add(os.path.abspath(issue_path), arcname='issue.json')
-            tar.add(collect_path, arcname=os.path.join(self.get('option','builddir'),
+            tar.add(collect_path, arcname=os.path.join(self.get('option', 'builddir'),
                                                        self.get('design'),
                                                        self.get('option', 'jobname'),
                                                        'sc_collected_files'))

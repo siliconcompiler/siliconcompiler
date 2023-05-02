@@ -46,11 +46,11 @@ def main():
     # TOP
     # TODO: note that import has to be placed first, otherwise
     # defaults won't be there.(need a better way!)
-    chip.node('top','import', 'surelog')
-    chip.graph("top","apr", name="apr")
-    chip.graph("top","signoff", name="dv")
+    chip.node('top', 'import', 'surelog')
+    chip.graph("top", "apr", name="apr")
+    chip.graph("top", "signoff", name="dv")
     chip.write_manifest("top0.tcl")
-    chip.edge('top','import','apr')
+    chip.edge('top', 'import', 'apr')
     chip.edge("top", "apr", "dv")
     chip.set('option', 'flow', 'top')
     chip.write_flowgraph("top.png")

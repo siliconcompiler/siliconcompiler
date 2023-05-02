@@ -11,8 +11,8 @@ def setup(chip):
     '''
 
     tool = 'bluespec'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     # Standard Setup
@@ -27,7 +27,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
 
     # Input/Output requirements
-    chip.add('tool', tool, 'task', task,'output', chip.top() + '.v', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
     chip.add('tool', tool, 'task', task, 'require', 'input,hll,bsv')

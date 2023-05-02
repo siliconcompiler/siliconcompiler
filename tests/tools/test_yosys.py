@@ -47,7 +47,7 @@ def test_yosys_lec_broken(datadir):
     chip.node(flow, 'import', nop)
     chip.node(flow, 'lec', lec)
     chip.edge(flow, 'import', 'lec')
-    chip.set('option','flow', flow)
+    chip.set('option', 'flow', flow)
 
     chip.input(os.path.join(lec_dir, 'foo_broken.v'))
     chip.input(os.path.join(lec_dir, 'foo_broken.vg'))

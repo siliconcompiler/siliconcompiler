@@ -42,8 +42,8 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     with open(step + ".log") as f:
         for line in f:

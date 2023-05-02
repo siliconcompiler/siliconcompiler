@@ -34,8 +34,8 @@ def setup(chip):
     # If the 'lock' bit is set, don't reconfigure.
     tool = 'yosys'
     refdir = 'tools/' + tool
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     # Standard Setup
@@ -74,8 +74,8 @@ def syn_setup(chip):
     setup(chip)
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     design = chip.top()
 
@@ -92,8 +92,8 @@ def syn_post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     with open("reports/stat.json", 'r') as f:
         metrics = json.load(f)

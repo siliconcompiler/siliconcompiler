@@ -53,7 +53,7 @@ def setup(chip):
                                         'sky130_fd_sc_hd__fill_8'])
 
     # Tapcell
-    lib.add('asic', 'cells','tap', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
+    lib.add('asic', 'cells', 'tap', 'sky130_fd_sc_hd__tapvpwrvgnd_1')
 
     # Endcap
     lib.add('asic', 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')

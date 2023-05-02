@@ -191,7 +191,7 @@ def test_unset():
     assert chip.get('option', 'remote') is True
 
     # Clearing a keypath resets it to default value
-    chip.unset('option','remote')
+    chip.unset('option', 'remote')
     assert chip.get('option', 'remote') is False
 
     # Able to set a keypath after it's been cleared even if clobber=False

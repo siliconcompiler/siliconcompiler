@@ -21,7 +21,7 @@ def setup(chip):
 
     options = []
 
-    for arch in chip.get('fpga','arch'):
+    for arch in chip.get('fpga', 'arch'):
         options.append(arch)
 
     options.append(blif)
@@ -38,8 +38,8 @@ def setup(chip):
 #############################################
 def pre_process(chip):
 
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     tool = "genfasm"
 

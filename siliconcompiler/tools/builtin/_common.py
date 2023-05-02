@@ -129,7 +129,7 @@ def _minmax(chip, *steps, op=None):
 
         if ((op == 'minimum' and score < best_score) or (op == 'maximum' and score > best_score)):
             best_score = score
-            winner = (step,index)
+            winner = (step, index)
 
     return (best_score, winner)
 

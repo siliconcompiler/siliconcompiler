@@ -14,7 +14,7 @@ def test_help():
         scope = chip.get(*key, field='scope')
         keystr = ','.join(key)
         group = key[0]
-        row = [scope,f",{group}", f",{typestr}", f',"{shorthelp}"', f',"{keystr}"']
+        row = [scope, f",{group}", f",{typestr}", f',"{shorthelp}"', f',"{keystr}"']
         print("{: <8} {: <15} {: <20} {: <45} {: <60}".format(*row))
 
 

@@ -9,8 +9,8 @@ def setup(chip):
     chip.logger.debug("Setting up sv2v")
 
     tool = 'sv2v'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = 'convert'
 
     chip.set('tool', tool, 'exe', tool)

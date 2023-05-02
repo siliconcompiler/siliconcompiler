@@ -90,13 +90,13 @@ def setup(chip, flowname='fpgaflow'):
         if prevstep:
             flow.edge(flowname, prevstep, step)
         # Hard goals
-        for metric in ('errors','warnings','drvs','unconstrained',
-                       'holdwns','holdtns', 'holdpaths',
+        for metric in ('errors', 'warnings', 'drvs', 'unconstrained',
+                       'holdwns', 'holdtns', 'holdpaths',
                        'setupwns', 'setuptns', 'setuppaths'):
             flow.set('flowgraph', flowname, step, index, 'goal', metric, 0)
         # Metrics
-        for metric in ('luts','dsps','brams','registers',
-                       'pins','peakpower','leakagepower'):
+        for metric in ('luts', 'dsps', 'brams', 'registers',
+                       'pins', 'peakpower', 'leakagepower'):
             flow.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
         prevstep = step
 

@@ -25,9 +25,9 @@ def test_cli_multi_source(monkeypatch):
 
     chip = do_cli_test(args, monkeypatch)
 
-    sources = chip.get('input','rtl','verilog', step='import', index=0)
+    sources = chip.get('input', 'rtl', 'verilog', step='import', index=0)
     assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
-    assert chip.get('option','target') == 'freepdk45_demo'
+    assert chip.get('option', 'target') == 'freepdk45_demo'
 
 
 def test_cli_include_flag(monkeypatch):
@@ -97,8 +97,8 @@ def _cast(val, sctype):
         subtype = sctype.strip('[]')
         return [_cast(val.strip('[]'), subtype)]
     elif sctype.startswith('('):
-        vals = val.strip('()').split(',')
-        subtypes = sctype.strip('()').split(',')
+        vals = val.strip('()').split(', ')
+        subtypes = sctype.strip('()').split(', ')
         return tuple(_cast(v.strip(), subtype.strip()) for v, subtype in zip(vals, subtypes))
     elif sctype == 'float':
         return float(val)
@@ -138,9 +138,9 @@ def test_additional_parameters(monkeypatch):
     assert chip.args['testing_str'] == 'this is a string'
     assert chip.args['testing_int'] == 12
 
-    sources = chip.get('input','rtl','verilog', step='import', index=0)
+    sources = chip.get('input', 'rtl', 'verilog', step='import', index=0)
     assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
-    assert chip.get('option','target') == 'freepdk45_demo'
+    assert chip.get('option', 'target') == 'freepdk45_demo'
 
 
 def test_additional_parameters_not_used(monkeypatch):
@@ -168,9 +168,9 @@ def test_additional_parameters_not_used(monkeypatch):
     assert chip.args['testing_str'] is None
     assert chip.args['testing_int'] is None
 
-    sources = chip.get('input','rtl','verilog', step='import', index=0)
+    sources = chip.get('input', 'rtl', 'verilog', step='import', index=0)
     assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
-    assert chip.get('option','target') == 'freepdk45_demo'
+    assert chip.get('option', 'target') == 'freepdk45_demo'
 
 
 def test_cli_examples(monkeypatch):

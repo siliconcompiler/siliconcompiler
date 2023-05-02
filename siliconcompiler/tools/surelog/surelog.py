@@ -25,8 +25,8 @@ def setup(chip):
     tool = 'surelog'
     # Nothing in this method should rely on the value of 'step' or 'index', but they are used
     # as schema keys in some important places, so we still need to fetch them.
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     exe = tool
     task = chip._get_task(step, index)
 

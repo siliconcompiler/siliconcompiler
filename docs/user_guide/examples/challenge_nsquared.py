@@ -9,11 +9,11 @@ pdks = 4
 chip = siliconcompiler.Chip()
 for i in range(designs):
     for j in range(tools):
-        chip.add('flowgraph','tool', str(j), 'input', ('design',str(i)))
+        chip.add('flowgraph', 'tool', str(j), 'input', ('design', str(i)))
 
 for j in range(tools):
     for k in range(pdks):
-        chip.add('flowgraph','pdk', str(k), 'input', ('tool',str(j)))
+        chip.add('flowgraph', 'pdk', str(k), 'input', ('tool', str(j)))
 
 chip.write_flowgraph('../_images/challenge_nsquared.png', fillcolor='#FFFFFF')
 
@@ -22,15 +22,15 @@ chip = siliconcompiler.Chip()
 
 # ir0
 for i in range(designs):
-    chip.add('flowgraph','sc0', '0', 'input', ('design',str(i)))
+    chip.add('flowgraph', 'sc0', '0', 'input', ('design', str(i)))
 
 # eda
 for i in range(tools):
-    chip.add('flowgraph','tool', str(i), 'input', ('sc0','0'))
-    chip.add('flowgraph','sc1', '0', 'input', ('tool',str(i)))
+    chip.add('flowgraph', 'tool', str(i), 'input', ('sc0', '0'))
+    chip.add('flowgraph', 'sc1', '0', 'input', ('tool', str(i)))
 
 # pdk
 for i in range(pdks):
-    chip.add('flowgraph','pdk', str(i), 'input', ('sc1','0'))
+    chip.add('flowgraph', 'pdk', str(i), 'input', ('sc1', '0'))
 
-chip.write_flowgraph('../_images/siliconcompiler_ir.png',fillcolor='#FFFFFF')
+chip.write_flowgraph('../_images/siliconcompiler_ir.png', fillcolor='#FFFFFF')

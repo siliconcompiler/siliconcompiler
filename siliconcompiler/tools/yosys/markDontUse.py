@@ -8,7 +8,7 @@ import argparse  # argument parsing
 
 def processLibertyFile(input_file, output_file, dont_use, quiet=False):
     # Convert * wildcards to regex wildcards
-    patternList = [du.replace('*','.*') for du in dont_use]
+    patternList = [du.replace('*', '.*') for du in dont_use]
 
     # Read input file
     if not quiet:

@@ -55,11 +55,11 @@ def setup(chip):
             libdir + '/cdl/NangateOpenCellLibrary.cdl')
 
     # clock buffers
-    lib.add('asic', 'cells','clkbuf', "BUF_X4")
+    lib.add('asic', 'cells', 'clkbuf', "BUF_X4")
 
     # tie cells
-    lib.add('asic', 'cells','tie', ["LOGIC1_X1",
-                                    "LOGIC0_X1"])
+    lib.add('asic', 'cells', 'tie', ["LOGIC1_X1",
+                                     "LOGIC0_X1"])
 
     # hold cells
     lib.add('asic', 'cells', 'hold', "BUF_X1")
@@ -77,10 +77,10 @@ def setup(chip):
                                          "OAI211_X1"])
 
     # Tapcell
-    lib.add('asic', 'cells','tap', "TAPCELL_X1")
+    lib.add('asic', 'cells', 'tap', "TAPCELL_X1")
 
     # Endcap
-    lib.add('asic', 'cells','endcap', "TAPCELL_X1")
+    lib.add('asic', 'cells', 'endcap', "TAPCELL_X1")
 
     # Techmap
     lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')

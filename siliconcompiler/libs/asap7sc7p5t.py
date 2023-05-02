@@ -20,7 +20,7 @@ def _setup_lib(chip, libname, suffix):
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
 
     # rev
-    lib.set('package', 'version',rev)
+    lib.set('package', 'version', rev)
 
     # todo: remove later
     lib.set('option', 'pdk', 'asap7')
@@ -77,7 +77,7 @@ def _setup_lib(chip, libname, suffix):
     lib.add('asic', 'cells', 'tap', f"TAPCELL_ASAP7_75t_{suffix}")
 
     # Endcap
-    lib.add('asic', 'cells','endcap', f"DECAPx1_ASAP7_75t_{suffix}")
+    lib.add('asic', 'cells', 'endcap', f"DECAPx1_ASAP7_75t_{suffix}")
 
     # Yosys techmap
     lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')

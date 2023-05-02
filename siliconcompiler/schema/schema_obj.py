@@ -423,7 +423,7 @@ class Schema:
         '''
 
         # initialize new dict
-        jobname = self.get('option','jobname')
+        jobname = self.get('option', 'jobname')
         self.cfg['history'][jobname] = {}
 
         # copy in all empty values of scope job
@@ -810,7 +810,7 @@ class Schema:
                 else:
                     keypath = ','.join(key + [step, index])
 
-                if isinstance(value,list):
+                if isinstance(value, list):
                     for item in value:
                         csvwriter.writerow([keypath, item])
                 else:

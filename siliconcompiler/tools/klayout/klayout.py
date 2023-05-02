@@ -33,8 +33,8 @@ def setup(chip, mode="batch"):
 
     tool = 'klayout'
     refdir = 'tools/' + tool
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     clobber = False
 

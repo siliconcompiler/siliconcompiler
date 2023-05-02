@@ -52,7 +52,7 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
     chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)
     chip.set('constraint', 'timing', 'worst', 'mode', 'func')
-    chip.set('constraint', 'timing', 'worst', 'check', ['setup','hold'])
+    chip.set('constraint', 'timing', 'worst', 'check', ['setup', 'hold'])
 
 
 #########################

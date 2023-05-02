@@ -72,7 +72,7 @@ def main():
         print(f'Creating remote configuration file for public server: {srv_addr}')
     else:
         # If no arguments were passed in, interactively request credentials from the user.
-        srv_addr = input('Remote server address:\n').replace(" ","")
+        srv_addr = input('Remote server address:\n').replace(" ", "")
 
     server = urlparse(srv_addr)
     has_scheme = True
@@ -99,10 +99,10 @@ def main():
     if not public_server and not cmdargs['server']:
         username = server.username
         if not username:
-            username = input('Remote username:\n').replace(" ","")
+            username = input('Remote username:\n').replace(" ", "")
         user_pass = server.password
         if not user_pass:
-            user_pass = input('Remote password:\n').replace(" ","")
+            user_pass = input('Remote password:\n').replace(" ", "")
 
         if username:
             config['username'] = username

@@ -28,8 +28,8 @@ def setup(chip):
 
     tool = 'magic'
     refdir = 'tools/' + tool
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     # magic used for drc and lvs

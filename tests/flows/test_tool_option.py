@@ -23,11 +23,11 @@ def test_tool_option(scroot):
     chip.set('design', 'gcd', clobber=True)
     chip.input(os.path.join(gcd_ex_dir, 'gcd.v'))
     chip.input(os.path.join(gcd_ex_dir, 'gcd.sdc'))
-    chip.set('constraint', 'outline', [(0,0), (100.13,100.8)])
-    chip.set('constraint', 'corearea', [(10.07,11.2), (90.25,91)])
+    chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
+    chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
     chip.set('option', 'quiet', 'true')
-    chip.set('option','relax', 'true')
-    chip.set('option','novercheck', 'true')
+    chip.set('option', 'relax', 'true')
+    chip.set('option', 'novercheck', 'true')
     chip.load_target('freepdk45_demo', place_np=2)
 
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.4', step='place', index='0')
@@ -69,7 +69,7 @@ def chip(scroot):
     chip = siliconcompiler.Chip(design)
     chip.input(def_file)
     chip.set('option', 'quiet', True)
-    chip.set('option','novercheck', 'true')
+    chip.set('option', 'novercheck', 'true')
     chip.load_target('freepdk45_demo')
 
     # Important: set up our own flow instead of using asicflow.
@@ -148,7 +148,7 @@ def test_all_failed_min(chip):
 def test_branch_failed_join(chip):
     '''Test that a join will fail if one branch has errors.'''
 
-    flow = chip.get('option','flow')
+    flow = chip.get('option', 'flow')
 
     # Illegal values, so branch should fail
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf', step='place', index='0')

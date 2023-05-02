@@ -24,7 +24,7 @@ class Sup:
         else:
             home = os.environ['HOME']
 
-        self.cache = os.path.join(home,'.sc','registry')
+        self.cache = os.path.join(home, '.sc', 'registry')
 
         # List of remote registries
         if registry is None:
@@ -96,7 +96,7 @@ class Sup:
             self.chip.logger.info(f"Publishing {self.chip.design}-{version} package to registry '{registry}'")
             odir = os.path.join(registry, self.chip.design, version)
             os.makedirs(odir, exist_ok=True)
-            ofile = os.path.join(odir,f"{self.chip.design}-{version}.sup.gz")
+            ofile = os.path.join(odir, f"{self.chip.design}-{version}.sup.gz")
             self.chip.write_manifest(ofile)
 
         return 0
@@ -117,7 +117,7 @@ class Sup:
         remote = self.chip._build_index(self.registry)
 
         # Allow name to be with or without version
-        m = re.match(r'(.*?)-([\d\.]+)$',name)
+        m = re.match(r'(.*?)-([\d\.]+)$', name)
         if m:
             design = m.group(1)
             version = m.group(2)
@@ -148,7 +148,7 @@ class Sup:
         '''
 
         # Allow name to be with or without version
-        m = re.match(r'(.*?)-([\d\.]+)$',name)
+        m = re.match(r'(.*?)-([\d\.]+)$', name)
         if m:
             design = m.group(1)
             ver = m.group(2)
@@ -175,7 +175,7 @@ class Sup:
 
         remote = self.chip._build_index(self.registry)
 
-        m = re.match(r'(.*?)-([\d\.]+)$',name)
+        m = re.match(r'(.*?)-([\d\.]+)$', name)
         if m:
             design = m.group(1)
             ver = m.group(2)

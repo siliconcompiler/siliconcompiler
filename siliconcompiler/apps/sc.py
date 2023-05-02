@@ -67,8 +67,8 @@ def main():
         chip.load_target('skywater130_demo')
 
     # Storing user entered steplist/args before running
-    if chip.get('arg','step'):
-        steplist = [chip.get('arg','step')]
+    if chip.get('arg', 'step'):
+        steplist = [chip.get('arg', 'step')]
     else:
         steplist = chip.get('option', 'steplist')
 

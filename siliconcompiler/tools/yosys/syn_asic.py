@@ -26,8 +26,8 @@ def setup_asic(chip):
     '''
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     chip.add('tool', tool, 'task', task, 'require', ",".join(['asic', 'logiclib']), step=step, index=index)
@@ -128,8 +128,8 @@ def setup_asic(chip):
 def prepare_synthesis_libraries(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
 
@@ -191,8 +191,8 @@ def prepare_synthesis_libraries(chip):
 def create_abc_synthesis_constraints(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     abc_driver = chip.get('tool', tool, 'task', task, 'var', 'abc_constraint_driver', step=step, index=index)
@@ -220,8 +220,8 @@ def create_abc_synthesis_constraints(chip):
 def get_synthesis_corner(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     syn_corner = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner', step=step, index=index)
@@ -249,8 +249,8 @@ def get_synthesis_corner(chip):
 def get_dff_liberty_file(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     dff_liberty = None
@@ -285,8 +285,8 @@ def get_dff_liberty_file(chip):
 def get_abc_period(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     abc_clock_period = chip.get('tool', tool, 'task', task, 'var', 'abc_clock_period', step=step, index=index)
@@ -349,8 +349,8 @@ def get_abc_period(chip):
 def get_abc_driver(chip):
 
     tool = 'yosys'
-    step = chip.get('arg','step')
-    index = chip.get('arg','index')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
     abc_driver = chip.get('tool', tool, 'task', task, 'var', 'abc_constraint_driver', step=step, index=index)

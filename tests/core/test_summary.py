@@ -35,7 +35,7 @@ def test_summary(gcd_with_metrics):
 
 def test_steplist(gcd_with_metrics, capfd):
     with capfd.disabled():
-        gcd_with_metrics.set('option','steplist', ['syn'])
+        gcd_with_metrics.set('option', 'steplist', ['syn'])
 
     gcd_with_metrics.summary()
     stdout, _ = capfd.readouterr()
@@ -51,7 +51,7 @@ def test_parallel_path(capfd):
         chip = siliconcompiler.Chip('test')
 
         flow = 'test'
-        chip.set('option','flow', flow)
+        chip.set('option', 'flow', flow)
         chip.node(flow, 'import', nop)
         chip.node(flow, 'ctsmin', minimum)
 
