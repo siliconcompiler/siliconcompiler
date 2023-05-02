@@ -70,4 +70,4 @@ The table below shows the function interfaces for setting up Flow objects.
      - sphinx
      - no
 
-A complete set of supported open flows can be found in the :ref:`Flows Directory`.
+A complete set of supported open flows can be found in the :ref:`flows_directory`.

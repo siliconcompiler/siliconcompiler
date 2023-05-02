@@ -1,158 +1,154 @@
-Data model
-===================================
+.. _data_model:
 
-The SiliconCompiler Schema is a data structure that stores all configurations and metrics gathered during the compilation process. Each schema entry ("parameter") is a self contained leaf cell with a required set of standardized key/value pairs ("fields"). The example below shows the definition of one of the parameters named 'design'.
+######################################
+Design and Compilation Data
+######################################
 
-.. code-block:: python
+SiliconCompiler uses a data structure object, called :class:`~siliconcompiler.schema.Schema`, also referred to as "the schema" in subsequent docs, to store all information associated with the compilation process and the design that's being compiled.
 
-    scparam(cfg,['design'],
-            sctype='str',
-            scope='global',
-            require='all',
-            shorthelp="Design top module name",
-            switch="-design <str>",
-            example=["cli: -design hello_world",
-                    "api: chip.set('design', 'hello_world')"],
-            schelp="""Name of the top level module or library. Required for all
-            chip objects.""")
+The types of information stored by the schema include, but is not limited to:
 
-Table summarizing mandatory parameter type and value fields.
+- How the design is defined (i.e. HW architectural definitions)
+- How the design is compiled (i.e. Build tools and technology specifics)
+- How the design is optimized (i.e. Different tool options for  build experiments)
 
-.. list-table::
-   :widths: 20 50 30
-   :header-rows: 1
+This data is stored in Schema parameters, and accessed through Schema methods.
 
-   * - Field
-     - Description
-     - Values
+.. image:: _images/schema_diagram.png
+   :scale: 50%
+   :align: center
 
-   * - :term:`type`
-     - Parameter type
-     - file, dir, str, float, bool, int, [], enum, tuple
+The diagram above shows a few examples of Schema parameters and methods for an overview of how data is stored and accessed.
 
-   * - :term:`enum`
-     - List of legal strings for enum type
-     - List of Strings
+.. rst-class:: page-break
 
-   * - :term:`unit`
-     - Implied unit for parameter value
-     - String
+The following sections provide more detail on how information in the schema is initialized and manipulated.
+  
+Schema Configuration
+^^^^^^^^^^^^^^^^^^^^
 
-   * - :term:`defvalue`
-     - Default schema value
-     - Type dependent
+The schema is "configured," or defined, based on its parameters.
 
-   * - :term:`node`
-     - Dictionary of fields based on step & index keys
-     - Dictionary
+Major Parameter Categories
+---------------------------
+The SiliconCompiler Schema is divided into the following major sub-groups of parameters:
 
-   * - :term:`pernode`
-     - Enables/disables setting of value on a per node basis
-     - 'never', 'required', 'optional'
+.. schema_group_summary::
 
-   * - :term:`lock`
-     - Enable/disable for set()/add() methods
-     - True / False
 
-   * - :term:`scope`
-     - Scope of parameter in schema
-     - 'global', 'job'
+Parameter Sub-tree Example
+--------------------------
 
-   * - :term:`require`
-     - Flow based use requirements
-     - String
+Some parameters have their own subtrees in order to be fully defined. The table below shows an example of a parameter, called :ref:`constraint`, which specifies the design constraints, from timing-specific parameters to physical design parameters.
 
-   * - :term:`switch`
-     - Mapping of parameter to a CLI switch
-     - String
+.. schema_category_summary::
+  :category: constraint
 
-   * - :term:`shorthelp`
-     - Short single line help string.
-     - String
+Accessing Schema Parameters
+---------------------------
 
-   * - :term:`help`
-     - Multi-line documentation string
-     - String
+While all the design and compilation information are stored in the Schema object, this information is manipulated through a separate data structured called :class:`~siliconcompiler.core.Chip`.
 
-   * - :term:`example`
-     - Usage examples for CLI and API
-     - String
 
-   * - :term:`notes`
-     - User entered 'notes'/'disclaimers' about value being set.
-     - String
+.. _chip_obj:
 
-   * - :term:`hashalgo`
-     - Hashing algorithm used (files only)
-     - sha256,md5,...
+The Chip Object
++++++++++++++++++++
 
-   * - :term:`copy`
-     - Whether to copy files into build directory (files only)
-     - True / False
+This separate data structure is different from the :class:`~siliconcompiler.schema.Schema` since it instantiates the Schema object and is used to define methods that manipulate the compilation process.
 
-Each parameter's node dictionary may contain some or all of the following fields, and may be set on a per-step/index based on the parameter's 'pernode' setting. Within the 'node' dictionary, the reserved keyword 'global' is used to represent a setting that applies to all steps or indices.
+.. autoclass:: siliconcompiler.core.Chip
 
-.. list-table::
-   :widths: 20 50 30
-   :header-rows: 1
+Chip Creation and Schema Parameter Access
++++++++++++++++++++++++++++++++++++++++++++ 
 
-   * - Field
-     - Description
-     - Legal Values
+.. currentmodule:: siliconcompiler
 
-   * - :term:`value`
-     - Parameter value
-     - Type dependent
-
-   * - :term:`signature`
-     - Author signature key
-     - String or List of Strings, type dependent
-
-   * - :term:`author`
-     - File author (files only)
-     - String
-
-   * - :term:`date`
-     - File date stamp (files only)
-     - String
-
-   * - :term:`filehash`
-     - File hash value (files only)
-     - String
-
-Accessing schema parameters is done using the :meth:`.set()`, :meth:`.get()`, and :meth:`.add()` Python methods. The following shows how to create a chip object and manipulate a schema parameter in Python.
-
-.. literalinclude:: examples/setget.py
-
-When accessing parameters with 'optional' or 'required' pernode settings, schema accessor methods accept `step` and `index` keyword arguments.
-These arguments are optional when setting optional-pernode parameters, and when
-accessing them the most specific match is returned. For required-pernode
-parameters, these keyword arguments must always be supplied, and it is an error
-to access them with a step and index that have not yet been set.
+The following example shows how to create a chip object and manipulate the :ref:`input` schema parameter in Python by setting the parameter with the :meth:`.set()` method, accessing it with the :meth:`.get()` method, and appending to the parameter field with the :meth:`.add()` method.
 
 .. code-block:: python
 
-  import siliconcompiler
-  chip = siliconcompiler.Chip('hello_world')
+   >>> import siliconcompiler
+   >>> chip = siliconcompiler.Chip('fulladder')
 
-  # optional
-  chip.set('asic', 'logiclib', ['mylib_rvt'])
-  chip.set('asic', 'logiclib', ['mylib_lvt'], step='place')
+   >>> chip.set('input', 'rtl', 'verilog', 'fulladder.v')
+   >>> print(chip.get('input', 'rtl', 'verilog'))
+   ['fulladder.v']
 
-  chip.get('asic', 'logiclib', step='syn', index=0) # => ['mylib_rvt']
-  chip.get('asic', 'logiclib', step='place', index=1) # => ['mylib_lvt']
+   >>> chip.add('input', 'rtl', 'verilog', 'halfadder.v')
 
-  # required
-  chip.set('metric', 'warnings', 3, step='syn', index=0)
+   >>> print(chip.get('input', 'rtl', 'verilog'))
+   ['fulladder.v', 'halfadder.v']
 
-  chip.get('metric', 'warnings', step='syn', index=0) # => 3
-  chip.get('metric', 'warnings', step='place', index=0) # => error, not set!
 
-Reading and writing the schema to and from disk is handled by the :meth:`.read_manifest()` and :meth:`.write_manifest()` Python API methods. Supported export file formats include TCL, JSON, and YAML. By default, only non-empty values are written to disk.
+The :class:`~siliconcompiler.core.Chip` object provides many useful :ref:`helper functions <core api>`. For example, in the :ref:`quickstart guide <define design>` , the :meth:`.input()` helper function was used to set the chip timing constraints file, a simpler call than using :meth:`.set()`.
+
+.. code-block:: python
+
+   >>> chip.input('fulladder.sdc')
+   | INFO    | fulladder.sdc inferred as constraint/sdc
+   
+   >>> print(chip.get('input', 'constraint', 'sdc'))
+   ['fulladder.sdc']
+   
+   
+:meth:`.getkeys()` is another example of a useful function, provided by :ref:`the chip object <core api>`, for checking your parameters.
+
+.. code-block:: python
+
+   >>> chip.getkeys('input')
+   ['rtl', 'constraint']   
+   
+   >>> chip.getkeys('input', 'rtl')
+   ['verilog']
+
+   >>> chip.getkeys('input', 'constraint')
+   ['sdc']
+
+You can see from the example above that using the :meth:`.getkeys()` function, you're able to query the subtree of the parameter called ``input``, where the parameter tree can be visually represented as: ::
+    
+    └── input
+       ├── constraint
+       │   └── sdc
+       └── rtl
+           └── verilog
+
+If you further go one step further down, you'll see that ``verilog`` is a leaf parameter, so the :meth:`.getkeys()` function returns its parameter fields.
+
+.. code-block:: python
+
+   >>> chip.getkeys('input', 'rtl', 'verilog')
+   ['defvalue', 'type', 'scope', 'require', 'lock', 'switch', 'shorthelp', 'example', 'help', 'notes', 'pernode', 'node', 'hashalgo', 'copy']
+
+
+Parameter fields are standardized variables which help to define the parameter. In the case below, you can see that :meth:`.get()` can also be used to query parameter fields to provide more information about the parameters:
+
+.. code-block:: python 
+
+   >>> chip.get('input', 'rtl', 'verilog', field='type')
+   '[file]'
+
+   >>> chip.get('input', 'rtl', 'verilog', field='example')
+   ["cli: -input 'rtl verilog hello_world.v'", "api: chip.set(input, 'rtl','verilog','hello_world.v')"]
+
+
+:meth:`getkeys` is just one useful helpfer function; see :ref:`core api` for more information on methods which can be used to manipulate Schema parameters.   
+
+
+Manifest
+^^^^^^^^^^^^^^^^^^^^^
+
+The Schema is recorded to a :term:`manifest`. This file serves not only as a reference of all the design and compilation parameters, it also provides a mechanism to reload a design.
+
+If you ran the :ref:`asic demo`, you should have a manifest written out to ::
+  
+  build/<design>/job0/<design>.pkg.json
+
+The :meth:`.read_manifest()` and :meth:`.write_manifest()` Python API methods handle reading and writing the Schema to/from disk. Besides JSON, other supported export file formats include TCL, and YAML. By default, only non-empty values are written to disk.
 
 .. literalinclude:: examples/write_manifest.py
 
-The JSON structure below shows the 'design' parameter exported by the :meth:`.write_manifest()`  method.
+The :meth:`.write_manifest()` method above writes out the JSON file below, showing the standardized key/value pairs ("fields") associated with the :ref:`design` parameter.
 
 .. code-block:: json
 
@@ -175,34 +171,9 @@ The JSON structure below shows the 'design' parameter exported by the :meth:`.wr
         "switch": "-design <str>",
         "type": "str"
     },
+  
+      
 
-To handle complex scenarios required by advanced PDKs, the Schema supports dynamic nested dictionaries. A 'default' keyword is used to define the dictionary structure during object creation. Populating the object dictionary with actual keys is done by the user during compilation setup. The example below illustrates how 'default' is used as a placeholder for the timing model filetype and corner. These dynamic dictionaries makes it easy to set up an arbitrary number of libraries and corners in a PDK using Python loops.
-
-.. code-block:: python
-
-    corner='default'
-    pdkname='default'
-    tool='default'
-    stackup='default'
-    scparam(cfg, ['pdk', pdkname, 'pexmodel', tool, stackup, corner],
-            sctype='[file]',
-            scope='global',
-            shorthelp="PDK: parasitic TCAD models",
-            switch="-pdk_pexmodel 'pdkname tool stackup corner <file>'",
-            example=[
-                "cli: -pdk_pexmodel 'asap7 fastcap M10 max wire.mod'",
-                "api: chip.set('pdk','asap7','pexmodel','fastcap','M10','max','wire.mod')"],
-            schelp="""
-            List of filepaths to PDK wire TCAD models used during automated
-            synthesis, APR, and signoff verification. Pexmodels are specified on
-            a per metal stack basis. Corner values depend on the process being
-            used, but typically include nomenclature such as min, max, nominal.
-            For exact names, refer to the DRM. Pexmodels are generally not
-            standardized and specified on a per tool basis. An example of pexmodel
-            type is 'fastcap'.""")
-
-The SiliconCompiler Schema is divided into the following major sub-groups:
-
-.. schema_group_summary::
-
+Additional Schema Information
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information. Another good resource is the schema configuration file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema/schema_cfg.py>`_.

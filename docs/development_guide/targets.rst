@@ -3,7 +3,7 @@ Targets
 
 To facilitate encapsulation and reuse of schema parameters related to design targets, SiliconCompiler implements a :meth:`.load_target()` function which can run scripts that set up common combinations of :class:`.Flow`, :class:`.PDK`, :class:`.Library`, and :class:`.Checklist` modules.
 
-The :meth:`.load_target()` function takes in a string ``targetname``. Similar to most other SiliconCompiler modules, it will search for a ``targets.targetname`` module in the current directory and Python search path. A full list of built-in targets can be found on the :ref:`Targets directory` page.
+The :meth:`.load_target()` function takes in a string ``targetname``. Similar to most other SiliconCompiler modules, it will search for a ``targets.targetname`` module in the current directory and Python search path. A full list of built-in targets can be found on the :ref:`targets_directory` page.
 
 All target modules must contain a function called ``setup()``, which takes in a :class:`.Chip` object and can modify the Chip's schema parameters in any way. It's common for targets to load at least one flow, a PDK and at least one standard cell library if the design is being built as an ASIC. They can also set up default design parameters and tool options. Targets should also include a ``make_docs()`` function which provides a descriptive docstring and returns a :class:`.Chip` object with the target loaded.
 
@@ -25,4 +25,4 @@ Targets can also be dedicated to individual projects or use cases, rather than g
 
     sc -target "asic_demo"
 
-A full list of built-in demo targets can be found on the :ref:`Targets directory` page.
+A full list of built-in demo targets can be found on the :ref:`targets_directory` page.

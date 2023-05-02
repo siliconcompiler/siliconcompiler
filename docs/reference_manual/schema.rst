@@ -1,4 +1,5 @@
 .. _SiliconCompiler Schema:
+.. _schema:
 
 Schema
 =====================
@@ -75,13 +76,12 @@ Parameter Fields
     value
         Parameter value
 
-Type dependent
 Parameters
-----------
+-----------------------------
 
 .. schemagen::
 
-Nested keypaths
+Nested Schemas
 ----------------
 
 The SC schema has two special top-level categories that store nested subsets of the schema rather than unique parameters.

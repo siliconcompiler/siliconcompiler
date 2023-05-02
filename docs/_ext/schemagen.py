@@ -104,7 +104,7 @@ class CategorySummary(SphinxDirective):
                 shorthelp = chip.get(*prefix, item, field='shorthelp')
                 table.append([key, para(shorthelp)])
             else:
-                table.append([key, para("See Schema")])
+                table.append([key, para("Contains sub-tree of parameters. See Schema.")])
         section += build_table(table)
         new_doc += section
 

@@ -3,84 +3,90 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. This is not the full index page. This will taking to the landing page of docs.silicompiler.com
+   There is a index.rst file for each submenu
+   The content of this page will largely be ignored in pdf generation
+   
+##################################################
 Welcome to SiliconCompiler's Documentation!
-============================================
-
-.. include:: user_guide/introduction.rst
+##################################################
 
 .. toctree::
-   :maxdepth: 3
-   :caption: User Guide
-   :numbered:
-
-   user_guide/installation
-   user_guide/quickstart
-   user_guide/glossary
-   user_guide/remote_processing
-   user_guide/faq
-   user_guide/licenses
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Flow Basics
-   :numbered:
-
-   user_guide/data_model
-   user_guide/programming_model
-   user_guide/execution_model
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Tutorials
-   :numbered:
-
-   tutorials/parallel
-   tutorials/hw_frontends.rst
-   tutorials/picorv32_ram
-   tutorials/slurmsetup
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Developer Manual
-   :numbered:
+   :maxdepth: 1
+   :hidden:
       
-   tutorials/contribution
-   user_guide/tools
-   user_guide/pdks
-   user_guide/flows
-   user_guide/targets
-   user_guide/metrics
-   user_guide/records
-   user_guide/libraries
-   user_guide/packages
+   user_guide/index
+   Advanced Guide <development_guide/index>
+   reference_manual/index
 
-.. toctree::
-   :maxdepth: 3
-   :caption: Reference Manual
-   :numbered:
+**Useful Links**:
+:ref:`Installation <installation>` | `GitHub Repo <https://github.com/siliconcompiler/siliconcompiler>`_ | `File an Issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_
 
-   reference_manual/schema
-   reference_manual/core_api
-   reference_manual/server_api
-   reference_manual/floorplan_api
-   reference_manual/apps
-   reference_manual/flows
-   reference_manual/tools
-   reference_manual/pdks
-   reference_manual/libs
-   reference_manual/targets
-   reference_manual/checklists
+.. grid:: 2
 
-.. toctree::
-   :maxdepth: 3
-   :caption: Resources
-   :numbered:
+    .. grid-item-card::
 
-   resources/glossary
+        The fastest way to get started, after installation, is to walk through a simple demo!
 
-Indices and tables
-------------------
+        +++
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+        .. button-ref:: user_guide/quickstart
+            :expand:
+            :color: secondary
+            :click-parent:
+
+            Quickstart Guide
+
+    .. grid-item-card::
+
+        A more complete introduction for new users, this
+	section is for those who want to use their own designs using pre-defined build flows.
+
+
+        +++
+
+        .. button-ref:: user_guide/index
+            :expand:
+            :color: secondary
+            :click-parent:
+
+            Introductory User Guide
+	    
+
+    .. grid-item-card::
+
+        This section contains useful lookup information, like flow building blocks, the schema and other API references.
+
+        +++
+
+        .. button-ref:: reference_manual/index
+            :expand:
+            :color: secondary
+            :click-parent:
+
+            Reference Manual
+
+    .. grid-item-card::
+
+        This section is for users who are already familiar with the basics in User Guide and would like to build their own flows or add additional functionality.
+
+
+        +++
+
+        .. button-ref:: development_guide/index
+            :expand:
+            :color: secondary
+            :click-parent:
+
+            Advanced Guide
+	    
+
+
+**Getting Help**
+
+.. rst-class:: page-break
+
+- Search :ref:`glossary`, 
+- Review :ref:`faq`, or
+- `File an issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_: if you can't find something, or something is not working, the SiliconCompiler team is happy to help!   
+
