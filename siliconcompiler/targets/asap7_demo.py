@@ -32,36 +32,36 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     utils.set_common_showtools(chip)
 
     # 3. Select default flow/PDK
-    chip.set('option', 'mode', 'asic')
-    chip.set('option', 'flow', 'asicflow')
-    chip.set('option', 'pdk', 'asap7')
-    chip.set('option', 'stackup', '10M')
+    chip.set('option', 'mode', 'asic', clobber=False)
+    chip.set('option', 'flow', 'asicflow', clobber=False)
+    chip.set('option', 'pdk', 'asap7', clobber=False)
+    chip.set('option', 'stackup', '10M', clobber=False)
 
     # 4. Select libraries
-    chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt')
+    chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt', clobber=False)
 
     # 5. Project specific design choices
-    chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('constraint', 'density', 10)
-    chip.set('constraint', 'coremargin', 0.270)
+    chip.set('asic', 'delaymodel', 'nldm', clobber=False)
+    chip.set('constraint', 'density', 10, clobber=False)
+    chip.set('constraint', 'coremargin', 0.270, clobber=False)
 
     # 6. Timing corners
     pex_corner = 'typical'
 
-    chip.set('constraint', 'timing', 'slow', 'libcorner', 'slow')
-    chip.set('constraint', 'timing', 'slow', 'pexcorner', pex_corner)
-    chip.set('constraint', 'timing', 'slow', 'mode', 'func')
-    chip.set('constraint', 'timing', 'slow', 'check', ['setup', 'hold'])
+    chip.set('constraint', 'timing', 'slow', 'libcorner', 'slow', clobber=False)
+    chip.set('constraint', 'timing', 'slow', 'pexcorner', pex_corner, clobber=False)
+    chip.set('constraint', 'timing', 'slow', 'mode', 'func', clobber=False)
+    chip.set('constraint', 'timing', 'slow', 'check', ['setup', 'hold'], clobber=False)
 
-    chip.set('constraint', 'timing', 'fast', 'libcorner', 'fast')
-    chip.set('constraint', 'timing', 'fast', 'pexcorner', pex_corner)
-    chip.set('constraint', 'timing', 'fast', 'mode', 'func')
-    chip.set('constraint', 'timing', 'fast', 'check', ['setup', 'hold'])
+    chip.set('constraint', 'timing', 'fast', 'libcorner', 'fast', clobber=False)
+    chip.set('constraint', 'timing', 'fast', 'pexcorner', pex_corner, clobber=False)
+    chip.set('constraint', 'timing', 'fast', 'mode', 'func', clobber=False)
+    chip.set('constraint', 'timing', 'fast', 'check', ['setup', 'hold'], clobber=False)
 
-    chip.set('constraint', 'timing', 'typical', 'libcorner', 'typical')
-    chip.set('constraint', 'timing', 'typical', 'pexcorner', pex_corner)
-    chip.set('constraint', 'timing', 'typical', 'mode', 'func')
-    chip.set('constraint', 'timing', 'typical', 'check', ['power'])
+    chip.set('constraint', 'timing', 'typical', 'libcorner', 'typical', clobber=False)
+    chip.set('constraint', 'timing', 'typical', 'pexcorner', pex_corner, clobber=False)
+    chip.set('constraint', 'timing', 'typical', 'mode', 'func', clobber=False)
+    chip.set('constraint', 'timing', 'typical', 'check', ['power'], clobber=False)
 
 
 #########################

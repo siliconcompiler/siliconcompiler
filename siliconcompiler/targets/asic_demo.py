@@ -1,5 +1,6 @@
 import os
 import siliconcompiler
+from siliconcompiler.targets import skywater130_demo
 
 
 def setup(chip):
@@ -16,14 +17,14 @@ def setup(chip):
     chip.set('design', design)
 
     # Load the Sky130 PDK/standard cell library target.
-    chip.load_target('skywater130_demo')
+    chip.load_target(skywater130_demo)
 
     # Set quiet flag
-    chip.set('option', 'quiet', True)
+    chip.set('option', 'quiet', True, clobber=False)
 
     # Set die area and clock constraint.
-    chip.set('constraint', 'outline', [(0, 0), (55, 55)])
-    chip.set('constraint', 'corearea', [(5, 5), (50, 50)])
+    chip.set('constraint', 'outline', [(0, 0), (55, 55)], clobber=False)
+    chip.set('constraint', 'corearea', [(5, 5), (50, 50)], clobber=False)
     chip.clock('clk', period=10)
 
     # Add source files.
