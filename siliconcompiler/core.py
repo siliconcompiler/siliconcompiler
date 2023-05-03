@@ -3429,13 +3429,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f'Illegal step name: {step} is reserved')
                 return
 
-        # Adding
         tail_node = (tail, str(tail_index))
         if tail_node in self.get('flowgraph', flow, head, str(head_index), 'input'):
-            self.logger.warning(f'Edge from {tail}{tail_index} -> {head}{head_index} already exists, skipping')
+            self.logger.warning(f'Edge from {tail}{tail_index} to {head}{head_index} already exists, skipping')
             return
 
-        self.add('flowgraph', flow, head, str(head_index), 'input', (tail, str(tail_index)))
+        self.add('flowgraph', flow, head, str(head_index), 'input', tail_node)
 
     ###########################################################################
     def graph(self, flow, subflow, name=None):
