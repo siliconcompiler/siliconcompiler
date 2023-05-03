@@ -8,13 +8,33 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.11.1 (2023-05-03)
+=========================================
+
+**Major:**
+
+* Revamped documentation for better readability and navigability.
+
+**Minor:**
+
+* Fixed handling when loading schemas from JSON to ensure values are normalized correctly.
+* When a tool fails, the last 10 lines of the log is printed when ['option', 'quiet'] is set to aid in debugging.
+* Updated server/client to use python tarfile module instead of spawning subprocesses.
+* Implemented python linting.
+* Tools:
+
+  * OpenROAD - implemented snapping to sites or manufacturing grid for component placement via ['tool', 'openroad', 'task', 'floorplan', 'var', 'ifp_snap_strategy'] and
+    added ability to select SDC IO buffer for automatic constraint generation via ['tool', 'openroad', 'task', 'floorplan', 'var', 'sdc_buffer'].
+  * yosys - fixed invalid keypath access when logiclib is incorrectly specified.
+
+
 SiliconCompiler 0.11.0 (2023-04-17)
 =========================================
 
 **Major:**
 
 * ``sc-issue`` added as command line application to support sharing runnable testcases.
-* Removed the requirement that the intial task of the flowgraph be called 'import' and the final task be called 'export'.
+* Removed the requirement that the initial task of the flowgraph be called 'import' and the final task be called 'export'.
 * Fully implemented ``.node()`` to take in a task module, simplifying the construction of a flowgraph and removing its dependence on ['option', 'scpath'].
 
 **Minor:**
@@ -37,7 +57,7 @@ SiliconCompiler 0.10.2 (2023-04-04)
 
   * general - deployed docker based CI with automatic tool building and testing
   * klayout - support for OAS stream files via ['tool', 'klayout', 'task', 'export', 'var', 'stream'] = 'oas', better detection of missing layout cells
-  * yosys - support for controling buffer insertion via ['tool', 'yosys', 'task', 'syn_asic', 'var', 'add_buffers'] = 'True'/'False'
+  * yosys - support for controlling buffer insertion via ['tool', 'yosys', 'task', 'syn_asic', 'var', 'add_buffers'] = 'True'/'False'
   * openroad - correct handling of INF timing in metrics
 * Improve memory recording to account for child processes
 * General documentation cleanup
