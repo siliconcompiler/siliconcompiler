@@ -502,22 +502,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         print("Version:", _metadata.version, "\n")
         print("-" * 80)
 
-        # 1. set loglevel if set at command line
+        # Set loglevel if set at command line
         if 'option_loglevel' in cmdargs.keys():
             self.logger.setLevel(cmdargs['option_loglevel'])
 
-        # 2. read in target if set
-        if 'option_target' in cmdargs.keys():
-            if 'arg_pdk' in cmdargs.keys():
-                raise NotImplementedError("NOT IMPLEMENTED: ['arg', 'pdk'] parameter with target")
-            if 'arg_flow' in cmdargs.keys():
-                raise NotImplementedError("NOT IMPLEMENTED: ['arg', 'flow'] parameter with target")
-            if 'fpga_partname' in cmdargs.keys():
-                self.set('fpga', 'partname', cmdargs['fpga_partname'], clobber=True)
-            # running target command
-            self.load_target(cmdargs['option_target'])
-
-        # 4. read in all cfg files
+        # Read in all cfg files
         if 'option_cfg' in cmdargs.keys():
             for item in cmdargs['option_cfg']:
                 self.read_manifest(item, clobber=True, clear=True)
@@ -529,7 +518,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # we don't want to handle this in the next loop
             del cmdargs['source']
 
-        # 5. Cycle through all command args and write to manifest
+        # Cycle through all command args and write to manifest
         for dest, vals in cmdargs.items():
             keypath = dest.split('_')
 
@@ -600,6 +589,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         self.set(*args, val, step=step, index=index, clobber=True)
                 else:
                     self.set(*args, val, step=step, index=index, clobber=True)
+
+        # Read in target if set
+        if 'option_target' in cmdargs:
+            # running target command
+            self.load_target(cmdargs['option_target'])
 
         return extra_params
 
