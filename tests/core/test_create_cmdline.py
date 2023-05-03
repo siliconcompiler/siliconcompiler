@@ -27,7 +27,7 @@ def test_cli_multi_source(monkeypatch):
 
     sources = chip.get('input', 'rtl', 'verilog', step='import', index=0)
     assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
-    assert chip.get('option', 'target') == 'freepdk45_demo'
+    assert chip.get('option', 'target') == 'siliconcompiler.targets.freepdk45_demo'
 
 
 def test_cli_include_flag(monkeypatch):
@@ -140,7 +140,7 @@ def test_additional_parameters(monkeypatch):
 
     sources = chip.get('input', 'rtl', 'verilog', step='import', index=0)
     assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
-    assert chip.get('option', 'target') == 'freepdk45_demo'
+    assert chip.get('option', 'target') == 'siliconcompiler.targets.freepdk45_demo'
 
 
 def test_additional_parameters_not_used(monkeypatch):
@@ -170,7 +170,7 @@ def test_additional_parameters_not_used(monkeypatch):
 
     sources = chip.get('input', 'rtl', 'verilog', step='import', index=0)
     assert sources == ['examples/ibex/ibex_alu.v', 'examples/ibex/ibex_branch_predict.v']
-    assert chip.get('option', 'target') == 'freepdk45_demo'
+    assert chip.get('option', 'target') == 'siliconcompiler.targets.freepdk45_demo'
 
 
 def test_cli_examples(monkeypatch):
@@ -224,7 +224,7 @@ def test_cli_examples(monkeypatch):
             # Handle target specially since it affects other values
             if keypath == ['option', 'target']:
                 c = do_cli_test(['sc', switch, value], monkeypatch)
-                assert c.schema.get(*replaced_keypath, step=step, index=index) == expected_val
+                assert c.schema.get(*replaced_keypath, step=step, index=index) == f'siliconcompiler.targets.{expected_val}'
                 continue
 
             args.append(switch)

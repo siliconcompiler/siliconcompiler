@@ -23,8 +23,8 @@ def setup(chip):
     utils.set_common_showtools(chip)
 
     # 3. Select default flow
-    chip.set('option', 'mode', 'fpga')
-    chip.set('option', 'flow', 'fpgaflow')
+    chip.set('option', 'mode', 'fpga', clobber=False)
+    chip.set('option', 'flow', 'fpgaflow', clobber=False)
 
 
 #########################

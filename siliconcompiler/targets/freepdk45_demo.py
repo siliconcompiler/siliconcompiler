@@ -34,25 +34,25 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     utils.set_common_showtools(chip)
 
     # 3. Set flow and pdk
-    chip.set('option', 'mode', 'asic')
+    chip.set('option', 'mode', 'asic', clobber=False)
     chip.set('option', 'flow', 'asicflow', clobber=False)
-    chip.set('option', 'pdk', 'freepdk45')
-    chip.set('option', 'stackup', '10M')
+    chip.set('option', 'pdk', 'freepdk45', clobber=False)
+    chip.set('option', 'stackup', '10M', clobber=False)
 
     # 4. Select libraries
-    chip.set('asic', 'logiclib', 'nangate45')
+    chip.set('asic', 'logiclib', 'nangate45', clobber=False)
 
     # 5. Set project specific design choices
-    chip.set('asic', 'delaymodel', 'nldm')
-    chip.set('constraint', 'density', 10)
-    chip.set('constraint', 'coremargin', 1.9)
+    chip.set('asic', 'delaymodel', 'nldm', clobber=False)
+    chip.set('constraint', 'density', 10, clobber=False)
+    chip.set('constraint', 'coremargin', 1.9, clobber=False)
 
     # 6. Timing corners
     corner = 'typical'
-    chip.set('constraint', 'timing', 'worst', 'libcorner', corner)
-    chip.set('constraint', 'timing', 'worst', 'pexcorner', corner)
-    chip.set('constraint', 'timing', 'worst', 'mode', 'func')
-    chip.set('constraint', 'timing', 'worst', 'check', ['setup', 'hold'])
+    chip.set('constraint', 'timing', 'worst', 'libcorner', corner, clobber=False)
+    chip.set('constraint', 'timing', 'worst', 'pexcorner', corner, clobber=False)
+    chip.set('constraint', 'timing', 'worst', 'mode', 'func', clobber=False)
+    chip.set('constraint', 'timing', 'worst', 'check', ['setup', 'hold'], clobber=False)
 
 
 #########################
