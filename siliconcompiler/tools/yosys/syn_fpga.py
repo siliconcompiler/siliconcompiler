@@ -33,7 +33,9 @@ def setup_fpga(chip):
     design = chip.top()
 
     # Require that a partname is set for FPGA scripts.
-    chip.add('tool', tool, 'task', task, 'require', ",".join(['fpga', 'partname']), step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'require', ",".join(['fpga', 'partname']),
+             step=step, index=index)
+
     chip.add('tool', tool, 'task', task, 'output', design + '_netlist.json', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
 

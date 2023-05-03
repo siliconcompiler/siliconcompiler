@@ -34,8 +34,9 @@ class InstallScripts(SphinxDirective):
                     scripts[tool].append(script)
 
         blist = []
+        sc_github_blob = 'https://github.com/siliconcompiler/siliconcompiler/blob'
         for tool, scripts in scripts.items():
-            links = [f'`{script} <https://github.com/siliconcompiler/siliconcompiler/blob/main/setup/{script}>`_' for script in scripts]
+            links = [f'`{script} <{sc_github_blob}/main/setup/{script}>`_' for script in scripts]
             link_text = ', '.join(links)
 
             item = docutils.nodes.list_item(text=tool)

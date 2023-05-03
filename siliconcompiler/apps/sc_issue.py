@@ -18,20 +18,24 @@ def main():
                   '-tool_task_option',
                   '-loglevel']
     description = """
-    -----------------------------------------------------------
-    Restricted SC app that generates a sharable testcase from a
-    failed flow or runs an issue generated with this program.
+-----------------------------------------------------------
+Restricted SC app that generates a sharable testcase from a
+failed flow or runs an issue generated with this program.
 
-    To generate a testcase, use:
-        sc-issue -generate -cfg <stepdir>/outputs/<design>.pkg.json
-      or include a different step/index than what the cfg_file is pointing to:
-        sc-issue -generate -cfg <otherdir>/outputs/<design>.pkg.json -arg_step <step> -arg_index <index>
-      or include specific libraries while excluding others:
-        sc-issue -generate -cfg <stepdir>/outputs/<design>.pkg.json -exclude_libraries -add_library sram -add_library gpio
+To generate a testcase, use:
+    sc-issue -generate -cfg <stepdir>/outputs/<design>.pkg.json
 
-    To run a testcase, use:
-        sc-issue -run -file sc_issue_<...>.tar.gz
-    -----------------------------------------------------------
+    or include a different step/index than what the cfg_file is pointing to:
+    sc-issue -generate -cfg <otherdir>/outputs/<design>.pkg.json \
+        -arg_step <step> -arg_index <index>
+
+    or include specific libraries while excluding others:
+    sc-issue -generate -cfg <stepdir>/outputs/<design>.pkg.json \
+        -exclude_libraries -add_library sram -add_library gpio
+
+To run a testcase, use:
+    sc-issue -run -file sc_issue_<...>.tar.gz
+-----------------------------------------------------------
     """
 
     issue_arguments = {
@@ -43,7 +47,8 @@ def main():
         '-exclude_pdks': {'action': 'store_true',
                           'help': 'flag to ensure pdks are excluded in the testcase'},
         '-hash_files': {'action': 'store_true',
-                        'help': 'flag to hash the files in the schema before generating the manifest'},
+                        'help': 'flag to hash the files in the schema before generating '
+                                'the manifest'},
 
         '-run': {'action': 'store_true',
                  'help': 'run a provided testcase'},
@@ -53,10 +58,12 @@ def main():
                  'metavar': '<module>'},
 
         '-add_library': {'action': 'append',
-                         'help': 'library to include in the testcase, if not provided all libraries will be added according to the -exclude_libraries flag',
+                         'help': 'library to include in the testcase, if not provided all '
+                                 'libraries will be added according to the -exclude_libraries flag',
                          'metavar': '<library>'},
         '-add_pdk': {'action': 'append',
-                     'help': 'pdk to include in the testcase, if not provided all libraries will be added according to the -exclude_pdks flag',
+                     'help': 'pdk to include in the testcase, if not provided all libraries '
+                             'will be added according to the -exclude_pdks flag',
                      'metavar': '<pdk>'},
 
         '-file': {'help': 'filename for the generated testcase',
@@ -119,10 +126,11 @@ def main():
         chip.logger.info(f"Schema version: {issue_info['version']['schema']}")
         chip.logger.info(f"Python version: {issue_info['python']['version']}")
 
-        sc_os = issue_info['machine']['system']
-        if 'distro' in issue_info['machine']:
-            sc_os += f" {issue_info['machine']['distro']}"
-        sc_os += f" {issue_info['machine']['osversion']} {issue_info['machine']['arch']} {issue_info['machine']['kernelversion']}"
+        sc_machine = issue_info['machine']
+        sc_os = sc_machine['system']
+        if 'distro' in sc_machine:
+            sc_os += f" {sc_machine['distro']}"
+        sc_os += f" {sc_machine['osversion']} {sc_machine['arch']} {sc_machine['kernelversion']}"
         chip.logger.info(f"Machine: {sc_os}")
         chip.logger.info(f"Date: {issue_info['date']}")
 
@@ -141,7 +149,8 @@ def main():
         chip.set(*builddir_key, new_builddir)
 
         option_key = ['tool', tool, 'task', task, 'option']
-        chip.logger.info(f"Removing previous settings of {option_key}: {chip.get(*option_key, step=step, index=index)}")
+        chip.logger.info(f"Removing previous settings of {option_key}: "
+                         f"{chip.get(*option_key, step=step, index=index)}")
         chip.unset(*option_key, step=step, index=index)
 
         breakpoint_key = ['option', 'breakpoint']

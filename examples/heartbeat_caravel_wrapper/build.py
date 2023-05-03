@@ -147,7 +147,8 @@ global_connect
 set_voltage_domain -name Core -power vccd1 -ground vssd1
 
 
-define_pdn_grid -name core_grid -macro -grid_over_pg_pins -default -voltage_domain Core -starts_with POWER
+define_pdn_grid -name core_grid -macro -grid_over_pg_pins -default -voltage_domain Core \
+    -starts_with POWER
 add_pdn_stripe -grid core_grid -layer met1 -width 0.48 -starts_with POWER -followpins
 add_pdn_connect -grid core_grid -layers {met1 met4}
 
@@ -162,7 +163,8 @@ pdngen''')
 #place_cell -inst_name mprj -origin {1174.84 1689.02} -orient R0 -status FIRM
 place_cell -inst_name mprj -origin {1188.64 1689.12} -orient R0 -status FIRM
 ''')
-    chip.set('pdk', pdk, 'aprtech', 'openroad', stackup, libtype, 'macroplace', 'macroplace_top.tcl')
+    chip.set('pdk', pdk, 'aprtech', 'openroad', stackup, libtype, 'macroplace',
+             'macroplace_top.tcl')
 
     # Run the top-level build.
     chip.run()

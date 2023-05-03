@@ -21,8 +21,10 @@ if not on_rtd:
     except ImportError:
         print(
             "Error finding build dependencies!\n"
-            "If you're installing this project using pip, make sure you're using pip version 10 or greater.\n"
-            "If you're installing this project by running setup.py, manually install all dependencies listed in requirements.txt.",
+            "If you're installing this project using pip, make sure you're using pip version 10 "
+            "or greater.\n"
+            "If you're installing this project by running setup.py, manually install all "
+            "dependencies listed in requirements.txt.",
             file=sys.stderr
         )
         raise
@@ -130,7 +132,9 @@ setup(
 
     # include_package_data=True,
     package_data={
-        'siliconcompiler': get_package_data('templates', 'siliconcompiler') + get_package_data('data', 'siliconcompiler'),
+        'siliconcompiler':
+            [*get_package_data('templates', 'siliconcompiler'),
+             *get_package_data('data', 'siliconcompiler')],
         'siliconcompiler.tools': get_package_data('.', 'siliconcompiler/tools'),
         'siliconcompiler.checklists': get_package_data('.', 'siliconcompiler/checklists'),
     },

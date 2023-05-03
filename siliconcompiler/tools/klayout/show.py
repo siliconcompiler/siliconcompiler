@@ -23,22 +23,38 @@ def general_gui_setup(chip, task, exit):
     stackup = chip.get('option', 'stackup')
     if chip.valid('pdk', pdk, 'var', 'klayout', 'hide_layers', stackup):
         layers_to_hide = chip.get('pdk', pdk, 'var', 'klayout', 'hide_layers', stackup)
-        chip.add('tool', tool, 'task', task, 'var', 'hide_layers', layers_to_hide, step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'var', 'hide_layers', layers_to_hide,
+                 step=step, index=index)
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
-        chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']), step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']),
+                 step=step, index=index)
     else:
         incoming_ext = find_incoming_ext(chip)
-        chip.add('tool', tool, 'task', task, 'require', ",".join(['tool', tool, 'task', task, 'var', 'show_filetype']), step=step, index=index)
-        chip.set('tool', tool, 'task', task, 'var', 'show_filetype', incoming_ext, step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'input', f'{chip.design}.{incoming_ext}', step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['tool', tool, 'task', task, 'var', 'show_filetype']),
+                 step=step, index=index)
+        chip.set('tool', tool, 'task', task, 'var', 'show_filetype', incoming_ext,
+                 step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'input', f'{chip.design}.{incoming_ext}',
+                 step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'var', 'show_exit', "true" if exit else "false", step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'show_exit', "true" if exit else "false",
+             step=step, index=index, clobber=False)
 
     # Help
-    chip.set('tool', tool, 'task', task, 'var', 'hide_layers', 'List of layers to hide', field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'show_filepath', 'File to open', field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'show_filetype', 'File type to look for in the inputs', field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'show_exit', 'true/false: true will cause kLayout to exit when complete', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'hide_layers',
+             'List of layers to hide',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'show_filepath',
+             'File to open',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'show_filetype',
+             'File type to look for in the inputs',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'show_exit',
+             'true/false: true will cause kLayout to exit when complete',
+             field='help')
 
 
 def setup(chip):

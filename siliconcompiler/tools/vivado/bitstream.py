@@ -10,8 +10,10 @@ def setup(chip):
     vivado.setup_task(chip, task)
 
     design = chip.top()
-    chip.set('tool', tool, 'task', task, 'input', f'{design}_checkpoint.dcp', step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'output', f'{design}.bit', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'input', f'{design}_checkpoint.dcp',
+             step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'output', f'{design}.bit',
+             step=step, index=index)
 
 
 def post_process(chip):

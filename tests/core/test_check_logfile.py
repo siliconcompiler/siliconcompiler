@@ -8,8 +8,10 @@ def test_check_logfile(datadir):
     chip.load_target('freepdk45_demo')
 
     # add regex
-    chip.add('tool', 'openroad', 'task', 'place', 'regex', 'warnings', "WARNING", step='place', index='0')
-    chip.add('tool', 'openroad', 'task', 'place', 'regex', 'warnings', "-v DPL", step='place', index='0')
+    chip.add('tool', 'openroad', 'task', 'place', 'regex', 'warnings', "WARNING",
+             step='place', index='0')
+    chip.add('tool', 'openroad', 'task', 'place', 'regex', 'warnings', "-v DPL",
+             step='place', index='0')
 
     # check log
     logfile = os.path.join(datadir, 'place.log')

@@ -27,7 +27,8 @@ def _setup_lib(chip, libname, suffix):
 
     # timing
     for corner_name, lib_corner in corners.items():
-        lib.add('output', corner_name, 'nldm', libdir + '/nldm/' + libname + '_' + lib_corner + '.lib.gz')
+        lib.add('output', corner_name, 'nldm',
+                libdir + '/nldm/' + libname + '_' + lib_corner + '.lib.gz')
 
     # lef
     lib.add('output', stackup, 'lef', libdir + '/lef/' + libname + '.lef')
@@ -101,10 +102,14 @@ def _setup_lib(chip, libname, suffix):
         lib.set('option', 'var', f'{tool}_tielow_port', "L")
 
     # Openroad APR setup files
-    lib.set('option', 'file', 'openroad_tracks', libdir + '/apr/openroad/tracks.tcl')
-    lib.set('option', 'file', 'openroad_tapcells', libdir + '/apr/openroad/tapcells.tcl')
-    lib.set('option', 'file', 'openroad_pdngen', libdir + '/apr/openroad/pdngen.tcl')
-    lib.set('option', 'file', 'openroad_global_connect', libdir + '/apr/openroad/global_connect.tcl')
+    lib.set('option', 'file', 'openroad_tracks',
+            libdir + '/apr/openroad/tracks.tcl')
+    lib.set('option', 'file', 'openroad_tapcells',
+            libdir + '/apr/openroad/tapcells.tcl')
+    lib.set('option', 'file', 'openroad_pdngen',
+            libdir + '/apr/openroad/pdngen.tcl')
+    lib.set('option', 'file', 'openroad_global_connect',
+            libdir + '/apr/openroad/global_connect.tcl')
 
     return lib
 

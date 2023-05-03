@@ -12,7 +12,9 @@ tos_str = '''Please review the SiliconCompiler cloud beta's terms of service:
 
 https://www.siliconcompiler.com/terms-of-service
 
-In particular, please ensure that you have the right to distribute any IP which is contained in designs that you upload to the service. This public service, provided by SiliconCompiler, is not intended to process proprietary IP.
+In particular, please ensure that you have the right to distribute any IP
+which is contained in designs that you upload to the service. This public
+service, provided by SiliconCompiler, is not intended to process proprietary IP.
 '''
 
 
@@ -43,8 +45,10 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=description)
 
-    parser.add_argument('-file', metavar='<file>', default=default_credentials_file(), help='Path to credentials file')
-    parser.add_argument('server', nargs='?', help='URL to a server')
+    parser.add_argument('-file', metavar='<file>', default=default_credentials_file(),
+                        help='Path to credentials file')
+    parser.add_argument('server', nargs='?',
+                        help='URL to a server')
 
     # Parsing args and converting to dict
     cmdargs = vars(parser.parse_args())

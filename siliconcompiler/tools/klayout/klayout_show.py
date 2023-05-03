@@ -12,7 +12,8 @@ def show(schema, input_path, output_path, screenshot=False):
     task = schema.get('flowgraph', flow, step, index, 'task')
 
     if 'hide_layers' in schema.getkeys('tool', 'klayout', 'task', task, 'var'):
-        sc_hide_layers = schema.get('tool', 'klayout', 'task', task, 'var', 'hide_layers', step=step, index=index)
+        sc_hide_layers = schema.get('tool', 'klayout', 'task', task, 'var', 'hide_layers',
+                                    step=step, index=index)
     else:
         sc_hide_layers = []
     sc_pdk = schema.get('option', 'pdk')
@@ -36,7 +37,8 @@ def show(schema, input_path, output_path, screenshot=False):
     if 'macrolib' in schema.getkeys('asic'):
         sc_macrolibs = schema.get('asic', 'macrolib', step=step, index=index)
         for lib in sc_macrolibs:
-            macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef', step=step, index=index))
+            macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef',
+                                         step=step, index=index))
 
     # Tech / library LEF files are optional.
     tech_lefs = schema.get('pdk', sc_pdk, 'aprtech', 'klayout', sc_stackup, sc_libtype, 'lef')
@@ -44,7 +46,8 @@ def show(schema, input_path, output_path, screenshot=False):
     # Need to check validity since there are no "default" placeholders within the
     # library schema that would allow schema.get() to get a default value.
     if schema.valid('library', sc_mainlib, 'output', sc_stackup, 'lef'):
-        lib_lefs = schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef', step=step, index=index)
+        lib_lefs = schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef',
+                              step=step, index=index)
     else:
         lib_lefs = []
 
@@ -84,7 +87,9 @@ def show(schema, input_path, output_path, screenshot=False):
     # show all cells
     app.set_config('full-hierarchy-new-cell', 'true')
     # no tip pop-ups
-    app.set_config('tip-window-hidden', 'only-top-level-shown-by-default=3,editor-mode=4,editor-mode=0')
+    app.set_config('tip-window-hidden', ','.join(['only-top-level-shown-by-default=3',
+                                                  'editor-mode=4',
+                                                  'editor-mode=0']))
     # hide text
     app.set_config('text-visible', 'false')
     # dark background
@@ -110,8 +115,12 @@ def show(schema, input_path, output_path, screenshot=False):
     # If 'screenshot' mode is set, save image and exit.
     if screenshot:
         # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
-        horizontal_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var', 'show_horizontal_resolution', step=step, index=index)[0])
-        vertical_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var', 'show_vertical_resolution', step=step, index=index)[0])
+        horizontal_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var',
+                                               'show_horizontal_resolution',
+                                               step=step, index=index)[0])
+        vertical_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var',
+                                             'show_vertical_resolution',
+                                             step=step, index=index)[0])
 
         gds_img = layout_view.get_image(horizontal_resolution, vertical_resolution)
         gds_img.save(output_path, 'PNG')
@@ -134,12 +143,15 @@ def main():
         design = schema.get('design')
 
     if 'show_filepath' in schema.getkeys('tool', 'klayout', 'task', task, 'var'):
-        sc_filename = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filepath', step=step, index=index)[0]
+        sc_filename = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filepath',
+                                 step=step, index=index)[0]
     else:
-        sc_fileext = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filetype', step=step, index=index)[0]
+        sc_fileext = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filetype',
+                                step=step, index=index)[0]
         sc_filename = f"inputs/{design}.{sc_fileext}"
 
-    sc_exit = schema.get('tool', 'klayout', 'task', task, 'var', 'show_exit', step=step, index=index) == ["true"]
+    sc_exit = schema.get('tool', 'klayout', 'task', task, 'var', 'show_exit',
+                         step=step, index=index) == ["true"]
 
     show(schema, sc_filename, f'outputs/{design}.png', screenshot=(step == 'screenshot'))
 

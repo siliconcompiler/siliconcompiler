@@ -42,7 +42,8 @@ class Server:
         # Use the config that was passed in.
         self.cfg = cmdlinecfg
         # Ensure that NFS mounting path is absolute.
-        self.cfg['nfsmount']['value'] = [os.path.abspath(nfs_path) for nfs_path in self.cfg['nfsmount']['value']]
+        nfsmount_abspath = [os.path.abspath(nfs_path) for nfs_path in self.cfg['nfsmount']['value']]
+        self.cfg['nfsmount']['value'] = nfsmount_abspath
 
         # Set up a dictionary to track running jobs.
         self.sc_jobs = {}
@@ -371,7 +372,9 @@ class Server:
 
                 params['username'] = request['username']
             else:
-                return (params, self.__response("Error: some authentication parameters are missing.", status=400))
+                return (params,
+                        self.__response("Error: some authentication parameters are missing.",
+                                        status=400))
 
         return (params, None)
 
@@ -434,7 +437,9 @@ def server_schema():
     }
 
     cfg['auth'] = {
-        'short_help': 'Flag determining whether to enable authenticated and encrypted jobs. Intended for testing client-side authentication flags, not for securing sensitive information.',
+        'short_help': 'Flag determining whether to enable authenticated and encrypted jobs. '
+                      'Intended for testing client-side authentication flags, not for '
+                      'securing sensitive information.',
         'switch': '-auth',
         'switch_args': '<str>',
         'type': ['bool'],

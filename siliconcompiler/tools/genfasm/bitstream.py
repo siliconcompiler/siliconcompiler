@@ -14,7 +14,8 @@ def setup(chip):
     chip.set('tool', tool, 'exe', tool, clobber=False)
     chip.set('tool', tool, 'version', '0.0', clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+             step=step, index=index, clobber=False)
 
     topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"
@@ -43,7 +44,8 @@ def pre_process(chip):
     task = chip._get_task(step, index)
     tool = "genfasm"
 
-    chip.add('tool', tool, 'task', task, 'option', [f"--route_chan_width {find_chann_width()}"], step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'option', [f"--route_chan_width {find_chann_width()}"],
+             step=step, index=index)
 
 
 ################################
@@ -52,8 +54,9 @@ def pre_process(chip):
 def find_chann_width():
     vpr_std_out = "inputs/vpr_stdout.log"
     with open(vpr_std_out, 'r') as vpr_report:
+        search_line = r"Circuit successfully routed with a channel width factor of (\d+)"
         for line in vpr_report:
-            match = re.search(r"Circuit successfully routed with a channel width factor of (\d+)", line)
+            match = re.search(search_line, line)
             if match:
                 return match.group(1)
     return -1

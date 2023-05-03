@@ -67,9 +67,12 @@ def test_check_flowgraph_min():
     chip.edge(flow, 'premin', 'domin', tail_index=1)
     chip.edge(flow, 'domin', 'postmin')
 
-    chip.set('tool', 'fake', 'task', 'fake_out', 'output', ['a.v', 'common.v'], step='premin', index='0')
-    chip.set('tool', 'fake', 'task', 'fake_out', 'output', ['b.v', 'common.v'], step='premin', index='1')
-    chip.set('tool', 'fake', 'task', 'fake_in', 'input', 'common.v', step='postmin', index='0')
+    chip.set('tool', 'fake', 'task', 'fake_out', 'output', ['a.v', 'common.v'],
+             step='premin', index='0')
+    chip.set('tool', 'fake', 'task', 'fake_out', 'output', ['b.v', 'common.v'],
+             step='premin', index='1')
+    chip.set('tool', 'fake', 'task', 'fake_in', 'input', 'common.v',
+             step='postmin', index='0')
 
     assert chip._check_flowgraph_io()
 

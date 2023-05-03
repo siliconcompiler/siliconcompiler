@@ -22,9 +22,12 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=1.5.192', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir,
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', script,
+             step=step, index=index, clobber=False)
 
     # set options
     options = []
@@ -35,7 +38,9 @@ def setup(chip):
     design = chip.top()
     chip.add('tool', tool, 'task', task, 'input', f'{design}.spice', step=step, index=index)
     if chip.valid('input', 'netlist', 'verilog'):
-        chip.add('tool', tool, 'task', task, 'require', ','.join(['input', 'netlist', 'verilog']), step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['input', 'netlist', 'verilog']),
+                 step=step, index=index)
     else:
         chip.add('tool', tool, 'task', task, 'input', f'{design}.vg', step=step, index=index)
 
@@ -44,7 +49,8 @@ def setup(chip):
     # and use that file to count errors.
     chip.set('tool', tool, 'task', task, 'stderr', 'suffix', 'errors', step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', '^Warning:', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', '^Warning:',
+             step=step, index=index, clobber=False)
 
 
 ################################

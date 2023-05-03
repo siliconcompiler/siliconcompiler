@@ -35,7 +35,8 @@ def escape_val_tcl(val, typestr):
         # use {}, since this requires adding permanent backslashes to any
         # curly braces inside the string.
         # Source: https://www.tcl.tk/man/tcl8.4/TclCmd/Tcl.html (section [4] on)
-        escaped_val = (val.replace('\\', '\\\\')  # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
+        escaped_val = (val.replace('\\', '\\\\')  # escape '\' to avoid backslash substition
+                                                  # (do this first, since other replaces insert '\')
                           .replace('[', '\\[')    # escape '[' to avoid command substition
                           .replace('$', '\\$')    # escape '$' to avoid variable substition
                           .replace('"', '\\"'))   # escape '"' to avoid string terminating early
@@ -44,7 +45,8 @@ def escape_val_tcl(val, typestr):
         # Replace $VAR with $env(VAR) for tcl
         val = re.sub(r'\$(\w+)', r'$env(\1)', val)
         # Same escapes as applied to string, minus $ (since we want to resolve env vars).
-        escaped_val = (val.replace('\\', '\\\\')  # escape '\' to avoid backslash substition (do this first, since other replaces insert '\')
+        escaped_val = (val.replace('\\', '\\\\')  # escape '\' to avoid backslash substition
+                                                  # (do this first, since other replaces insert '\')
                           .replace('[', '\\[')    # escape '[' to avoid command substition
                           .replace('"', '\\"'))   # escape '"' to avoid string terminating early
         return '"' + escaped_val + '"'

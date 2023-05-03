@@ -41,7 +41,8 @@ def test_openroad(scroot):
 
     # check that metrics were recorded
     assert chip.get('metric', 'cellarea', step='floorplan', index='0') is not None
-    assert chip.get('tool', 'openroad', 'task', 'floorplan', 'report', 'cellarea', step='floorplan', index='0') == ['reports/metrics.json']
+    assert chip.get('tool', 'openroad', 'task', 'floorplan', 'report', 'cellarea',
+                    step='floorplan', index='0') == ['reports/metrics.json']
 
 
 #########################

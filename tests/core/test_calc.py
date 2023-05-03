@@ -24,7 +24,8 @@ def test_calc_area_with_stepindex():
     chip.set('constraint', 'outline', [(0, 0), (10, 10)], step='floorplan', index='0')
 
     # Test rectilinear shape
-    chip.set('constraint', 'outline', [(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)], step='floorplan', index='1')
+    chip.set('constraint', 'outline', [(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)],
+             step='floorplan', index='1')
 
     assert chip.calc_area(step='floorplan', index='0') == 100.0
     assert chip.calc_area(step='floorplan', index='1') == 300.0

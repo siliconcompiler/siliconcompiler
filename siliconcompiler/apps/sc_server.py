@@ -16,13 +16,18 @@ def server_cmdline():
     TODO: It may be a good idea to merge with 'cmdline()' to reduce code duplication.
     '''
 
+    progname = "sc-server"
+    description = """
+    Silicon Compiler Collection Remote Job Server (sc-server)
+    """
+
     def_cfg = server_schema()
 
     # Argument Parser
-    parser = argparse.ArgumentParser(prog='sc-server',
-                                     formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50),
+    parser = argparse.ArgumentParser(prog=progname,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
                                      prefix_chars='-+',
-                                     description="Silicon Compiler Collection Remote Job Server (sc-server)")
+                                     description=description)
 
     # Add supported schema arguments to the parser.
     for k, _ in sorted(def_cfg.items()):

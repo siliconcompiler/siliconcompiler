@@ -172,19 +172,22 @@ def request_remote_run(chip):
     # Print a reminder for public beta runs.
     default_server_name = urllib.parse.urlparse(default_server).hostname
     if default_server_name in remote_run_url:
-        default_delay = 5
-        chip.logger.warning(f"""Your job will be uploaded to a public server for processing in {default_delay} seconds.
----------------------------------------------------------------------------------------------------
+        upload_delay = 5
+        chip.logger.info(f"Your job will be uploaded to a public server in {upload_delay} seconds.")
+        chip.logger.warning("""
+-----------------------------------------------------------------------------------------------
   DISCLAIMER:
   - The open SiliconCompiler remote server is a free service. Please don't abuse it.
-  - Submitted designs must be open source. SiliconCompiler is not responsible for any proprietary IP that may be uploaded.
+  - Submitted designs must be open source. SiliconCompiler is not responsible for any
+    proprietary IP that may be uploaded.
   - Only send one run at a time (or you may be temporarily blocked).
   - Do not send large designs (machines have limited resources).
-  - We are currently only returning metrics and renderings of the results. For a full GDS-II layout, please run your design locally.
+  - We are currently only returning metrics and renderings of the results. For a full GDS-II
+    layout, please run your design locally.
   - For full TOS, see https://www.siliconcompiler.com/terms-of-service
--------------------------------------------------------------------------------------------------""")
+-----------------------------------------------------------------------------------------------""")
         chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
-        time.sleep(default_delay)
+        time.sleep(upload_delay)
 
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
@@ -290,7 +293,8 @@ def fetch_results_request(chip):
 
     # Set the request URL.
     job_hash = chip.status['jobhash']
-    remote_run_url = urllib.parse.urljoin(get_base_url(chip), '/get_results/' + job_hash + '.tar.gz')
+    remote_run_url = urllib.parse.urljoin(get_base_url(chip),
+                                          '/get_results/' + job_hash + '.tar.gz')
 
     # Set authentication parameters if necessary.
     rcfg = chip.status['remote_cfg']
@@ -341,7 +345,8 @@ def fetch_results(chip):
     # Note: the server should eventually delete the results as they age out (~8h), but this will
     # give us a brief period to look at failed results.
     if results_code:
-        chip.error(f"Sorry, something went wrong and your job results could not be retrieved. (Response code: {results_code})", fatal=True)
+        chip.error("Sorry, something went wrong and your job results could not be retrieved. "
+                   f"(Response code: {results_code})", fatal=True)
 
     # Call 'delete_job' to remove the run from the server.
     delete_job(chip)

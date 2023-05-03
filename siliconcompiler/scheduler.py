@@ -75,15 +75,17 @@ def _deferstep(chip, step, index, status):
     # Allow user-defined compute node execution script if it already exists on the filesystem.
     # Otherwise, create a minimal script to run the task using the SiliconCompiler CLI.
     script_path = f'{cfg_dir}/{step}{index}.sh'
+    buildir = chip.get("option", "builddir")
     if not os.path.isfile(script_path):
         with open(script_path, 'w') as sf:
             sf.write('#!/bin/bash\n')
-            sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(chip.get("option", "builddir"))} '
+            sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(buildir)} '
                      f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '
                      f"-design {shlex.quote(chip.top())}\n")
             # In case of error(s) which prevents the SC build script from completing, ensure the
-            # file mutex for job completion is set in shared storage. This lockfile signals the server
-            # to mark the job done, without putting load on the cluster reporting/accounting system.
+            # file mutex for job completion is set in shared storage. This lockfile signals the
+            # server to mark the job done, without putting load on the cluster reporting/accounting
+            # system.
             sf.write(f'touch {os.path.dirname(output_file)}/done')
 
     # This is Python for: `chmod +x [script_path]`
@@ -139,7 +141,10 @@ def _deferstep(chip, step, index, status):
 
         # With native autoscaling, job can be 'PENDING', 'CONFIGURING', or 'COMPLETING'
         # while the scale-up/down scripts are running.
-        if ('RUNNING' in jobout) or ('PENDING' in jobout) or ('CONFIGURING' in jobout) or ('COMPLETING' in jobout):
+        if 'RUNNING' in jobout or \
+           'PENDING' in jobout or \
+           'CONFIGURING' in jobout or \
+           'COMPLETING' in jobout:
             if 'watchdog' in chip.status:
                 chip.status['watchdog'].set()
         elif 'COMPLETED' in jobout:

@@ -26,7 +26,14 @@ def make_docs(chip):
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='asicflow', syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
+def setup(chip,
+          flowname='asicflow',
+          syn_np=1,
+          floorplan_np=1,
+          physyn_np=1,
+          place_np=1,
+          cts_np=1,
+          route_np=1):
     '''
     A configurable ASIC compilation flow.
 

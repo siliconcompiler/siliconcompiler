@@ -24,7 +24,8 @@ def test_import_task():
 
     assert chip.get('flowgraph', flow, 'A', '0', 'tool') == "yosys"
     assert chip.get('flowgraph', flow, 'A', '0', 'task') == "syn_asic"
-    assert chip.get('flowgraph', flow, 'A', '0', 'taskmodule') == "siliconcompiler.tools.yosys.syn_asic"
+    assert chip.get('flowgraph', flow, 'A', '0', 'taskmodule') == \
+        "siliconcompiler.tools.yosys.syn_asic"
 
 
 @pytest.mark.quick
@@ -35,4 +36,5 @@ def test_string_task():
 
     assert chip.get('flowgraph', flow, 'A', '0', 'tool') == "yosys"
     assert chip.get('flowgraph', flow, 'A', '0', 'task') == "syn_asic"
-    assert chip.get('flowgraph', flow, 'A', '0', 'taskmodule') == "siliconcompiler.tools.yosys.syn_asic"
+    assert chip.get('flowgraph', flow, 'A', '0', 'taskmodule') == \
+        "siliconcompiler.tools.yosys.syn_asic"

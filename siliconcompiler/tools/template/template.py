@@ -57,21 +57,27 @@ def setup(chip):
     # Required for script tools
     chip.set('tool', tool, 'format', 'tcl', clobber=False)
 
-    #
-    chip.set('tool', tool, 'task', task, 'option', options, step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'option', options,
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+             step=step, index=index, clobber=False)
 
     # Required for script based tools
-
-    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'script', refdir + script, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir,
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', refdir + script,
+             step=step, index=index, clobber=False)
     for key in variables:
-        chip.set('tool', tool, 'task', task, 'var', key, variables[key], step=step, index=index, clobber=False)
+        chip.set('tool', tool, 'task', task, 'var', key, variables[key],
+                 step=step, index=index, clobber=False)
 
     # Required for checker
-    chip.add('tool', tool, 'task', task, 'output', outputs, step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', inputs, step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'require', requires, step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', outputs,
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', inputs,
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'require', requires,
+             step=step, index=index)
 
 
 def runtime_options(chip):

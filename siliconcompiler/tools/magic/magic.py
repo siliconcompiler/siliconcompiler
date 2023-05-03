@@ -42,9 +42,12 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=8.3.196', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(), step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir,
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', script,
+             step=step, index=index, clobber=False)
 
     # set options
     options = []
@@ -54,12 +57,16 @@ def setup(chip):
 
     design = chip.top()
     if chip.valid('input', 'layout', 'gds'):
-        chip.add('tool', tool, 'task', task, 'require', ','.join(['input', 'layout', 'gds']), step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['input', 'layout', 'gds']),
+                 step=step, index=index)
     else:
         chip.add('tool', tool, 'task', task, 'input', f'{design}.gds', step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^Error', step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'warning', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^Error',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'warning',
+             step=step, index=index, clobber=False)
 
 
 ################################

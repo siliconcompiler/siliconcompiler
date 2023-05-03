@@ -72,7 +72,8 @@ def main():
                 break
 
     if not (design_set or input_mode):
-        chip.logger.error('Nothing to load: please define a target with -cfg, -design, and/or -input.')
+        chip.logger.error('Nothing to load: please define a target with '
+                          '-cfg, -design, and/or inputs.')
         sys.exit(1)
 
     filename = None
