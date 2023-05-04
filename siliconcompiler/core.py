@@ -1777,8 +1777,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for node in set(input_nodes):
                     if input_nodes.count(node) > 1:
                         in_step, in_index = node
-                        self.logger.error(f'Duplicate edge from {in_step}{in_index} to {step}{index} '
-                                          f'in the {flow} flowgraph')
+                        self.logger.error(f'Duplicate edge from {in_step}{in_index} to '
+                                          f'{step}{index} in the {flow} flowgraph')
                         error = True
 
         for step, index in nodes:
@@ -3495,7 +3495,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         tail_node = (tail, tail_index)
         if tail_node in self.get('flowgraph', flow, head, head_index, 'input'):
-            self.logger.warning(f'Edge from {tail}{tail_index} to {head}{head_index} already exists, skipping')
+            self.logger.warning(f'Edge from {tail}{tail_index} to {head}{head_index} already '
+                                'exists, skipping')
             return
 
         self.add('flowgraph', flow, head, head_index, 'input', tail_node)
