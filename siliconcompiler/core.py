@@ -3568,6 +3568,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             prevstep = step
 
     ###########################################################################
+    def __write_task_manifest(self, tool, path=None, backup=True):
+        suffix = self.get('tool', tool, 'format')
+        if suffix:
+            manifest_path = f"sc_manifest.{suffix}"
+            if path:
+                manifest_path = os.path.join(path, manifest_path)
+
+            if backup and os.path.exists(manifest_path):
+                shutil.copyfile(manifest_path, f'{manifest_path}.bak')
+
+            self.write_manifest(manifest_path, prune=False, abspath=True)
+
+    ###########################################################################
     def _runtask(self, step, index, status, replay=False):
         '''
         Private per step run method called by run().
@@ -3802,9 +3815,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Write manifest (tool interface) (Don't move this!)
-        suffix = self.get('tool', tool, 'format')
-        if suffix:
-            self.write_manifest(f"sc_manifest.{suffix}", prune=False, abspath=True)
+        self.__write_task_manifest(tool)
 
         ##################
         # Start CPU Timer
