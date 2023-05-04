@@ -105,6 +105,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Cache of python modules
         self.modules = {}
 
+        # Controls whether find_files returns an abspath or relative to this
+        # this is primarily used when generating standalone testcases
+        self.__relative_path = None
+
         # We set 'design' and 'loglevel' by directly calling the schema object
         # because of a chicken-and-egg problem: self.set() relies on the logger,
         # but the logger relies on these values.
@@ -1264,7 +1268,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     job=None,
                     step=None,
                     index=None,
-                    list_index=None):
+                    list_index=None,
+                    abs_path_only=False):
         """Internal find_files() that allows you to skip step/index for optional
         params, regardless of [option, strict]."""
 
@@ -1306,7 +1311,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         elif len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
-            refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
+            refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index, abs_path_only=True)
             search_paths = refdirs
 
         for path in paths:
@@ -1318,6 +1323,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             result.append(self._find_sc_file(path,
                                              missing_ok=missing_ok,
                                              search_paths=search_paths))
+
+        if self.__relative_path and not abs_path_only:
+            rel_result = []
+            for path in result:
+                if path:
+                    rel_result.append(os.path.relpath(path, self.__relative_path))
+                else:
+                    rel_result.append(path)
+            result = rel_result
+
         # Convert back to scalar if that was original type
         if not is_list:
             return result[0]
