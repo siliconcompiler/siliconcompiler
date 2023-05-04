@@ -4757,7 +4757,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 print(f'{envvar_cmd} {key}="{val}"', file=f)
 
             # Ensure execution runs from the same directory
-            print(f'cd {self._getworkdir(step=step, index=index)}', file=f)
+            work_dir = self._getworkdir(step=step, index=index)
+            if self.__relative_path:
+                work_dir = os.path.relpath(work_dir, self.__relative_path)
+            print(f'cd {work_dir}', file=f)
             print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in replay_cmdlist), file=f)
 
         os.chmod(script_name, 0o755)
