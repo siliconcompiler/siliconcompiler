@@ -3424,17 +3424,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.edge('place', 'cts')
             Creates a directed edge from place to cts.
         '''
+        head_index = str(head_index)
+        tail_index = str(tail_index)
+
         for step in (head, tail):
             if step in (Schema.GLOBAL_KEY, 'default'):
                 self.error(f'Illegal step name: {step} is reserved')
                 return
 
-        tail_node = (tail, str(tail_index))
-        if tail_node in self.get('flowgraph', flow, head, str(head_index), 'input'):
+        tail_node = (tail, tail_index)
+        if tail_node in self.get('flowgraph', flow, head, head_index, 'input'):
             self.logger.warning(f'Edge from {tail}{tail_index} to {head}{head_index} already exists, skipping')
             return
 
-        self.add('flowgraph', flow, head, str(head_index), 'input', tail_node)
+        self.add('flowgraph', flow, head, head_index, 'input', tail_node)
 
     ###########################################################################
     def graph(self, flow, subflow, name=None):
