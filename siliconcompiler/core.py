@@ -4650,7 +4650,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return fullexe
 
     #######################################
-    def _makecmd(self, tool, task, step, index, extra_options=None):
+    def _makecmd(self, tool, task, step, index, script_name='replay.sh'):
         '''
         Constructs a subprocess run command based on eda tool setup.
         Creates a replay script in current directory.
@@ -4674,8 +4674,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         scripts = self.find_files('tool', tool, 'task', task, 'script', step=step, index=index)
 
         cmdlist = [fullexe]
-        if extra_options:
-            cmdlist.extend(extra_options)
         cmdlist.extend(options)
         cmdlist.extend(scripts)
 
@@ -4724,15 +4722,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         cmdlist = [*nice_cmdlist, *cmdlist]
 
         # create replay file
-        script_name = 'replay.sh'
         with open(script_name, 'w') as f:
-            print('#!/bin/bash', file=f)
+            print('#!/usr/bin/env bash', file=f)
 
             envvar_cmd = 'export'
             for key, val in envvars.items():
                 print(f'{envvar_cmd} {key}="{val}"', file=f)
 
+            # Ensure execution runs from the same directory
+            print(f'cd {self._getworkdir(step=step, index=index)}', file=f)
             print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in replay_cmdlist), file=f)
+
         os.chmod(script_name, 0o755)
 
         return cmdlist, ' '.join(replay_cmdlist), cmd, cmd_args
