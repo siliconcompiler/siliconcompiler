@@ -210,6 +210,28 @@ def test_check_missing_task_module():
     assert not chip.check_manifest()
 
 
+@pytest.mark.quick
+def test_check_graph_duplicate_edge():
+    chip = siliconcompiler.Chip('test')
+
+    flow = 'test'
+    chip.set('option', 'flow', flow)
+
+    chip.node(flow, 'import', foo)
+    chip.node(flow, 'export', baz)
+
+    chip.edge(flow, 'import', 'export')
+
+    # edge() should not allow duplicates
+    chip.edge(flow, 'import', 'export')
+    assert len(chip.get('flowgraph', flow, 'export', '0', 'input')) == 1
+
+    # check_manifest() should catch it if forced
+    chip.add('flowgraph', flow, 'export', '0', 'input', ('import', '0'))
+
+    assert not chip._check_flowgraph()
+
+
 #########################
 if __name__ == "__main__":
     test_check_manifest()

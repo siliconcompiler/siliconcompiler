@@ -1757,6 +1757,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Check if flowgraph is valid.
 
         * Checks if all edges have valid nodes
+        * Checks that there are no duplicate edges
 
         Returns True if valid, False otherwise.
         '''
@@ -1764,13 +1765,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not flow:
             flow = self.get('option', 'flow')
 
+        error = False
+
         nodes = set()
         for step in self.getkeys('flowgraph', flow):
             for index in self.getkeys('flowgraph', flow, step):
                 nodes.add((step, index))
-                nodes.update(self.get('flowgraph', flow, step, index, 'input'))
+                input_nodes = self.get('flowgraph', flow, step, index, 'input')
+                nodes.update(input_nodes)
 
-        error = False
+                for node in set(input_nodes):
+                    if input_nodes.count(node) > 1:
+                        in_step, in_index = node
+                        self.logger.error(f'Duplicate edge from {in_step}{in_index} to {step}{index} '
+                                          f'in the {flow} flowgraph')
+                        error = True
+
         for step, index in nodes:
             # For each task, check input requirements.
             tool, task = self._get_tool_task(step, index, flow=flow)
@@ -3475,13 +3485,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.edge('place', 'cts')
             Creates a directed edge from place to cts.
         '''
+        head_index = str(head_index)
+        tail_index = str(tail_index)
+
         for step in (head, tail):
             if step in (Schema.GLOBAL_KEY, 'default'):
                 self.error(f'Illegal step name: {step} is reserved')
                 return
 
-        # Adding
-        self.add('flowgraph', flow, head, str(head_index), 'input', (tail, str(tail_index)))
+        tail_node = (tail, tail_index)
+        if tail_node in self.get('flowgraph', flow, head, head_index, 'input'):
+            self.logger.warning(f'Edge from {tail}{tail_index} to {head}{head_index} already exists, skipping')
+            return
+
+        self.add('flowgraph', flow, head, head_index, 'input', tail_node)
 
     ###########################################################################
     def graph(self, flow, subflow, name=None):
