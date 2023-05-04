@@ -1311,7 +1311,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         elif len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
-            refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index, abs_path_only=True)
+            refdirs = self._find_files('tool', tool, 'task', task, 'refdir',
+                                       step=step, index=index,
+                                       abs_path_only=True)
             search_paths = refdirs
 
         for path in paths:
@@ -5301,12 +5303,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 try:
                     # Rerun pre_process
                     func(self)
-                except Exception as e:
+                except Exception:
                     pass
         except SiliconCompilerError:
             pass
 
-        self._makecmd(tool, task, step, index, script_name=f'{self._getworkdir(step=step, index=index)}/replay.sh', include_path=False)
+        self._makecmd(tool, task, step, index,
+                      script_name=f'{self._getworkdir(step=step, index=index)}/replay.sh',
+                      include_path=False)
 
         # Restore normal path behavior
         self.__relative_path = None
@@ -5368,7 +5372,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         with open(issue_path, 'w') as fd:
             json.dump(issue_information, fd, indent=4, sort_keys=True)
 
-        jinja_env = Environment(loader=FileSystemLoader(os.path.join(self.scroot, 'templates', 'issue')))
+        jinja_env = Environment(loader=FileSystemLoader(os.path.join(self.scroot,
+                                                                     'templates',
+                                                                     'issue')))
         readme_path = os.path.join(issue_dir.name, 'README.txt')
         with open(readme_path, 'w') as f:
             f.write(jinja_env.get_template('README.txt').render(
@@ -5393,9 +5399,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                          issue_path,
                          readme_path,
                          run_path]:
-                tar.add(os.path.abspath(path), arcname=os.path.join(arch_base_dir, os.path.basename(path)))
+                tar.add(os.path.abspath(path),
+                        arcname=os.path.join(arch_base_dir,
+                                             os.path.basename(path)))
 
-            tar.add(job_dir, arcname=os.path.join(arch_base_dir, os.path.relpath(job_dir, issue_dir.name)))
+            tar.add(job_dir,
+                    arcname=os.path.join(arch_base_dir,
+                                         os.path.relpath(job_dir,
+                                                         issue_dir.name)))
 
         issue_dir.cleanup()
 
