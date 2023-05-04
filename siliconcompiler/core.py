@@ -5262,6 +5262,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             git_data['failed'] = str(e)
             pass
 
+        tool, task = self._get_tool_task(step=step, index=index)
+
         issue_time = time.time()
         issue_information = {}
         issue_information['environment'] = {key: value for key, value in os.environ.items()}
@@ -5272,14 +5274,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         issue_information['run'] = {'step': step,
                                     'index': index,
                                     'libraries_included': include_libraries,
-                                    'pdks_included': include_pdks}
+                                    'pdks_included': include_pdks,
+                                    'tool': tool,
+                                    'task': task}
         issue_information['version'] = {'schema': self.schemaversion,
                                         'sc': self.scversion,
                                         'git': git_data}
-
-        issue_path = os.path.join(issue_dir.name, 'issue.json')
-        with open(issue_path, 'w') as fd:
-            json.dump(issue_information, fd, indent=4, sort_keys=True)
 
         if not archive_name:
             design = self.design
@@ -5287,11 +5287,39 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             file_time = datetime.fromtimestamp(issue_time).strftime('%Y%m%d-%H%M%S')
             archive_name = f'sc_issue_{design}_{job}_{step}{index}_{file_time}.tar.gz'
 
+        # Make support files
+        issue_path = os.path.join(issue_dir.name, 'issue.json')
+        with open(issue_path, 'w') as fd:
+            json.dump(issue_information, fd, indent=4, sort_keys=True)
+
+        jinja_env = Environment(loader=FileSystemLoader(os.path.join(self.scroot, 'templates', 'issue')))
+        readme_path = os.path.join(issue_dir.name, 'README.txt')
+        with open(readme_path, 'w', encoding='utf-16') as f:
+            f.write(jinja_env.get_template('README.txt').render(
+                archive_name=archive_name,
+                **issue_information))
+        run_path = os.path.join(issue_dir.name, 'run.sh')
+        with open(run_path, 'w', encoding='utf-16') as f:
+            replay_path = os.path.relpath(self._getworkdir(step=step, index=index),
+                                          self.cwd)
+            issue_title = f'{self.design} for {step}{index} using {tool}/{task}'
+            f.write(jinja_env.get_template('run.sh').render(
+                title=issue_title,
+                exec_path=f'./{replay_path}/replay.sh'
+            ))
+        os.chmod(run_path, 0o755)
+
+        # Build archive
         with tarfile.open(archive_name, "w:gz") as tar:
             self._archive_node(tar, step, index, all_files=True)
 
-            tar.add(os.path.abspath(manifest_path), arcname='manifest.json')
-            tar.add(os.path.abspath(issue_path), arcname='issue.json')
+            # Add individual files
+            for path in [manifest_path,
+                         issue_path,
+                         readme_path,
+                         run_path]:
+                tar.add(os.path.abspath(path), arcname=os.path.basename(path))
+
             tar.add(collect_path, arcname=os.path.join(self.get('option', 'builddir'),
                                                        self.get('design'),
                                                        self.get('option', 'jobname'),
