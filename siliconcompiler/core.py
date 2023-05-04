@@ -5093,7 +5093,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             source_unit (str): unit of the value, if not provided it is assumed to have no units
 
         Examples:
-            >>> chip._record_metric('floorplan', '0', 'cellarea', 500.0, 'reports/metrics.json', \
+            >>> chip._record_metric('floorplan', '0', 'cellarea', 500.0, 'reports/metrics.json', \\
                 source_units='um^2')
             Records the metric cell area under 'floorplan0' and notes the source as
             'reports/metrics.json'
