@@ -5265,8 +5265,51 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.set(*keypath, copy, field='copy')
 
         # Collect files
-        collect_path = os.path.join(issue_dir.name, 'collect')
-        self._collect(directory=collect_path)
+        work_dir = self._getworkdir(step=step, index=index)
+
+        # Temporarily change current directory to appear to be issue_dir
+        original_cwd = self.cwd
+        self.cwd = issue_dir.name
+
+        job_dir = self._getworkdir()
+
+        # Copy in issue run
+        utils.copytree(work_dir, self._getworkdir(step=step, index=index), dirs_exist_ok=True)
+
+        # Copy in files
+        self._collect(directory=self._getcollectdir())
+
+        # Set relative path to generate runnable files
+        self.__relative_path = self._getworkdir(step=step, index=index)
+
+        # Rewrite tool manifest
+        self.__write_task_manifest(tool, path=self._getworkdir(step=step, index=index))
+
+        # Rewrite replay.sh
+        try:
+            # Unset option to avoid compounding options
+            self.unset('tool', tool, 'task', task, 'option', step=step, index=index)
+            # Rerun setup
+            self._setup_task(step, index)
+            self.set('arg', 'step', step)
+            self.set('arg', 'index', index)
+            func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)
+            if func:
+                try:
+                    # Rerun pre_process
+                    func(self)
+                except Exception as e:
+                    pass
+        except SiliconCompilerError:
+            pass
+
+        self._makecmd(tool, task, step, index, script_name=f'{self._getworkdir(step=step, index=index)}/replay.sh', include_path=False)
+
+        # Restore normal path behavior
+        self.__relative_path = None
+
+        # Restore current directory
+        self.cwd = original_cwd
 
         git_data = {}
         try:
@@ -5324,36 +5367,32 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         jinja_env = Environment(loader=FileSystemLoader(os.path.join(self.scroot, 'templates', 'issue')))
         readme_path = os.path.join(issue_dir.name, 'README.txt')
-        with open(readme_path, 'w', encoding='utf-16') as f:
+        with open(readme_path, 'w') as f:
             f.write(jinja_env.get_template('README.txt').render(
                 archive_name=archive_name,
                 **issue_information))
         run_path = os.path.join(issue_dir.name, 'run.sh')
-        with open(run_path, 'w', encoding='utf-16') as f:
-            replay_path = os.path.relpath(self._getworkdir(step=step, index=index),
-                                          self.cwd)
+        with open(run_path, 'w') as f:
+            replay_dir = os.path.relpath(self._getworkdir(step=step, index=index),
+                                         self.cwd)
             issue_title = f'{self.design} for {step}{index} using {tool}/{task}'
             f.write(jinja_env.get_template('run.sh').render(
                 title=issue_title,
-                exec_path=f'./{replay_path}/replay.sh'
+                exec_dir=replay_dir
             ))
         os.chmod(run_path, 0o755)
 
         # Build archive
+        arch_base_dir = os.path.basename(archive_name).split('.')[0]
         with tarfile.open(archive_name, "w:gz") as tar:
-            self._archive_node(tar, step, index, all_files=True)
-
             # Add individual files
             for path in [manifest_path,
                          issue_path,
                          readme_path,
                          run_path]:
-                tar.add(os.path.abspath(path), arcname=os.path.basename(path))
+                tar.add(os.path.abspath(path), arcname=os.path.join(arch_base_dir, os.path.basename(path)))
 
-            tar.add(collect_path, arcname=os.path.join(self.get('option', 'builddir'),
-                                                       self.get('design'),
-                                                       self.get('option', 'jobname'),
-                                                       'sc_collected_files'))
+            tar.add(job_dir, arcname=os.path.join(arch_base_dir, os.path.relpath(job_dir, issue_dir.name)))
 
         issue_dir.cleanup()
 
