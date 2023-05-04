@@ -105,9 +105,9 @@ To run a testcase, use:
 
         test_dir = os.path.basename(switches['file']).split('.')[0]
         with tarfile.open(switches['file'], 'r:gz') as f:
-            f.extractall(path=test_dir)
+            f.extractall(path='.')
 
-        chip.read_manifest(f'{test_dir}/manifest.json')
+        chip.read_manifest(f'{test_dir}/orig_manifest.json')
 
         with open(f'{test_dir}/issue.json', 'r') as f:
             issue_info = json.load(f)
