@@ -74,14 +74,18 @@ def setup(chip):
     pdk.set('pdk', process, 'maxlayer', stackup, 'met5')
 
     # DRC Runsets
-    pdk.set('pdk', process, 'drc', 'runset', 'magic', stackup, 'basic', pdkdir + '/setup/magic/sky130A.tech')
+    pdk.set('pdk', process, 'drc', 'runset', 'magic', stackup, 'basic',
+            pdkdir + '/setup/magic/sky130A.tech')
 
     # LVS Runsets
-    pdk.set('pdk', process, 'lvs', 'runset', 'netgen', stackup, 'basic', pdkdir + '/setup/netgen/lvs_setup.tcl')
+    pdk.set('pdk', process, 'lvs', 'runset', 'netgen', stackup, 'basic',
+            pdkdir + '/setup/netgen/lvs_setup.tcl')
 
     # Layer map and display file
-    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup, pdkdir + '/setup/klayout/skywater130.lyt')
-    pdk.set('pdk', process, 'display', 'klayout', stackup, pdkdir + '/setup/klayout/sky130A.lyp')
+    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup,
+            pdkdir + '/setup/klayout/skywater130.lyt')
+    pdk.set('pdk', process, 'display', 'klayout', stackup,
+            pdkdir + '/setup/klayout/sky130A.lyp')
 
     # Openroad global routing grid derating
     openroad_layer_adjustments = {

@@ -41,7 +41,7 @@ def build_top(remote=False):
     chip.set('tool', 'openroad', 'task', 'route', 'var', 'grt_macro_extension', '0')
     # Disable CDL file generation until we can find a CDL file for the SRAM block.
     chip.set('tool', 'openroad', 'task', 'export', 'var', 'write_cdl', 'false')
-    # Reduce placement density a bit to ease routing congestion and hopefully speed up the route step.
+    # Reduce placement density a bit to ease routing congestion and to speed up the route step.
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5')
 
     # Place macro instance.

@@ -110,7 +110,10 @@ def generate_block_floorplan(fp, diearea, corearea, inputs, outputs, pdn=None):
     fp.place_pins(input_pins, 0, in_spacing, 0, in_spacing + width, depth, width, layer, snap=True)
 
     out_spacing = (die_height - len(output_pins) * width) / (len(output_pins) + 1)
-    fp.place_pins(output_pins, die_width - depth, out_spacing, 0, out_spacing + width, depth, width, layer, snap=True)
+    fp.place_pins(output_pins,
+                  die_width - depth, out_spacing,
+                  0, out_spacing + width,
+                  depth, width, layer, snap=True)
 
     if pdn:
         place_pdn(fp, **pdn)

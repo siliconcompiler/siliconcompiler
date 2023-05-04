@@ -27,10 +27,12 @@ def setup(chip):
     design = chip.top()
 
     # Set yosys script path.
-    chip.set('tool', tool, 'task', task, 'script', 'sc_lec.tcl', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', 'sc_lec.tcl',
+             step=step, index=index, clobber=False)
 
     # Input/output requirements.
-    if (not chip.valid('input', 'netlist', 'verilog') or not chip.get('input', 'netlist', 'verilog', step=step, index=index)):
+    if not chip.valid('input', 'netlist', 'verilog') or \
+       not chip.get('input', 'netlist', 'verilog', step=step, index=index):
         chip.set('tool', tool, 'task', task, 'input', design + '.vg', step=step, index=index)
     # if not chip.get('input', 'rtl', 'verilog'):
         # TODO: Not sure this logic makes sense? Seems like reverse of tcl

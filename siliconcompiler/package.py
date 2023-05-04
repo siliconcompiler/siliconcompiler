@@ -93,7 +93,8 @@ class Sup:
             # TODO
             pass
         else:
-            self.chip.logger.info(f"Publishing {self.chip.design}-{version} package to registry '{registry}'")
+            self.chip.logger.info(f"Publishing {self.chip.design}-{version} package to "
+                                  f"registry '{registry}'")
             odir = os.path.join(registry, self.chip.design, version)
             os.makedirs(odir, exist_ok=True)
             ofile = os.path.join(odir, f"{self.chip.design}-{version}.sup.gz")

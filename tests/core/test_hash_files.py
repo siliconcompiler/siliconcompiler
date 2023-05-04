@@ -32,7 +32,8 @@ def test_err_mismatch():
     with open('foo.txt', 'w', newline='\n') as f:
         f.write('foobar\n')
     chip.set('input', 'rtl', 'verilog', 'foo.txt')
-    assert chip.hash_files('input', 'rtl', 'verilog') == ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+    assert chip.hash_files('input', 'rtl', 'verilog') == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
 
     # Change foo.txt
     with open('foo.txt', 'w', newline='\n') as f:
@@ -48,15 +49,17 @@ def test_err_mismatch():
 
     # No error since foo.txt was restored, and update=False in previous call
     # ensures original hash wasn't overwritten
-    assert chip.hash_files('input', 'rtl', 'verilog', update=False) == ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+    assert chip.hash_files('input', 'rtl', 'verilog', update=False) == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
 
 
-@pytest.mark.parametrize('algorithm,expected', [('md5', '14758f1afd44c09b7992073ccf00b43d'),
-                                                ('sha1', '988881adc9fc3655077dc2d4d757d480b5ea0e11'),
-                                                ('sha224', '90a81bdaa85b5d9dfc4c0cd89d9edaf93255d5f4160cd67bead46a91'),
-                                                ('sha256', 'aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f'),
-                                                ('sha384', '190d8045dc5875c1004e4dd31f13194eea25043cf9ffc40550cca30fdcae20f8d7eed05f3c94058b206329dbe8d2312e'),
-                                                ('sha512', 'e79b8ad22b34a54be999f4eadde2ee895c208d4b3d83f1954b61255d2556a8b73773c0dc0210aa044ffcca6834839460959cbc9f73d3079262fc8bc935d46262')])
+@pytest.mark.parametrize('algorithm,expected', [
+    ('md5', '14758f1afd44c09b7992073ccf00b43d'),
+    ('sha1', '988881adc9fc3655077dc2d4d757d480b5ea0e11'),
+    ('sha224', '90a81bdaa85b5d9dfc4c0cd89d9edaf93255d5f4160cd67bead46a91'),
+    ('sha256', 'aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f'),
+    ('sha384', '190d8045dc5875c1004e4dd31f13194eea25043cf9ffc40550cca30fdcae20f8d7eed05f3c94058b206329dbe8d2312e'),  # noqa E501
+    ('sha512', 'e79b8ad22b34a54be999f4eadde2ee895c208d4b3d83f1954b61255d2556a8b73773c0dc0210aa044ffcca6834839460959cbc9f73d3079262fc8bc935d46262')])  # noqa E501
 def test_changed_algorithm(algorithm, expected):
 
     # Create foo.txt and compute its hash

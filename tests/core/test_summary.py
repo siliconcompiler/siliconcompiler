@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
+from siliconcompiler import TaskStatus
 
 import pytest
 
@@ -20,11 +21,12 @@ def gcd_with_metrics(gcd_chip):
         dummy_data += 1
         for index in gcd_chip.getkeys('flowgraph', flow, step):
             for metric in gcd_chip.getkeys('flowgraph', flow, step, index, 'weight'):
-                gcd_chip.set('flowgraph', flow, step, index, 'status', siliconcompiler.TaskStatus.SUCCESS)
+                gcd_chip.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
                 gcd_chip.set('metric', metric, str(dummy_data), step=step, index=index)
                 prev_step = steps.index(step) - 1
                 if prev_step >= 0:
-                    gcd_chip.set('flowgraph', flow, step, index, 'select', [(steps[prev_step], '0')])
+                    gcd_chip.set('flowgraph', flow, step, index, 'select',
+                                 [(steps[prev_step], '0')])
 
     return gcd_chip
 

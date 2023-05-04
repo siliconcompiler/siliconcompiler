@@ -30,7 +30,8 @@ def setup(chip):
 
     chip.add('tool', tool, 'task', task, 'output', design + '.png', step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '1024', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '1024',
+             step=step, index=index, clobber=False)
 
 
 def pre_process(chip):

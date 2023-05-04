@@ -48,8 +48,10 @@ def setup(chip):
     # common to all
     chip.set('tool', tool, 'task', task, 'option', '-c', step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', "Warning:", step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', "^ERROR", step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', "Warning:",
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', "^ERROR",
+             step=step, index=index, clobber=False)
 
 
 ################################
@@ -80,7 +82,8 @@ def syn_setup(chip):
     design = chip.top()
 
     # Set yosys script path.
-    chip.set('tool', tool, 'task', task, 'script', 'sc_syn.tcl', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'script', 'sc_syn.tcl',
+             step=step, index=index, clobber=False)
 
     # Input/output requirements.
     chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
@@ -101,9 +104,14 @@ def syn_post_process(chip):
             metrics = metrics["design"]
 
         if "area" in metrics:
-            chip._record_metric(step, index, 'cellarea', float(metrics["area"]), "reports/stat.json", source_unit='um^2')
+            chip._record_metric(step, index, 'cellarea',
+                                float(metrics["area"]),
+                                "reports/stat.json",
+                                source_unit='um^2')
         if "num_cells" in metrics:
-            chip._record_metric(step, index, 'cells', int(metrics["num_cells"]), "reports/stat.json")
+            chip._record_metric(step, index, 'cells',
+                                int(metrics["num_cells"]),
+                                "reports/stat.json")
 
     registers = None
     with open(f"{step}.log", 'r') as f:

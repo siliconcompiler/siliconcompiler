@@ -17,7 +17,20 @@ import subprocess
 
 import siliconcompiler
 from siliconcompiler.schema import Schema, utils
-from siliconcompiler.sphinx_ext.utils import strong, code, para, keypath, build_table, build_list, build_section, build_section_with_target, link, image, get_ref_id, literalblock
+from siliconcompiler.sphinx_ext.utils import (
+    strong,
+    code,
+    para,
+    keypath,
+    build_table,
+    build_list,
+    build_section,
+    build_section_with_target,
+    link,
+    image,
+    get_ref_id,
+    literalblock
+)
 
 #############
 # Helpers
@@ -99,7 +112,9 @@ def build_config_recursive(schema, refdoc, keypath=None, sec_key_prefix=None):
             val = schema.getdict(*keypath, key)
             leaves.update({key: val})
         else:
-            children = build_config_recursive(schema, refdoc, keypath=keypath + [key], sec_key_prefix=sec_key_prefix)
+            children = build_config_recursive(schema, refdoc,
+                                              keypath=keypath + [key],
+                                              sec_key_prefix=sec_key_prefix)
             child_sections.extend(children)
 
     schema_table = None
@@ -309,7 +324,8 @@ class DynamicGen(SphinxDirective):
                 continue
 
             key_node = nodes.paragraph()
-            key_node += keypath(key_path + [key], self.env.docname, key_text=["...", f"'{type}'", f"'{key}'"])
+            key_node += keypath(key_path + [key], self.env.docname,
+                                key_text=["...", f"'{type}'", f"'{key}'"])
             table.append([key_node, para(params["help"])])
 
         if len(table) > 1:
@@ -410,7 +426,8 @@ class FlowGen(DynamicGen):
         schema = Schema(cfg=cfg)
         schema.prune()
         pruned = schema.cfg
-        table = build_schema_value_table(pruned, self.env.docname, keypath_prefix=['option', 'showtool'])
+        table = build_schema_value_table(pruned, self.env.docname,
+                                         keypath_prefix=['option', 'showtool'])
         if table is not None:
             section += table
             settings += section
@@ -427,7 +444,9 @@ class PDKGen(DynamicGen):
         section_key = '-'.join(['pdks', modname, 'configuration'])
         settings = build_section('Configuration', section_key)
 
-        settings += build_config_recursive(chip.schema, self.env.docname, keypath=['pdk'], sec_key_prefix=['pdks', modname])
+        settings += build_config_recursive(chip.schema, self.env.docname,
+                                           keypath=['pdk'],
+                                           sec_key_prefix=['pdks', modname])
 
         return settings
 
@@ -459,7 +478,9 @@ class LibGen(DynamicGen):
         settings = build_section_with_target(libname, '-'.join(section_key), self.state.document)
 
         for key in ('asic', 'output', 'option'):
-            settings += build_config_recursive(chip.schema, self.env.docname, keypath=[key], sec_key_prefix=[*section_key, key])
+            settings += build_config_recursive(chip.schema, self.env.docname,
+                                               keypath=[key],
+                                               sec_key_prefix=[*section_key, key])
 
         sections.append(settings)
 
@@ -536,7 +557,8 @@ class ToolGen(DynamicGen):
         schema = Schema(cfg=cfg)
         schema.prune()
         pruned = schema.cfg
-        table = build_schema_value_table(pruned, self.env.docname, keypath_prefix=['tool', toolname, 'task', taskname])
+        table = build_schema_value_table(pruned, self.env.docname,
+                                         keypath_prefix=['tool', toolname, 'task', taskname])
         if table is not None:
             return table
         else:
@@ -603,7 +625,9 @@ class ToolGen(DynamicGen):
 
             s += build_section("Configuration", f'{toolname}-{taskname}-configuration')
             s += self.task_display_config(chip, toolname, taskname)
-            self.document_free_params(chip.getdict('tool', toolname, 'task', taskname), f'{toolname}-{taskname}', s)
+            self.document_free_params(chip.getdict('tool', toolname, 'task', taskname),
+                                      f'{toolname}-{taskname}',
+                                      s)
         except Exception as e:
             print('Failed to document task, Chip object probably not configured correctly.')
             print(e)
@@ -743,7 +767,8 @@ class ChecklistGen(DynamicGen):
             if key == 'default':
                 continue
             settings += build_section(key, section_prefix + '-' + key)
-            settings += build_schema_value_table(cfg[key], self.env.docname, keypath_prefix=[*section_key, key])
+            settings += build_schema_value_table(cfg[key], self.env.docname,
+                                                 keypath_prefix=[*section_key, key])
 
         sections.append(settings)
 
@@ -809,7 +834,14 @@ class SCDomain(StandardDomain):
 
     # Override in StandardDomain so xref is literal instead of inline
     # https://github.com/sphinx-doc/sphinx/blob/ba080286b06cb9e0cadec59a6cf1f96aa11aef5a/sphinx/domains/std.py#L789
-    def build_reference_node(self, fromdocname, builder, docname, labelid, sectname, rolename, **options):
+    def build_reference_node(self,
+                             fromdocname,
+                             builder,
+                             docname,
+                             labelid,
+                             sectname,
+                             rolename,
+                             **options):
         nodeclass = options.pop('nodeclass', nodes.reference)
         newnode = nodeclass('', '', internal=True, **options)
         innernode = nodes.literal(sectname, sectname)

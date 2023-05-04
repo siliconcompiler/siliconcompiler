@@ -86,16 +86,20 @@ class PbPrimitive:
         return None
 
 
-# This class parses the FPGA architecture file and stores all the information provided for every primitive
+# This class parses the FPGA architecture file and stores all the information provided
+# for every primitive
 class Arch:
 
     def __init__(self, arch_file_name):
         self.arch_file = ET.parse(arch_file_name)
-        self.complexblocklist = self.arch_file.find("complexblocklist")  # finding the tag that contains all the pb_types
+        # finding the tag that contains all the pb_types
+        self.complexblocklist = self.arch_file.find("complexblocklist")
         self.pb_primitives = []
-        self.find_pb_primitives(self.complexblocklist)  # only the primitives (pb_types that have the blif_model attribute) will be stored
+        # only the primitives (pb_types that have the blif_model attribute) will be stored
+        self.find_pb_primitives(self.complexblocklist)
 
-    # Find the pb_types that possess the 'blif_model' attribute and add them to the pb_primitives list
+    # Find the pb_types that possess the 'blif_model' attribute and add them to the
+    # pb_primitives list
     def find_pb_primitives(self, root):
         for pb_type in root.iter('pb_type'):
             if "blif_model" in pb_type.attrib:

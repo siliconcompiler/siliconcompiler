@@ -72,7 +72,10 @@ class Schema:
                             else:
                                 sindex = index
                             for nodefield, nodevalue in value[step][index].items():
-                                Schema._set(*key, nodevalue, cfg=cfg, field=nodefield, step=sstep, index=sindex)
+                                Schema._set(*key, nodevalue,
+                                            cfg=cfg,
+                                            field=nodefield,
+                                            step=sstep, index=sindex)
                 else:
                     Schema._set(*key, value, cfg=cfg, field=field)
         else:
@@ -117,7 +120,8 @@ class Schema:
         try:
             Schema._dict_to_schema(localcfg)
         except (TypeError, ValueError) as e:
-            raise ValueError(f'Attempting to read manifest with incompatible schema version: {e}') from e
+            raise ValueError(f'Attempting to read manifest with incompatible schema version: {e}') \
+                from e
 
         return localcfg
 
@@ -131,7 +135,8 @@ class Schema:
         cfg = self._search(*keypath, job=job)
 
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: get() must be called on a complete keypath')
+            raise ValueError(f'Invalid keypath {keypath}: get() '
+                             'must be called on a complete keypath')
 
         err = Schema._validate_step_index(cfg['pernode'], field, step, index)
         if err:
@@ -196,7 +201,8 @@ class Schema:
         value = args[-1]
 
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: set() must be called on a complete keypath')
+            raise ValueError(f'Invalid keypath {keypath}: set() '
+                             'must be called on a complete keypath')
 
         err = Schema._validate_step_index(cfg['pernode'], field, step, index)
         if err:
@@ -246,7 +252,8 @@ class Schema:
         cfg = self._search(*keypath, insert_defaults=True)
 
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: add() must be called on a complete keypath')
+            raise ValueError(f'Invalid keypath {keypath}: add() '
+                             'must be called on a complete keypath')
 
         err = Schema._validate_step_index(cfg['pernode'], field, step, index)
         if err:
@@ -296,7 +303,8 @@ class Schema:
         cfg = self._search(*keypath)
 
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: unset() must be called on a complete keypath')
+            raise ValueError(f'Invalid keypath {keypath}: unset() '
+                             'must be called on a complete keypath')
 
         err = Schema._validate_step_index(cfg['pernode'], 'value', step, index)
         if err:
@@ -331,7 +339,8 @@ class Schema:
         cfg = self._search(*keypath)
 
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: _getvals() must be called on a complete keypath')
+            raise ValueError(f'Invalid keypath {keypath}: _getvals() '
+                             'must be called on a complete keypath')
 
         vals = []
         has_global = False
@@ -494,7 +503,8 @@ class Schema:
             base_types = sc_type[1:-1].split(',')
             if len(value) != len(base_types):
                 raise TypeError(error_msg)
-            return tuple(Schema._normalize_value(v, base_type, error_msg, allowed_values) for v, base_type in zip(value, base_types))
+            return tuple(Schema._normalize_value(v, base_type, error_msg, allowed_values)
+                         for v, base_type in zip(value, base_types))
 
         if sc_type == 'bool':
             if value == 'true':
@@ -537,10 +547,12 @@ class Schema:
             return f'Invalid value {value} for field {field} of keypath {keypath}: expected {t}'
 
         if field in ('author', 'filehash', 'date', 'hashalgo') and ('file' not in sc_type):
-            raise TypeError(f'Invalid field {field} for keypath {keypath}: this field only exists for file parameters')
+            raise TypeError(f'Invalid field {field} for keypath {keypath}: '
+                            'this field only exists for file parameters')
 
         if field in ('copy',) and ('file' not in sc_type and 'dir' not in sc_type):
-            raise TypeError(f'Invalid field {field} for keypath {keypath}: this field only exists for file and dir parameters')
+            raise TypeError(f'Invalid field {field} for keypath {keypath}: '
+                            'this field only exists for file and dir parameters')
 
         if Schema._is_list(field, sc_type):
             if not value:

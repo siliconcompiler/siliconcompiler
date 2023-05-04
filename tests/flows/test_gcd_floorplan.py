@@ -4,7 +4,8 @@ import pytest
 @pytest.mark.skip(reason='Skipping until floorplan API has been updated.')
 def setup_floorplan(fp):
     cell_h = fp.stdcell_height
-    fp.create_diearea([(0, 0), (72 * cell_h, 72 * cell_h)], corearea=[(8 * cell_h, 8 * cell_h), (64 * cell_h, 64 * cell_h)])
+    fp.create_diearea([(0, 0), (72 * cell_h, 72 * cell_h)],
+                      corearea=[(8 * cell_h, 8 * cell_h), (64 * cell_h, 64 * cell_h)])
     die_w, die_h = fp.diearea[1]
 
     in_pins = ['clk']
@@ -20,10 +21,16 @@ def setup_floorplan(fp):
     height = 1 * fp.layers[metal]['width']
 
     spacing_we = die_h / (len(in_pins) + 1)
-    fp.place_pins(in_pins, 0, spacing_we - height / 2, 0, spacing_we, width, height, metal, snap=True)  # west
+    fp.place_pins(in_pins,
+                  0, spacing_we - height / 2,
+                  0, spacing_we, width,
+                  height, metal, snap=True)  # west
 
     spacing_ea = die_h / (len(out_pins) + 1)
-    fp.place_pins(out_pins, die_w - width, spacing_ea - height / 2, 0, spacing_ea, width, height, metal, snap=True)  # east
+    fp.place_pins(out_pins,
+                  die_w - width, spacing_ea - height / 2,
+                  0, spacing_ea, width,
+                  height, metal, snap=True)  # east
 
 
 ##################################

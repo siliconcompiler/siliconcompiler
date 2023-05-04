@@ -74,7 +74,8 @@ def test_minimum(chip):
 
 def test_maximum(chip):
     flow = chip.get('option', 'flow')
-    chip.set('flowgraph', flow, 'teststep', '0', 'taskmodule', 'siliconcompiler.tools.builtin.maximum')
+    chip.set('flowgraph', flow, 'teststep', '0', 'taskmodule',
+             'siliconcompiler.tools.builtin.maximum')
     task = chip._get_task_module('teststep', '0')
     winner = task._select_inputs(chip, 'teststep', '0')
 

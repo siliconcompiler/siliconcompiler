@@ -1,6 +1,4 @@
 [flake8]
 extend-exclude = third_party,setup/deps,_skbuild
 max-line-length = 100
-# Intial ignore list will be reduced as each issue is addressed
 ignore =
-    E501

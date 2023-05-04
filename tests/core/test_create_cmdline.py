@@ -6,7 +6,10 @@ import siliconcompiler
 def do_cli_test(args, monkeypatch, switchlist=None, input_map=None, additional_args=None):
     chip = siliconcompiler.Chip('test')
     monkeypatch.setattr('sys.argv', args)
-    args = chip.create_cmdline('sc', switchlist=switchlist, input_map=input_map, additional_args=additional_args)
+    args = chip.create_cmdline('sc',
+                               switchlist=switchlist,
+                               input_map=input_map,
+                               additional_args=additional_args)
     # Store additional args in chip object to make testing easier
     chip.args = args
     return chip
@@ -198,11 +201,13 @@ def test_cli_examples(monkeypatch):
                 value = ''
 
             if len(value.split(' ')) > 1:
-                assert value[0] == "'" and value[-1] == "'", f'Multi-word value must be surrounded by quotes: {example}'
+                assert value[0] == "'" and value[-1] == "'", \
+                    f'Multi-word value must be surrounded by quotes: {example}'
             value = value.strip("'")
 
             default_count = keypath.count('default')
-            assert len(value.split(' ')) >= default_count + 1, f'Not enough values to fill in default keys: {keypath}'
+            assert len(value.split(' ')) >= default_count + 1, \
+                f'Not enough values to fill in default keys: {keypath}'
             if chip.get(*keypath, field='pernode') == 'required':
                 *free_keys, step, index, expected_val = value.split(' ', default_count + 2)
             else:
@@ -224,7 +229,8 @@ def test_cli_examples(monkeypatch):
             # Handle target specially since it affects other values
             if keypath == ['option', 'target']:
                 c = do_cli_test(['sc', switch, value], monkeypatch)
-                assert c.schema.get(*replaced_keypath, step=step, index=index) == f'siliconcompiler.targets.{expected_val}'
+                assert c.schema.get(*replaced_keypath, step=step, index=index) == \
+                    f'siliconcompiler.targets.{expected_val}'
                 continue
 
             args.append(switch)

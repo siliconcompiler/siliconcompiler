@@ -3,6 +3,7 @@ import os
 import pytest
 
 import siliconcompiler
+from siliconcompiler import TaskStatus
 
 from siliconcompiler.tools.surelog import parse
 
@@ -51,11 +52,12 @@ def test_multiple_tools():
     chip.set('tool', 'surelog', 'version', '==0.0', step='slog', index=1)
 
     # Set fake license server for slog1
-    chip.set('tool', 'surelog', 'licenseserver', 'ACME_LICENSE', '1700@server', step='slog', index=1)
+    chip.set('tool', 'surelog', 'licenseserver', 'ACME_LICENSE', '1700@server',
+             step='slog', index=1)
 
     # Don't run tools, just version check
     chip.set('option', 'skipall', True)
     chip.run()
 
-    assert chip.get('flowgraph', flow, 'slog', '0', 'status') == siliconcompiler.core.TaskStatus.SUCCESS
-    assert chip.get('flowgraph', flow, 'slog', '1', 'status') == siliconcompiler.core.TaskStatus.SUCCESS
+    assert chip.get('flowgraph', flow, 'slog', '0', 'status') == TaskStatus.SUCCESS
+    assert chip.get('flowgraph', flow, 'slog', '1', 'status') == TaskStatus.SUCCESS

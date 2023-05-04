@@ -46,9 +46,11 @@ def test_setget():
             print(key, sctype, examples)
         for example in examples:
             if pernode != 'required':
-                match = re.match(r'api\:\s+chip.(set|add|get)\((.*)\)', example)
+                match = re.match(r'api\:\s+chip.(set|add|get)\((.*)\)',
+                                 example)
             else:
-                match = re.match(r'api\:\s+chip.(set|add|get)\((.*), step=(.*), index=(.*)\)', example)
+                match = re.match(r'api\:\s+chip.(set|add|get)\((.*), step=(.*), index=(.*)\)',
+                                 example)
             if match is not None:
                 break
 
@@ -179,7 +181,8 @@ def test_get_no_side_effect():
     assert chip.getkeys('tool', 'surelog', 'task') == []
 
     # Able to recover default value
-    assert chip.get('tool', 'surelog', 'task', 'import', 'stdout', 'suffix', step='import', index='0') == 'log'
+    assert chip.get('tool', 'surelog', 'task', 'import', 'stdout', 'suffix',
+                    step='import', index='0') == 'log'
 
     # Recovering default does not affect cfg
     assert chip.getkeys('tool', 'surelog', 'task') == []
@@ -255,8 +258,10 @@ def test_pernode_fields():
     # error, step/index required
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.set('tool', 'openroad', 'task', 'place', 'output', 'abc123', field='filehash')
-    chip.set('tool', 'openroad', 'task', 'place', 'output', 'def456', field='filehash', step='place', index=0)
-    chip.get('tool', 'openroad', 'task', 'place', 'output', field='filehash', step='place', index=0) == 'def456'
+    chip.set('tool', 'openroad', 'task', 'place', 'output', 'def456', field='filehash',
+             step='place', index=0)
+    chip.get('tool', 'openroad', 'task', 'place', 'output', field='filehash',
+             step='place', index=0) == 'def456'
 
 
 def test_signature_type():

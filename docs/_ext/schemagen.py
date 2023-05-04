@@ -5,7 +5,14 @@ from sphinx.util.docutils import SphinxDirective
 
 import siliconcompiler
 from siliconcompiler.schema import Schema
-from siliconcompiler.sphinx_ext.utils import strong, code, para, keypath, build_table, build_section_with_target
+from siliconcompiler.sphinx_ext.utils import (
+    strong,
+    code,
+    para,
+    keypath,
+    build_table,
+    build_section_with_target
+)
 from siliconcompiler.schema import utils
 
 
@@ -30,7 +37,8 @@ class SchemaGen(SphinxDirective):
                 entries.append([strong('Per step/index'), para(schema['pernode'])])
 
             if schema['type'] == 'enum':
-                entries.append([strong('Allowed Values'), code(", ".join([f'"{val}"' for val in schema['enum']]))])
+                entries.append([strong('Allowed Values'),
+                                code(", ".join([f'"{val}"' for val in schema['enum']]))])
 
             if 'unit' in schema:
                 entries.append([strong('Unit'), para(schema['unit'])])

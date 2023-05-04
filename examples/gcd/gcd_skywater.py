@@ -64,13 +64,15 @@ def main():
             tool = chip.get('flowgraph', 'asicflow', step, index, 'tool')
             task = chip._get_task(step, index, flow='asicflow')
             if not chip._is_builtin(tool, task):
-                chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'task', ('rtl2gds', step, index))
+                chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'task',
+                         ('rtl2gds', step, index))
     for step in chip.getkeys('flowgraph', 'signoffflow'):
         for index in chip.getkeys('flowgraph', 'signoffflow', step):
             tool = chip.get('flowgraph', 'signoffflow', step, index, 'tool')
             task = chip._get_task(step, index, flow='signoffflow')
             if not chip._is_builtin(tool, task):
-                chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'task', ('signoff', step, index))
+                chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'task',
+                         ('signoff', step, index))
 
     status = chip.check_checklist('oh_tapeout')
     if not status:

@@ -196,7 +196,8 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
         check_cell = main_layout.cell(check_cell)
         if check_cell.is_empty():
             missing_cell = True
-            print("[ERROR] LEF Cell '{0}' has no matching GDS/OAS cell. Cell will be empty".format(check_cell.name))
+            print(f"[ERROR] LEF Cell '{check_cell.name}' has no matching GDS/OAS cell. "
+                  "Cell will be empty")
 
     if not missing_cell:
         print("[INFO] All LEF cells have matching GDS/OAS cells")
@@ -235,7 +236,8 @@ sc_flow = schema.get('option', 'flow')
 sc_task = schema.get('flowgraph', sc_flow, sc_step, sc_index, 'task')
 sc_klayout_vars = schema.getkeys('tool', 'klayout', 'task', sc_task, 'var')
 streams = ('gds', 'oas')
-sc_stream = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'stream', step=sc_step, index=sc_index)[0]
+sc_stream = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'stream',
+                       step=sc_step, index=sc_index)[0]
 sc_streams = [sc_stream, *[s for s in streams if s != sc_stream]]
 
 sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
@@ -251,7 +253,8 @@ design = schema.get('option', 'entrypoint')
 if not design:
     design = schema.get('design')
 
-if schema.valid('input', 'layout', 'def') and schema.get('input', 'layout', 'def', step=sc_step, index=sc_index):
+if schema.valid('input', 'layout', 'def') and schema.get('input', 'layout', 'def',
+                                                         step=sc_step, index=sc_index):
     in_def = schema.get('input', 'layout', 'def', step=sc_step, index=sc_index)[0]
 else:
     in_def = os.path.join('inputs', f'{design}.def')
@@ -265,23 +268,28 @@ in_files = []
 for lib in libs:
     for s in sc_streams:
         if schema.valid('library', lib, 'output', sc_stackup, s):
-            in_files.extend(schema.get('library', lib, 'output', sc_stackup, s, step=sc_step, index=sc_index))
+            in_files.extend(schema.get('library', lib, 'output', sc_stackup, s,
+                                       step=sc_step, index=sc_index))
             break
 
-foundry_lef = os.path.dirname(schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef', step=sc_step, index=sc_index)[0])
+foundry_lef = os.path.dirname(schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef',
+                                         step=sc_step, index=sc_index)[0])
 
 macro_lefs = []
 if 'macrolib' in schema.getkeys('asic'):
     for lib in schema.get('asic', 'macrolib', step=sc_step, index=sc_index):
-        macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef', step=sc_step, index=sc_index))
+        macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef',
+                                     step=sc_step, index=sc_index))
 
 if 'timestamps' in sc_klayout_vars:
-    sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'timestamps', step=sc_step, index=sc_index) == ['true']
+    sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'timestamps',
+                               step=sc_step, index=sc_index) == ['true']
 else:
     sc_timestamps = False
 
 if 'screenshot' in sc_klayout_vars:
-    sc_screenshot = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'screenshot', step=sc_step, index=sc_index) == ['true']
+    sc_screenshot = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'screenshot',
+                               step=sc_step, index=sc_index) == ['true']
 else:
     sc_screenshot = True
 

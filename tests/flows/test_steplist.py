@@ -4,6 +4,8 @@ import siliconcompiler
 
 import pytest
 
+from siliconcompiler import TaskStatus
+
 
 @pytest.mark.eda
 def test_steplist(gcd_chip):
@@ -16,8 +18,8 @@ def test_steplist(gcd_chip):
     # Make sure we ran syn
     assert gcd_chip.find_result('vg', step='syn')
     flow = gcd_chip.get('option', 'flow')
-    assert gcd_chip.get('flowgraph', flow, 'import', '0', 'status') == siliconcompiler.TaskStatus.SUCCESS
-    assert gcd_chip.get('flowgraph', flow, 'syn', '0', 'status') == siliconcompiler.TaskStatus.SUCCESS
+    assert gcd_chip.get('flowgraph', flow, 'import', '0', 'status') == TaskStatus.SUCCESS
+    assert gcd_chip.get('flowgraph', flow, 'syn', '0', 'status') == TaskStatus.SUCCESS
 
     # Re-run
     gcd_chip.set('option', 'steplist', ['syn'])
@@ -40,13 +42,16 @@ def test_steplist_keep_reports(gcd_chip):
     # Initial run
     gcd_chip.set('option', 'steplist', ['import', 'syn'])
     gcd_chip.run()
-    assert gcd_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea', step='syn', index='0') is not None
-    report = gcd_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea', step='syn', index='0')
+    assert gcd_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
+                        step='syn', index='0') is not None
+    report = gcd_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
+                          step='syn', index='0')
 
     # Run a new step from a fresh chip object
     fresh_chip.set('option', 'steplist', ['floorplan'])
     fresh_chip.run()
-    assert fresh_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea', step='syn', index='0') == report
+    assert fresh_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
+                          step='syn', index='0') == report
 
 
 @pytest.mark.eda

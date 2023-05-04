@@ -3846,7 +3846,7 @@
                 "cli: -nice 5",
                 "api: chip.set('option','nice',5)"
             ],
-            "help": "Sets the type of execution priority of each individual flowgraph steps.\nIf the parameter is undefined, nice will not be used. For more information see `Unix 'nice'\n<https://en.wikipedia.org/wiki/Nice_(Unix)>`_.",
+            "help": "Sets the type of execution priority of each individual flowgraph steps.\nIf the parameter is undefined, nice will not be used. For more information see\n`Unix 'nice' <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.",
             "lock": false,
             "node": {},
             "notes": null,
@@ -6742,7 +6742,7 @@
                                 "cli: -tool_task_regex 'openroad place errors \"-v ERROR\"'",
                                 "api: chip.set('tool','openroad','task','place','regex','errors','-v ERROR')"
                             ],
-                            "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('task', 'openroad', 'regex', 'place', '0', 'warnings', [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`tool, <tool>,\ntask, <task>, report` parameter for those metrics, if not already present.",
+                            "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('task', 'openroad', 'regex', 'place', '0', 'warnings',\n             [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`tool, <tool>,\ntask, <task>, report` parameter for those metrics, if not already present.",
                             "lock": false,
                             "node": {},
                             "notes": null,

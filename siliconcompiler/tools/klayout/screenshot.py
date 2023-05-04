@@ -29,9 +29,15 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
     chip.add('tool', tool, 'task', task, 'output', design + '.png', step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', '4096', step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '4096', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', '4096',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '4096',
+             step=step, index=index, clobber=False)
 
     # Help
-    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', 'Horizontal resolution in pixels', field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', 'Vertical resolution in pixels', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution',
+             'Horizontal resolution in pixels',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution',
+             'Vertical resolution in pixels',
+             field='help')

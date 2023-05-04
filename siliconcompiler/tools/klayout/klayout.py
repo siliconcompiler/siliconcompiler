@@ -83,11 +83,14 @@ def setup(chip, mode="batch"):
 
     if chip.get('option', 'nodisplay'):
         # Tells QT to use the offscreen platform if nodisplay is used
-        chip.set('tool', tool, 'task', task, 'env', 'QT_QPA_PLATFORM', 'offscreen', step=step, index=index)
+        chip.set('tool', tool, 'task', task, 'env', 'QT_QPA_PLATFORM', 'offscreen',
+                 step=step, index=index)
 
     # Log file parsing
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'(WARNING|warning)', step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'ERROR', step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'(WARNING|warning)',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'ERROR',
+             step=step, index=index, clobber=False)
 
 
 def runtime_options(chip):

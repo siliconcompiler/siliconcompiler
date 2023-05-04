@@ -23,7 +23,8 @@ def test_picorv32_sram(setup_example_test):
 
 
 # Run remotely, using the minimal development server.
-# TODO: Until we merge in some client.py changes to use GDS/LEF files which get copied into the build
+# TODO: Until we merge in some client.py changes to use GDS/LEF files which get copied
+# into the build
 # directory, this "remote" test will only work on localhost.
 # It is still useful to test for failures which can only occur in the remote flow, however.
 @pytest.mark.eda

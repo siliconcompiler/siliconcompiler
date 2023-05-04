@@ -8,7 +8,8 @@ import os
 @pytest.mark.timeout(300)
 def test_resume(gcd_chip):
     # Set a value that will cause place to break
-    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf', step='place', index='0')
+    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf',
+                 step='place', index='0')
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
@@ -22,7 +23,8 @@ def test_resume(gcd_chip):
     assert gcd_chip.find_result('gds', step='export') is None
 
     # Fix place step and re-run
-    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.40', step='place', index='0')
+    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.40',
+                 step='place', index='0')
     gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 

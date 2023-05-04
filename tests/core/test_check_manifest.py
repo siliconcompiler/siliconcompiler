@@ -144,14 +144,17 @@ def merge_flow_chip():
     chip.set('tool', 'bar', 'exe', 'foo')
     chip.set('tool', 'baz', 'exe', 'baz')
 
-    chip.set('tool', 'fake', 'task', 'baz', 'input', ['foo.out', 'bar.out'], step='export', index='0')
+    chip.set('tool', 'fake', 'task', 'baz', 'input', ['foo.out', 'bar.out'],
+             step='export', index='0')
 
     return chip
 
 
 def test_merged_graph_good(merge_flow_chip):
-    merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'bar.out', step='parallel1', index='0')
-    merge_flow_chip.set('tool', 'fake', 'task', 'bar', 'output', 'foo.out', step='parallel2', index='0')
+    merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'bar.out',
+                        step='parallel1', index='0')
+    merge_flow_chip.set('tool', 'fake', 'task', 'bar', 'output', 'foo.out',
+                        step='parallel2', index='0')
 
     assert merge_flow_chip.check_manifest()
 
@@ -180,15 +183,18 @@ def test_merged_graph_good_steplist():
 
 def test_merged_graph_bad_same(merge_flow_chip):
     # Two merged steps can't output the same thing
-    merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'foo.out', step='parallel1', index='0')
-    merge_flow_chip.set('tool', 'fake', 'task', 'bar', 'output', 'foo.out', step='parallel2', index='0')
+    merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'foo.out',
+                        step='parallel1', index='0')
+    merge_flow_chip.set('tool', 'fake', 'task', 'bar', 'output', 'foo.out',
+                        step='parallel2', index='0')
 
     assert not merge_flow_chip.check_manifest()
 
 
 def test_merged_graph_bad_missing(merge_flow_chip):
     # bar doesn't provide necessary output
-    merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'foo.out', step='parallel1', index='0')
+    merge_flow_chip.set('tool', 'fake', 'task', 'foo', 'output', 'foo.out',
+                        step='parallel1', index='0')
 
     assert not merge_flow_chip.check_manifest()
 

@@ -40,13 +40,15 @@ def run(chip):
             # 2. Add overlaps in the 'SPECIALNETS' section.
             # Assumptions: 'PINS' comes before 'SPECIALNETS', and there is only one 'PINS' section.
             for line in f:
-                # We don't care about lines before the 'PINS' section; write them verbatim to new DEF.
+                # We don't care about lines before the 'PINS' section; write them verbatim
+                # to new DEF.
                 if not in_pins:
                     wf.write(line)
                     # Start paying attention at the start of the 'PINS' section.
                     if line.strip().startswith('PINS'):
                         in_pins = 1
-                # Note name, dimensions, and net of each non-power pin. (Power nets should go thru PDN)
+                # Note name, dimensions, and net of each non-power pin.
+                # (Power nets should go thru PDN)
                 elif in_pins == 1:
                     wf.write(line)
                     if line.strip().startswith('END PINS'):
@@ -69,7 +71,8 @@ def run(chip):
                                             'y': int(la[4]),
                                             'w': pin_w,
                                             'h': pin_h}
-                # After the 'PINS' section, look for 'SPECIALNETS' section and add tracks over each pin.
+                # After the 'PINS' section, look for 'SPECIALNETS' section and add tracks over each
+                # pin.
                 # This section may not exist; create it if we find 'END NETS' before 'SPECIALNETS'
                 elif in_pins == 2:
                     if line.strip().startswith('SPECIALNETS'):
@@ -97,8 +100,10 @@ def run(chip):
                                 yb = v['y']
                                 yu = v['y']
                             wf.write('    - %s ( PIN %s ) + USE SIGNAL\n' % (v['net'], k))
-                            wf.write('      + ROUTED %s %i + SHAPE STRIPE ( %i %i ) ( %i %i )\n' % (v['layer'], int(ml), xl, yb, xr, yu))
-                            wf.write('      NEW %s %i + SHAPE STRIPE ( %i %i ) ( %i %i ) ;\n' % (v['layer'], int(ml), xl, yb, xr, yu))
+                            wf.write('      + ROUTED %s %i + SHAPE STRIPE ( %i %i ) ( %i %i )\n' %
+                                     (v['layer'], int(ml), xl, yb, xr, yu))
+                            wf.write('      NEW %s %i + SHAPE STRIPE ( %i %i ) ( %i %i ) ;\n' %
+                                     (v['layer'], int(ml), xl, yb, xr, yu))
                         if line.strip() == 'END DESIGN':
                             wf.write('END SPECIALNETS\n')
                         wf.write(line)

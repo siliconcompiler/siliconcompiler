@@ -8,6 +8,8 @@ from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import minimum
 
+from siliconcompiler import TaskStatus
+
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -30,8 +32,10 @@ def test_tool_option(scroot):
     chip.set('option', 'novercheck', 'true')
     chip.load_target('freepdk45_demo', place_np=2)
 
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.4', step='place', index='0')
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.3', step='place', index='1')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.4',
+             step='place', index='0')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.3',
+             step='place', index='1')
 
     # No need to run beyond place, we just want to check that setting place_density
     # doesn't break anything.
@@ -96,9 +100,11 @@ def test_failed_branch_min(chip):
     flow = chip.get('option', 'flow')
 
     # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf', step='place', index='0')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf',
+             step='place', index='0')
     # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5', step='place', index='1')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5',
+             step='place', index='1')
 
     # Perform minimum
     chip.node(flow, 'placemin', minimum)
@@ -107,8 +113,10 @@ def test_failed_branch_min(chip):
 
     chip.run()
 
-    assert chip.get('history', 'job0', 'flowgraph', flow, 'place', '0', 'status') == siliconcompiler.TaskStatus.ERROR
-    assert chip.get('history', 'job0', 'flowgraph', flow, 'place', '1', 'status') == siliconcompiler.TaskStatus.SUCCESS
+    assert chip.get('history', 'job0', 'flowgraph', flow, 'place', '0', 'status') == \
+        TaskStatus.ERROR
+    assert chip.get('history', 'job0', 'flowgraph', flow, 'place', '1', 'status') == \
+        TaskStatus.SUCCESS
 
     # check that compilation succeeded
     assert chip.find_result('def', step='placemin') is not None
@@ -151,9 +159,11 @@ def test_branch_failed_join(chip):
     flow = chip.get('option', 'flow')
 
     # Illegal values, so branch should fail
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf', step='place', index='0')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf',
+             step='place', index='0')
     # Legal value, so branch should succeed
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5', step='place', index='1')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5',
+             step='place', index='1')
 
     # Perform join
     chip.node(flow, 'placemin', join)

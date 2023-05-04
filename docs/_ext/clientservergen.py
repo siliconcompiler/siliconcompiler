@@ -33,11 +33,14 @@ def add_table_row(prop, tbody):
         if prop['type'] == 'array':
             # Process 'items' keyword with constraints on item types.
             if 'type' in prop['items']:
-                add_prop_attr_row(prop['items'], 'type', tbody, key='entry type')
+                add_prop_attr_row(prop['items'], 'type', tbody,
+                                  key='entry type')
             if 'pattern' in prop['items']:
-                add_prop_attr_row(prop['items'], 'pattern', tbody, key='entry regex match')
+                add_prop_attr_row(prop['items'], 'pattern', tbody,
+                                  key='entry regex match')
             if 'minLength' in prop['items']:
-                add_prop_attr_row(prop['items'], 'minLength', tbody, key='minimum length for each entry')
+                add_prop_attr_row(prop['items'], 'minLength', tbody,
+                                  key='minimum length for each entry')
     # Add type-specific parameters: 'minLength/pattern' for strings,
     if 'pattern' in prop:
         add_prop_attr_row(prop, 'pattern', tbody, key='regex match')

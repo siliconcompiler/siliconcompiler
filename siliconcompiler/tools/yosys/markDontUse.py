@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Based on https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/84545863573a90bca3612298361adb35bf39e692/flow/util/markDontUse.py
+# Based on https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/84545863573a90bca3612298361adb35bf39e692/flow/util/markDontUse.py  # noqa E501
 
 import re
 import gzip

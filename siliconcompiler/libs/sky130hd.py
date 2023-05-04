@@ -116,9 +116,12 @@ def setup(chip):
     lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v')
 
     # Openroad specific files
-    lib.set('option', 'file', 'openroad_pdngen', libdir + '/apr/openroad/pdngen.tcl')
-    lib.set('option', 'file', 'openroad_global_connect', libdir + '/apr/openroad/global_connect.tcl')
-    lib.set('option', 'file', 'openroad_tapcells', libdir + '/apr/openroad/tapcell.tcl')
+    lib.set('option', 'file', 'openroad_pdngen',
+            libdir + '/apr/openroad/pdngen.tcl')
+    lib.set('option', 'file', 'openroad_global_connect',
+            libdir + '/apr/openroad/global_connect.tcl')
+    lib.set('option', 'file', 'openroad_tapcells',
+            libdir + '/apr/openroad/tapcell.tcl')
 
     lib.set('option', 'var', 'yosys_driver_cell', "sky130_fd_sc_hd__buf_4")
     lib.set('option', 'var', 'yosys_buffer_cell', "sky130_fd_sc_hd__buf_4")

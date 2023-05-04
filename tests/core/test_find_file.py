@@ -75,7 +75,8 @@ def test_invalid_script():
     chip.set('tool', 'yosys', 'task', 'syn_asic', 'script', 'fakescript.tcl')
 
     with pytest.raises(SiliconCompilerError):
-        chip.find_files('tool', 'yosys', 'task', 'syn_asic', 'script', missing_ok=False, step='syn', index='0')
+        chip.find_files('tool', 'yosys', 'task', 'syn_asic', 'script',
+                        missing_ok=False, step='syn', index='0')
 
 
 #########################

@@ -633,7 +633,8 @@ def schema_pdk(cfg, stackup='default'):
                 switch=f"-pdk_{item}_runset 'pdkname tool stackup name <file>'",
                 example=[
                     f"cli: -pdk_{item}_runset 'asap7 magic M10 basic $PDK/{item}.rs'",
-                    f"api: chip.set('pdk', 'asap7','{item}','runset','magic','M10','basic','$PDK/{item}.rs')"],
+                    f"api: chip.set('pdk', 'asap7','{item}','runset','magic','M10','basic',"
+                    f"'$PDK/{item}.rs')"],
                 schelp=f"""Runset files for {item.upper()} task.""")
 
         scparam(cfg, ['pdk', pdkname, item, 'waiver', tool, stackup, name],
@@ -643,7 +644,8 @@ def schema_pdk(cfg, stackup='default'):
                 switch=f"-pdk_{item}_waiver 'tool stackup name <file>'",
                 example=[
                     f"cli: -pdk_{item}_waiver 'asap7 magic M10 basic $PDK/{item}.txt'",
-                    f"api: chip.set('pdk', 'asap7','{item}','waiver','magic','M10','basic','$PDK/{item}.txt')"],
+                    f"api: chip.set('pdk', 'asap7','{item}','waiver','magic','M10','basic',"
+                    f"'$PDK/{item}.txt')"],
                 schelp=f"""Waiver files for {item.upper()} task.""")
 
     ###############
@@ -904,7 +906,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 switch=f"-datasheet_pin_{item} 'design pin mode <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_pin_{item} 'mydevice sclk global {val[1]}'",
-                    f"api: chip.set('datasheet','mydevice','pin','sclk','{item}','global',{val[1]}"],
+                    f"api: chip.set('datasheet','mydevice','pin','sclk','{item}',"
+                    f"'global',{val[1]}"],
                 schelp=f"""Pin {val[0]}. Values are tuples of (min, typical, max).""")
 
     # AC Timing
@@ -925,7 +928,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 switch=f"-datasheet_pin_{item} 'design pin mode <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_pin_{item} 'mydevice sclk global {val[1]}'",
-                    f"api: chip.set('datasheet','mydevice','pin','sclk','{item}','global',{val[1]}"],
+                    f"api: chip.set('datasheet','mydevice','pin','sclk','{item}',"
+                    f"'global',{val[1]}"],
                 schelp=f"""Pin {val[0]}. Values are tuples of (min, typical, max).""")
 
     return cfg
@@ -1000,9 +1004,13 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             shorthelp="Flowgraph: task module",
             switch="-flowgraph_taskmodule 'flow step <str>'",
             example=[
-                "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
-                "api: chip.set('flowgraph','asicflow','place','0','taskmodule','siliconcompiler.tools.openroad.place')"],
-            schelp="""Full python module name of the task module used for task setup and execution.""")
+                "cli: -flowgraph_taskmodule 'asicflow place 0 "
+                "siliconcompiler.tools.openroad.place'",
+                "api: chip.set('flowgraph','asicflow','place','0','taskmodule',"
+                "'siliconcompiler.tools.openroad.place')"],
+            schelp="""
+            Full python module name of the task module used for task setup and execution.
+            """)
 
     # flowgraph arguments
     scparam(cfg, ['flowgraph', flow, step, index, 'args'],
@@ -1249,7 +1257,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
 
             SiliconCompiler::
 
-                chip.set('task', 'openroad', 'regex', 'place', '0', 'warnings', ["WARNING", "-v bbox"])
+                chip.set('task', 'openroad', 'regex', 'place', '0', 'warnings',
+                         ["WARNING", "-v bbox"])
 
             The "errors" and "warnings" suffixes are special cases. When set,
             the number of matches found for these regexes will be added to the
@@ -1305,7 +1314,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_file 'tool task key <file>'",
             example=[
                 "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
-                "api: chip.set('tool','openroad','task','floorplan','file','macroplace', 'macroplace.tcl')"],
+                "api: chip.set('tool','openroad','task','floorplan','file','macroplace', "
+                    "'macroplace.tcl')"],
             schelp="""
             Paths to user supplied files mapped to keys. Keys and filetypes must
             match what's expected by the task/reference script consuming the
@@ -1320,7 +1330,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_input 'tool task step index <str>'",
             example=[
                 "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
-                "api: chip.set('tool','openroad','task','place','input','oh_add.def', step='place', index='0')"],
+                "api: chip.set('tool','openroad','task','place','input','oh_add.def', "
+                    "step='place', index='0')"],
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
             directory. The list of steps to copy files from is defined by the
@@ -1335,7 +1346,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_output 'tool task step index <str>'",
             example=[
                 "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
-                "api: chip.set('tool','openroad','task','place','output','oh_add.def', step='place', index='0')"],
+                "api: chip.set('tool','openroad','task','place','output','oh_add.def', "
+                    "step='place', index='0')"],
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
             directory. The list of steps to copy files from is defined by the
@@ -1422,7 +1434,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_report 'task metric step index <str>'",
             example=[
                 "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
-                "api: chip.set('tool','openroad','task','place','report','holdtns','place.log', step='place', index='0')"],
+                "api: chip.set('tool','openroad','task','place','report','holdtns','place.log', "
+                    "step='place', index='0')"],
             schelp="""
             List of report files associated with a specific 'metric'. The file path
             specified is relative to the run directory of the current task.""")
@@ -1651,7 +1664,8 @@ def schema_metric(cfg, step='default', index='default'):
                'averagepower': 'average workload power',
                'dozepower': 'power consumed while in low frequency operating mode',
                'idlepower': 'power while not performing useful work',
-               'leakagepower': 'leakage power with rails active but without any dynamic switching activity',
+               'leakagepower': 'leakage power with rails active but without any dynamic '
+                               'switching activity',
                'sleeppower': 'power consumed with some or all power rails gated off'}
 
     for item, val in metrics.items():
@@ -2031,8 +2045,8 @@ def schema_option(cfg):
                 "api: chip.set('option','nice',5)"],
             schelp="""
             Sets the type of execution priority of each individual flowgraph steps.
-            If the parameter is undefined, nice will not be used. For more information see `Unix 'nice'
-            <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.""")
+            If the parameter is undefined, nice will not be used. For more information see
+            `Unix 'nice' <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.""")
 
     # Compilation
     scparam(cfg, ['option', 'mode'],

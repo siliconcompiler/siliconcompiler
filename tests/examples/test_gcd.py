@@ -27,10 +27,13 @@ def test_py(setup_example_test):
     chip.read_manifest(manifest)
 
     # Ensure hashes for tool outputs are stored and persist
-    assert len(chip.get('tool', 'openroad', 'task', 'dfm', 'output', step='dfm', index=0, field='filehash')) == 4
-    assert len(chip.get('tool', 'openroad', 'task', 'dfm', 'output', step='dfm', index=0)) == 4
+    assert len(chip.get('tool', 'openroad', 'task', 'dfm', 'output',
+                        step='dfm', index=0, field='filehash')) == 4
+    assert len(chip.get('tool', 'openroad', 'task', 'dfm', 'output',
+                        step='dfm', index=0)) == 4
 
-    assert chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea', step='syn', index='0') == ['reports/stat.json']
+    assert chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
+                    step='syn', index='0') == ['reports/stat.json']
 
     # "No timescale set..."
     assert chip.get('metric', 'warnings', step='import', index='0') == 10
