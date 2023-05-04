@@ -4676,7 +4676,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return fullexe
 
     #######################################
-    def _makecmd(self, tool, task, step, index, script_name='replay.sh'):
+    def _makecmd(self, tool, task, step, index, script_name='replay.sh', include_path=True):
         '''
         Constructs a subprocess run command based on eda tool setup.
         Creates a replay script in current directory.
@@ -4723,11 +4723,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if license_file:
                 envvars[item] = ':'.join(license_file)
 
-        path = self.get('tool', tool, 'path', step=step, index=index)
-        if path:
-            envvars['PATH'] = path + os.pathsep + os.environ['PATH']
-        else:
-            envvars['PATH'] = os.environ['PATH']
+        if include_path:
+            path = self.get('tool', tool, 'path', step=step, index=index)
+            if path:
+                envvars['PATH'] = path + os.pathsep + os.environ['PATH']
+            else:
+                envvars['PATH'] = os.environ['PATH']
 
         for key in self.getkeys('tool', tool, 'task', task, 'env'):
             val = self.get('tool', tool, 'task', task, 'env', key, step=step, index=index)
