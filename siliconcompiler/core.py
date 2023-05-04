@@ -5203,7 +5203,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for _, key_step, key_index in self.schema._getvals(*key):
                     self.hash_files(*key, step=key_step, index=key_index)
 
-        manifest_path = os.path.join(issue_dir.name, 'manifest.json')
+        manifest_path = os.path.join(issue_dir.name, 'orig_manifest.json')
         self.write_manifest(manifest_path)
 
         flow = self.get('option', 'flow')
@@ -5254,6 +5254,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 copy = False
             if keypath[-2:] == ['option', 'scpath']:
                 # Avoid all of scpath
+                copy = False
+            if keypath[-2:] == ['option', 'cfg']:
+                # Avoid all of cfg, since we are getting the manifest seperately
                 copy = False
             elif keypath[-2:] == ['option', 'credentials']:
                 # Exclude credentials file
