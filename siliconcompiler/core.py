@@ -5356,6 +5356,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                     'libraries_included': include_libraries,
                                     'pdks_included': include_pdks,
                                     'tool': tool,
+                                    'toolversion': self.get('record', 'toolversion',
+                                                            step=step, index=index),
                                     'task': task}
         issue_information['version'] = {'schema': self.schemaversion,
                                         'sc': self.scversion,

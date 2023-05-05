@@ -11,7 +11,7 @@ Schema: {{ version['schema'] }}
 
 ** Run **
 Testcase built: {{ date }}
-Tool: {{ run['tool'] }}
+Tool: {{ run['tool'] }} {% if run['toolversion'] %}{{ run['toolversion'] }}{% endif %}
 Task: {{ run['task'] }}
 Node: {{ run['step'] }}{{ run['index'] }}
 
