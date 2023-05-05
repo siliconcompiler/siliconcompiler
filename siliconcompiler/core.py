@@ -5282,19 +5282,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         original_cwd = self.cwd
         self.cwd = issue_dir.name
 
+        # Get new directories
         job_dir = self._getworkdir()
+        new_work_dir = self._getworkdir(step=step, index=index)
+        collection_dir = self._getcollectdir()
 
-        # Copy in issue run
-        utils.copytree(work_dir, self._getworkdir(step=step, index=index), dirs_exist_ok=True)
+        # Restore current directory
+        self.cwd = original_cwd
 
-        # Copy in files
-        self._collect(directory=self._getcollectdir())
+        # Copy in issue run files
+        utils.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
+        # Copy in source files
+        self._collect(directory=collection_dir)
 
         # Set relative path to generate runnable files
-        self.__relative_path = self._getworkdir(step=step, index=index)
+        self.__relative_path = new_work_dir
+        self.cwd = issue_dir.name
 
         # Rewrite tool manifest
-        self.__write_task_manifest(tool, path=self._getworkdir(step=step, index=index))
+        self.__write_task_manifest(tool, path=new_work_dir)
 
         # Rewrite replay.sh
         try:
