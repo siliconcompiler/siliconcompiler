@@ -5213,6 +5213,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         tool, task = self._get_tool_task(step, index, flow=flow)
 
         # Set copy flags for _collect
+        self.set('option', 'copyall', False)
         for keypath in self.allkeys():
             if 'default' in keypath:
                 continue
