@@ -5214,33 +5214,30 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Set copy flags for _collect
         self.set('option', 'copyall', False)
-        for keypath in self.allkeys():
-            if 'default' in keypath:
-                continue
-
-            sctype = self.get(*keypath, field='type')
-            if 'file' not in sctype and 'dir' not in sctype:
-                continue
-
+        def determine_copy(*keypath):
             copy = True
-            if keypath[0] == 'libraries':
+            if keypath[0] == 'library':
                 # only copy libraries if selected
                 if include_specific_libraries and keypath[1] in include_specific_libraries:
                     copy = True
                 else:
                     copy = include_libraries
+
+                copy &= determine_copy(*keypath[2:])
             elif keypath[0] == 'pdk':
                 # only copy pdks if selected
                 if include_specific_pdks and keypath[1] in include_specific_pdks:
                     copy = True
                 else:
                     copy = include_pdks
+
+                copy &= determine_copy(*keypath[2:])
             elif keypath[0] == 'history':
                 # Skip history
-                continue
+                copy = False
             elif keypath[0] == 'package':
                 # Skip packages
-                continue
+                copy = False
             elif keypath[0] == 'tool':
                 # Only grab tool / tasks
                 copy = False
@@ -5266,7 +5263,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # Exclude credentials file
                 copy = False
 
-            self.set(*keypath, copy, field='copy')
+            return copy
+
+        for keypath in self.allkeys():
+            if 'default' in keypath:
+                continue
+
+            sctype = self.get(*keypath, field='type')
+            if 'file' not in sctype and 'dir' not in sctype:
+                continue
+
+            self.set(*keypath, determine_copy(*keypath), field='copy')
 
         # Collect files
         work_dir = self._getworkdir(step=step, index=index)
