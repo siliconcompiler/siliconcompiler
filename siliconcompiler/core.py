@@ -3670,8 +3670,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Write manifest prior to step running into inputs
 
-        self.set('arg', 'step', None, clobber=True)
-        self.set('arg', 'index', None, clobber=True)
         self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
