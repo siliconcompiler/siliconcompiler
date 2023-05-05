@@ -5214,6 +5214,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Set copy flags for _collect
         self.set('option', 'copyall', False)
+
         def determine_copy(*keypath):
             copy = True
             if keypath[0] == 'library':
@@ -5241,27 +5242,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif keypath[0] == 'tool':
                 # Only grab tool / tasks
                 copy = False
-                if keypath[0:4] == ['tool', tool, 'task', task]:
+                if list(keypath[0:4]) == ['tool', tool, 'task', task]:
                     # Get files associated with testcase tool / task
                     copy = True
                     if len(keypath) >= 5:
                         if keypath[4] in ('output', 'input', 'report'):
                             # Skip input, output, and report files
                             copy = False
-
-            # Check keys that might be found in libraries
-            if keypath[-2:] == ['option', 'build']:
-                # Avoid build directory
-                copy = False
-            if keypath[-2:] == ['option', 'scpath']:
-                # Avoid all of scpath
-                copy = False
-            if keypath[-2:] == ['option', 'cfg']:
-                # Avoid all of cfg, since we are getting the manifest seperately
-                copy = False
-            elif keypath[-2:] == ['option', 'credentials']:
-                # Exclude credentials file
-                copy = False
+            elif keypath[0] == 'option':
+                if keypath[1] == 'build':
+                    # Avoid build directory
+                    copy = False
+                elif keypath[1] == 'scpath':
+                    # Avoid all of scpath
+                    copy = False
+                elif keypath[1] == 'cfg':
+                    # Avoid all of cfg, since we are getting the manifest seperately
+                    copy = False
+                elif keypath[1] == 'credentials':
+                    # Exclude credentials file
+                    copy = False
 
             return copy
 
@@ -5299,9 +5299,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.__relative_path = new_work_dir
         self.cwd = issue_dir.name
 
-        # Rewrite tool manifest
-        self.__write_task_manifest(tool, path=new_work_dir)
-
         # Rewrite replay.sh
         try:
             # Unset option to avoid compounding options
@@ -5323,6 +5320,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._makecmd(tool, task, step, index,
                       script_name=f'{self._getworkdir(step=step, index=index)}/replay.sh',
                       include_path=False)
+
+        # Rewrite tool manifest
+        self.set('arg', 'step', step)
+        self.set('arg', 'index', index)
+        self.__write_task_manifest(tool, path=new_work_dir)
 
         # Restore normal path behavior
         self.__relative_path = None
