@@ -4506,7 +4506,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return None
 
     ###########################################################################
-    def show(self, filename=None, screenshot=False):
+    def show(self, filename=None, screenshot=False, extension=None):
         '''
         Opens a graphical viewer for the filename provided.
 
@@ -4519,7 +4519,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         saved in the <build_dir>/_show_<jobname> directory.
 
         Args:
-            filename: Name of file to display
+            filename (path): Name of file to display
+            screenshot (bool): Flag to indicate if this is a screenshot or show
+            extension (str): extension of file to show
 
         Examples:
             >>> show('build/oh_add/job0/export/0/outputs/oh_add.gds')
@@ -4539,6 +4541,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 search_nodes.append((sc_step, sc_index))
             search_nodes.extend(self._get_flowgraph_exit_nodes())
             for ext in self.getkeys('option', 'showtool'):
+                if extension and extension != ext:
+                    continue
                 for step, index in search_nodes:
                     filename = self.find_result(ext, step=step, index=index, jobname=sc_job)
                     if filename:
@@ -4588,6 +4592,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Override enviroment
         self.set('option', 'flow', 'showflow', clobber=True)
         self.set('option', 'track', False, clobber=True)
+        self.set('option', 'hash', False, clobber=True)
+        self.set('option', 'nodisplay', False, clobber=True)
         self.set('option', 'flowcontinue', True, clobber=True)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)

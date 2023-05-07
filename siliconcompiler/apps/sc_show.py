@@ -55,10 +55,19 @@ def main():
         if ext in default_input_map:
             input_map[ext] = default_input_map[ext]
 
-    chip.create_cmdline(progname,
-                        switchlist=['-design', '-input', '-loglevel', '-cfg'],
-                        description=description,
-                        input_map=input_map)
+    extension_arg = {
+        'metavar': '<ext>',
+        'help': 'Specify the extention of the file to show'
+    }
+
+    args = chip.create_cmdline(
+        progname,
+        switchlist=['-design', '-input', '-loglevel', '-cfg'],
+        description=description,
+        input_map=input_map,
+        additional_args={
+            '-ext': extension_arg
+        })
 
     # Error checking
     design = chip.get('design')
@@ -107,7 +116,7 @@ def main():
     # Set supported showtools incase custom flow was used and didn't get set
     set_common_showtools(chip)
 
-    success = chip.show(filename)
+    success = chip.show(filename, extension=args['ext'])
 
     return 0 if success else 1
 
