@@ -287,7 +287,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             logformat = ' | '.join([prefix, '%(message)s'])
 
-        handler = logging.StreamHandler()
+        handler = logging.StreamHandler(stream=sys.stdout)
         formatter = logging.Formatter(logformat)
 
         handler.setFormatter(formatter)
