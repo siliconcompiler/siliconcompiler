@@ -3118,7 +3118,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             info_list.extend([f"foundry : {self.get('pdk', pdk, 'foundry')}",
                               f"process : {pdk}",
-                              f"targetlibs : f{' '.join(libraries)}"])
+                              f"targetlibs : {' '.join(libraries)}"])
         elif self.get('option', 'mode') == 'fpga':
             info_list.extend([f"partname : {self.get('fpga','partname')}"])
 
