@@ -206,7 +206,8 @@ def setup(chip, mode='batch'):
         'pad_global_place',
         'pad_detail_place',
         'macro_place_halo',
-        'macro_place_channel'
+        'macro_place_channel',
+        'cts_clock_buffer'
     )
     for variable in variables:
         # For each OpenROAD tool variable, read default from main library and write it
@@ -272,6 +273,9 @@ def setup(chip, mode='batch'):
                                       'displacement'),
         ('dpl_max_displacement', '0', 'maximum cell movement in detailed placement in microns, '
                                       '0 will result in the tool default maximum displacement'),
+        ('cts_clock_buffer',
+         chip.get('library', mainlib, 'asic', 'cells', 'clkbuf', step=step, index=index)[-1],
+         'buffer to use during clock tree synthesis'),
         ('cts_distance_between_buffers', '100', 'maximum distance between buffers during clock '
                                                 'tree synthesis in microns'),
         ('cts_cluster_diameter', '100', 'clusting distance to use during clock tree synthesis '
