@@ -105,6 +105,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Cache of python modules
         self.modules = {}
 
+        # Controls whether find_files returns an abspath or relative to this
+        # this is primarily used when generating standalone testcases
+        self.__relative_path = None
+
         # We set 'design' and 'loglevel' by directly calling the schema object
         # because of a chicken-and-egg problem: self.set() relies on the logger,
         # but the logger relies on these values.
@@ -1264,7 +1268,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     job=None,
                     step=None,
                     index=None,
-                    list_index=None):
+                    list_index=None,
+                    abs_path_only=False):
         """Internal find_files() that allows you to skip step/index for optional
         params, regardless of [option, strict]."""
 
@@ -1306,7 +1311,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         elif len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
-            refdirs = self._find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)
+            refdirs = self._find_files('tool', tool, 'task', task, 'refdir',
+                                       step=step, index=index,
+                                       abs_path_only=True)
             search_paths = refdirs
 
         for path in paths:
@@ -1318,6 +1325,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             result.append(self._find_sc_file(path,
                                              missing_ok=missing_ok,
                                              search_paths=search_paths))
+
+        if self.__relative_path and not abs_path_only:
+            rel_result = []
+            for path in result:
+                if path:
+                    rel_result.append(os.path.relpath(path, self.__relative_path))
+                else:
+                    rel_result.append(path)
+            result = rel_result
+
         # Convert back to scalar if that was original type
         if not is_list:
             return result[0]
@@ -3553,6 +3570,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             prevstep = step
 
     ###########################################################################
+    def __write_task_manifest(self, tool, path=None, backup=True):
+        suffix = self.get('tool', tool, 'format')
+        if suffix:
+            manifest_path = f"sc_manifest.{suffix}"
+            if path:
+                manifest_path = os.path.join(path, manifest_path)
+
+            if backup and os.path.exists(manifest_path):
+                shutil.copyfile(manifest_path, f'{manifest_path}.bak')
+
+            self.write_manifest(manifest_path, prune=False, abspath=True)
+
+    ###########################################################################
     def _runtask(self, step, index, status, replay=False):
         '''
         Private per step run method called by run().
@@ -3640,8 +3670,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Write manifest prior to step running into inputs
 
-        self.set('arg', 'step', None, clobber=True)
-        self.set('arg', 'index', None, clobber=True)
         self.write_manifest(f'inputs/{design}.pkg.json')
 
         ##################
@@ -3787,9 +3815,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Write manifest (tool interface) (Don't move this!)
-        suffix = self.get('tool', tool, 'format')
-        if suffix:
-            self.write_manifest(f"sc_manifest.{suffix}", prune=False, abspath=True)
+        self.__write_task_manifest(tool)
 
         ##################
         # Start CPU Timer
@@ -4656,7 +4682,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return fullexe
 
     #######################################
-    def _makecmd(self, tool, task, step, index, extra_options=None):
+    def _makecmd(self, tool, task, step, index, script_name='replay.sh', include_path=True):
         '''
         Constructs a subprocess run command based on eda tool setup.
         Creates a replay script in current directory.
@@ -4680,8 +4706,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         scripts = self.find_files('tool', tool, 'task', task, 'script', step=step, index=index)
 
         cmdlist = [fullexe]
-        if extra_options:
-            cmdlist.extend(extra_options)
         cmdlist.extend(options)
         cmdlist.extend(scripts)
 
@@ -4705,11 +4729,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if license_file:
                 envvars[item] = ':'.join(license_file)
 
-        path = self.get('tool', tool, 'path', step=step, index=index)
-        if path:
-            envvars['PATH'] = path + os.pathsep + os.environ['PATH']
-        else:
-            envvars['PATH'] = os.environ['PATH']
+        if include_path:
+            path = self.get('tool', tool, 'path', step=step, index=index)
+            if path:
+                envvars['PATH'] = path + os.pathsep + os.environ['PATH']
+            else:
+                envvars['PATH'] = os.environ['PATH']
 
         for key in self.getkeys('tool', tool, 'task', task, 'env'):
             val = self.get('tool', tool, 'task', task, 'env', key, step=step, index=index)
@@ -4730,15 +4755,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         cmdlist = [*nice_cmdlist, *cmdlist]
 
         # create replay file
-        script_name = 'replay.sh'
         with open(script_name, 'w') as f:
-            print('#!/bin/bash', file=f)
+            print('#!/usr/bin/env bash', file=f)
 
             envvar_cmd = 'export'
             for key, val in envvars.items():
                 print(f'{envvar_cmd} {key}="{val}"', file=f)
 
+            # Ensure execution runs from the same directory
+            work_dir = self._getworkdir(step=step, index=index)
+            if self.__relative_path:
+                work_dir = os.path.relpath(work_dir, self.__relative_path)
+            print(f'cd {work_dir}', file=f)
             print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in replay_cmdlist), file=f)
+
         os.chmod(script_name, 0o755)
 
         return cmdlist, ' '.join(replay_cmdlist), cmd, cmd_args
@@ -5182,28 +5212,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for _, key_step, key_index in self.schema._getvals(*key):
                     self.hash_files(*key, step=key_step, index=key_index)
 
-        manifest_path = os.path.join(issue_dir.name, 'manifest.json')
+        manifest_path = os.path.join(issue_dir.name, 'orig_manifest.json')
         self.write_manifest(manifest_path)
 
         flow = self.get('option', 'flow')
         tool, task = self._get_tool_task(step, index, flow=flow)
 
         # Set copy flags for _collect
-        for keypath in self.allkeys():
-            if 'default' in keypath:
-                continue
+        self.set('option', 'copyall', False)
 
-            sctype = self.get(*keypath, field='type')
-            if 'file' not in sctype and 'dir' not in sctype:
-                continue
-
+        def determine_copy(*keypath):
             copy = True
-            if keypath[0] == 'libraries':
+            if keypath[0] == 'library':
                 # only copy libraries if selected
                 if include_specific_libraries and keypath[1] in include_specific_libraries:
                     copy = True
                 else:
                     copy = include_libraries
+
+                copy = copy and determine_copy(*keypath[2:])
             elif keypath[0] == 'pdk':
                 # only copy pdks if selected
                 if include_specific_pdks and keypath[1] in include_specific_pdks:
@@ -5212,37 +5239,102 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     copy = include_pdks
             elif keypath[0] == 'history':
                 # Skip history
-                continue
+                copy = False
             elif keypath[0] == 'package':
                 # Skip packages
-                continue
+                copy = False
             elif keypath[0] == 'tool':
                 # Only grab tool / tasks
                 copy = False
-                if keypath[0:4] == ['tool', tool, 'task', task]:
+                if list(keypath[0:4]) == ['tool', tool, 'task', task]:
                     # Get files associated with testcase tool / task
                     copy = True
                     if len(keypath) >= 5:
                         if keypath[4] in ('output', 'input', 'report'):
                             # Skip input, output, and report files
                             copy = False
+            elif keypath[0] == 'option':
+                if keypath[1] == 'build':
+                    # Avoid build directory
+                    copy = False
+                elif keypath[1] == 'scpath':
+                    # Avoid all of scpath
+                    copy = False
+                elif keypath[1] == 'cfg':
+                    # Avoid all of cfg, since we are getting the manifest seperately
+                    copy = False
+                elif keypath[1] == 'credentials':
+                    # Exclude credentials file
+                    copy = False
 
-            # Check keys that might be found in libraries
-            if keypath[-2:] == ['option', 'build']:
-                # Avoid build directory
-                copy = False
-            if keypath[-2:] == ['option', 'scpath']:
-                # Avoid all of scpath
-                copy = False
-            elif keypath[-2:] == ['option', 'credentials']:
-                # Exclude credentials file
-                copy = False
+            return copy
 
-            self.set(*keypath, copy, field='copy')
+        for keypath in self.allkeys():
+            if 'default' in keypath:
+                continue
+
+            sctype = self.get(*keypath, field='type')
+            if 'file' not in sctype and 'dir' not in sctype:
+                continue
+
+            self.set(*keypath, determine_copy(*keypath), field='copy')
 
         # Collect files
-        collect_path = os.path.join(issue_dir.name, 'collect')
-        self._collect(directory=collect_path)
+        work_dir = self._getworkdir(step=step, index=index)
+
+        # Temporarily change current directory to appear to be issue_dir
+        original_cwd = self.cwd
+        self.cwd = issue_dir.name
+
+        # Get new directories
+        job_dir = self._getworkdir()
+        new_work_dir = self._getworkdir(step=step, index=index)
+        collection_dir = self._getcollectdir()
+
+        # Restore current directory
+        self.cwd = original_cwd
+
+        # Copy in issue run files
+        utils.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
+        # Copy in source files
+        self._collect(directory=collection_dir)
+
+        # Set relative path to generate runnable files
+        self.__relative_path = new_work_dir
+        self.cwd = issue_dir.name
+
+        # Rewrite replay.sh
+        try:
+            # Unset option to avoid compounding options
+            self.unset('tool', tool, 'task', task, 'option', step=step, index=index)
+            # Rerun setup
+            self._setup_task(step, index)
+            self.set('arg', 'step', step)
+            self.set('arg', 'index', index)
+            func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)
+            if func:
+                try:
+                    # Rerun pre_process
+                    func(self)
+                except Exception:
+                    pass
+        except SiliconCompilerError:
+            pass
+
+        self._makecmd(tool, task, step, index,
+                      script_name=f'{self._getworkdir(step=step, index=index)}/replay.sh',
+                      include_path=False)
+
+        # Rewrite tool manifest
+        self.set('arg', 'step', step)
+        self.set('arg', 'index', index)
+        self.__write_task_manifest(tool, path=new_work_dir)
+
+        # Restore normal path behavior
+        self.__relative_path = None
+
+        # Restore current directory
+        self.cwd = original_cwd
 
         git_data = {}
         try:
@@ -5268,6 +5360,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             git_data['failed'] = str(e)
             pass
 
+        tool, task = self._get_tool_task(step=step, index=index)
+
         issue_time = time.time()
         issue_information = {}
         issue_information['environment'] = {key: value for key, value in os.environ.items()}
@@ -5278,14 +5372,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         issue_information['run'] = {'step': step,
                                     'index': index,
                                     'libraries_included': include_libraries,
-                                    'pdks_included': include_pdks}
+                                    'pdks_included': include_pdks,
+                                    'tool': tool,
+                                    'toolversion': self.get('record', 'toolversion',
+                                                            step=step, index=index),
+                                    'task': task}
         issue_information['version'] = {'schema': self.schemaversion,
                                         'sc': self.scversion,
                                         'git': git_data}
-
-        issue_path = os.path.join(issue_dir.name, 'issue.json')
-        with open(issue_path, 'w') as fd:
-            json.dump(issue_information, fd, indent=4, sort_keys=True)
 
         if not archive_name:
             design = self.design
@@ -5293,15 +5387,46 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             file_time = datetime.fromtimestamp(issue_time).strftime('%Y%m%d-%H%M%S')
             archive_name = f'sc_issue_{design}_{job}_{step}{index}_{file_time}.tar.gz'
 
-        with tarfile.open(archive_name, "w:gz") as tar:
-            self._archive_node(tar, step, index, all_files=True)
+        # Make support files
+        issue_path = os.path.join(issue_dir.name, 'issue.json')
+        with open(issue_path, 'w') as fd:
+            json.dump(issue_information, fd, indent=4, sort_keys=True)
 
-            tar.add(os.path.abspath(manifest_path), arcname='manifest.json')
-            tar.add(os.path.abspath(issue_path), arcname='issue.json')
-            tar.add(collect_path, arcname=os.path.join(self.get('option', 'builddir'),
-                                                       self.get('design'),
-                                                       self.get('option', 'jobname'),
-                                                       'sc_collected_files'))
+        jinja_env = Environment(loader=FileSystemLoader(os.path.join(self.scroot,
+                                                                     'templates',
+                                                                     'issue')))
+        readme_path = os.path.join(issue_dir.name, 'README.txt')
+        with open(readme_path, 'w') as f:
+            f.write(jinja_env.get_template('README.txt').render(
+                archive_name=archive_name,
+                **issue_information))
+        run_path = os.path.join(issue_dir.name, 'run.sh')
+        with open(run_path, 'w') as f:
+            replay_dir = os.path.relpath(self._getworkdir(step=step, index=index),
+                                         self.cwd)
+            issue_title = f'{self.design} for {step}{index} using {tool}/{task}'
+            f.write(jinja_env.get_template('run.sh').render(
+                title=issue_title,
+                exec_dir=replay_dir
+            ))
+        os.chmod(run_path, 0o755)
+
+        # Build archive
+        arch_base_dir = os.path.basename(archive_name).split('.')[0]
+        with tarfile.open(archive_name, "w:gz") as tar:
+            # Add individual files
+            for path in [manifest_path,
+                         issue_path,
+                         readme_path,
+                         run_path]:
+                tar.add(os.path.abspath(path),
+                        arcname=os.path.join(arch_base_dir,
+                                             os.path.basename(path)))
+
+            tar.add(job_dir,
+                    arcname=os.path.join(arch_base_dir,
+                                         os.path.relpath(job_dir,
+                                                         issue_dir.name)))
 
         issue_dir.cleanup()
 
