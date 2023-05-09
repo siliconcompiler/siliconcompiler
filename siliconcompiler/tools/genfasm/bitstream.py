@@ -32,7 +32,7 @@ def setup(chip):
         options.append(f"--timing_analysis off")
 
     # Routing graph XML:
-    rr_graph_files = chip.get('tool', 'vpr', 'task', 'apr', 'var', 'rr_graph')
+    rr_graph_files = chip.get('tool', 'vpr', 'task', 'apr', 'var', 'rr_graph', step=step, index=index)
     # if (len(rr_graph_files) == 1):
     options.append(f"--read_rr_graph " + rr_graph_files[0])
 
