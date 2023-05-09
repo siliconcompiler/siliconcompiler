@@ -34,6 +34,9 @@ def main():
     sc-show -design adder
     (displays build/job0/adder/export/0/outputs/adder.gds)
 
+    sc-show -design adder -ext odb
+    (displays build/job0/adder/export/1/outputs/adder.odb)
+
     sc-show build/job0/adder/route/1/outputs/adder.def
     (displays build/job0/adder/route/1/outputs/adder.def)
 
@@ -57,7 +60,7 @@ def main():
 
     extension_arg = {
         'metavar': '<ext>',
-        'help': 'Specify the extention of the file to show'
+        'help': '(optional) Specify the extension of the file to show.'
     }
 
     args = chip.create_cmdline(
