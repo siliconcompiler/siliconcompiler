@@ -71,11 +71,11 @@ def setup(chip, flowname='fpgaflow'):
     # Setting up pipeline
     # TODO: Going forward we want to standardize steps
     if flowtype in ('vivado', 'quartus'):
-        flowpipe = ['syn_fpga', 'place', 'route', 'bitstream']
+        flowpipe = ['syn', 'place', 'route', 'bitstream']
     elif flowtype == 'vpr':
-        flowpipe = ['syn_vpr', 'apr', 'bitstream']
+        flowpipe = ['syn', 'apr', 'bitstream']
     else:
-        flowpipe = ['syn_fpga', 'apr', 'bitstream']
+        flowpipe = ['syn', 'apr', 'bitstream']
 
     flowtools = setup_frontend(chip)
     for step in flowpipe:
@@ -145,11 +145,17 @@ def flow_lookup(partname):
     intel = cyclone10 or cyclone4 or cyclone5 or stratix5
 
     ###########
-    # yosys
+    # lattice
     ###########
 
     ice40 = re.match('^ice40', partname)
 
+    ###########
+    # zeroasic
+    ###########
+
+    zeroasic = re.match('^za', partname)
+    
     if xilinx:
         vendor = 'xilinx'
         flow = 'vivado'
@@ -159,6 +165,9 @@ def flow_lookup(partname):
     elif ice40:
         vendor = 'lattice'
         flow = 'yosys-nextpnr'
+    elif zeroasic:
+        vendor = "zeroasic"
+        flow = "vpr"
     else:
         raise siliconcompiler.SiliconCompilerError(
             f'fpgaflow: unsupported partname {partname}'
@@ -180,22 +189,22 @@ def task_lookup(flow, step):
 
     # open source ice40 flow
     if flow == "yosys-nextpnr":
-        if step == "syn_fpga":
+        if step == "syn":
             return yosys_syn
         elif step == "apr":
             return nextpnr_apr
         elif step == "bitstream":
             return icestorm_bitstream
-        elif step == "syn_vpr":
+        elif step == "syn":
             return yosys_syn
     # xilinx/vivado
     elif flow == "vivado":
-        if step == "syn_fpga":
+        if step == "syn":
             return vivado_syn
         elif step == 'bitstream':
             return vivado_bitstream
     elif flow == "vpr":
-        if step == "syn_vpr":
+        if step == "syn":
             return yosys_syn
         elif step == "apr":
             return vpr_apr

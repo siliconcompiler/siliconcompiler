@@ -27,6 +27,28 @@ def setup(chip):
 
     options.append(blif)
 
+    if 'sdc' in chip.getkeys('input'):
+        options.append(f"--sdc_file {chip.get('input', 'fpga', 'sdc', step=step, index=index)}")
+    else :
+        options.append(f"--timing_analysis off")
+        
+    #Routing graph XML:
+    rr_graph_files = chip.get('tool', 'vpr', 'task', 'apr', 'var', 'rr_graph')
+    #if (len(rr_graph_files) == 1) :
+    options.append(f"--read_rr_graph "+rr_graph_files[0])
+
+    #***NOTE:  For real FPGA chips you need to specify the routing channel
+    #          width explicitly.  VPR requires an explicit routing channel
+    #          with when --read_rr_graph is used (typically the case for
+    #          real chips).  Otherwise VPR performs a binary search for
+    #          the minimum routing channel width that the circuit fits in.
+    #          -PG 1/13/2023
+    #Given the above, it may be appropriate to couple these variables somehow,
+    #but --route_chan_width CAN be used by itself.
+    num_routing_channels = chip.get('tool', 'vpr', 'task', 'apr', 'var', 'route_chan_width')
+    if (len(num_routing_channels) == 1) :
+        options.append(f'--route_chan_width {num_routing_channels[0]}')
+    
     options.extend([f"--net_file inputs/{topmodule}.net",
                     f"--place_file inputs/{topmodule}.place",
                     f"--route_file inputs/{topmodule}.route"])
@@ -44,19 +66,3 @@ def pre_process(chip):
     task = chip._get_task(step, index)
     tool = "genfasm"
 
-    chip.add('tool', tool, 'task', task, 'option', [f"--route_chan_width {find_chann_width()}"],
-             step=step, index=index)
-
-
-################################
-# Find the final channel width from the VPR report
-################################
-def find_chann_width():
-    vpr_std_out = "inputs/vpr_stdout.log"
-    with open(vpr_std_out, 'r') as vpr_report:
-        search_line = r"Circuit successfully routed with a channel width factor of (\d+)"
-        for line in vpr_report:
-            match = re.search(search_line, line)
-            if match:
-                return match.group(1)
-    return -1
