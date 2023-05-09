@@ -43,7 +43,7 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
     # We have separate tests in test/core/test_show.py that handle these
     # complications and test this function itself, so there's no need to
     # run it here.
-    def fake_show(chip, filename):
+    def fake_show(chip, filename, extension=None):
         # when only -design is provided the filename will not be available
         assert not filename
 
@@ -78,7 +78,7 @@ def test_sc_show(flags, monkeypatch, heartbeat_dir):
     # We have separate tests in test/core/test_show.py that handle these
     # complications and test this function itself, so there's no need to
     # run it here.
-    def fake_show(chip, filename):
+    def fake_show(chip, filename, extension=None):
         # Test basic conditions required for chip.show() to work, to make sure
         # that the sc-show app set up the chip object correctly.
         assert os.path.exists(filename)

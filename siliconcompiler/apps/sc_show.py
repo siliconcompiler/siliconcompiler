@@ -34,6 +34,9 @@ def main():
     sc-show -design adder
     (displays build/job0/adder/export/0/outputs/adder.gds)
 
+    sc-show -design adder -ext odb
+    (displays build/job0/adder/export/1/outputs/adder.odb)
+
     sc-show build/job0/adder/route/1/outputs/adder.def
     (displays build/job0/adder/route/1/outputs/adder.def)
 
@@ -55,10 +58,19 @@ def main():
         if ext in default_input_map:
             input_map[ext] = default_input_map[ext]
 
-    chip.create_cmdline(progname,
-                        switchlist=['-design', '-input', '-loglevel', '-cfg'],
-                        description=description,
-                        input_map=input_map)
+    extension_arg = {
+        'metavar': '<ext>',
+        'help': '(optional) Specify the extension of the file to show.'
+    }
+
+    args = chip.create_cmdline(
+        progname,
+        switchlist=['-design', '-input', '-loglevel', '-cfg'],
+        description=description,
+        input_map=input_map,
+        additional_args={
+            '-ext': extension_arg
+        })
 
     # Error checking
     design = chip.get('design')
@@ -107,7 +119,7 @@ def main():
     # Set supported showtools incase custom flow was used and didn't get set
     set_common_showtools(chip)
 
-    success = chip.show(filename)
+    success = chip.show(filename, extension=args['ext'])
 
     return 0 if success else 1
 
