@@ -5224,15 +5224,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     copy = include_libraries
 
-                copy &= determine_copy(*keypath[2:])
+                copy = copy and determine_copy(*keypath[2:])
             elif keypath[0] == 'pdk':
                 # only copy pdks if selected
                 if include_specific_pdks and keypath[1] in include_specific_pdks:
                     copy = True
                 else:
                     copy = include_pdks
-
-                copy &= determine_copy(*keypath[2:])
             elif keypath[0] == 'history':
                 # Skip history
                 copy = False
