@@ -41,10 +41,22 @@ def setup(chip):
     lib.add('asic', 'cells', 'antenna', 'sky130_fd_sc_hd__diode_2')
 
     # clock buffers
-    lib.add('asic', 'cells', 'clkbuf', 'sky130_fd_sc_hd__clkbuf_1')
+    lib.add('asic', 'cells', 'clkbuf', ['sky130_fd_sc_hd__clkbuf_1',
+                                        'sky130_fd_sc_hd__clkbuf_2',
+                                        'sky130_fd_sc_hd__clkbuf_4',
+                                        'sky130_fd_sc_hd__clkbuf_6',
+                                        'sky130_fd_sc_hd__clkbuf_8',
+                                        'sky130_fd_sc_hd__clkbuf_12',
+                                        'sky130_fd_sc_hd__clkbuf_16'])
 
     # hold cells
-    lib.add('asic', 'cells', 'hold', 'sky130_fd_sc_hd__buf_1')
+    lib.add('asic', 'cells', 'hold', ['sky130_fd_sc_hd__buf_1',
+                                      'sky130_fd_sc_hd__buf_2',
+                                      'sky130_fd_sc_hd__buf_4',
+                                      'sky130_fd_sc_hd__buf_6',
+                                      'sky130_fd_sc_hd__buf_8',
+                                      'sky130_fd_sc_hd__buf_12',
+                                      'sky130_fd_sc_hd__buf_16'])
 
     # filler
     lib.add('asic', 'cells', 'filler', ['sky130_fd_sc_hd__fill_1',
@@ -122,6 +134,8 @@ def setup(chip):
             libdir + '/apr/openroad/global_connect.tcl')
     lib.set('option', 'file', 'openroad_tapcells',
             libdir + '/apr/openroad/tapcell.tcl')
+
+    lib.set('option', 'var', 'openroad_cts_clock_buffer', "sky130_fd_sc_hd__clkbuf_4")
 
     lib.set('option', 'var', 'yosys_driver_cell', "sky130_fd_sc_hd__buf_4")
     lib.set('option', 'var', 'yosys_buffer_cell', "sky130_fd_sc_hd__buf_4")
