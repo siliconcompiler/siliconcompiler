@@ -155,7 +155,7 @@ def flow_lookup(partname):
     ###########
 
     zeroasic = re.match('^za', partname)
-    
+
     if xilinx:
         vendor = 'xilinx'
         flow = 'vivado'
