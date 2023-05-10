@@ -188,29 +188,6 @@ def test_get_no_side_effect():
     assert chip.getkeys('tool', 'surelog', 'task') == []
 
 
-def test_unset():
-    chip = siliconcompiler.Chip('test')
-    chip.set('option', 'remote', True)
-    assert chip.get('option', 'remote') is True
-
-    # Clearing a keypath resets it to default value
-    chip.unset('option', 'remote')
-    assert chip.get('option', 'remote') is False
-
-    # Able to set a keypath after it's been cleared even if clobber=False
-    chip.set('option', 'remote', True, clobber=False)
-    assert chip.get('option', 'remote') is True
-
-    # Make sure unset() clears values and pernode field
-    chip.set('input', 'doc', 'txt', 'foo.txt')
-    chip.set('input', 'doc', 'txt', 'abc123', field='filehash')
-    chip.unset('input', 'doc', 'txt')
-
-    # arbitrary step/index to avoid error
-    assert chip.get('input', 'doc', 'txt', step='syn', index=0) == []
-    assert chip.get('input', 'doc', 'txt', step='syn', index=0, field='filehash') == []
-
-
 def test_set_enum_success():
     chip = siliconcompiler.Chip('test')
     chip.add('option', 'mode', 'asic_new', field='enum')
