@@ -94,6 +94,10 @@ def scparam(cfg,
         # never, optional, required
         cfg['pernode'] = pernode
         cfg['node'] = {}
+        cfg['node']['default'] = {}
+        cfg['node']['default']['default'] = {}
+        cfg['node']['default']['default']['value'] = defvalue
+        cfg['node']['default']['default']['signature'] = signature
 
         if enum is not None:
             cfg['enum'] = enum
@@ -106,6 +110,9 @@ def scparam(cfg,
         if re.search(r'file', sctype):
             cfg['hashalgo'] = hashalgo
             cfg['copy'] = copy
+            cfg['node']['default']['default']['date'] = []
+            cfg['node']['default']['default']['author'] = []
+            cfg['node']['default']['default']['filehash'] = []
 
         if re.search(r'dir', sctype):
             cfg['copy'] = copy

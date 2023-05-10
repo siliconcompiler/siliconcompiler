@@ -66,6 +66,8 @@ class Schema:
             for field, value in cfg.items():
                 if field == 'node':
                     for step in value:
+                        if step == 'default':
+                            continue
                         for index in value[step]:
                             if step == Schema.GLOBAL_KEY:
                                 sstep = None
@@ -240,7 +242,7 @@ class Schema:
             if step not in cfg['node']:
                 cfg['node'][step] = {}
             if index not in cfg['node'][step]:
-                cfg['node'][step][index] = {}
+                cfg['node'][step][index] = copy.deepcopy(cfg['node']['default']['default'])
             cfg['node'][step][index][field] = value
         else:
             cfg[field] = value
@@ -292,9 +294,7 @@ class Schema:
             if step not in cfg['node']:
                 cfg['node'][step] = {}
             if index not in cfg['node'][step]:
-                cfg['node'][step][index] = {}
-            if field not in cfg['node'][step][index]:
-                cfg['node'][step][index][field] = []
+                cfg['node'][step][index] = copy.deepcopy(cfg['node']['default']['default'])
             cfg['node'][step][index][field].extend(value)
         else:
             cfg[field].extend(value)
@@ -356,6 +356,9 @@ class Schema:
         vals = []
         has_global = False
         for step in cfg['node']:
+            if step == 'default':
+                continue
+
             for index in cfg['node'][step]:
                 step_arg = None if step == self.GLOBAL_KEY else step
                 index_arg = None if index == self.GLOBAL_KEY else index
