@@ -194,8 +194,14 @@ if {[string match {ice*} $sc_partname]} {
     ########################################################
     if [dict exists $sc_cfg tool $sc_tool var $sc_step $sc_index techmap ] {
 	set sc_techmap [ dict get $sc_cfg tool $sc_tool var $sc_step $sc_index techmap ]
+	# techmap_defines = [ dict get $sc_cfg tool $sc_tool var $sc_step $sc_index techmap_define ]
+	# techmap_define_args = ''
+	# foreach techmap_define $techmap_defines {
+	#    set techmap_define_args "$techmap_define_args -D$techmap_define"
+	# }
 	foreach mapfile $sc_techmap {
-	    yosys techmap -map $mapfile
+	    # Add $techmap_define_args when ready
+	    yosys techmap -map $mapfile 
 	}
     }
 

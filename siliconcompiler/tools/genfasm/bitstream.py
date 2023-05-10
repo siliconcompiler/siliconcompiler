@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from siliconcompiler.tools.vpr import vpr
 
@@ -37,3 +38,21 @@ def setup(chip):
     # index = chip.get('arg', 'index')
     # task = chip._get_task(step, index)
     # tool = "genfasm"
+
+################################
+# Post_process (post executable)
+################################
+
+
+def post_process(chip):
+    ''' Tool specific function to run after step execution
+    '''
+
+    # step = chip.get('arg', 'step')
+    # index = chip.get('arg', 'index')
+    # task = chip._get_task(step, index)
+
+    design = chip.top()
+    shutil.move(f'{design}.fasm', 'outputs')
+    # TODO: return error code
+    return 0
