@@ -28,7 +28,6 @@ def test_unset_clear_fields():
     assert schema.get('input', 'doc', 'txt', step='syn', index=0, field='filehash') == []
 
 
-
 def test_unset_required_pernode():
     schema = Schema()
     schema.set('metric', 'errors', 5, step='syn', index=0)
@@ -42,7 +41,6 @@ def test_unset_required_pernode():
 
 
 def test_unset_optional_pernode():
-    # Note: this behavior may change once we close on SC-351
     schema = Schema()
     schema.set('asic', 'logiclib', 'default_lib')
     assert schema.get('asic', 'logiclib', step='syn', index=0) == ['default_lib']
