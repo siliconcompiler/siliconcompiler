@@ -310,6 +310,9 @@ class Schema:
         if err:
             raise ValueError(f'Invalid args to unset() of keypath {keypath}: {err}')
 
+        if isinstance(index, int):
+            index = str(index)
+
         if cfg['lock']:
             # TODO: log here
             return False
