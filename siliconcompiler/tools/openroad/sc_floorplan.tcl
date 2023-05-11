@@ -419,7 +419,8 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} ifp_tapcell] } {
 ###########################
 
 if {$openroad_pdn_enable == "true" && \
-    [dict exists $sc_cfg tool $sc_tool task $sc_task {file} pdn_config]} {
+    [dict exists $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] && \
+    [llength [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config]] > 0} {
   foreach pdnconfig [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] {
     puts "Sourcing PDNGEN configuration: ${pdnconfig}"
     source $pdnconfig
