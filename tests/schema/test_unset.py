@@ -33,7 +33,7 @@ def test_unset_required_pernode():
     schema.set('metric', 'errors', 5, step='syn', index=0)
     schema.unset('metric', 'errors', step='syn', index=0)
 
-    assert schema.get('metric', 'errors', step='syn', index=0) == None
+    assert schema.get('metric', 'errors', step='syn', index=0) is None
 
     schema.set('metric', 'errors', 6, step='syn', index=0, clobber=False)
 
