@@ -425,6 +425,8 @@ if {$openroad_pdn_enable == "true" && \
     source $pdnconfig
   }
   pdngen -failed_via_report "reports/${sc_design}_pdngen_failed_vias.rpt"
+} else {
+  utl::warn FLW 1 "No power grid inserted"
 }
 
 ###########################

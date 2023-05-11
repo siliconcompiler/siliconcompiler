@@ -332,8 +332,8 @@ if {$sc_task != "floorplan"} {
       utl::warn FLW 1 "Missing global routing adjustment for ${layername}"
     } else {
       set adjustment [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] 0]
-      set_global_routing_layer_adjustment $layername $adjustment
       utl::info FLW 1 "Setting global routing adjustment for $layername to [expr $adjustment * 100]%"
+      set_global_routing_layer_adjustment $layername $adjustment
     }
   }
 
