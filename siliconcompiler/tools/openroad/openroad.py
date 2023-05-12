@@ -286,6 +286,8 @@ def setup(chip, mode='batch'):
         ('ant_iterations', '3', 'maximum number of repair iterations to use during '
                                 'antenna repairs'),
         ('ant_margin', '0', 'adds a margin to the antenna ratios (0 - 100)'),
+        ('ant_check', 'true', 'true/false, flag to indicate whether to check for antenna violations'),
+        ('ant_repair', 'true', 'true/false, flag to indicate whether to repair antenna violations'),
         ('grt_use_pin_access', 'false', 'true/false, when true perform pin access before '
                                         'global routing'),
         ('grt_overflow_iter', '100', 'maximum number of iterations to use in flobal routing '

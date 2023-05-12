@@ -237,6 +237,8 @@ set openroad_cts_balance_levels [lindex [dict get $sc_cfg tool $sc_tool task $sc
 
 set openroad_ant_iterations [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ant_iterations] 0]
 set openroad_ant_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ant_margin] 0]
+set openroad_ant_check [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ant_check] 0]
+set openroad_ant_repair [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ant_repair] 0]
 
 set openroad_grt_use_pin_access [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_use_pin_access] 0]
 set openroad_grt_overflow_iter [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_overflow_iter] 0]
