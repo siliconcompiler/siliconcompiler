@@ -14,7 +14,8 @@ COPY _tools.json $SC_BUILD
 # is important to keep the docker image size low
 COPY {{ install_script }} $SC_BUILD
 WORKDIR $SC_BUILD
-RUN chmod +x ./{{ install_script }} && \
+RUN apt-get update && \
+    chmod +x ./{{ install_script }} && \
     ./{{ install_script }} && \
     rm -rf $SC_BUILD/deps && \
     apt-get clean
