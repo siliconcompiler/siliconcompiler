@@ -419,12 +419,15 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} ifp_tapcell] } {
 ###########################
 
 if {$openroad_pdn_enable == "true" && \
-    [dict exists $sc_cfg tool $sc_tool task $sc_task {file} pdn_config]} {
+    [dict exists $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] && \
+    [llength [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config]] > 0} {
   foreach pdnconfig [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] {
     puts "Sourcing PDNGEN configuration: ${pdnconfig}"
     source $pdnconfig
   }
   pdngen -failed_via_report "reports/${sc_design}_pdngen_failed_vias.rpt"
+} else {
+  utl::warn FLW 1 "No power grid inserted"
 }
 
 ###########################
