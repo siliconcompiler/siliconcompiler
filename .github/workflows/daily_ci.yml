@@ -2,6 +2,8 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 8 * * *'
+  repository_dispatch:
+    types: [trigger-daily-workflow]
 
 name: 'Daily CI Tests'
 
