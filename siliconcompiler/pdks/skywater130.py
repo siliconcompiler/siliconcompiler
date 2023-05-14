@@ -82,7 +82,7 @@ def setup(chip):
             pdkdir + '/setup/netgen/lvs_setup.tcl')
 
     # Layer map and display file
-    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup,
+    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'klayout', stackup,
             pdkdir + '/setup/klayout/skywater130.lyt')
     pdk.set('pdk', process, 'display', 'klayout', stackup,
             pdkdir + '/setup/klayout/sky130A.lyp')

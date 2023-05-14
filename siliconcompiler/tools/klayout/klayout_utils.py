@@ -49,12 +49,10 @@ def technology(schema):
     tech = pya.Technology.create_technology('sc_tech')
     # Load technology file
     tech_file = None
-    for s in get_streams(schema):
-        if schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup):
-            tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup)
-            if tech_file:
-                tech_file = tech_file[0]
-                break
+    if schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'klayout', sc_stackup):
+        tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'klayout', sc_stackup)
+        if tech_file:
+            tech_file = tech_file[0]
 
     if tech_file:
         print(f"[INFO] Loading technology file: {tech_file}")
@@ -111,5 +109,23 @@ def technology(schema):
     if layer_properties and os.path.exists(layer_properties):
         tech.layer_properties_file = layer_properties
         print(f"[INFO] Layer properies: {layer_properties}")
+
+    # Set layer map
+    map_file = layoutOptions.lefdef_config.map_file
+    if map_file:
+        map_file = map_file[0]
+        if not os.path.isabs(map_file):
+            map_file = os.path.abspath(os.path.join(os.path.dirname(tech_file),
+                                                    map_file))
+    for s in get_streams(schema):
+        if schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup):
+            map_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup)
+            if map_file:
+                map_file = map_file[0]
+                break
+
+    if map_file and os.path.exists(map_file):
+        layoutOptions.lefdef_config.map_file = map_file
+        print(f"[INFO] Layer map: {map_file}")
 
     return tech

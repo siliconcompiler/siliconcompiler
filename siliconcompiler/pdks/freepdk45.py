@@ -66,7 +66,7 @@ def setup(chip):
     pdk.set('pdk', process, 'maxlayer', stackup, 'metal10')
 
     # Klayout setup file
-    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup,
+    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'klayout', stackup,
             pdkdir + '/setup/klayout/freepdk45.lyt')
 
     pdk.set('pdk', process, 'display', 'klayout', stackup,

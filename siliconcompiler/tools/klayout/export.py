@@ -54,7 +54,7 @@ def setup(chip):
         if not req_set:
             # add default require
             chip.add('tool', tool, 'task', task, 'require',
-                     ",".join(['pdk', pdk, 'layermap', 'klayout', 'def', default_stream, stackup]),
+                     ",".join(['pdk', pdk, 'layermap', 'klayout', 'def', 'klayout', stackup]),
                      step=step, index=index)
 
         for lib in (targetlibs + macrolibs):
@@ -84,6 +84,8 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'input', design + '.def',
                  step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', f'{design}.{default_stream}',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.lyt',
              step=step, index=index)
 
     # Export GDS with timestamps by default.
