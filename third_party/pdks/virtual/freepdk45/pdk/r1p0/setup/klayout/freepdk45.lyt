@@ -51,7 +51,6 @@
    <produce-routing>true</produce-routing>
    <routing-suffix/>
    <routing-datatype>0</routing-datatype>
-   <lef-files>./NangateOpenCellLibrary.mod.lef</lef-files>
   </lefdef>
   <dxf>
    <dbu>0.0001</dbu>

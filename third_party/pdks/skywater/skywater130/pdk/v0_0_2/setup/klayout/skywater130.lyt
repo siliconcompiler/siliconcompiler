@@ -71,7 +71,6 @@
    <macro-resolution-mode>default</macro-resolution-mode>
    <separate-groups>false</separate-groups>
    <map-file/>
-   <lef-files>./sky130_fd_sc_hd_merged_tech.lef</lef-files>
   </lefdef>
   <dxf>
    <dbu>0.001</dbu>
