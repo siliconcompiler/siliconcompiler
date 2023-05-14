@@ -22,7 +22,10 @@ def technology(schema):
     sc_index = schema.get('arg', 'index')
     sc_pdk = schema.get('option', 'pdk')
 
-    sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
+    if schema.valid('option', 'stackup'):
+      sc_stackup = schema.get('option', 'stackup')
+    else:
+      sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
     sc_mainlib = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)[0]
     sc_libtype = schema.get('library', sc_mainlib, 'asic', 'libarch', step=sc_step, index=sc_index)
 
@@ -78,8 +81,6 @@ def technology(schema):
     for lef_file in layoutOptions.lefdef_config.lef_files:
         print(f"[INFO] LEF file: {lef_file}")
 
-    tech.load_layout_options = layoutOptions
-
     # Set layer properties
     layer_properties = tech.layer_properties_file
     if layer_properties:
@@ -113,5 +114,7 @@ def technology(schema):
     if map_file and os.path.exists(map_file):
         layoutOptions.lefdef_config.map_file = map_file
         print(f"[INFO] Layer map: {map_file}")
+
+    tech.load_layout_options = layoutOptions
 
     return tech
