@@ -2,20 +2,6 @@ import pya
 import os
 
 
-def get_stream(schema):
-    sc_step = schema.get('arg', 'step')
-    sc_index = schema.get('arg', 'index')
-    sc_flow = schema.get('option', 'flow')
-    sc_task = schema.get('flowgraph', sc_flow, sc_step, sc_index, 'task')
-
-    streams = ('gds', 'oas')
-    if schema.valid('tool', 'klayout', 'task', sc_task, 'var', 'stream'):
-        return schema.get('tool', 'klayout', 'task', sc_task, 'var', 'stream',
-                          step=sc_step, index=sc_index)[0]
-    else:
-        return streams[0]
-
-
 def get_streams(schema):
     sc_step = schema.get('arg', 'step')
     sc_index = schema.get('arg', 'index')
