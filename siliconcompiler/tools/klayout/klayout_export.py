@@ -40,15 +40,9 @@ import copy
 import os
 import sys
 
-# SC_ROOT provided by CLI
-sys.path.append(SC_ROOT)  # noqa: F821
 
-from schema import Schema  # noqa E402
-from tools.klayout.klayout_show import show  # noqa E402
-
-
-def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
-               macro_lefs, config_file='', seal_file='', timestamps=True):
+def gds_export(design_name, in_def, in_files, out_file, tech, config_file='', seal_file='',
+               timestamps=True):
     # Expand layers in json
     def expand_cfg_layers(cfg):
         layers = cfg['layers']
@@ -137,27 +131,10 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
                     if m:
                         units = float(m.group(1))
 
-    # Load technology file
-    tech = pya.Technology()
-    tech.load(tech_file)
-    layoutOptions = tech.load_layout_options
-    layoutOptions.lefdef_config.macro_resolution_mode = 1
-    pathed_files = set()
-    for fn in layoutOptions.lefdef_config.lef_files:
-        if fn[0:2] == './':
-            pathed_files.add(foundry_lefs + fn[1:])
-        else:
-            pathed_files.add(fn)
-
-    for lef in macro_lefs:
-        pathed_files.add(lef)
-
-    layoutOptions.lefdef_config.lef_files = list(pathed_files)
-    layoutOptions.lefdef_config.read_lef_with_def = False
-
     # Load def file
     main_layout = pya.Layout()
-    main_layout.read(in_def, layoutOptions)
+    main_layout.technology_name = tech.name
+    main_layout.read(in_def, tech.load_layout_options)
 
     # List cells
     def_cells = []
@@ -226,75 +203,73 @@ def gds_export(design_name, in_def, in_files, out_file, tech_file, foundry_lefs,
     top_only_layout.write(out_file, write_options)
 
 
-schema = Schema(manifest='sc_manifest.json')
+def main():
+    # SC_ROOT provided by CLI
+    sys.path.append(SC_ROOT)  # noqa: F821
 
-# Extract info from manifest
-sc_step = schema.get('arg', 'step')
-sc_index = schema.get('arg', 'index')
-sc_pdk = schema.get('option', 'pdk')
-sc_flow = schema.get('option', 'flow')
-sc_task = schema.get('flowgraph', sc_flow, sc_step, sc_index, 'task')
-sc_klayout_vars = schema.getkeys('tool', 'klayout', 'task', sc_task, 'var')
-streams = ('gds', 'oas')
-sc_stream = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'stream',
-                       step=sc_step, index=sc_index)[0]
-sc_streams = [sc_stream, *[s for s in streams if s != sc_stream]]
+    from schema import Schema  # noqa E402
+    from tools.klayout.klayout_utils import technology, get_streams  # noqa E402
+    from tools.klayout.klayout_show import show  # noqa E402
 
-sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
-sc_mainlib = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)[0]
+    schema = Schema(manifest='sc_manifest.json')
 
-tech_file = None
-for s in sc_streams:
-    if schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup):
-        tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup)[0]
-        break
+    # Extract info from manifest
+    sc_step = schema.get('arg', 'step')
+    sc_index = schema.get('arg', 'index')
+    sc_pdk = schema.get('option', 'pdk')
+    sc_flow = schema.get('option', 'flow')
+    sc_task = schema.get('flowgraph', sc_flow, sc_step, sc_index, 'task')
+    sc_klayout_vars = schema.getkeys('tool', 'klayout', 'task', sc_task, 'var')
+    sc_stream = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'stream',
+                           step=sc_step, index=sc_index)[0]
 
-design = schema.get('option', 'entrypoint')
-if not design:
-    design = schema.get('design')
+    sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
 
-if schema.valid('input', 'layout', 'def') and schema.get('input', 'layout', 'def',
-                                                         step=sc_step, index=sc_index):
-    in_def = schema.get('input', 'layout', 'def', step=sc_step, index=sc_index)[0]
-else:
-    in_def = os.path.join('inputs', f'{design}.def')
-out_file = os.path.join('outputs', f'{design}.{sc_stream}')
+    design = schema.get('option', 'entrypoint')
+    if not design:
+        design = schema.get('design')
 
-libs = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)
-if 'macrolib' in schema.getkeys('asic'):
-    libs += schema.get('asic', 'macrolib', step=sc_step, index=sc_index)
+    if schema.valid('input', 'layout', 'def') and schema.get('input', 'layout', 'def',
+                                                             step=sc_step, index=sc_index):
+        in_def = schema.get('input', 'layout', 'def', step=sc_step, index=sc_index)[0]
+    else:
+        in_def = os.path.join('inputs', f'{design}.def')
+    out_file = os.path.join('outputs', f'{design}.{sc_stream}')
 
-in_files = []
-for lib in libs:
-    for s in sc_streams:
-        if schema.valid('library', lib, 'output', sc_stackup, s):
-            in_files.extend(schema.get('library', lib, 'output', sc_stackup, s,
-                                       step=sc_step, index=sc_index))
-            break
+    libs = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)
+    if 'macrolib' in schema.getkeys('asic'):
+        libs += schema.get('asic', 'macrolib', step=sc_step, index=sc_index)
 
-foundry_lef = os.path.dirname(schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef',
-                                         step=sc_step, index=sc_index)[0])
+    in_files = []
+    for lib in libs:
+        for s in get_streams(schema):
+            if schema.valid('library', lib, 'output', sc_stackup, s):
+                in_files.extend(schema.get('library', lib, 'output', sc_stackup, s,
+                                           step=sc_step, index=sc_index))
+                break
 
-macro_lefs = []
-if 'macrolib' in schema.getkeys('asic'):
-    for lib in schema.get('asic', 'macrolib', step=sc_step, index=sc_index):
-        macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef',
-                                     step=sc_step, index=sc_index))
+    if 'timestamps' in sc_klayout_vars:
+        sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'timestamps',
+                                   step=sc_step, index=sc_index) == ['true']
+    else:
+        sc_timestamps = False
 
-if 'timestamps' in sc_klayout_vars:
-    sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'timestamps',
-                               step=sc_step, index=sc_index) == ['true']
-else:
-    sc_timestamps = False
+    if 'screenshot' in sc_klayout_vars:
+        sc_screenshot = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'screenshot',
+                                   step=sc_step, index=sc_index) == ['true']
+    else:
+        sc_screenshot = True
 
-if 'screenshot' in sc_klayout_vars:
-    sc_screenshot = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'screenshot',
-                               step=sc_step, index=sc_index) == ['true']
-else:
-    sc_screenshot = True
+    sc_tech = technology(schema)
 
-gds_export(design, in_def, in_files, out_file, tech_file, foundry_lef, macro_lefs,
-           config_file='', seal_file='', timestamps=sc_timestamps)
+    gds_export(design, in_def, in_files, out_file, sc_tech,
+               config_file='', seal_file='', timestamps=sc_timestamps)
 
-if sc_screenshot:
-    show(schema, out_file, f'outputs/{design}.png', screenshot=True)
+    sc_tech.save(f'outputs/{design}.lyt')
+
+    if sc_screenshot:
+        show(schema, sc_tech, out_file, f'outputs/{design}.png', screenshot=True)
+
+
+if __name__ == '__main__':
+    main()
