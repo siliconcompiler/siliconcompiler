@@ -3,7 +3,6 @@
  <name>ASAP7</name>
  <description>ASAP7 PDK</description>
  <dbu>0.0001</dbu>
- <layer-properties_file>asap7.lyp</layer-properties_file>
  <add-other-layers>true</add-other-layers>
  <reader-options>
   <gds2>
