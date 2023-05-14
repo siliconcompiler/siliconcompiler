@@ -85,7 +85,7 @@ def test_show_lyp(datadir, display, headless=True):
     # Remove the '.lyt' file
     stackup = chip.get('option', 'stackup')
     pdkname = chip.get('option', 'pdk')
-    chip.set('pdk', pdkname, 'layermap', 'klayout', 'def', 'gds', stackup, [])
+    chip.set('pdk', pdkname, 'layermap', 'klayout', 'def', 'klayout', stackup, [])
 
     adjust_exe_options(chip, headless)
 
