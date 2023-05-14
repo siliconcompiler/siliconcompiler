@@ -23,9 +23,9 @@ def technology(schema):
     sc_pdk = schema.get('option', 'pdk')
 
     if schema.valid('option', 'stackup'):
-      sc_stackup = schema.get('option', 'stackup')
+        sc_stackup = schema.get('option', 'stackup')
     else:
-      sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
+        sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
     sc_mainlib = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)[0]
     sc_libtype = schema.get('library', sc_mainlib, 'asic', 'libarch', step=sc_step, index=sc_index)
 
