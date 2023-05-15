@@ -1,10 +1,9 @@
 import pya
 
-import os
 import sys
 
 
-def show(schema, input_path, output_path, screenshot=False):
+def show(schema, tech, input_path, output_path, screenshot=False):
     # Extract info from manifest
     flow = schema.get('option', 'flow')
     step = schema.get('arg', 'step')
@@ -16,59 +15,9 @@ def show(schema, input_path, output_path, screenshot=False):
                                     step=step, index=index)
     else:
         sc_hide_layers = []
-    sc_pdk = schema.get('option', 'pdk')
-    sc_stackup = schema.get('option', 'stackup')
-    sc_mainlib = schema.get('asic', 'logiclib', step=step, index=index)[0]
-    sc_libtype = schema.get('library', sc_mainlib, 'asic', 'libarch', step=step, index=index)
-
-    tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'gds', sc_stackup)
-    if tech_file:
-        tech_file = tech_file[0]
-    else:
-        tech_file = None
-
-    lyp_path = schema.get('pdk', sc_pdk, 'display', 'klayout', sc_stackup)
-    if lyp_path:
-        lyp_path = lyp_path[0]
-    else:
-        lyp_path = None
-
-    macro_lefs = []
-    if 'macrolib' in schema.getkeys('asic'):
-        sc_macrolibs = schema.get('asic', 'macrolib', step=step, index=index)
-        for lib in sc_macrolibs:
-            macro_lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef',
-                                         step=step, index=index))
-
-    # Tech / library LEF files are optional.
-    tech_lefs = schema.get('pdk', sc_pdk, 'aprtech', 'klayout', sc_stackup, sc_libtype, 'lef')
-
-    # Need to check validity since there are no "default" placeholders within the
-    # library schema that would allow schema.get() to get a default value.
-    if schema.valid('library', sc_mainlib, 'output', sc_stackup, 'lef'):
-        lib_lefs = schema.get('library', sc_mainlib, 'output', sc_stackup, 'lef',
-                              step=step, index=index)
-    else:
-        lib_lefs = []
 
     # Load KLayout technology file
-    tech = pya.Technology()
-    if tech_file and os.path.isfile(tech_file):
-        tech.load(tech_file)
     layoutOptions = tech.load_layout_options
-
-    lefs = []
-
-    lefs.extend(macro_lefs)
-
-    # Technology LEFs -- these are generally specified in the KLayout tech file, but
-    # we overwrite them with the paths in the manifest we don't have to worry if the
-    # paths in the tech file don't resolve right.
-    lefs.extend(tech_lefs)
-    lefs.extend(lib_lefs)
-
-    # Overwrite LEFs specified in tech file with the LEFs we took from the manifest.
-    layoutOptions.lefdef_config.lef_files = lefs
 
     # These may be disabled in our KLayout tech file for reasons relating to GDS
     # export, but for the purposes of viewing we'll hardcode them to True.
@@ -97,12 +46,8 @@ def show(schema, input_path, output_path, screenshot=False):
 
     # Display the file!
     cell_view = pya.MainWindow.instance().load_layout(input_path, layoutOptions, 0)
+    cell_view.technology = tech.name
     layout_view = cell_view.view()
-
-    if lyp_path:
-        # Set layer properties -- setting second argument to True ensures things like
-        # KLayout's extra outline, blockage, and obstruction layers appear.
-        layout_view.load_layer_props(lyp_path, True)
 
     # Hide layers that shouldn't be shown in the current view.
     for layer in layout_view.each_layer():
@@ -129,6 +74,8 @@ def show(schema, input_path, output_path, screenshot=False):
 def main():
     # SC_ROOT provided by CLI, and is only accessible when this is main module
     sys.path.append(SC_ROOT)  # noqa: F821
+
+    from tools.klayout.klayout_utils import technology
     from schema import Schema
 
     schema = Schema(manifest='sc_manifest.json')
@@ -153,7 +100,8 @@ def main():
     sc_exit = schema.get('tool', 'klayout', 'task', task, 'var', 'show_exit',
                          step=step, index=index) == ["true"]
 
-    show(schema, sc_filename, f'outputs/{design}.png', screenshot=(step == 'screenshot'))
+    show(schema, technology(schema), sc_filename, f'outputs/{design}.png',
+         screenshot=(step == 'screenshot'))
 
     if sc_exit:
         pya.Application.instance().exit(0)

@@ -49,7 +49,7 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
 
         pdkname = chip.get('option', 'pdk')
         sc_stackup = chip.get('pdk', pdkname, 'stackup')[0]
-        tech_file = chip.get('pdk', pdkname, 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
+        tech_file = chip.get('pdk', pdkname, 'layermap', 'klayout', 'def', 'klayout', sc_stackup)[0]
         assert tech_file is not None
 
         chip.logger.info(f'Showing {chip.design}')
@@ -88,7 +88,7 @@ def test_sc_show(flags, monkeypatch, heartbeat_dir):
 
         pdkname = chip.get('option', 'pdk')
         sc_stackup = chip.get('pdk', pdkname, 'stackup')[0]
-        tech_file = chip.get('pdk', pdkname, 'layermap', 'klayout', 'def', 'gds', sc_stackup)[0]
+        tech_file = chip.get('pdk', pdkname, 'layermap', 'klayout', 'def', 'klayout', sc_stackup)[0]
         assert tech_file is not None
 
         chip.logger.info('Showing ' + filename)

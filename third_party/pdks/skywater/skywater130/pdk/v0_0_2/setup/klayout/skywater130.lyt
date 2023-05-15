@@ -4,9 +4,6 @@
  <description>SkyWater 130nm technology</description>
  <group/>
  <dbu>0.001</dbu>
- <base-path>./platforms/sky130hd/</base-path>
- <original-base-path>.klayout/tech/sky130</original-base-path>
- <layer-properties_file>sky130A.lyp</layer-properties_file>
  <add-other-layers>true</add-other-layers>
  <reader-options>
   <gds2>
@@ -71,7 +68,6 @@
    <macro-resolution-mode>default</macro-resolution-mode>
    <separate-groups>false</separate-groups>
    <map-file/>
-   <lef-files>./sky130_fd_sc_hd_merged_tech.lef</lef-files>
   </lefdef>
   <dxf>
    <dbu>0.001</dbu>

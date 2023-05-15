@@ -69,7 +69,7 @@ def setup(chip):
     pdk.set('pdk', process, 'maxlayer', stackup, 'M7')
 
     # Klayout setup file
-    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'gds', stackup,
+    pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'klayout', stackup,
             pdkdir + '/setup/klayout/asap7.lyt')
 
     pdk.set('pdk', process, 'display', 'klayout', stackup,
