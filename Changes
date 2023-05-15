@@ -8,6 +8,24 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.11.2 (2023-05-15)
+=========================================
+
+**Major:**
+
+* Updated ``sc-issue`` to generate self-contained testcases to allow for better sharing of testcases.
+* Updated klayout tool driver to support map-file option for DEF-GDS export step, and remove need for hard coded options in ``.lyt`` file in favor of getting values from the schema.
+
+**Minor:**
+
+* Updated loading order to target in commandline interface to ensure schema parameers are set before loading target.
+* Error checking for flowgraphs with duplicated edges.
+* Added ``-ext`` to ``sc-show`` command to control what file is opened when multiple files are available.
+* Tools:
+
+  * OpenROAD - added flags to control antenna repairs: ['tool', 'openroad', 'task', 'route', 'var', 'ant_check'] and ['tool', 'openroad', 'task', 'route', 'var', 'ant_repair']; added clock buffer selection option from the library with ['library', lib, 'option', 'openroad_cts_clock_buffer']
+
+
 SiliconCompiler 0.11.1 (2023-05-03)
 =========================================
 
