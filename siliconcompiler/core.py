@@ -1016,9 +1016,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         Unsets a schema parameter.
 
-        Unsetting a schema parameter causes the parameter to revert to its
-        default value. A call to ``set()`` with ``clobber=False`` will once
-        again be able to modify the value.
+        This method effectively undoes any previous calls to ``set()`` made to
+        the given keypath and step/index. For parameters with required or no
+        per-node values, unsetting a parameter always causes it to revert to its
+        default value, and future calls to ``set()`` with ``clobber=False`` will
+        once again be able to modify the value.
+
+        If you unset a particular step/index for a parameter with optional
+        per-node values, note that the newly returned value will be the global
+        value if it has been set. To completely return the parameter to its
+        default state, the global value has to be unset as well.
+
+        ``unset()`` has no effect if called on a parameter that has not been
+        previously set.
 
         Args:
             keypath (list): Parameter keypath to clear.
