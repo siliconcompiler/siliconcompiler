@@ -2,7 +2,7 @@
 import siliconcompiler
 import pytest
 
-from siliconcompiler.tools.verilator import parse
+from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.yosys import syn_asic
 
 from siliconcompiler.tools.builtin import mux
