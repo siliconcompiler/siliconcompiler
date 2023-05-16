@@ -1,5 +1,4 @@
 import os
-import shutil
 
 import pytest
 
@@ -9,18 +8,18 @@ import siliconcompiler
 @pytest.mark.eda
 @pytest.mark.quick
 def test_fpgaapr(scroot,
-                  route_chan_width=50,
-                  lut_size=4,
-                  arch_name='zafg000sc_X008Y008',
-                  benchmark_name='macc',
-                  top_module='macc'):
+                 route_chan_width=50,
+                 lut_size=4,
+                 arch_name='zafg000sc_X008Y008',
+                 benchmark_name='macc',
+                 top_module='macc'):
 
     chip = siliconcompiler.Chip(f'{top_module}')
 
     chip.set('fpga', 'partname', arch_name)
 
-    chip.set('option', 'steplist', [ 'import', 'syn', 'apr' ])
-    
+    chip.set('option', 'steplist', ['import', 'syn', 'apr'])
+
     flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
     arch_root = os.path.join(flow_root, 'arch', arch_name)
 
@@ -51,6 +50,7 @@ def test_fpgaapr(scroot,
     route_file = chip.find_result('route', step='apr')
 
     assert route_file.endswith(f'{top_module}.route')
+
 
 if __name__ == "__main__":
     test_fpgaapr(os.environ['SCPATH'])
