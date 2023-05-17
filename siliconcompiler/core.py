@@ -1359,6 +1359,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Returns none if not found
         """
+        if not path:
+            return None
+
         path_paths = pathlib.Path(path).parts
         for n in range(len(path_paths)):
             # Search through the path elements to see if any of the previous path parts
