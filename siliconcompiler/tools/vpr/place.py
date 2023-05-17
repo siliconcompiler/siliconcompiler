@@ -28,9 +28,9 @@ def setup(chip):
 
     options = vpr.assemble_options(chip, tool)
 
-    #Confine VPR execution to packing and placement steps
+    # Confine VPR execution to packing and placement steps
     options.append('--pack --place')
-    
+
     threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
     options.append(f"--num_workers {threads}")
 

@@ -27,12 +27,12 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', 'vpr_stdout.log', step=step, index=index)
 
     options = vpr.assemble_options(chip, tool)
-    #Confine VPR execution to routing step
+    # Confine VPR execution to routing step
     options.append('--route')
-    #To run only the routing step we need to pass in the placement files
+    # To run only the routing step we need to pass in the placement files
     options.append(f'--net_file inputs/{design}.net')
     options.append(f'--place_file inputs/{design}.place')
-    
+
     threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
     options.append(f"--num_workers {threads}")
 
@@ -76,7 +76,7 @@ def post_process(chip):
     for file in chip.get('tool', 'vpr', 'task', task, 'output', step=step, index=index):
         shutil.copy(file, 'outputs')
     design = chip.top()
-    #Forward all of the prior step inputs forward for bitstream generation
+    # Forward all of the prior step inputs forward for bitstream generation
     shutil.copy(f'inputs/{design}.blif', 'outputs')
     shutil.copy(f'inputs/{design}.net', 'outputs')
     shutil.copy(f'inputs/{design}.place', 'outputs')
