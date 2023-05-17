@@ -298,7 +298,7 @@ class Schema:
         '''
         Unsets a schema parameter field.
 
-        See :meth:`~siliconcompiler.core.Chip.clear` for detailed documentation.
+        See :meth:`~siliconcompiler.core.Chip.unset` for detailed documentation.
         '''
         cfg = self._search(*keypath)
 
