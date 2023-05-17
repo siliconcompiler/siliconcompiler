@@ -135,13 +135,6 @@ def setup_asic(chip):
     if abc_driver:
         chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver', abc_driver,
                  step=step, index=index, clobber=False)
-    abc_clock_period = get_abc_period(chip)
-    if abc_clock_period:
-        chip.set('tool', tool, 'task', task, 'var', 'abc_clock_period', str(abc_clock_period),
-                 step=step, index=index, clobber=False)
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['tool', tool, 'task', task, 'var', 'abc_clock_period']),
-                 step=step, index=index)
 
     # document parameters
     chip.set('tool', tool, 'task', task, 'var', 'preserve_modules',
@@ -450,6 +443,15 @@ def get_abc_driver(chip):
 def pre_process(chip):
     ''' Tool specific function to run before step execution
     '''
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    abc_clock_period = get_abc_period(chip)
+    if abc_clock_period:
+        chip.set('tool', tool, 'task', task, 'var', 'abc_clock_period', str(abc_clock_period),
+                 step=step, index=index, clobber=False)
 
     prepare_synthesis_libraries(chip)
     create_abc_synthesis_constraints(chip)
