@@ -4,7 +4,7 @@ from siliconcompiler.tools.bambu import convert as bambu_convert
 from siliconcompiler.tools.bluespec import convert as bluespec_convert
 from siliconcompiler.tools.ghdl import convert as ghdl_convert
 from siliconcompiler.tools.sv2v import convert as sv2v_convert
-
+from siliconcompiler.tools.sandpiper import convert as sandpiper_convert
 
 def setup_frontend(chip):
     '''
@@ -23,6 +23,8 @@ def setup_frontend(chip):
         frontend_flow.append(('import', bambu_convert))
     elif frontend == 'bluespec':
         frontend_flow.append(('import', bluespec_convert))
+    elif frontend == 'tlv':
+        frontend_flow.append(('import', sandpiper_convert))
     elif frontend == 'vhdl':
         frontend_flow.append(('import', ghdl_convert))
     else:

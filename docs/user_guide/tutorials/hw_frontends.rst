@@ -12,6 +12,8 @@ Here are some tutorials of a few different types of high-level hardware design f
 * :ref:`C HLS Frontend (Bambu) <c hls frontend>`
   
 * :ref:`bluespec frontend`
+
+* :ref:`TL-Verilog frontend (Sandpiper)`
   
 
 .. include:: migen.rst
@@ -21,3 +23,5 @@ Here are some tutorials of a few different types of high-level hardware design f
 .. include:: bambu.rst
 	     
 .. include:: bluespec.rst
+
+.. include:: tlverilog.rst
