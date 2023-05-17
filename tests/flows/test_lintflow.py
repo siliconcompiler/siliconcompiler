@@ -14,6 +14,8 @@ def test_lintflow(scroot):
     v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
     chip.input(v_src)
 
+    chip.set('option', 'mode', 'sim')
+
     chip.use(lintflow)
     chip.set('option', 'flow', 'lintflow')
 
