@@ -173,6 +173,7 @@ def test_merged_graph_good_steplist():
     chip.edge(flow, 'parallel2', 'merge')
     chip.edge(flow, 'merge', 'export')
     chip.set('option', 'flow', flow)
+    chip.set('option', 'mode', 'asic')
 
     chip.run()
 
