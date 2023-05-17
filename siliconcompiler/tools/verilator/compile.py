@@ -1,14 +1,14 @@
 import subprocess
 
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
+from siliconcompiler.tools.verilator.verilator import runtime_options as runtime_options_tool
 
 
 def setup(chip):
     '''
-    Compiles Verilog and C/C++ sources into an executable.  Takes in a single
-    pickled Verilog file from ``inputs/<design>.v`` and a set of C/C++ sources
-    from :keypath:`input, c`. Outputs an executable in
-    ``outputs/<design>.vexe``.
+    Compiles Verilog and C/C++ sources into an executable. In addition to the
+    standard RTL inputs, this task reads C/C++ sources from :keypath:`input,
+    hll, c`.  Outputs an executable in ``outputs/<design>.vexe``.
 
     This step supports using the :keypath:`option, trace` parameter to enable
     Verilator's ``--trace`` flag.
@@ -25,10 +25,25 @@ def setup(chip):
 
     chip.add('tool', tool, 'task', task, 'option', ['--cc', '--exe'],
              step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'input', f'{design}.v',
-             step=step, index=index)
     chip.add('tool', tool, 'task', task, 'option', f'-o ../outputs/{design}.vexe',
              step=step, index=index)
+
+    if chip.valid('input', 'hll', 'c'):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['input', 'hll', 'c']),
+                 step=step, index=index)
+
+
+def runtime_options(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    cmdlist = runtime_options_tool(chip)
+
+    for value in chip.find_files('input', 'hll', 'c', step=step, index=index):
+        cmdlist.append(value)
+
+    return cmdlist
 
 
 def post_process(chip):

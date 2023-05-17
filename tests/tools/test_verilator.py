@@ -1,36 +1,57 @@
-# Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
-import siliconcompiler
+import subprocess
+
 import pytest
 
-from siliconcompiler.tools.verilator import parse
+import siliconcompiler
+from siliconcompiler.tools.surelog import parse
+from siliconcompiler.tools.verilator import lint, compile
 
 
-@pytest.mark.eda
 @pytest.mark.quick
-def test_verilator(oh_dir):
-    ydir = os.path.join(oh_dir, 'stdlib', 'hdl')
+@pytest.mark.eda
+def test_lint_post_surelog(scroot):
+    chip = siliconcompiler.Chip('heartbeat')
 
-    design = "oh_fifo_sync"
-    topfile = os.path.join(ydir, f'{design}.v')
-    step = "parse"
+    v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
+    chip.input(v_src)
 
-    chip = siliconcompiler.Chip(design)
-    chip.input(topfile)
-    chip.set('option', 'ydir', ydir)
-    chip.set('option', 'relax', True)
-    chip.set('option', 'quiet', True)
-    chip.set('option', 'mode', 'sim')
-    chip.node('verilator', step, parse)
-    chip.load_target('freepdk45_demo')
-    chip.set('option', 'flow', 'verilator')
+    flow = 'lint'
+    chip.node(flow, 'import', parse)
+    chip.node(flow, 'lint', lint)
+    chip.edge(flow, 'import', 'lint')
+    chip.set('option', 'flow', flow)
+
     chip.run()
 
-    # check that compilation succeeded
-    assert chip.find_result('v', step=step) is not None
 
+@pytest.mark.quick
+@pytest.mark.eda
+def test_compile(scroot, datadir):
+    chip = siliconcompiler.Chip('heartbeat')
 
-#########################
-if __name__ == "__main__":
-    oh_dir = os.path.join('third_party', 'designs', 'oh')
-    test_verilator(oh_dir)
+    v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
+    chip.input(v_src)
+    c_src = os.path.join(datadir, 'verilator', 'heartbeat_tb.cpp')
+    chip.input(c_src)
+    vlt_cfg = os.path.join(datadir, 'verilator', 'config.vlt')
+    chip.set('tool', 'verilator', 'task', 'compile', 'file', 'config', vlt_cfg)
+
+    chip.set('option', 'mode', 'sim')
+
+    # Basic Verilator compilation flow
+    flow = 'verilator_compile'
+    chip.node(flow, 'import', parse)
+    chip.node(flow, 'compile', compile)
+    chip.edge(flow, 'import', 'compile')
+    chip.set('option', 'flow', flow)
+
+    chip.run()
+
+    exe_path = chip.find_result('vexe', step='compile')
+
+    proc = subprocess.run([exe_path], stdout=subprocess.PIPE)
+    output = proc.stdout.decode('utf-8')
+    print(output)
+
+    assert output == 'SUCCESS\n'
