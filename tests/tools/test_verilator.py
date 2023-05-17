@@ -41,6 +41,10 @@ def test_compile(scroot, datadir):
 
     chip.set('option', 'mode', 'sim')
 
+    chip.add('tool', 'verilator', 'task', 'compile', 'var', 'cflags', '-DREQUIRED_FROM_USER')
+    c_inc = os.path.join(datadir, 'verilator', 'include')
+    chip.add('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', c_inc)
+
     # Basic Verilator compilation flow
     flow = 'verilator_compile'
     chip.node(flow, 'import', parse)
