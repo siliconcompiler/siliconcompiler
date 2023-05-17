@@ -56,7 +56,8 @@ def setup(chip):
     # system path, set the path to the bundled copy in the schema.
     if shutil.which('surelog') is None:
         surelog_path = os.path.join(os.path.dirname(__file__), 'bin')
-        chip.set('tool', tool, 'path', surelog_path, clobber=False)
+        if os.path.exists(os.path.join(surelog_path, 'surelog')):
+            chip.set('tool', tool, 'path', surelog_path, clobber=False)
 
     # Log file parsing
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WRN:',
