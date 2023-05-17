@@ -20,7 +20,7 @@ def test_valid():
                        default_valid=True)
     assert valid
     # dynamic with default fields
-    valid = chip.valid('constraint', 'timing', 'default', 'voltage')
+    valid = chip.valid('constraint', 'timing', 'default', 'voltage', 'default')
     assert valid
     # not working
     valid = chip.valid('blah')
