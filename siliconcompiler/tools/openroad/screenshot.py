@@ -2,6 +2,7 @@ from siliconcompiler.tools.openroad import openroad
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.show import copy_show_files, generic_show_setup
+from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
 
 
 ####################################################################
@@ -35,5 +36,6 @@ def setup(chip):
 
 
 def pre_process(chip):
+    or_pre_process(chip)
     copy_show_files(chip)
     build_pex_corners(chip)
