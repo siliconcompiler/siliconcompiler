@@ -6407,7 +6407,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.32.0",
+        "defvalue": "0.33.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6548,6 +6548,28 @@
                             "-tool_task_continue 'tool task <bool>'"
                         ],
                         "type": "bool"
+                    },
+                    "dir": {
+                        "default": {
+                            "copy": false,
+                            "defvalue": [],
+                            "example": [
+                                "cli: -tool_task_dir 'verilator compile cincludes include'",
+                                "api: chip.set('tool','verilator','task','compile','dir','cincludes', 'include')"
+                            ],
+                            "help": "Paths to user supplied directories mapped to keys. Keys must match\nwhat's expected by the task/reference script consuming the\ndirectory.",
+                            "lock": false,
+                            "node": {},
+                            "notes": null,
+                            "pernode": "optional",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Task: setup directories",
+                            "switch": [
+                                "-tool_task_dir 'tool task key <dir>'"
+                            ],
+                            "type": "[dir]"
+                        }
                     },
                     "env": {
                         "default": {

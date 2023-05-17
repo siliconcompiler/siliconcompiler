@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.32.0'
+SCHEMA_VERSION = '0.33.0'
 
 
 #############################################################################
@@ -1320,6 +1320,21 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             Paths to user supplied files mapped to keys. Keys and filetypes must
             match what's expected by the task/reference script consuming the
             file.
+            """)
+
+    scparam(cfg, ['tool', tool, 'task', task, 'dir', key],
+            sctype='[dir]',
+            pernode='optional',
+            shorthelp="Task: setup directories",
+            switch="-tool_task_dir 'tool task key <dir>'",
+            example=[
+                "cli: -tool_task_dir 'verilator compile cincludes include'",
+                "api: chip.set('tool','verilator','task','compile','dir','cincludes', "
+                    "'include')"],
+            schelp="""
+            Paths to user supplied directories mapped to keys. Keys must match
+            what's expected by the task/reference script consuming the
+            directory.
             """)
 
     # Defintions of inputs, putputs, requirements
