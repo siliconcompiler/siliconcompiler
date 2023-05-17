@@ -1,5 +1,4 @@
 import os
-import shutil
 
 import pytest
 
@@ -38,6 +37,10 @@ def test_fpgaflow(scroot,
     rr_graph_file = os.path.join(arch_root, f'{arch_name}_rr_graph.xml')
 
     chip.set('fpga', 'arch', xml_file)
+    # ***NOTE:  If the RR graph is not specified, the FASM bitstream will
+    #           generate but omit any bitstream data for programmable
+    #           interconnect (SBs and CBs); meaning that the FPGA will
+    #           not be correctly programmed. -PG 5/17/2023
     chip.set('tool', 'vpr', 'task', 'apr', 'var', 'rr_graph', f'{rr_graph_file}')
     chip.set('tool', 'vpr', 'task', 'apr', 'var', 'route_chan_width', f'{route_chan_width}')
 
@@ -51,6 +54,7 @@ def test_fpgaflow(scroot,
     fasm_file = chip.find_result('fasm', step='bitstream')
 
     assert fasm_file.endswith(f'{top_module}.fasm')
+
 
 if __name__ == "__main__":
     test_fpgaflow(os.environ['SCPATH'])
