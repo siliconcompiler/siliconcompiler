@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.32.0'
+SCHEMA_VERSION = '0.33.0'
 
 
 #############################################################################
@@ -3305,16 +3305,17 @@ def schema_constraint(cfg):
 
     scenario = 'default'
 
-    scparam(cfg, ['constraint', 'timing', scenario, 'voltage'],
+    pin = 'default'
+    scparam(cfg, ['constraint', 'timing', scenario, 'voltage', pin],
             sctype='float',
             pernode='optional',
             unit='V',
             scope='job',
-            shorthelp="Constraint: voltage level",
-            switch="-constraint_timing_voltage 'scenario <float>'",
-            example=["cli: -constraint_timing_voltage 'worst 0.9'",
-                     "api: chip.set('constraint', 'timing', 'worst','voltage', '0.9')"],
-            schelp="""Operating voltage applied to the scenario.""")
+            shorthelp="Constraint: pin voltage level",
+            switch="-constraint_timing_voltage 'scenario <pin> <float>'",
+            example=["cli: -constraint_timing_voltage 'worst VDD 0.9'",
+                     "api: chip.set('constraint', 'timing', 'worst', 'voltage', 'VDD', '0.9')"],
+            schelp="""Operating voltage applied to a specific pin in the scenario.""")
 
     scparam(cfg, ['constraint', 'timing', scenario, 'temperature'],
             sctype='float',
