@@ -6922,7 +6922,7 @@
                         "default": {
                             "defvalue": [],
                             "example": [
-                                "cli: -tool_task_variable 'openroad cts myvar 42'",
+                                "cli: -tool_task_var 'openroad cts myvar 42'",
                                 "api: chip.set('tool','openroad','task','cts','var','myvar','42')"
                             ],
                             "help": "Task script variables specified as key value pairs. Variable\nnames and value types must match the name and type of task and reference\nscript consuming the variable.",
@@ -6934,7 +6934,7 @@
                             "scope": "job",
                             "shorthelp": "Task: script variables",
                             "switch": [
-                                "-tool_task_variable 'tool task key <str>'"
+                                "-tool_task_var 'tool task key <str>'"
                             ],
                             "type": "[str]"
                         }

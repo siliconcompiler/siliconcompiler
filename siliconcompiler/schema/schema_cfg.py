@@ -1285,9 +1285,9 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[str]',
             pernode='optional',
             shorthelp="Task: script variables",
-            switch="-tool_task_variable 'tool task key <str>'",
+            switch="-tool_task_var 'tool task key <str>'",
             example=[
-                "cli: -tool_task_variable 'openroad cts myvar 42'",
+                "cli: -tool_task_var 'openroad cts myvar 42'",
                 "api: chip.set('tool','openroad','task','cts','var','myvar','42')"],
             schelp="""
             Task script variables specified as key value pairs. Variable
