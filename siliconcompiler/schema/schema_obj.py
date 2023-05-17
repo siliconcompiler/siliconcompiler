@@ -948,7 +948,7 @@ class Schema:
         # Reinitialize logger on restore
         self._init_logger()
 
-
+    #######################################
     def get_default(self, *keypath):
         '''Returns default value of a parameter.
 
