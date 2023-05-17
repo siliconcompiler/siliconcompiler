@@ -1,4 +1,5 @@
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
+from siliconcompiler.tools.verilator.verilator import runtime_options as runtime_options_tool
 
 
 def setup(chip):
@@ -17,3 +18,7 @@ def setup(chip):
 
     chip.add('tool', tool, 'task', task, 'option', ['--lint-only'],
              step=step, index=index)
+
+
+def runtime_options(chip):
+    return runtime_options_tool(chip)

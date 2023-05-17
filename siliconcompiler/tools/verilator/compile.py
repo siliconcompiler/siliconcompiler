@@ -28,6 +28,11 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'option', f'-o ../outputs/{design}.vexe',
              step=step, index=index)
 
+    if chip.valid('input', 'hll', 'c'):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['input', 'hll', 'c']),
+                 step=step, index=index)
+
 
 def runtime_options(chip):
     step = chip.get('arg', 'step')
