@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.32.0'
+SCHEMA_VERSION = '0.33.0'
 
 
 #############################################################################
@@ -2017,7 +2017,7 @@ def schema_option(cfg):
             parameter.""")
 
     scparam(cfg, ['option', 'credentials'],
-            sctype='[file]',
+            sctype='file',
             scope='job',
             shorthelp="User credentials file",
             switch="-credentials <file>'",
