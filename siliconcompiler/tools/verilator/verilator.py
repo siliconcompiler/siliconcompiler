@@ -79,12 +79,24 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'task', task, 'option', '--trace',
                  step=step, index=index)
 
+    chip.set('tool', tool, 'task', task, 'file', 'config',
+             'Verilator configuration file',
+             field='help')
+
 
 def runtime_options(chip):
     cmdlist = []
+    tool = 'verilator'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
+
     design = chip.top()
+
+    # Verilator docs recommend this file comes first in CLI arguments
+    for value in chip.find_files('tool', tool, 'task', task, 'file', 'config',
+                                 step=step, index=index):
+        cmdlist.append(value)
 
     if os.path.isfile(f'inputs/{design}.v'):
         cmdlist.append(f'inputs/{design}.v')
