@@ -4279,7 +4279,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Load the remote storage config into the status dictionary.
             if self.get('option', 'credentials'):
                 # Use the provided remote credentials file.
-                cfg_file = os.path.abspath(self.get('option', 'credentials')[-1])
+                cfg_file = os.path.abspath(self.get('option', 'credentials'))
 
                 if not os.path.isfile(cfg_file):
                     # Check if it's a file since its been requested by the user
