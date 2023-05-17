@@ -765,7 +765,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         description = self.get(*keypath, field='shorthelp')
         typestr = self.get(*keypath, field='type')
         switchstr = str(self.get(*keypath, field='switch'))
-        defstr = str(self.get(*keypath, field='defvalue'))
+        defstr = str(self.schema.get_default(*keypath))
         requirement = str(self.get(*keypath, field='require'))
         helpstr = self.get(*keypath, field='help')
         example = self.get(*keypath, field='example')
@@ -1492,7 +1492,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 # update other fields that a user might modify
                 for field in src.getdict(*keylist).keys():
-                    if field in ('node', 'switch', 'type', 'require', 'defvalue',
+                    if field in ('node', 'switch', 'type', 'require',
                                  'shorthelp', 'example', 'help'):
                         # skip these fields (node handled above, others are static)
                         continue

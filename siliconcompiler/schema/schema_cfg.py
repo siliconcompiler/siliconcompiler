@@ -79,7 +79,6 @@ def scparam(cfg,
             defvalue = []
 
         # mandatory for all
-        cfg['defvalue'] = defvalue
         cfg['type'] = sctype
         cfg['scope'] = scope
         cfg['require'] = require

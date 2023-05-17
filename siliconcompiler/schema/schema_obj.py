@@ -156,12 +156,7 @@ class Schema:
                 return cfg['node'][step][index][field]
             except KeyError:
                 if cfg['pernode'] == 'required':
-                    if field == 'value':
-                        return cfg['defvalue']
-                    elif Schema._is_list(field, self.get(*keypath, field='type')):
-                        return []
-                    else:
-                        return None
+                    return cfg['node']['default']['default'][field]
 
             try:
                 return cfg['node'][step][self.GLOBAL_KEY][field]
@@ -171,12 +166,7 @@ class Schema:
             try:
                 return cfg['node'][self.GLOBAL_KEY][self.GLOBAL_KEY][field]
             except KeyError:
-                if field == 'value':
-                    return cfg['defvalue']
-                elif Schema._is_list(field, self.get(*keypath, field='type')):
-                    return []
-                else:
-                    return None
+                return cfg['node']['default']['default'][field]
         elif field in cfg:
             return cfg[field]
         else:
@@ -368,7 +358,7 @@ class Schema:
                     vals.append((cfg['node'][step][index]['value'], step_arg, index_arg))
 
         if (cfg['pernode'] != 'required') and not has_global and return_defvalue:
-            vals.append((cfg['defvalue'], None, None))
+            vals.append((cfg['node']['default']['default']['value'], None, None))
 
         return vals
 
@@ -492,7 +482,7 @@ class Schema:
             # TODO: could consider normalizing "None" for lists to empty list?
             return value
 
-        if field in ('value', 'defvalue'):
+        if field == 'value':
             # Push down error_msg from the top since arguments get modified in recursive call
             error_msg = f'Invalid value {value} for keypath {keypath}: expected type {sc_type}'
             return Schema._normalize_value(value, sc_type, error_msg, allowed_values)
@@ -654,7 +644,7 @@ class Schema:
         if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch'):
             return True
 
-        if is_list and field in ('signature', 'defvalue', 'value'):
+        if is_list and field in ('signature', 'value'):
             return True
 
         return False
@@ -739,7 +729,7 @@ class Schema:
         for k in cfg:
             newkeys = keys.copy()
             newkeys.append(k)
-            if 'defvalue' in cfg[k]:
+            if Schema._is_leaf(cfg[k]):
                 keylist.append(newkeys)
             else:
                 self._allkeys(cfg=cfg[k], keys=newkeys, keylist=keylist)
@@ -884,7 +874,7 @@ class Schema:
                 del cfg[k]['help']
             elif 'example' in cfg[k].keys():
                 del cfg[k]['example']
-            elif 'defvalue' in cfg[k].keys():
+            elif Schema._is_leaf(cfg[k]):
                 if self._is_empty(*keypath, k, keeplists=keeplists):
                     del cfg[k]
             # removing stale branches
@@ -907,7 +897,7 @@ class Schema:
             empty = (None, [])
 
         values = self._getvals(*keypath)
-        defvalue = self.get(*keypath, field='defvalue')
+        defvalue = self.get_default(*keypath)
         value_empty = (defvalue in empty) and \
             all([value in empty for value, _, _ in values])
         return value_empty
@@ -957,6 +947,21 @@ class Schema:
 
         # Reinitialize logger on restore
         self._init_logger()
+
+
+    def get_default(self, *keypath):
+        '''Returns default value of a parameter.
+
+        Args:
+            keypath(list str): Variable length schema key list.
+        '''
+        cfg = self._search(*keypath)
+
+        if not Schema._is_leaf(cfg):
+            raise ValueError(f'Invalid keypath {keypath}: get_default() '
+                             'must be called on a complete keypath')
+
+        return cfg['node']['default']['default']['value']
 
 
 if _has_yaml:
