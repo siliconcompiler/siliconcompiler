@@ -123,15 +123,6 @@ def setup(chip, mode='batch'):
                  ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']),
                  step=step, index=index)
 
-        # set tapcell file
-        tapfile = None
-        if chip.valid('library', mainlib, 'option', 'file', 'openroad_tapcells'):
-            tapfile = chip.find_files('library', mainlib, 'option', 'file', 'openroad_tapcells')
-        elif chip.valid('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells'):
-            tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
-        if tapfile:
-            chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell', tapfile,
-                     step=step, index=index, clobber=False)
         chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell',
                  'tap cell insertion script',
                  field='help')
@@ -346,19 +337,6 @@ def setup(chip, mode='batch'):
         if helptext:
             chip.set('tool', tool, 'task', task, 'var', variable, helptext, field='help')
 
-    for libvar, openroadvar in [('openroad_pdngen', 'pdn_config'),
-                                ('openroad_global_connect', 'global_connect')]:
-        if chip.valid('tool', tool, 'task', task, 'file', openroadvar) and \
-           chip.get('tool', tool, 'task', task, 'file', openroadvar, step=step, index=index):
-            # value already set
-            continue
-
-        # copy from libs
-        for lib in targetlibs + macrolibs:
-            if chip.valid('library', lib, 'option', 'file', libvar):
-                for vfile in chip.find_files('library', lib, 'option', 'file', libvar):
-                    chip.add('tool', tool, 'task', task, 'file', openroadvar, vfile,
-                             step=step, index=index)
     chip.set('tool', tool, 'task', task, 'file', 'pdn_config',
              'list of files to use for power grid generation',
              field='help')
@@ -404,6 +382,42 @@ def normalize_version(version):
         return version.lstrip('v')
     else:
         return '0'
+
+
+def pre_process(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+    pdkname = chip.get('option', 'pdk')
+    targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
+    macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
+    mainlib = targetlibs[0]
+    stackup = chip.get('option', 'stackup')
+    libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
+
+    # set tapcell file
+    tapfile = None
+    if chip.valid('library', mainlib, 'option', 'file', 'openroad_tapcells'):
+        tapfile = chip.find_files('library', mainlib, 'option', 'file', 'openroad_tapcells')
+    elif chip.valid('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells'):
+        tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
+    if tapfile:
+        chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell', tapfile,
+                 step=step, index=index, clobber=False)
+
+    for libvar, openroadvar in [('openroad_pdngen', 'pdn_config'),
+                                ('openroad_global_connect', 'global_connect')]:
+        if chip.valid('tool', tool, 'task', task, 'file', openroadvar) and \
+           chip.get('tool', tool, 'task', task, 'file', openroadvar, step=step, index=index):
+            # value already set
+            continue
+
+        # copy from libs
+        for lib in targetlibs + macrolibs:
+            if chip.valid('library', lib, 'option', 'file', libvar):
+                for vfile in chip.find_files('library', lib, 'option', 'file', libvar):
+                    chip.add('tool', tool, 'task', task, 'file', openroadvar, vfile,
+                             step=step, index=index)
 
 
 ################################

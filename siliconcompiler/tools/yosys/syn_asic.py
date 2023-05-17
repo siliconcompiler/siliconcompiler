@@ -41,10 +41,6 @@ def setup_asic(chip):
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['tool', tool, 'task', task, 'var', 'synthesis_corner']),
                  step=step, index=index)
-    if get_dff_liberty_file(chip) is None:
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['tool', tool, 'task', task, 'file', 'dff_liberty']),
-                 step=step, index=index)
 
     if syn_corner is not None:
         # add timing library requirements
@@ -65,7 +61,6 @@ def setup_asic(chip):
 
     # set default control knobs
     logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
-    macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
     mainlib = logiclibs[0]
     for option, value, additional_require in [
             ('flatten', "True", None),
@@ -82,15 +77,6 @@ def setup_asic(chip):
             chip.add('tool', tool, 'task', task, 'require',
                      ",".join(additional_require),
                      step=step, index=index)
-
-    # copy techmapping from libraries
-    for lib in logiclibs + macrolibs:
-        if not chip.valid('library', lib, 'option', 'file', 'yosys_techmap'):
-            continue
-        for techmap in chip.find_files('library', lib, 'option', 'file', 'yosys_techmap'):
-            if techmap is None:
-                continue
-            chip.add('tool', tool, 'task', task, 'file', 'techmap', techmap, step=step, index=index)
 
     # Add conditionally required mainlib variables
     if chip.valid('library', mainlib, 'option', 'var', 'yosys_buffer_cell'):
@@ -112,36 +98,14 @@ def setup_asic(chip):
 
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner', get_synthesis_corner(chip),
              step=step, index=index, clobber=False)
-    dff_liberty_file = get_dff_liberty_file(chip)
-    if dff_liberty_file:
-        chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', dff_liberty_file,
-                 step=step, index=index, clobber=False)
     chip.add('tool', tool, 'task', task, 'require',
              ",".join(['tool', tool, 'task', task, 'var', 'synthesis_corner']),
              step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'require',
-             ",".join(['tool', tool, 'task', task, 'file', 'dff_liberty']),
-             step=step, index=index)
-
-    # Constants needed by yosys, do not allow overriding of values so force clobbering
-    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file',
-             f"{chip._getworkdir(step=step, index=index)}/inputs/sc_dff_library.lib",
-             step=step, index=index, clobber=True)
-    chip.set('tool', tool, 'task', task, 'file', 'abc_constraint_file',
-             f"{chip._getworkdir(step=step, index=index)}/inputs/sc_abc.constraints",
-             step=step, index=index, clobber=True)
 
     abc_driver = get_abc_driver(chip)
     if abc_driver:
         chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver', abc_driver,
                  step=step, index=index, clobber=False)
-    abc_clock_period = get_abc_period(chip)
-    if abc_clock_period:
-        chip.set('tool', tool, 'task', task, 'var', 'abc_clock_period', str(abc_clock_period),
-                 step=step, index=index, clobber=False)
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['tool', tool, 'task', task, 'var', 'abc_clock_period']),
-                 step=step, index=index)
 
     # document parameters
     chip.set('tool', tool, 'task', task, 'var', 'preserve_modules',
@@ -450,6 +414,39 @@ def get_abc_driver(chip):
 def pre_process(chip):
     ''' Tool specific function to run before step execution
     '''
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    # copy techmapping from libraries
+    logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
+    macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
+    for lib in logiclibs + macrolibs:
+        if not chip.valid('library', lib, 'option', 'file', 'yosys_techmap'):
+            continue
+        for techmap in chip.find_files('library', lib, 'option', 'file', 'yosys_techmap'):
+            if techmap is None:
+                continue
+            chip.add('tool', tool, 'task', task, 'file', 'techmap', techmap, step=step, index=index)
+
+    # Constants needed by yosys, do not allow overriding of values so force clobbering
+    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file',
+             f"{chip._getworkdir(step=step, index=index)}/inputs/sc_dff_library.lib",
+             step=step, index=index, clobber=True)
+    chip.set('tool', tool, 'task', task, 'file', 'abc_constraint_file',
+             f"{chip._getworkdir(step=step, index=index)}/inputs/sc_abc.constraints",
+             step=step, index=index, clobber=True)
+
+    dff_liberty_file = get_dff_liberty_file(chip)
+    if dff_liberty_file:
+        chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', dff_liberty_file,
+                 step=step, index=index, clobber=False)
+
+    abc_clock_period = get_abc_period(chip)
+    if abc_clock_period:
+        chip.set('tool', tool, 'task', task, 'var', 'abc_clock_period', str(abc_clock_period),
+                 step=step, index=index, clobber=False)
 
     prepare_synthesis_libraries(chip)
     create_abc_synthesis_constraints(chip)
