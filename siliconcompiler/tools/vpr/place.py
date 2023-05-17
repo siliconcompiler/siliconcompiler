@@ -21,15 +21,16 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index, clobber=False)
 
-    # TO-DO: PRIOROTIZE the post-routing packing results?
     design = chip.top()
     chip.set('tool', tool, 'task', task, 'output', design + '.net', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.place', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', design + '.route', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', 'vpr_stdout.log', step=step, index=index)
 
     options = vpr.assemble_options(chip, tool)
 
+    #Confine VPR execution to packing and placement steps
+    options.append('--pack --place')
+    
     threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
     options.append(f"--num_workers {threads}")
 

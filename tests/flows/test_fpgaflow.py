@@ -9,66 +9,36 @@ import siliconcompiler
 @pytest.mark.eda
 @pytest.mark.quick
 def test_fpgaflow(scroot,
-                  route_chan_width=100,
-                  lut_size=5,
-                  benchmark_name='and_latch',
-                  top_module='and_latch'):
+                  route_chan_width=50,
+                  lut_size=4,
+                  arch_name='zafg000sc_X008Y008',
+                  benchmark_name='macc',
+                  top_module='macc'):
 
     chip = siliconcompiler.Chip(f'{top_module}')
 
-    chip.set('fpga', 'partname', 'k6_frac_N10_40nm')
+    chip.set('fpga', 'partname', arch_name)
 
-    vpr_path = shutil.which('vpr')
-    vpr_root = vpr_path[:-8]
-
-    # single_port_ram_stub = os.path.join(scroot,
-    #                                    'siliconcompiler',
-    #                                    'tools',
-    #                                    'yosys',
-    #                                    'vpr_yosysstubs',
-    #                                    'single_port_ram.v')
-
-    # dual_port_ram_stub = os.path.join(scroot,
-    #                                  'siliconcompiler',
-    #                                  'tools',
-    #                                  'yosys',
-    #                                  'vpr_yosysstubs',
-    #                                  'dual_port_ram.v')
+    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
+    arch_root = os.path.join(flow_root, 'arch', arch_name)
 
     # 1. Defining the project
     # 2. Define source files
-    v_src = os.path.join(vpr_root, 'vtr_flow', 'benchmarks', 'verilog', f'{benchmark_name}.v')
+    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
     chip.input(v_src)
-    # chip.input(single_port_ram_stub)
-    # chip.input(dual_port_ram_stub)
 
     # 3.  Synthesis Setup
-    # single_port_ram_lib = os.path.join(scroot,
-    #                                    'siliconcompiler',
-    #                                   'tools',
-    #                                   'yosys',
-    #                                   'vpr_yosyslib',
-    #                                   'single_port_ram.v')
-
-    # dual_port_ram_lib = os.path.join(scroot,
-    #                                 'siliconcompiler',
-    #                                 'tools',
-    #                                 'yosys',
-    #                                 'vpr_yosyslib',
-    #                                 'dual_port_ram.v')
 
     chip.add('tool', 'yosys', 'task', 'syn', 'var', 'lut_size', f'{lut_size}')
     chip.add('tool', 'yosys', 'task', 'syn', 'var', 'memmap', 'None')
     chip.add('tool', 'yosys', 'task', 'syn', 'var', 'techmap', 'None')
-    # chip.add('tool', 'yosys', 'task', 'syn', 'var', 'techmap', single_port_ram_lib)
-    # chip.add('tool', 'yosys', 'task', 'syn', 'var', 'techmap', dual_port_ram_lib)
-    chip.add('tool', 'yosys', 'task', 'syn', 'var', 'techmap_define', 'MEM_MAXADDR=14')
 
     # 4.  VPR Setup
-    # xml_file = os.path.join(vpr_root, 'vtr_flow', 'arch', 'timing', 'k6_frac_N10_mem32K_40nm.xml')
-    xml_file = os.path.join(vpr_root, 'utils', 'fasm', 'test', 'test_fasm_arch.xml')
+    xml_file = os.path.join(arch_root, f'{arch_name}.xml')
+    rr_graph_file = os.path.join(arch_root, f'{arch_name}_rr_graph.xml')
 
     chip.set('fpga', 'arch', xml_file)
+    chip.set('tool', 'vpr', 'task', 'apr', 'var', 'rr_graph', f'{rr_graph_file}')
     chip.set('tool', 'vpr', 'task', 'apr', 'var', 'route_chan_width', f'{route_chan_width}')
 
     # 5. Load target
@@ -81,3 +51,6 @@ def test_fpgaflow(scroot,
     fasm_file = chip.find_result('fasm', step='bitstream')
 
     assert fasm_file.endswith(f'{top_module}.fasm')
+
+if __name__ == "__main__":
+    test_fpgaflow(os.environ['SCPATH'])
