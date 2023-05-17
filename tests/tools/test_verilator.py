@@ -16,6 +16,8 @@ def test_lint_post_surelog(scroot):
     v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
     chip.input(v_src)
 
+    chip.set('option', 'mode', 'sim')
+
     flow = 'lint'
     chip.node(flow, 'import', parse)
     chip.node(flow, 'lint', lint)
