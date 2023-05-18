@@ -14,10 +14,14 @@ In order to generate docs, you will need to make sure you have Graphviz installe
 On a Mac `brew install graphviz`, or 
 on Linux `sudo apt install graphviz`.
 
-
 If you have a Latex distribution installed, you can also generate PDF
 documentation through `make latexpdf`. For a full list of targets Sphinx
 supports, run `make` from this directory.
+
+In order to generate the PDF docs, you will need to install the following additional packages:
+  `sudo apt install latexmk`
+  `sudo apt install texlive-latex-extra`
+  `sudo apt install imagemagick`
 
 ## Docs structure
 
