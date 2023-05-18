@@ -10,7 +10,6 @@ build:
   tools:
     python: "3.8"
   apt_packages:
-    - graphvix
     - xdot
     
 # Build documentation in the docs/ directory with Sphinx
