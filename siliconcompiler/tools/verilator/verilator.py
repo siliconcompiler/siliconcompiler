@@ -98,17 +98,23 @@ def runtime_options(chip):
                                  step=step, index=index):
         cmdlist.append(value)
 
+    for param in chip.getkeys('option', 'param'):
+        value = chip.get('option', 'param', param)
+        cmdlist.append(f'-G{param}={value}')
+
     if os.path.isfile(f'inputs/{design}.v'):
         cmdlist.append(f'inputs/{design}.v')
     else:
         for value in chip.find_files('option', 'ydir'):
-            cmdlist.append('-y ' + value)
+            cmdlist.append(f'-y {value}')
         for value in chip.find_files('option', 'vlib'):
-            cmdlist.append('-v ' + value)
+            cmdlist.append(f'-v {value}')
         for value in chip.find_files('option', 'idir'):
-            cmdlist.append('-I' + value)
+            cmdlist.append(f'-I{value}')
         for value in chip.find_files('option', 'cmdfile'):
-            cmdlist.append('-f ' + value)
+            cmdlist.append(f'-f {value}')
+        for value in chip.get('option', 'define'):
+            cmdlist.append(f'-D{value}')
         for value in chip.find_files('input', 'rtl', 'verilog', step=step, index=index):
             cmdlist.append(value)
 
