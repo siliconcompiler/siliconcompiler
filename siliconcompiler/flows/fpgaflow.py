@@ -1,11 +1,14 @@
 import siliconcompiler
-import re
 
 from siliconcompiler.flows._common import setup_frontend
+
 from siliconcompiler.tools.yosys import syn_fpga
-from siliconcompiler.tools.vpr import place
-from siliconcompiler.tools.vpr import route
-from siliconcompiler.tools.genfasm import bitstream
+from siliconcompiler.tools.vpr import place as vpr_place
+from siliconcompiler.tools.vpr import route as vpr_route
+from siliconcompiler.tools.genfasm import bitstream as genfasm_bitstream
+
+# from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
+
 
 ############################################################################
 # DOCS
@@ -17,12 +20,12 @@ def make_docs(chip):
 ############################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='fpgaflow'):
+def setup(chip, flowname='fpgaflow', toolflow='vpr'):
     '''
     A configurable FPGA compilation flow.
 
     The 'fpgaflow' module is a configurable FPGA flow with support for
-    open source and commercial tool flows. 
+    open source and commercial tool flows.
 
     The following step convention is recommended
     for tools.
@@ -42,26 +45,32 @@ def setup(chip, flowname='fpgaflow'):
     flow = siliconcompiler.Flow(chip, flowname)
 
     # Setting up pipeline
-    # TODO: Going forward we want to standardize steps
     flowpipe = ['syn', 'place', 'route', 'bitstream']
 
-    tasks = {
-        'syn': syn_fpga,
-        'place': place,
-        'route': route,
-        'bitstream': bitstream
+    fpga_tool_module = {
+        'vpr': {'place': vpr_place, 'route': vpr_route, 'bitstream': genfasm_bitstream},
+        #        'nextpnr': {'place': nextpnr_place,
+        #                     'route': nextpnr_route,
+        #                     'bitstream': nextpnr_bitstream },
     }
-    
+
+    tool_modules = {
+        'syn': syn_fpga,
+        'place': fpga_tool_module[toolflow]['place'],
+        'route': fpga_tool_module[toolflow]['route'],
+        'bitstream': fpga_tool_module[toolflow]['bitstream']
+    }
+
     flowtools = setup_frontend(chip)
     for step in flowpipe:
-        flowtools.append((step, tasks[step]))
+        flowtools.append((step, tool_modules[step]))
 
     # Minimal setup
     index = '0'
     prevstep = None
-    for step, task in flowtools:
+    for step, tool_module in flowtools:
         # Flow
-        flow.node(flowname, step, task)
+        flow.node(flowname, step, tool_module)
         if prevstep:
             flow.edge(flowname, prevstep, step)
         # Hard goals
