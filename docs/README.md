@@ -19,9 +19,11 @@ documentation through `make latexpdf`. For a full list of targets Sphinx
 supports, run `make` from this directory.
 
 In order to generate the PDF docs, you will need to install the following additional packages:
-  `sudo apt install latexmk`
-  `sudo apt install texlive-latex-extra`
-  `sudo apt install imagemagick`
+```
+  sudo apt install latexmk
+  sudo apt install texlive-latex-extra
+  sudo apt install imagemagick
+```
 
 ## Docs structure
 
