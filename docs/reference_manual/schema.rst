@@ -16,17 +16,8 @@ Parameter Fields
 
 .. glossary::
 
-    author
-        File author. The author string records the person/entity that authored/created each item in the list of files within 'value' parameter field. The 'author' field can be used to validate the provenance of the data used for compilation.
-
     copy
         Whether to copy files into build directory, applies to files only
-
-    date
-        String containing the data stamp of each item in the list of files within 'value' parameter field. The 'date' field can be used to validate the provenance of the data used for compilation.
-
-    defvalue
-        Default value for the parameter. The default value must agree with the parameter 'type'. To specify that a parameter has no default value, set the defvalue to [] (ie empty list) for a list type and to 'null' or None for a non-list/scalar type.
 
     enum
         List of strings containing the set of legal values for this parameter.
@@ -37,14 +28,14 @@ Parameter Fields
     hashalgo
         Hasing algorithm useed to calculate filehash value.
 
-    filehash
-        Calculated file hash value for each file in the 'value' field of the parameter.
-
     help
         Complete parameter help doc string. The help string serves as ground truth for describing the parameter functionality and should be used for long help descriptions in command line interface programs and for automated schema document generation. The long help can be pruned/filtered before the schema is dumped into a JSON file.
 
     lock
         Boolean value dictating whether the parameter can be modified by the set/get/add core API methods. A value of True specifiers that the parameter is locked and cannot be modified. Attempts to write to to a locked parameter shall result in an exception/error that blocks compilation progress.
+
+    node
+        Dictionary containing fields whose values may vary on a per-step/index basis. Sub-fields are described in :ref:`Per-node Parameter Fields`
 
     notes
         User entered 'notes'/'disclaimers' about value being set.
@@ -58,9 +49,6 @@ Parameter Fields
     scope
         Scope of parameter in schema
 
-    signature
-        String recording a unique machine calculated string for each item in the list of files within 'value' parameter field. The 'signature' field can be used to validate the provenance of the data used for compilation.
-
     switch
         String that specifies the equivalent switch to use in command line interfaces. The switch string must start with a '-' and cannot contain spaces.
 
@@ -72,6 +60,25 @@ Parameter Fields
 
     unit
         Implied unit for parameter value.
+
+
+Per-node Parameter fields
+---------------------------
+
+The following fields are specified inside the ``node`` dictionary on a per-step/index basis. Default values for each field are stored under the special keys ``"default", "default"``, and global values are specified under the special keys ``"global", "global"``.
+
+.. glossary::
+    author
+        File author. The author string records the person/entity that authored/created each item in the list of files within 'value' parameter field. The 'author' field can be used to validate the provenance of the data used for compilation.
+
+    date
+        String containing the data stamp of each item in the list of files within 'value' parameter field. The 'date' field can be used to validate the provenance of the data used for compilation.
+
+    filehash
+        Calculated file hash value for each file in the 'value' field of the parameter.
+
+    signature
+        String recording a unique machine calculated string for each item in the list of files within 'value' parameter field. The 'signature' field can be used to validate the provenance of the data used for compilation.
 
     value
         Parameter value
