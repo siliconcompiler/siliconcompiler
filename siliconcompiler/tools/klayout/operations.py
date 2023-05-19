@@ -126,7 +126,7 @@ def setup(chip):
                    'add_top',
                    'write',
                    'convert_property')
-    ops = chip.get('tool', tool, 'task', task, 'var', 'operations')
+    ops = chip.get('tool', tool, 'task', task, 'var', 'operations', step=step, index=index)
     for op in ops:
         klayout_op = op.split(':', 1)
         if len(klayout_op) == 1:

@@ -222,8 +222,8 @@ if __name__ == "__main__":
     # SC_ROOT provided by CLI
     sys.path.append(SC_ROOT)  # noqa: F821
 
-    from schema import Schema  # noqa E402
-    from tools.klayout.klayout_utils import technology, get_streams  # noqa E402
+    from schema import Schema
+    from tools.klayout.klayout_utils import technology, get_streams
 
     schema = Schema(manifest='sc_manifest.json')
 
