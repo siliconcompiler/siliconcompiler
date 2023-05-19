@@ -759,7 +759,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             standard footprint names or a custom naming methodology used in
             conjunction with 'fileset' names in the output parameter.""")
 
-    # Absolute max temperatures
+    # Temperature limits
     metrics = {'storagetemp': 'storage temperature limits',
                'soldertemp': 'solder temperature limits',
                'junctiontemp': 'junction temperature limits'}
@@ -794,8 +794,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 schelp=f"""Device {item} specified in C/W.""")
 
     # Package Pin Map
-    package = 'default'
-    scparam(cfg, ['datasheet', design, 'pin', name, 'map', package],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'map', name],
             sctype='str',
             shorthelp="Datasheet: pin map",
             switch="-datasheet_pin_map 'design name package <str>'",
@@ -813,7 +812,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 "cli: -datasheet_pin_type 'mydevice vdd global power'",
                 "api: chip.set('datasheet','mydevice','pin','vdd','type','global','power')"],
             schelp="""Pin type specified on a per mode basis. Acceptable pin types
-            include: digital, analog, clk, power, ground""")
+            include: digital, analog, clock, supply, ground""")
 
     # Pin function
     scparam(cfg, ['datasheet', design, 'pin', name, 'function', mode],
@@ -837,7 +836,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             schelp="""Pin direction specified on a per mode basis. Acceptable pin
             directions include: input, output, inout.""")
 
-    # Complementary pin (for differential pair)
+    # Pin complementary (for differential pair)
     scparam(cfg, ['datasheet', design, 'pin', name, 'complement', mode],
             sctype='str',
             shorthelp="Datasheet: pin complement",
@@ -848,17 +847,27 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             schelp="""Pin complement specified on a per mode basis for differential
             signals.""")
 
-    # Standard
+    # Pin standard
     scparam(cfg, ['datasheet', design, 'pin', name, 'standard', mode],
             sctype='[str]',
             shorthelp="Datasheet: pin standard",
             switch="-datasheet_pin_standard 'design name mode <str>'",
             example=[
-                "cli: -datasheet_pin_standard 'mydevice clk0 ddr4 CLKN'",
-                "api: chip.set('datasheet','mydevice','pin','clk0','standard','ddr4','CLKN')"],
-            schelp="""Pin mapping to standard interfaces with standarized signal names.""")
+                "cli: -datasheet_pin_standard 'mydevice clk LVCMOS'",
+                "api: chip.set('datasheet','mydevice','pin','clk','standard','LVCMOS')"],
+            schelp="""Pin electrical signaling standard (LVDS, LVCMOS, TTL,..).""")
 
-    # Reset value
+    # Pin signal Map
+    scparam(cfg, ['datasheet', design, 'pin', name, 'signal', name],
+            sctype='[str]',
+            shorthelp="Datasheet: pin signal map",
+            switch="-datasheet_pin_standard 'design name mode <str>'",
+            example=[
+                "cli: -datasheet_pin_signal 'mydevice clk0 ddr4 CLKN'",
+                "api: chip.set('datasheet','mydevice','pin','clk0','signal','ddr4','CLKN')"],
+            schelp="""Pin mapping to standardized interface signals.""")
+
+    # Pin reset value
     scparam(cfg, ['datasheet', design, 'pin', name, 'resetvalue', mode],
             sctype='[str]',
             shorthelp="Datasheet: pin reset value",
@@ -868,8 +877,6 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 "api: chip.set('datasheet','mydevice','pin','clk','resetvalue','global','weak1')"],
             schelp="""Pin reset value specified on a per mode basis. Legal reset
             values include weak1, weak0, strong0, strong1, highz.""")
-
-    # Electrical Specifications
 
     # DC levels and Metrics
     metrics = {'vsupply': ['supply operating voltage', (0.2, 0.3, 0.9), 'V'],
