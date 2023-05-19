@@ -20,6 +20,19 @@ def __with_timestamps(schema):
                       step=sc_step, index=sc_index) == ['true']
 
 
+def __get_keypath_step_index(schema, *keypath):
+    ret = {
+        'step': schema.get('arg', 'step'),
+        'index': schema.get('arg', 'index')
+    }
+    pernode = schema.get(*keypath, field='pernode')
+    if pernode == 'never':
+        ret['step'] = None
+        ret['index'] = None
+
+    return ret
+
+
 def __do_cell_swap(parent, old_cell_idx, new_cell, checked):
     if (parent.cell_index() in checked):
         return 0
@@ -178,7 +191,7 @@ def parse_operations(schema, base_layout, steps):
             if len(args_key) > 1:
                 if 'file' not in schema.get(*args_key, field='type'):
                     raise ValueError(f'{step_name} requires {args_key} be a file type')
-                files = schema.get(*args_key, step=sc_step, index=sc_index)
+                files = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))
             else:
                 files = [f'inputs/{step_args}']
             for op_file in files:
@@ -189,16 +202,15 @@ def parse_operations(schema, base_layout, steps):
         elif (step_name == "rotate"):
             base_layout = rotate_layout(base_layout)
         elif (step_name == "outline"):
-            outline_layer = [int(layer) for layer in schema.get(*args_key,
-                                                                step=sc_step,
-                                                                index=sc_index)]
+            outline_layer = [int(layer) for layer in schema.get(
+                *args_key, **__get_keypath_step_index(schema, *args_key))]
             if len(outline_layer) != 2:
                 raise ValueError('outline layer requires two entries for layer and purpose, '
                                  f'received: {len(outline_layer)}')
             base_layout = add_outline(base_layout,
                                       base_layout.layer(outline_layer[0], outline_layer[1]))
         elif (step_name == "convert_property"):
-            options = schema.get(*args_key, step=sc_step, index=sc_index)
+            options = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))
             if len(options) != 3 and len(options) != 5:
                 raise ValueError(f'{step_name} requires 3 or 5 arguments in {args_key}')
             prop_layer = [int(layer) for layer in options[0:2]]
@@ -214,14 +226,14 @@ def parse_operations(schema, base_layout, steps):
                                              prop_number,
                                              base_layout.layer(dest_layer[0], dest_layer[1]))
         elif (step_name == "rename"):
-            new_name = schema.get(*args_key, step=sc_step, index=sc_index)[0]
+            new_name = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))[0]
             base_layout = rename_top(base_layout, new_name)
         elif (step_name == "swap"):
-            for swapset in schema.get(*args_key, step=sc_step, index=sc_index):
+            for swapset in schema.get(*args_key, **__get_keypath_step_index(schema, *args_key)):
                 oldcell, newcell = swapset.split("=")
                 base_layout = swap_cells(base_layout, oldcell, newcell)
         elif (step_name == "add_top"):
-            new_name = schema.get(*args_key, step=sc_step, index=sc_index)[0]
+            new_name = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))[0]
             add_layout_top_top(base_layout, new_name)
         elif (step_name == "write"):
             write_stream(base_layout, f'outputs/{step_args}', __with_timestamps(schema))
