@@ -72,7 +72,7 @@ def setup(chip):
     >>> chip.set('tool', 'klayout, 'task', 'operations', 'var', 'new_name', \\
         'chip_top')
 
-    To add write out a new file:
+    To write out a new file:
 
     >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
         'write:combined.gds')
