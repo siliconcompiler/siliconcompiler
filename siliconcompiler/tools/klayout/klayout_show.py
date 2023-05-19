@@ -28,6 +28,8 @@ def show(schema, tech, input_path, output_path, screenshot=False):
     # Always use LEF geometry even when LEF file contains FOREIGN statement.
     layoutOptions.lefdef_config.macro_resolution_mode = 1
 
+    tech.load_layout_options = layoutOptions
+
     app = pya.Application.instance()
 
     # Opinionated default KLayout configuration
@@ -45,8 +47,7 @@ def show(schema, tech, input_path, output_path, screenshot=False):
     app.set_config('background-color', '#212121')
 
     # Display the file!
-    cell_view = pya.MainWindow.instance().load_layout(input_path, layoutOptions, 0)
-    cell_view.technology = tech.name
+    cell_view = pya.MainWindow.instance().load_layout(input_path, tech.name)
     layout_view = cell_view.view()
 
     # Hide layers that shouldn't be shown in the current view.
@@ -68,6 +69,7 @@ def show(schema, tech, input_path, output_path, screenshot=False):
                                              step=step, index=index)[0])
 
         gds_img = layout_view.get_image(horizontal_resolution, vertical_resolution)
+        print(f'[INFO] Saving screenshot to {output_path}')
         gds_img.save(output_path, 'PNG')
 
 
