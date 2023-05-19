@@ -1,4 +1,5 @@
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
+import os
 
 
 def setup(chip):
@@ -112,10 +113,20 @@ def setup(chip):
                               step=step, index=index)[0]
     # Input/Output requirements for default flow
     design = chip.top()
-    chip.add('tool', tool, 'task', task, 'input', f'{design}.{default_stream}',
-             step=step, index=index)
+    if os.path.exists(f'inputs/{design}.{default_stream}'):
+        chip.add('tool', tool, 'task', task, 'input', f'{design}.{default_stream}',
+                 step=step, index=index)
+    else:
+        chip.add('tool', tool, 'task', task, 'require', f'input,layout,{default_stream}')
     chip.add('tool', tool, 'task', task, 'output', f'{design}.{default_stream}',
              step=step, index=index)
+
+    # Export GDS with timestamps by default.
+    chip.set('tool', tool, 'task', task, 'var', 'timestamps', 'true',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'timestamps',
+             'Export GDSII with timestamps',
+             field='help')
 
     klayout_ops = ('merge',
                    'add',

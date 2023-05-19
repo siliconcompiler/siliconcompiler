@@ -12,6 +12,14 @@ def read_layout(stream_file):
     return layout
 
 
+def __with_timestamps(schema):
+    sc_step = schema.get('arg', 'step')
+    sc_index = schema.get('arg', 'index')
+
+    return schema.get('tool', 'klayout', 'task', 'operations', 'var', 'timestamps',
+                      step=sc_step, index=sc_index) == ['true']
+
+
 def __do_cell_swap(parent, old_cell_idx, new_cell, checked):
     if (parent.cell_index() in checked):
         return 0
@@ -118,9 +126,13 @@ def rename_top(base_layout, new_name):
     return base_layout
 
 
-def write_stream(layout, outfile):
+def write_stream(layout, outfile, timestamps):
     print(f"[INFO] Writing layout: '{outfile}'")
-    layout.write(outfile)
+
+    write_options = pya.SaveLayoutOptions()
+    write_options.gds2_write_timestamps = timestamps
+
+    layout.write(outfile, write_options)
 
 
 def make_property_text(layout, property_layer, property_name, destination_layer):
@@ -202,18 +214,17 @@ def parse_operations(schema, base_layout, steps):
                                              prop_number,
                                              base_layout.layer(dest_layer[0], dest_layer[1]))
         elif (step_name == "rename"):
-            new_name = schema.get(*args_key)[0]
+            new_name = schema.get(*args_key, step=sc_step, index=sc_index)[0]
             base_layout = rename_top(base_layout, new_name)
         elif (step_name == "swap"):
-            for swapset in schema.get(*args_key):
+            for swapset in schema.get(*args_key, step=sc_step, index=sc_index):
                 oldcell, newcell = swapset.split("=")
                 base_layout = swap_cells(base_layout, oldcell, newcell)
         elif (step_name == "add_top"):
-            new_name = schema.get(*args_key)[0]
+            new_name = schema.get(*args_key, step=sc_step, index=sc_index)[0]
             add_layout_top_top(base_layout, new_name)
         elif (step_name == "write"):
-            out_file = f'output/{step_args}'
-            write_stream(base_layout, out_file)
+            write_stream(base_layout, f'outputs/{step_args}', __with_timestamps(schema))
         else:
             raise ValueError(f"Unknown step: {step_name}")
 
@@ -238,7 +249,7 @@ if __name__ == "__main__":
 
     in_gds = os.path.join('inputs', f'{design}.{sc_ext}')
     if not os.path.exists(in_gds):
-        in_gds = schema.get('input', 'layout', sc_ext)
+        in_gds = schema.get('input', 'layout', sc_ext)[0]
     out_gds = os.path.join('outputs', f'{design}.{sc_ext}')
 
     tech = technology(schema)
@@ -249,4 +260,4 @@ if __name__ == "__main__":
                                 step=sc_step, index=sc_index)
     parse_operations(schema, base_layout, sc_klayout_ops)
 
-    write_stream(base_layout, out_gds)
+    write_stream(base_layout, out_gds, __with_timestamps(schema))
