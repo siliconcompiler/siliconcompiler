@@ -8,6 +8,7 @@ import copy
 import csv
 import gzip
 import json
+import logging
 import os
 import re
 
@@ -37,6 +38,7 @@ class Schema:
         cfg (dict): Initial configuration dictionary. This may be a subtree of
             the schema.
         manifest (str): Initial manifest.
+        logger (logging.Logger): instance of the parent logger if available
     """
 
     # Special key in node dict that represents a value correponds to a
@@ -44,9 +46,11 @@ class Schema:
     GLOBAL_KEY = 'global'
     PERNODE_FIELDS = ('value', 'filehash', 'date', 'author', 'signature')
 
-    def __init__(self, cfg=None, manifest=None):
+    def __init__(self, cfg=None, manifest=None, logger=None):
         if cfg is not None and manifest is not None:
             raise ValueError('You may not specify both cfg and manifest')
+
+        self._init_logger(logger)
 
         if cfg is not None:
             self.cfg = Schema._dict_to_schema(copy.deepcopy(cfg))
@@ -187,11 +191,12 @@ class Schema:
         keypath = args[:-1]
         cfg = self._search(*keypath, insert_defaults=True)
 
-        return self._set(*args, cfg=cfg, field=field, clobber=clobber, step=step, index=index)
+        return self._set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
+                         step=step, index=index)
 
     ###########################################################################
     @staticmethod
-    def _set(*args, cfg=None, field='value', clobber=True, step=None, index=None):
+    def _set(*args, logger=None, cfg=None, field='value', clobber=True, step=None, index=None):
         '''
         Sets a schema parameter field.
 
@@ -212,11 +217,14 @@ class Schema:
             index = str(index)
 
         if cfg['lock']:
-            # TODO: log here
+            if logger:
+                logger.debug(f'Failed to set value for {keypath}: parameter is locked')
             return False
 
         if Schema._is_set(cfg, step=step, index=index) and not clobber:
-            # TODO: log here
+            if logger:
+                logger.debug(f'Failed to set value for {keypath}: clobber is False '
+                             'and parameter is set')
             return False
 
         allowed_values = None
@@ -269,7 +277,7 @@ class Schema:
                 raise ValueError(f'Invalid field {field}: add() must be called on a list')
 
         if cfg['lock']:
-            # TODO: log here
+            self.logger.debug(f'Failed to set value for {keypath}: parameter is locked')
             return False
 
         allowed_values = None
@@ -314,7 +322,7 @@ class Schema:
             index = str(index)
 
         if cfg['lock']:
-            # TODO: log here
+            self.logger.debug(f'Failed to set value for {keypath}: parameter is locked')
             return False
 
         if step is None:
@@ -920,6 +928,32 @@ class Schema:
         schema = Schema()
         schema.cfg = self.cfg['history'][job]
         return schema
+
+    #######################################
+    def _init_logger(self, parent=None):
+        if parent:
+            # If parent provided, create a child logger
+            self.logger = parent.getChild('schema')
+        else:
+            # Check if the logger exists and create
+            if not hasattr(self, 'logger') or not self.logger:
+                self.logger = logging.getLogger(f'sc_schema_{id(self)}')
+
+    #######################################
+    def __getstate__(self):
+        attributes = self.__dict__.copy()
+
+        # We have to remove the chip's logger before serializing the object
+        # since the logger object is not serializable.
+        del attributes['logger']
+        return attributes
+
+    #######################################
+    def __setstate__(self, state):
+        self.__dict__ = state
+
+        # Reinitialize logger on restore
+        self._init_logger()
 
 
 if _has_yaml:

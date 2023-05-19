@@ -23,7 +23,6 @@ import math
 import pandas
 import pkgutil
 import graphviz
-import uuid
 import shlex
 import platform
 import getpass
@@ -85,7 +84,9 @@ class Chip:
             self.error("""SiliconCompiler must be run from a directory that exists.
 If you are sure that your working directory is valid, try running `cd $(pwd)`.""", fatal=True)
 
-        self.schema = Schema()
+        self._init_logger()
+
+        self.schema = Schema(logger=self.logger)
 
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
@@ -109,14 +110,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # this is primarily used when generating standalone testcases
         self.__relative_path = None
 
-        # We set 'design' and 'loglevel' by directly calling the schema object
-        # because of a chicken-and-egg problem: self.set() relies on the logger,
-        # but the logger relies on these values.
-        self.schema.set('design', design)
+        self.set('design', design)
         if loglevel:
-            self.schema.set('option', 'loglevel', loglevel)
-
-        self._init_logger()
+            self.set('option', 'loglevel', loglevel)
 
         self._loaded_modules = {
             'flows': [],
@@ -253,15 +249,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
 
-        self.logger = logging.getLogger(uuid.uuid4().hex)
+        # Check if the logger exists and create
+        if not hasattr(self, 'logger') or not self.logger:
+            self.logger = logging.getLogger(f'sc_{id(self)}')
 
-        # Don't propagate log messages to "root" handler (we get duplicate
-        # messages without this)
-        # TODO: this prevents us from being able to capture logs with pytest:
-        # we should revisit it
-        self.logger.propagate = False
-
-        loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
+        loglevel = 'INFO'
+        if hasattr(self, 'schema'):
+            loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
+        else:
+            in_run = False
 
         if loglevel == 'DEBUG':
             prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
@@ -291,22 +287,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             logformat = ' | '.join([prefix, '%(message)s'])
 
-        handler = logging.StreamHandler(stream=sys.stdout)
-        formatter = logging.Formatter(logformat)
+        if not self.logger.hasHandlers():
+            stream_handler = logging.StreamHandler(stream=sys.stdout)
+            self.logger.addHandler(stream_handler)
 
-        handler.setFormatter(formatter)
+        for handler in self.logger.handlers:
+            formatter = logging.Formatter(logformat)
+            handler.setFormatter(formatter)
 
-        # Clear any existing handlers so we don't end up with duplicate messages
-        # if repeat calls to _init_logger are made
-        if len(self.logger.handlers) > 0:
-            self.logger.handlers.clear()
-
-        self.logger.addHandler(handler)
         self.logger.setLevel(loglevel)
-
-    ###########################################################################
-    def _deinit_logger(self):
-        self.logger = None
 
     ###########################################################################
     def _get_switches(self, schema, *keypath):
@@ -414,7 +403,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                          description=description)
 
         # Get a new schema, incase values have already been set
-        schema = Schema()
+        schema = Schema(logger=self.logger)
 
         # Iterate over all keys from an empty schema to add parser arguments
         for keypath in schema.allkeys():
@@ -998,16 +987,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.setLevel(value)
 
         try:
-            if not self.schema.set(
-                *keypath, value, field=field, clobber=clobber, step=step, index=index
-            ):
-                # TODO: this message should be pushed down into Schema.set()
-                # once we have a static logger.
-                if clobber:
-                    self.logger.debug(f'Failed to set value for {keypath}: parameter is locked')
-                else:
-                    self.logger.debug(f'Failed to set value for {keypath}: '
-                                      'clobber is False and parameter may be locked')
+            self.schema.set(*keypath, value, field=field, clobber=clobber, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(e)
 
@@ -1075,11 +1055,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            if not self.schema.add(*args, field=field, step=step, index=index):
-                # TODO: this message should be pushed down into Schema.add()
-                # once we have a static logger.
-                self.logger.debug(f'Failed to add value for {keypath}: '
-                                  'parameter may be locked')
+            self.schema.add(*args, field=field, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
@@ -1921,7 +1897,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         that may have been updated during run().
         """
         # Read from file into new schema object
-        schema = Schema(manifest=filename)
+        schema = Schema(manifest=filename, logger=self.logger)
 
         # Merge data in schema with Chip configuration
         self._merge_manifest(schema, job=job, clear=clear, clobber=clobber, partial=partial)
@@ -2250,7 +2226,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # look through dependency package files
             package = os.path.join(cache, dep, ver, f"{dep}-{ver}.sup.gz")
-            schema = Schema(manifest=package)
+            schema = Schema(manifest=package, logger=self.logger)
 
             # done if no more dependencies
             if 'dependency' in schema.getkeys('package'):
@@ -4400,6 +4376,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             jobname = self.get('option', 'jobname')
             tasks_to_run = {}
             processes = {}
+            # Ensure we use spawn for multiprocessing so loggers initialized correctly
+            multiprocessor = multiprocessing.get_context('spawn')
             for step in steplist:
                 for index in indexlist[step]:
                     nodename = f'{step}{index}'
@@ -4416,14 +4394,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     else:
                         tasks_to_run[nodename] = inputs
 
-                    processes[nodename] = multiprocessing.Process(target=self._runtask,
-                                                                  args=(step, index, status))
-
-            # We have to deinit the chip's logger before spawning the processes
-            # since the logger object is not serializable. _runtask_safe will
-            # reinitialize the logger in each new process, and we reinitialize
-            # the primary chip's logger after the processes complete.
-            self._deinit_logger()
+                    processes[nodename] = multiprocessor.Process(target=self._runtask,
+                                                                 args=(step, index, status))
 
             running_tasks = []
             while len(tasks_to_run) > 0 or len(running_tasks) > 0:
@@ -4465,8 +4437,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 # TODO: exponential back-off with max?
                 time.sleep(0.1)
-
-            self._init_logger()
 
             # Make a clean exit if one of the steps failed
             for step in steplist:
@@ -5205,7 +5175,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Modules are not serializable, so save without cache
         attributes['modules'] = {}
+
+        # We have to remove the chip's logger before serializing the object
+        # since the logger object is not serializable.
+        del attributes['logger']
         return attributes
+
+    #######################################
+    def __setstate__(self, state):
+        self.__dict__ = state
+
+        # Reinitialize logger on restore
+        self._init_logger()
+        self.schema._init_logger(self.logger)
 
     #######################################
     def _generate_testcase(self,
