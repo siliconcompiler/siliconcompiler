@@ -118,7 +118,7 @@ If you further go one step further down, you'll see that ``verilog`` is a leaf p
 .. code-block:: python
 
    >>> chip.getkeys('input', 'rtl', 'verilog')
-   ['defvalue', 'type', 'scope', 'require', 'lock', 'switch', 'shorthelp', 'example', 'help', 'notes', 'pernode', 'node', 'hashalgo', 'copy']
+   ['type', 'scope', 'require', 'lock', 'switch', 'shorthelp', 'example', 'help', 'notes', 'pernode', 'node', 'hashalgo', 'copy']
 
 
 Parameter fields are standardized variables which help to define the parameter. In the case below, you can see that :meth:`.get()` can also be used to query parameter fields to provide more information about the parameters:
@@ -153,11 +153,17 @@ The :meth:`.write_manifest()` method above writes out the JSON file below, showi
 .. code-block:: json
 
     "design": {
-        "defvalue": null,
         "lock": false,
         "node": {
+            "default": {
+               "default": {
+                    "signature": null,
+                    "value": null
+               }
+            },
             "global": {
                 "global": {
+                    "signature": null,
                     "value": "hello_world"
                 }
             }
@@ -167,8 +173,9 @@ The :meth:`.write_manifest()` method above writes out the JSON file below, showi
         "require": "all",
         "scope": "global",
         "shorthelp": "Design top module name",
-        "signature": null,
-        "switch": "-design <str>",
+        "switch": [
+            "-design <str>"
+        ],
         "type": "str"
     },
   

@@ -53,10 +53,16 @@ def test_scparam():
         'lock': False,
         'scope': 'job',
         'require': 'all',
-        'defvalue': None,
         'notes': None,
         'pernode': 'never',
-        'node': {},
+        'node': {
+            'default': {
+                'default': {
+                    'value': None,
+                    'signature': None
+                }
+            }
+        },
         'shorthelp': 'Metric total warnings',
         'example': [
             "cli: -metric_warnings 'dfm 0 goal 0'",
@@ -72,10 +78,16 @@ def test_scparam():
         'lock': False,
         'scope': 'job',
         'require': 'asic',
-        'defvalue': None,
         'notes': None,
         'pernode': 'never',
-        'node': {},
+        'node': {
+            'default': {
+                'default': {
+                    'value': None,
+                    'signature': None
+                }
+            }
+        },
         'shorthelp': 'Metric instance count',
         'example': [
             "cli: -metric_cells 'place 0 goal 100'",
@@ -92,9 +104,9 @@ def test_defvalue():
     '''Regression test that changing list-type value doesn't change defvalue.'''
 
     schema = Schema()
-    assert schema.cfg['asic']['logiclib']['defvalue'] == []
+    assert schema.get_default('asic', 'logiclib') == []
     schema.add('asic', 'logiclib', 'mylib')
-    assert schema.cfg['asic']['logiclib']['defvalue'] == []
+    assert schema.get_default('asic', 'logiclib') == []
 
 
 #########################
