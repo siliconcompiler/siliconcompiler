@@ -1206,24 +1206,26 @@
                     "unit": "C"
                 },
                 "voltage": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -constraint_timing_voltage 'worst 0.9'",
-                        "api: chip.set('constraint', 'timing', 'worst','voltage', '0.9')"
-                    ],
-                    "help": "Operating voltage applied to the scenario.",
-                    "lock": false,
-                    "node": {},
-                    "notes": null,
-                    "pernode": "optional",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Constraint: voltage level",
-                    "switch": [
-                        "-constraint_timing_voltage 'scenario <float>'"
-                    ],
-                    "type": "float",
-                    "unit": "V"
+                    "default": {
+                        "defvalue": null,
+                        "example": [
+                            "cli: -constraint_timing_voltage 'worst VDD 0.9'",
+                            "api: chip.set('constraint', 'timing', 'worst', 'voltage', 'VDD', '0.9')"
+                        ],
+                        "help": "Operating voltage applied to a specific pin in the scenario.",
+                        "lock": false,
+                        "node": {},
+                        "notes": null,
+                        "pernode": "optional",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Constraint: pin voltage level",
+                        "switch": [
+                            "-constraint_timing_voltage 'scenario <pin> <float>'"
+                        ],
+                        "type": "float",
+                        "unit": "V"
+                    }
                 }
             }
         }
