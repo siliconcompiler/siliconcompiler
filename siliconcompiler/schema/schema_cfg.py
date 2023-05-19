@@ -2032,7 +2032,7 @@ def schema_option(cfg):
             parameter.""")
 
     scparam(cfg, ['option', 'credentials'],
-            sctype='[file]',
+            sctype='file',
             scope='job',
             shorthelp="User credentials file",
             switch="-credentials <file>'",

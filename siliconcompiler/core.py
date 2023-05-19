@@ -1359,6 +1359,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Returns none if not found
         """
+        if not path:
+            return None
+
         path_paths = pathlib.Path(path).parts
         for n in range(len(path_paths)):
             # Search through the path elements to see if any of the previous path parts
@@ -4280,7 +4283,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Load the remote storage config into the status dictionary.
             if self.get('option', 'credentials'):
                 # Use the provided remote credentials file.
-                cfg_file = os.path.abspath(self.get('option', 'credentials')[-1])
+                cfg_file = os.path.abspath(self.get('option', 'credentials'))
 
                 if not os.path.isfile(cfg_file):
                     # Check if it's a file since its been requested by the user

@@ -3451,7 +3451,7 @@
         },
         "credentials": {
             "copy": false,
-            "defvalue": [],
+            "defvalue": null,
             "example": [
                 "cli: -credentials /home/user/.sc/credentials",
                 "api: chip.set('option', 'credentials','/home/user/.sc/credentials')"
@@ -3468,7 +3468,7 @@
             "switch": [
                 "-credentials <file>'"
             ],
-            "type": "[file]"
+            "type": "file"
         },
         "define": {
             "defvalue": [],
