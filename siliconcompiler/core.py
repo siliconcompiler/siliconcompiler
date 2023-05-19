@@ -637,9 +637,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     modules.append(mod)
 
             if len(modules) == 0:
-                # attempt to load just the module again with raising the actual error,
-                # this will ensure a useful error message is generated to the user
-                self._load_module(module, raise_error=True)
+                self.error(f'Could not find target {module}', fatal=True)
         else:
             modules = [module]
 
