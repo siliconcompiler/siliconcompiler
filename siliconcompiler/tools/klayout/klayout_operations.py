@@ -95,7 +95,7 @@ def add_layout(base_layout, layout):
     return base_layout
 
 
-def add_layout_top_top(base_layout, new_top_cell_name):
+def add_layout_to_top(base_layout, new_top_cell_name):
     top_cell = base_layout.top_cell()
 
     print(f"[INFO] Adding layout from '{top_cell.name}' to new top cell '{new_top_cell_name}'")
@@ -234,7 +234,7 @@ def parse_operations(schema, base_layout, steps):
                 base_layout = swap_cells(base_layout, oldcell, newcell)
         elif (step_name == "add_top"):
             new_name = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))[0]
-            add_layout_top_top(base_layout, new_name)
+            base_layout = add_layout_to_top(base_layout, new_name)
         elif (step_name == "write"):
             write_stream(base_layout, f'outputs/{step_args}', __with_timestamps(schema))
         else:
