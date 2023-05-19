@@ -177,9 +177,6 @@ def make_property_text(layout, property_layer, property_name, destination_layer)
 
 
 def parse_operations(schema, base_layout, steps):
-    sc_step = schema.get('arg', 'step')
-    sc_index = schema.get('arg', 'index')
-
     for step in steps:
         step = step.split(":")
         step_name = step[0]
