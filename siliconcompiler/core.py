@@ -3942,6 +3942,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                 # Process may have already terminated or been killed.
                                 # Retain existing memory usage statistics in this case.
                                 pass
+                            except PermissionError:
+                                # OS is preventing access to this information so it cannot
+                                # be collected
+                                pass
 
                             # Loop until process terminates
                             if not quiet:
