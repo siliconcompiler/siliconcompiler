@@ -1206,24 +1206,26 @@
                     "unit": "C"
                 },
                 "voltage": {
-                    "defvalue": null,
-                    "example": [
-                        "cli: -constraint_timing_voltage 'worst 0.9'",
-                        "api: chip.set('constraint', 'timing', 'worst','voltage', '0.9')"
-                    ],
-                    "help": "Operating voltage applied to the scenario.",
-                    "lock": false,
-                    "node": {},
-                    "notes": null,
-                    "pernode": "optional",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Constraint: voltage level",
-                    "switch": [
-                        "-constraint_timing_voltage 'scenario <float>'"
-                    ],
-                    "type": "float",
-                    "unit": "V"
+                    "default": {
+                        "defvalue": null,
+                        "example": [
+                            "cli: -constraint_timing_voltage 'worst VDD 0.9'",
+                            "api: chip.set('constraint', 'timing', 'worst', 'voltage', 'VDD', '0.9')"
+                        ],
+                        "help": "Operating voltage applied to a specific pin in the scenario.",
+                        "lock": false,
+                        "node": {},
+                        "notes": null,
+                        "pernode": "optional",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Constraint: pin voltage level",
+                        "switch": [
+                            "-constraint_timing_voltage 'scenario <pin> <float>'"
+                        ],
+                        "type": "float",
+                        "unit": "V"
+                    }
                 }
             }
         }
@@ -3451,7 +3453,7 @@
         },
         "credentials": {
             "copy": false,
-            "defvalue": [],
+            "defvalue": null,
             "example": [
                 "cli: -credentials /home/user/.sc/credentials",
                 "api: chip.set('option', 'credentials','/home/user/.sc/credentials')"
@@ -3468,7 +3470,7 @@
             "switch": [
                 "-credentials <file>'"
             ],
-            "type": "[file]"
+            "type": "file"
         },
         "define": {
             "defvalue": [],
@@ -6407,7 +6409,7 @@
         }
     },
     "schemaversion": {
-        "defvalue": "0.32.0",
+        "defvalue": "0.33.0",
         "example": [
             "api: chip.get('schemaversion')"
         ],
@@ -6548,6 +6550,28 @@
                             "-tool_task_continue 'tool task <bool>'"
                         ],
                         "type": "bool"
+                    },
+                    "dir": {
+                        "default": {
+                            "copy": false,
+                            "defvalue": [],
+                            "example": [
+                                "cli: -tool_task_dir 'verilator compile cincludes include'",
+                                "api: chip.set('tool','verilator','task','compile','dir','cincludes', 'include')"
+                            ],
+                            "help": "Paths to user supplied directories mapped to keys. Keys must match\nwhat's expected by the task/reference script consuming the\ndirectory.",
+                            "lock": false,
+                            "node": {},
+                            "notes": null,
+                            "pernode": "optional",
+                            "require": null,
+                            "scope": "job",
+                            "shorthelp": "Task: setup directories",
+                            "switch": [
+                                "-tool_task_dir 'tool task key <dir>'"
+                            ],
+                            "type": "[dir]"
+                        }
                     },
                     "env": {
                         "default": {
@@ -6922,7 +6946,7 @@
                         "default": {
                             "defvalue": [],
                             "example": [
-                                "cli: -tool_task_variable 'openroad cts myvar 42'",
+                                "cli: -tool_task_var 'openroad cts myvar 42'",
                                 "api: chip.set('tool','openroad','task','cts','var','myvar','42')"
                             ],
                             "help": "Task script variables specified as key value pairs. Variable\nnames and value types must match the name and type of task and reference\nscript consuming the variable.",
@@ -6934,7 +6958,7 @@
                             "scope": "job",
                             "shorthelp": "Task: script variables",
                             "switch": [
-                                "-tool_task_variable 'tool task key <str>'"
+                                "-tool_task_var 'tool task key <str>'"
                             ],
                             "type": "[str]"
                         }
