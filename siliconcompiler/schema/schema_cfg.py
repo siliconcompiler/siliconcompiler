@@ -13,10 +13,10 @@ except ImportError:
 
 SCHEMA_VERSION = '0.32.0'
 
+
 #############################################################################
 # PARAM DEFINITION
 #############################################################################
-
 def scparam(cfg,
             keypath,
             sctype=None,
@@ -812,18 +812,18 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             example=[
                 "cli: -datasheet_pin_type 'mydevice vdd global power'",
                 "api: chip.set('datasheet','mydevice','pin','vdd','type','global','power')"],
-            schelp=f"""Pin type specified on a per mode basis. Acceptable pin types
+            schelp="""Pin type specified on a per mode basis. Acceptable pin types
             include: digital, analog, clk, power, ground""")
 
     # Pin function
     scparam(cfg, ['datasheet', design, 'pin', name, 'function', mode],
             sctype='str',
-            shorthelp=f"Datasheet: pin function",
-            switch=f"-datasheet_pin_function 'design name mode <str>'",
+            shorthelp="Datasheet: pin function",
+            switch="-datasheet_pin_function 'design name mode <str>'",
             example=[
                 "cli: -datasheet_pin_function 'mydevice z global a&b'",
                 "api: chip.set('datasheet','mydevice','pin','z','function','global','a&b')"],
-            schelp=f"""Pin function specified on a per mode basis. Only applicable to output
+            schelp="""Pin function specified on a per mode basis. Only applicable to output
             pins.""")
 
     # Pin direction
@@ -856,7 +856,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             example=[
                 "cli: -datasheet_pin_standard 'mydevice clk0 ddr4 CLKN'",
                 "api: chip.set('datasheet','mydevice','pin','clk0','standard','ddr4','CLKN')"],
-            schelp=f"""Pin mapping to standard interfaces with standarized signal names.""")
+            schelp="""Pin mapping to standard interfaces with standarized signal names.""")
 
     # Reset value
     scparam(cfg, ['datasheet', design, 'pin', name, 'resetvalue', mode],
@@ -872,7 +872,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
     # Electrical Specifications
 
     # DC levels and Metrics
-    metrics = {'vsupply' : ['supply operating voltage', (0.2, 0.3, 0.9), 'V'],
+    metrics = {'vsupply': ['supply operating voltage', (0.2, 0.3, 0.9), 'V'],
                'vmax': ['absolute maximum voltage', (0.2, 0.3, 0.9), 'V'],
                'vol': ['low output voltage level', (-0.2, 0, 0.2), 'V'],
                'voh': ['high output voltage level', (4.6, 4.8, 5.2), 'V'],
@@ -920,9 +920,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                'tjitter': ['rms jitter', (1e-9, 2e-9, 4e-9), 's'],
                'thigh': ['pulse widtdh high', (1e-9, 2e-9, 4e-9), 's'],
                'tlow': ['pulse widtdh low', (1e-9, 2e-9, 4e-9), 's'],
-               'tduty': ['duty cycle', (45, 50, 55), '%'],
-               'duty': ['duty cycle', (45, 50, 55), '%']
-    }
+               'tduty': ['duty cycle', (45, 50, 55), '%']
+               }
 
     for item, val in metrics.items():
         scparam(cfg, ['datasheet', design, 'pin', name, item, mode],
@@ -943,23 +942,23 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                'trise': ['rise transition', (1e-9, 2e-9, 4e-9), 's'],
                'tfall': ['fall transition', (1e-9, 2e-9, 4e-9), 's']}
 
-    for item, val in metrics.items():
+    for i, v in metrics.items():
         scparam(cfg, ['datasheet', design, 'pin', name, item, mode, 'relpin', name],
-                unit=val[2],
+                unit=v[2],
                 sctype='(float,float,float)',
-                shorthelp=f"Datasheet: pin {val[0]}",
-                switch=f"-datasheet_pin_{item} 'design pin mode relpin name <(float,float,float)>'",
+                shorthelp=f"Datasheet: pin {v[0]}",
+                switch=f"-datasheet_pin_{i} 'design pin mode relpin name <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_pin_{item} 'mydevice sclk global relpin clk {val[1]}'",
-                    f"api: chip.set('datasheet','mydevice','pin','sclk','{item}','global','relpin','clk',{val[1]}"],
-                schelp=f"""Pin {val[0]} specified on a per pin and relpin basis.
+                    f"cli: -datasheet_pin_{i} 'dev a def relpin ck {v[1]}'",
+                    f"api: chip.set('datasheet','dev','pin','a','{i}','def','relpin','ck',{v[1]}"],
+                schelp=f"""Pin {v[0]} specified on a per pin, mode, and relpin basis.
                 Values are tuples of (min, typical, max).""")
 
     # Pin polarity
     scparam(cfg, ['datasheet', design, 'pin', name, 'polarity', mode, 'relpin', name],
             sctype='str',
-            shorthelp=f"Datasheet: pin polarity",
-            switch=f"-datasheet_pin_polarity 'design name mode relpin name <str>'",
+            shorthelp="Datasheet: pin polarity",
+            switch="-datasheet_pin_polarity 'design name mode relpin name <str>'",
             example=[
                 "cli: -datasheet_pin_polarity 'cpu q global clk none'",
                 "api: chip.set('datasheet','cpu','pin','q','polarity','global','clk,'none')"],
@@ -967,6 +966,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             pins. Valid values are: positive, negative, none.""")
 
     return cfg
+
 
 ###############################################################################
 # Flow Configuration
