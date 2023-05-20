@@ -43,7 +43,8 @@ class SchemaGen(SphinxDirective):
             if 'unit' in schema:
                 entries.append([strong('Unit'), para(schema['unit'])])
 
-            entries.extend([[strong('Default Value'), para(schema['defvalue'])],
+            defvalue = schema['node']['default']['default']['value']
+            entries.extend([[strong('Default Value'), para(defvalue)],
                             [strong('CLI Switch'), code(schema['switch'])]])
 
             for example in schema['example']:
