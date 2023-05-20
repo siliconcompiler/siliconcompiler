@@ -777,7 +777,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
     # Thermal Resistence
     metrics = {'rja': 'junction to ambient thermal resistence',
                'rjct': 'junction to case (top) thermal resistence',
-               'rjcb': 'junction to case (bottom)thermal resistence',
+               'rjcb': 'junction to case (bottom) thermal resistence',
                'rjb': 'junction to board thermal resistence',
                'tjt': 'junction to top characterization parameter',
                'tjb': 'junction to bottom characterization parameter'}
@@ -791,7 +791,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 example=[
                     f"cli: -datasheet_thermal_{item} 'mydevice 30.4'",
                     f"api: chip.set('datasheet','mydevice','thermal','{item}',30.4)"],
-                schelp=f"""Device {item} specified in C/W.""")
+                schelp=f"""Device {item}.""")
 
     # Package Pin Map
     scparam(cfg, ['datasheet', design, 'pin', name, 'map', name],
@@ -805,7 +805,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
 
     # Pin type
     scparam(cfg, ['datasheet', design, 'pin', name, 'type', mode],
-            sctype='str',
+            sctype='enum',
+            enum=['digital', 'analog', 'clock', 'supply', 'ground'],
             shorthelp="Datasheet: pin type",
             switch="-datasheet_pin_type 'design name mode <str>'",
             example=[
@@ -878,9 +879,9 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             schelp="""Pin reset value specified on a per mode basis. Legal reset
             values include weak1, weak0, strong0, strong1, highz.""")
 
-    # DC levels and Metrics
-    metrics = {'vsupply': ['supply operating voltage', (0.2, 0.3, 0.9), 'V'],
-               'vmax': ['absolute maximum voltage', (0.2, 0.3, 0.9), 'V'],
+    # Device Specifications
+    metrics = {'vmax': ['absolute maximum voltage', (0.2, 0.3, 0.9), 'V'],
+               'vnominal': ['nominal operating voltage', (1.72, 1.80, 1.92), 'V'],
                'vol': ['low output voltage level', (-0.2, 0, 0.2), 'V'],
                'voh': ['high output voltage level', (4.6, 4.8, 5.2), 'V'],
                'vil': ['low input voltage level', (-0.2, 0, 1.0), 'V'],
@@ -889,45 +890,54 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                'vdiff': ['differential voltage', (0.2, 0.3, 0.9), 'V'],
                'voffset': ['offset voltage', (0.2, 0.3, 0.9), 'V'],
                'vnoise': ['random voltage noise', (0, 0.01, 0.1), 'V'],
-               'vhbm': ['HBM ESD tolerance', (200, 250, 300), 'V'],
-               'vcdm': ['CDM ESD tolerance', (125, 150, 175), 'V'],
-               'vmm': ['MM ESD tolerance', (100, 125, 150), 'V'],
+               'vslew': ['slew rate', (1e-9, 2e-9, 4e-9), 'V/s'],
+               # ESD
+               'vhbm': ['human body model (HBM) ESD tolerance', (200, 250, 300), 'V'],
+               'vcdm': ['charge device model (CDM) ESD tolerance', (125, 150, 175), 'V'],
+               'vmm': ['machine model (MM) ESD tolerance', (100, 125, 150), 'V'],
+               # RC
+               'capacitance': ['capacitance', (1e-12, 1.2e-12, 1.5e-12), 'F'],
                'rdiff': ['differential pair resistance', (45, 50, 55), 'Ohm'],
-               'rup': ['pullup resistance', (1000, 1200, 3000), 'Ohm'],
-               'rdown': ['pulldown resistance', (1000, 1200, 3000), 'Ohm'],
+               'rin': ['input resistance', (1000, 1200, 3000), 'Ohm'],
+               'rup': ['output pullup resistance', (1000, 1200, 3000), 'Ohm'],
+               'rdown': ['output pulldown resistance', (1000, 1200, 3000), 'Ohm'],
                'rweakup': ['weak pullup resistance', (1000, 1200, 3000), 'Ohm'],
                'rweakdown': ['weak pulldown resistance', (1000, 1200, 3000), 'Ohm'],
-               'rin': ['input resistance', (1000, 1200, 3000), 'Ohm'],
-               'rdrive': ['pin resistance', (1000, 1200, 3000), 'Ohm'],
+               # Power
                'power': ['power consumption', (1, 2, 3), 'W'],
+               # Current
                'isupply': ['supply currents', (1e-3, 12e-3, 15e-3), 'A'],
-               'idrive': ['drive current', (10e-3, 12e-3, 15e-3), 'A'],
+               'ioh': ['output high current', (10e-3, 12e-3, 15e-3), 'A'],
+               'iol': ['output low current', (10e-3, 12e-3, 15e-3), 'A'],
                'iinject': ['injection current', (1e-3, 1.2e-3, 1.5e-3), 'A'],
                'ishort': ['short circuit current', (1e-3, 1.2e-3, 1.5e-3), 'A'],
                'ioffset': ['offset current', (1e-3, 1.2e-3, 1.5e-3), 'A'],
                'ibias': ['bias current', (1e-3, 1.2e-3, 1.5e-3), 'A'],
                'ileakage': ['leakage current', (1e-6, 1.2e-6, 1.5e-6), 'A'],
-               'capacitance': ['capacitance', (1e-12, 1.2e-12, 1.5e-12), 'F'],
-               # Metrics
-               'cmrr': ['common mode rejection ratio', (70, 80, 90), 'dB'],
-               'psrro': ['power suply rejection ratio (offset)', (70, 80, 90), 'mv/V'],
-               'psrrg': ['power supply rejection ratio (gain)', (70, 80, 90), '%/V'],
-               'inl': ['integral nonlinearity', (-7, 0.0, 7), 'LSB'],
-               'dnl': ['differential nonlinearity', (-1.0, 0.0, +1.0), 'LSB'],
-               'snr': ['signal to noise ratio', (70, 72, 74), 'dB'],
-               'sinad': ['signal to noise and distoartion ratio', (71, 72, 73), 'dB'],
-               'sfdr': ['spurious-free dynamic range', (82, 88, 98), 'dBc'],
-               'enob': ['effective number of bits', (8, 9, 10), 'bits'],
-               'bw': ['bandwidth', (500e6, 600e6, 700e6), 'Hz'],
-               'vofferror': ['offset error', (-1.0, 0.0, +1.0), 'mV'],
-               'vgainerror': ['gain error', (-1.0, 0.0, +1.0), 'mV'],
-               'vslew': ['slew rate', (1e-9, 2e-9, 4e-9), 'V/s'],
+               # Clocking
                'tperiod': ['minimum period', (1e-9, 2e-9, 4e-9), 's'],
                'tpulse': ['pulse width', (1e-9, 2e-9, 4e-9), 's'],
                'tjitter': ['rms jitter', (1e-9, 2e-9, 4e-9), 's'],
                'thigh': ['pulse widtdh high', (1e-9, 2e-9, 4e-9), 's'],
                'tlow': ['pulse widtdh low', (1e-9, 2e-9, 4e-9), 's'],
-               'tduty': ['duty cycle', (45, 50, 55), '%']
+               'tduty': ['duty cycle', (45, 50, 55), '%'],
+               # Analog metrics
+               'inl': ['integral nonlinearity', (-7, 0.0, 7), 'LSB'],
+               'dnl': ['differential nonlinearity', (-1.0, 0.0, +1.0), 'LSB'],
+               'snr': ['signal to noise ratio', (70, 72, 74), 'dB'],
+               'sinad': ['signal to noise and distortion ratio', (71, 72, 73), 'dB'],
+               'sfdr': ['spurious-free dynamic range', (82, 88, 98), 'dBc'],
+               'enob': ['effective number of bits', (8, 9, 10), 'bits'],
+               'bw': ['bandwidth', (500e6, 600e6, 700e6), 'Hz'],
+               'gain': ['gain', (11.4, 11.4, 11.4), 'dB'],
+               'pout': ['output power', (12.2, 12.2, 12.2), 'dBm'],
+               'pout2': ['2nd harmonic power', (-14, -14, -14), 'dBm'],
+               'pout3': ['3rd harmonic power', (-28, -28, -28), 'dBm'],
+               'noisefigure': ['noise figure', (4.6, 4.6, 4.6), 'dB'],
+               'vofferror': ['offset error', (-1.0, 0.0, +1.0), 'mV'],
+               'vgainerror': ['gain error', (-1.0, 0.0, +1.0), 'mV'],
+               'cmrr': ['common mode rejection ratio', (70, 80, 90), 'dB'],
+               'psnr': ['power supply noise rejection', (61, 61, 61), 'dB']
                }
 
     for item, val in metrics.items():
@@ -942,15 +952,18 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                     f"'global',{val[1]}"],
                 schelp=f"""Pin {val[0]}. Values are tuples of (min, typical, max).""")
 
-    # AC Timing
+    # Timing
     metrics = {'tsetup': ['setup time', (1e-9, 2e-9, 4e-9), 's'],
                'thold': ['hold time', (1e-9, 2e-9, 4e-9), 's'],
-               'tdelay': ['propagation delay', (1e-9, 2e-9, 4e-9), 's'],
+               'tskew': ['timing skew', (1e-9, 2e-9, 4e-9), 's'],
+               'tdelay': ['propagation delay (rise/fall)', (1e-9, 2e-9, 4e-9), 's'],
+               'tdelayr': ['propagation delay (rise)', (1e-9, 2e-9, 4e-9), 's'],
+               'tdelayf': ['propagation delay (fall)', (1e-9, 2e-9, 4e-9), 's'],
                'trise': ['rise transition', (1e-9, 2e-9, 4e-9), 's'],
                'tfall': ['fall transition', (1e-9, 2e-9, 4e-9), 's']}
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', design, 'pin', name, item, mode, 'relpin', name],
+        scparam(cfg, ['datasheet', design, 'pin', name, i, mode, 'relpin', name],
                 unit=v[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: pin {v[0]}",
@@ -963,14 +976,15 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
 
     # Pin polarity
     scparam(cfg, ['datasheet', design, 'pin', name, 'polarity', mode, 'relpin', name],
-            sctype='str',
+            sctype='enum',
+            enum=['positive', 'negative', 'none'],
             shorthelp="Datasheet: pin polarity",
             switch="-datasheet_pin_polarity 'design name mode relpin name <str>'",
             example=[
                 "cli: -datasheet_pin_polarity 'cpu q global clk none'",
                 "api: chip.set('datasheet','cpu','pin','q','polarity','global','clk,'none')"],
             schelp="""Pin polarity specified on a per mode basis. Only applicable to output
-            pins. Valid values are: positive, negative, none.""")
+            pins. Valid entries are: positive, negative, none.""")
 
     return cfg
 
