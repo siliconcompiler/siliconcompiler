@@ -774,7 +774,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                     f"api: chip.set('datasheet','mydevice','limits','{item}',(-40,125))"],
                 schelp=f"""Device absolute {val} not to be exceeded.""")
 
-    # Thermal Resistence
+    # Thermal model
     metrics = {'rja': 'junction to ambient thermal resistence',
                'rjct': 'junction to case (top) thermal resistence',
                'rjcb': 'junction to case (bottom) thermal resistence',
@@ -793,7 +793,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                     f"api: chip.set('datasheet','mydevice','thermal','{item}',30.4)"],
                 schelp=f"""Device {item}.""")
 
-    # Package Pin Map
+    # Package pin map
     scparam(cfg, ['datasheet', design, 'pin', name, 'map', name],
             sctype='str',
             shorthelp="Datasheet: pin map",
@@ -814,17 +814,6 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 "api: chip.set('datasheet','mydevice','pin','vdd','type','global','power')"],
             schelp="""Pin type specified on a per mode basis. Acceptable pin types
             include: digital, analog, clock, supply, ground""")
-
-    # Pin function
-    scparam(cfg, ['datasheet', design, 'pin', name, 'function', mode],
-            sctype='str',
-            shorthelp="Datasheet: pin function",
-            switch="-datasheet_pin_function 'design name mode <str>'",
-            example=[
-                "cli: -datasheet_pin_function 'mydevice z global a&b'",
-                "api: chip.set('datasheet','mydevice','pin','z','function','global','a&b')"],
-            schelp="""Pin function specified on a per mode basis. Only applicable to output
-            pins.""")
 
     # Pin direction
     scparam(cfg, ['datasheet', design, 'pin', name, 'dir', mode],
@@ -879,7 +868,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             schelp="""Pin reset value specified on a per mode basis. Legal reset
             values include weak1, weak0, strong0, strong1, highz.""")
 
-    # Device Specifications
+    # Device specifications
     metrics = {'vmax': ['absolute maximum voltage', (0.2, 0.3, 0.9), 'V'],
                'vnominal': ['nominal operating voltage', (1.72, 1.80, 1.92), 'V'],
                'vol': ['low output voltage level', (-0.2, 0, 0.2), 'V'],
@@ -922,22 +911,36 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                'tlow': ['pulse widtdh low', (1e-9, 2e-9, 4e-9), 's'],
                'tduty': ['duty cycle', (45, 50, 55), '%'],
                # Analog metrics
+               'bw': ['nyquist bandwidth', (500e6, 600e6, 700e6), 'Hz'],
                'inl': ['integral nonlinearity', (-7, 0.0, 7), 'LSB'],
                'dnl': ['differential nonlinearity', (-1.0, 0.0, +1.0), 'LSB'],
                'snr': ['signal to noise ratio', (70, 72, 74), 'dB'],
                'sinad': ['signal to noise and distortion ratio', (71, 72, 73), 'dB'],
                'sfdr': ['spurious-free dynamic range', (82, 88, 98), 'dBc'],
+               'imd3': ['3rd order intermodulation distortion', (82, 88, 98), 'dBc'],
+               'hd2': ['2nd order harmonic distorion', (62, 64, 66), 'dBc'],
+               'hd3': ['3rd order harmonic distorion', (62, 64, 66), 'dBc'],
+               'hd4': ['4th order harmonic distorion', (62, 64, 66), 'dBc'],
+               'nsd': ['noise spectral density', (-158, -158, -158), 'dBFS/Hz'],
+               'phasenoise': ['phase noise', (-158, -158, -158), 'dBc/Hz'],
                'enob': ['effective number of bits', (8, 9, 10), 'bits'],
-               'bw': ['bandwidth', (500e6, 600e6, 700e6), 'Hz'],
                'gain': ['gain', (11.4, 11.4, 11.4), 'dB'],
                'pout': ['output power', (12.2, 12.2, 12.2), 'dBm'],
                'pout2': ['2nd harmonic power', (-14, -14, -14), 'dBm'],
                'pout3': ['3rd harmonic power', (-28, -28, -28), 'dBm'],
-               'noisefigure': ['noise figure', (4.6, 4.6, 4.6), 'dB'],
                'vofferror': ['offset error', (-1.0, 0.0, +1.0), 'mV'],
                'vgainerror': ['gain error', (-1.0, 0.0, +1.0), 'mV'],
                'cmrr': ['common mode rejection ratio', (70, 80, 90), 'dB'],
-               'psnr': ['power supply noise rejection', (61, 61, 61), 'dB']
+               'psnr': ['power supply noise rejection', (61, 61, 61), 'dB'],
+               # RF parameters
+               's21': ['gain', (10, 11, 12), 'dB'],
+               's11': ['input return loss', (7, 7, 7), 'dB'],
+               's22': ['output return loss', (10, 10, 10), 'dB'],
+               's12': ['reverse isolation', (-20, -20, -20), 'dB'],
+               'noisefigure': ['noise figure', (4.6, 4.6, 4.6), 'dB'],
+               'ib1db': ['in band 1 dB compression point', (-1, 1, 1), 'dBm'],
+               'oob1db': ['out of band 1 dB compression point', (3, 3, 3), 'dBm'],
+               'iip3': ['3rd order input intercept point', (3, 3, 3), 'dBm']
                }
 
     for item, val in metrics.items():
@@ -956,7 +959,6 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
     metrics = {'tsetup': ['setup time', (1e-9, 2e-9, 4e-9), 's'],
                'thold': ['hold time', (1e-9, 2e-9, 4e-9), 's'],
                'tskew': ['timing skew', (1e-9, 2e-9, 4e-9), 's'],
-               'tdelay': ['propagation delay (rise/fall)', (1e-9, 2e-9, 4e-9), 's'],
                'tdelayr': ['propagation delay (rise)', (1e-9, 2e-9, 4e-9), 's'],
                'tdelayf': ['propagation delay (fall)', (1e-9, 2e-9, 4e-9), 's'],
                'trise': ['rise transition', (1e-9, 2e-9, 4e-9), 's'],
@@ -974,7 +976,18 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 schelp=f"""Pin {v[0]} specified on a per pin, mode, and relpin basis.
                 Values are tuples of (min, typical, max).""")
 
-    # Pin polarity
+    # Low level paramters (for standard cells)
+
+    scparam(cfg, ['datasheet', design, 'pin', name, 'function', mode],
+            sctype='str',
+            shorthelp="Datasheet: pin function",
+            switch="-datasheet_pin_function 'design name mode <str>'",
+            example=[
+                "cli: -datasheet_pin_function 'mydevice z global a&b'",
+                "api: chip.set('datasheet','mydevice','pin','z','function','global','a&b')"],
+            schelp="""Pin function specified on a per mode basis. Only applicable to output
+            pins.""")
+
     scparam(cfg, ['datasheet', design, 'pin', name, 'polarity', mode, 'relpin', name],
             sctype='enum',
             enum=['positive', 'negative', 'none'],
