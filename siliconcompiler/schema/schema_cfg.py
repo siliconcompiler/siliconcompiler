@@ -800,7 +800,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 schelp=f"""Device {item}.""")
 
     # Package pin map
-    scparam(cfg, ['datasheet', design, 'pin', name, 'map', name],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'map', mode],
             sctype='str',
             shorthelp="Datasheet: pin map",
             switch="-datasheet_pin_map 'design name package <str>'",
@@ -854,7 +854,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             schelp="""Pin electrical signaling standard (LVDS, LVCMOS, TTL,..).""")
 
     # Pin signal Map
-    scparam(cfg, ['datasheet', design, 'pin', name, 'signal', name],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'signal', mode],
             sctype='[str]',
             shorthelp="Datasheet: pin signal map",
             switch="-datasheet_pin_signal 'design name mode <str>'",
@@ -891,7 +891,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                'vcdm': ['charge device model (CDM) ESD tolerance', (125, 150, 175), 'V'],
                'vmm': ['machine model (MM) ESD tolerance', (100, 125, 150), 'V'],
                # RC
-               'capacitance': ['capacitance', (1e-12, 1.2e-12, 1.5e-12), 'F'],
+               'cap': ['cap', (1e-12, 1.2e-12, 1.5e-12), 'F'],
                'rdiff': ['differential pair resistance', (45, 50, 55), 'Ohm'],
                'rin': ['input resistance', (1000, 1200, 3000), 'Ohm'],
                'rup': ['output pullup resistance', (1000, 1200, 3000), 'Ohm'],
@@ -986,24 +986,24 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
 
     # Low level parameters (for standard cells)
 
-    scparam(cfg, ['datasheet', design, 'pin', name, 'function', mode],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'func', mode],
             sctype='str',
-            shorthelp="Datasheet: pin function",
-            switch="-datasheet_pin_function 'design name mode <str>'",
+            shorthelp="Datasheet: pin func",
+            switch="-datasheet_pin_func 'design name mode <str>'",
             example=[
-                "cli: -datasheet_pin_function 'mydevice z global a&b'",
-                "api: chip.set('datasheet','mydevice','pin','z','function','global','a&b')"],
-            schelp="""Pin function specified on a per mode basis. Only applicable to output
+                "cli: -datasheet_pin_func 'mydevice z global a&b'",
+                "api: chip.set('datasheet','mydevice','pin','z','func','global','a&b')"],
+            schelp="""Pin func specified on a per mode basis. Only applicable to output
             pins.""")
 
-    scparam(cfg, ['datasheet', design, 'pin', name, 'polarity', mode, 'relpin', name],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'polarity', mode, name],
             sctype='enum',
             enum=['positive', 'negative', 'none'],
             shorthelp="Datasheet: pin polarity",
-            switch="-datasheet_pin_polarity 'design name mode relpin name <str>'",
+            switch="-datasheet_pin_polarity 'design name mode name <str>'",
             example=[
                 "cli: -datasheet_pin_polarity 'cpu q def clk none'",
-                "api: chip.set('datasheet','cpu','pin','q','polarity','def','relpin','clk,'none')"],
+                "api: chip.set('datasheet','cpu','pin','q','polarity','def','clk,'none')"],
             schelp="""Pin polarity specified on a per mode basis. Only applicable to output
             pins. Valid entries are: positive, negative, none.""")
 
