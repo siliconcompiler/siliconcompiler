@@ -816,8 +816,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin type",
             switch="-datasheet_pin_type 'design name mode <str>'",
             example=[
-                "cli: -datasheet_pin_type 'mydevice vdd global power'",
-                "api: chip.set('datasheet','mydevice','pin','vdd','type','global','power')"],
+                "cli: -datasheet_pin_type 'mydevice vdd global supply'",
+                "api: chip.set('datasheet','mydevice','pin','vdd','type','global','supply')"],
             schelp="""Pin type specified on a per mode basis. Acceptable pin types
             include: digital, analog, clock, supply, ground""")
 
@@ -849,15 +849,15 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin standard",
             switch="-datasheet_pin_standard 'design name mode <str>'",
             example=[
-                "cli: -datasheet_pin_standard 'mydevice clk LVCMOS'",
-                "api: chip.set('datasheet','mydevice','pin','clk','standard','LVCMOS')"],
+                "cli: -datasheet_pin_standard 'mydevice clk def LVCMOS'",
+                "api: chip.set('datasheet','mydevice','pin','clk','standard','def', 'LVCMOS')"],
             schelp="""Pin electrical signaling standard (LVDS, LVCMOS, TTL,..).""")
 
     # Pin signal Map
     scparam(cfg, ['datasheet', design, 'pin', name, 'signal', name],
             sctype='[str]',
             shorthelp="Datasheet: pin signal map",
-            switch="-datasheet_pin_standard 'design name mode <str>'",
+            switch="-datasheet_pin_signal 'design name mode <str>'",
             example=[
                 "cli: -datasheet_pin_signal 'mydevice clk0 ddr4 CLKN'",
                 "api: chip.set('datasheet','mydevice','pin','clk0','signal','ddr4','CLKN')"],
@@ -970,19 +970,21 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                'trise': ['rise transition', (1e-9, 2e-9, 4e-9), 's'],
                'tfall': ['fall transition', (1e-9, 2e-9, 4e-9), 's']}
 
+    relname = 'default'
+
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', design, 'pin', name, i, mode, 'relpin', name],
+        scparam(cfg, ['datasheet', design, 'pin', name, i, mode, relname],
                 unit=v[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: pin {v[0]}",
-                switch=f"-datasheet_pin_{i} 'design pin mode relpin name <(float,float,float)>'",
+                switch=f"-datasheet_pin_{i} 'design pin mode relname <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_pin_{i} 'dev a def relpin ck {v[1]}'",
-                    f"api: chip.set('datasheet','dev','pin','a','{i}','def','relpin','ck',{v[1]}"],
+                    f"cli: -datasheet_pin_{i} 'dev a glob clock {v[1]}'",
+                    f"api: chip.set('datasheet','dev','pin','a','{i}','glob','ck',{v[1]}"],
                 schelp=f"""Pin {v[0]} specified on a per pin, mode, and relpin basis.
                 Values are tuples of (min, typical, max).""")
 
-    # Low level paramters (for standard cells)
+    # Low level parameters (for standard cells)
 
     scparam(cfg, ['datasheet', design, 'pin', name, 'function', mode],
             sctype='str',
@@ -1000,8 +1002,8 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             shorthelp="Datasheet: pin polarity",
             switch="-datasheet_pin_polarity 'design name mode relpin name <str>'",
             example=[
-                "cli: -datasheet_pin_polarity 'cpu q global clk none'",
-                "api: chip.set('datasheet','cpu','pin','q','polarity','global','clk,'none')"],
+                "cli: -datasheet_pin_polarity 'cpu q def clk none'",
+                "api: chip.set('datasheet','cpu','pin','q','polarity','def','relpin','clk,'none')"],
             schelp="""Pin polarity specified on a per mode basis. Only applicable to output
             pins. Valid entries are: positive, negative, none.""")
 
