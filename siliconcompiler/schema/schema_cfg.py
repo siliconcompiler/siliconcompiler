@@ -781,10 +781,10 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 schelp=f"""Device absolute {val} not to be exceeded.""")
 
     # Thermal model
-    metrics = {'rja': 'junction to ambient thermal resistence',
-               'rjct': 'junction to case (top) thermal resistence',
-               'rjcb': 'junction to case (bottom) thermal resistence',
-               'rjb': 'junction to board thermal resistence',
+    metrics = {'rja': 'junction to ambient thermal resistance',
+               'rjct': 'junction to case (top) thermal resistance',
+               'rjcb': 'junction to case (bottom) thermal resistance',
+               'rjb': 'junction to board thermal resistance',
                'tjt': 'junction to top characterization parameter',
                'tjb': 'junction to bottom characterization parameter'}
 
