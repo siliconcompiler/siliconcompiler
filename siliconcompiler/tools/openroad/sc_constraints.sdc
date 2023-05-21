@@ -7,7 +7,7 @@ set sc_design [sc_top]
 ### Create clocks
 if {[dict exists $sc_cfg datasheet] && [dict exists $sc_cfg datasheet $sc_design]} {
     foreach pin [dict keys [dict get $sc_cfg datasheet $sc_design pin]] {
-        if {[dict get $sc_cfg datasheet $sc_design pin $pin type global] == "clk"} {
+        if {[dict get $sc_cfg datasheet $sc_design pin $pin type global] == "clock"} {
             # If clock...
 
             set periodtuple [dict get $sc_cfg datasheet $sc_design pin $pin tperiod global]
