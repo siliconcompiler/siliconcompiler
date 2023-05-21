@@ -2786,17 +2786,24 @@
                     },
                     "resetvalue": {
                         "default": {
+                            "enum": [
+                                "weak1",
+                                "weak0",
+                                "strong0",
+                                "strong1",
+                                "highz"
+                            ],
                             "example": [
                                 "cli: -datasheet_pin_resetvalue 'mydevice clk global weak1'",
                                 "api: chip.set('datasheet','mydevice','pin','clk','resetvalue','global','weak1')"
                             ],
-                            "help": "Pin reset value specified on a per mode basis. Legal reset\nvalues include weak1, weak0, strong0, strong1, highz.",
+                            "help": "Pin reset value specified on a per mode basis.",
                             "lock": false,
                             "node": {
                                 "default": {
                                     "default": {
-                                        "signature": [],
-                                        "value": []
+                                        "signature": null,
+                                        "value": null
                                     }
                                 }
                             },
@@ -2808,7 +2815,7 @@
                             "switch": [
                                 "-datasheet_pin_resetvalue 'design name mode <str>'"
                             ],
-                            "type": "[str]"
+                            "type": "enum"
                         }
                     },
                     "rin": {

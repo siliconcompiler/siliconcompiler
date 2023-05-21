@@ -865,14 +865,14 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
 
     # Pin reset value
     scparam(cfg, ['datasheet', design, 'pin', name, 'resetvalue', mode],
-            sctype='[str]',
+            sctype='enum',
+            enum=['weak1', 'weak0', 'strong0', 'strong1', 'highz'],
             shorthelp="Datasheet: pin reset value",
             switch="-datasheet_pin_resetvalue 'design name mode <str>'",
             example=[
                 "cli: -datasheet_pin_resetvalue 'mydevice clk global weak1'",
                 "api: chip.set('datasheet','mydevice','pin','clk','resetvalue','global','weak1')"],
-            schelp="""Pin reset value specified on a per mode basis. Legal reset
-            values include weak1, weak0, strong0, strong1, highz.""")
+            schelp="""Pin reset value specified on a per mode basis.""")
 
     # Device specifications
     metrics = {'vmax': ['absolute maximum voltage', (0.2, 0.3, 0.9), 'V'],
