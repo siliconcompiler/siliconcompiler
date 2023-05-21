@@ -4055,7 +4055,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: junction to ambient thermal resistence",
+                    "shorthelp": "Datasheet: junction to ambient thermal resistance",
                     "switch": [
                         "-datasheet_thermal_rja 'design <float>'"
                     ],
@@ -4081,7 +4081,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: junction to board thermal resistence",
+                    "shorthelp": "Datasheet: junction to board thermal resistance",
                     "switch": [
                         "-datasheet_thermal_rjb 'design <float>'"
                     ],
@@ -4107,7 +4107,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: junction to case (bottom) thermal resistence",
+                    "shorthelp": "Datasheet: junction to case (bottom) thermal resistance",
                     "switch": [
                         "-datasheet_thermal_rjcb 'design <float>'"
                     ],
@@ -4133,7 +4133,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: junction to case (top) thermal resistence",
+                    "shorthelp": "Datasheet: junction to case (top) thermal resistance",
                     "switch": [
                         "-datasheet_thermal_rjct 'design <float>'"
                     ],
