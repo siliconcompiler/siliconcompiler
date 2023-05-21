@@ -3398,7 +3398,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
            Create a clock named 'clk' with a 1.0ns period.
         """
         design = self.top()
-        self.set('datasheet', design, 'pin', pin, 'type', 'global', 'clk')
+        self.set('datasheet', design, 'pin', pin, 'type', 'global', 'clock')
 
         period_range = (period * 1e-9, period * 1e-9, period * 1e-9)
         self.set('datasheet', design, 'pin', pin, 'tperiod', 'global', period_range)
