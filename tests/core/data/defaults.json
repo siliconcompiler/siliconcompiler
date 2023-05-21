@@ -1772,13 +1772,13 @@
                             "unit": "Hz"
                         }
                     },
-                    "capacitance": {
+                    "cap": {
                         "default": {
                             "example": [
-                                "cli: -datasheet_pin_capacitance 'mydevice sclk global (1e-12, 1.2e-12, 1.5e-12)'",
-                                "api: chip.set('datasheet','mydevice','pin','sclk','capacitance','global',(1e-12, 1.2e-12, 1.5e-12)"
+                                "cli: -datasheet_pin_cap 'mydevice sclk global (1e-12, 1.2e-12, 1.5e-12)'",
+                                "api: chip.set('datasheet','mydevice','pin','sclk','cap','global',(1e-12, 1.2e-12, 1.5e-12)"
                             ],
-                            "help": "Pin capacitance. Values are tuples of (min, typical, max).",
+                            "help": "Pin cap. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -1792,9 +1792,9 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin capacitance",
+                            "shorthelp": "Datasheet: pin cap",
                             "switch": [
-                                "-datasheet_pin_capacitance 'design pin mode <(float,float,float)>'"
+                                "-datasheet_pin_cap 'design pin mode <(float,float,float)>'"
                             ],
                             "type": "(float,float,float)",
                             "unit": "F"
@@ -1938,13 +1938,13 @@
                             "unit": "bits"
                         }
                     },
-                    "function": {
+                    "func": {
                         "default": {
                             "example": [
-                                "cli: -datasheet_pin_function 'mydevice z global a&b'",
-                                "api: chip.set('datasheet','mydevice','pin','z','function','global','a&b')"
+                                "cli: -datasheet_pin_func 'mydevice z global a&b'",
+                                "api: chip.set('datasheet','mydevice','pin','z','func','global','a&b')"
                             ],
-                            "help": "Pin function specified on a per mode basis. Only applicable to output\npins.",
+                            "help": "Pin func specified on a per mode basis. Only applicable to output\npins.",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -1958,9 +1958,9 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin function",
+                            "shorthelp": "Datasheet: pin func",
                             "switch": [
-                                "-datasheet_pin_function 'design name mode <str>'"
+                                "-datasheet_pin_func 'design name mode <str>'"
                             ],
                             "type": "str"
                         }
@@ -2554,37 +2554,35 @@
                     },
                     "polarity": {
                         "default": {
-                            "relpin": {
-                                "default": {
-                                    "enum": [
-                                        "positive",
-                                        "negative",
-                                        "none"
-                                    ],
-                                    "example": [
-                                        "cli: -datasheet_pin_polarity 'cpu q def clk none'",
-                                        "api: chip.set('datasheet','cpu','pin','q','polarity','def','relpin','clk,'none')"
-                                    ],
-                                    "help": "Pin polarity specified on a per mode basis. Only applicable to output\npins. Valid entries are: positive, negative, none.",
-                                    "lock": false,
-                                    "node": {
+                            "default": {
+                                "enum": [
+                                    "positive",
+                                    "negative",
+                                    "none"
+                                ],
+                                "example": [
+                                    "cli: -datasheet_pin_polarity 'cpu q def clk none'",
+                                    "api: chip.set('datasheet','cpu','pin','q','polarity','def','clk,'none')"
+                                ],
+                                "help": "Pin polarity specified on a per mode basis. Only applicable to output\npins. Valid entries are: positive, negative, none.",
+                                "lock": false,
+                                "node": {
+                                    "default": {
                                         "default": {
-                                            "default": {
-                                                "signature": null,
-                                                "value": null
-                                            }
+                                            "signature": null,
+                                            "value": null
                                         }
-                                    },
-                                    "notes": null,
-                                    "pernode": "never",
-                                    "require": null,
-                                    "scope": "job",
-                                    "shorthelp": "Datasheet: pin polarity",
-                                    "switch": [
-                                        "-datasheet_pin_polarity 'design name mode relpin name <str>'"
-                                    ],
-                                    "type": "enum"
-                                }
+                                    }
+                                },
+                                "notes": null,
+                                "pernode": "never",
+                                "require": null,
+                                "scope": "job",
+                                "shorthelp": "Datasheet: pin polarity",
+                                "switch": [
+                                    "-datasheet_pin_polarity 'design name mode name <str>'"
+                                ],
+                                "type": "enum"
                             }
                         }
                     },
