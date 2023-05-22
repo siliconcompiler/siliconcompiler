@@ -1665,13 +1665,13 @@
                 ],
                 "type": "[str]"
             },
-            "limits": {
+            "limit": {
                 "junctiontemp": {
                     "example": [
-                        "cli: -datasheet_limits_junctiontemp 'mydevice (-40,125)'",
-                        "api: chip.set('datasheet','mydevice','limits','junctiontemp',(-40,125))"
+                        "cli: -datasheet_limit_junctiontemp 'dev (-40, 125)'",
+                        "api: chip.set('datasheet','dev','limit','junctiontemp',(-40, 125)"
                     ],
-                    "help": "Device absolute junction temperature limits not to be exceeded.",
+                    "help": "Limit junction temperature limits. Values are tuples of (min, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1685,18 +1685,149 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: absolute junction temperature limits",
+                    "shorthelp": "Datasheet: limit junction temperature limits",
                     "switch": [
-                        "-datasheet_limits_junctiontemp 'design <(float,float)>'"
+                        "-datasheet_limit_junctiontemp 'design <(float,float)>'"
                     ],
-                    "type": "(float,float)"
+                    "type": "(float,float)",
+                    "unit": "C"
+                },
+                "seb": {
+                    "example": [
+                        "cli: -datasheet_limit_seb 'dev (75, 75)'",
+                        "api: chip.set('datasheet','dev','limit','seb',(75, 75)"
+                    ],
+                    "help": "Limit single event burnout threshold. Values are tuples of (min, max).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: limit single event burnout threshold",
+                    "switch": [
+                        "-datasheet_limit_seb 'design <(float,float)>'"
+                    ],
+                    "type": "(float,float)",
+                    "unit": "MeV-cm2/mg"
+                },
+                "segr": {
+                    "example": [
+                        "cli: -datasheet_limit_segr 'dev (75, 75)'",
+                        "api: chip.set('datasheet','dev','limit','segr',(75, 75)"
+                    ],
+                    "help": "Limit single event gate rupture threshold. Values are tuples of (min, max).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: limit single event gate rupture threshold",
+                    "switch": [
+                        "-datasheet_limit_segr 'design <(float,float)>'"
+                    ],
+                    "type": "(float,float)",
+                    "unit": "MeV-cm2/mg"
+                },
+                "sel": {
+                    "example": [
+                        "cli: -datasheet_limit_sel 'dev (75, 75)'",
+                        "api: chip.set('datasheet','dev','limit','sel',(75, 75)"
+                    ],
+                    "help": "Limit single event latchup threshold. Values are tuples of (min, max).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: limit single event latchup threshold",
+                    "switch": [
+                        "-datasheet_limit_sel 'design <(float,float)>'"
+                    ],
+                    "type": "(float,float)",
+                    "unit": "MeV-cm2/mg"
+                },
+                "set": {
+                    "example": [
+                        "cli: -datasheet_limit_set 'dev (75, 75)'",
+                        "api: chip.set('datasheet','dev','limit','set',(75, 75)"
+                    ],
+                    "help": "Limit single event transient threshold. Values are tuples of (min, max).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: limit single event transient threshold",
+                    "switch": [
+                        "-datasheet_limit_set 'design <(float,float)>'"
+                    ],
+                    "type": "(float,float)",
+                    "unit": "MeV-cm2/mg"
+                },
+                "seu": {
+                    "example": [
+                        "cli: -datasheet_limit_seu 'dev (75, 75)'",
+                        "api: chip.set('datasheet','dev','limit','seu',(75, 75)"
+                    ],
+                    "help": "Limit single event upset threshold. Values are tuples of (min, max).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: limit single event upset threshold",
+                    "switch": [
+                        "-datasheet_limit_seu 'design <(float,float)>'"
+                    ],
+                    "type": "(float,float)",
+                    "unit": "MeV-cm2/mg"
                 },
                 "soldertemp": {
                     "example": [
-                        "cli: -datasheet_limits_soldertemp 'mydevice (-40,125)'",
-                        "api: chip.set('datasheet','mydevice','limits','soldertemp',(-40,125))"
+                        "cli: -datasheet_limit_soldertemp 'dev (-40, 125)'",
+                        "api: chip.set('datasheet','dev','limit','soldertemp',(-40, 125)"
                     ],
-                    "help": "Device absolute solder temperature limits not to be exceeded.",
+                    "help": "Limit solder temperature limits. Values are tuples of (min, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1710,18 +1841,19 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: absolute solder temperature limits",
+                    "shorthelp": "Datasheet: limit solder temperature limits",
                     "switch": [
-                        "-datasheet_limits_soldertemp 'design <(float,float)>'"
+                        "-datasheet_limit_soldertemp 'design <(float,float)>'"
                     ],
-                    "type": "(float,float)"
+                    "type": "(float,float)",
+                    "unit": "C"
                 },
                 "storagetemp": {
                     "example": [
-                        "cli: -datasheet_limits_storagetemp 'mydevice (-40,125)'",
-                        "api: chip.set('datasheet','mydevice','limits','storagetemp',(-40,125))"
+                        "cli: -datasheet_limit_storagetemp 'dev (-40, 125)'",
+                        "api: chip.set('datasheet','dev','limit','storagetemp',(-40, 125)"
                     ],
-                    "help": "Device absolute storage temperature limits not to be exceeded.",
+                    "help": "Limit storage temperature limits. Values are tuples of (min, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1735,11 +1867,38 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: absolute storage temperature limits",
+                    "shorthelp": "Datasheet: limit storage temperature limits",
                     "switch": [
-                        "-datasheet_limits_storagetemp 'design <(float,float)>'"
+                        "-datasheet_limit_storagetemp 'design <(float,float)>'"
                     ],
-                    "type": "(float,float)"
+                    "type": "(float,float)",
+                    "unit": "C"
+                },
+                "tid": {
+                    "example": [
+                        "cli: -datasheet_limit_tid 'dev (300000.0, 300000.0)'",
+                        "api: chip.set('datasheet','dev','limit','tid',(300000.0, 300000.0)"
+                    ],
+                    "help": "Limit total inonizing dose threshold. Values are tuples of (min, max).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: limit total inonizing dose threshold",
+                    "switch": [
+                        "-datasheet_limit_tid 'design <(float,float)>'"
+                    ],
+                    "type": "(float,float)",
+                    "unit": "rad"
                 }
             },
             "pin": {
@@ -3201,7 +3360,7 @@
                                 "scope": "job",
                                 "shorthelp": "Datasheet: pin propagation delay (fall)",
                                 "switch": [
-                                    "-datasheet_pin_tdelayf 'design pin mode relname <(float,float,float)>'"
+                                    "-datasheet_pin_tdelayf 'design pin mode relpin <(float,float,float)>'"
                                 ],
                                 "type": "(float,float,float)",
                                 "unit": "s"
@@ -3231,7 +3390,7 @@
                                 "scope": "job",
                                 "shorthelp": "Datasheet: pin propagation delay (rise)",
                                 "switch": [
-                                    "-datasheet_pin_tdelayr 'design pin mode relname <(float,float,float)>'"
+                                    "-datasheet_pin_tdelayr 'design pin mode relpin <(float,float,float)>'"
                                 ],
                                 "type": "(float,float,float)",
                                 "unit": "s"
@@ -3289,7 +3448,7 @@
                                 "scope": "job",
                                 "shorthelp": "Datasheet: pin fall transition",
                                 "switch": [
-                                    "-datasheet_pin_tfall 'design pin mode relname <(float,float,float)>'"
+                                    "-datasheet_pin_tfall 'design pin mode relpin <(float,float,float)>'"
                                 ],
                                 "type": "(float,float,float)",
                                 "unit": "s"
@@ -3302,7 +3461,7 @@
                                 "cli: -datasheet_pin_thigh 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','thigh','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin pulse widtdh high. Values are tuples of (min, typical, max).",
+                            "help": "Pin pulse width high. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3316,7 +3475,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin pulse widtdh high",
+                            "shorthelp": "Datasheet: pin pulse width high",
                             "switch": [
                                 "-datasheet_pin_thigh 'design pin mode <(float,float,float)>'"
                             ],
@@ -3347,7 +3506,7 @@
                                 "scope": "job",
                                 "shorthelp": "Datasheet: pin hold time",
                                 "switch": [
-                                    "-datasheet_pin_thold 'design pin mode relname <(float,float,float)>'"
+                                    "-datasheet_pin_thold 'design pin mode relpin <(float,float,float)>'"
                                 ],
                                 "type": "(float,float,float)",
                                 "unit": "s"
@@ -3388,7 +3547,7 @@
                                 "cli: -datasheet_pin_tlow 'mydevice sclk global (1e-09, 2e-09, 4e-09)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','tlow','global',(1e-09, 2e-09, 4e-09)"
                             ],
-                            "help": "Pin pulse widtdh low. Values are tuples of (min, typical, max).",
+                            "help": "Pin pulse width low. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3402,7 +3561,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin pulse widtdh low",
+                            "shorthelp": "Datasheet: pin pulse width low",
                             "switch": [
                                 "-datasheet_pin_tlow 'design pin mode <(float,float,float)>'"
                             ],
@@ -3489,7 +3648,7 @@
                                 "scope": "job",
                                 "shorthelp": "Datasheet: pin rise transition",
                                 "switch": [
-                                    "-datasheet_pin_trise 'design pin mode relname <(float,float,float)>'"
+                                    "-datasheet_pin_trise 'design pin mode relpin <(float,float,float)>'"
                                 ],
                                 "type": "(float,float,float)",
                                 "unit": "s"
@@ -3519,7 +3678,7 @@
                                 "scope": "job",
                                 "shorthelp": "Datasheet: pin setup time",
                                 "switch": [
-                                    "-datasheet_pin_tsetup 'design pin mode relname <(float,float,float)>'"
+                                    "-datasheet_pin_tsetup 'design pin mode relpin <(float,float,float)>'"
                                 ],
                                 "type": "(float,float,float)",
                                 "unit": "s"
@@ -3549,7 +3708,7 @@
                                 "scope": "job",
                                 "shorthelp": "Datasheet: pin timing skew",
                                 "switch": [
-                                    "-datasheet_pin_tskew 'design pin mode relname <(float,float,float)>'"
+                                    "-datasheet_pin_tskew 'design pin mode relpin <(float,float,float)>'"
                                 ],
                                 "type": "(float,float,float)",
                                 "unit": "s"
@@ -3596,7 +3755,7 @@
                                 "cli: -datasheet_pin_vcdm 'mydevice sclk global (125, 150, 175)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vcdm','global',(125, 150, 175)"
                             ],
-                            "help": "Pin charge device model (CDM) ESD tolerance. Values are tuples of (min, typical, max).",
+                            "help": "Pin charge device model ESD tolerance. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3610,7 +3769,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin charge device model (CDM) ESD tolerance",
+                            "shorthelp": "Datasheet: pin charge device model ESD tolerance",
                             "switch": [
                                 "-datasheet_pin_vcdm 'design pin mode <(float,float,float)>'"
                             ],
@@ -3708,7 +3867,7 @@
                                 "cli: -datasheet_pin_vhbm 'mydevice sclk global (200, 250, 300)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vhbm','global',(200, 250, 300)"
                             ],
-                            "help": "Pin human body model (HBM) ESD tolerance. Values are tuples of (min, typical, max).",
+                            "help": "Pin human body model ESD tolerance. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3722,7 +3881,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin human body model (HBM) ESD tolerance",
+                            "shorthelp": "Datasheet: pin human body model ESD tolerance",
                             "switch": [
                                 "-datasheet_pin_vhbm 'design pin mode <(float,float,float)>'"
                             ],
@@ -3820,7 +3979,7 @@
                                 "cli: -datasheet_pin_vmm 'mydevice sclk global (100, 125, 150)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vmm','global',(100, 125, 150)"
                             ],
-                            "help": "Pin machine model (MM) ESD tolerance. Values are tuples of (min, typical, max).",
+                            "help": "Pin machine model ESD tolerance. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3834,7 +3993,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin machine model (MM) ESD tolerance",
+                            "shorthelp": "Datasheet: pin machine model ESD tolerance",
                             "switch": [
                                 "-datasheet_pin_vmm 'design pin mode <(float,float,float)>'"
                             ],
@@ -4040,11 +4199,40 @@
                     }
                 }
             },
+            "reliability": {
+                "default": {
+                    "default": {
+                        "example": [
+                            "cli: -datasheet_reliability 'dev JESD22-A104 time 1000'",
+                            "api: chip.set('datasheet','dev','reliability','JESD22-A104','time',1000)"
+                        ],
+                        "help": "Device reliability specified on a per standard basis. The\nreliability test condition is captured as key/value pairs, where\nthe key is any test condition capture in the standard. Examples\nof test conditions include time, mintemp, maxtemp, cycles, vmax,\nmostiure.",
+                        "lock": false,
+                        "node": {
+                            "default": {
+                                "default": {
+                                    "signature": null,
+                                    "value": null
+                                }
+                            }
+                        },
+                        "notes": null,
+                        "pernode": "never",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Datasheet: reliability",
+                        "switch": [
+                            "-datasheet_reliability 'design standard item <float>'"
+                        ],
+                        "type": "float"
+                    }
+                }
+            },
             "thermal": {
                 "rja": {
                     "example": [
                         "cli: -datasheet_thermal_rja 'mydevice 30.4'",
-                        "api: chip.set('datasheet','mydevice','thermal','rja',30.4)"
+                        "api: chip.set('datasheet','mydevice','thermal','rja', 30.4)"
                     ],
                     "help": "Device rja.",
                     "lock": false,
@@ -4070,7 +4258,7 @@
                 "rjb": {
                     "example": [
                         "cli: -datasheet_thermal_rjb 'mydevice 30.4'",
-                        "api: chip.set('datasheet','mydevice','thermal','rjb',30.4)"
+                        "api: chip.set('datasheet','mydevice','thermal','rjb', 30.4)"
                     ],
                     "help": "Device rjb.",
                     "lock": false,
@@ -4096,7 +4284,7 @@
                 "rjcb": {
                     "example": [
                         "cli: -datasheet_thermal_rjcb 'mydevice 30.4'",
-                        "api: chip.set('datasheet','mydevice','thermal','rjcb',30.4)"
+                        "api: chip.set('datasheet','mydevice','thermal','rjcb', 30.4)"
                     ],
                     "help": "Device rjcb.",
                     "lock": false,
@@ -4122,7 +4310,7 @@
                 "rjct": {
                     "example": [
                         "cli: -datasheet_thermal_rjct 'mydevice 30.4'",
-                        "api: chip.set('datasheet','mydevice','thermal','rjct',30.4)"
+                        "api: chip.set('datasheet','mydevice','thermal','rjct', 30.4)"
                     ],
                     "help": "Device rjct.",
                     "lock": false,
@@ -4148,7 +4336,7 @@
                 "tjb": {
                     "example": [
                         "cli: -datasheet_thermal_tjb 'mydevice 30.4'",
-                        "api: chip.set('datasheet','mydevice','thermal','tjb',30.4)"
+                        "api: chip.set('datasheet','mydevice','thermal','tjb', 30.4)"
                     ],
                     "help": "Device tjb.",
                     "lock": false,
@@ -4174,7 +4362,7 @@
                 "tjt": {
                     "example": [
                         "cli: -datasheet_thermal_tjt 'mydevice 30.4'",
-                        "api: chip.set('datasheet','mydevice','thermal','tjt',30.4)"
+                        "api: chip.set('datasheet','mydevice','thermal','tjt', 30.4)"
                     ],
                     "help": "Device tjt.",
                     "lock": false,

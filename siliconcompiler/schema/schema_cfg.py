@@ -785,7 +785,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 switch=f"-datasheet_limit_{i} 'design <(float,float)>'",
                 example=[
                     f"cli: -datasheet_limit_{i} 'dev {v[1]}'",
-                    f"api: chip.set('datasheet','dev','{i}',{v[1]}"],
+                    f"api: chip.set('datasheet','dev','limit','{i}',{v[1]}"],
                 schelp=f"""Limit {v[0]}. Values are tuples of (min, max).
                 """)
 
@@ -805,20 +805,19 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 switch=f"-datasheet_thermal_{item} 'design <float>'",
                 example=[
                     f"cli: -datasheet_thermal_{item} 'mydevice 30.4'",
-                    f"api: chip.set('datasheet','mydevice','thermal','{item}',30.4"],
+                    f"api: chip.set('datasheet','mydevice','thermal','{item}', 30.4)"],
                 schelp=f"""Device {item}.""")
 
     # Reliability
     standard = 'default'
 
-    scparam(cfg, ['datasheet', design, 'reliability', standard, item],
+    scparam(cfg, ['datasheet', design, 'reliability', standard, name],
             sctype='float',
             shorthelp="Datasheet: reliability",
             switch="-datasheet_reliability 'design standard item <float>'",
             example=[
                 "cli: -datasheet_reliability 'dev JESD22-A104 time 1000'",
-                "api: chip.set('datasheet','dev','reliability','JESD22-A104,",
-                "'time',1000')"],
+                "api: chip.set('datasheet','dev','reliability','JESD22-A104','time',1000)"],
             schelp="""Device reliability specified on a per standard basis. The
             reliability test condition is captured as key/value pairs, where
             the key is any test condition capture in the standard. Examples
