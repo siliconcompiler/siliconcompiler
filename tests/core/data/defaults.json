@@ -1879,7 +1879,7 @@
                         "cli: -datasheet_limit_tid 'dev (300000.0, 300000.0)'",
                         "api: chip.set('datasheet','dev','limit','tid',(300000.0, 300000.0)"
                     ],
-                    "help": "Limit total inonizing dose threshold. Values are tuples of (min, max).",
+                    "help": "Limit total ionizing dose threshold. Values are tuples of (min, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1893,7 +1893,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: limit total inonizing dose threshold",
+                    "shorthelp": "Datasheet: limit total ionizing dose threshold",
                     "switch": [
                         "-datasheet_limit_tid 'design <(float,float)>'"
                     ],
@@ -2723,7 +2723,7 @@
                                     "cli: -datasheet_pin_polarity 'cpu q def clk none'",
                                     "api: chip.set('datasheet','cpu','pin','q','polarity','def','clk,'none')"
                                 ],
-                                "help": "Pin polarity specified on a per mode basis. Only applicable to output\npins. Valid entries are: positive, negative, none.",
+                                "help": "Pin polarity specified on a per mode basis. Only applicable to output\npins.",
                                 "lock": false,
                                 "node": {
                                     "default": {
@@ -2739,7 +2739,7 @@
                                 "scope": "job",
                                 "shorthelp": "Datasheet: pin polarity",
                                 "switch": [
-                                    "-datasheet_pin_polarity 'design name mode name <str>'"
+                                    "-datasheet_pin_polarity 'design name mode relpin <str>'"
                                 ],
                                 "type": "enum"
                             }
@@ -3728,7 +3728,7 @@
                                 "cli: -datasheet_pin_type 'mydevice vdd global supply'",
                                 "api: chip.set('datasheet','mydevice','pin','vdd','type','global','supply')"
                             ],
-                            "help": "Pin type specified on a per mode basis. Acceptable pin types\ninclude: digital, analog, clock, supply, ground",
+                            "help": "Pin type specified on a per mode basis.",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3755,7 +3755,7 @@
                                 "cli: -datasheet_pin_vcdm 'mydevice sclk global (125, 150, 175)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vcdm','global',(125, 150, 175)"
                             ],
-                            "help": "Pin ESD charge device model level. Values are tuples of (min, typical, max).",
+                            "help": "Pin ESD charge device model voltage level. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3769,7 +3769,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin ESD charge device model level",
+                            "shorthelp": "Datasheet: pin ESD charge device model voltage level",
                             "switch": [
                                 "-datasheet_pin_vcdm 'design pin mode <(float,float,float)>'"
                             ],
@@ -3867,7 +3867,7 @@
                                 "cli: -datasheet_pin_vhbm 'mydevice sclk global (200, 250, 300)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vhbm','global',(200, 250, 300)"
                             ],
-                            "help": "Pin ESD human body model level. Values are tuples of (min, typical, max).",
+                            "help": "Pin ESD human body model voltage level. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3881,7 +3881,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin ESD human body model level",
+                            "shorthelp": "Datasheet: pin ESD human body model voltage level",
                             "switch": [
                                 "-datasheet_pin_vhbm 'design pin mode <(float,float,float)>'"
                             ],
@@ -3979,7 +3979,7 @@
                                 "cli: -datasheet_pin_vmm 'mydevice sclk global (100, 125, 150)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vmm','global',(100, 125, 150)"
                             ],
-                            "help": "Pin ESD machine model level. Values are tuples of (min, typical, max).",
+                            "help": "Pin ESD machine model voltage level. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3993,7 +3993,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin ESD machine model level",
+                            "shorthelp": "Datasheet: pin ESD machine model voltage level",
                             "switch": [
                                 "-datasheet_pin_vmm 'design pin mode <(float,float,float)>'"
                             ],
@@ -4206,7 +4206,7 @@
                             "cli: -datasheet_reliability 'dev JESD22-A104 time 1000'",
                             "api: chip.set('datasheet','dev','reliability','JESD22-A104','time',1000)"
                         ],
-                        "help": "Device reliability specified on a per standard basis. The\nreliability test condition is captured as key/value pairs, where\nthe key is any test condition capture in the standard. Examples\nof test conditions include time, mintemp, maxtemp, cycles, vmax,\nmostiure.",
+                        "help": "Device reliability specified on a per standard basis. The\nreliability test condition is captured as key/value pairs, where\nthe key is any test condition capture in the standard. Examples\nof test conditions include time, mintemp, maxtemp, cycles, vmax,\nmoisture.",
                         "lock": false,
                         "node": {
                             "default": {
