@@ -744,7 +744,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
     # Device Features
     scparam(cfg, ['datasheet', design, 'feature', name],
             sctype='float',
-            shorthelp="Datasheet: device features",
+            shorthelp="Datasheet: features",
             switch="-datasheet_feature 'design name <float>'",
             example=[
                 "cli: -datasheet_feature 'mydevice ram 64e6'",
@@ -755,7 +755,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
     # Device Footprint
     scparam(cfg, ['datasheet', design, 'footprint'],
             sctype='[str]',
-            shorthelp="Datasheet: device footprint",
+            shorthelp="Datasheet: footprint",
             switch="-datasheet_footprint 'design <str>'",
             example=[
                 "cli: -datasheet_footprint 'mydsp bga169'",
@@ -790,12 +790,12 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 """)
 
     # Thermal model
-    metrics = {'rja': 'junction to ambient thermal resistance',
-               'rjct': 'junction to case (top) thermal resistance',
-               'rjcb': 'junction to case (bottom) thermal resistance',
-               'rjb': 'junction to board thermal resistance',
-               'tjt': 'junction to top characterization parameter',
-               'tjb': 'junction to bottom characterization parameter'}
+    metrics = {'rja': 'thermal junction to ambient resistance',
+               'rjct': 'thermal junction to case (top) resistance',
+               'rjcb': 'thermal junction to case (bottom) resistance',
+               'rjb': 'thermal junction to board resistance',
+               'tjt': 'thermal junction to top model',
+               'tjb': 'thermal junction to bottom model'}
 
     for item, val in metrics.items():
         scparam(cfg, ['datasheet', design, 'thermal', item],
@@ -912,11 +912,11 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                'vnoise': ['random voltage noise', (0, 0.01, 0.1), 'V'],
                'vslew': ['slew rate', (1e-9, 2e-9, 4e-9), 'V/s'],
                # ESD
-               'vhbm': ['human body model ESD tolerance', (200, 250, 300), 'V'],
-               'vcdm': ['charge device model ESD tolerance', (125, 150, 175), 'V'],
-               'vmm': ['machine model ESD tolerance', (100, 125, 150), 'V'],
+               'vhbm': ['ESD human body model level', (200, 250, 300), 'V'],
+               'vcdm': ['ESD charge device model level', (125, 150, 175), 'V'],
+               'vmm': ['ESD machine model level', (100, 125, 150), 'V'],
                # RC
-               'cap': ['cap', (1e-12, 1.2e-12, 1.5e-12), 'F'],
+               'cap': ['capacitance', (1e-12, 1.2e-12, 1.5e-12), 'F'],
                'rdiff': ['differential pair resistance', (45, 50, 55), 'Ohm'],
                'rin': ['input resistance', (1000, 1200, 3000), 'Ohm'],
                'rup': ['output pullup resistance', (1000, 1200, 3000), 'Ohm'],
@@ -964,14 +964,14 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                'cmrr': ['common mode rejection ratio', (70, 80, 90), 'dB'],
                'psnr': ['power supply noise rejection', (61, 61, 61), 'dB'],
                # RF parameters
-               's21': ['gain', (10, 11, 12), 'dB'],
-               's11': ['input return loss', (7, 7, 7), 'dB'],
-               's22': ['output return loss', (10, 10, 10), 'dB'],
-               's12': ['reverse isolation', (-20, -20, -20), 'dB'],
-               'noisefigure': ['noise figure', (4.6, 4.6, 4.6), 'dB'],
-               'ib1db': ['in band 1 dB compression point', (-1, 1, 1), 'dBm'],
-               'oob1db': ['out of band 1 dB compression point', (3, 3, 3), 'dBm'],
-               'iip3': ['3rd order input intercept point', (3, 3, 3), 'dBm']
+               's21': ['rf gain', (10, 11, 12), 'dB'],
+               's11': ['rf input return loss', (7, 7, 7), 'dB'],
+               's22': ['rf output return loss', (10, 10, 10), 'dB'],
+               's12': ['rf reverse isolation', (-20, -20, -20), 'dB'],
+               'noisefigure': ['rf noise figure', (4.6, 4.6, 4.6), 'dB'],
+               'ib1db': ['rf in band 1 dB compression point', (-1, 1, 1), 'dBm'],
+               'oob1db': ['rf out of band 1 dB compression point', (3, 3, 3), 'dBm'],
+               'iip3': ['rf 3rd order input intercept point', (3, 3, 3), 'dBm']
                }
 
     for item, val in metrics.items():
@@ -1010,15 +1010,15 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                 Values are tuples of (min, typical, max).""")
 
     # Low level parameters (for standard cells)
-    scparam(cfg, ['datasheet', design, 'pin', name, 'func', mode],
+    scparam(cfg, ['datasheet', design, 'pin', name, 'function', mode],
             sctype='str',
-            shorthelp="Datasheet: pin func",
-            switch="-datasheet_pin_func 'design name mode <str>'",
+            shorthelp="Datasheet: pin function",
+            switch="-datasheet_pin_function 'design name mode <str>'",
             example=[
-                "cli: -datasheet_pin_func 'mydevice z global a&b'",
-                "api: chip.set('datasheet','mydevice','pin','z','func','global','a&b')"],
-            schelp="""Pin func specified on a per mode basis. Only applicable to output
-            pins.""")
+                "cli: -datasheet_pin_function 'mydevice z global a&b'",
+                "api: chip.set('datasheet','mydevice','pin','z','function','global','a&b')"],
+            schelp="""Pin function specified on a per mode basis.
+            Only applicable to output pins.""")
 
     scparam(cfg, ['datasheet', design, 'pin', name, 'polarity', mode, name],
             sctype='enum',
