@@ -1633,7 +1633,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: device features",
+                    "shorthelp": "Datasheet: features",
                     "switch": [
                         "-datasheet_feature 'design name <float>'"
                     ],
@@ -1659,7 +1659,7 @@
                 "pernode": "never",
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Datasheet: device footprint",
+                "shorthelp": "Datasheet: footprint",
                 "switch": [
                     "-datasheet_footprint 'design <str>'"
                 ],
@@ -1937,7 +1937,7 @@
                                 "cli: -datasheet_pin_cap 'mydevice sclk global (1e-12, 1.2e-12, 1.5e-12)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','cap','global',(1e-12, 1.2e-12, 1.5e-12)"
                             ],
-                            "help": "Pin cap. Values are tuples of (min, typical, max).",
+                            "help": "Pin capacitance. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -1951,7 +1951,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin cap",
+                            "shorthelp": "Datasheet: pin capacitance",
                             "switch": [
                                 "-datasheet_pin_cap 'design pin mode <(float,float,float)>'"
                             ],
@@ -2097,13 +2097,13 @@
                             "unit": "bits"
                         }
                     },
-                    "func": {
+                    "function": {
                         "default": {
                             "example": [
-                                "cli: -datasheet_pin_func 'mydevice z global a&b'",
-                                "api: chip.set('datasheet','mydevice','pin','z','func','global','a&b')"
+                                "cli: -datasheet_pin_function 'mydevice z global a&b'",
+                                "api: chip.set('datasheet','mydevice','pin','z','function','global','a&b')"
                             ],
-                            "help": "Pin func specified on a per mode basis. Only applicable to output\npins.",
+                            "help": "Pin function specified on a per mode basis.\nOnly applicable to output pins.",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -2117,9 +2117,9 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin func",
+                            "shorthelp": "Datasheet: pin function",
                             "switch": [
-                                "-datasheet_pin_func 'design name mode <str>'"
+                                "-datasheet_pin_function 'design name mode <str>'"
                             ],
                             "type": "str"
                         }
@@ -2242,7 +2242,7 @@
                                 "cli: -datasheet_pin_ib1db 'mydevice sclk global (-1, 1, 1)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','ib1db','global',(-1, 1, 1)"
                             ],
-                            "help": "Pin in band 1 dB compression point. Values are tuples of (min, typical, max).",
+                            "help": "Pin rf in band 1 dB compression point. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -2256,7 +2256,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin in band 1 dB compression point",
+                            "shorthelp": "Datasheet: pin rf in band 1 dB compression point",
                             "switch": [
                                 "-datasheet_pin_ib1db 'design pin mode <(float,float,float)>'"
                             ],
@@ -2326,7 +2326,7 @@
                                 "cli: -datasheet_pin_iip3 'mydevice sclk global (3, 3, 3)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','iip3','global',(3, 3, 3)"
                             ],
-                            "help": "Pin 3rd order input intercept point. Values are tuples of (min, typical, max).",
+                            "help": "Pin rf 3rd order input intercept point. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -2340,7 +2340,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin 3rd order input intercept point",
+                            "shorthelp": "Datasheet: pin rf 3rd order input intercept point",
                             "switch": [
                                 "-datasheet_pin_iip3 'design pin mode <(float,float,float)>'"
                             ],
@@ -2605,7 +2605,7 @@
                                 "cli: -datasheet_pin_noisefigure 'mydevice sclk global (4.6, 4.6, 4.6)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','noisefigure','global',(4.6, 4.6, 4.6)"
                             ],
-                            "help": "Pin noise figure. Values are tuples of (min, typical, max).",
+                            "help": "Pin rf noise figure. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -2619,7 +2619,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin noise figure",
+                            "shorthelp": "Datasheet: pin rf noise figure",
                             "switch": [
                                 "-datasheet_pin_noisefigure 'design pin mode <(float,float,float)>'"
                             ],
@@ -2661,7 +2661,7 @@
                                 "cli: -datasheet_pin_oob1db 'mydevice sclk global (3, 3, 3)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','oob1db','global',(3, 3, 3)"
                             ],
-                            "help": "Pin out of band 1 dB compression point. Values are tuples of (min, typical, max).",
+                            "help": "Pin rf out of band 1 dB compression point. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -2675,7 +2675,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin out of band 1 dB compression point",
+                            "shorthelp": "Datasheet: pin rf out of band 1 dB compression point",
                             "switch": [
                                 "-datasheet_pin_oob1db 'design pin mode <(float,float,float)>'"
                             ],
@@ -3093,7 +3093,7 @@
                                 "cli: -datasheet_pin_s11 'mydevice sclk global (7, 7, 7)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','s11','global',(7, 7, 7)"
                             ],
-                            "help": "Pin input return loss. Values are tuples of (min, typical, max).",
+                            "help": "Pin rf input return loss. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3107,7 +3107,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin input return loss",
+                            "shorthelp": "Datasheet: pin rf input return loss",
                             "switch": [
                                 "-datasheet_pin_s11 'design pin mode <(float,float,float)>'"
                             ],
@@ -3121,7 +3121,7 @@
                                 "cli: -datasheet_pin_s12 'mydevice sclk global (-20, -20, -20)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','s12','global',(-20, -20, -20)"
                             ],
-                            "help": "Pin reverse isolation. Values are tuples of (min, typical, max).",
+                            "help": "Pin rf reverse isolation. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3135,7 +3135,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin reverse isolation",
+                            "shorthelp": "Datasheet: pin rf reverse isolation",
                             "switch": [
                                 "-datasheet_pin_s12 'design pin mode <(float,float,float)>'"
                             ],
@@ -3149,7 +3149,7 @@
                                 "cli: -datasheet_pin_s21 'mydevice sclk global (10, 11, 12)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','s21','global',(10, 11, 12)"
                             ],
-                            "help": "Pin gain. Values are tuples of (min, typical, max).",
+                            "help": "Pin rf gain. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3163,7 +3163,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin gain",
+                            "shorthelp": "Datasheet: pin rf gain",
                             "switch": [
                                 "-datasheet_pin_s21 'design pin mode <(float,float,float)>'"
                             ],
@@ -3177,7 +3177,7 @@
                                 "cli: -datasheet_pin_s22 'mydevice sclk global (10, 10, 10)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','s22','global',(10, 10, 10)"
                             ],
-                            "help": "Pin output return loss. Values are tuples of (min, typical, max).",
+                            "help": "Pin rf output return loss. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3191,7 +3191,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin output return loss",
+                            "shorthelp": "Datasheet: pin rf output return loss",
                             "switch": [
                                 "-datasheet_pin_s22 'design pin mode <(float,float,float)>'"
                             ],
@@ -3755,7 +3755,7 @@
                                 "cli: -datasheet_pin_vcdm 'mydevice sclk global (125, 150, 175)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vcdm','global',(125, 150, 175)"
                             ],
-                            "help": "Pin charge device model ESD tolerance. Values are tuples of (min, typical, max).",
+                            "help": "Pin ESD charge device model level. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3769,7 +3769,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin charge device model ESD tolerance",
+                            "shorthelp": "Datasheet: pin ESD charge device model level",
                             "switch": [
                                 "-datasheet_pin_vcdm 'design pin mode <(float,float,float)>'"
                             ],
@@ -3867,7 +3867,7 @@
                                 "cli: -datasheet_pin_vhbm 'mydevice sclk global (200, 250, 300)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vhbm','global',(200, 250, 300)"
                             ],
-                            "help": "Pin human body model ESD tolerance. Values are tuples of (min, typical, max).",
+                            "help": "Pin ESD human body model level. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3881,7 +3881,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin human body model ESD tolerance",
+                            "shorthelp": "Datasheet: pin ESD human body model level",
                             "switch": [
                                 "-datasheet_pin_vhbm 'design pin mode <(float,float,float)>'"
                             ],
@@ -3979,7 +3979,7 @@
                                 "cli: -datasheet_pin_vmm 'mydevice sclk global (100, 125, 150)'",
                                 "api: chip.set('datasheet','mydevice','pin','sclk','vmm','global',(100, 125, 150)"
                             ],
-                            "help": "Pin machine model ESD tolerance. Values are tuples of (min, typical, max).",
+                            "help": "Pin ESD machine model level. Values are tuples of (min, typical, max).",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3993,7 +3993,7 @@
                             "pernode": "never",
                             "require": null,
                             "scope": "job",
-                            "shorthelp": "Datasheet: pin machine model ESD tolerance",
+                            "shorthelp": "Datasheet: pin ESD machine model level",
                             "switch": [
                                 "-datasheet_pin_vmm 'design pin mode <(float,float,float)>'"
                             ],
@@ -4248,7 +4248,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: junction to ambient thermal resistance",
+                    "shorthelp": "Datasheet: thermal junction to ambient resistance",
                     "switch": [
                         "-datasheet_thermal_rja 'design <float>'"
                     ],
@@ -4274,7 +4274,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: junction to board thermal resistance",
+                    "shorthelp": "Datasheet: thermal junction to board resistance",
                     "switch": [
                         "-datasheet_thermal_rjb 'design <float>'"
                     ],
@@ -4300,7 +4300,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: junction to case (bottom) thermal resistance",
+                    "shorthelp": "Datasheet: thermal junction to case (bottom) resistance",
                     "switch": [
                         "-datasheet_thermal_rjcb 'design <float>'"
                     ],
@@ -4326,7 +4326,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: junction to case (top) thermal resistance",
+                    "shorthelp": "Datasheet: thermal junction to case (top) resistance",
                     "switch": [
                         "-datasheet_thermal_rjct 'design <float>'"
                     ],
@@ -4352,7 +4352,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: junction to bottom characterization parameter",
+                    "shorthelp": "Datasheet: thermal junction to bottom model",
                     "switch": [
                         "-datasheet_thermal_tjb 'design <float>'"
                     ],
@@ -4378,7 +4378,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: junction to top characterization parameter",
+                    "shorthelp": "Datasheet: thermal junction to top model",
                     "switch": [
                         "-datasheet_thermal_tjt 'design <float>'"
                     ],
