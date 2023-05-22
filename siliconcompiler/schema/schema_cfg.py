@@ -769,7 +769,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
     metrics = {'storagetemp': ['storage temperature limits', (-40, 125), 'C'],
                'soldertemp': ['solder temperature limits', (-40, 125), 'C'],
                'junctiontemp': ['junction temperature limits', (-40, 125), 'C'],
-               'tid': ['total inonizing dose threshold', (3e5, 3e5), 'rad'],
+               'tid': ['total ionizing dose threshold', (3e5, 3e5), 'rad'],
                'sel': ['single event latchup threshold', (75, 75), 'MeV-cm2/mg'],
                'seb': ['single event burnout threshold', (75, 75), 'MeV-cm2/mg'],
                'segr': ['single event gate rupture threshold', (75, 75), 'MeV-cm2/mg'],
@@ -822,7 +822,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             reliability test condition is captured as key/value pairs, where
             the key is any test condition capture in the standard. Examples
             of test conditions include time, mintemp, maxtemp, cycles, vmax,
-            mostiure.""")
+            moisture.""")
 
     # Package pin map
     scparam(cfg, ['datasheet', design, 'pin', name, 'map', mode],
@@ -843,8 +843,7 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             example=[
                 "cli: -datasheet_pin_type 'mydevice vdd global supply'",
                 "api: chip.set('datasheet','mydevice','pin','vdd','type','global','supply')"],
-            schelp="""Pin type specified on a per mode basis. Acceptable pin types
-            include: digital, analog, clock, supply, ground""")
+            schelp="""Pin type specified on a per mode basis.""")
 
     # Pin direction
     scparam(cfg, ['datasheet', design, 'pin', name, 'dir', mode],
@@ -912,9 +911,9 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
                'vnoise': ['random voltage noise', (0, 0.01, 0.1), 'V'],
                'vslew': ['slew rate', (1e-9, 2e-9, 4e-9), 'V/s'],
                # ESD
-               'vhbm': ['ESD human body model level', (200, 250, 300), 'V'],
-               'vcdm': ['ESD charge device model level', (125, 150, 175), 'V'],
-               'vmm': ['ESD machine model level', (100, 125, 150), 'V'],
+               'vhbm': ['ESD human body model voltage level', (200, 250, 300), 'V'],
+               'vcdm': ['ESD charge device model voltage level', (125, 150, 175), 'V'],
+               'vmm': ['ESD machine model voltage level', (100, 125, 150), 'V'],
                # RC
                'cap': ['capacitance', (1e-12, 1.2e-12, 1.5e-12), 'F'],
                'rdiff': ['differential pair resistance', (45, 50, 55), 'Ohm'],
@@ -1020,16 +1019,18 @@ def schema_datasheet(cfg, design='default', name='default', mode='default'):
             schelp="""Pin function specified on a per mode basis.
             Only applicable to output pins.""")
 
-    scparam(cfg, ['datasheet', design, 'pin', name, 'polarity', mode, name],
+    relpin = 'default'
+
+    scparam(cfg, ['datasheet', design, 'pin', name, 'polarity', mode, relpin],
             sctype='enum',
             enum=['positive', 'negative', 'none'],
             shorthelp="Datasheet: pin polarity",
-            switch="-datasheet_pin_polarity 'design name mode name <str>'",
+            switch="-datasheet_pin_polarity 'design name mode relpin <str>'",
             example=[
                 "cli: -datasheet_pin_polarity 'cpu q def clk none'",
                 "api: chip.set('datasheet','cpu','pin','q','polarity','def','clk,'none')"],
             schelp="""Pin polarity specified on a per mode basis. Only applicable to output
-            pins. Valid entries are: positive, negative, none.""")
+            pins.""")
 
     return cfg
 
