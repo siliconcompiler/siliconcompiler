@@ -162,19 +162,22 @@ def prepare_synthesis_libraries(chip):
                                        step=step, index=index)[0]
     dff_dont_use = []
     for lib in chip.get('asic', 'logiclib', step=step, index=index):
-        dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse', step=step, index=index)
-        if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel,
-                                               step=step, index=index):
-            # if we have the exact library, use those dontuses,
-            # otherwise continue to build full list
-            dff_dont_use = dontuse
-            break
+        # Only process dontuse cells if they are defined in the Schema.
+        if chip.valid('library', lib, 'asic', 'cells', 'dontuse'):
+            dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse', step=step, index=index)
+            if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel,
+                                                   step=step, index=index):
+                # if we have the exact library, use those dontuses,
+                # otherwise continue to build full list
+                dff_dont_use = dontuse
+                break
 
-        dff_dont_use.extend(dontuse)
+            dff_dont_use.extend(dontuse)
 
     markDontUse.processLibertyFile(
         dff_liberty_file,
-        chip.get('tool', tool, 'task', task, 'file', 'dff_liberty_file', step=step, index=index)[0],
+        chip.get('tool', tool, 'task', task, 'file', 'dff_liberty_file',
+                 step=step, index=index)[0],
         dff_dont_use,
         chip.get('option', 'quiet', step=step, index=index),
     )
@@ -214,7 +217,11 @@ def prepare_synthesis_libraries(chip):
 
     for libtype in ('logiclib', 'macrolib'):
         for lib in chip.get('asic', libtype, step=step, index=index):
-            dont_use = chip.get('library', lib, 'asic', 'cells', 'dontuse', step=step, index=index)
+            # Only process dontuse cells if they are defined in the Schema.
+            dont_use = []
+            if chip.valid('library', lib, 'asic', 'cells', 'dontuse'):
+                dont_use = chip.get('library', lib, 'asic', 'cells', 'dontuse',
+                                    step=step, index=index)
 
             for lib_file in get_synthesis_libraries(lib):
                 process_lib_file(libtype, lib, lib_file, dont_use)
