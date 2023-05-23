@@ -97,3 +97,23 @@ def test_archive_include(chip):
     for item in contents:
         if not item.endswith('oh_parity.pkg.json'):
             assert 'outputs/' not in item
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_archive_jobs(chip, monkeypatch):
+    monkeypatch.chdir(chip.cwd)
+    chip.set('option', 'jobname', 'job1')
+    chip.run()
+    monkeypatch.undo()
+
+    chip.archive(jobs=['job0', 'job1'])
+
+    assert os.path.isfile('oh_parity_job0_job1.tgz')
+
+    with tarfile.open('oh_parity_job0_job1.tgz') as f:
+        contents = f.getnames()
+
+    for item in ('build/oh_parity/job0/oh_parity.pkg.json',
+                 'build/oh_parity/job1/oh_parity.pkg.json'):
+        assert item in contents

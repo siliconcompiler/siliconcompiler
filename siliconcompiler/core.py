@@ -2472,7 +2472,30 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 tar.add(logfile, arcname=arcname(logfile))
 
     ###########################################################################
-    def archive(self, step=None, index=None, include=None, archive_name=None, quiet=True):
+    def __archive_job(self, tar, job, steplist, index=None, include=None, log_level=logging.DEBUG):
+        design = self.get('design')
+        flow = self.get('option', 'flow')
+
+        jobdir = self._getworkdir(jobname=job)
+        manifest = os.path.join(jobdir, f'{design}.pkg.json')
+        if os.path.isfile(manifest):
+            arcname = pathlib.Path(manifest).relative_to(self.cwd)
+            tar.add(manifest, arcname=arcname)
+        else:
+            self.logger.warning('Archiving job with failed or incomplete run.')
+
+        for step in steplist:
+            if index:
+                indexlist = [index]
+            else:
+                indexlist = self.getkeys('flowgraph', flow, step)
+            for idx in indexlist:
+                self.logger.log(log_level, f'Archiving {step}{idx}...')
+                self._archive_node(tar, step, idx, include=include)
+
+    ###########################################################################
+    def archive(self, jobs=None, step=None, index=None, include=None, archive_name=None,
+                quiet=True):
         '''Archive a job directory.
 
         Creates a single compressed archive (.tgz) based on the design,
@@ -2483,6 +2506,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         are archived.
 
         Args:
+            jobs (list of str): List of jobs to archive. By default, archives only the current job.
             step(str): Step to archive.
             index (str): Index to archive
             include (list of str): Override of default inclusion rules. Accepts list of glob
@@ -2498,8 +2522,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             log_level = logging.INFO
 
         design = self.get('design')
-        jobname = self.get('option', 'jobname')
-        flow = self.get('option', 'flow')
+        if not jobs:
+            jobname = self.get('option', 'jobname')
+            jobs = [jobname]
+        else:
+            jobname = '_'.join(jobs)
 
         if step:
             steplist = [step]
@@ -2521,23 +2548,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.log(log_level, f'Creating archive {archive_name}...')
 
         with tarfile.open(archive_name, "w:gz") as tar:
-            jobdir = self._getworkdir()
-            manifest = os.path.join(jobdir, f'{design}.pkg.json')
-            if os.path.isfile(manifest):
-                arcname = pathlib.Path(manifest).relative_to(self.cwd)
-                tar.add(manifest, arcname=arcname)
-            else:
-                self.logger.warning('Archiving job with failed or incomplete run.')
-
-            for step in steplist:
-                if index:
-                    indexlist = [index]
-                else:
-                    indexlist = self.getkeys('flowgraph', flow, step)
-                for idx in indexlist:
-                    self.logger.log(log_level, f'Archiving {step}{idx}...')
-                    self._archive_node(tar, step, idx, include=include)
-
+            for job in jobs:
+                if len(jobs) > 0:
+                    self.logger.log(log_level, f'Archiving job {job}...')
+                self.__archive_job(tar, job, steplist, index=index, include=include,
+                                   log_level=log_level)
         return archive_name
 
     ###########################################################################
