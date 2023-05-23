@@ -2472,7 +2472,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 tar.add(logfile, arcname=arcname(logfile))
 
     ###########################################################################
-    def archive(self, step=None, index=None, include=None, archive_name=None):
+    def archive(self, step=None, index=None, include=None, archive_name=None, quiet=True):
         '''Archive a job directory.
 
         Creates a single compressed archive (.tgz) based on the design,
@@ -2489,8 +2489,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 patterns that are matched from the root of individual step/index directories. To
                 capture all files, supply "*".
             archive_name (str): Path to the archive
-
+            quiet (bool): Which stream to use for logging progress. If True, log to debug stream,
+                otherwise info.
         '''
+        if quiet:
+            log_level = logging.DEBUG
+        else:
+            log_level = logging.INFO
 
         design = self.get('design')
         jobname = self.get('option', 'jobname')
@@ -2513,6 +2518,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 archive_name = f"{design}_{jobname}.tgz"
 
+        self.logger.log(log_level, f'Creating archive {archive_name}...')
+
         with tarfile.open(archive_name, "w:gz") as tar:
             jobdir = self._getworkdir()
             manifest = os.path.join(jobdir, f'{design}.pkg.json')
@@ -2528,6 +2535,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     indexlist = self.getkeys('flowgraph', flow, step)
                 for idx in indexlist:
+                    self.logger.log(log_level, f'Archiving {step}{idx}...')
                     self._archive_node(tar, step, idx, include=include)
 
         return archive_name
