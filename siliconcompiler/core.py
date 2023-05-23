@@ -2470,7 +2470,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 tar.add(logfile, arcname=arcname(logfile))
 
     ###########################################################################
-    def __archive_job(self, tar, job, steplist, index=None, include=None, log_level=logging.DEBUG):
+    def __archive_job(self, tar, job, steplist, index=None, include=None):
         design = self.get('design')
         flow = self.get('option', 'flow')
 
@@ -2488,12 +2488,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 indexlist = self.getkeys('flowgraph', flow, step)
             for idx in indexlist:
-                self.logger.log(log_level, f'Archiving {step}{idx}...')
+                self.logger.info(f'Archiving {step}{idx}...')
                 self._archive_node(tar, step, idx, include=include)
 
     ###########################################################################
-    def archive(self, jobs=None, step=None, index=None, include=None, archive_name=None,
-                quiet=True):
+    def archive(self, jobs=None, step=None, index=None, include=None, archive_name=None):
         '''Archive a job directory.
 
         Creates a single compressed archive (.tgz) based on the design,
@@ -2511,14 +2510,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 patterns that are matched from the root of individual step/index directories. To
                 capture all files, supply "*".
             archive_name (str): Path to the archive
-            quiet (bool): Which stream to use for logging progress. If True, log to debug stream,
-                otherwise info.
         '''
-        if quiet:
-            log_level = logging.DEBUG
-        else:
-            log_level = logging.INFO
-
         design = self.get('design')
         if not jobs:
             jobname = self.get('option', 'jobname')
@@ -2543,14 +2535,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 archive_name = f"{design}_{jobname}.tgz"
 
-        self.logger.log(log_level, f'Creating archive {archive_name}...')
+        self.logger.info(f'Creating archive {archive_name}...')
 
         with tarfile.open(archive_name, "w:gz") as tar:
             for job in jobs:
                 if len(jobs) > 0:
-                    self.logger.log(log_level, f'Archiving job {job}...')
-                self.__archive_job(tar, job, steplist, index=index, include=include,
-                                   log_level=log_level)
+                    self.logger.info(f'Archiving job {job}...')
+                self.__archive_job(tar, job, steplist, index=index, include=include)
         return archive_name
 
     ###########################################################################
