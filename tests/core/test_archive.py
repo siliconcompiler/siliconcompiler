@@ -3,6 +3,7 @@ import siliconcompiler
 import os
 import tarfile
 import pytest
+import glob
 
 
 @pytest.fixture(scope='module')
@@ -64,14 +65,35 @@ def test_archive_step_index(chip):
 @pytest.mark.eda
 @pytest.mark.quick
 def test_archive_all(chip):
-    chip.archive(all_files=True, archive_name='all.tgz')
+    chip.archive(include='*', archive_name='all.tgz')
 
     assert os.path.isfile('all.tgz')
 
     with tarfile.open('all.tgz', 'r:gz') as f:
         contents = f.getnames()
 
-    for item in ('build/oh_parity/job0/oh_parity.pkg.json',
-                 'build/oh_parity/job0/import/0',
-                 'build/oh_parity/job0/syn/0'):
+    for item in glob.glob('build/oh_parity/job0/**'):
         assert item in contents
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_archive_include(chip):
+    chip.archive(include=['*.log', 'reports/*', 'outputs/*.pkg.json'])
+
+    assert os.path.isfile('oh_parity_job0.tgz')
+
+    with tarfile.open('oh_parity_job0.tgz', 'r:gz') as f:
+        contents = f.getnames()
+
+    for item in ('build/oh_parity/job0/oh_parity.pkg.json',
+                 'build/oh_parity/job0/import/0/import.log',
+                 'build/oh_parity/job0/import/0/outputs/oh_parity.pkg.json',
+                 'build/oh_parity/job0/syn/0/syn.log',
+                 'build/oh_parity/job0/syn/0/reports/stat.json',
+                 'build/oh_parity/job0/syn/0/outputs/oh_parity.pkg.json'):
+        assert item in contents
+
+    for item in contents:
+        if not item.endswith('oh_parity.pkg.json'):
+            assert 'outputs/' not in item

@@ -45,6 +45,8 @@ from siliconcompiler import units
 from siliconcompiler import _metadata
 import psutil
 import subprocess
+import glob
+import itertools
 
 
 class TaskStatus():
@@ -2448,14 +2450,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f'Failed to copy {path}', fatal=True)
 
     ###########################################################################
-    def _archive_node(self, tar, step=None, index=None, all_files=False):
+    def _archive_node(self, tar, step=None, index=None, include=None):
         basedir = self._getworkdir(step=step, index=index)
 
         def arcname(path):
             return pathlib.Path(path).relative_to(self.cwd)
 
-        if all_files:
-            tar.add(basedir, arcname=arcname(basedir))
+        if include:
+            itr = itertools.chain.from_iterable([
+                glob.iglob(os.path.join(basedir, i)) for i in include
+            ])
+            for path in itr:
+                tar.add(path, arcname=arcname(path))
         else:
             for folder in ('reports', 'outputs'):
                 path = os.path.join(basedir, folder)
@@ -2466,7 +2472,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 tar.add(logfile, arcname=arcname(logfile))
 
     ###########################################################################
-    def archive(self, step=None, index=None, all_files=False, archive_name=None):
+    def archive(self, step=None, index=None, include=None, archive_name=None):
         '''Archive a job directory.
 
         Creates a single compressed archive (.tgz) based on the design,
@@ -2479,7 +2485,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             step(str): Step to archive.
             index (str): Index to archive
-            all_files (bool): If True, all files are archived.
+            include (list of str): Override of default inclusion rules. Accepts list of glob
+                patterns that are matched from the root of individual step/index directories. To
+                capture all files, supply "*".
             archive_name (str): Path to the archive
 
         '''
@@ -2520,7 +2528,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     indexlist = self.getkeys('flowgraph', flow, step)
                 for idx in indexlist:
-                    self._archive_node(tar, step, idx, all_files=all_files)
+                    self._archive_node(tar, step, idx, include=include)
 
         return archive_name
 
