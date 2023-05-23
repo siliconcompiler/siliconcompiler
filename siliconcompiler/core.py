@@ -2454,14 +2454,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         basedir = self._getworkdir(step=step, index=index)
 
         def arcname(path):
-            return pathlib.Path(path).relative_to(self.cwd)
+            return os.path.relpath(path, self.cwd)
 
         if include:
-            itr = itertools.chain.from_iterable([
-                glob.iglob(os.path.join(basedir, i)) for i in include
-            ])
-            for path in itr:
-                tar.add(path, arcname=arcname(path))
+            for pattern in include:
+                for path in glob.iglob(os.path.join(basedir, pattern)):
+                    tar.add(path, arcname=arcname(path))
         else:
             for folder in ('reports', 'outputs'):
                 path = os.path.join(basedir, folder)
@@ -2479,7 +2477,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         jobdir = self._getworkdir(jobname=job)
         manifest = os.path.join(jobdir, f'{design}.pkg.json')
         if os.path.isfile(manifest):
-            arcname = pathlib.Path(manifest).relative_to(self.cwd)
+            arcname = os.path.relpath(manifest, self.cwd)
             tar.add(manifest, arcname=arcname)
         else:
             self.logger.warning('Archiving job with failed or incomplete run.')
