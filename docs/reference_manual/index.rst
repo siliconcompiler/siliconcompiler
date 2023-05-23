@@ -41,3 +41,4 @@ To learn how to use SiliconCompiler, see the :ref:`user guide`.
    appendix/design_resources
    appendix/slurmsetup
    appendix/licenses
+   appendix/changelog
