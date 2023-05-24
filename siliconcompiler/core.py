@@ -45,6 +45,7 @@ from siliconcompiler import units
 from siliconcompiler import _metadata
 import psutil
 import subprocess
+import glob
 
 
 class TaskStatus():
@@ -2448,28 +2449,49 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f'Failed to copy {path}', fatal=True)
 
     ###########################################################################
-    def _archive_node(self, tar, step=None, index=None, all_files=False):
-        design = self.get('design')
-        jobname = self.get('option', 'jobname')
-        buildpath = self.get('option', 'builddir')
+    def _archive_node(self, tar, step=None, index=None, include=None):
+        basedir = self._getworkdir(step=step, index=index)
 
-        # Don't use _getworkdir() since we want a relative path for arcname
-        jobdir = os.path.join(buildpath, design, jobname)
+        def arcname(path):
+            return os.path.relpath(path, self.cwd)
 
-        basedir = os.path.join(jobdir, step, index)
-        if all_files:
-            tar.add(os.path.abspath(basedir), arcname=basedir)
+        if include:
+            for pattern in include:
+                for path in glob.iglob(os.path.join(basedir, pattern)):
+                    tar.add(path, arcname=arcname(path))
         else:
             for folder in ('reports', 'outputs'):
                 path = os.path.join(basedir, folder)
-                tar.add(os.path.abspath(path), arcname=path)
+                tar.add(path, arcname=arcname(path))
 
             logfile = os.path.join(basedir, f'{step}.log')
             if os.path.isfile(logfile):
-                tar.add(os.path.abspath(logfile), arcname=logfile)
+                tar.add(logfile, arcname=arcname(logfile))
 
     ###########################################################################
-    def archive(self, step=None, index=None, all_files=False, archive_name=None):
+    def __archive_job(self, tar, job, steplist, index=None, include=None):
+        design = self.get('design')
+        flow = self.get('option', 'flow')
+
+        jobdir = self._getworkdir(jobname=job)
+        manifest = os.path.join(jobdir, f'{design}.pkg.json')
+        if os.path.isfile(manifest):
+            arcname = os.path.relpath(manifest, self.cwd)
+            tar.add(manifest, arcname=arcname)
+        else:
+            self.logger.warning('Archiving job with failed or incomplete run.')
+
+        for step in steplist:
+            if index:
+                indexlist = [index]
+            else:
+                indexlist = self.getkeys('flowgraph', flow, step)
+            for idx in indexlist:
+                self.logger.info(f'Archiving {step}{idx}...')
+                self._archive_node(tar, step, idx, include=include)
+
+    ###########################################################################
+    def archive(self, jobs=None, step=None, index=None, include=None, archive_name=None):
         '''Archive a job directory.
 
         Creates a single compressed archive (.tgz) based on the design,
@@ -2480,17 +2502,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         are archived.
 
         Args:
+            jobs (list of str): List of jobs to archive. By default, archives only the current job.
             step(str): Step to archive.
             index (str): Index to archive
-            all_files (bool): If True, all files are archived.
+            include (list of str): Override of default inclusion rules. Accepts list of glob
+                patterns that are matched from the root of individual step/index directories. To
+                capture all files, supply "*".
             archive_name (str): Path to the archive
-
         '''
-
         design = self.get('design')
-        jobname = self.get('option', 'jobname')
-        buildpath = self.get('option', 'builddir')
-        flow = self.get('option', 'flow')
+        if not jobs:
+            jobname = self.get('option', 'jobname')
+            jobs = [jobname]
+        else:
+            jobname = '_'.join(jobs)
 
         if step:
             steplist = [step]
@@ -2509,24 +2534,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 archive_name = f"{design}_{jobname}.tgz"
 
+        self.logger.info(f'Creating archive {archive_name}...')
+
         with tarfile.open(archive_name, "w:gz") as tar:
-            # Don't use _getworkdir() since we want a relative path for arcname
-            jobdir = os.path.join(buildpath, design, jobname)
-
-            manifest = os.path.join(jobdir, f'{design}.pkg.json')
-            if os.path.isfile(manifest):
-                tar.add(os.path.abspath(manifest), arcname=manifest)
-            else:
-                self.logger.warning('Archiving job with failed or incomplete run.')
-
-            for step in steplist:
-                if index:
-                    indexlist = [index]
-                else:
-                    indexlist = self.getkeys('flowgraph', flow, step)
-                for idx in indexlist:
-                    self._archive_node(tar, step, idx, all_files=all_files)
-
+            for job in jobs:
+                if len(jobs) > 0:
+                    self.logger.info(f'Archiving job {job}...')
+                self.__archive_job(tar, job, steplist, index=index, include=include)
         return archive_name
 
     ###########################################################################
