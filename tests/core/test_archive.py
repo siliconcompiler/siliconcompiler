@@ -3,26 +3,53 @@ import siliconcompiler
 import os
 import tarfile
 import pytest
-import glob
 
 
-@pytest.fixture(scope='module')
-def chip(oh_dir, tmp_path_factory):
-    tmpdir = tmp_path_factory.mktemp('archive_run')
-    os.chdir(tmpdir)
+def all_files(job):
+    return [
+        f'build/oh_parity/{job}/syn/0/syn.log',
+        f'build/oh_parity/{job}/syn/0/sc_manifest.tcl',
+        f'build/oh_parity/{job}/syn/0/reports/stat.json',
+        f'build/oh_parity/{job}/syn/0/inputs/sc_logiclib_typical.lib',
+        f'build/oh_parity/{job}/syn/0/inputs/oh_parity.v',
+        f'build/oh_parity/{job}/syn/0/inputs/sc_dff_library.lib',
+        f'build/oh_parity/{job}/syn/0/inputs/oh_parity.pkg.json',
+        f'build/oh_parity/{job}/syn/0/inputs/sc_abc.constraints',
+        f'build/oh_parity/{job}/syn/0/replay.sh',
+        f'build/oh_parity/{job}/syn/0/syn.errors',
+        f'build/oh_parity/{job}/syn/0/syn.warnings',
+        f'build/oh_parity/{job}/syn/0/outputs/oh_parity.pkg.json',
+        f'build/oh_parity/{job}/syn/0/outputs/oh_parity.vg',
+        f'build/oh_parity/{job}/oh_parity.pkg.json',
+        f'build/oh_parity/{job}/import/0/reports/fake.rpt',
+        f'build/oh_parity/{job}/import/0/inputs/oh_parity.pkg.json',
+        f'build/oh_parity/{job}/import/0/import.warnings',
+        f'build/oh_parity/{job}/import/0/replay.sh',
+        f'build/oh_parity/{job}/import/0/import.errors',
+        f'build/oh_parity/{job}/import/0/slpp_all/file_elab.lst',
+        f'build/oh_parity/{job}/import/0/slpp_all/lib/work/oh_parity.v',
+        f'build/oh_parity/{job}/import/0/slpp_all/file_map.lst',
+        f'build/oh_parity/{job}/import/0/slpp_all/surelog.log',
+        f'build/oh_parity/{job}/import/0/slpp_all/file.lst',
+        f'build/oh_parity/{job}/import/0/outputs/oh_parity.v',
+        f'build/oh_parity/{job}/import/0/outputs/oh_parity.pkg.json',
+        f'build/oh_parity/{job}/import/0/import.log',
+    ]
 
-    srcdir = os.path.join(oh_dir, 'stdlib', 'hdl')
 
+@pytest.fixture
+def chip():
     chip = siliconcompiler.Chip('oh_parity')
-    chip.input(os.path.join(srcdir, 'oh_parity.v'))
     chip.set('option', 'steplist', ['import', 'syn'])
     chip.load_target('freepdk45_demo')
-    chip.run()
+
+    for path in all_files('job0') + all_files('job1'):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        open(path, 'a').close()
 
     return chip
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_archive(chip):
     chip.archive()
@@ -42,7 +69,6 @@ def test_archive(chip):
         assert item in contents
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_archive_step_index(chip):
     chip.archive(step='import', index='0')
@@ -62,7 +88,6 @@ def test_archive_step_index(chip):
         assert not item.startswith('build/oh_parity/job0/syn')
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_archive_all(chip):
     chip.archive(include='*', archive_name='all.tgz')
@@ -72,11 +97,10 @@ def test_archive_all(chip):
     with tarfile.open('all.tgz', 'r:gz') as f:
         contents = f.getnames()
 
-    for item in glob.glob('build/oh_parity/job0/**'):
+    for item in all_files('job0'):
         assert item in contents
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_archive_include(chip):
     chip.archive(include=['*.log', 'reports/*', 'outputs/*.pkg.json'])
@@ -99,14 +123,8 @@ def test_archive_include(chip):
             assert 'outputs/' not in item
 
 
-@pytest.mark.eda
 @pytest.mark.quick
-def test_archive_jobs(chip, monkeypatch):
-    monkeypatch.chdir(chip.cwd)
-    chip.set('option', 'jobname', 'job1')
-    chip.run()
-    monkeypatch.undo()
-
+def test_archive_jobs(chip):
     chip.archive(jobs=['job0', 'job1'])
 
     assert os.path.isfile('oh_parity_job0_job1.tgz')

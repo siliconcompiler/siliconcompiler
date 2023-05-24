@@ -46,7 +46,6 @@ from siliconcompiler import _metadata
 import psutil
 import subprocess
 import glob
-import itertools
 
 
 class TaskStatus():
