@@ -3384,9 +3384,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         The method modifies the following schema parameters:
 
-        ['datasheet', design, 'pin', pin, 'type', mode]
-        ['datasheet', design, 'pin', pin, 'tperiod', mode]
-        ['datasheet', design, 'pin', pin, 'tjitter', mode]
+        ['datasheet', 'pin', pin, 'type', mode]
+        ['datasheet', 'pin', pin, 'tperiod', mode]
+        ['datasheet', 'pin', pin, 'tjitter', mode]
 
         Args:
             pin (str): Full hierarchical path to clk pin.
@@ -3398,14 +3398,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.clock('clk', period=1.0)
            Create a clock named 'clk' with a 1.0ns period.
         """
-        design = self.top()
-        self.set('datasheet', design, 'pin', pin, 'type', mode, 'clock')
+
+        self.set('datasheet', 'pin', pin, 'type', mode, 'clock')
 
         period_range = (period * 1e-9, period * 1e-9, period * 1e-9)
-        self.set('datasheet', design, 'pin', pin, 'tperiod', mode, period_range)
+        self.set('datasheet', 'pin', pin, 'tperiod', mode, period_range)
 
         jitter_range = (jitter * 1e-9, jitter * 1e-9, jitter * 1e-9)
-        self.set('datasheet', design, 'pin', pin, 'tjitter', mode, jitter_range)
+        self.set('datasheet', 'pin', pin, 'tjitter', mode, jitter_range)
 
     ###########################################################################
     def node(self, flow, step, task, index=0):
