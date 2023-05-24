@@ -2,17 +2,15 @@
 
 source sc_manifest.tcl
 
-set sc_design [sc_top]
-
 ### Create clocks
-if {[dict exists $sc_cfg datasheet] && [dict exists $sc_cfg datasheet $sc_design]} {
-    foreach pin [dict keys [dict get $sc_cfg datasheet $sc_design pin]] {
-        if {[dict get $sc_cfg datasheet $sc_design pin $pin type global] == "clk"} {
+if {[dict exists $sc_cfg datasheet pin]} {
+    foreach pin [dict keys [dict get $sc_cfg datasheet pin]] {
+        if {[dict get $sc_cfg datasheet pin $pin type global] == "clock"} {
             # If clock...
 
-            set periodtuple [dict get $sc_cfg datasheet $sc_design pin $pin tperiod global]
+            set periodtuple [dict get $sc_cfg datasheet pin $pin tperiod global]
             set period [sta::time_sta_ui [lindex $periodtuple 1]]
-            set jittertuple [dict get $sc_cfg datasheet $sc_design pin $pin tjitter global]
+            set jittertuple [dict get $sc_cfg datasheet pin $pin tjitter global]
             set jitter [sta::time_sta_ui [lindex $jittertuple 1]]
 
             utl::info FLW 1 "Creating clock $pin with [sta::format_time [sta::time_ui_sta $period] 3][sta::unit_scale_abreviation time]s period and [sta::format_time [sta::time_ui_sta $jitter] 3][sta::unit_scale_abreviation time]s jitter."

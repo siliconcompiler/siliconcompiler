@@ -3389,7 +3389,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return allpaths
 
     ###########################################################################
-    def clock(self, pin, period, jitter=0):
+    def clock(self, pin, period, jitter=0, mode='global'):
         """
         Clock configuration helper function.
 
@@ -3398,27 +3398,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         The method modifies the following schema parameters:
 
-        ['datasheet', name, 'pin']
-        ['datasheet', name, 'period']
-        ['datasheet', name, 'jitter']
+        ['datasheet', 'pin', pin, 'type', mode]
+        ['datasheet', 'pin', pin, 'tperiod', mode]
+        ['datasheet', 'pin', pin, 'tjitter', mode]
 
         Args:
             pin (str): Full hierarchical path to clk pin.
             period (float): Clock period specified in ns.
             jitter (float): Clock jitter specified in ns.
+            mode (str): Mode of operation (from datasheet).
 
         Examples:
             >>> chip.clock('clk', period=1.0)
            Create a clock named 'clk' with a 1.0ns period.
         """
-        design = self.top()
-        self.set('datasheet', design, 'pin', pin, 'type', 'global', 'clk')
+
+        self.set('datasheet', 'pin', pin, 'type', mode, 'clock')
 
         period_range = (period * 1e-9, period * 1e-9, period * 1e-9)
-        self.set('datasheet', design, 'pin', pin, 'tperiod', 'global', period_range)
+        self.set('datasheet', 'pin', pin, 'tperiod', mode, period_range)
 
         jitter_range = (jitter * 1e-9, jitter * 1e-9, jitter * 1e-9)
-        self.set('datasheet', design, 'pin', pin, 'tjitter', 'global', jitter_range)
+        self.set('datasheet', 'pin', pin, 'tjitter', mode, jitter_range)
 
     ###########################################################################
     def node(self, flow, step, task, index=0):
