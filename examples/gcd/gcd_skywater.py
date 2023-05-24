@@ -20,8 +20,8 @@ def main():
 
     chip.load_target("skywater130_demo")
 
-    chip.set('datasheet', chip.top(), 'pin', 'vdd', 'type', 'global', 'supply')
-    chip.set('datasheet', chip.top(), 'pin', 'vss', 'type', 'global', 'ground')
+    chip.set('datasheet', 'pin', 'vdd', 'type', 'global', 'supply')
+    chip.set('datasheet', 'pin', 'vss', 'type', 'global', 'ground')
 
     # 1) RTL2GDS
 
