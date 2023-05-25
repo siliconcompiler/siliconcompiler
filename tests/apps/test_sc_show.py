@@ -36,6 +36,7 @@ def heartbeat_dir(tmpdir_factory):
 ])
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(120)
 def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
     '''Test sc-show app on a few sets of flags.'''
 
@@ -71,6 +72,7 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
 ])
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(120)
 def test_sc_show(flags, monkeypatch, heartbeat_dir):
     '''Test sc-show app on a few sets of flags.'''
 
