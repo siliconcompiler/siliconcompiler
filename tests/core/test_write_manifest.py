@@ -23,6 +23,23 @@ def test_write_manifest():
         assert os.path.exists(manifest_path)
 
 
+def test_write_manifest_prune():
+
+    chip = siliconcompiler.Chip('top')
+    chip.input('top.sdc')
+    chip.input('top.v')
+    chip.input('a.v')
+    chip.input('b.v')
+    chip.input('c.v')
+
+    chip.write_manifest('top.json', prune=True)
+    assert os.path.exists('top.json')
+
+    assert 'example' in chip.schema.cfg['schemaversion']
+    schema = siliconcompiler.Schema(manifest='top.json')
+    assert 'example' not in schema.cfg['schemaversion']
+
+
 def test_advanced_tcl(monkeypatch):
     # Tkinter module is part of Python standard library, but may not be
     # available depending on if the system has the python3-tk package installed.
