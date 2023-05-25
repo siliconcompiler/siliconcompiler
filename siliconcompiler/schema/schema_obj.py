@@ -875,8 +875,7 @@ class Schema:
             elif 'example' in cfg[k].keys():
                 del cfg[k]['example']
             elif Schema._is_leaf(cfg[k]):
-                if self._is_empty(*keypath, k, keeplists=keeplists):
-                    del cfg[k]
+                pass
             # removing stale branches
             elif not cfg[k]:
                 cfg.pop(k)
