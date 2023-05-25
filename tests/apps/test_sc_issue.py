@@ -51,6 +51,7 @@ def heartbeat_dir(tmpdir_factory):
 ])
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_sc_issue_generate_success(flags, outputfileglob, monkeypatch, heartbeat_dir):
     '''Test sc-issue app on a few sets of flags.'''
 
@@ -66,6 +67,7 @@ def test_sc_issue_generate_success(flags, outputfileglob, monkeypatch, heartbeat
 ])
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_sc_issue_generate_fail(flags, monkeypatch, heartbeat_dir):
     '''Test sc-issue app on a few sets of flags.'''
 
