@@ -1930,7 +1930,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             filename (filepath): Output filepath
-            prune (bool): If True, only essential parameters from the
+            prune (bool): If True, only essential fields from the
                  the Chip object schema are written to the output file.
             abspath (bool): If set to True, then all schema filepaths
                  are resolved to absolute filepaths.
