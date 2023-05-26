@@ -37,65 +37,6 @@ yosys hierarchy -top $sc_design
 
 if {[string match {ice*} $sc_partname]} {
     yosys synth_ice40 -top $sc_design -json "${sc_design}_netlist.json"
-} elseif { [string match {xc7*} $sc_partname] } {
-    #TODO:  Xilinx family support is theoretically pretty broad; need
-    #       to break this out.  Currently supporting 7 series FPGAs only
-    yosys synth_xilinx -family xc7 -top ${sc_design}
-} elseif { [string match {speedster*} $sc_partname] } {
-    #***NOTE:  This appears to support the Speedster 22i specifically;
-    #          unknown whether it would also work with Speedster 7t
-    #          series, but safer guess is that it doesn't.
-    #TODO  need a better part number string for this
-    yosys synth_achronix -top ${sc_design}
-} elseif { [string match {al*} $sc_partname] } {
-    #TODO:  Figure out support for AL3 series vs AL4 series (Eagle)
-    #       the tech maps maybe support both but it's tough to tell
-    #       without a deep dive
-    yosys synth_anlogic -top ${sc_design}
-} elseif { [string match {xc2c*} $sc_partname] } {
-    #Xilinx CoolRunner-2 CPLDs.  Note that these are
-    #old-school parts that don't use LUTs, mapping logic
-    #to an AND-OR plance instead.  Do we want to support these?
-    yosys synth_coolrunner2 -top ${sc_design}
-} elseif { [string match {lfe5*} $sc_partname] } {
-    #Lattice ECP5
-    yosys synth_ecp5 -top ${sc_design}
-} elseif { [string match {t*} $sc_partname] } {
-    #TODO:  determine how this supports Trion vs. Titanum FPGAs
-    #       and come up with a less generic string match
-    yosys synth_efinix -top ${sc_design}
-} elseif { [string match {ccgm*} $sc_partname] } {
-    #Cologne Chip seems to only have one GateMate part for
-    #now, so presumably this supports it
-    yosys synth_gatemate -top ${sc_design}
-} elseif { [string match {gw*} $sc_partname] } {
-    #TODO:  Determine which gowin parts are actually supported
-    yosys synth_gowin -top ${sc_design}
-} elseif { [string match {xc7*} $sc_partname] } {
-    #This is listed as still experimental; we may wish
-    #to drop it
-    yosys synth_intel -top ${sc_design}
-} elseif { [string match {xc7*} $sc_partname] } {
-    #This is a bundle for the Cyclone-V, Cyclone-10
-    yosys synth_intel_alm -top ${sc_design}
-} elseif { [string match {lcmxo2*} $sc_partname] } {
-    #Lattice Mach-XO2; note this is a bit older part;
-    #they are up to the Mach-XO5 now
-    yosys synth_machxo2 -top ${sc_design}
-} elseif { [string match {lfcpnx*} $sc_partname] } {
-    #***NOTE:  Nexus is Lattice's term for a platform within which
-    #          a few FPGA parts might be deployed.  The most recent
-    #          Nexus platform FPGA is the Certus-Pro whose part names
-    #          are matched here.  Others may need to be grandfathered in,
-    #          depending on what technology mapping Yosys actually supports
-    #          with this command
-    yosys synth_nexus -top ${sc_design}
-} elseif { [string match {ql3p*} $sc_partname] } {
-    #QuickLogic PolarPro-3
-    yosys synth_quicklogic -top ${sc_design}
-} elseif { [string match {m2s*} $sc_partname] } {
-    #Microchip/Microsemi/Actel SmartFusion 2
-    yosys synth_sf2 -top ${sc_design}
 } else {
     #yosys script "${build_dir}/${sc_design}/${job_name}/${step}/${index}/inputs/vpr_yosyslib/synthesis.ys"
     #Match VPR reference flow's hierarchy check, including their comments
@@ -214,7 +155,8 @@ if {[string match {ice*} $sc_partname]} {
 
     yosys clean
 
-    yosys echo off
-    yosys tee -o ./reports/stat.json stat -json -top $sc_design 
-    yosys echo on
 }
+
+yosys echo off
+yosys tee -o ./reports/stat.json stat -json -top $sc_design 
+yosys echo on
