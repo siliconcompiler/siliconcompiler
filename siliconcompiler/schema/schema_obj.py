@@ -838,7 +838,7 @@ class Schema:
         return Schema(cfg=self.cfg)
 
     ###########################################################################
-    def prune(self, keeplists=False):
+    def prune(self):
         '''Remove all empty parameters from configuration dictionary.
 
         Also deletes 'help' and 'example' keys.
@@ -851,10 +851,10 @@ class Schema:
         maxdepth = 10
 
         for _ in range(maxdepth):
-            self._prune(keeplists=keeplists)
+            self._prune()
 
     ###########################################################################
-    def _prune(self, *keypath, keeplists=False):
+    def _prune(self, *keypath):
         '''
         Internal recursive function that creates a local copy of the Chip
         schema (cfg) with only essential non-empty parameters retained.
@@ -875,26 +875,20 @@ class Schema:
             elif 'example' in cfg[k].keys():
                 del cfg[k]['example']
             elif Schema._is_leaf(cfg[k]):
-                if self._is_empty(*keypath, k, keeplists=keeplists):
-                    del cfg[k]
+                pass
             # removing stale branches
             elif not cfg[k]:
                 cfg.pop(k)
             # keep traversing tree
             else:
-                self._prune(*keypath, k, keeplists=keeplists)
+                self._prune(*keypath, k)
 
     ###########################################################################
-    def _is_empty(self, *keypath, keeplists=False):
+    def _is_empty(self, *keypath):
         '''
         Utility function to check key for an empty value.
-
-        If keeplists is True, don't consider length 0 lists as empty.
         '''
-        if keeplists:
-            empty = (None,)
-        else:
-            empty = (None, [])
+        empty = (None, [])
 
         values = self._getvals(*keypath)
         defvalue = self.get_default(*keypath)

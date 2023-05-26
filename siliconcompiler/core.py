@@ -1930,7 +1930,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             filename (filepath): Output filepath
-            prune (bool): If True, essential non-empty parameters from the
+            prune (bool): If True, only essential fields from the
                  the Chip object schema are written to the output file.
             abspath (bool): If set to True, then all schema filepaths
                  are resolved to absolute filepaths.
@@ -1954,12 +1954,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if prune:
             self.logger.debug('Pruning dictionary before writing file %s', filepath)
-            # Keep empty lists to simplify TCL coding
-            if filepath.endswith('.tcl'):
-                keeplists = True
-            else:
-                keeplists = False
-            schema.prune(keeplists=keeplists)
+            schema.prune()
 
         is_csv = re.search(r'(\.csv)(\.gz)*$', filepath)
 
@@ -3584,7 +3579,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if backup and os.path.exists(manifest_path):
                 shutil.copyfile(manifest_path, f'{manifest_path}.bak')
 
-            self.write_manifest(manifest_path, prune=False, abspath=True)
+            self.write_manifest(manifest_path, abspath=True)
 
     ###########################################################################
     def _runtask(self, step, index, status, replay=False):
