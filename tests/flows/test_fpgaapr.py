@@ -8,17 +8,17 @@ import siliconcompiler
 @pytest.mark.eda
 @pytest.mark.quick
 def test_fpgaapr(scroot,
-                 route_chan_width=50,
+                 route_chan_width=32,
                  lut_size=4,
-                 arch_name='zafg000sc_X008Y008',
-                 benchmark_name='macc',
-                 top_module='macc'):
+                 arch_name='zafg000sc_X005Y005',
+                 benchmark_name='adder',
+                 top_module='adder'):
 
     chip = siliconcompiler.Chip(f'{top_module}')
 
     chip.set('fpga', 'partname', arch_name)
 
-    chip.set('option', 'steplist', ['import', 'syn', 'apr'])
+    chip.set('option', 'steplist', ['import', 'syn', 'place', 'route'])
 
     flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
     arch_root = os.path.join(flow_root, 'arch', arch_name)
@@ -47,7 +47,7 @@ def test_fpgaapr(scroot,
 
     chip.run()
 
-    route_file = chip.find_result('route', step='apr')
+    route_file = chip.find_result('route', step='route')
 
     assert route_file.endswith(f'{top_module}.route')
 
