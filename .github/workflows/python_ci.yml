@@ -32,7 +32,16 @@ jobs:
         with:
           python-version: ${{ matrix.version.python }}
 
-      - run: |
+      - name: Run Python tests
+        run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install .[test]
-          pytest --import-mode=append -m "not eda"
+          python3 -m pip install -e .[test]
+          pytest -n auto --import-mode=append -m "not eda" --cov --cov-report=xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          name: codecov-${{ matrix.version.python }}
+          verbose: true
