@@ -146,15 +146,6 @@ To run a testcase, use:
         chip.logger.info(f"Changing {builddir_key} to '{new_builddir}'")
         chip.set(*builddir_key, new_builddir)
 
-        option_key = ['tool', tool, 'task', task, 'option']
-        chip.logger.info(f"Removing previous settings of {option_key}: "
-                         f"{chip.get(*option_key, step=step, index=index)}")
-        chip.unset(*option_key, step=step, index=index)
-
-        breakpoint_key = ['option', 'breakpoint']
-        chip.logger.info(f"Setting {breakpoint_key} to True")
-        chip.set(*breakpoint_key, True, step=step, index=index)
-
         if switches['use']:
             for use in switches['use']:
                 try:
@@ -166,7 +157,6 @@ To run a testcase, use:
 
         # Run task
         # Rerun setup task
-        chip._setup_task(step, index)
         chip._runtask(step, index, {}, replay=True)
 
         return 0

@@ -5317,10 +5317,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Rewrite replay.sh
         try:
-            # Unset option to avoid compounding options
-            self.unset('tool', tool, 'task', task, 'option', step=step, index=index)
             # Rerun setup
-            self._setup_task(step, index)
             self.set('arg', 'step', step)
             self.set('arg', 'index', index)
             func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)
