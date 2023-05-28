@@ -3668,6 +3668,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Write manifest prior to step running into inputs
+        self.set('arg', 'step', step, clobber=True)
+        self.set('arg', 'index', index, clobber=True)
 
         self.write_manifest(f'inputs/{design}.pkg.json')
 
@@ -3714,8 +3716,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Check manifest
-        self.set('arg', 'step', step, clobber=True)
-        self.set('arg', 'index', index, clobber=True)
 
         if not self.get('option', 'skipcheck'):
             if not self.check_manifest():
