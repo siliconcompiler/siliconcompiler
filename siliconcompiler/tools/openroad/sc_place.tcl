@@ -77,7 +77,12 @@ set_placement_padding -global \
   -left $openroad_dpl_padding \
   -right $openroad_dpl_padding
 
-detailed_placement -max_displacement $openroad_dpl_max_displacement
+set dpl_args []
+if { $openroad_dpl_disallow_one_site == "true" } {
+  lappend dpl_args "-disallow_one_site_gaps"
+}
+detailed_placement -max_displacement $openroad_dpl_max_displacement \
+  {*}$dpl_args
 
 if { $openroad_dpo_enable == "true" } {
   improve_placement -max_displacement $openroad_dpo_max_displacement

@@ -228,6 +228,7 @@ set openroad_dpo_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {v
 set openroad_dpo_max_displacement [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpo_max_displacement] 0]
 
 set openroad_dpl_max_displacement [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpl_max_displacement] 0]
+set openroad_dpl_disallow_one_site [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpl_disallow_one_site] 0]
 set openroad_dpl_padding [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} pad_detail_place] 0]
 
 set openroad_cts_distance_between_buffers [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} cts_distance_between_buffers] 0]
