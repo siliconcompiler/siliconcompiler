@@ -21,6 +21,7 @@ def test_target_nextpnr_fpga_valid():
 
     assert chip.get('option', 'mode') == 'fpga'
 
+
 def test_target_vpr_fpga_valid():
     '''Ensure that the VPR FPGA flow allows legal part names and sets mode
     correctly.'''
