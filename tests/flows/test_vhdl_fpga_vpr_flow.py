@@ -8,11 +8,11 @@ import siliconcompiler
 @pytest.mark.eda
 @pytest.mark.quick
 def test_fpga_vpr_flow(scroot,
-                  route_chan_width=32,
-                  lut_size=4,
-                  arch_name='zafg000sc_X005Y005',
-                  benchmark_name='adder',
-                  top_module='adder'):
+                       route_chan_width=32,
+                       lut_size=4,
+                       arch_name='zafg000sc_X005Y005',
+                       benchmark_name='adder',
+                       top_module='adder'):
 
     chip = siliconcompiler.Chip(f'{top_module}')
 

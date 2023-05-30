@@ -1,5 +1,6 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 
+
 def set_common_showtools(chip):
 
     # Physical only
