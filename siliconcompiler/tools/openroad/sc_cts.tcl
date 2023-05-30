@@ -31,7 +31,13 @@ if {[llength [all_clocks]] > 0} {
     -left $openroad_dpl_padding \
     -right $openroad_dpl_padding
 
-  detailed_placement -max_displacement $openroad_dpl_max_displacement
+  set dpl_args []
+  if { $openroad_dpl_disallow_one_site == "true" } {
+    lappend dpl_args "-disallow_one_site_gaps"
+  }
+
+  detailed_placement -max_displacement $openroad_dpl_max_displacement \
+    {*}$dpl_args
   check_placement -verbose
 
   estimate_parasitics -placement
@@ -40,7 +46,8 @@ if {[llength [all_clocks]] > 0} {
   estimate_parasitics -placement
   repair_timing -hold -setup_margin $openroad_rsz_setup_slack_margin -hold_margin $openroad_rsz_hold_slack_margin
 
-  detailed_placement -max_displacement $openroad_dpl_max_displacement
+  detailed_placement -max_displacement $openroad_dpl_max_displacement \
+    {*}$dpl_args
   check_placement -verbose
 }
 
