@@ -5229,12 +5229,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         flow = self.get('option', 'flow')
         tool, task = self._get_tool_task(step, index, flow=flow)
+        task_requires = self.get('tool', tool, 'task', task, 'require',
+                                 step=step, index=index)
 
         # Set copy flags for _collect
         self.set('option', 'copyall', False)
 
-        def determine_copy(*keypath):
-            copy = True
+        def determine_copy(*keypath, in_require):
+            copy = in_require
+
             if keypath[0] == 'library':
                 # only copy libraries if selected
                 if include_specific_libraries and keypath[1] in include_specific_libraries:
@@ -5242,7 +5245,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     copy = include_libraries
 
-                copy = copy and determine_copy(*keypath[2:])
+                copy = copy and determine_copy(*keypath[2:], in_require=in_require)
             elif keypath[0] == 'pdk':
                 # only copy pdks if selected
                 if include_specific_pdks and keypath[1] in include_specific_pdks:
@@ -5289,7 +5292,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if 'file' not in sctype and 'dir' not in sctype:
                 continue
 
-            self.set(*keypath, determine_copy(*keypath), field='copy')
+            self.set(*keypath,
+                     determine_copy(*keypath,
+                                    in_require=','.join(keypath) in task_requires),
+                     field='copy')
 
         # Collect files
         work_dir = self._getworkdir(step=step, index=index)
