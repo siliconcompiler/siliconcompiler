@@ -7,7 +7,7 @@ import siliconcompiler
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_fpgaflow(scroot,
+def test_fpga_vpr_flow(scroot,
                   route_chan_width=32,
                   lut_size=4,
                   arch_name='zafg000sc_X005Y005',
@@ -47,7 +47,7 @@ def test_fpgaflow(scroot,
     chip.set('tool', 'vpr', 'task', 'apr', 'var', 'route_chan_width', f'{route_chan_width}')
 
     # 5. Load target
-    chip.load_target('fpgaflow_demo')
+    chip.load_target('fpga_vpr_flow_demo')
 
     # 6. Set flow
 
@@ -59,4 +59,4 @@ def test_fpgaflow(scroot,
 
 
 if __name__ == "__main__":
-    test_fpgaflow(os.environ['SCPATH'])
+    test_fpga_vpr_flow(os.environ['SCPATH'])

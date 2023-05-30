@@ -7,8 +7,6 @@ from siliconcompiler.tools.vpr import place as vpr_place
 from siliconcompiler.tools.vpr import route as vpr_route
 from siliconcompiler.tools.genfasm import bitstream as genfasm_bitstream
 
-# from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
-
 
 ############################################################################
 # DOCS
@@ -20,7 +18,7 @@ def make_docs(chip):
 ############################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='fpgaflow', toolflow='vpr'):
+def setup(chip, flowname='fpga_vpr_flow'):
     '''
     A configurable FPGA compilation flow.
 
@@ -47,18 +45,11 @@ def setup(chip, flowname='fpgaflow', toolflow='vpr'):
     # Setting up pipeline
     flowpipe = ['syn', 'place', 'route', 'bitstream']
 
-    fpga_tool_module = {
-        'vpr': {'place': vpr_place, 'route': vpr_route, 'bitstream': genfasm_bitstream},
-        #        'nextpnr': {'place': nextpnr_place,
-        #                     'route': nextpnr_route,
-        #                     'bitstream': nextpnr_bitstream },
-    }
-
     tool_modules = {
         'syn': syn_fpga,
-        'place': fpga_tool_module[toolflow]['place'],
-        'route': fpga_tool_module[toolflow]['route'],
-        'bitstream': fpga_tool_module[toolflow]['bitstream']
+        'place': vpr_place,
+        'route': vpr_route,
+        'bitstream': genfasm_bitstream
     }
 
     flowtools = setup_frontend(chip)
