@@ -3,7 +3,7 @@ import siliconcompiler
 from siliconcompiler.flows._common import setup_frontend
 
 from siliconcompiler.tools.yosys import syn_fpga
-from siliconcompiler.tools.nextpnr import place as nextpnr_apr
+from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
 
 
 ############################################################################
