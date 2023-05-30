@@ -78,6 +78,8 @@ def main():
     # Print Job Summary
     chip.summary(steplist=steplist)
 
+    return 0
+
 
 #########################
 if __name__ == "__main__":
