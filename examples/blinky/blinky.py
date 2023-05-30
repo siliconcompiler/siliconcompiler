@@ -9,7 +9,7 @@ def main():
 
     chip.add('tool', 'yosys', 'task', 'syn', 'var', 'lut_size', '4')
 
-    chip.load_target("fpga_nextpnr_flow_demo", toolflow='nextpnr')
+    chip.load_target("fpga_nextpnr_flow_demo")
 
     chip.run()
     chip.summary()
