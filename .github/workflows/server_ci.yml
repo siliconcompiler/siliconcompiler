@@ -6,6 +6,8 @@ name: 'Server Functional Tests'
 
 jobs:
   server_tests:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
     steps:
       - name: Server action dispatch
         uses: peter-evans/repository-dispatch@v2
