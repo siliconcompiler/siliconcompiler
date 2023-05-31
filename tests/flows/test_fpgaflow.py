@@ -4,19 +4,19 @@ import pytest
 
 import siliconcompiler
 
+from siliconcompiler.targets import zeroasic_g000_fpga_demo
+
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_fpga_vpr_flow(scroot,
-                       route_chan_width=32,
-                       lut_size=4,
-                       arch_name='zafg000sc_X005Y005',
-                       benchmark_name='adder',
-                       top_module='adder'):
+def test_fpgaflow(scroot,
+                  route_chan_width=32,
+                  lut_size=4,
+                  arch_name='zafg000sc_X005Y005',
+                  benchmark_name='adder',
+                  top_module='adder'):
 
     chip = siliconcompiler.Chip(f'{top_module}')
-
-    chip.set('option', 'frontend', 'vhdl')
 
     chip.set('fpga', 'partname', arch_name)
 
@@ -25,14 +25,17 @@ def test_fpga_vpr_flow(scroot,
 
     # 1. Defining the project
     # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.vhd')
+    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
     chip.input(v_src)
 
     # 3.  Synthesis Setup
 
-    chip.add('tool', 'yosys', 'task', 'syn', 'var', 'lut_size', f'{lut_size}')
-    chip.add('tool', 'yosys', 'task', 'syn', 'var', 'memmap', 'None')
-    chip.add('tool', 'yosys', 'task', 'syn', 'var', 'techmap', 'None')
+    # This should be done by the target as much as possible so that
+    # selection of the target takes care of managing an FPGA family's
+    # tool settings other than those needed to select a part within
+    # the family.  You could also imagine having the target contain
+    # some part-name specific stuff to eliminate settings for PnR
+    # included in this test. -PG 5/31/2023
 
     # 4.  VPR Setup
     xml_file = os.path.join(arch_root, f'{arch_name}.xml')
@@ -47,7 +50,7 @@ def test_fpga_vpr_flow(scroot,
     chip.set('tool', 'vpr', 'task', 'apr', 'var', 'route_chan_width', f'{route_chan_width}')
 
     # 5. Load target
-    chip.load_target('fpga_vpr_flow_demo')
+    chip.load_target(zeroasic_g000_fpga_demo)
 
     # 6. Set flow
 
@@ -59,4 +62,4 @@ def test_fpga_vpr_flow(scroot,
 
 
 if __name__ == "__main__":
-    test_fpga_vpr_flow(os.environ['SCPATH'])
+    test_fpgaflow(os.environ['SCPATH'])

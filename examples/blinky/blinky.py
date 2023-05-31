@@ -1,6 +1,6 @@
 import siliconcompiler
 
-from siliconcompiler.targets import fpga_nextpnr_flow_demo
+from siliconcompiler.targets import lattice_ice40_fpga_demo
 
 
 def main():
@@ -9,9 +9,7 @@ def main():
     chip.input('icebreaker.pcf')
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
 
-    chip.add('tool', 'yosys', 'task', 'syn', 'var', 'lut_size', '4')
-
-    chip.load_target(fpga_nextpnr_flow_demo)
+    chip.load_target(lattice_ice40_fpga_demo)
 
     chip.run()
     chip.summary()

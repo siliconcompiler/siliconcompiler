@@ -1,11 +1,7 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
 
-from siliconcompiler.flows import fpga_nextpnr_flow
-
-
-def make_docs(chip):
-    chip.set('fpga', 'partname', 'ice40up5k-sg48')
+from siliconcompiler.flows import fpgaflow
 
 
 ####################################################
@@ -17,18 +13,21 @@ def setup(chip, toolflow='vpr'):
     '''
 
     # 1. Load flow
-    chip.use(fpga_nextpnr_flow)
+    chip.use(fpgaflow, pnr_tool='nextpnr')
 
     # 2. Setup default show tools
     utils.set_common_showtools(chip)
 
     # 3. Select default flow
     chip.set('option', 'mode', 'fpga', clobber=False)
-    chip.set('option', 'flow', 'fpga_nextpnr_flow', clobber=False)
+    chip.set('option', 'flow', 'fpgaflow', clobber=False)
+
+    # 4. Target-specific synthesis settings
+    chip.add('tool', 'yosys', 'task', 'syn', 'var', 'lut_size', '4')
 
 
 #########################
 if __name__ == "__main__":
-    target = make_docs(siliconcompiler.Chip('<target>'))
+    target = siliconcompiler.Chip('<target>')
     setup(target)
-    target.write_manifest('fpga_nextpnr_flow_demo.json')
+    target.write_manifest('fpgaflow_demo.json')

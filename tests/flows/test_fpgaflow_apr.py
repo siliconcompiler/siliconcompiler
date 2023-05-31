@@ -4,10 +4,12 @@ import pytest
 
 import siliconcompiler
 
+from siliconcompiler.targets import zeroasic_g000_fpga_demo
+
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_fpga_vpr_apr(scroot,
+def test_fpgaflow_apr(scroot,
                       route_chan_width=32,
                       lut_size=4,
                       arch_name='zafg000sc_X005Y005',
@@ -30,18 +32,16 @@ def test_fpga_vpr_apr(scroot,
 
     # 3.  Synthesis Setup
 
-    chip.add('tool', 'yosys', 'task', 'syn', 'var', 'lut_size', f'{lut_size}')
-    chip.add('tool', 'yosys', 'task', 'syn', 'var', 'memmap', 'None')
-    chip.add('tool', 'yosys', 'task', 'syn', 'var', 'techmap', 'None')
-
     # 4.  VPR Setup
     xml_file = os.path.join(arch_root, f'{arch_name}.xml')
 
     chip.set('fpga', 'arch', xml_file)
     chip.set('tool', 'vpr', 'task', 'apr', 'var', 'route_chan_width', f'{route_chan_width}')
 
+    # NOTE:  Don't set an RR graph XML here so we can test that leaving it out still works
+
     # 5. Load target
-    chip.load_target('fpga_vpr_flow_demo')
+    chip.load_target(zeroasic_g000_fpga_demo)
 
     # 6. Set flow
 
@@ -53,4 +53,4 @@ def test_fpga_vpr_apr(scroot,
 
 
 if __name__ == "__main__":
-    test_fpga_vpr_apr(os.environ['SCPATH'])
+    test_fpgaflow_apr(os.environ['SCPATH'])

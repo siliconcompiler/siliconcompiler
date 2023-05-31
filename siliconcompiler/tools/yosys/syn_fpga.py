@@ -5,11 +5,6 @@ from jinja2 import Template
 from siliconcompiler.utils import Arch
 
 
-def make_docs(chip):
-    chip.set('fpga', 'partname', 'ice40up5k-sg48')
-    chip.load_target("fpgaflow_demo")
-
-
 def setup(chip):
     '''
     Perform FPGA synthesis
