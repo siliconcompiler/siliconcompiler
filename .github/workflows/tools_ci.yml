@@ -196,5 +196,39 @@ jobs:
           source clean_env/bin/activate
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
-          python3 -m pip install .[test]
-          pytest -n auto --import-mode=append -m "eda and quick"
+          python3 -m pip install -e .[test]
+          pytest -n auto --import-mode=append -m "eda and quick" --cov --cov-report=xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          name: codecov-tools
+          verbose: true
+
+  trigger_daily:
+    if: always()
+    needs: build_sc_tools
+    runs-on: ubuntu-latest
+    name: Trigger daily, if tools changed
+    steps:
+      - name: Checkout current SiliconCompiler
+        uses: actions/checkout@v3
+
+      - name: Check tool updates
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            tools:
+              - 'setup/_tools.json'
+
+      - name: Trigger
+        if: steps.changes.outputs.tools == 'true'
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.BOT_TOKEN }}
+          repository: ${{ github.repository }}
+          event-type: trigger-daily-workflow
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'

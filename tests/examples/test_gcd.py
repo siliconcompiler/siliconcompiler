@@ -6,25 +6,11 @@ import subprocess
 import pytest
 
 
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.timeout(300)
-def test_py(setup_example_test):
-    setup_example_test('gcd')
-
-    import gcd
-    gcd.main()
-
+def __check_gcd(chip):
     # Verify that GDS file was generated.
     assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
     # Verify that report file was generated.
     assert os.path.isfile('build/gcd/job0/report.html')
-
-    manifest = 'build/gcd/job0/export/0/outputs/gcd.pkg.json'
-    assert os.path.isfile(manifest)
-
-    chip = siliconcompiler.Chip('gcd')
-    chip.read_manifest(manifest)
 
     # Ensure hashes for tool outputs are stored and persist
     assert len(chip.get('tool', 'openroad', 'task', 'dfm', 'output',
@@ -66,6 +52,54 @@ def test_py(setup_example_test):
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_py(setup_example_test):
+    setup_example_test('gcd')
+
+    import gcd
+    gcd.main()
+
+    manifest = 'build/gcd/job0/export/0/outputs/gcd.pkg.json'
+    assert os.path.isfile(manifest)
+
+    chip = siliconcompiler.Chip('gcd')
+    chip.read_manifest(manifest)
+
+    __check_gcd(chip)
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_py_read_manifest(scroot):
+    '''
+    Test that running from manifest generates the same result
+    '''
+    chip = siliconcompiler.Chip('gcd')
+    chip.input(f"{scroot}/examples/gcd/gcd.v")
+    chip.input(f"{scroot}/examples/gcd/gcd.sdc")
+    chip.set('option', 'relax', True)
+    chip.set('option', 'quiet', True)
+    chip.set('option', 'track', True)
+    chip.set('option', 'hash', True)
+    chip.set('option', 'skipcheck', True)
+    chip.set('option', 'novercheck', True)
+    chip.set('option', 'nodisplay', True)
+    chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
+    chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
+    chip.load_target("freepdk45_demo")
+
+    chip.write_manifest('./test.json')
+    chip = siliconcompiler.Chip('gcd')
+    chip.read_manifest('./test.json')
+    chip.run()
+    chip.summary()
+
+    __check_gcd(chip)
 
 
 @pytest.mark.eda

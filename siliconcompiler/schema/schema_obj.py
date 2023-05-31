@@ -8,6 +8,7 @@ import copy
 import csv
 import gzip
 import json
+import logging
 import os
 import re
 
@@ -37,6 +38,7 @@ class Schema:
         cfg (dict): Initial configuration dictionary. This may be a subtree of
             the schema.
         manifest (str): Initial manifest.
+        logger (logging.Logger): instance of the parent logger if available
     """
 
     # Special key in node dict that represents a value correponds to a
@@ -44,9 +46,11 @@ class Schema:
     GLOBAL_KEY = 'global'
     PERNODE_FIELDS = ('value', 'filehash', 'date', 'author', 'signature')
 
-    def __init__(self, cfg=None, manifest=None):
+    def __init__(self, cfg=None, manifest=None, logger=None):
         if cfg is not None and manifest is not None:
             raise ValueError('You may not specify both cfg and manifest')
+
+        self._init_logger(logger)
 
         if cfg is not None:
             self.cfg = Schema._dict_to_schema(copy.deepcopy(cfg))
@@ -62,6 +66,8 @@ class Schema:
             for field, value in cfg.items():
                 if field == 'node':
                     for step in value:
+                        if step == 'default':
+                            continue
                         for index in value[step]:
                             if step == Schema.GLOBAL_KEY:
                                 sstep = None
@@ -150,12 +156,7 @@ class Schema:
                 return cfg['node'][step][index][field]
             except KeyError:
                 if cfg['pernode'] == 'required':
-                    if field == 'value':
-                        return cfg['defvalue']
-                    elif Schema._is_list(field, self.get(*keypath, field='type')):
-                        return []
-                    else:
-                        return None
+                    return cfg['node']['default']['default'][field]
 
             try:
                 return cfg['node'][step][self.GLOBAL_KEY][field]
@@ -165,12 +166,7 @@ class Schema:
             try:
                 return cfg['node'][self.GLOBAL_KEY][self.GLOBAL_KEY][field]
             except KeyError:
-                if field == 'value':
-                    return cfg['defvalue']
-                elif Schema._is_list(field, self.get(*keypath, field='type')):
-                    return []
-                else:
-                    return None
+                return cfg['node']['default']['default'][field]
         elif field in cfg:
             return cfg[field]
         else:
@@ -187,11 +183,12 @@ class Schema:
         keypath = args[:-1]
         cfg = self._search(*keypath, insert_defaults=True)
 
-        return self._set(*args, cfg=cfg, field=field, clobber=clobber, step=step, index=index)
+        return self._set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
+                         step=step, index=index)
 
     ###########################################################################
     @staticmethod
-    def _set(*args, cfg=None, field='value', clobber=True, step=None, index=None):
+    def _set(*args, logger=None, cfg=None, field='value', clobber=True, step=None, index=None):
         '''
         Sets a schema parameter field.
 
@@ -212,11 +209,14 @@ class Schema:
             index = str(index)
 
         if cfg['lock']:
-            # TODO: log here
+            if logger:
+                logger.debug(f'Failed to set value for {keypath}: parameter is locked')
             return False
 
         if Schema._is_set(cfg, step=step, index=index) and not clobber:
-            # TODO: log here
+            if logger:
+                logger.debug(f'Failed to set value for {keypath}: clobber is False '
+                             'and parameter is set')
             return False
 
         allowed_values = None
@@ -232,7 +232,7 @@ class Schema:
             if step not in cfg['node']:
                 cfg['node'][step] = {}
             if index not in cfg['node'][step]:
-                cfg['node'][step][index] = {}
+                cfg['node'][step][index] = copy.deepcopy(cfg['node']['default']['default'])
             cfg['node'][step][index][field] = value
         else:
             cfg[field] = value
@@ -269,7 +269,7 @@ class Schema:
                 raise ValueError(f'Invalid field {field}: add() must be called on a list')
 
         if cfg['lock']:
-            # TODO: log here
+            self.logger.debug(f'Failed to set value for {keypath}: parameter is locked')
             return False
 
         allowed_values = None
@@ -284,9 +284,7 @@ class Schema:
             if step not in cfg['node']:
                 cfg['node'][step] = {}
             if index not in cfg['node'][step]:
-                cfg['node'][step][index] = {}
-            if field not in cfg['node'][step][index]:
-                cfg['node'][step][index][field] = []
+                cfg['node'][step][index] = copy.deepcopy(cfg['node']['default']['default'])
             cfg['node'][step][index][field].extend(value)
         else:
             cfg[field].extend(value)
@@ -298,7 +296,7 @@ class Schema:
         '''
         Unsets a schema parameter field.
 
-        See :meth:`~siliconcompiler.core.Chip.clear` for detailed documentation.
+        See :meth:`~siliconcompiler.core.Chip.unset` for detailed documentation.
         '''
         cfg = self._search(*keypath)
 
@@ -310,8 +308,11 @@ class Schema:
         if err:
             raise ValueError(f'Invalid args to unset() of keypath {keypath}: {err}')
 
+        if isinstance(index, int):
+            index = str(index)
+
         if cfg['lock']:
-            # TODO: log here
+            self.logger.debug(f'Failed to set value for {keypath}: parameter is locked')
             return False
 
         if step is None:
@@ -345,6 +346,9 @@ class Schema:
         vals = []
         has_global = False
         for step in cfg['node']:
+            if step == 'default':
+                continue
+
             for index in cfg['node'][step]:
                 step_arg = None if step == self.GLOBAL_KEY else step
                 index_arg = None if index == self.GLOBAL_KEY else index
@@ -354,7 +358,7 @@ class Schema:
                     vals.append((cfg['node'][step][index]['value'], step_arg, index_arg))
 
         if (cfg['pernode'] != 'required') and not has_global and return_defvalue:
-            vals.append((cfg['defvalue'], None, None))
+            vals.append((cfg['node']['default']['default']['value'], None, None))
 
         return vals
 
@@ -478,7 +482,7 @@ class Schema:
             # TODO: could consider normalizing "None" for lists to empty list?
             return value
 
-        if field in ('value', 'defvalue'):
+        if field == 'value':
             # Push down error_msg from the top since arguments get modified in recursive call
             error_msg = f'Invalid value {value} for keypath {keypath}: expected type {sc_type}'
             return Schema._normalize_value(value, sc_type, error_msg, allowed_values)
@@ -640,7 +644,7 @@ class Schema:
         if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch'):
             return True
 
-        if is_list and field in ('signature', 'defvalue', 'value'):
+        if is_list and field in ('signature', 'value'):
             return True
 
         return False
@@ -725,7 +729,7 @@ class Schema:
         for k in cfg:
             newkeys = keys.copy()
             newkeys.append(k)
-            if 'defvalue' in cfg[k]:
+            if Schema._is_leaf(cfg[k]):
                 keylist.append(newkeys)
             else:
                 self._allkeys(cfg=cfg[k], keys=newkeys, keylist=keylist)
@@ -834,7 +838,7 @@ class Schema:
         return Schema(cfg=self.cfg)
 
     ###########################################################################
-    def prune(self, keeplists=False):
+    def prune(self):
         '''Remove all empty parameters from configuration dictionary.
 
         Also deletes 'help' and 'example' keys.
@@ -847,10 +851,10 @@ class Schema:
         maxdepth = 10
 
         for _ in range(maxdepth):
-            self._prune(keeplists=keeplists)
+            self._prune()
 
     ###########################################################################
-    def _prune(self, *keypath, keeplists=False):
+    def _prune(self, *keypath):
         '''
         Internal recursive function that creates a local copy of the Chip
         schema (cfg) with only essential non-empty parameters retained.
@@ -870,30 +874,24 @@ class Schema:
                 del cfg[k]['help']
             elif 'example' in cfg[k].keys():
                 del cfg[k]['example']
-            elif 'defvalue' in cfg[k].keys():
-                if self._is_empty(*keypath, k, keeplists=keeplists):
-                    del cfg[k]
+            elif Schema._is_leaf(cfg[k]):
+                pass
             # removing stale branches
             elif not cfg[k]:
                 cfg.pop(k)
             # keep traversing tree
             else:
-                self._prune(*keypath, k, keeplists=keeplists)
+                self._prune(*keypath, k)
 
     ###########################################################################
-    def _is_empty(self, *keypath, keeplists=False):
+    def _is_empty(self, *keypath):
         '''
         Utility function to check key for an empty value.
-
-        If keeplists is True, don't consider length 0 lists as empty.
         '''
-        if keeplists:
-            empty = (None,)
-        else:
-            empty = (None, [])
+        empty = (None, [])
 
         values = self._getvals(*keypath)
-        defvalue = self.get(*keypath, field='defvalue')
+        defvalue = self.get_default(*keypath)
         value_empty = (defvalue in empty) and \
             all([value in empty for value, _, _ in values])
         return value_empty
@@ -917,6 +915,47 @@ class Schema:
         schema = Schema()
         schema.cfg = self.cfg['history'][job]
         return schema
+
+    #######################################
+    def _init_logger(self, parent=None):
+        if parent:
+            # If parent provided, create a child logger
+            self.logger = parent.getChild('schema')
+        else:
+            # Check if the logger exists and create
+            if not hasattr(self, 'logger') or not self.logger:
+                self.logger = logging.getLogger(f'sc_schema_{id(self)}')
+
+    #######################################
+    def __getstate__(self):
+        attributes = self.__dict__.copy()
+
+        # We have to remove the chip's logger before serializing the object
+        # since the logger object is not serializable.
+        del attributes['logger']
+        return attributes
+
+    #######################################
+    def __setstate__(self, state):
+        self.__dict__ = state
+
+        # Reinitialize logger on restore
+        self._init_logger()
+
+    #######################################
+    def get_default(self, *keypath):
+        '''Returns default value of a parameter.
+
+        Args:
+            keypath(list str): Variable length schema key list.
+        '''
+        cfg = self._search(*keypath)
+
+        if not Schema._is_leaf(cfg):
+            raise ValueError(f'Invalid keypath {keypath}: get_default() '
+                             'must be called on a complete keypath')
+
+        return cfg['node']['default']['default']['value']
 
 
 if _has_yaml:

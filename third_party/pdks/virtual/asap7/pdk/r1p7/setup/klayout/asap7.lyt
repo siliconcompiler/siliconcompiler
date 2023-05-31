@@ -3,7 +3,6 @@
  <name>ASAP7</name>
  <description>ASAP7 PDK</description>
  <dbu>0.0001</dbu>
- <layer-properties_file>asap7.lyp</layer-properties_file>
  <add-other-layers>true</add-other-layers>
  <reader-options>
   <gds2>
@@ -49,7 +48,6 @@
    <produce-routing>true</produce-routing>
    <routing-suffix/>
    <routing-datatype>0</routing-datatype>
-   <lef-files>./asap7sc7p5t_rvt.merged.lef</lef-files>
   </lefdef>
   <dxf>
    <dbu>0.0001</dbu>

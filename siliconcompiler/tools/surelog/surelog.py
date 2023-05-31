@@ -54,9 +54,10 @@ def setup(chip):
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
     # system path, set the path to the bundled copy in the schema.
-    if shutil.which('surelog') is None:
+    if shutil.which(exe) is None:
         surelog_path = os.path.join(os.path.dirname(__file__), 'bin')
-        chip.set('tool', tool, 'path', surelog_path, clobber=False)
+        if os.path.exists(os.path.join(surelog_path, exe)):
+            chip.set('tool', tool, 'path', surelog_path, clobber=False)
 
     # Log file parsing
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WRN:',

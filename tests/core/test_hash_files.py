@@ -13,12 +13,14 @@ def test_hash_files():
     for keypath in allkeys:
         if 'default' in keypath:
             continue
-        if 'file' in chip.get(*keypath, field='type'):
+        sc_type = chip.get(*keypath, field='type')
+        if 'file' in sc_type:
             for vals, step, index in chip.schema._getvals(*keypath):
                 hashes = chip.hash_files(*keypath, step=step, index=index)
                 schema_hashes = chip.schema.get(*keypath, step=step, index=index, field='filehash')
                 assert hashes == schema_hashes
-                assert len(hashes) == len(vals)
+                if sc_type.startswith('['):
+                    assert len(hashes) == len(vals)
     chip.write_manifest("hashed.json")
 
 

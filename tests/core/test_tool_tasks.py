@@ -21,5 +21,6 @@ def test_tool_tasks_openroad():
 def test_tool_tasks_klayout():
     chip = siliconcompiler.Chip('test')
     assert chip._get_tool_tasks(klayout) == ['export',
+                                             'operations',
                                              'screenshot',
                                              'show']

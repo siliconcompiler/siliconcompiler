@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "f839e309bace6413bef9e9eb3581ab258aa7b417",
+    "git-commit": "82f360853b319703ffc3cf763a6fe803462ccfff",
     "docker-cmds": [
       "RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"
     ],
@@ -9,7 +9,7 @@
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "2fd88a4b5df7057f59670c58e5947b3cdaffefe1",
+    "git-commit": "c9dbd09e64a596297f7715987c6ebdd2f8bd4753",
     "auto-update": true
   },
   "netgen": {
@@ -33,20 +33,20 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.28.7",
+    "version": "0.28.8",
     "git-url": "https://github.com/KLayout/klayout.git",
     "docker-skip": true,
     "auto-update": true
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "11a5d0479d269eb3572db3e9f312a261b8ffcc46",
+    "git-commit": "03610606aa1fe919a9e861e2b2e908ffdef43086",
     "auto-update": true
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "890cecc15b5971bd5a088ef579c048058ae6cc5d",
-    "auto-update": false
+    "git-commit": "4f1f487ae4ea0811883e78d287941a4d8abbad19",
+    "auto-update": true
   },
   "bambu": {
     "git-url": "https://github.com/ferrandi/PandA-bambu.git",
@@ -80,7 +80,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "4251d37f4fc66108ead53af677739563de4ee7f8",
+    "git-commit": "43b807fe6fc9a124f2c6330e1522f0ceedbd1f4e",
     "auto-update": true
   },
   "slurm": {

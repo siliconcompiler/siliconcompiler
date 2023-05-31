@@ -45,7 +45,7 @@ def tool_image_details(tool):
     return f'sc_{tool}', tag, docker_file
 
 
-def tools_image_details(tools):
+def tools_image_details(tools, tools_versions):
     '''
     Details about the sc_tools image, which contains all the tools
     '''
@@ -54,6 +54,8 @@ def tools_image_details(tools):
     hash = hashlib.sha1()
     for tool in sorted(tools):
         hash.update(tool.encode('utf-8'))
+    for _, version in tools_versions:
+        hash.update(version.encode('utf-8'))
     hash.update(get_file_hash(docker_file).encode('utf-8'))
 
     return 'sc_tools', hash.hexdigest(), docker_file
@@ -168,11 +170,11 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
     assemble_docker_file(name, tag, docker_file, template_opts, output_dir, copy_files=copy_files)
 
 
-def make_sc_tools_docker(tools, output_dir):
+def make_sc_tools_docker(tools, tools_version, output_dir):
     '''
     Generate sc_tools dockerfile which contains all the tools
     '''
-    name, tag, docker_file = tools_image_details(tools)
+    name, tag, docker_file = tools_image_details(tools, tools_version)
 
     skip_build = []
     for tool in _tools.get_tools():
@@ -216,7 +218,7 @@ def build_docker(docker_file, image_name):
         print(f'Failed to build {image_name}: {e}')
 
 
-def _get_tools():
+def _get_tools(allow_skip=False):
     '''
     Helper function to provide a list of tools
     '''
@@ -224,7 +226,7 @@ def _get_tools():
     for tool in _tools.get_tools():
         if not os.path.exists(os.path.join(_tools_path, f'install-{tool}.sh')):
             continue
-        if not _tools.get_field(tool, 'docker-skip'):
+        if allow_skip or not _tools.get_field(tool, 'docker-skip'):
             tools.append((tool, _tools.get_field(tool, 'docker-depends')))
     return tools
 
@@ -243,6 +245,23 @@ def _get_tool_images(tool=None):
         return tool_images[tool]
     else:
         return [tool_images[tool] for tool, _ in _get_tools()]
+
+
+def _get_tool_versions():
+    '''
+    Returns the image name for a tool.
+    If tool is not provided, return all image names in a dict
+    '''
+    tool_versions = []
+    for tool_name, _ in _get_tools(allow_skip=True):
+        version = _tools.get_field(tool_name, 'git-commit')
+        if not version:
+            version = _tools.get_field(tool_name, 'version')
+        if not version:
+            continue
+        tool_versions.append((tool_name, version))
+
+    return tool_versions
 
 
 if __name__ == '__main__':
@@ -316,7 +335,7 @@ if __name__ == '__main__':
         if args.tool == 'builder':
             name, tag, _ = base_image_details()
         elif args.tool == 'tools':
-            name, tag, _ = tools_image_details(_get_tool_images())
+            name, tag, _ = tools_image_details(_get_tool_images(), _get_tool_versions())
         else:
             name, tag, _ = tool_image_details(args.tool)
         print(get_image_name(name, tag))
@@ -328,5 +347,5 @@ if __name__ == '__main__':
         for tool, depends in _get_tools():
             make_tool_docker(tool, reference_tool=depends, output_dir=args.output_dir)
 
-        make_sc_tools_docker(_get_tool_images(), output_dir=args.output_dir)
+        make_sc_tools_docker(_get_tool_images(), _get_tool_versions(), output_dir=args.output_dir)
         exit(0)

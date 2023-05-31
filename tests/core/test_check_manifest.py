@@ -159,6 +159,7 @@ def test_merged_graph_good(merge_flow_chip):
     assert merge_flow_chip.check_manifest()
 
 
+@pytest.mark.timeout(120)
 def test_merged_graph_good_steplist():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
@@ -173,6 +174,7 @@ def test_merged_graph_good_steplist():
     chip.edge(flow, 'parallel2', 'merge')
     chip.edge(flow, 'merge', 'export')
     chip.set('option', 'flow', flow)
+    chip.set('option', 'mode', 'asic')
 
     chip.run()
 

@@ -123,15 +123,6 @@ def setup(chip, mode='batch'):
                  ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']),
                  step=step, index=index)
 
-        # set tapcell file
-        tapfile = None
-        if chip.valid('library', mainlib, 'option', 'file', 'openroad_tapcells'):
-            tapfile = chip.find_files('library', mainlib, 'option', 'file', 'openroad_tapcells')
-        elif chip.valid('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells'):
-            tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
-        if tapfile:
-            chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell', tapfile,
-                     step=step, index=index, clobber=False)
         chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell',
                  'tap cell insertion script',
                  field='help')
@@ -273,6 +264,8 @@ def setup(chip, mode='batch'):
                                       'displacement'),
         ('dpl_max_displacement', '0', 'maximum cell movement in detailed placement in microns, '
                                       '0 will result in the tool default maximum displacement'),
+        ('dpl_disallow_one_site', 'false', 'true/false, disallow single site gaps in '
+                                           'detail placement'),
         ('cts_clock_buffer',
          chip.get('library', mainlib, 'asic', 'cells', 'clkbuf', step=step, index=index)[-1],
          'buffer to use during clock tree synthesis'),
@@ -286,6 +279,10 @@ def setup(chip, mode='batch'):
         ('ant_iterations', '3', 'maximum number of repair iterations to use during '
                                 'antenna repairs'),
         ('ant_margin', '0', 'adds a margin to the antenna ratios (0 - 100)'),
+        ('ant_check', 'true', 'true/false, flag to indicate whether to check for '
+                              'antenna violations'),
+        ('ant_repair', 'true', 'true/false, flag to indicate whether to repair antenna '
+                               'violations'),
         ('grt_use_pin_access', 'false', 'true/false, when true perform pin access before '
                                         'global routing'),
         ('grt_overflow_iter', '100', 'maximum number of iterations to use in flobal routing '
@@ -342,19 +339,6 @@ def setup(chip, mode='batch'):
         if helptext:
             chip.set('tool', tool, 'task', task, 'var', variable, helptext, field='help')
 
-    for libvar, openroadvar in [('openroad_pdngen', 'pdn_config'),
-                                ('openroad_global_connect', 'global_connect')]:
-        if chip.valid('tool', tool, 'task', task, 'file', openroadvar) and \
-           chip.get('tool', tool, 'task', task, 'file', openroadvar, step=step, index=index):
-            # value already set
-            continue
-
-        # copy from libs
-        for lib in targetlibs + macrolibs:
-            if chip.valid('library', lib, 'option', 'file', libvar):
-                for vfile in chip.find_files('library', lib, 'option', 'file', libvar):
-                    chip.add('tool', tool, 'task', task, 'file', openroadvar, vfile,
-                             step=step, index=index)
     chip.set('tool', tool, 'task', task, 'file', 'pdn_config',
              'list of files to use for power grid generation',
              field='help')
@@ -400,6 +384,42 @@ def normalize_version(version):
         return version.lstrip('v')
     else:
         return '0'
+
+
+def pre_process(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+    pdkname = chip.get('option', 'pdk')
+    targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
+    macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
+    mainlib = targetlibs[0]
+    stackup = chip.get('option', 'stackup')
+    libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
+
+    # set tapcell file
+    tapfile = None
+    if chip.valid('library', mainlib, 'option', 'file', 'openroad_tapcells'):
+        tapfile = chip.find_files('library', mainlib, 'option', 'file', 'openroad_tapcells')
+    elif chip.valid('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells'):
+        tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
+    if tapfile:
+        chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell', tapfile,
+                 step=step, index=index, clobber=False)
+
+    for libvar, openroadvar in [('openroad_pdngen', 'pdn_config'),
+                                ('openroad_global_connect', 'global_connect')]:
+        if chip.valid('tool', tool, 'task', task, 'file', openroadvar) and \
+           chip.get('tool', tool, 'task', task, 'file', openroadvar, step=step, index=index):
+            # value already set
+            continue
+
+        # copy from libs
+        for lib in targetlibs + macrolibs:
+            if chip.valid('library', lib, 'option', 'file', libvar):
+                for vfile in chip.find_files('library', lib, 'option', 'file', libvar):
+                    chip.add('tool', tool, 'task', task, 'file', openroadvar, vfile,
+                             step=step, index=index)
 
 
 ################################

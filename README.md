@@ -6,6 +6,7 @@
 [![Wheels](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml/badge.svg?event=schedule)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml)
 [![Lint](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/lint.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/lint.yml)
 [![Documentation Status](https://readthedocs.org/projects/siliconcompiler/badge/?version=latest)](https://docs.siliconcompiler.com/en/latest/?badge=latest)
+[![codecov](https://codecov.io/github/siliconcompiler/siliconcompiler/branch/main/graph/badge.svg?token=V5BQR42Q8C)](https://codecov.io/github/siliconcompiler/siliconcompiler)
 [![Downloads](https://static.pepy.tech/personalized-badge/siliconcompiler?period=total&units=international_system&left_color=grey&right_color=blue&left_text=Downloads)](https://pepy.tech/project/siliconcompiler)
 
 # What is SiliconCompiler?

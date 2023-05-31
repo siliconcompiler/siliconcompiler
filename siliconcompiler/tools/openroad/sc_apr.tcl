@@ -228,6 +228,7 @@ set openroad_dpo_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {v
 set openroad_dpo_max_displacement [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpo_max_displacement] 0]
 
 set openroad_dpl_max_displacement [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpl_max_displacement] 0]
+set openroad_dpl_disallow_one_site [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpl_disallow_one_site] 0]
 set openroad_dpl_padding [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} pad_detail_place] 0]
 
 set openroad_cts_distance_between_buffers [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} cts_distance_between_buffers] 0]
@@ -237,6 +238,8 @@ set openroad_cts_balance_levels [lindex [dict get $sc_cfg tool $sc_tool task $sc
 
 set openroad_ant_iterations [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ant_iterations] 0]
 set openroad_ant_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ant_margin] 0]
+set openroad_ant_check [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ant_check] 0]
+set openroad_ant_repair [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ant_repair] 0]
 
 set openroad_grt_use_pin_access [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_use_pin_access] 0]
 set openroad_grt_overflow_iter [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} grt_overflow_iter] 0]
@@ -332,6 +335,7 @@ if {$sc_task != "floorplan"} {
       utl::warn FLW 1 "Missing global routing adjustment for ${layername}"
     } else {
       set adjustment [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] 0]
+      utl::info FLW 1 "Setting global routing adjustment for $layername to [expr $adjustment * 100]%"
       set_global_routing_layer_adjustment $layername $adjustment
     }
   }
