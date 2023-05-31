@@ -1,5 +1,6 @@
 import siliconcompiler
 
+from siliconcompiler.targets import fpga_nextpnr_flow_demo
 
 def main():
     chip = siliconcompiler.Chip('blinky')
@@ -9,7 +10,7 @@ def main():
 
     chip.add('tool', 'yosys', 'task', 'syn', 'var', 'lut_size', '4')
 
-    chip.load_target("fpga_nextpnr_flow_demo")
+    chip.load_target(fpga_nextpnr_flow_demo)
 
     chip.run()
     chip.summary()
