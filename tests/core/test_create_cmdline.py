@@ -1,4 +1,5 @@
 import re
+import pytest
 
 import siliconcompiler
 
@@ -249,3 +250,9 @@ def test_cli_examples(monkeypatch):
 
     for kp, step, index, val in expected_data:
         assert c.schema.get(*kp, step=step, index=index) == val
+
+
+def test_invalid_switch():
+    chip = siliconcompiler.Chip('test_chip')
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
+        chip.create_cmdline('testing', switchlist=['-loglevel', '-var', '-abcd'])

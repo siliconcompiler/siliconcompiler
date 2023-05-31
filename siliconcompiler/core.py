@@ -407,6 +407,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         schema = Schema(logger=self.logger)
 
         # Iterate over all keys from an empty schema to add parser arguments
+        used_switches = set()
         for keypath in schema.allkeys():
             # Fetch fields from leaf cell
             helpstr = schema.get(*keypath, field='shorthelp')
@@ -419,6 +420,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # Three switch types (bool, list, scalar)
             if not switchlist or any(switch in switchlist for switch in switchstrs):
+                used_switches.update(switchstrs)
                 if typestr == 'bool':
                     parser.add_argument(*switchstrs,
                                         nargs='?',
@@ -443,6 +445,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         dest=dest,
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
+
+        # Check if there are invalid switches
+        if switchlist:
+            for switch in switchlist:
+                if switch not in used_switches:
+                    self.error(f'{switch} is not a valid commandline line argument', fatal=True)
 
         if input_map is not None:
             parser.add_argument('source',
