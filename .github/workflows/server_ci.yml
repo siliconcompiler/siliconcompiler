@@ -10,8 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Server action dispatch
-        uses: peter-evans/repository-dispatch@v2
+        uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
-          token: ${{ secrets.ZA_TOKEN }}
-          repository: zeroasiccorp/scserver
-          event-type: trigger-e2e-test
+          github_token: ${{ secrets.ZA_TOKEN }}
+          repo: zeroasiccorp/scserver
+          workflow_file_name: test_deploy.yml
