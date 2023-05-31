@@ -450,7 +450,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if switchlist:
             for switch in switchlist:
                 if switch not in used_switches:
-                    self.error(f'{switch} is not a valid commandline line argument', fatal=True)
+                    self.error(f'{switch} is not a valid commandline argument', fatal=True)
 
         if input_map is not None:
             parser.add_argument('source',
