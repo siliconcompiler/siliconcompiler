@@ -1,8 +1,6 @@
 //macc_pipe.v
 //Peter Grossmann
 //26 May 2023
-//$Id$
-//$Log$
 
 module macc_pipe
   # 

@@ -1,8 +1,6 @@
 //multiplier.v
 //Peter Grossmann
 //13 September 2022
-//$Id$
-//$Log$
 
 module multiplier
   # (

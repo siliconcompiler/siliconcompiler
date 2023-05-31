@@ -1,8 +1,6 @@
 //macc.v
 //Peter Grossmann
 //16 May 2023
-//$Id$
-//$Log$
 
 module macc 
   # (

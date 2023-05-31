@@ -1,8 +1,6 @@
 --macc.vhd
 --Peter Grossmann
 --24 May 2023
---$Id$
---$Log$
 
 --Multiply accumulate circuit
 --Adapted from example code found here:
