@@ -12,22 +12,12 @@ def test_target_valid():
     assert chip.get('option', 'mode') == 'asic'
 
 
-def test_target_nextpnr_fpga_valid():
-    '''Ensure that the nextpnr FPGA flow allows legal part names and sets mode
-    correctly.'''
-    chip = siliconcompiler.Chip('test')
-    chip.set('fpga', 'partname', 'ice40')
-    chip.load_target("fpga_nextpnr_flow_demo")
-
-    assert chip.get('option', 'mode') == 'fpga'
-
-
-def test_target_vpr_fpga_valid():
+def test_target_fpga_valid():
     '''Ensure that the VPR FPGA flow allows legal part names and sets mode
     correctly.'''
     chip = siliconcompiler.Chip('test')
     chip.set('fpga', 'partname', 'zafg000sc_X005Y005')
-    chip.load_target("fpga_vpr_flow_demo")
+    chip.load_target('zeroasic_g000_fpga_demo')
 
     assert chip.get('option', 'mode') == 'fpga'
 
