@@ -2,6 +2,7 @@ import siliconcompiler
 
 from siliconcompiler.targets import fpga_nextpnr_flow_demo
 
+
 def main():
     chip = siliconcompiler.Chip('blinky')
     chip.input('blinky.v')
