@@ -13,5 +13,6 @@ jobs:
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           github_token: ${{ secrets.ZA_TOKEN }}
-          repo: zeroasiccorp/scserver
+          owner: zeroasiccorp
+          repo: scserver
           workflow_file_name: test_deploy.yml
