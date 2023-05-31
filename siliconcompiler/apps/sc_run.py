@@ -8,10 +8,8 @@ def main():
     chip = siliconcompiler.Chip(progname)
     switchlist = ['-cfg',
                   '-loglevel',
-                  '-checkonly',
                   '-relax',
-                  '-quiet',
-                  '-version']
+                  '-quiet']
     description = """
     -----------------------------------------------------------
     Restricted SC app that accepts one or more json based cfg files
