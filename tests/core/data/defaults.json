@@ -3,7 +3,7 @@
         "index": {
             "example": [
                 "cli: -arg_index 0",
-                "api: chip.set('arg','index','0')"
+                "api: chip.set('arg', 'index', '0')"
             ],
             "help": "Dynamic parameter passed in by the sc runtime as an argument to\na runtime task. The parameter enables configuration code\n(usually TCL) to use control flow that depend on the current\n'index'. The parameter is used the run() function and\nis not intended for external use.",
             "lock": false,
@@ -56,7 +56,7 @@
             "antenna": {
                 "example": [
                     "cli: -asic_cells_antenna '*eco*'",
-                    "api: chip.set('asic','cells',antenna,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'antenna', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -81,7 +81,7 @@
             "clkbuf": {
                 "example": [
                     "cli: -asic_cells_clkbuf '*eco*'",
-                    "api: chip.set('asic','cells',clkbuf,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'clkbuf', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -106,7 +106,7 @@
             "clkdelay": {
                 "example": [
                     "cli: -asic_cells_clkdelay '*eco*'",
-                    "api: chip.set('asic','cells',clkdelay,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'clkdelay', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -131,7 +131,7 @@
             "clkgate": {
                 "example": [
                     "cli: -asic_cells_clkgate '*eco*'",
-                    "api: chip.set('asic','cells',clkgate,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'clkgate', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -156,7 +156,7 @@
             "clkicg": {
                 "example": [
                     "cli: -asic_cells_clkicg '*eco*'",
-                    "api: chip.set('asic','cells',clkicg,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'clkicg', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -181,7 +181,7 @@
             "clkinv": {
                 "example": [
                     "cli: -asic_cells_clkinv '*eco*'",
-                    "api: chip.set('asic','cells',clkinv,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'clkinv', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -206,7 +206,7 @@
             "clklogic": {
                 "example": [
                     "cli: -asic_cells_clklogic '*eco*'",
-                    "api: chip.set('asic','cells',clklogic,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'clklogic', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -231,7 +231,7 @@
             "decap": {
                 "example": [
                     "cli: -asic_cells_decap '*eco*'",
-                    "api: chip.set('asic','cells',decap,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'decap', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -256,7 +256,7 @@
             "delay": {
                 "example": [
                     "cli: -asic_cells_delay '*eco*'",
-                    "api: chip.set('asic','cells',delay,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'delay', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -281,7 +281,7 @@
             "dontuse": {
                 "example": [
                     "cli: -asic_cells_dontuse '*eco*'",
-                    "api: chip.set('asic','cells',dontuse,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'dontuse', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -306,7 +306,7 @@
             "endcap": {
                 "example": [
                     "cli: -asic_cells_endcap '*eco*'",
-                    "api: chip.set('asic','cells',endcap,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'endcap', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -331,7 +331,7 @@
             "filler": {
                 "example": [
                     "cli: -asic_cells_filler '*eco*'",
-                    "api: chip.set('asic','cells',filler,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'filler', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -356,7 +356,7 @@
             "hold": {
                 "example": [
                     "cli: -asic_cells_hold '*eco*'",
-                    "api: chip.set('asic','cells',hold,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'hold', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -381,7 +381,7 @@
             "tap": {
                 "example": [
                     "cli: -asic_cells_tap '*eco*'",
-                    "api: chip.set('asic','cells',tap,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'tap', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -406,7 +406,7 @@
             "tie": {
                 "example": [
                     "cli: -asic_cells_tie '*eco*'",
-                    "api: chip.set('asic','cells',tie,'*eco*')"
+                    "api: chip.set('asic', 'cells', 'tie', '*eco*')"
                 ],
                 "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
                 "lock": false,
@@ -457,7 +457,7 @@
         "libarch": {
             "example": [
                 "cli: -asic_libarch '12track'",
-                "api: chip.set('asic','libarch','12track')"
+                "api: chip.set('asic', 'libarch', '12track')"
             ],
             "help": "The library architecture (e.g. library height) used to build the\ndesign. For example a PDK with support for 9 and 12 track libraries\nmight have 'libarchs' called 9t and 12t.",
             "lock": false,
@@ -482,7 +482,7 @@
         "logiclib": {
             "example": [
                 "cli: -asic_logiclib nangate45",
-                "api: chip.set('asic', 'logiclib','nangate45')"
+                "api: chip.set('asic', 'logiclib', 'nangate45')"
             ],
             "help": "List of all selected logic libraries libraries\nto use for optimization for a given library architecture\n(9T, 11T, etc).",
             "lock": false,
@@ -507,7 +507,7 @@
         "macrolib": {
             "example": [
                 "cli: -asic_macrolib sram64x1024",
-                "api: chip.set('asic', 'macrolib','sram64x1024')"
+                "api: chip.set('asic', 'macrolib', 'sram64x1024')"
             ],
             "help": "List of macro libraries to be linked in during synthesis and place\nand route. Macro libraries are used for resolving instances but are\nnot used as targets for logic synthesis.",
             "lock": false,
@@ -533,7 +533,7 @@
             "default": {
                 "example": [
                     "cli: -asic_site '12track Site_12T'",
-                    "api: chip.set('asic','site','12track','Site_12T')"
+                    "api: chip.set('asic', 'site', '12track', 'Site_12T')"
                 ],
                 "help": "Site names for a given library architecture.",
                 "lock": false,
@@ -563,7 +563,7 @@
                 "criteria": {
                     "example": [
                         "cli: -checklist_criteria 'ISO D000 errors==0'",
-                        "api: chip.set('checklist','ISO','D000','criteria','errors==0')"
+                        "api: chip.set('checklist', 'ISO', 'D000', 'criteria', 'errors==0')"
                     ],
                     "help": "Simple list of signoff criteria for checklist item which\nmust all be met for signoff. Each signoff criteria consists of\na metric, a relational operator, and a value in the form.\n'metric op value'.",
                     "lock": false,
@@ -588,7 +588,7 @@
                 "dataformat": {
                     "example": [
                         "cli: -checklist_dataformat 'ISO D000 dataformat README'",
-                        "api: chip.set('checklist','ISO','D000','dataformat','README')"
+                        "api: chip.set('checklist', 'ISO', 'D000', 'dataformat', 'README')"
                     ],
                     "help": "Free text description of the type of data files acceptable as\nchecklist signoff validation.",
                     "lock": false,
@@ -613,7 +613,7 @@
                 "description": {
                     "example": [
                         "cli: -checklist_description 'ISO D000 A-DESCRIPTION'",
-                        "api: chip.set('checklist','ISO','D000','description','A-DESCRIPTION')"
+                        "api: chip.set('checklist', 'ISO', 'D000', 'description', 'A-DESCRIPTION')"
                     ],
                     "help": "A short one line description of the checklist item.",
                     "lock": false,
@@ -638,7 +638,7 @@
                 "ok": {
                     "example": [
                         "cli: -checklist_ok 'ISO D000 true'",
-                        "api: chip.set('checklist','ISO','D000','ok', True)"
+                        "api: chip.set('checklist', 'ISO', 'D000', 'ok', True)"
                     ],
                     "help": "Boolean check mark for the checklist item. A value of\nTrue indicates a human has inspected the all item dictionary\nparameters check out.",
                     "lock": false,
@@ -663,7 +663,7 @@
                 "rationale": {
                     "example": [
                         "cli: -checklist_rational 'ISO D000 reliability'",
-                        "api: chip.set('checklist','ISO','D000','rationale','reliability')"
+                        "api: chip.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"
                     ],
                     "help": "Rationale for the the checklist item. Rationale should be a\nunique alphanumeric code used by the standard or a short one line\nor single word description.",
                     "lock": false,
@@ -689,7 +689,7 @@
                     "copy": false,
                     "example": [
                         "cli: -checklist_report 'ISO D000 my.rpt'",
-                        "api: chip.set('checklist','ISO','D000','report','my.rpt')"
+                        "api: chip.set('checklist', 'ISO', 'D000', 'report', 'my.rpt')"
                     ],
                     "hashalgo": "sha256",
                     "help": "Filepath to report(s) of specified type documenting the successful\nvalidation of the checklist item.",
@@ -718,7 +718,7 @@
                 "requirement": {
                     "example": [
                         "cli: -checklist_requirement 'ISO D000 DOCSTRING'",
-                        "api: chip.set('checklist','ISO','D000','requirement','DOCSTRING')"
+                        "api: chip.set('checklist', 'ISO', 'D000', 'requirement', 'DOCSTRING')"
                     ],
                     "help": "A complete requirement description of the checklist item\nentered as a multi-line string.",
                     "lock": false,
@@ -743,7 +743,7 @@
                 "task": {
                     "example": [
                         "cli: -checklist_task 'ISO D000 (job0,place,0)'",
-                        "api: chip.set('checklist','ISO','D000','task',('job0','place','0'))"
+                        "api: chip.set('checklist', 'ISO', 'D000', 'task', ('job0', 'place', '0'))"
                     ],
                     "help": "Flowgraph job and task used to verify the checklist item.\nThe parameter should be left empty for manual and for tool\nflows that bypass the SC infrastructure.",
                     "lock": false,
@@ -761,7 +761,7 @@
                     "scope": "global",
                     "shorthelp": "Checklist: item task",
                     "switch": [
-                        "-checklist_task 'standard item <(str, str, str)>'"
+                        "-checklist_task 'standard item <(str,str,str)>'"
                     ],
                     "type": "[(str,str,str)]"
                 },
@@ -770,7 +770,7 @@
                         "copy": false,
                         "example": [
                             "cli: -checklist_waiver 'ISO D000 bold my.txt'",
-                            "api: chip.set('checklist','ISO','D000','waiver','hold', 'my.txt')"
+                            "api: chip.set('checklist', 'ISO', 'D000', 'waiver', 'hold', 'my.txt')"
                         ],
                         "hashalgo": "sha256",
                         "help": "Filepath to report(s) documenting waivers for the checklist\nitem specified on a per metric basis.",
@@ -856,7 +856,7 @@
                 "halo": {
                     "example": [
                         "cli: -constraint_component_halo 'i0 (1,1)'",
-                        "api: chip.set('constraint', 'component', 'i0', 'halo', (1,1))"
+                        "api: chip.set('constraint', 'component', 'i0', 'halo', (1, 1))"
                     ],
                     "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple represented in microns or lambda units.",
                     "lock": false,
@@ -907,9 +907,9 @@
                 "placement": {
                     "example": [
                         "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
-                        "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0))"
+                        "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0, 0.0))"
                     ],
-                    "help": "Placement location of a named instance, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
+                    "help": "Placement location of a named instance, specified as a (x, y, z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x, y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0, 1, 2, 3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -925,7 +925,7 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Component placement",
                     "switch": [
-                        "-constraint_component_placement 'inst <(float,float, float)>'"
+                        "-constraint_component_placement 'inst <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "um"
@@ -935,7 +935,7 @@
                         "cli: -constraint_component_rotation 'i0 90'",
                         "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"
                     ],
-                    "help": "Placement rotation of the component specified in degrees. Rotation\ngoes counter-clockwise for all parts on top and clock-wise for parts\non the bottom. In both cases, this is from the perspective of looking\nat the top of the board. Rotation is specified in degrees. Most gridded\nlayout systems (like ASICs) only allow a finite number of rotation\nvalues (0,90,180,270).",
+                    "help": "Placement rotation of the component specified in degrees. Rotation\ngoes counter-clockwise for all parts on top and clock-wise for parts\non the bottom. In both cases, this is from the perspective of looking\nat the top of the board. Rotation is specified in degrees. Most gridded\nlayout systems (like ASICs) only allow a finite number of rotation\nvalues (0, 90, 180, 270).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -960,9 +960,9 @@
         "corearea": {
             "example": [
                 "cli: -constraint_corearea '(0,0)'",
-                "api: chip.set('constraint', 'corearea', (0,0))"
+                "api: chip.set('constraint', 'corearea', (0, 0))"
             ],
-            "help": "List of (x,y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
+            "help": "List of (x, y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
             "lock": false,
             "node": {
                 "default": {
@@ -1191,9 +1191,9 @@
                 "ndr": {
                     "example": [
                         "cli: -constraint_net_ndr 'nreset (0.4,0.4)'",
-                        "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4,0.4))"
+                        "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4, 0.4))"
                     ],
-                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width,space) tuples\nspecified in microns or lambda units. Wildcards ('*') can be used\nfor net names.",
+                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width, space) tuples\nspecified in microns or lambda units. Wildcards ('*') can be used\nfor net names.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1269,9 +1269,9 @@
         "outline": {
             "example": [
                 "cli: -constraint_outline '(0,0)'",
-                "api: chip.set('constraint', 'outline', (0,0))"
+                "api: chip.set('constraint', 'outline', (0, 0))"
             ],
-            "help": "List of (x,y) points that define the outline physical layout\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
+            "help": "List of (x, y) points that define the outline physical layout\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
             "lock": false,
             "node": {
                 "default": {
@@ -1347,9 +1347,9 @@
                 "placement": {
                     "example": [
                         "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
-                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0))"
+                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0, 0.0))"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates. Values are specified\nin microns or lambda units.",
+                    "help": "Placement location of a named pin, specified as a (x, y, z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x, y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0, 1 or use absolute coordinates. Values are specified\nin microns or lambda units.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1365,7 +1365,7 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Pin placement",
                     "switch": [
-                        "-constraint_pin_placement 'name <(float,float, float)>'"
+                        "-constraint_pin_placement 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "um"
@@ -1402,7 +1402,7 @@
                 "check": {
                     "example": [
                         "cli: -constraint_timing_check 'worst setup'",
-                        "api: chip.add('constraint', 'timing', 'worst','check','setup')"
+                        "api: chip.add('constraint', 'timing', 'worst', 'check', 'setup')"
                     ],
                     "help": "List of checks for to perform for the scenario. The checks must\nalign with the capabilities of the EDA tools and flow being used.\nChecks generally include objectives like meeting setup and hold goals\nand minimize power. Standard check names include setup, hold, power,\nnoise, reliability.",
                     "lock": false,
@@ -1428,7 +1428,7 @@
                     "copy": true,
                     "example": [
                         "cli: -constraint_timing_file 'worst hello.sdc'",
-                        "api: chip.set('constraint', 'timing', 'worst','file', 'hello.sdc')"
+                        "api: chip.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"
                     ],
                     "hashalgo": "sha256",
                     "help": "List of timing constraint files to use for the scenario. The\nvalues are combined with any constraints specified by the design\n'constraint' parameter. If no constraints are found, a default\nconstraint file is used based on the clock definitions.",
@@ -1482,7 +1482,7 @@
                 "mode": {
                     "example": [
                         "cli: -constraint_timing_mode 'worst test'",
-                        "api: chip.set('constraint', 'timing', 'worst','mode', 'test')"
+                        "api: chip.set('constraint', 'timing', 'worst', 'mode', 'test')"
                     ],
                     "help": "Operating mode for the scenario. Operating mode strings\ncan be values such as test, functional, standby.",
                     "lock": false,
@@ -1557,7 +1557,7 @@
                 "temperature": {
                     "example": [
                         "cli: -constraint_timing_temperature 'worst 125'",
-                        "api: chip.set('constraint', 'timing', 'worst', 'temperature','125')"
+                        "api: chip.set('constraint', 'timing', 'worst', 'temperature', '125')"
                     ],
                     "help": "Chip temperature applied to the scenario specified in degrees C.",
                     "lock": false,
@@ -1616,7 +1616,7 @@
             "default": {
                 "example": [
                     "cli: -datasheet_feature 'ram 64e6'",
-                    "api: chip.set('datasheet','feature','ram',64e6)"
+                    "api: chip.set('datasheet', 'feature', 'ram', 64e6)"
                 ],
                 "help": "Quantity of a specified feature. The 'unit'\nfield should be used to specify the units used when unclear.",
                 "lock": false,
@@ -1642,7 +1642,7 @@
         "footprint": {
             "example": [
                 "cli: -datasheet_footprint 'bga169'",
-                "api: chip.set('datasheet','footprint','bga169')"
+                "api: chip.set('datasheet', 'footprint', 'bga169')"
             ],
             "help": "List of available physical footprints for the named\ndevice specified as strings. Strings can either be official\nstandard footprint names or a custom naming methodology used in\nconjunction with 'fileset' names in the output parameter.",
             "lock": false,
@@ -1668,7 +1668,7 @@
             "junctiontemp": {
                 "example": [
                     "cli: -datasheet_limit_junctiontemp '(-40, 125)'",
-                    "api: chip.set('datasheet', 'limit','junctiontemp',(-40, 125)"
+                    "api: chip.set('datasheet', 'limit', 'junctiontemp', (-40, 125)"
                 ],
                 "help": "Limit junction temperature limits. Values are tuples of (min, max).",
                 "lock": false,
@@ -1694,7 +1694,7 @@
             "seb": {
                 "example": [
                     "cli: -datasheet_limit_seb '(75, 75)'",
-                    "api: chip.set('datasheet', 'limit','seb',(75, 75)"
+                    "api: chip.set('datasheet', 'limit', 'seb', (75, 75)"
                 ],
                 "help": "Limit single event burnout threshold. Values are tuples of (min, max).",
                 "lock": false,
@@ -1720,7 +1720,7 @@
             "segr": {
                 "example": [
                     "cli: -datasheet_limit_segr '(75, 75)'",
-                    "api: chip.set('datasheet', 'limit','segr',(75, 75)"
+                    "api: chip.set('datasheet', 'limit', 'segr', (75, 75)"
                 ],
                 "help": "Limit single event gate rupture threshold. Values are tuples of (min, max).",
                 "lock": false,
@@ -1746,7 +1746,7 @@
             "sel": {
                 "example": [
                     "cli: -datasheet_limit_sel '(75, 75)'",
-                    "api: chip.set('datasheet', 'limit','sel',(75, 75)"
+                    "api: chip.set('datasheet', 'limit', 'sel', (75, 75)"
                 ],
                 "help": "Limit single event latchup threshold. Values are tuples of (min, max).",
                 "lock": false,
@@ -1772,7 +1772,7 @@
             "set": {
                 "example": [
                     "cli: -datasheet_limit_set '(75, 75)'",
-                    "api: chip.set('datasheet', 'limit','set',(75, 75)"
+                    "api: chip.set('datasheet', 'limit', 'set', (75, 75)"
                 ],
                 "help": "Limit single event transient threshold. Values are tuples of (min, max).",
                 "lock": false,
@@ -1798,7 +1798,7 @@
             "seu": {
                 "example": [
                     "cli: -datasheet_limit_seu '(75, 75)'",
-                    "api: chip.set('datasheet', 'limit','seu',(75, 75)"
+                    "api: chip.set('datasheet', 'limit', 'seu', (75, 75)"
                 ],
                 "help": "Limit single event upset threshold. Values are tuples of (min, max).",
                 "lock": false,
@@ -1824,7 +1824,7 @@
             "soldertemp": {
                 "example": [
                     "cli: -datasheet_limit_soldertemp '(-40, 125)'",
-                    "api: chip.set('datasheet', 'limit','soldertemp',(-40, 125)"
+                    "api: chip.set('datasheet', 'limit', 'soldertemp', (-40, 125)"
                 ],
                 "help": "Limit solder temperature limits. Values are tuples of (min, max).",
                 "lock": false,
@@ -1850,7 +1850,7 @@
             "storagetemp": {
                 "example": [
                     "cli: -datasheet_limit_storagetemp '(-40, 125)'",
-                    "api: chip.set('datasheet', 'limit','storagetemp',(-40, 125)"
+                    "api: chip.set('datasheet', 'limit', 'storagetemp', (-40, 125)"
                 ],
                 "help": "Limit storage temperature limits. Values are tuples of (min, max).",
                 "lock": false,
@@ -1876,7 +1876,7 @@
             "tid": {
                 "example": [
                     "cli: -datasheet_limit_tid '(300000.0, 300000.0)'",
-                    "api: chip.set('datasheet', 'limit','tid',(300000.0, 300000.0)"
+                    "api: chip.set('datasheet', 'limit', 'tid', (300000.0, 300000.0)"
                 ],
                 "help": "Limit total ionizing dose threshold. Values are tuples of (min, max).",
                 "lock": false,
@@ -1906,7 +1906,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_bw 'sclk global (500000000.0, 600000000.0, 700000000.0)'",
-                            "api: chip.set('datasheet','pin','sclk','bw','global',(500000000.0, 600000000.0, 700000000.0)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'bw', 'global', (500000000.0, 600000000.0, 700000000.0)"
                         ],
                         "help": "Pin nyquist bandwidth. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -1934,7 +1934,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_cap 'sclk global (1e-12, 1.2e-12, 1.5e-12)'",
-                            "api: chip.set('datasheet','pin','sclk','cap','global',(1e-12, 1.2e-12, 1.5e-12)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'cap', 'global', (1e-12, 1.2e-12, 1.5e-12)"
                         ],
                         "help": "Pin capacitance. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -1962,7 +1962,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_cmrr 'sclk global (70, 80, 90)'",
-                            "api: chip.set('datasheet','pin','sclk','cmrr','global',(70, 80, 90)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'cmrr', 'global', (70, 80, 90)"
                         ],
                         "help": "Pin common mode rejection ratio. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -1990,7 +1990,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_complement 'ina global inb'",
-                            "api: chip.set('datasheet','pin','ina','complement','global','inb')"
+                            "api: chip.set('datasheet', 'pin', 'ina', 'complement', 'global', 'inb')"
                         ],
                         "help": "Pin complement specified on a per mode basis for differential\nsignals.",
                         "lock": false,
@@ -2017,7 +2017,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_dir 'clk global input'",
-                            "api: chip.set('datasheet','pin','clk','dir','global','input')"
+                            "api: chip.set('datasheet', 'pin', 'clk', 'dir', 'global', 'input')"
                         ],
                         "help": "Pin direction specified on a per mode basis. Acceptable pin\ndirections include: input, output, inout.",
                         "lock": false,
@@ -2044,7 +2044,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_dnl 'sclk global (-1.0, 0.0, 1.0)'",
-                            "api: chip.set('datasheet','pin','sclk','dnl','global',(-1.0, 0.0, 1.0)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'dnl', 'global', (-1.0, 0.0, 1.0)"
                         ],
                         "help": "Pin differential nonlinearity. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2072,7 +2072,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_enob 'sclk global (8, 9, 10)'",
-                            "api: chip.set('datasheet','pin','sclk','enob','global',(8, 9, 10)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'enob', 'global', (8, 9, 10)"
                         ],
                         "help": "Pin effective number of bits. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2100,7 +2100,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_function 'z global a&b'",
-                            "api: chip.set('datasheet','pin','z','function','global','a&b')"
+                            "api: chip.set('datasheet', 'pin', 'z', 'function', 'global', 'a&b')"
                         ],
                         "help": "Pin function specified on a per mode basis.\nOnly applicable to output pins.",
                         "lock": false,
@@ -2127,7 +2127,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_gain 'sclk global (11.4, 11.4, 11.4)'",
-                            "api: chip.set('datasheet','pin','sclk','gain','global',(11.4, 11.4, 11.4)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'gain', 'global', (11.4, 11.4, 11.4)"
                         ],
                         "help": "Pin gain. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2155,7 +2155,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_hd2 'sclk global (62, 64, 66)'",
-                            "api: chip.set('datasheet','pin','sclk','hd2','global',(62, 64, 66)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'hd2', 'global', (62, 64, 66)"
                         ],
                         "help": "Pin 2nd order harmonic distorion. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2183,7 +2183,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_hd3 'sclk global (62, 64, 66)'",
-                            "api: chip.set('datasheet','pin','sclk','hd3','global',(62, 64, 66)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'hd3', 'global', (62, 64, 66)"
                         ],
                         "help": "Pin 3rd order harmonic distorion. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2211,7 +2211,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_hd4 'sclk global (62, 64, 66)'",
-                            "api: chip.set('datasheet','pin','sclk','hd4','global',(62, 64, 66)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'hd4', 'global', (62, 64, 66)"
                         ],
                         "help": "Pin 4th order harmonic distorion. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2239,7 +2239,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_ib1db 'sclk global (-1, 1, 1)'",
-                            "api: chip.set('datasheet','pin','sclk','ib1db','global',(-1, 1, 1)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'ib1db', 'global', (-1, 1, 1)"
                         ],
                         "help": "Pin rf in band 1 dB compression point. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2267,7 +2267,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_ibias 'sclk global (0.001, 0.0012, 0.0015)'",
-                            "api: chip.set('datasheet','pin','sclk','ibias','global',(0.001, 0.0012, 0.0015)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'ibias', 'global', (0.001, 0.0012, 0.0015)"
                         ],
                         "help": "Pin bias current. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2295,7 +2295,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_iinject 'sclk global (0.001, 0.0012, 0.0015)'",
-                            "api: chip.set('datasheet','pin','sclk','iinject','global',(0.001, 0.0012, 0.0015)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'iinject', 'global', (0.001, 0.0012, 0.0015)"
                         ],
                         "help": "Pin injection current. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2323,7 +2323,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_iip3 'sclk global (3, 3, 3)'",
-                            "api: chip.set('datasheet','pin','sclk','iip3','global',(3, 3, 3)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'iip3', 'global', (3, 3, 3)"
                         ],
                         "help": "Pin rf 3rd order input intercept point. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2351,7 +2351,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_ileakage 'sclk global (1e-06, 1.2e-06, 1.5e-06)'",
-                            "api: chip.set('datasheet','pin','sclk','ileakage','global',(1e-06, 1.2e-06, 1.5e-06)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'ileakage', 'global', (1e-06, 1.2e-06, 1.5e-06)"
                         ],
                         "help": "Pin leakage current. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2379,7 +2379,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_imd3 'sclk global (82, 88, 98)'",
-                            "api: chip.set('datasheet','pin','sclk','imd3','global',(82, 88, 98)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'imd3', 'global', (82, 88, 98)"
                         ],
                         "help": "Pin 3rd order intermodulation distortion. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2407,7 +2407,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_inl 'sclk global (-7, 0.0, 7)'",
-                            "api: chip.set('datasheet','pin','sclk','inl','global',(-7, 0.0, 7)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'inl', 'global', (-7, 0.0, 7)"
                         ],
                         "help": "Pin integral nonlinearity. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2435,7 +2435,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_ioffset 'sclk global (0.001, 0.0012, 0.0015)'",
-                            "api: chip.set('datasheet','pin','sclk','ioffset','global',(0.001, 0.0012, 0.0015)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'ioffset', 'global', (0.001, 0.0012, 0.0015)"
                         ],
                         "help": "Pin offset current. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2463,7 +2463,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_ioh 'sclk global (0.01, 0.012, 0.015)'",
-                            "api: chip.set('datasheet','pin','sclk','ioh','global',(0.01, 0.012, 0.015)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'ioh', 'global', (0.01, 0.012, 0.015)"
                         ],
                         "help": "Pin output high current. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2491,7 +2491,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_iol 'sclk global (0.01, 0.012, 0.015)'",
-                            "api: chip.set('datasheet','pin','sclk','iol','global',(0.01, 0.012, 0.015)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'iol', 'global', (0.01, 0.012, 0.015)"
                         ],
                         "help": "Pin output low current. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2519,7 +2519,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_ishort 'sclk global (0.001, 0.0012, 0.0015)'",
-                            "api: chip.set('datasheet','pin','sclk','ishort','global',(0.001, 0.0012, 0.0015)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'ishort', 'global', (0.001, 0.0012, 0.0015)"
                         ],
                         "help": "Pin short circuit current. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2547,7 +2547,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_isupply 'sclk global (0.001, 0.012, 0.015)'",
-                            "api: chip.set('datasheet','pin','sclk','isupply','global',(0.001, 0.012, 0.015)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'isupply', 'global', (0.001, 0.012, 0.015)"
                         ],
                         "help": "Pin supply currents. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2575,7 +2575,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_map 'in0 bga512 B4'",
-                            "api: chip.set('datasheet','pin','in0','map','bga512','B4')"
+                            "api: chip.set('datasheet', 'pin', 'in0', 'map', 'bga512', 'B4')"
                         ],
                         "help": "Signal to package pin mapping specified on a per package basis.",
                         "lock": false,
@@ -2602,7 +2602,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_noisefigure 'sclk global (4.6, 4.6, 4.6)'",
-                            "api: chip.set('datasheet','pin','sclk','noisefigure','global',(4.6, 4.6, 4.6)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'noisefigure', 'global', (4.6, 4.6, 4.6)"
                         ],
                         "help": "Pin rf noise figure. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2630,7 +2630,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_nsd 'sclk global (-158, -158, -158)'",
-                            "api: chip.set('datasheet','pin','sclk','nsd','global',(-158, -158, -158)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'nsd', 'global', (-158, -158, -158)"
                         ],
                         "help": "Pin noise spectral density. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2658,7 +2658,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_oob1db 'sclk global (3, 3, 3)'",
-                            "api: chip.set('datasheet','pin','sclk','oob1db','global',(3, 3, 3)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'oob1db', 'global', (3, 3, 3)"
                         ],
                         "help": "Pin rf out of band 1 dB compression point. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2686,7 +2686,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_phasenoise 'sclk global (-158, -158, -158)'",
-                            "api: chip.set('datasheet','pin','sclk','phasenoise','global',(-158, -158, -158)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'phasenoise', 'global', (-158, -158, -158)"
                         ],
                         "help": "Pin phase noise. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2720,7 +2720,7 @@
                             ],
                             "example": [
                                 "cli: -datasheet_pin_polarity 'q def clk none'",
-                                "api: chip.set('datasheet','pin','q','polarity','def','clk,'none')"
+                                "api: chip.set('datasheet', 'pin', 'q', 'polarity', 'def', 'clk', 'none')"
                             ],
                             "help": "Pin polarity specified on a per mode basis. Only applicable to output\npins.",
                             "lock": false,
@@ -2748,7 +2748,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_pout 'sclk global (12.2, 12.2, 12.2)'",
-                            "api: chip.set('datasheet','pin','sclk','pout','global',(12.2, 12.2, 12.2)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'pout', 'global', (12.2, 12.2, 12.2)"
                         ],
                         "help": "Pin output power. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2776,7 +2776,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_pout2 'sclk global (-14, -14, -14)'",
-                            "api: chip.set('datasheet','pin','sclk','pout2','global',(-14, -14, -14)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'pout2', 'global', (-14, -14, -14)"
                         ],
                         "help": "Pin 2nd harmonic power. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2804,7 +2804,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_pout3 'sclk global (-28, -28, -28)'",
-                            "api: chip.set('datasheet','pin','sclk','pout3','global',(-28, -28, -28)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'pout3', 'global', (-28, -28, -28)"
                         ],
                         "help": "Pin 3rd harmonic power. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2832,7 +2832,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_power 'sclk global (1, 2, 3)'",
-                            "api: chip.set('datasheet','pin','sclk','power','global',(1, 2, 3)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'power', 'global', (1, 2, 3)"
                         ],
                         "help": "Pin power consumption. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2860,7 +2860,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_psnr 'sclk global (61, 61, 61)'",
-                            "api: chip.set('datasheet','pin','sclk','psnr','global',(61, 61, 61)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'psnr', 'global', (61, 61, 61)"
                         ],
                         "help": "Pin power supply noise rejection. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2888,7 +2888,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_rdiff 'sclk global (45, 50, 55)'",
-                            "api: chip.set('datasheet','pin','sclk','rdiff','global',(45, 50, 55)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'rdiff', 'global', (45, 50, 55)"
                         ],
                         "help": "Pin differential pair resistance. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2916,7 +2916,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_rdown 'sclk global (1000, 1200, 3000)'",
-                            "api: chip.set('datasheet','pin','sclk','rdown','global',(1000, 1200, 3000)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'rdown', 'global', (1000, 1200, 3000)"
                         ],
                         "help": "Pin output pulldown resistance. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -2951,7 +2951,7 @@
                         ],
                         "example": [
                             "cli: -datasheet_pin_resetvalue 'clk global weak1'",
-                            "api: chip.set('datasheet','pin','clk','resetvalue','global','weak1')"
+                            "api: chip.set('datasheet', 'pin', 'clk', 'resetvalue', 'global', 'weak1')"
                         ],
                         "help": "Pin reset value specified on a per mode basis.",
                         "lock": false,
@@ -2978,7 +2978,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_rin 'sclk global (1000, 1200, 3000)'",
-                            "api: chip.set('datasheet','pin','sclk','rin','global',(1000, 1200, 3000)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'rin', 'global', (1000, 1200, 3000)"
                         ],
                         "help": "Pin input resistance. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3006,7 +3006,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_rup 'sclk global (1000, 1200, 3000)'",
-                            "api: chip.set('datasheet','pin','sclk','rup','global',(1000, 1200, 3000)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'rup', 'global', (1000, 1200, 3000)"
                         ],
                         "help": "Pin output pullup resistance. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3034,7 +3034,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_rweakdown 'sclk global (1000, 1200, 3000)'",
-                            "api: chip.set('datasheet','pin','sclk','rweakdown','global',(1000, 1200, 3000)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'rweakdown', 'global', (1000, 1200, 3000)"
                         ],
                         "help": "Pin weak pulldown resistance. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3062,7 +3062,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_rweakup 'sclk global (1000, 1200, 3000)'",
-                            "api: chip.set('datasheet','pin','sclk','rweakup','global',(1000, 1200, 3000)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'rweakup', 'global', (1000, 1200, 3000)"
                         ],
                         "help": "Pin weak pullup resistance. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3090,7 +3090,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_s11 'sclk global (7, 7, 7)'",
-                            "api: chip.set('datasheet','pin','sclk','s11','global',(7, 7, 7)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 's11', 'global', (7, 7, 7)"
                         ],
                         "help": "Pin rf input return loss. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3118,7 +3118,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_s12 'sclk global (-20, -20, -20)'",
-                            "api: chip.set('datasheet','pin','sclk','s12','global',(-20, -20, -20)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 's12', 'global', (-20, -20, -20)"
                         ],
                         "help": "Pin rf reverse isolation. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3146,7 +3146,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_s21 'sclk global (10, 11, 12)'",
-                            "api: chip.set('datasheet','pin','sclk','s21','global',(10, 11, 12)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 's21', 'global', (10, 11, 12)"
                         ],
                         "help": "Pin rf gain. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3174,7 +3174,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_s22 'sclk global (10, 10, 10)'",
-                            "api: chip.set('datasheet','pin','sclk','s22','global',(10, 10, 10)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 's22', 'global', (10, 10, 10)"
                         ],
                         "help": "Pin rf output return loss. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3202,7 +3202,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_sfdr 'sclk global (82, 88, 98)'",
-                            "api: chip.set('datasheet','pin','sclk','sfdr','global',(82, 88, 98)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'sfdr', 'global', (82, 88, 98)"
                         ],
                         "help": "Pin spurious-free dynamic range. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3230,7 +3230,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_signal 'clk0 ddr4 CLKN'",
-                            "api: chip.set('datasheet','pin','clk0','signal','ddr4','CLKN')"
+                            "api: chip.set('datasheet', 'pin', 'clk0', 'signal', 'ddr4', 'CLKN')"
                         ],
                         "help": "Pin mapping to standardized interface signals.",
                         "lock": false,
@@ -3257,7 +3257,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_sinad 'sclk global (71, 72, 73)'",
-                            "api: chip.set('datasheet','pin','sclk','sinad','global',(71, 72, 73)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'sinad', 'global', (71, 72, 73)"
                         ],
                         "help": "Pin signal to noise and distortion ratio. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3285,7 +3285,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_snr 'sclk global (70, 72, 74)'",
-                            "api: chip.set('datasheet','pin','sclk','snr','global',(70, 72, 74)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'snr', 'global', (70, 72, 74)"
                         ],
                         "help": "Pin signal to noise ratio. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3313,9 +3313,9 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_standard 'clk def LVCMOS'",
-                            "api: chip.set('datasheet','pin','clk','standard','def', 'LVCMOS')"
+                            "api: chip.set('datasheet', 'pin', 'clk', 'standard', 'def', 'LVCMOS')"
                         ],
-                        "help": "Pin electrical signaling standard (LVDS, LVCMOS, TTL,..).",
+                        "help": "Pin electrical signaling standard (LVDS, LVCMOS, TTL, ...).",
                         "lock": false,
                         "node": {
                             "default": {
@@ -3341,7 +3341,7 @@
                         "default": {
                             "example": [
                                 "cli: -datasheet_pin_tdelayf 'a glob clock (1e-09, 2e-09, 4e-09)'",
-                                "api: chip.set('datasheet','pin','a','tdelayf','glob','ck',(1e-09, 2e-09, 4e-09)"
+                                "api: chip.set('datasheet', 'pin', 'a', 'tdelayf', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin propagation delay (fall) specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
                             "lock": false,
@@ -3371,7 +3371,7 @@
                         "default": {
                             "example": [
                                 "cli: -datasheet_pin_tdelayr 'a glob clock (1e-09, 2e-09, 4e-09)'",
-                                "api: chip.set('datasheet','pin','a','tdelayr','glob','ck',(1e-09, 2e-09, 4e-09)"
+                                "api: chip.set('datasheet', 'pin', 'a', 'tdelayr', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin propagation delay (rise) specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
                             "lock": false,
@@ -3400,7 +3400,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_tduty 'sclk global (45, 50, 55)'",
-                            "api: chip.set('datasheet','pin','sclk','tduty','global',(45, 50, 55)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'tduty', 'global', (45, 50, 55)"
                         ],
                         "help": "Pin duty cycle. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3429,7 +3429,7 @@
                         "default": {
                             "example": [
                                 "cli: -datasheet_pin_tfall 'a glob clock (1e-09, 2e-09, 4e-09)'",
-                                "api: chip.set('datasheet','pin','a','tfall','glob','ck',(1e-09, 2e-09, 4e-09)"
+                                "api: chip.set('datasheet', 'pin', 'a', 'tfall', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin fall transition specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
                             "lock": false,
@@ -3458,7 +3458,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_thigh 'sclk global (1e-09, 2e-09, 4e-09)'",
-                            "api: chip.set('datasheet','pin','sclk','thigh','global',(1e-09, 2e-09, 4e-09)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'thigh', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin pulse width high. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3487,7 +3487,7 @@
                         "default": {
                             "example": [
                                 "cli: -datasheet_pin_thold 'a glob clock (1e-09, 2e-09, 4e-09)'",
-                                "api: chip.set('datasheet','pin','a','thold','glob','ck',(1e-09, 2e-09, 4e-09)"
+                                "api: chip.set('datasheet', 'pin', 'a', 'thold', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin hold time specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
                             "lock": false,
@@ -3516,7 +3516,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_tjitter 'sclk global (1e-09, 2e-09, 4e-09)'",
-                            "api: chip.set('datasheet','pin','sclk','tjitter','global',(1e-09, 2e-09, 4e-09)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'tjitter', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin rms jitter. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3544,7 +3544,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_tlow 'sclk global (1e-09, 2e-09, 4e-09)'",
-                            "api: chip.set('datasheet','pin','sclk','tlow','global',(1e-09, 2e-09, 4e-09)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'tlow', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin pulse width low. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3572,7 +3572,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_tperiod 'sclk global (1e-09, 2e-09, 4e-09)'",
-                            "api: chip.set('datasheet','pin','sclk','tperiod','global',(1e-09, 2e-09, 4e-09)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'tperiod', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin minimum period. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3600,7 +3600,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_tpulse 'sclk global (1e-09, 2e-09, 4e-09)'",
-                            "api: chip.set('datasheet','pin','sclk','tpulse','global',(1e-09, 2e-09, 4e-09)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'tpulse', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin pulse width. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3629,7 +3629,7 @@
                         "default": {
                             "example": [
                                 "cli: -datasheet_pin_trise 'a glob clock (1e-09, 2e-09, 4e-09)'",
-                                "api: chip.set('datasheet','pin','a','trise','glob','ck',(1e-09, 2e-09, 4e-09)"
+                                "api: chip.set('datasheet', 'pin', 'a', 'trise', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin rise transition specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
                             "lock": false,
@@ -3659,7 +3659,7 @@
                         "default": {
                             "example": [
                                 "cli: -datasheet_pin_tsetup 'a glob clock (1e-09, 2e-09, 4e-09)'",
-                                "api: chip.set('datasheet','pin','a','tsetup','glob','ck',(1e-09, 2e-09, 4e-09)"
+                                "api: chip.set('datasheet', 'pin', 'a', 'tsetup', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin setup time specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
                             "lock": false,
@@ -3689,7 +3689,7 @@
                         "default": {
                             "example": [
                                 "cli: -datasheet_pin_tskew 'a glob clock (1e-09, 2e-09, 4e-09)'",
-                                "api: chip.set('datasheet','pin','a','tskew','glob','ck',(1e-09, 2e-09, 4e-09)"
+                                "api: chip.set('datasheet', 'pin', 'a', 'tskew', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin timing skew specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
                             "lock": false,
@@ -3725,7 +3725,7 @@
                         ],
                         "example": [
                             "cli: -datasheet_pin_type 'vdd global supply'",
-                            "api: chip.set('datasheet','pin','vdd','type','global','supply')"
+                            "api: chip.set('datasheet', 'pin', 'vdd', 'type', 'global', 'supply')"
                         ],
                         "help": "Pin type specified on a per mode basis.",
                         "lock": false,
@@ -3752,7 +3752,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vcdm 'sclk global (125, 150, 175)'",
-                            "api: chip.set('datasheet','pin','sclk','vcdm','global',(125, 150, 175)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vcdm', 'global', (125, 150, 175)"
                         ],
                         "help": "Pin ESD charge device model voltage level. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3780,7 +3780,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vcm 'sclk global (0.3, 1.2, 1.6)'",
-                            "api: chip.set('datasheet','pin','sclk','vcm','global',(0.3, 1.2, 1.6)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vcm', 'global', (0.3, 1.2, 1.6)"
                         ],
                         "help": "Pin common mode voltage. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3808,7 +3808,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vdiff 'sclk global (0.2, 0.3, 0.9)'",
-                            "api: chip.set('datasheet','pin','sclk','vdiff','global',(0.2, 0.3, 0.9)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vdiff', 'global', (0.2, 0.3, 0.9)"
                         ],
                         "help": "Pin differential voltage. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3836,7 +3836,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vgainerror 'sclk global (-1.0, 0.0, 1.0)'",
-                            "api: chip.set('datasheet','pin','sclk','vgainerror','global',(-1.0, 0.0, 1.0)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vgainerror', 'global', (-1.0, 0.0, 1.0)"
                         ],
                         "help": "Pin gain error. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3864,7 +3864,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vhbm 'sclk global (200, 250, 300)'",
-                            "api: chip.set('datasheet','pin','sclk','vhbm','global',(200, 250, 300)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vhbm', 'global', (200, 250, 300)"
                         ],
                         "help": "Pin ESD human body model voltage level. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3892,7 +3892,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vih 'sclk global (1.4, 1.8, 2.2)'",
-                            "api: chip.set('datasheet','pin','sclk','vih','global',(1.4, 1.8, 2.2)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vih', 'global', (1.4, 1.8, 2.2)"
                         ],
                         "help": "Pin high input voltage level. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3920,7 +3920,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vil 'sclk global (-0.2, 0, 1.0)'",
-                            "api: chip.set('datasheet','pin','sclk','vil','global',(-0.2, 0, 1.0)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vil', 'global', (-0.2, 0, 1.0)"
                         ],
                         "help": "Pin low input voltage level. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3948,7 +3948,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vmax 'sclk global (0.2, 0.3, 0.9)'",
-                            "api: chip.set('datasheet','pin','sclk','vmax','global',(0.2, 0.3, 0.9)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vmax', 'global', (0.2, 0.3, 0.9)"
                         ],
                         "help": "Pin absolute maximum voltage. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -3976,7 +3976,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vmm 'sclk global (100, 125, 150)'",
-                            "api: chip.set('datasheet','pin','sclk','vmm','global',(100, 125, 150)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vmm', 'global', (100, 125, 150)"
                         ],
                         "help": "Pin ESD machine model voltage level. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -4004,7 +4004,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vnoise 'sclk global (0, 0.01, 0.1)'",
-                            "api: chip.set('datasheet','pin','sclk','vnoise','global',(0, 0.01, 0.1)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vnoise', 'global', (0, 0.01, 0.1)"
                         ],
                         "help": "Pin random voltage noise. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -4032,7 +4032,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vnominal 'sclk global (1.72, 1.8, 1.92)'",
-                            "api: chip.set('datasheet','pin','sclk','vnominal','global',(1.72, 1.8, 1.92)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vnominal', 'global', (1.72, 1.8, 1.92)"
                         ],
                         "help": "Pin nominal operating voltage. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -4060,7 +4060,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vofferror 'sclk global (-1.0, 0.0, 1.0)'",
-                            "api: chip.set('datasheet','pin','sclk','vofferror','global',(-1.0, 0.0, 1.0)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vofferror', 'global', (-1.0, 0.0, 1.0)"
                         ],
                         "help": "Pin offset error. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -4088,7 +4088,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_voffset 'sclk global (0.2, 0.3, 0.9)'",
-                            "api: chip.set('datasheet','pin','sclk','voffset','global',(0.2, 0.3, 0.9)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'voffset', 'global', (0.2, 0.3, 0.9)"
                         ],
                         "help": "Pin offset voltage. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -4116,7 +4116,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_voh 'sclk global (4.6, 4.8, 5.2)'",
-                            "api: chip.set('datasheet','pin','sclk','voh','global',(4.6, 4.8, 5.2)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'voh', 'global', (4.6, 4.8, 5.2)"
                         ],
                         "help": "Pin high output voltage level. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -4144,7 +4144,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vol 'sclk global (-0.2, 0, 0.2)'",
-                            "api: chip.set('datasheet','pin','sclk','vol','global',(-0.2, 0, 0.2)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vol', 'global', (-0.2, 0, 0.2)"
                         ],
                         "help": "Pin low output voltage level. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -4172,7 +4172,7 @@
                     "default": {
                         "example": [
                             "cli: -datasheet_pin_vslew 'sclk global (1e-09, 2e-09, 4e-09)'",
-                            "api: chip.set('datasheet','pin','sclk','vslew','global',(1e-09, 2e-09, 4e-09)"
+                            "api: chip.set('datasheet', 'pin', 'sclk', 'vslew', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin slew rate. Values are tuples of (min, typical, max).",
                         "lock": false,
@@ -4203,7 +4203,7 @@
                 "default": {
                     "example": [
                         "cli: -datasheet_reliability 'JESD22-A104 time 1000'",
-                        "api: chip.set('datasheet','reliability','JESD22-A104','time',1000)"
+                        "api: chip.set('datasheet', 'reliability', 'JESD22-A104', 'time', 1000)"
                     ],
                     "help": "Device reliability specified on a per standard basis. The\nreliability test condition is captured as key/value pairs, where\nthe key is any test condition capture in the standard. Examples\nof test conditions include time, mintemp, maxtemp, cycles, vmax,\nmoisture.",
                     "lock": false,
@@ -4231,7 +4231,7 @@
             "rja": {
                 "example": [
                     "cli: -datasheet_thermal_rja '30.4'",
-                    "api: chip.set('datasheet','thermal','rja', 30.4)"
+                    "api: chip.set('datasheet', 'thermal', 'rja', 30.4)"
                 ],
                 "help": "Device rja.",
                 "lock": false,
@@ -4257,7 +4257,7 @@
             "rjb": {
                 "example": [
                     "cli: -datasheet_thermal_rjb '30.4'",
-                    "api: chip.set('datasheet','thermal','rjb', 30.4)"
+                    "api: chip.set('datasheet', 'thermal', 'rjb', 30.4)"
                 ],
                 "help": "Device rjb.",
                 "lock": false,
@@ -4283,7 +4283,7 @@
             "rjcb": {
                 "example": [
                     "cli: -datasheet_thermal_rjcb '30.4'",
-                    "api: chip.set('datasheet','thermal','rjcb', 30.4)"
+                    "api: chip.set('datasheet', 'thermal', 'rjcb', 30.4)"
                 ],
                 "help": "Device rjcb.",
                 "lock": false,
@@ -4309,7 +4309,7 @@
             "rjct": {
                 "example": [
                     "cli: -datasheet_thermal_rjct '30.4'",
-                    "api: chip.set('datasheet','thermal','rjct', 30.4)"
+                    "api: chip.set('datasheet', 'thermal', 'rjct', 30.4)"
                 ],
                 "help": "Device rjct.",
                 "lock": false,
@@ -4335,7 +4335,7 @@
             "tjb": {
                 "example": [
                     "cli: -datasheet_thermal_tjb '30.4'",
-                    "api: chip.set('datasheet','thermal','tjb', 30.4)"
+                    "api: chip.set('datasheet', 'thermal', 'tjb', 30.4)"
                 ],
                 "help": "Device tjb.",
                 "lock": false,
@@ -4361,7 +4361,7 @@
             "tjt": {
                 "example": [
                     "cli: -datasheet_thermal_tjt '30.4'",
-                    "api: chip.set('datasheet','thermal','tjt', 30.4)"
+                    "api: chip.set('datasheet', 'thermal', 'tjt', 30.4)"
                 ],
                 "help": "Device tjt.",
                 "lock": false,
@@ -4418,7 +4418,7 @@
                     "args": {
                         "example": [
                             "cli: -flowgraph_args 'asicflow cts 0 0'",
-                            "api: chip.add('flowgraph','asicflow','cts','0','args','0')"
+                            "api: chip.add('flowgraph', 'asicflow', 'cts', '0', 'args', '0')"
                         ],
                         "help": "User specified flowgraph string arguments specified on a per\nstep and per index basis.",
                         "lock": false,
@@ -4444,7 +4444,7 @@
                         "default": {
                             "example": [
                                 "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
-                                "api: chip.set('flowgraph','asicflow','cts','0','goal','errors', 0)"
+                                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'goal', 'errors', 0)"
                             ],
                             "help": "Goals specified on a per step and per metric basis used to\ndetermine whether a certain task can be considered when merging\nmultiple tasks at a minimum or maximum node. A task is considered\nfailing if the absolute value of any of its metrics are larger than\nthe goal for that metric, if set.",
                             "lock": false,
@@ -4470,9 +4470,9 @@
                     "input": {
                         "example": [
                             "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-                            "api: chip.set('flowgraph','asicflow','cts','0','input',('place','0'))"
+                            "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"
                         ],
-                        "help": "A list of inputs for the current step and index, specified as a\n(step,index) tuple.",
+                        "help": "A list of inputs for the current step and index, specified as a\n(step, index) tuple.",
                         "lock": false,
                         "node": {
                             "default": {
@@ -4495,9 +4495,9 @@
                     "select": {
                         "example": [
                             "cli: -flowgraph_select 'asicflow cts 0 (place,42)'",
-                            "api: chip.set('flowgraph','asicflow', 'cts','0','select',('place','42'))"
+                            "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'select', ('place', '42'))"
                         ],
-                        "help": "List of selected inputs for the current step/index specified as\n(in_step,in_index) tuple.",
+                        "help": "List of selected inputs for the current step/index specified as\n(in_step, in_index) tuple.",
                         "lock": false,
                         "node": {
                             "default": {
@@ -4525,7 +4525,7 @@
                         ],
                         "example": [
                             "cli: -flowgraph_status 'asicflow cts 10 success'",
-                            "api: chip.set('flowgraph','asicflow', 'cts','10','status', 'success')"
+                            "api: chip.set('flowgraph', 'asicflow', 'cts', '10', 'status', 'success')"
                         ],
                         "help": "Parameter that tracks the status of a task. Valid values are:\n\n* \"success\": task ran successfully\n* \"error\": task failed with an error\n\nAn empty value indicates the task has not yet been completed.",
                         "lock": false,
@@ -4550,7 +4550,7 @@
                     "task": {
                         "example": [
                             "cli: -flowgraph_task 'asicflow myplace 0 place'",
-                            "api: chip.set('flowgraph','asicflow','myplace','0','task','place')"
+                            "api: chip.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"
                         ],
                         "help": "Name of the tool associated task used for step execution. Builtin\ntask names include: minimum, maximum, join, verify, mux.",
                         "lock": false,
@@ -4575,7 +4575,7 @@
                     "taskmodule": {
                         "example": [
                             "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
-                            "api: chip.set('flowgraph','asicflow','place','0','taskmodule','siliconcompiler.tools.openroad.place')"
+                            "api: chip.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', 'siliconcompiler.tools.openroad.place')"
                         ],
                         "help": "Full python module name of the task module used for task setup and execution.",
                         "lock": false,
@@ -4600,7 +4600,7 @@
                     "timeout": {
                         "example": [
                             "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
-                            "api: chip.set('flowgraph','asicflow','cts','0','timeout', 3600)"
+                            "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'timeout', 3600)"
                         ],
                         "help": "Timeout value in seconds specified on a per step and per index\nbasis. The flowgraph timeout value is compared against the\nwall time tracked by the SC runtime to determine if an\noperation should continue. Timeout values help in situations\nwhere 1.) an operation is stuck and may never finish. 2.) the\noperation progress has saturated and continued execution has\na negative return on investment.",
                         "lock": false,
@@ -4626,7 +4626,7 @@
                     "tool": {
                         "example": [
                             "cli: -flowgraph_tool 'asicflow place 0 openroad'",
-                            "api: chip.set('flowgraph','asicflow','place','0','tool','openroad')"
+                            "api: chip.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"
                         ],
                         "help": "Name of the tool name used for task execution. The 'tool' parameter\nis ignored for builtin tasks.",
                         "lock": false,
@@ -4651,7 +4651,7 @@
                     "valid": {
                         "example": [
                             "cli: -flowgraph_valid 'asicflow cts 0 true'",
-                            "api: chip.set('flowgraph','asicflow','cts','0','valid',True)"
+                            "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'valid', True)"
                         ],
                         "help": "Flowgraph valid bit specified on a per step and per index basis.\nThe parameter can be used to control flow execution. If the bit\nis cleared (0), then the step/index combination is invalid and\nshould not be run.",
                         "lock": false,
@@ -4677,7 +4677,7 @@
                         "default": {
                             "example": [
                                 "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
-                                "api: chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"
+                                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'weight', 'area_cells', 1.0)"
                             ],
                             "help": "Weights specified on a per step and per metric basis used to give\neffective \"goodness\" score for a step by calculating the sum all step\nreal metrics results by the corresponding per step weights.",
                             "lock": false,
@@ -4868,7 +4868,7 @@
                 "copy": true,
                 "example": [
                     "cli: -input 'rtl verilog hello_world.v'",
-                    "api: chip.set(input, 'rtl','verilog','hello_world.v')"
+                    "api: chip.set('input', 'rtl', 'verilog', 'hello_world.v')"
                 ],
                 "hashalgo": "sha256",
                 "help": "List of files of type ('filetype') grouped as a named set ('fileset').\nThe exact names of filetypes and filesets must match the string names\nused by the tasks called during flowgraph execution. By convention,\nthe fileset names should match the the name of the flowgraph being\nexecuted.",
@@ -6028,7 +6028,7 @@
             "copy": false,
             "example": [
                 "cli: -builddir ./build_the_future",
-                "api: chip.set('option', 'builddir','./build_the_future')"
+                "api: chip.set('option', 'builddir', './build_the_future')"
             ],
             "help": "The default build directory is in the local './build' where SC was\nexecuted. The 'builddir' parameter can be used to set an alternate\ncompilation directory path.",
             "lock": false,
@@ -6054,7 +6054,7 @@
             "copy": false,
             "example": [
                 "cli: -cfg mypdk.json",
-                "api: chip.set('option','cfg','mypdk.json')"
+                "api: chip.set('option', 'cfg', 'mypdk.json')"
             ],
             "hashalgo": "sha256",
             "help": "List of filepaths to JSON formatted schema configuration\nmanifests. The files are read in automatically when using the\n'sc' command line application. In Python programs, JSON manifests\ncan be merged into the current working manifest using the\nread_manifest() method.",
@@ -6083,7 +6083,7 @@
         "clean": {
             "example": [
                 "cli: -clean",
-                "api: chip.set('option','clean',True)"
+                "api: chip.set('option', 'clean', True)"
             ],
             "help": "Clean up all intermediate and non essential files at the end\nof a task, leaving the following:\n\n* log file\n* replay.sh\n* inputs/\n* outputs/\n* reports/\n* autogenerated manifests\n* any files generated by schema-specified regexes\n* files specified by :keypath:`tool, <tool>, task, <task>, keep`",
             "lock": false,
@@ -6109,7 +6109,7 @@
             "copy": false,
             "example": [
                 "cli: -f design.f",
-                "api: chip.set('option', 'cmdfile','design.f')"
+                "api: chip.set('option', 'cmdfile', 'design.f')"
             ],
             "hashalgo": "sha256",
             "help": "Read the specified file, and act as if all text inside it was specified\nas command line parameters. Supported by most verilog simulators\nincluding Icarus and Verilator. The format of the file is not strongly\nstandardized. Support for comments and environment variables within\nthe file varies and depends on the tool used. SC simply passes on\nthe filepath toe the tool executable.",
@@ -6163,7 +6163,7 @@
         "copyall": {
             "example": [
                 "cli: -copyall",
-                "api: chip.set('option','copyall',True)"
+                "api: chip.set('option', 'copyall', True)"
             ],
             "help": "Specifies that all used files should be copied into the\nbuild directory, overriding the per schema entry copy\nsettings.",
             "lock": false,
@@ -6189,7 +6189,7 @@
             "copy": false,
             "example": [
                 "cli: -credentials /home/user/.sc/credentials",
-                "api: chip.set('option', 'credentials','/home/user/.sc/credentials')"
+                "api: chip.set('option', 'credentials', '/home/user/.sc/credentials')"
             ],
             "hashalgo": "sha256",
             "help": "Filepath to credentials used for remote processing. If the\ncredentials parameter is empty, the remote processing client program\ntries to access the \".sc/credentials\" file in the user's home\ndirectory. The file supports the following fields:\n\nuserid=<user id>\nsecret_key=<secret key used for authentication>\nserver=<ipaddr or url>",
@@ -6218,7 +6218,7 @@
         "define": {
             "example": [
                 "cli: -DCFG_ASIC=1",
-                "api: chip.set('option','define','CFG_ASIC=1')"
+                "api: chip.set('option', 'define', 'CFG_ASIC=1')"
             ],
             "help": "Symbol definition for source preprocessor.",
             "lock": false,
@@ -6355,7 +6355,7 @@
         "flow": {
             "example": [
                 "cli: -flow asicflow",
-                "api: chip.set('option','flow','asicflow')"
+                "api: chip.set('option', 'flow', 'asicflow')"
             ],
             "help": "Sets the flow for the current run. The flow name\nmust match up with a 'flow' in the flowgraph",
             "lock": false,
@@ -6405,7 +6405,7 @@
         "frontend": {
             "example": [
                 "cli: -frontend systemverilog",
-                "api: chip.set('option','frontend', 'systemverilog')"
+                "api: chip.set('option', 'frontend', 'systemverilog')"
             ],
             "help": "Specifies the frontend that flows should use for importing and\nprocessing source files. Default option is 'verilog', also supports\n'systemverilog' and 'chisel'. When using the Python API, this parameter\nmust be configured before calling load_target().",
             "lock": false,
@@ -6430,7 +6430,7 @@
         "hash": {
             "example": [
                 "cli: -hash",
-                "api: chip.set('option','hash',True)"
+                "api: chip.set('option', 'hash', True)"
             ],
             "help": "Enables hashing of all inputs and outputs during\ncompilation. The hash values are stored in the hashvalue\nfield of the individual parameters.",
             "lock": false,
@@ -6456,7 +6456,7 @@
             "copy": false,
             "example": [
                 "cli: +incdir+./mylib",
-                "api: chip.set('option','idir','./mylib')"
+                "api: chip.set('option', 'idir', './mylib')"
             ],
             "help": "Search paths to look for files included in the design using\nthe ```include`` statement.",
             "lock": false,
@@ -6482,7 +6482,7 @@
         "indexlist": {
             "example": [
                 "cli: -indexlist 0",
-                "api: chip.set('option','indexlist','0')"
+                "api: chip.set('option', 'indexlist', '0')"
             ],
             "help": "List of indices to execute. The default is to execute all\nindices for each step of a run.",
             "lock": false,
@@ -6507,7 +6507,7 @@
         "jobincr": {
             "example": [
                 "cli: -jobincr",
-                "api: chip.set('option','jobincr',True)"
+                "api: chip.set('option', 'jobincr', True)"
             ],
             "help": "Forces an auto-update of the jobname parameter if a directory\nmatching the jobname is found in the build directory. If the\njobname does not include a trailing digit, then the number\n'1' is added to the jobname before updating the jobname\nparameter.",
             "lock": false,
@@ -6534,7 +6534,7 @@
                 "default": {
                     "example": [
                         "cli: -jobinput 'cts 0 job0'",
-                        "api: chip.set('option','jobinput','cts,'0','job0')"
+                        "api: chip.set('option', 'jobinput', 'cts, '0', 'job0')"
                     ],
                     "help": "Specifies jobname inputs for the current run() on a per step\nand per index basis. During execution, the default behavior is to\ncopy inputs from the current job.",
                     "lock": false,
@@ -6561,7 +6561,7 @@
         "jobname": {
             "example": [
                 "cli: -jobname may1",
-                "api: chip.set('option','jobname','may1')"
+                "api: chip.set('option', 'jobname', 'may1')"
             ],
             "help": "Jobname during invocation of run(). The jobname combined with a\ndefined director structure (<dir>/<design>/<jobname>/<step>/<index>)\nenables multiple levels of transparent job, step, and index\nintrospection.",
             "lock": false,
@@ -6586,7 +6586,7 @@
         "libext": {
             "example": [
                 "cli: +libext+sv",
-                "api: chip.set('option','libext','sv')"
+                "api: chip.set('option', 'libext', 'sv')"
             ],
             "help": "List of file extensions that should be used for finding modules.\nFor example, if -y is specified as ./lib\", and '.v' is specified as\nlibext then the files ./lib/\\*.v \", will be searched for\nmodule matches.",
             "lock": false,
@@ -6644,7 +6644,7 @@
         "metricoff": {
             "example": [
                 "cli: -metricoff 'wirelength'",
-                "api: chip.set('option','metricoff','wirelength')"
+                "api: chip.set('option', 'metricoff', 'wirelength')"
             ],
             "help": "List of metrics to suppress when printing out the run\nsummary.",
             "lock": false,
@@ -6674,7 +6674,7 @@
             ],
             "example": [
                 "cli: -mode asic",
-                "api: chip.set('option','mode','asic')"
+                "api: chip.set('option', 'mode', 'asic')"
             ],
             "help": "Sets the operating mode of the compiler. Valid modes are:\nasic: RTL to GDS ASIC compilation\nfpga: RTL to bitstream FPGA compilation\nsim: simulation to verify design and compilation",
             "lock": false,
@@ -6699,7 +6699,7 @@
         "nice": {
             "example": [
                 "cli: -nice 5",
-                "api: chip.set('option','nice',5)"
+                "api: chip.set('option', 'nice', 5)"
             ],
             "help": "Sets the type of execution priority of each individual flowgraph steps.\nIf the parameter is undefined, nice will not be used. For more information see\n`Unix 'nice' <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.",
             "lock": false,
@@ -6724,7 +6724,7 @@
         "nodisplay": {
             "example": [
                 "cli: -nodisplay",
-                "api: chip.set('option','nodisplay',True)"
+                "api: chip.set('option', 'nodisplay', True)"
             ],
             "help": "The '-nodisplay' flag prevents SiliconCompiler from\nopening GUI windows such as the final metrics report.",
             "lock": false,
@@ -6749,7 +6749,7 @@
         "novercheck": {
             "example": [
                 "cli: -novercheck",
-                "api: chip.set('option','novercheck',True)"
+                "api: chip.set('option', 'novercheck', True)"
             ],
             "help": "Disables strict version checking on all invoked tools if True.\nThe list of supported version numbers is defined in the\n'version' parameter in the 'eda' dictionary for each tool.",
             "lock": false,
@@ -6774,7 +6774,7 @@
         "optmode": {
             "example": [
                 "cli: -O3",
-                "api: chip.set('option','optmode','O3')"
+                "api: chip.set('option', 'optmode', 'O3')"
             ],
             "help": "The compiler has modes to prioritize run time and ppa. Modes\ninclude.\n\n(O0) = Exploration mode for debugging setup\n(O1) = Higher effort and better PPA than O0\n(O2) = Higher effort and better PPA than O1\n(O3) = Signoff quality. Better PPA and higher run times than O2\n(O4-O98) = Reserved (compiler/target dependent)\n(O99) = Experimental highest possible effort, may be unstable",
             "lock": false,
@@ -6800,7 +6800,7 @@
             "default": {
                 "example": [
                     "cli: -param 'N 64'",
-                    "api: chip.set('option','param','N','64')"
+                    "api: chip.set('option', 'param', 'N', '64')"
                 ],
                 "help": "Sets a top verilog level design module parameter. The value\nis limited to basic data literals. The parameter override is\npassed into tools such as Verilator and Yosys. The parameters\nsupport Verilog integer literals (64'h4, 2'b0, 4) and strings.\nName of the top level module to compile.",
                 "lock": false,
@@ -6826,7 +6826,7 @@
         "pdk": {
             "example": [
                 "cli: -pdk freepdk45",
-                "api: chip.set('option','pdk','freepdk45')"
+                "api: chip.set('option', 'pdk', 'freepdk45')"
             ],
             "help": "Target PDK used during compilation.",
             "lock": false,
@@ -6851,7 +6851,7 @@
         "quiet": {
             "example": [
                 "cli: -quiet",
-                "api: chip.set('option','quiet',True)"
+                "api: chip.set('option', 'quiet', True)"
             ],
             "help": "The -quiet option forces all steps to print to a log file.\nThis can be useful with Modern EDA tools which print\nsignificant content to the screen.",
             "lock": false,
@@ -6877,7 +6877,7 @@
             "copy": false,
             "example": [
                 "cli: -registry '~/myregistry'",
-                "api: chip.set('option','registry','~/myregistry')"
+                "api: chip.set('option', 'registry', '~/myregistry')"
             ],
             "help": "List of Silicon Unified Packager (SUP) registry directories.\nDirectories can be local file system folders or\npublicly available registries served up over http. The naming\nconvention for registry packages is:\n<name>/<name>-<version>.json(.<gz>)?",
             "lock": false,
@@ -6902,7 +6902,7 @@
         "relax": {
             "example": [
                 "cli: -relax",
-                "api: chip.set('option','relax',True)"
+                "api: chip.set('option', 'relax', True)"
             ],
             "help": "Global option specifying that tools should be lenient and\nsuppress warnings that may or may not indicate real design\nissues. Extent of leniency is tool/task specific.",
             "lock": false,
@@ -6927,7 +6927,7 @@
         "remote": {
             "example": [
                 "cli: -remote",
-                "api: chip.set('option','remote', True)"
+                "api: chip.set('option', 'remote', True)"
             ],
             "help": "Sends job for remote processing if set to true. The remote\noption requires a credentials file to be placed in the home\ndirectory. Fore more information, see the credentials\nparameter.",
             "lock": false,
@@ -6952,7 +6952,7 @@
         "resume": {
             "example": [
                 "cli: -resume",
-                "api: chip.set('option','resume',True)"
+                "api: chip.set('option', 'resume', True)"
             ],
             "help": "If results exist for current job, then don't re-run any steps that\nhad at least one index run successfully. Useful for debugging a\nflow that failed partway through.",
             "lock": false,
@@ -7186,7 +7186,7 @@
             "copy": false,
             "example": [
                 "cli: -scpath '/home/$USER/sclib'",
-                "api: chip.set('option', 'scpath','/home/$USER/sclib')"
+                "api: chip.set('option', 'scpath', '/home/$USER/sclib')"
             ],
             "help": "Specifies python modules paths for target import.",
             "lock": false,
@@ -7211,7 +7211,7 @@
         "show": {
             "example": [
                 "cli: -show",
-                "api: chip.set('option','show',True)"
+                "api: chip.set('option', 'show', True)"
             ],
             "help": "Specifies that the final hardware layout should be\nshown after the compilation has been completed. The\nfinal layout and tool used to display the layout is\nflow dependent.",
             "lock": false,
@@ -7237,7 +7237,7 @@
             "default": {
                 "example": [
                     "cli: -showtool 'gds klayout'",
-                    "api: chip.set('option','showtool','gds','klayout')"
+                    "api: chip.set('option', 'showtool', 'gds', 'klayout')"
                 ],
                 "help": "Selects the tool to use by the show function for displaying\nthe specified filetype.",
                 "lock": false,
@@ -7263,7 +7263,7 @@
         "skipall": {
             "example": [
                 "cli: -skipall",
-                "api: chip.set('option','skipall',True)"
+                "api: chip.set('option', 'skipall', True)"
             ],
             "help": "Skips the execution of all tools in run(), enabling a quick\ncheck of tool and setup without having to run through each\nstep of a flow to completion.",
             "lock": false,
@@ -7288,7 +7288,7 @@
         "skipcheck": {
             "example": [
                 "cli: -skipcheck",
-                "api: chip.set('option','skipcheck',True)"
+                "api: chip.set('option', 'skipcheck', True)"
             ],
             "help": "Bypasses the strict runtime manifest check. Can be used for\naccelerating initial bringup of tool/flow/pdk/libs targets.\nThe flag should not be used for production compilation.",
             "lock": false,
@@ -7313,7 +7313,7 @@
         "skipstep": {
             "example": [
                 "cli: -skipstep lvs",
-                "api: chip.set('option','skipstep','lvs')"
+                "api: chip.set('option', 'skipstep', 'lvs')"
             ],
             "help": "List of steps to skip during execution.The default is to\nexecute all steps defined in the flow graph.",
             "lock": false,
@@ -7338,7 +7338,7 @@
         "stackup": {
             "example": [
                 "cli: -stackup 2MA4MB2MC",
-                "api: chip.set('option','stackup','2MA4MB2MC')"
+                "api: chip.set('option', 'stackup', '2MA4MB2MC')"
             ],
             "help": "Target stackup used during compilation. The stackup is required\nparameter for PDKs with multiple metal stackups.",
             "lock": false,
@@ -7363,7 +7363,7 @@
         "steplist": {
             "example": [
                 "cli: -steplist 'import'",
-                "api: chip.set('option','steplist','import')"
+                "api: chip.set('option', 'steplist', 'import')"
             ],
             "help": "List of steps to execute. The default is to execute all steps\ndefined in the flow graph.",
             "lock": false,
@@ -7413,7 +7413,7 @@
         "target": {
             "example": [
                 "cli: -target freepdk45_demo",
-                "api: chip.set('option','target','freepdk45_demo')"
+                "api: chip.set('option', 'target', 'freepdk45_demo')"
             ],
             "help": "Sets a target module to be used for compilation. The target\nmodule must set up all parameters needed. The target module\nmay load multiple flows and libraries.",
             "lock": false,
@@ -7464,7 +7464,7 @@
         "trace": {
             "example": [
                 "cli: -trace",
-                "api: chip.set('option','trace',True)"
+                "api: chip.set('option', 'trace', True)"
             ],
             "help": "Enables debug tracing during compilation and/or runtime.",
             "lock": false,
@@ -7489,7 +7489,7 @@
         "track": {
             "example": [
                 "cli: -track",
-                "api: chip.set('option','track',True)"
+                "api: chip.set('option', 'track', True)"
             ],
             "help": "Turns on tracking of all 'record' parameters during each\ntask. Tracking will result in potentially sensitive data\nbeing recorded in the manifest so only turn on this feature\nif you have control of the final manifest.",
             "lock": false,
@@ -7514,7 +7514,7 @@
         "uselambda": {
             "example": [
                 "cli: -uselambda true",
-                "api: chip.set('option','uselambda', True)"
+                "api: chip.set('option', 'uselambda', True)"
             ],
             "help": "Turns on lambda scaling of all dimensionsional constraints.\n(new value = value * ['pdk', 'lambda']).",
             "lock": false,
@@ -7567,7 +7567,7 @@
             "copy": false,
             "example": [
                 "cli: -v './mylib.v'",
-                "api: chip.set('option', 'vlib','./mylib.v')"
+                "api: chip.set('option', 'vlib', './mylib.v')"
             ],
             "hashalgo": "sha256",
             "help": "List of library files to be read in. Modules found in the\nlibraries are not interpreted as root modules.",
@@ -7597,7 +7597,7 @@
             "copy": false,
             "example": [
                 "cli: -y './mylib'",
-                "api: chip.set('option','ydir','./mylib')"
+                "api: chip.set('option', 'ydir', './mylib')"
             ],
             "help": "Search paths to look for verilog modules found in the the\nsource list. The import engine will look for modules inside\nfiles with the specified +libext+ param suffix.",
             "lock": false,
@@ -7626,7 +7626,7 @@
                 "copy": false,
                 "example": [
                     "cli: -output 'rtl verilog hello_world.v'",
-                    "api: chip.set(output, 'rtl','verilog','hello_world.v')"
+                    "api: chip.set('output', 'rtl', 'verilog', 'hello_world.v')"
                 ],
                 "hashalgo": "sha256",
                 "help": "List of files of type ('filetype') grouped as a named set ('fileset').\nThe exact names of filetypes and filesets must match the string names\nused by the tasks called during flowgraph execution. By convention,\nthe fileset names should match the the name of the flowgraph being\nexecuted.",
@@ -7660,7 +7660,7 @@
                 "email": {
                     "example": [
                         "cli: -package_author_email 'wiley wiley@acme.com'",
-                        "api: chip.set('package','author','wiley','email','wiley@acme.com')"
+                        "api: chip.set('package', 'author', 'wiley', 'email', 'wiley@acme.com')"
                     ],
                     "help": "Package author email provided with full name as key and\nemail as value.",
                     "lock": false,
@@ -7685,7 +7685,7 @@
                 "location": {
                     "example": [
                         "cli: -package_author_location 'wiley wiley@acme.com'",
-                        "api: chip.set('package','author','wiley','location','wiley@acme.com')"
+                        "api: chip.set('package', 'author', 'wiley', 'location', 'wiley@acme.com')"
                     ],
                     "help": "Package author location provided with full name as key and\nlocation as value.",
                     "lock": false,
@@ -7710,7 +7710,7 @@
                 "name": {
                     "example": [
                         "cli: -package_author_name 'wiley wiley@acme.com'",
-                        "api: chip.set('package','author','wiley','name','wiley@acme.com')"
+                        "api: chip.set('package', 'author', 'wiley', 'name', 'wiley@acme.com')"
                     ],
                     "help": "Package author name provided with full name as key and\nname as value.",
                     "lock": false,
@@ -7735,7 +7735,7 @@
                 "organization": {
                     "example": [
                         "cli: -package_author_organization 'wiley wiley@acme.com'",
-                        "api: chip.set('package','author','wiley','organization','wiley@acme.com')"
+                        "api: chip.set('package', 'author', 'wiley', 'organization', 'wiley@acme.com')"
                     ],
                     "help": "Package author organization provided with full name as key and\norganization as value.",
                     "lock": false,
@@ -7760,7 +7760,7 @@
                 "publickey": {
                     "example": [
                         "cli: -package_author_publickey 'wiley wiley@acme.com'",
-                        "api: chip.set('package','author','wiley','publickey','wiley@acme.com')"
+                        "api: chip.set('package', 'author', 'wiley', 'publickey', 'wiley@acme.com')"
                     ],
                     "help": "Package author publickey provided with full name as key and\npublickey as value.",
                     "lock": false,
@@ -7785,7 +7785,7 @@
                 "username": {
                     "example": [
                         "cli: -package_author_username 'wiley wiley@acme.com'",
-                        "api: chip.set('package','author','wiley','username','wiley@acme.com')"
+                        "api: chip.set('package', 'author', 'wiley', 'username', 'wiley@acme.com')"
                     ],
                     "help": "Package author username provided with full name as key and\nusername as value.",
                     "lock": false,
@@ -7813,7 +7813,7 @@
             "default": {
                 "example": [
                     "cli: -package_dependency 'hello 1.0'",
-                    "api: chip.set('package','dependency','hello','1.0')"
+                    "api: chip.set('package', 'dependency', 'hello', '1.0')"
                 ],
                 "help": "Package dependencies specified as a key value pair.\nVersions shall follow the semver standard.",
                 "lock": false,
@@ -7840,9 +7840,9 @@
             "default": {
                 "example": [
                     "cli: -package_depgraph 'top (cpu,1.0.1)'",
-                    "api: chip.set('package','depgraph','top',('cpu','1.0.1'))"
+                    "api: chip.set('package', 'depgraph', 'top', ('cpu', '1.0.1'))"
                 ],
-                "help": "List of Silicon Unified Packager (SUP) dependencies\nused by the design specified on a per module basis a\nlist of string tuples ('name','version').",
+                "help": "List of Silicon Unified Packager (SUP) dependencies\nused by the design specified on a per module basis a\nlist of string tuples ('name', 'version').",
                 "lock": false,
                 "node": {
                     "default": {
@@ -7866,7 +7866,7 @@
         "description": {
             "example": [
                 "cli: -package_description 'Yet another cpu'",
-                "api: chip.set('package','description','Yet another cpu')"
+                "api: chip.set('package', 'description', 'Yet another cpu')"
             ],
             "help": "Package short one line description for package\nmanagers and summary reports.",
             "lock": false,
@@ -7893,7 +7893,7 @@
                 "copy": false,
                 "example": [
                     "cli: -package_doc_datasheet datasheet.pdf",
-                    "api: chip.set('package','doc',datasheet,'datasheet.pdf')"
+                    "api: chip.set('package', 'doc', 'datasheet', 'datasheet.pdf')"
                 ],
                 "hashalgo": "sha256",
                 "help": "Package list of datasheet documents.",
@@ -7922,7 +7922,7 @@
             "homepage": {
                 "example": [
                     "cli: -package_doc_homepage index.html",
-                    "api: chip.set('package','doc', 'homepage','index.html')"
+                    "api: chip.set('package', 'doc', 'homepage', 'index.html')"
                 ],
                 "help": "Package documentation homepage. Filepath to design docs homepage.\nComplex designs can can include a long non standard list of\ndocuments dependent. A single html entry point can be used to\npresent an organized documentation dashboard to the designer.",
                 "lock": false,
@@ -7948,7 +7948,7 @@
                 "copy": false,
                 "example": [
                     "cli: -package_doc_quickstart quickstart.pdf",
-                    "api: chip.set('package','doc',quickstart,'quickstart.pdf')"
+                    "api: chip.set('package', 'doc', 'quickstart', 'quickstart.pdf')"
                 ],
                 "hashalgo": "sha256",
                 "help": "Package list of quickstart documents.",
@@ -7978,7 +7978,7 @@
                 "copy": false,
                 "example": [
                     "cli: -package_doc_reference reference.pdf",
-                    "api: chip.set('package','doc',reference,'reference.pdf')"
+                    "api: chip.set('package', 'doc', 'reference', 'reference.pdf')"
                 ],
                 "hashalgo": "sha256",
                 "help": "Package list of reference documents.",
@@ -8008,7 +8008,7 @@
                 "copy": false,
                 "example": [
                     "cli: -package_doc_releasenotes releasenotes.pdf",
-                    "api: chip.set('package','doc',releasenotes,'releasenotes.pdf')"
+                    "api: chip.set('package', 'doc', 'releasenotes', 'releasenotes.pdf')"
                 ],
                 "hashalgo": "sha256",
                 "help": "Package list of releasenotes documents.",
@@ -8038,7 +8038,7 @@
                 "copy": false,
                 "example": [
                     "cli: -package_doc_signoff signoff.pdf",
-                    "api: chip.set('package','doc',signoff,'signoff.pdf')"
+                    "api: chip.set('package', 'doc', 'signoff', 'signoff.pdf')"
                 ],
                 "hashalgo": "sha256",
                 "help": "Package list of signoff documents.",
@@ -8068,7 +8068,7 @@
                 "copy": false,
                 "example": [
                     "cli: -package_doc_testplan testplan.pdf",
-                    "api: chip.set('package','doc',testplan,'testplan.pdf')"
+                    "api: chip.set('package', 'doc', 'testplan', 'testplan.pdf')"
                 ],
                 "hashalgo": "sha256",
                 "help": "Package list of testplan documents.",
@@ -8098,7 +8098,7 @@
                 "copy": false,
                 "example": [
                     "cli: -package_doc_tutorial tutorial.pdf",
-                    "api: chip.set('package','doc',tutorial,'tutorial.pdf')"
+                    "api: chip.set('package', 'doc', 'tutorial', 'tutorial.pdf')"
                 ],
                 "hashalgo": "sha256",
                 "help": "Package list of tutorial documents.",
@@ -8128,7 +8128,7 @@
                 "copy": false,
                 "example": [
                     "cli: -package_doc_userguide userguide.pdf",
-                    "api: chip.set('package','doc',userguide,'userguide.pdf')"
+                    "api: chip.set('package', 'doc', 'userguide', 'userguide.pdf')"
                 ],
                 "hashalgo": "sha256",
                 "help": "Package list of userguide documents.",
@@ -8158,7 +8158,7 @@
         "homepage": {
             "example": [
                 "cli: -package_homepage index.html",
-                "api: chip.set('package','homepage','index.html')"
+                "api: chip.set('package', 'homepage', 'index.html')"
             ],
             "help": "Package homepage.",
             "lock": false,
@@ -8183,7 +8183,7 @@
         "keyword": {
             "example": [
                 "cli: -package_keyword cpu",
-                "api: chip.set('package','keyword','cpu')"
+                "api: chip.set('package', 'keyword', 'cpu')"
             ],
             "help": "Package keyword(s) used to characterize package.",
             "lock": false,
@@ -8208,7 +8208,7 @@
         "license": {
             "example": [
                 "cli: -package_license 'Apache-2.0'",
-                "api: chip.set('package','license','Apache-2.0')"
+                "api: chip.set('package', 'license', 'Apache-2.0')"
             ],
             "help": "Package list of SPDX license identifiers.",
             "lock": false,
@@ -8234,7 +8234,7 @@
             "copy": false,
             "example": [
                 "cli: -package_licensefile './LICENSE'",
-                "api: chip.set('package','licensefile','./LICENSE')"
+                "api: chip.set('package', 'licensefile', './LICENSE')"
             ],
             "hashalgo": "sha256",
             "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).list of SPDX license identifiers.",
@@ -8263,7 +8263,7 @@
         "location": {
             "example": [
                 "cli: -package_location 'mars'",
-                "api: chip.set('package','location','mars')"
+                "api: chip.set('package', 'location', 'mars')"
             ],
             "help": "Package country of origin specified as standardized\ninternational country codes. The field can be left blank\nif the location is unknown or global.",
             "lock": false,
@@ -8288,7 +8288,7 @@
         "name": {
             "example": [
                 "cli: -package_name yac",
-                "api: chip.set('package','name','yac')"
+                "api: chip.set('package', 'name', 'yac')"
             ],
             "help": "Package name.",
             "lock": false,
@@ -8313,7 +8313,7 @@
         "organization": {
             "example": [
                 "cli: -package_organization 'humanity'",
-                "api: chip.set('package','organization','humanity')"
+                "api: chip.set('package', 'organization', 'humanity')"
             ],
             "help": "Package sponsoring organization. The field can be left\nblank if not applicable.",
             "lock": false,
@@ -8338,7 +8338,7 @@
         "publickey": {
             "example": [
                 "cli: -package_publickey '6EB695706EB69570'",
-                "api: chip.set('package','publickey','6EB695706EB69570')"
+                "api: chip.set('package', 'publickey', '6EB695706EB69570')"
             ],
             "help": "Package public project key.",
             "lock": false,
@@ -8363,7 +8363,7 @@
         "repo": {
             "example": [
                 "cli: -package_repo 'git@github.com:aolofsson/oh.git'",
-                "api: chip.set('package','repo','git@github.com:aolofsson/oh.git')"
+                "api: chip.set('package', 'repo', 'git@github.com:aolofsson/oh.git')"
             ],
             "help": "Package IP address to source code repository.",
             "lock": false,
@@ -8388,7 +8388,7 @@
         "target": {
             "example": [
                 "cli: -package_target 'asicflow_freepdk45'",
-                "api: chip.set('package','target','asicflow_freepdk45')"
+                "api: chip.set('package', 'target', 'asicflow_freepdk45')"
             ],
             "help": "Package list of qualified compilation targets.",
             "lock": false,
@@ -8413,7 +8413,7 @@
         "version": {
             "example": [
                 "cli: -package_version 1.0",
-                "api: chip.set('package','version','1.0')"
+                "api: chip.set('package', 'version', '1.0')"
             ],
             "help": "Package version. Can be a branch, tag, commit hash,\nor a semver compatible version.",
             "lock": false,
@@ -8446,7 +8446,7 @@
                                 "copy": false,
                                 "example": [
                                     "cli: -pdk_aprtech 'asap7 openroad M10 12t lef tech.lef'",
-                                    "api: chip.set('pdk','asap7','aprtech','openroad','M10','12t','lef','tech.lef')"
+                                    "api: chip.set('pdk', 'asap7', 'aprtech', 'openroad', 'M10', '12t', 'lef', 'tech.lef')"
                                 ],
                                 "hashalgo": "sha256",
                                 "help": "Technology file containing setup information needed to enable DRC clean APR\nfor the specified stackup, libarch, and format. The 'libarch' specifies the\nlibrary architecture (e.g. library height). For example a PDK with support\nfor 9 and 12 track libraries might have 'libarchs' called 9t and 12t.\nThe standard filetype for specifying place and route design rules for a\nprocess node is through a 'lef' format technology file. The\n'filetype' used in the aprtech is used by the tool specific APR TCL scripts\nto set up the technology parameters. Some tools may require additional\nfiles beyond the tech.lef file. Examples of extra file types include\nantenna, tracks, tapcell, viarules, em.",
@@ -8533,7 +8533,7 @@
                             "copy": false,
                             "example": [
                                 "cli: -pdk_devmodel 'asap7 xyce spice M10 asap7.sp'",
-                                "api: chip.set('pdk','asap7','devmodel','xyce','spice','M10','asap7.sp')"
+                                "api: chip.set('pdk', 'asap7', 'devmodel', 'xyce', 'spice', 'M10', 'asap7.sp')"
                             ],
                             "hashalgo": "sha256",
                             "help": "List of filepaths to PDK device models for different simulation\npurposes and for different tools. Examples of device model types\ninclude spice, aging, electromigration, radiation. An example of a\n'spice' tool is xyce. Device models are specified on a per metal stack\nbasis. Process nodes with a single device model across all stacks will\nhave a unique parameter record per metal stack pointing to the same\ndevice model file. Device types and tools are dynamic entries\nthat depend on the tool setup and device technology. Pseudo-standardized\ndevice types include spice, em (electromigration), and aging.",
@@ -8569,7 +8569,7 @@
                             "copy": false,
                             "example": [
                                 "cli: -pdk_directory 'asap7 xyce rfmodel M10 rftechdir'",
-                                "api: chip.set('pdk','asap7','directory','xyce','rfmodel','M10','rftechdir')"
+                                "api: chip.set('pdk', 'asap7', 'directory', 'xyce', 'rfmodel', 'M10', 'rftechdir')"
                             ],
                             "help": "List of named directories specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying files that are\nnot directly supported by the SiliconCompiler PDK schema.",
                             "lock": false,
@@ -8600,7 +8600,7 @@
                         "copy": false,
                         "example": [
                             "cli: -pdk_display 'asap7 klayout M10 display.lyt'",
-                            "api: chip.set('pdk','asap7','display','klayout','M10','display.cfg')"
+                            "api: chip.set('pdk', 'asap7', 'display', 'klayout', 'M10', 'display.cfg')"
                         ],
                         "hashalgo": "sha256",
                         "help": "Display configuration files describing colors and pattern schemes for\nall layers in the PDK. The display configuration file is entered on a\nstackup and tool basis.",
@@ -8633,7 +8633,7 @@
                     "copy": false,
                     "example": [
                         "cli: -pdk_doc_datasheet 'asap7 datasheet.pdf'",
-                        "api: chip.set('pdk','asap7','doc',datasheet,'datasheet.pdf')"
+                        "api: chip.set('pdk', 'asap7', 'doc', 'datasheet', 'datasheet.pdf')"
                     ],
                     "hashalgo": "sha256",
                     "help": "Filepath to datasheet document.",
@@ -8663,7 +8663,7 @@
                     "copy": false,
                     "example": [
                         "cli: -pdk_doc_homepage 'asap7 index.html'",
-                        "api: chip.set('pdk','asap7','doc','homepage','index.html')"
+                        "api: chip.set('pdk', 'asap7', 'doc', 'homepage', 'index.html')"
                     ],
                     "hashalgo": "sha256",
                     "help": "Filepath to PDK docs homepage. Modern PDKs can include tens or\nhundreds of individual documents. A single html entry point can\nbe used to present an organized documentation dashboard to the\ndesigner.",
@@ -8693,7 +8693,7 @@
                     "copy": false,
                     "example": [
                         "cli: -pdk_doc_install 'asap7 install.pdf'",
-                        "api: chip.set('pdk','asap7','doc',install,'install.pdf')"
+                        "api: chip.set('pdk', 'asap7', 'doc', 'install', 'install.pdf')"
                     ],
                     "hashalgo": "sha256",
                     "help": "Filepath to install document.",
@@ -8723,7 +8723,7 @@
                     "copy": false,
                     "example": [
                         "cli: -pdk_doc_quickstart 'asap7 quickstart.pdf'",
-                        "api: chip.set('pdk','asap7','doc',quickstart,'quickstart.pdf')"
+                        "api: chip.set('pdk', 'asap7', 'doc', 'quickstart', 'quickstart.pdf')"
                     ],
                     "hashalgo": "sha256",
                     "help": "Filepath to quickstart document.",
@@ -8753,7 +8753,7 @@
                     "copy": false,
                     "example": [
                         "cli: -pdk_doc_reference 'asap7 reference.pdf'",
-                        "api: chip.set('pdk','asap7','doc',reference,'reference.pdf')"
+                        "api: chip.set('pdk', 'asap7', 'doc', 'reference', 'reference.pdf')"
                     ],
                     "hashalgo": "sha256",
                     "help": "Filepath to reference document.",
@@ -8783,7 +8783,7 @@
                     "copy": false,
                     "example": [
                         "cli: -pdk_doc_releasenotes 'asap7 releasenotes.pdf'",
-                        "api: chip.set('pdk','asap7','doc',releasenotes,'releasenotes.pdf')"
+                        "api: chip.set('pdk', 'asap7', 'doc', 'releasenotes', 'releasenotes.pdf')"
                     ],
                     "hashalgo": "sha256",
                     "help": "Filepath to releasenotes document.",
@@ -8813,7 +8813,7 @@
                     "copy": false,
                     "example": [
                         "cli: -pdk_doc_tutorial 'asap7 tutorial.pdf'",
-                        "api: chip.set('pdk','asap7','doc',tutorial,'tutorial.pdf')"
+                        "api: chip.set('pdk', 'asap7', 'doc', 'tutorial', 'tutorial.pdf')"
                     ],
                     "hashalgo": "sha256",
                     "help": "Filepath to tutorial document.",
@@ -8843,7 +8843,7 @@
                     "copy": false,
                     "example": [
                         "cli: -pdk_doc_userguide 'asap7 userguide.pdf'",
-                        "api: chip.set('pdk','asap7','doc',userguide,'userguide.pdf')"
+                        "api: chip.set('pdk', 'asap7', 'doc', 'userguide', 'userguide.pdf')"
                     ],
                     "hashalgo": "sha256",
                     "help": "Filepath to userguide document.",
@@ -8878,7 +8878,7 @@
                                 "copy": false,
                                 "example": [
                                     "cli: -pdk_drc_runset 'asap7 magic M10 basic $PDK/drc.rs'",
-                                    "api: chip.set('pdk', 'asap7','drc','runset','magic','M10','basic','$PDK/drc.rs')"
+                                    "api: chip.set('pdk', 'asap7', 'drc', 'runset', 'magic', 'M10', 'basic', '$PDK/drc.rs')"
                                 ],
                                 "hashalgo": "sha256",
                                 "help": "Runset files for DRC task.",
@@ -8914,7 +8914,7 @@
                                 "copy": false,
                                 "example": [
                                     "cli: -pdk_drc_waiver 'asap7 magic M10 basic $PDK/drc.txt'",
-                                    "api: chip.set('pdk', 'asap7','drc','waiver','magic','M10','basic','$PDK/drc.txt')"
+                                    "api: chip.set('pdk', 'asap7', 'drc', 'waiver', 'magic', 'M10', 'basic', '$PDK/drc.txt')"
                                 ],
                                 "hashalgo": "sha256",
                                 "help": "Waiver files for DRC task.",
@@ -8978,7 +8978,7 @@
                                 "copy": false,
                                 "example": [
                                     "cli: -pdk_erc_runset 'asap7 magic M10 basic $PDK/erc.rs'",
-                                    "api: chip.set('pdk', 'asap7','erc','runset','magic','M10','basic','$PDK/erc.rs')"
+                                    "api: chip.set('pdk', 'asap7', 'erc', 'runset', 'magic', 'M10', 'basic', '$PDK/erc.rs')"
                                 ],
                                 "hashalgo": "sha256",
                                 "help": "Runset files for ERC task.",
@@ -9014,7 +9014,7 @@
                                 "copy": false,
                                 "example": [
                                     "cli: -pdk_erc_waiver 'asap7 magic M10 basic $PDK/erc.txt'",
-                                    "api: chip.set('pdk', 'asap7','erc','waiver','magic','M10','basic','$PDK/erc.txt')"
+                                    "api: chip.set('pdk', 'asap7', 'erc', 'waiver', 'magic', 'M10', 'basic', '$PDK/erc.txt')"
                                 ],
                                 "hashalgo": "sha256",
                                 "help": "Waiver files for ERC task.",
@@ -9051,7 +9051,7 @@
                             "copy": false,
                             "example": [
                                 "cli: -pdk_file 'asap7 xyce spice M10 asap7.sp'",
-                                "api: chip.set('pdk','asap7','file','xyce','spice','M10','asap7.sp')"
+                                "api: chip.set('pdk', 'asap7', 'file', 'xyce', 'spice', 'M10', 'asap7.sp')"
                             ],
                             "hashalgo": "sha256",
                             "help": "List of named files specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying files that are\nnot directly supported by the SiliconCompiler PDK schema.",
@@ -9088,7 +9088,7 @@
                                 "copy": false,
                                 "example": [
                                     "cli: -pdk_fill_runset 'asap7 magic M10 basic $PDK/fill.rs'",
-                                    "api: chip.set('pdk', 'asap7','fill','runset','magic','M10','basic','$PDK/fill.rs')"
+                                    "api: chip.set('pdk', 'asap7', 'fill', 'runset', 'magic', 'M10', 'basic', '$PDK/fill.rs')"
                                 ],
                                 "hashalgo": "sha256",
                                 "help": "Runset files for FILL task.",
@@ -9124,7 +9124,7 @@
                                 "copy": false,
                                 "example": [
                                     "cli: -pdk_fill_waiver 'asap7 magic M10 basic $PDK/fill.txt'",
-                                    "api: chip.set('pdk', 'asap7','fill','waiver','magic','M10','basic','$PDK/fill.txt')"
+                                    "api: chip.set('pdk', 'asap7', 'fill', 'waiver', 'magic', 'M10', 'basic', '$PDK/fill.txt')"
                                 ],
                                 "hashalgo": "sha256",
                                 "help": "Waiver files for FILL task.",
@@ -9238,7 +9238,7 @@
                                 "copy": false,
                                 "example": [
                                     "cli: -pdk_layermap 'asap7 klayout db gds M10 asap7.map'",
-                                    "api: chip.set('pdk','asap7','layermap','klayout','db','gds','M10','asap7.map')"
+                                    "api: chip.set('pdk', 'asap7', 'layermap', 'klayout', 'db', 'gds', 'M10', 'asap7.map')"
                                 ],
                                 "hashalgo": "sha256",
                                 "help": "Files describing input/output mapping for streaming layout data from\none format to another. A foundry PDK will include an official layer\nlist for all user entered and generated layers supported in the GDS\naccepted by the foundry for processing, but there is no standardized\nlayer definition format that can be read and written by all EDA tools.\nTo ensure mask layer matching, key/value type mapping files are needed\nto convert EDA databases to/from GDS and to convert between different\ntypes of EDA databases. Layer maps are specified on a per metal\nstackup basis. The 'src' and 'dst' can be names of SC supported tools\nor file formats (like 'gds').",
@@ -9276,7 +9276,7 @@
                                 "copy": false,
                                 "example": [
                                     "cli: -pdk_lvs_runset 'asap7 magic M10 basic $PDK/lvs.rs'",
-                                    "api: chip.set('pdk', 'asap7','lvs','runset','magic','M10','basic','$PDK/lvs.rs')"
+                                    "api: chip.set('pdk', 'asap7', 'lvs', 'runset', 'magic', 'M10', 'basic', '$PDK/lvs.rs')"
                                 ],
                                 "hashalgo": "sha256",
                                 "help": "Runset files for LVS task.",
@@ -9312,7 +9312,7 @@
                                 "copy": false,
                                 "example": [
                                     "cli: -pdk_lvs_waiver 'asap7 magic M10 basic $PDK/lvs.txt'",
-                                    "api: chip.set('pdk', 'asap7','lvs','waiver','magic','M10','basic','$PDK/lvs.txt')"
+                                    "api: chip.set('pdk', 'asap7', 'lvs', 'waiver', 'magic', 'M10', 'basic', '$PDK/lvs.txt')"
                                 ],
                                 "hashalgo": "sha256",
                                 "help": "Waiver files for LVS task.",
@@ -9424,7 +9424,7 @@
             "panelsize": {
                 "example": [
                     "cli: -pdk_panelsize 'asap7 (45.72,60.96)'",
-                    "api: chip.set('pdk', 'asap7', 'panelsize', (45.72,60.96))"
+                    "api: chip.set('pdk', 'asap7', 'panelsize', (45.72, 60.96))"
                 ],
                 "help": "List of panel sizes supported in the manufacturing process.",
                 "lock": false,
@@ -9442,7 +9442,7 @@
                 "scope": "global",
                 "shorthelp": "PDK: panel size",
                 "switch": [
-                    "-pdk_panelsize 'pdkname <float>'"
+                    "-pdk_panelsize 'pdkname <(float,float)>'"
                 ],
                 "type": "[(float,float)]",
                 "unit": "mm"
@@ -9454,7 +9454,7 @@
                             "copy": false,
                             "example": [
                                 "cli: -pdk_pexmodel 'asap7 fastcap M10 max wire.mod'",
-                                "api: chip.set('pdk','asap7','pexmodel','fastcap','M10','max','wire.mod')"
+                                "api: chip.set('pdk', 'asap7', 'pexmodel', 'fastcap', 'M10', 'max', 'wire.mod')"
                             ],
                             "hashalgo": "sha256",
                             "help": "List of filepaths to PDK wire TCAD models used during automated\nsynthesis, APR, and signoff verification. Pexmodels are specified on\na per metal stack basis. Corner values depend on the process being\nused, but typically include nomenclature such as min, max, nominal.\nFor exact names, refer to the DRM. Pexmodels are generally not\nstandardized and specified on a per tool basis. An example of pexmodel\ntype is 'fastcap'.",
@@ -9486,7 +9486,7 @@
             "stackup": {
                 "example": [
                     "cli: -pdk_stackup 'asap7 2MA4MB2MC'",
-                    "api: chip.add('pdk', 'asap7','stackup','2MA4MB2MC')"
+                    "api: chip.add('pdk', 'asap7', 'stackup', '2MA4MB2MC')"
                 ],
                 "help": "List of all metal stackups offered in the process node. Older process\nnodes may only offer a single metal stackup, while advanced nodes\noffer a large but finite list of metal stacks with varying combinations\nof metal line pitches and thicknesses. Stackup naming is unique to a\nfoundry, but is generally a long string or code. For example, a 10\nmetal stackup with two 1x wide, four 2x wide, and 4x wide metals,\nmight be identified as 2MA4MB2MC, where MA, MB, and MC denote wiring\nlayers with different properties (thickness, width, space). Each\nstackup will come with its own set of routing technology files and\nparasitic models specified in the pdk_pexmodel and pdk_aprtech\nparameters.",
                 "lock": false,
@@ -9568,7 +9568,7 @@
                         "default": {
                             "example": [
                                 "cli: -pdk_var 'asap7 xyce modeltype M10 bsim4'",
-                                "api: chip.set('pdk','asap7','var','xyce','modeltype','M10','bsim4')"
+                                "api: chip.set('pdk', 'asap7', 'var', 'xyce', 'modeltype', 'M10', 'bsim4')"
                             ],
                             "help": "List of key/value strings specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying variables that are\nnot directly supported by the SiliconCompiler PDK schema.",
                             "lock": false,
@@ -10128,7 +10128,7 @@
             "exe": {
                 "example": [
                     "cli: -tool_exe 'openroad openroad'",
-                    "api: chip.set('tool','openroad','exe','openroad')"
+                    "api: chip.set('tool', 'openroad', 'exe', 'openroad')"
                 ],
                 "help": "Tool executable name.",
                 "lock": false,
@@ -10153,7 +10153,7 @@
             "format": {
                 "example": [
                     "cli: -tool_format 'yosys tcl'",
-                    "api: chip.set('tool','yosys','format','tcl')"
+                    "api: chip.set('tool', 'yosys', 'format', 'tcl')"
                 ],
                 "help": "File format for tool manifest handoff. Supported formats are tcl,\nyaml, and json.",
                 "lock": false,
@@ -10179,7 +10179,7 @@
                 "default": {
                     "example": [
                         "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
-                        "api: chip.set('tool','acme','licenseserver','ACME_LICENSE','1700@server')"
+                        "api: chip.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
                     ],
                     "help": "Defines a set of tool specific environment variables used by the executables\nthat depend on license key servers to control access. For multiple servers,\nseparate each server by a 'colon'. The named license variable are read at\nruntime (run()) and the environment variables are set.",
                     "lock": false,
@@ -10206,7 +10206,7 @@
                 "copy": false,
                 "example": [
                     "cli: -tool_path 'openroad /usr/local/bin'",
-                    "api: chip.set('tool','openroad','path','/usr/local/bin')"
+                    "api: chip.set('tool', 'openroad', 'path', '/usr/local/bin')"
                 ],
                 "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the 'exe' is already in the\nenvironment search path.",
                 "lock": false,
@@ -10233,7 +10233,7 @@
                     "copy": false,
                     "example": [
                         "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
-                        "api: chip.set('tool','yosys','sbom','1.0','ys_sbom.json')"
+                        "api: chip.set('tool', 'yosys', 'sbom', '1.0', 'ys_sbom.json')"
                     ],
                     "hashalgo": "sha256",
                     "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
@@ -10265,7 +10265,7 @@
                     "continue": {
                         "example": [
                             "cli: -tool_task_continue 'verilator lint true'",
-                            "api: chip.set('tool','verilator','task','lint','continue',True)"
+                            "api: chip.set('tool', 'verilator', 'task', 'lint', 'continue', True)"
                         ],
                         "help": "Directs flow to continue even if errors are encountered during task. The default\nbehavior is for SC to exit on error.",
                         "lock": false,
@@ -10292,7 +10292,7 @@
                             "copy": false,
                             "example": [
                                 "cli: -tool_task_dir 'verilator compile cincludes include'",
-                                "api: chip.set('tool','verilator','task','compile','dir','cincludes', 'include')"
+                                "api: chip.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', 'include')"
                             ],
                             "help": "Paths to user supplied directories mapped to keys. Keys must match\nwhat's expected by the task/reference script consuming the\ndirectory.",
                             "lock": false,
@@ -10319,7 +10319,7 @@
                         "default": {
                             "example": [
                                 "cli: -tool_task_env 'openroad cts MYVAR 42'",
-                                "api: chip.set('tool','openroad','task','cts','env','MYVAR','42')"
+                                "api: chip.set('tool', 'openroad', 'task', 'cts', 'env', 'MYVAR', '42')"
                             ],
                             "help": "Environment variables to set for individual tasks. Keys and values\nshould be set in accordance with the task's documentation. Most\ntasks do not require extra environment variables to function.",
                             "lock": false,
@@ -10347,7 +10347,7 @@
                             "copy": false,
                             "example": [
                                 "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
-                                "api: chip.set('tool','openroad','task','floorplan','file','macroplace', 'macroplace.tcl')"
+                                "api: chip.set('tool', 'openroad', 'task', 'floorplan', 'file', 'macroplace', 'macroplace.tcl')"
                             ],
                             "hashalgo": "sha256",
                             "help": "Paths to user supplied files mapped to keys. Keys and filetypes must\nmatch what's expected by the task/reference script consuming the\nfile.",
@@ -10378,7 +10378,7 @@
                         "copy": false,
                         "example": [
                             "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
-                            "api: chip.set('tool','openroad','task','place','input','oh_add.def', step='place', index='0')"
+                            "api: chip.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                         ],
                         "hashalgo": "sha256",
                         "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key ['flowgraph', step, index, 'input'].\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
@@ -10407,7 +10407,7 @@
                     "keep": {
                         "example": [
                             "cli: -tool_task_keep 'surelog import slp_all'",
-                            "api: chip.set('tool','surelog','task','import','script','slpp_all')"
+                            "api: chip.set('tool', 'surelog', 'task', 'import', 'keep', 'slpp_all')"
                         ],
                         "help": "Names of additional files and directories in the work directory that\nshould be kept when :keypath:`option, clean` is true.",
                         "lock": false,
@@ -10432,7 +10432,7 @@
                     "option": {
                         "example": [
                             "cli: -tool_task_option 'openroad cts -no_init'",
-                            "api: chip.set('tool','openroad','task','cts','option','-no_init')"
+                            "api: chip.set('tool', 'openroad', 'task', 'cts', 'option', '-no_init')"
                         ],
                         "help": "List of command line options for the task executable, specified on\na per task and per step basis. Options must not include spaces.\nFor multiple argument options, each option is a separate list element.",
                         "lock": false,
@@ -10458,7 +10458,7 @@
                         "copy": false,
                         "example": [
                             "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
-                            "api: chip.set('tool','openroad','task','place','output','oh_add.def', step='place', index='0')"
+                            "api: chip.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                         ],
                         "hashalgo": "sha256",
                         "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key ['flowgraph', step, index, 'output'].\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
@@ -10488,7 +10488,7 @@
                         "copy": false,
                         "example": [
                             "cli: -tool_task_postscript 'yosys syn syn_post.tcl'",
-                            "api: chip.set('tool','yosys','task','syn_asic','postscript','syn_post.tcl')"
+                            "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'postscript', 'syn_post.tcl')"
                         ],
                         "hashalgo": "sha256",
                         "help": "Path to a user supplied script to execute after the main execution\nstage of the step but before the design is saved.\nExact entry point depends on the step and main script being\nexecuted. An example of a postscript entry point would be immediately\nafter global placement.",
@@ -10518,7 +10518,7 @@
                         "copy": false,
                         "example": [
                             "cli: -tool_task_prescript 'yosys syn syn_pre.tcl'",
-                            "api: chip.set('tool','yosys','task','syn_asic','prescript','syn_pre.tcl')"
+                            "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'prescript', 'syn_pre.tcl')"
                         ],
                         "hashalgo": "sha256",
                         "help": "Path to a user supplied script to execute after reading in the design\nbut before the main execution stage of the step. Exact entry point\ndepends on the step and main script being executed. An example\nof a prescript entry point would be immediately before global\nplacement.",
@@ -10548,7 +10548,7 @@
                         "copy": false,
                         "example": [
                             "cli: -tool_task_refdir 'yosys syn ./myref'",
-                            "api: chip.set('tool','yosys','task','syn_asic','refdir','./myref')"
+                            "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'refdir', './myref')"
                         ],
                         "help": "Path to directories containing reference flow scripts, specified\non a per step and index basis.",
                         "lock": false,
@@ -10574,7 +10574,7 @@
                         "default": {
                             "example": [
                                 "cli: -tool_task_regex 'openroad place errors \"-v ERROR\"'",
-                                "api: chip.set('tool','openroad','task','place','regex','errors','-v ERROR')"
+                                "api: chip.set('tool', 'openroad', 'task', 'place', 'regex', 'errors', '-v ERROR')"
                             ],
                             "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('task', 'openroad', 'regex', 'place', '0', 'warnings',\n             [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`tool, <tool>,\ntask, <task>, report` parameter for those metrics, if not already present.",
                             "lock": false,
@@ -10602,7 +10602,7 @@
                             "copy": false,
                             "example": [
                                 "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
-                                "api: chip.set('tool','openroad','task','place','report','holdtns','place.log', step='place', index='0')"
+                                "api: chip.set('tool', 'openroad', 'task', 'place', 'report', 'holdtns', 'place.log', step='place', index='0')"
                             ],
                             "hashalgo": "sha256",
                             "help": "List of report files associated with a specific 'metric'. The file path\nspecified is relative to the run directory of the current task.",
@@ -10632,7 +10632,7 @@
                     "require": {
                         "example": [
                             "cli: -tool_task_require 'openroad cts design'",
-                            "api: chip.set('tool','openroad', 'task','cts','require','design')"
+                            "api: chip.set('tool', 'openroad', 'task', 'cts', 'require', 'design')"
                         ],
                         "help": "List of keypaths to required task parameters. The list is used\nby check_manifest() to verify that all parameters have been set up before\nstep execution begins.",
                         "lock": false,
@@ -10658,7 +10658,7 @@
                         "copy": false,
                         "example": [
                             "cli: -tool_task_script 'yosys syn syn.tcl'",
-                            "api: chip.set('tool','yosys','task','syn_asic','script','syn.tcl')"
+                            "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'script', 'syn.tcl')"
                         ],
                         "hashalgo": "sha256",
                         "help": "Path to the entry script called by the executable specified\non a per task and per step basis.",
@@ -10688,7 +10688,7 @@
                         "destination": {
                             "example": [
                                 "cli: -tool_task_stderr_destination 'ghdl import log'",
-                                "api: chip.set('tool',ghdl','task','import','stderr','destination','log')"
+                                "api: chip.set('tool', ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
                             ],
                             "help": "Defines where to direct the output generated over stderr.\nSupported options are:\nnone: the stream generated to STDERR is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display output: the generated stream is\nstored in outputs/<design>.<suffix>",
                             "lock": false,
@@ -10713,7 +10713,7 @@
                         "suffix": {
                             "example": [
                                 "cli: -tool_task_stderr_suffix 'ghdl import log'",
-                                "api: chip.set('tool','ghdl','task','import','stderr','suffix','log')"
+                                "api: chip.set('tool', 'ghdl', 'task', 'import', 'stderr', 'suffix', 'log')"
                             ],
                             "help": "Specifies the file extension for the content redirected from stderr.",
                             "lock": false,
@@ -10740,7 +10740,7 @@
                         "destination": {
                             "example": [
                                 "cli: -tool_task_stdout_destination 'ghdl import log'",
-                                "api: chip.set('tool','ghdl','task','import','stdout','destination','log')"
+                                "api: chip.set('tool', 'ghdl', 'task', 'import', 'stdout', 'destination', 'log')"
                             ],
                             "help": "Defines where to direct the output generated over stdout.\nSupported options are:\nnone: the stream generated to STDOUT is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display output: the generated stream is stored\nin outputs/<design>.<suffix>",
                             "lock": false,
@@ -10765,7 +10765,7 @@
                         "suffix": {
                             "example": [
                                 "cli: -tool_task_stdout_suffix 'ghdl import log'",
-                                "api: chip.set('tool',ghdl','task','import','stdout','suffix','log')"
+                                "api: chip.set('tool', ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"
                             ],
                             "help": "Specifies the file extension for the content redirected from stdout.",
                             "lock": false,
@@ -10791,7 +10791,7 @@
                     "threads": {
                         "example": [
                             "cli: -tool_task_threads 'magic drc 64'",
-                            "api: chip.set('tool','magic','task', 'drc','threads','64')"
+                            "api: chip.set('tool', 'magic', 'task', 'drc', 'threads', '64')"
                         ],
                         "help": "Thread parallelism to use for execution specified on a per task and per\nstep basis. If not specified, SC queries the operating system and sets\nthe threads based on the maximum thread count supported by the\nhardware.",
                         "lock": false,
@@ -10817,7 +10817,7 @@
                         "default": {
                             "example": [
                                 "cli: -tool_task_var 'openroad cts myvar 42'",
-                                "api: chip.set('tool','openroad','task','cts','var','myvar','42')"
+                                "api: chip.set('tool', 'openroad', 'task', 'cts', 'var', 'myvar', '42')"
                             ],
                             "help": "Task script variables specified as key value pairs. Variable\nnames and value types must match the name and type of task and reference\nscript consuming the variable.",
                             "lock": false,
@@ -10843,7 +10843,7 @@
                     "warningoff": {
                         "example": [
                             "cli: -tool_task_warningoff 'verilator lint COMBDLY'",
-                            "api: chip.set('tool','verilator','task','lint','warningoff','COMBDLY')"
+                            "api: chip.set('tool', 'verilator', 'task', 'lint', 'warningoff', 'COMBDLY')"
                         ],
                         "help": "A list of tool warnings for which printing should be suppressed.\nGenerally this is done on a per design basis after review has\ndetermined that warning can be safely ignored The code for turning\noff warnings can be found in the specific task reference manual.",
                         "lock": false,
@@ -10870,7 +10870,7 @@
             "vendor": {
                 "example": [
                     "cli: -tool_vendor 'yosys yosys'",
-                    "api: chip.set('tool','yosys','vendor','yosys')"
+                    "api: chip.set('tool', 'yosys', 'vendor', 'yosys')"
                 ],
                 "help": "Name of the tool vendor. Parameter can be used to set vendor\nspecific technology variables in the PDK and libraries. For\nopen source projects, the project name should be used in\nplace of vendor.",
                 "lock": false,
@@ -10895,7 +10895,7 @@
             "version": {
                 "example": [
                     "cli: -tool_version 'openroad >=v2.0'",
-                    "api: chip.set('tool','openroad','version','>=v2.0')"
+                    "api: chip.set('tool', 'openroad', 'version', '>=v2.0')"
                 ],
                 "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting 'novercheck' to True.",
                 "lock": false,
@@ -10920,7 +10920,7 @@
             "vswitch": {
                 "example": [
                     "cli: -tool_vswitch 'openroad -version'",
-                    "api: chip.set('tool','openroad','vswitch','-version')"
+                    "api: chip.set('tool', 'openroad', 'vswitch', '-version')"
                 ],
                 "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include -v, -version,\n--version. Some tools may require extra flags to run in batch mode.",
                 "lock": false,
@@ -10948,7 +10948,7 @@
         "capacitance": {
             "example": [
                 "cli: -unit_capacitance 'pf'",
-                "api: chip.set('unit','capacitance',pf)"
+                "api: chip.set('unit', 'capacitance', pf)"
             ],
             "help": "Units used for capacitance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
@@ -10973,7 +10973,7 @@
         "current": {
             "example": [
                 "cli: -unit_current 'mA'",
-                "api: chip.set('unit','current',mA)"
+                "api: chip.set('unit', 'current', mA)"
             ],
             "help": "Units used for current when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
@@ -10998,7 +10998,7 @@
         "energy": {
             "example": [
                 "cli: -unit_energy 'pj'",
-                "api: chip.set('unit','energy',pj)"
+                "api: chip.set('unit', 'energy', pj)"
             ],
             "help": "Units used for energy when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
@@ -11023,7 +11023,7 @@
         "inductance": {
             "example": [
                 "cli: -unit_inductance 'nh'",
-                "api: chip.set('unit','inductance',nh)"
+                "api: chip.set('unit', 'inductance', nh)"
             ],
             "help": "Units used for inductance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
@@ -11048,7 +11048,7 @@
         "length": {
             "example": [
                 "cli: -unit_length 'um'",
-                "api: chip.set('unit','length',um)"
+                "api: chip.set('unit', 'length', um)"
             ],
             "help": "Units used for length when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
@@ -11073,7 +11073,7 @@
         "mass": {
             "example": [
                 "cli: -unit_mass 'g'",
-                "api: chip.set('unit','mass',g)"
+                "api: chip.set('unit', 'mass', g)"
             ],
             "help": "Units used for mass when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
@@ -11098,7 +11098,7 @@
         "power": {
             "example": [
                 "cli: -unit_power 'mw'",
-                "api: chip.set('unit','power',mw)"
+                "api: chip.set('unit', 'power', mw)"
             ],
             "help": "Units used for power when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
@@ -11123,7 +11123,7 @@
         "resistance": {
             "example": [
                 "cli: -unit_resistance 'ohm'",
-                "api: chip.set('unit','resistance',ohm)"
+                "api: chip.set('unit', 'resistance', ohm)"
             ],
             "help": "Units used for resistance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
@@ -11148,7 +11148,7 @@
         "temperature": {
             "example": [
                 "cli: -unit_temperature 'C'",
-                "api: chip.set('unit','temperature',C)"
+                "api: chip.set('unit', 'temperature', C)"
             ],
             "help": "Units used for temperature when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
@@ -11173,7 +11173,7 @@
         "time": {
             "example": [
                 "cli: -unit_time 'ns'",
-                "api: chip.set('unit','time',ns)"
+                "api: chip.set('unit', 'time', ns)"
             ],
             "help": "Units used for time when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
@@ -11198,7 +11198,7 @@
         "voltage": {
             "example": [
                 "cli: -unit_voltage 'mv'",
-                "api: chip.set('unit','voltage',mv)"
+                "api: chip.set('unit', 'voltage', mv)"
             ],
             "help": "Units used for voltage when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
             "lock": false,
