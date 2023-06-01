@@ -228,7 +228,7 @@ def schema_fpga(cfg):
             shorthelp="FPGA: architecture file",
             switch="-fpga_arch <file>",
             example=["cli: -fpga_arch myfpga.xml",
-                     "api:  chip.set('fpga', 'arch', 'myfpga.xml')"],
+                     "api: chip.set('fpga', 'arch', 'myfpga.xml')"],
             schelp=""" Architecture definition file for FPGA place and route
             tool. For the VPR tool, the file is a required XML based description,
             allowing targeting a large number of virtual and commercial
@@ -241,7 +241,7 @@ def schema_fpga(cfg):
             shorthelp="FPGA: vendor name",
             switch="-fpga_vendor <str>",
             example=["cli: -fpga_vendor acme",
-                     "api:  chip.set('fpga', 'vendor', 'acme')"],
+                     "api: chip.set('fpga', 'vendor', 'acme')"],
             schelp="""
             Name of the FPGA vendor. The parameter is used to check part
             name and to select the eda tool flow in case 'edaflow' is
@@ -253,7 +253,7 @@ def schema_fpga(cfg):
             shorthelp="FPGA: part name",
             switch="-fpga_partname <str>",
             example=["cli: -fpga_partname fpga64k",
-                     "api:  chip.set('fpga', 'partname', 'fpga64k')"],
+                     "api: chip.set('fpga', 'partname', 'fpga64k')"],
             schelp="""
             Complete part name used as a device target by the FPGA compilation
             tool. The part name must be an exact string match to the partname
@@ -264,7 +264,7 @@ def schema_fpga(cfg):
             shorthelp="FPGA: board name",
             switch="-fpga_board <str>",
             example=["cli: -fpga_board parallella",
-                     "api:  chip.set('fpga', 'board', 'parallella')"],
+                     "api: chip.set('fpga', 'board', 'parallella')"],
             schelp="""
             Complete board name used as a device target by the FPGA compilation
             tool. The board name must be an exact string match to the partname
@@ -276,7 +276,7 @@ def schema_fpga(cfg):
             shorthelp="FPGA: program enable",
             switch="-fpga_program <bool>",
             example=["cli: -fpga_program",
-                     "api:  chip.set('fpga', 'program', True)"],
+                     "api: chip.set('fpga', 'program', True)"],
             schelp="""Specifies that the bitstream should be loaded into an FPGA.""")
 
     scparam(cfg, ['fpga', 'flash'],
@@ -284,7 +284,7 @@ def schema_fpga(cfg):
             shorthelp="FPGA: flash enable",
             switch="-fpga_flash <bool>",
             example=["cli: -fpga_flash",
-                     "api:  chip.set('fpga', 'flash', True)"],
+                     "api: chip.set('fpga', 'flash', True)"],
             schelp="""Specifies that the bitstream should be flashed in the board/device.
             The default is to load the bitstream into volatile memory (SRAM).""")
 
@@ -309,7 +309,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: foundry name",
             switch="-pdk_foundry 'pdkname <str>'",
             example=["cli: -pdk_foundry 'asap7 virtual'",
-                     "api:  chip.set('pdk', 'asap7', 'foundry', 'virtual')"],
+                     "api: chip.set('pdk', 'asap7', 'foundry', 'virtual')"],
             schelp="""
             Name of foundry corporation. Examples include intel, gf, tsmc,
             samsung, skywater, virtual. The \'virtual\' keyword is reserved for
@@ -322,7 +322,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: process node",
             switch="-pdk_node 'pdkname <float>'",
             example=["cli: -pdk_node 'asap7 130'",
-                     "api:  chip.set('pdk', 'asap7', 'node', 130)"],
+                     "api: chip.set('pdk', 'asap7', 'node', 130)"],
             schelp="""
             Approximate relative minimum dimension of the process target specified
             in nanometers. The parameter is required for flows and tools that
@@ -349,7 +349,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: version",
             switch="-pdk_version 'pdkname <str>'",
             example=["cli: -pdk_version 'asap7 1.0'",
-                     "api:  chip.set('pdk', 'asap7', 'version', '1.0')"],
+                     "api: chip.set('pdk', 'asap7', 'version', '1.0')"],
             schelp="""
             Alphanumeric string specifying the version of the PDK. Verification of
             correct PDK and IP versions is a hard ASIC tapeout require in all
@@ -410,7 +410,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: unit thickness",
             switch="-pdk_thickness 'pdkname stackup <float>'",
             example=["cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
-                     "api:  chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"],
+                     "api: chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"],
             schelp="""
             Thickness of a manufactured unit specified on a per stackup.""")
 
@@ -422,7 +422,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: wafer size",
             switch="-pdk_wafersize 'pdkname <float>'",
             example=["cli: -pdk_wafersize 'asap7 300'",
-                     "api:  chip.set('pdk', 'asap7', 'wafersize', 300)"],
+                     "api: chip.set('pdk', 'asap7', 'wafersize', 300)"],
             schelp="""
             Wafer diameter used in wafer based manufacturing process.
             The standard diameter for leading edge manufacturing is 300mm. For
@@ -438,7 +438,7 @@ def schema_pdk(cfg, stackup='default'):
             switch="-pdk_panelsize 'pdkname <float>'",
             example=[
                 "cli: -pdk_panelsize 'asap7 (45.72,60.96)'",
-                "api:  chip.set('pdk', 'asap7', 'panelsize', (45.72,60.96))"],
+                "api: chip.set('pdk', 'asap7', 'panelsize', (45.72,60.96))"],
             schelp="""
             List of panel sizes supported in the manufacturing process.
             """)
@@ -450,7 +450,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: unit cost",
             switch="-pdk_unitcost 'pdkname <float>'",
             example=["cli: -pdk_unitcost 'asap7 10000'",
-                     "api:  chip.set('pdk', 'asap7', 'unitcost', 10000)"],
+                     "api: chip.set('pdk', 'asap7', 'unitcost', 10000)"],
             schelp="""
             Raw cost per unit shipped by the factory, not accounting for yield
             loss.""")
@@ -461,7 +461,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: process defect density",
             switch="-pdk_d0 'pdkname <float>'",
             example=["cli: -pdk_d0 'asap7 0.1'",
-                     "api:  chip.set('pdk', 'asap7', 'd0', 0.1)"],
+                     "api: chip.set('pdk', 'asap7', 'd0', 0.1)"],
             schelp="""
             Process defect density (d0) expressed as random defects per cm^2. The
             value is used to calculate yield losses as a function of area, which in
@@ -477,7 +477,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: horizontal scribe line width",
             switch="-pdk_hscribe 'pdkname <float>'",
             example=["cli: -pdk_hscribe 'asap7 0.1'",
-                     "api:  chip.set('pdk', 'asap7', 'hscribe', 0.1)"],
+                     "api: chip.set('pdk', 'asap7', 'hscribe', 0.1)"],
             schelp="""
             Width of the horizontal scribe line used during die separation.
             The process is generally completed using a mechanical saw, but can be
@@ -492,7 +492,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: vertical scribe line width",
             switch="-pdk_vscribe 'pdkname <float>'",
             example=["cli: -pdk_vscribe 'asap7 0.1'",
-                     "api:  chip.set('pdk', 'asap7', 'vscribe', 0.1)"],
+                     "api: chip.set('pdk', 'asap7', 'vscribe', 0.1)"],
             schelp="""
              Width of the vertical scribe line used during die separation.
             The process is generally completed using a mechanical saw, but can be
@@ -508,7 +508,7 @@ def schema_pdk(cfg, stackup='default'):
             switch="-pdk_edgemargin 'pdkname <float>'",
             example=[
                 "cli: -pdk_edgemargin 'asap7 1'",
-                "api:  chip.set('pdk', 'asap7', 'edgemargin', 1)"],
+                "api: chip.set('pdk', 'asap7', 'edgemargin', 1)"],
             schelp="""
             Keep-out distance/margin from the edge inwards. The edge
             is prone to chipping and need special treatment that preclude
@@ -521,7 +521,7 @@ def schema_pdk(cfg, stackup='default'):
             shorthelp="PDK: transistor density",
             switch="-pdk_density 'pdkname <float>'",
             example=["cli: -pdk_density 'asap7 100e6'",
-                     "api:  chip.set('pdk', 'asap7', 'density', 10e6)"],
+                     "api: chip.set('pdk', 'asap7', 'density', 10e6)"],
             schelp="""
             Approximate logic density expressed as # transistors / mm^2
             calculated as:
@@ -550,7 +550,7 @@ def schema_pdk(cfg, stackup='default'):
             'spice' tool is xyce. Device models are specified on a per metal stack
             basis. Process nodes with a single device model across all stacks will
             have a unique parameter record per metal stack pointing to the same
-            device model file.  Device types and tools are dynamic entries
+            device model file. Device types and tools are dynamic entries
             that depend on the tool setup and device technology. Pseudo-standardized
             device types include spice, em (electromigration), and aging.""")
 
@@ -670,7 +670,7 @@ def schema_pdk(cfg, stackup='default'):
             schelp="""
             List of named files specified on a per tool and per stackup basis.
             The parameter should only be used for specifying files that are
-            not directly  supported by the SiliconCompiler PDK schema.""")
+            not directly supported by the SiliconCompiler PDK schema.""")
 
     scparam(cfg, ['pdk', pdkname, 'directory', tool, key, stackup],
             sctype='[dir]',
@@ -683,7 +683,7 @@ def schema_pdk(cfg, stackup='default'):
             schelp="""
             List of named directories specified on a per tool and per stackup basis.
             The parameter should only be used for specifying files that are
-            not directly  supported by the SiliconCompiler PDK schema.""")
+            not directly supported by the SiliconCompiler PDK schema.""")
 
     scparam(cfg, ['pdk', pdkname, 'var', tool, key, stackup],
             sctype='[str]',
@@ -696,7 +696,7 @@ def schema_pdk(cfg, stackup='default'):
             schelp="""
             List of key/value strings specified on a per tool and per stackup basis.
             The parameter should only be used for specifying variables that are
-            not directly  supported by the SiliconCompiler PDK schema.""")
+            not directly supported by the SiliconCompiler PDK schema.""")
 
     ###############
     # Docs
@@ -1047,7 +1047,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             switch="-flowgraph_input 'flow step index <(str,str)>'",
             example=[
                 "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-                "api:  chip.set('flowgraph','asicflow','cts','0','input',('place','0'))"],
+                "api: chip.set('flowgraph','asicflow','cts','0','input',('place','0'))"],
             schelp="""A list of inputs for the current step and index, specified as a
             (step,index) tuple.""")
 
@@ -1059,7 +1059,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             switch="-flowgraph_weight 'flow step index metric <float>'",
             example=[
                 "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
-                "api:  chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"],
+                "api: chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"],
             schelp="""Weights specified on a per step and per metric basis used to give
             effective "goodness" score for a step by calculating the sum all step
             real metrics results by the corresponding per step weights.""")
@@ -1070,7 +1070,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             switch="-flowgraph_goal 'flow step index metric <float>'",
             example=[
                 "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
-                "api:  chip.set('flowgraph','asicflow','cts','0','goal','errors', 0)"],
+                "api: chip.set('flowgraph','asicflow','cts','0','goal','errors', 0)"],
             schelp="""Goals specified on a per step and per metric basis used to
             determine whether a certain task can be considered when merging
             multiple tasks at a minimum or maximum node. A task is considered
@@ -1119,7 +1119,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             switch="-flowgraph_args 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_args 'asicflow cts 0 0'",
-                "api:  chip.add('flowgraph','asicflow','cts','0','args','0')"],
+                "api: chip.add('flowgraph','asicflow','cts','0','args','0')"],
             schelp="""User specified flowgraph string arguments specified on a per
             step and per index basis.""")
 
@@ -1130,7 +1130,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             switch="-flowgraph_valid 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_valid 'asicflow cts 0 true'",
-                "api:  chip.set('flowgraph','asicflow','cts','0','valid',True)"],
+                "api: chip.set('flowgraph','asicflow','cts','0','valid',True)"],
             schelp="""Flowgraph valid bit specified on a per step and per index basis.
             The parameter can be used to control flow execution. If the bit
             is cleared (0), then the step/index combination is invalid and
@@ -1144,7 +1144,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             switch="-flowgraph_timeout 'flow step 0 <float>'",
             example=[
                 "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
-                "api:  chip.set('flowgraph','asicflow','cts','0','timeout', 3600)"],
+                "api: chip.set('flowgraph','asicflow','cts','0','timeout', 3600)"],
             schelp="""Timeout value in seconds specified on a per step and per index
             basis. The flowgraph timeout value is compared against the
             wall time tracked by the SC runtime to determine if an
@@ -1161,7 +1161,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             switch="-flowgraph_status 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_status 'asicflow cts 10 success'",
-                "api:  chip.set('flowgraph','asicflow', 'cts','10','status', 'success')"],
+                "api: chip.set('flowgraph','asicflow', 'cts','10','status', 'success')"],
             schelp="""Parameter that tracks the status of a task. Valid values are:
 
             * "success": task ran successfully
@@ -1176,7 +1176,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             switch="-flowgraph_select 'flow step index <(str,str)>'",
             example=[
                 "cli: -flowgraph_select 'asicflow cts 0 (place,42)'",
-                "api:  chip.set('flowgraph','asicflow', 'cts','0','select',('place','42'))"],
+                "api: chip.set('flowgraph','asicflow', 'cts','0','select',('place','42'))"],
             schelp="""
             List of selected inputs for the current step/index specified as
             (in_step,in_index) tuple.""")
@@ -1197,7 +1197,7 @@ def schema_tool(cfg, tool='default'):
             shorthelp="Tool: executable name",
             switch="-tool_exe 'tool <str>'",
             example=["cli: -tool_exe 'openroad openroad'",
-                     "api:  chip.set('tool','openroad','exe','openroad')"],
+                     "api: chip.set('tool','openroad','exe','openroad')"],
             schelp="""Tool executable name.""")
 
     scparam(cfg, ['tool', tool, 'sbom', version],
@@ -1207,7 +1207,7 @@ def schema_tool(cfg, tool='default'):
             switch="-tool_sbom 'tool version <file>'",
             example=[
                 "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
-                "api:  chip.set('tool','yosys','sbom','1.0','ys_sbom.json')"],
+                "api: chip.set('tool','yosys','sbom','1.0','ys_sbom.json')"],
             schelp="""
             Paths to software bill of material (SBOM) document file of the tool
             specified on a per version basis. The SBOM includes critical
@@ -1234,7 +1234,7 @@ def schema_tool(cfg, tool='default'):
             shorthelp="Tool: executable version switch",
             switch="-tool_vswitch 'tool <str>'",
             example=["cli: -tool_vswitch 'openroad -version'",
-                     "api:  chip.set('tool','openroad','vswitch','-version')"],
+                     "api: chip.set('tool','openroad','vswitch','-version')"],
             schelp="""
             Command line switch to use with executable used to print out
             the version number. Common switches include -v, -version,
@@ -1258,7 +1258,7 @@ def schema_tool(cfg, tool='default'):
             shorthelp="Tool: version",
             switch="-tool_version 'tool <str>'",
             example=["cli: -tool_version 'openroad >=v2.0'",
-                     "api:  chip.set('tool','openroad','version','>=v2.0')"],
+                     "api: chip.set('tool','openroad','version','>=v2.0')"],
             schelp="""
             List of acceptable versions of the tool executable to be used. Each
             entry in this list must be a version specifier as described by Python
@@ -1562,7 +1562,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             switch="-tool_task_refdir 'task <dir>'",
             example=[
                 "cli: -tool_task_refdir 'yosys syn ./myref'",
-                "api:  chip.set('tool','yosys','task','syn_asic','refdir','./myref')"],
+                "api: chip.set('tool','yosys','task','syn_asic','refdir','./myref')"],
             schelp="""
             Path to directories containing reference flow scripts, specified
             on a per step and index basis.""")
@@ -1638,7 +1638,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
 
 
 ###########################################################################
-#  Function arguments
+# Function arguments
 ###########################################################################
 def schema_arg(cfg):
 
@@ -1990,7 +1990,7 @@ def schema_metric(cfg, step='default', index='default'):
 def schema_record(cfg, step='default', index='default'):
 
     # setting up local data structure
-    # <key>  : ['short help', 'example' 'extended help']
+    # <key> : ['short help', 'example' 'extended help']
 
     records = {'userid': ['userid',
                           'wiley',
@@ -2406,7 +2406,7 @@ def schema_option(cfg):
             switch="-jobinput 'step index <str>'",
             example=[
                 "cli: -jobinput 'cts 0 job0'",
-                "api:  chip.set('option','jobinput','cts,'0','job0')"],
+                "api: chip.set('option','jobinput','cts,'0','job0')"],
             schelp="""
             Specifies jobname inputs for the current run() on a per step
             and per index basis. During execution, the default behavior is to
@@ -2434,7 +2434,7 @@ def schema_option(cfg):
                 "api: chip.set('option','skipstep','lvs')"],
             schelp="""
             List of steps to skip during execution.The default is to
-            execute all steps  defined in the flow graph.""")
+            execute all steps defined in the flow graph.""")
 
     scparam(cfg, ['option', 'indexlist'],
             sctype='[str]',
@@ -3052,7 +3052,7 @@ def schema_package(cfg):
             schelp="""
             Package documentation homepage. Filepath to design docs homepage.
             Complex designs can can include a long non standard list of
-            documents dependent.  A single html entry point can be used to
+            documents dependent. A single html entry point can be used to
             present an organized documentation dashboard to the designer.""")
 
     doctypes = ['datasheet',
@@ -3473,7 +3473,7 @@ def schema_constraint(cfg):
             shorthelp="Constraint: operating condition",
             switch="-constraint_timing_opcond 'scenario <str>'",
             example=["cli: -constraint_timing_opcond 'worst typical_1.0'",
-                     "api: chip.set('constraint', 'timing', 'worst', 'opcond',  'typical_1.0')"],
+                     "api: chip.set('constraint', 'timing', 'worst', 'opcond', 'typical_1.0')"],
             schelp="""Operating condition applied to the scenario. The value
             can be used to access specific conditions within the library
             timing models from the 'logiclib' timing models.""")
@@ -3538,7 +3538,7 @@ def schema_constraint(cfg):
             floats. The location refers to the placement of the center/centroid of the
             component. The 'placement' parameter is a goal/intent, not an exact specification.
             The compiler and layout system may adjust coordinates to meet competing
-            goals such as manufacturing design  rules and grid placement
+            goals such as manufacturing design rules and grid placement
             guidelines. The 'z' coordinate shall be set to 0 for planar systems
             with only (x,y) coordinates. Discretized systems like PCB stacks,
             package stacks, and breadboards only allow a reduced
@@ -3622,7 +3622,7 @@ def schema_constraint(cfg):
             floats. The location refers to the placement of the center of the
             pin. The 'placement' parameter is a goal/intent, not an exact specification.
             The compiler and layout system may adjust sizes to meet competing
-            goals such as manufacturing design  rules and grid placement
+            goals such as manufacturing design rules and grid placement
             guidelines. The 'z' coordinate shall be set to 0 for planar components
             with only (x,y) coordinates. Discretized systems like 3D chips with
             pins on top and bottom may choose to discretize the top and bottom

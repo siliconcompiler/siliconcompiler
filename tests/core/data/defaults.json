@@ -909,7 +909,7 @@
                         "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
                         "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0,3.0,0.0))"
                     ],
-                    "help": "Placement location of a named instance, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
+                    "help": "Placement location of a named instance, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x,y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0,1,2,3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1349,7 +1349,7 @@
                         "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0,3.0,0.0))"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design  rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates. Values are specified\nin microns or lambda units.",
+                    "help": "Placement location of a named pin, specified as a (x,y,z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x,y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0,1 or use absolute coordinates. Values are specified\nin microns or lambda units.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1507,7 +1507,7 @@
                 "opcond": {
                     "example": [
                         "cli: -constraint_timing_opcond 'worst typical_1.0'",
-                        "api: chip.set('constraint', 'timing', 'worst', 'opcond',  'typical_1.0')"
+                        "api: chip.set('constraint', 'timing', 'worst', 'opcond', 'typical_1.0')"
                     ],
                     "help": "Operating condition applied to the scenario. The value\ncan be used to access specific conditions within the library\ntiming models from the 'logiclib' timing models.",
                     "lock": false,
@@ -4418,7 +4418,7 @@
                     "args": {
                         "example": [
                             "cli: -flowgraph_args 'asicflow cts 0 0'",
-                            "api:  chip.add('flowgraph','asicflow','cts','0','args','0')"
+                            "api: chip.add('flowgraph','asicflow','cts','0','args','0')"
                         ],
                         "help": "User specified flowgraph string arguments specified on a per\nstep and per index basis.",
                         "lock": false,
@@ -4444,7 +4444,7 @@
                         "default": {
                             "example": [
                                 "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
-                                "api:  chip.set('flowgraph','asicflow','cts','0','goal','errors', 0)"
+                                "api: chip.set('flowgraph','asicflow','cts','0','goal','errors', 0)"
                             ],
                             "help": "Goals specified on a per step and per metric basis used to\ndetermine whether a certain task can be considered when merging\nmultiple tasks at a minimum or maximum node. A task is considered\nfailing if the absolute value of any of its metrics are larger than\nthe goal for that metric, if set.",
                             "lock": false,
@@ -4470,7 +4470,7 @@
                     "input": {
                         "example": [
                             "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-                            "api:  chip.set('flowgraph','asicflow','cts','0','input',('place','0'))"
+                            "api: chip.set('flowgraph','asicflow','cts','0','input',('place','0'))"
                         ],
                         "help": "A list of inputs for the current step and index, specified as a\n(step,index) tuple.",
                         "lock": false,
@@ -4495,7 +4495,7 @@
                     "select": {
                         "example": [
                             "cli: -flowgraph_select 'asicflow cts 0 (place,42)'",
-                            "api:  chip.set('flowgraph','asicflow', 'cts','0','select',('place','42'))"
+                            "api: chip.set('flowgraph','asicflow', 'cts','0','select',('place','42'))"
                         ],
                         "help": "List of selected inputs for the current step/index specified as\n(in_step,in_index) tuple.",
                         "lock": false,
@@ -4525,7 +4525,7 @@
                         ],
                         "example": [
                             "cli: -flowgraph_status 'asicflow cts 10 success'",
-                            "api:  chip.set('flowgraph','asicflow', 'cts','10','status', 'success')"
+                            "api: chip.set('flowgraph','asicflow', 'cts','10','status', 'success')"
                         ],
                         "help": "Parameter that tracks the status of a task. Valid values are:\n\n* \"success\": task ran successfully\n* \"error\": task failed with an error\n\nAn empty value indicates the task has not yet been completed.",
                         "lock": false,
@@ -4600,7 +4600,7 @@
                     "timeout": {
                         "example": [
                             "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
-                            "api:  chip.set('flowgraph','asicflow','cts','0','timeout', 3600)"
+                            "api: chip.set('flowgraph','asicflow','cts','0','timeout', 3600)"
                         ],
                         "help": "Timeout value in seconds specified on a per step and per index\nbasis. The flowgraph timeout value is compared against the\nwall time tracked by the SC runtime to determine if an\noperation should continue. Timeout values help in situations\nwhere 1.) an operation is stuck and may never finish. 2.) the\noperation progress has saturated and continued execution has\na negative return on investment.",
                         "lock": false,
@@ -4651,7 +4651,7 @@
                     "valid": {
                         "example": [
                             "cli: -flowgraph_valid 'asicflow cts 0 true'",
-                            "api:  chip.set('flowgraph','asicflow','cts','0','valid',True)"
+                            "api: chip.set('flowgraph','asicflow','cts','0','valid',True)"
                         ],
                         "help": "Flowgraph valid bit specified on a per step and per index basis.\nThe parameter can be used to control flow execution. If the bit\nis cleared (0), then the step/index combination is invalid and\nshould not be run.",
                         "lock": false,
@@ -4677,7 +4677,7 @@
                         "default": {
                             "example": [
                                 "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
-                                "api:  chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"
+                                "api: chip.set('flowgraph','asicflow','cts','0','weight','area_cells',1.0)"
                             ],
                             "help": "Weights specified on a per step and per metric basis used to give\neffective \"goodness\" score for a step by calculating the sum all step\nreal metrics results by the corresponding per step weights.",
                             "lock": false,
@@ -4709,7 +4709,7 @@
             "copy": true,
             "example": [
                 "cli: -fpga_arch myfpga.xml",
-                "api:  chip.set('fpga', 'arch', 'myfpga.xml')"
+                "api: chip.set('fpga', 'arch', 'myfpga.xml')"
             ],
             "hashalgo": "sha256",
             "help": "Architecture definition file for FPGA place and route\ntool. For the VPR tool, the file is a required XML based description,\nallowing targeting a large number of virtual and commercial\narchitectures. For most commercial tools, the fpga part name provides\nenough information to enable compilation and the 'arch' parameter is\noptional.",
@@ -4738,7 +4738,7 @@
         "board": {
             "example": [
                 "cli: -fpga_board parallella",
-                "api:  chip.set('fpga', 'board', 'parallella')"
+                "api: chip.set('fpga', 'board', 'parallella')"
             ],
             "help": "Complete board name used as a device target by the FPGA compilation\ntool. The board name must be an exact string match to the partname\nhard coded within the FPGA eda tool. The parameter is optional and can\nbe used in place of a partname and pin constraints for some tools.",
             "lock": false,
@@ -4763,7 +4763,7 @@
         "flash": {
             "example": [
                 "cli: -fpga_flash",
-                "api:  chip.set('fpga', 'flash', True)"
+                "api: chip.set('fpga', 'flash', True)"
             ],
             "help": "Specifies that the bitstream should be flashed in the board/device.\nThe default is to load the bitstream into volatile memory (SRAM).",
             "lock": false,
@@ -4788,7 +4788,7 @@
         "partname": {
             "example": [
                 "cli: -fpga_partname fpga64k",
-                "api:  chip.set('fpga', 'partname', 'fpga64k')"
+                "api: chip.set('fpga', 'partname', 'fpga64k')"
             ],
             "help": "Complete part name used as a device target by the FPGA compilation\ntool. The part name must be an exact string match to the partname\nhard coded within the FPGA eda tool.",
             "lock": false,
@@ -4813,7 +4813,7 @@
         "program": {
             "example": [
                 "cli: -fpga_program",
-                "api:  chip.set('fpga', 'program', True)"
+                "api: chip.set('fpga', 'program', True)"
             ],
             "help": "Specifies that the bitstream should be loaded into an FPGA.",
             "lock": false,
@@ -4838,7 +4838,7 @@
         "vendor": {
             "example": [
                 "cli: -fpga_vendor acme",
-                "api:  chip.set('fpga', 'vendor', 'acme')"
+                "api: chip.set('fpga', 'vendor', 'acme')"
             ],
             "help": "Name of the FPGA vendor. The parameter is used to check part\nname and to select the eda tool flow in case 'edaflow' is\nunspecified.",
             "lock": false,
@@ -6534,7 +6534,7 @@
                 "default": {
                     "example": [
                         "cli: -jobinput 'cts 0 job0'",
-                        "api:  chip.set('option','jobinput','cts,'0','job0')"
+                        "api: chip.set('option','jobinput','cts,'0','job0')"
                     ],
                     "help": "Specifies jobname inputs for the current run() on a per step\nand per index basis. During execution, the default behavior is to\ncopy inputs from the current job.",
                     "lock": false,
@@ -7315,7 +7315,7 @@
                 "cli: -skipstep lvs",
                 "api: chip.set('option','skipstep','lvs')"
             ],
-            "help": "List of steps to skip during execution.The default is to\nexecute all steps  defined in the flow graph.",
+            "help": "List of steps to skip during execution.The default is to\nexecute all steps defined in the flow graph.",
             "lock": false,
             "node": {
                 "default": {
@@ -7924,7 +7924,7 @@
                     "cli: -package_doc_homepage index.html",
                     "api: chip.set('package','doc', 'homepage','index.html')"
                 ],
-                "help": "Package documentation homepage. Filepath to design docs homepage.\nComplex designs can can include a long non standard list of\ndocuments dependent.  A single html entry point can be used to\npresent an organized documentation dashboard to the designer.",
+                "help": "Package documentation homepage. Filepath to design docs homepage.\nComplex designs can can include a long non standard list of\ndocuments dependent. A single html entry point can be used to\npresent an organized documentation dashboard to the designer.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -8479,7 +8479,7 @@
             "d0": {
                 "example": [
                     "cli: -pdk_d0 'asap7 0.1'",
-                    "api:  chip.set('pdk', 'asap7', 'd0', 0.1)"
+                    "api: chip.set('pdk', 'asap7', 'd0', 0.1)"
                 ],
                 "help": "Process defect density (d0) expressed as random defects per cm^2. The\nvalue is used to calculate yield losses as a function of area, which in\nturn affects the chip full factory costs. Two yield models are\nsupported: Poisson (default), and Murphy. The Poisson based yield is\ncalculated as dy = exp(-area * d0/100). The Murphy based yield is\ncalculated as dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.",
                 "lock": false,
@@ -8504,7 +8504,7 @@
             "density": {
                 "example": [
                     "cli: -pdk_density 'asap7 100e6'",
-                    "api:  chip.set('pdk', 'asap7', 'density', 10e6)"
+                    "api: chip.set('pdk', 'asap7', 'density', 10e6)"
                 ],
                 "help": "Approximate logic density expressed as # transistors / mm^2\ncalculated as:\n0.6 * (Nand2 Transistor Count) / (Nand2 Cell Area) +\n0.4 * (Register Transistor Count) / (Register Cell Area)\nThe value is specified for a fixed standard cell library within a node\nand will differ depending on the library vendor, library track height\nand library type. The value can be used to to normalize the effective\ndensity reported for the design across different process nodes. The\nvalue can be derived from a variety of sources, including the PDK DRM,\nlibrary LEFs, conference presentations, and public analysis.",
                 "lock": false,
@@ -8536,7 +8536,7 @@
                                 "api: chip.set('pdk','asap7','devmodel','xyce','spice','M10','asap7.sp')"
                             ],
                             "hashalgo": "sha256",
-                            "help": "List of filepaths to PDK device models for different simulation\npurposes and for different tools. Examples of device model types\ninclude spice, aging, electromigration, radiation. An example of a\n'spice' tool is xyce. Device models are specified on a per metal stack\nbasis. Process nodes with a single device model across all stacks will\nhave a unique parameter record per metal stack pointing to the same\ndevice model file.  Device types and tools are dynamic entries\nthat depend on the tool setup and device technology. Pseudo-standardized\ndevice types include spice, em (electromigration), and aging.",
+                            "help": "List of filepaths to PDK device models for different simulation\npurposes and for different tools. Examples of device model types\ninclude spice, aging, electromigration, radiation. An example of a\n'spice' tool is xyce. Device models are specified on a per metal stack\nbasis. Process nodes with a single device model across all stacks will\nhave a unique parameter record per metal stack pointing to the same\ndevice model file. Device types and tools are dynamic entries\nthat depend on the tool setup and device technology. Pseudo-standardized\ndevice types include spice, em (electromigration), and aging.",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -8571,7 +8571,7 @@
                                 "cli: -pdk_directory 'asap7 xyce rfmodel M10 rftechdir'",
                                 "api: chip.set('pdk','asap7','directory','xyce','rfmodel','M10','rftechdir')"
                             ],
-                            "help": "List of named directories specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying files that are\nnot directly  supported by the SiliconCompiler PDK schema.",
+                            "help": "List of named directories specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying files that are\nnot directly supported by the SiliconCompiler PDK schema.",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -8947,7 +8947,7 @@
             "edgemargin": {
                 "example": [
                     "cli: -pdk_edgemargin 'asap7 1'",
-                    "api:  chip.set('pdk', 'asap7', 'edgemargin', 1)"
+                    "api: chip.set('pdk', 'asap7', 'edgemargin', 1)"
                 ],
                 "help": "Keep-out distance/margin from the edge inwards. The edge\nis prone to chipping and need special treatment that preclude\nplacement of designs in this area. The edge value is used to\ncalculate effective units per wafer/panel and full factory cost.",
                 "lock": false,
@@ -9054,7 +9054,7 @@
                                 "api: chip.set('pdk','asap7','file','xyce','spice','M10','asap7.sp')"
                             ],
                             "hashalgo": "sha256",
-                            "help": "List of named files specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying files that are\nnot directly  supported by the SiliconCompiler PDK schema.",
+                            "help": "List of named files specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying files that are\nnot directly supported by the SiliconCompiler PDK schema.",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -9157,7 +9157,7 @@
             "foundry": {
                 "example": [
                     "cli: -pdk_foundry 'asap7 virtual'",
-                    "api:  chip.set('pdk', 'asap7', 'foundry', 'virtual')"
+                    "api: chip.set('pdk', 'asap7', 'foundry', 'virtual')"
                 ],
                 "help": "Name of foundry corporation. Examples include intel, gf, tsmc,\nsamsung, skywater, virtual. The 'virtual' keyword is reserved for\nsimulated non-manufacturable processes.",
                 "lock": false,
@@ -9182,7 +9182,7 @@
             "hscribe": {
                 "example": [
                     "cli: -pdk_hscribe 'asap7 0.1'",
-                    "api:  chip.set('pdk', 'asap7', 'hscribe', 0.1)"
+                    "api: chip.set('pdk', 'asap7', 'hscribe', 0.1)"
                 ],
                 "help": "Width of the horizontal scribe line used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
                 "lock": false,
@@ -9399,7 +9399,7 @@
             "node": {
                 "example": [
                     "cli: -pdk_node 'asap7 130'",
-                    "api:  chip.set('pdk', 'asap7', 'node', 130)"
+                    "api: chip.set('pdk', 'asap7', 'node', 130)"
                 ],
                 "help": "Approximate relative minimum dimension of the process target specified\nin nanometers. The parameter is required for flows and tools that\nleverage the value to drive technology dependent synthesis and APR\noptimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,\n10, 7, 5, 3.",
                 "lock": false,
@@ -9424,7 +9424,7 @@
             "panelsize": {
                 "example": [
                     "cli: -pdk_panelsize 'asap7 (45.72,60.96)'",
-                    "api:  chip.set('pdk', 'asap7', 'panelsize', (45.72,60.96))"
+                    "api: chip.set('pdk', 'asap7', 'panelsize', (45.72,60.96))"
                 ],
                 "help": "List of panel sizes supported in the manufacturing process.",
                 "lock": false,
@@ -9512,7 +9512,7 @@
                 "default": {
                     "example": [
                         "cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
-                        "api:  chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"
+                        "api: chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"
                     ],
                     "help": "Thickness of a manufactured unit specified on a per stackup.",
                     "lock": false,
@@ -9539,7 +9539,7 @@
             "unitcost": {
                 "example": [
                     "cli: -pdk_unitcost 'asap7 10000'",
-                    "api:  chip.set('pdk', 'asap7', 'unitcost', 10000)"
+                    "api: chip.set('pdk', 'asap7', 'unitcost', 10000)"
                 ],
                 "help": "Raw cost per unit shipped by the factory, not accounting for yield\nloss.",
                 "lock": false,
@@ -9570,7 +9570,7 @@
                                 "cli: -pdk_var 'asap7 xyce modeltype M10 bsim4'",
                                 "api: chip.set('pdk','asap7','var','xyce','modeltype','M10','bsim4')"
                             ],
-                            "help": "List of key/value strings specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying variables that are\nnot directly  supported by the SiliconCompiler PDK schema.",
+                            "help": "List of key/value strings specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying variables that are\nnot directly supported by the SiliconCompiler PDK schema.",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -9596,7 +9596,7 @@
             "version": {
                 "example": [
                     "cli: -pdk_version 'asap7 1.0'",
-                    "api:  chip.set('pdk', 'asap7', 'version', '1.0')"
+                    "api: chip.set('pdk', 'asap7', 'version', '1.0')"
                 ],
                 "help": "Alphanumeric string specifying the version of the PDK. Verification of\ncorrect PDK and IP versions is a hard ASIC tapeout require in all\ncommercial foundries. The version number can be used for design manifest\ntracking and tapeout checklists.",
                 "lock": false,
@@ -9621,7 +9621,7 @@
             "vscribe": {
                 "example": [
                     "cli: -pdk_vscribe 'asap7 0.1'",
-                    "api:  chip.set('pdk', 'asap7', 'vscribe', 0.1)"
+                    "api: chip.set('pdk', 'asap7', 'vscribe', 0.1)"
                 ],
                 "help": " Width of the vertical scribe line used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
                 "lock": false,
@@ -9647,7 +9647,7 @@
             "wafersize": {
                 "example": [
                     "cli: -pdk_wafersize 'asap7 300'",
-                    "api:  chip.set('pdk', 'asap7', 'wafersize', 300)"
+                    "api: chip.set('pdk', 'asap7', 'wafersize', 300)"
                 ],
                 "help": "Wafer diameter used in wafer based manufacturing process.\nThe standard diameter for leading edge manufacturing is 300mm. For\nolder process technologies and specialty fabs, smaller diameters\nsuch as 200, 100, 125, 100 are common. The value is used to\ncalculate dies per wafer and full factory chip costs.",
                 "lock": false,
@@ -10128,7 +10128,7 @@
             "exe": {
                 "example": [
                     "cli: -tool_exe 'openroad openroad'",
-                    "api:  chip.set('tool','openroad','exe','openroad')"
+                    "api: chip.set('tool','openroad','exe','openroad')"
                 ],
                 "help": "Tool executable name.",
                 "lock": false,
@@ -10233,7 +10233,7 @@
                     "copy": false,
                     "example": [
                         "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
-                        "api:  chip.set('tool','yosys','sbom','1.0','ys_sbom.json')"
+                        "api: chip.set('tool','yosys','sbom','1.0','ys_sbom.json')"
                     ],
                     "hashalgo": "sha256",
                     "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
@@ -10548,7 +10548,7 @@
                         "copy": false,
                         "example": [
                             "cli: -tool_task_refdir 'yosys syn ./myref'",
-                            "api:  chip.set('tool','yosys','task','syn_asic','refdir','./myref')"
+                            "api: chip.set('tool','yosys','task','syn_asic','refdir','./myref')"
                         ],
                         "help": "Path to directories containing reference flow scripts, specified\non a per step and index basis.",
                         "lock": false,
@@ -10895,7 +10895,7 @@
             "version": {
                 "example": [
                     "cli: -tool_version 'openroad >=v2.0'",
-                    "api:  chip.set('tool','openroad','version','>=v2.0')"
+                    "api: chip.set('tool','openroad','version','>=v2.0')"
                 ],
                 "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting 'novercheck' to True.",
                 "lock": false,
@@ -10920,7 +10920,7 @@
             "vswitch": {
                 "example": [
                     "cli: -tool_vswitch 'openroad -version'",
-                    "api:  chip.set('tool','openroad','vswitch','-version')"
+                    "api: chip.set('tool','openroad','vswitch','-version')"
                 ],
                 "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include -v, -version,\n--version. Some tools may require extra flags to run in batch mode.",
                 "lock": false,
