@@ -104,9 +104,6 @@ def test_show_nopdk(datadir, display):
 
     adjust_exe_options(chip, True)
 
-    # For some reason, if we try to use monkeypath to modify the env, the
-    # subprocess call performed by chip.show() doesn't use the patched env. We
-    # use unittest.mock instead, since that behaves as desired.
     env = {'SCPATH': ''}
     with mock.patch.dict(os.environ, env):
         assert chip.show(testfile)

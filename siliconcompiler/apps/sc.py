@@ -57,7 +57,7 @@ def main():
 
         if not topfile:
             chip.logger.error('Invalid arguments: either specify -design or provide sources.')
-            sys.exit(1)
+            return 1
 
         topmodule = os.path.splitext(os.path.basename(topfile))[0]
         chip.set('design', topmodule)
@@ -78,8 +78,9 @@ def main():
     # Print Job Summary
     chip.summary(steplist=steplist)
 
+    return 0
+
 
 #########################
 if __name__ == "__main__":
-
     sys.exit(main())

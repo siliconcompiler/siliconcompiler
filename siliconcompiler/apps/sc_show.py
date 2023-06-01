@@ -86,7 +86,7 @@ def main():
     if not (design_set or input_mode):
         chip.logger.error('Nothing to load: please define a target with '
                           '-cfg, -design, and/or inputs.')
-        sys.exit(1)
+        return 1
 
     filename = None
     if input_mode:
@@ -103,7 +103,7 @@ def main():
             design = os.path.splitext(os.path.basename(filename))[0]
             chip.logger.error(f'Unable to automatically find manifest for design {design}. '
                               'Please provide a manifest explicitly using -cfg.')
-            sys.exit(1)
+            return 1
         chip.read_manifest(manifest)
     elif not chip.get('option', 'cfg'):
         manifest = _get_manifest(chip._getworkdir())
