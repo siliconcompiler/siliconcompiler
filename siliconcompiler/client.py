@@ -35,6 +35,40 @@ def get_base_url(chip):
 
 
 ###################################
+def __post(chip, url, post_action, success_action):
+    redirect_url = urllib.parse.urljoin(get_base_url(chip), url)
+
+    while redirect_url:
+        resp = post_action(redirect_url)
+
+        code = resp.status_code
+        if 200 <= code and code < 300:
+            return success_action(resp)
+
+        if 100 <= code and code < 200:
+            raise RuntimeError('Remote server returned unrecoverable error code.')
+
+        elif 300 <= code and code < 400:
+            if 'Location' in resp.headers:
+                redirect_url = resp.headers['Location']
+                continue
+            raise RuntimeError('Remote server returned unrecoverable error code.')
+
+        elif 400 <= code and code < 500:
+            chip.logger.error(resp.json()['message'])
+            chip.logger.error('Error starting remote job run; quitting.')
+            raise RuntimeError('Remote server returned unrecoverable error code.')
+
+        elif 500 <= code and code < 600:
+            chip.logger.error(resp.json()['message'])
+            chip.logger.error('Error starting remote job run; quitting.')
+            raise RuntimeError('Remote server returned unrecoverable error code.')
+
+        else:
+            raise RuntimeError('Remote server returned unrecoverable error code.')
+
+
+###################################
 def remote_preprocess(chip, steplist):
     '''Helper method to run a local import stage for remote jobs.
     '''
@@ -142,9 +176,6 @@ def request_remote_run(chip):
     '''Helper method to make a web request to start a job stage.
     '''
 
-    # Set the request URL.
-    remote_run_url = urllib.parse.urljoin(get_base_url(chip), '/remote_run/')
-
     # Use authentication if necessary.
     post_params = {
         'chip_cfg': chip.schema.cfg,
@@ -171,7 +202,7 @@ def request_remote_run(chip):
 
     # Print a reminder for public beta runs.
     default_server_name = urllib.parse.urlparse(default_server).hostname
-    if default_server_name in remote_run_url:
+    if default_server_name in get_base_url(chip):
         upload_delay = 5
         chip.logger.info(f"Your job will be uploaded to a public server in {upload_delay} seconds.")
         chip.logger.warning("""
@@ -192,24 +223,17 @@ def request_remote_run(chip):
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
     # part of the HTTP spec, so we need to manually follow the trail.
-    redirect_url = remote_run_url
-    while redirect_url:
-        # Return to start of file
+    def post_action(url):
         upload_file.seek(0)
-        resp = requests.post(redirect_url,
+        return requests.post(url,
                              files={'import': upload_file,
                                     'params': json.dumps(post_params)},
                              allow_redirects=False)
-        if resp.status_code == 302:
-            redirect_url = resp.headers['Location']
-        elif resp.status_code >= 400:
-            chip.logger.error(resp.json()['message'])
-            chip.logger.error('Error starting remote job run; quitting.')
-            raise RuntimeError('Remote server returned unrecoverable error code.')
-        else:
-            chip.logger.info(resp.text)
-            break
 
+    def success_action(resp):
+        chip.logger.info(resp.text)
+
+    __post(chip, '/remote_run/', post_action, success_action)
     upload_file.close()
 
 
@@ -219,9 +243,6 @@ def is_job_busy(chip):
     whether a job is busy, or ready to accept a new step.
     Returns True if the job is busy, False if not.
     '''
-
-    # Set the request URL.
-    remote_run_url = urllib.parse.urljoin(get_base_url(chip), '/check_progress/')
 
     # Set common parameters.
     post_params = {
@@ -236,27 +257,28 @@ def is_job_busy(chip):
         post_params['key'] = rcfg['password']
 
     # Make the request and print its response.
-    info = {}
-    redirect_url = remote_run_url
-    while redirect_url:
-        resp = requests.post(redirect_url,
+    def post_action(url):
+        return requests.post(url,
                              data=json.dumps(post_params),
                              allow_redirects=False)
-        if resp.status_code == 302:
-            redirect_url = resp.headers['Location']
-        else:
-            info['busy'] = (resp.text != "Job has no running steps.")
-            info['message'] = resp.text
-            return info
+
+    def success_action(resp):
+        info = {}
+        info['busy'] = (resp.text != "Job has no running steps.")
+        info['message'] = resp.text
+        return info
+
+    info = __post(chip, '/check_progress/', post_action, success_action)
+
+    if not info:
+        return {}
+    return info
 
 
 ###################################
 def delete_job(chip):
     '''Helper method to delete a job from shared remote storage.
     '''
-
-    # Set the request URL.
-    remote_run_url = urllib.parse.urljoin(get_base_url(chip), '/delete_job/')
 
     # Set common parameter.
     post_params = {
@@ -269,17 +291,15 @@ def delete_job(chip):
         post_params['username'] = rcfg['username']
         post_params['key'] = rcfg['password']
 
-    # Make the request.
-    redirect_url = remote_run_url
-    while redirect_url:
-        resp = requests.post(redirect_url,
+    def post_action(url):
+        return requests.post(url,
                              data=json.dumps(post_params),
                              allow_redirects=False)
-        if resp.status_code == 302:
-            redirect_url = resp.headers['Location']
-        else:
-            response = resp.text
-            return response
+
+    def success_action(resp):
+        return resp.text
+
+    return __post(chip, '/delete_job/', post_action, success_action)
 
 
 ###################################
@@ -293,8 +313,6 @@ def fetch_results_request(chip):
 
     # Set the request URL.
     job_hash = chip.status['jobhash']
-    remote_run_url = urllib.parse.urljoin(get_base_url(chip),
-                                          '/get_results/' + job_hash + '.tar.gz')
 
     # Set authentication parameters if necessary.
     rcfg = chip.status['remote_cfg']
@@ -306,32 +324,21 @@ def fetch_results_request(chip):
     else:
         post_params = {}
 
-    # Make the web request, and stream the results archive in chunks.
-    redirect_url = remote_run_url
-    can_redirect = False
-    while redirect_url:
-        with open(f'{job_hash}.tar.gz', 'wb') as zipf:
-            resp = requests.post(redirect_url,
+    with open(f'{job_hash}.tar.gz', 'wb') as zipf:
+        def post_action(url):
+            return requests.post(url,
                                  data=json.dumps(post_params),
-                                 allow_redirects=can_redirect,
+                                 allow_redirects=True,
                                  stream=True)
-            if resp.status_code == 302:
-                redirect_url = resp.headers['Location']
-            elif resp.status_code == 303:
-                redirect_url = resp.headers['Location']
-                can_redirect = True
-            elif resp.status_code == 200:
-                shutil.copyfileobj(resp.raw, zipf)
-                return 0
-            else:
-                msg_json = {}
-                try:  # (An unexpected server error may not return JSON with a message)
-                    msg_json = resp.json()
-                    msg = f': {msg_json["message"]}' if 'message' in msg_json else '.'
-                except requests.exceptions.JSONDecodeError:
-                    msg = '.'
-                chip.logger.warning(f'Could not fetch results{msg}')
-                return resp.status_code
+
+        def success_action(resp):
+            shutil.copyfileobj(resp.raw, zipf)
+            return 0
+
+        return __post(chip,
+                      f'/get_results/{job_hash}.tar.gz',
+                      post_action,
+                      success_action)
 
 
 ###################################
@@ -384,8 +391,6 @@ def remote_ping(chip):
     '''
     Helper method to call check_user on server
     '''
-    # Create the chip object and generate the request
-    request_url = get_base_url(chip) + '/check_user/'
 
     remote_cfg = chip.status['remote_cfg']
     post_params = {}
@@ -395,19 +400,19 @@ def remote_ping(chip):
         post_params['key'] = remote_cfg['password']
 
     # Make the request and print its response.
-    redirect_url = request_url
-    while redirect_url:
-        resp = requests.post(redirect_url,
+    def post_action(url):
+        return requests.post(url,
                              data=json.dumps(post_params),
                              allow_redirects=False)
-        if resp.status_code == 302:
-            redirect_url = resp.headers['Location']
-        else:
-            redirect_url = None
-    # Get the JSON response values.
-    user_info = resp.json()
-    if (resp.status_code != 200) or \
-       ('compute_time' not in user_info) or \
+
+    def success_action(resp):
+        return resp.json()
+
+    user_info = __post(chip, '/check_user/', post_action, success_action)
+    if not user_info:
+        raise ValueError('Server response is not valid.')
+
+    if ('compute_time' not in user_info) or \
        ('bandwidth_kb' not in user_info):
         print('Error fetching user information from the remote server.')
         raise ValueError(f'Server response is not valied or missing fields: {user_info}')
