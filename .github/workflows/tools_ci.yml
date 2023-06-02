@@ -226,9 +226,10 @@ jobs:
 
       - name: Trigger
         if: steps.changes.outputs.tools == 'true'
-        uses: peter-evans/repository-dispatch@v2
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
-          token: ${{ secrets.BOT_TOKEN }}
-          repository: ${{ github.repository }}
-          event-type: trigger-daily-workflow
-          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+          github_token: ${{ github.token }}
+          ref: ${{ github.ref }}
+          owner: ${{ github.repository_owner }}
+          repo: siliconcompiler
+          workflow_file_name: daily_ci.yml
