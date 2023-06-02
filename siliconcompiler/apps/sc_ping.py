@@ -1,14 +1,13 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import json
 import os
-import requests
 import sys
 import argparse
 
 from siliconcompiler.utils import default_credentials_file
 
 from siliconcompiler import Chip
-from siliconcompiler.client import get_base_url, remote_ping
+from siliconcompiler.client import remote_ping
 
 
 def main():
