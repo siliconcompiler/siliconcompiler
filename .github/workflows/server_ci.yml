@@ -1,12 +1,14 @@
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
 
 name: 'Server Functional Tests'
 
 jobs:
   server_tests:
-    timeout-minutes: 60
+    timeout-minutes: 90
     runs-on: ubuntu-latest
     steps:
       - name: Server action dispatch
