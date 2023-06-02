@@ -2,14 +2,13 @@
 
 import argparse
 
-from siliconcompiler.server import server_schema
-from siliconcompiler.server import Server
+from siliconcompiler.remote.schema import server_schema
+from siliconcompiler.remote.server import Server
+
 
 ###############################################
 # Helper method to parse sc-server command-line args.
 ###############################################
-
-
 def server_cmdline():
     '''
     Command-line parsing for sc-server variables.
@@ -79,11 +78,10 @@ def server_cmdline():
 
     return def_cfg
 
+
 ###############################################
 # Main method to run the sc-server application.
 ###############################################
-
-
 def main():
     # Command line inputs and default 'server_schema' config values.
     cmdlinecfg = server_cmdline()

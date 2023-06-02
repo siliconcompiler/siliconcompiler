@@ -37,7 +37,7 @@ import packaging.specifiers
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from PIL import Image, ImageFont, ImageDraw
-from siliconcompiler.client import remote_preprocess, remote_run, fetch_results
+from siliconcompiler.remote.client import remote_preprocess, remote_run, fetch_results
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils

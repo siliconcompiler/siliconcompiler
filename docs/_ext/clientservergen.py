@@ -1,8 +1,10 @@
 import glob
 import json
+import os
 
 from docutils import nodes
 from sphinx.util.docutils import SphinxDirective
+import siliconcompiler
 
 
 def add_prop_attr_row(prop, attr, tbody, key=None):
@@ -60,7 +62,11 @@ class RemoteAPIGen(SphinxDirective):
         new_doc = []
 
         # Get the JSONSchema API files to include.
-        api_schemas = glob.iglob('server_schema/*.json')
+        api_location = os.path.join(
+            os.path.dirname(siliconcompiler.__file__),
+            'remote',
+            'server_schema')
+        api_schemas = glob.iglob(f'{api_location}/*.json')
 
         # Create a top-level section node to contain the individual API tables.
         top_section = nodes.section(ids=[nodes.make_id('server_top')])
