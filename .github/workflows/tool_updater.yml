@@ -50,7 +50,10 @@ jobs:
           git config --global user.email "bot@siliconcompiler.com"
           msg=$(python3 setup/_tools.py --bump_commit --tool ${{ matrix.tool }})
           echo $msg
-          echo "msg=$msg" >> $GITHUB_OUTPUT
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "msg<<$EOF" >> $GITHUB_OUTPUT
+          echo "$msg" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
           git add setup/_tools.json
           git commit -m "$msg" || true
 
