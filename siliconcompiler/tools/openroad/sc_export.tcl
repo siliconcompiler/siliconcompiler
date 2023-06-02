@@ -43,9 +43,6 @@ foreach corner $sc_corners {
     "outputs/${sc_design}.${pexcorner}.spef"
 }
 
-# Set thread count to 1 while issue related to write_timing_model segfaulting
-# when multiple threads are on is resolved.
-set_thread_count 1
 # Write timing models
 foreach corner $sc_corners {
   puts "Writing timing model for $corner"
@@ -53,5 +50,3 @@ foreach corner $sc_corners {
     -corner $corner \
     "outputs/${sc_design}.${corner}.lib"
 }
-# Restore thread count
-set_thread_count $sc_threads
