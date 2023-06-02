@@ -46,7 +46,11 @@ def setup(chip):
 
     # Task Setup
     # common to all
-    chip.set('tool', tool, 'task', task, 'option', '-c', step=step, index=index, clobber=False)
+    option = []
+    if chip.get('option', 'breakpoint', step=step, index=index):
+        option.append('-C')
+    option.append('-c')
+    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', "Warning:",
              step=step, index=index, clobber=False)
