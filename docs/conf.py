@@ -73,9 +73,6 @@ suppress_warnings = ['autosectionlabel.*']
 #
 html_theme = 'pydata_sphinx_theme'
 
-html_logo = 'sc_logo_with_text.png'
-html_logo = 'sc_logo_with_text.png'
-
 html_theme_options = {
     "collapse_navigation": True,
     # 'logo_only': True,
@@ -83,8 +80,8 @@ html_theme_options = {
     # 'navigation_depth': 4,
     "show_toc_level": 2,   # this automatically displays two levels
     "logo": {
-        "image_light": html_logo,
-        "image_dark": html_logo,
+        "image_light": 'sc_logo_with_text.png',
+        "image_dark": 'sc_logo_with_text.png',
     },
     "github_url": "https://github.com/siliconcompiler/siliconcompiler",  # these are top right
 
@@ -145,8 +142,6 @@ latex_elements = {
     'extraclassoptions': 'openany,oneside',  # Don't add blank pages after some chapters
     'preamble': latex_preamble
 }
-
-# latex_logo = '_images/sc_logo_with_text.png'
 
 latex_use_modindex = False
 
