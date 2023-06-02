@@ -69,6 +69,27 @@ def __post(chip, url, post_action, success_action):
 
 
 ###################################
+def __build_post_params(chip, add_job_name=True, add_job_hash=True):
+    # Use authentication if necessary.
+    post_params = {}
+
+    if 'jobhash' in chip.status and add_job_hash:
+        post_params['job_hash'] = chip.status['jobhash']
+
+    if add_job_name:
+        post_params['job_id'] = chip.get('option', 'jobname')
+
+    if 'remote_cfg' in chip.status:
+        rcfg = chip.status['remote_cfg']
+        if ('username' in rcfg) and ('password' in rcfg) and \
+           (rcfg['username']) and (rcfg['password']):
+            post_params['username'] = rcfg['username']
+            post_params['key'] = rcfg['password']
+
+    return post_params
+
+
+###################################
 def remote_preprocess(chip, steplist):
     '''Helper method to run a local import stage for remote jobs.
     '''
@@ -176,27 +197,9 @@ def request_remote_run(chip):
     '''Helper method to make a web request to start a job stage.
     '''
 
-    # Use authentication if necessary.
-    post_params = {
-        'chip_cfg': chip.schema.cfg,
-        'params': {
-            'job_hash': chip.status['jobhash'],
-        }
-    }
-    local_build_dir = chip._getworkdir()
-    rcfg = chip.status['remote_cfg']
-    if ('username' in rcfg) and ('password' in rcfg) and \
-       (rcfg['username']) and (rcfg['password']):
-        post_params['params']['username'] = rcfg['username']
-        post_params['params']['key'] = rcfg['password']
-
-    # If '-remote_user' and '-remote_key' are not both specified,
-    # no authorization is configured; proceed without crypto.
-    # If they were specified, these files are now encrypted.
-
     upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
     with tarfile.open(fileobj=upload_file, mode='w:gz') as tar:
-        tar.add(local_build_dir, arcname='')
+        tar.add(chip._getworkdir(), arcname='')
     # Flush file to ensure everything is written
     upload_file.flush()
 
@@ -223,12 +226,16 @@ def request_remote_run(chip):
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
     # part of the HTTP spec, so we need to manually follow the trail.
+    post_params = {
+        'chip_cfg': chip.schema.cfg,
+        'params': __build_post_params(chip, add_job_name=False)
+    }
+
     def post_action(url):
         upload_file.seek(0)
         return requests.post(url,
                              files={'import': upload_file,
-                                    'params': json.dumps(post_params)},
-                             allow_redirects=False)
+                                    'params': json.dumps(post_params)})
 
     def success_action(resp):
         chip.logger.info(resp.text)
@@ -244,23 +251,10 @@ def is_job_busy(chip):
     Returns True if the job is busy, False if not.
     '''
 
-    # Set common parameters.
-    post_params = {
-        'job_hash': chip.status['jobhash'],
-        'job_id': chip.get('option', 'jobname'),
-    }
-
-    # Set authentication parameters if necessary.
-    rcfg = chip.status['remote_cfg']
-    if ('username' in rcfg) and ('password' in rcfg):
-        post_params['username'] = rcfg['username']
-        post_params['key'] = rcfg['password']
-
     # Make the request and print its response.
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(post_params),
-                             allow_redirects=False)
+                             data=json.dumps(__build_post_params(chip)))
 
     def success_action(resp):
         info = {}
@@ -280,21 +274,10 @@ def delete_job(chip):
     '''Helper method to delete a job from shared remote storage.
     '''
 
-    # Set common parameter.
-    post_params = {
-        'job_hash': chip.status['jobhash'],
-    }
-
-    # Set authentication parameters if necessary.
-    rcfg = chip.status['remote_cfg']
-    if ('username' in rcfg) and ('password' in rcfg):
-        post_params['username'] = rcfg['username']
-        post_params['key'] = rcfg['password']
-
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(post_params),
-                             allow_redirects=False)
+                             data=json.dumps(__build_post_params(chip,
+                                                                 add_job_name=False)))
 
     def success_action(resp):
         return resp.text
@@ -314,21 +297,12 @@ def fetch_results_request(chip):
     # Set the request URL.
     job_hash = chip.status['jobhash']
 
-    # Set authentication parameters if necessary.
-    rcfg = chip.status['remote_cfg']
-    if ('username' in rcfg) and ('password' in rcfg):
-        post_params = {
-            'username': rcfg['username'],
-            'key': rcfg['password'],
-        }
-    else:
-        post_params = {}
-
     with open(f'{job_hash}.tar.gz', 'wb') as zipf:
         def post_action(url):
             return requests.post(url,
-                                 data=json.dumps(post_params),
-                                 allow_redirects=True,
+                                 data=json.dumps(__build_post_params(chip,
+                                                                     add_job_name=False,
+                                                                     add_job_hash=False)),
                                  stream=True)
 
         def success_action(resp):
@@ -392,18 +366,12 @@ def remote_ping(chip):
     Helper method to call check_user on server
     '''
 
-    remote_cfg = chip.status['remote_cfg']
-    post_params = {}
-    if 'username' in remote_cfg:
-        post_params['username'] = remote_cfg['username']
-    if 'password' in remote_cfg:
-        post_params['key'] = remote_cfg['password']
-
     # Make the request and print its response.
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(post_params),
-                             allow_redirects=False)
+                             data=json.dumps(__build_post_params(chip,
+                                                                 add_job_hash=False,
+                                                                 add_job_hash=False)))
 
     def success_action(resp):
         return resp.json()
@@ -417,7 +385,9 @@ def remote_ping(chip):
         print('Error fetching user information from the remote server.')
         raise ValueError(f'Server response is not valied or missing fields: {user_info}')
 
-    # Print the user's account info, and return.
-    print(f'User {remote_cfg["username"]}:')
+    if 'remote_cfg' in chip.status:
+        remote_cfg = chip.status['remote_cfg']
+        # Print the user's account info, and return.
+        print(f'User {remote_cfg["username"]}:')
     print(f'  Remaining compute time: {(user_info["compute_time"]/60.0):.2f} minutes')
     print(f'  Remaining results bandwidth: {user_info["bandwidth_kb"]} KiB')
