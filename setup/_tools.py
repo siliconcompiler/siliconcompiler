@@ -12,23 +12,36 @@ with open(data_file, "r") as f:
     tools = json.load(f)
 
 
+def __make_github_url(url, old_version, new_version):
+    if 'github' not in url:
+        return None
+
+    if url.endswith('.git'):
+        url = url[0:-4]
+
+    return f'{url}/compare/{old_version}...{new_version}'
+
+
 def bump_commit(tools, tool):
     if "git-url" not in tools[tool]:
-        return None
+        return (None, None)
 
     import git
 
     with tempfile.TemporaryDirectory(prefix=tool) as repo_work_dir:
         repo = git.Repo.clone_from(tools[tool]["git-url"], repo_work_dir)
 
-        return repo.head.commit.hexsha
+        return (repo.head.commit.hexsha,
+                __make_github_url(tools[tool]["git-url"],
+                                  tools[tool]["git-commit"],
+                                  repo.head.commit.hexsha))
 
-    return None
+    return (None, None)
 
 
 def bump_version(tools, tool):
     if "git-url" not in tools[tool]:
-        return None
+        return (None, None)
 
     import git
 
@@ -44,13 +57,25 @@ def bump_version(tools, tool):
                     newest = tag
         if newest:
             newest = newest.name
+            has_v = False
             if newest[0] == 'v':
                 newest = newest[1:]
-            return newest
+                has_v = True
 
-        return None
+            new_version = newest
+            old_version = tools[tool]["version"]
+            if has_v:
+                new_version = f'v{new_version}'
+                old_version = f'v{old_version}'
 
-    return None
+            return (newest,
+                    __make_github_url(tools[tool]["git-url"],
+                                      old_version,
+                                      new_version))
+
+        return (None, None)
+
+    return (None, None)
 
 
 def has_tool(tool):
@@ -120,14 +145,18 @@ if __name__ == "__main__":
         exit(0)
 
     if "git-commit" in tools[args.tool]:
-        new_value = bump_commit(tools, args.tool)
+        new_value, url = bump_commit(tools, args.tool)
         if new_value and tools[args.tool]["git-commit"] != new_value:
             print(f"Updating {args.tool} from {tools[args.tool]['git-commit']} to {new_value}")
+            if url:
+                print(f'Check {url} for changes')
             tools[args.tool]["git-commit"] = new_value
     elif "version" in tools[args.tool]:
-        new_value = bump_version(tools, args.tool)
+        new_value, url = bump_version(tools, args.tool)
         if new_value and tools[args.tool]["version"] != new_value:
             print(f"Updating {args.tool} from {tools[args.tool]['version']} to {new_value}")
+            if url:
+                print(f'Check {url} for changes')
             tools[args.tool]["version"] = new_value
     else:
         print('Unsupported update tool')
