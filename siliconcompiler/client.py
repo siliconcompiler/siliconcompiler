@@ -35,7 +35,7 @@ def get_base_url(chip):
 
 
 ###################################
-def __post(chip, url, post_action, success_action):
+def __post(chip, url, post_action, success_action, error_action=None):
     '''
     Helper function to handle the post request
     '''
@@ -60,9 +60,10 @@ def __post(chip, url, post_action, success_action):
         if 300 <= code and code < 400:
             if 'Location' in resp.headers:
                 redirect_url = resp.headers['Location']
-            else:
-                chip.error(f'Server responsed with {code} without a Location header: {msg}',
-                           fatal=True)
+                continue
+
+        if error_action:
+            return error_action(code, msg)
         else:
             chip.error(f'Server responsed with {code}: {msg}', fatal=True)
 
@@ -262,16 +263,30 @@ def is_job_busy(chip):
         return requests.post(url,
                              data=json.dumps(__build_post_params(chip)))
 
+    def error_action(code, msg):
+        return {
+            'busy': True,
+            'message': ''
+        }
+
     def success_action(resp):
-        info = {}
-        info['busy'] = (resp.text != "Job has no running steps.")
-        info['message'] = resp.text
+        info = {
+            'busy': (resp.text != "Job has no running steps."),
+            'message': resp.text
+        }
         return info
 
-    info = __post(chip, '/check_progress/', post_action, success_action)
+    info = __post(chip,
+                  '/check_progress/',
+                  post_action,
+                  success_action,
+                  error_action=error_action)
 
     if not info:
-        return {}
+        info = {
+            'busy': True,
+            'message': ''
+        }
     return info
 
 
