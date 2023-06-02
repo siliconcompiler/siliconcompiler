@@ -377,3 +377,42 @@ def fetch_results(chip):
 
     # Print a message pointing to the results.
     chip.logger.info(f"Your job results are located in: {os.path.abspath(chip._getworkdir())}")
+
+
+###################################
+def remote_ping(chip):
+    '''
+    Helper method to call check_user on server
+    '''
+    # Create the chip object and generate the request
+    request_url = get_base_url(chip) + '/check_user/'
+
+    remote_cfg = chip.status['remote_cfg']
+    post_params = {}
+    if 'username' in remote_cfg:
+        post_params['username'] = remote_cfg['username']
+    if 'password' in remote_cfg:
+        post_params['key'] = remote_cfg['password']
+
+    # Make the request and print its response.
+    redirect_url = request_url
+    while redirect_url:
+        resp = requests.post(redirect_url,
+                             data=json.dumps(post_params),
+                             allow_redirects=False)
+        if resp.status_code == 302:
+            redirect_url = resp.headers['Location']
+        else:
+            redirect_url = None
+    # Get the JSON response values.
+    user_info = resp.json()
+    if (resp.status_code != 200) or \
+       ('compute_time' not in user_info) or \
+       ('bandwidth_kb' not in user_info):
+        print('Error fetching user information from the remote server.')
+        raise ValueError(f'Server response is not valied or missing fields: {user_info}')
+
+    # Print the user's account info, and return.
+    print(f'User {remote_cfg["username"]}:')
+    print(f'  Remaining compute time: {(user_info["compute_time"]/60.0):.2f} minutes')
+    print(f'  Remaining results bandwidth: {user_info["bandwidth_kb"]} KiB')
