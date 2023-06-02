@@ -36,6 +36,9 @@ def get_base_url(chip):
 
 ###################################
 def __post(chip, url, post_action, success_action):
+    '''
+    Helper function to handle the post request
+    '''
     redirect_url = urllib.parse.urljoin(get_base_url(chip), url)
 
     while redirect_url:
@@ -45,31 +48,30 @@ def __post(chip, url, post_action, success_action):
         if 200 <= code and code < 300:
             return success_action(resp)
 
-        if 100 <= code and code < 200:
-            raise RuntimeError('Remote server returned unrecoverable error code.')
+        try:
+            msg_json = resp.json()
+            if 'message' in msg_json:
+                msg = msg_json['message']
+            else:
+                msg = resp.text
+        except requests.JSONDecodeError:
+            msg = resp.text
 
-        elif 300 <= code and code < 400:
+        if 300 <= code and code < 400:
             if 'Location' in resp.headers:
                 redirect_url = resp.headers['Location']
-                continue
-            raise RuntimeError('Remote server returned unrecoverable error code.')
-
-        elif 400 <= code and code < 500:
-            chip.logger.error(resp.json()['message'])
-            chip.logger.error('Error starting remote job run; quitting.')
-            raise RuntimeError('Remote server returned unrecoverable error code.')
-
-        elif 500 <= code and code < 600:
-            chip.logger.error(resp.json()['message'])
-            chip.logger.error('Error starting remote job run; quitting.')
-            raise RuntimeError('Remote server returned unrecoverable error code.')
-
+            else:
+                chip.error(f'Server responsed with {code} without a Location header: {msg}',
+                           fatal=True)
         else:
-            raise RuntimeError('Remote server returned unrecoverable error code.')
+            chip.error(f'Server responsed with {code}: {msg}', fatal=True)
 
 
 ###################################
 def __build_post_params(chip, add_job_name=True, add_job_hash=True):
+    '''
+    Helper function to build the params for the post request
+    '''
     # Use authentication if necessary.
     post_params = {}
 
@@ -91,7 +93,8 @@ def __build_post_params(chip, add_job_name=True, add_job_hash=True):
 
 ###################################
 def remote_preprocess(chip, steplist):
-    '''Helper method to run a local import stage for remote jobs.
+    '''
+    Helper method to run a local import stage for remote jobs.
     '''
 
     # Assign a new 'job_hash' to the chip if necessary.
@@ -141,7 +144,8 @@ def remote_preprocess(chip, steplist):
 
 ###################################
 def remote_run(chip):
-    '''Helper method to run a job stage on a remote compute cluster.
+    '''
+    Helper method to run a job stage on a remote compute cluster.
     Note that files will not be copied to the remote stage; typically
     the source files will be copied into the cluster's storage before
     calling this method.
@@ -194,7 +198,8 @@ def remote_run(chip):
 
 ###################################
 def request_remote_run(chip):
-    '''Helper method to make a web request to start a job stage.
+    '''
+    Helper method to make a web request to start a job stage.
     '''
 
     upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
@@ -246,7 +251,8 @@ def request_remote_run(chip):
 
 ###################################
 def is_job_busy(chip):
-    '''Helper method to make an async request asking the remote server
+    '''
+    Helper method to make an async request asking the remote server
     whether a job is busy, or ready to accept a new step.
     Returns True if the job is busy, False if not.
     '''
@@ -271,7 +277,8 @@ def is_job_busy(chip):
 
 ###################################
 def delete_job(chip):
-    '''Helper method to delete a job from shared remote storage.
+    '''
+    Helper method to delete a job from shared remote storage.
     '''
 
     def post_action(url):
@@ -287,7 +294,8 @@ def delete_job(chip):
 
 ###################################
 def fetch_results_request(chip):
-    '''Helper method to fetch job results from a remote compute cluster.
+    '''
+    Helper method to fetch job results from a remote compute cluster.
 
        Returns:
        * 0 if no error was encountered.
@@ -317,7 +325,8 @@ def fetch_results_request(chip):
 
 ###################################
 def fetch_results(chip):
-    '''Helper method to fetch and open job results from a remote compute cluster.
+    '''
+    Helper method to fetch and open job results from a remote compute cluster.
     '''
 
     # Fetch the remote archive after the last stage.
@@ -370,7 +379,7 @@ def remote_ping(chip):
     def post_action(url):
         return requests.post(url,
                              data=json.dumps(__build_post_params(chip,
-                                                                 add_job_hash=False,
+                                                                 add_job_name=False,
                                                                  add_job_hash=False)))
 
     def success_action(resp):
