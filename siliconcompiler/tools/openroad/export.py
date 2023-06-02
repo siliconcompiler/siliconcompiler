@@ -20,6 +20,11 @@ def setup(chip):
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
+    # Set thread count to 1 while issue related to write_timing_model segfaulting
+    # when multiple threads are on is resolved.
+    chip.set('tool', tool, 'task', task, 'threads', 1,
+             step=step, index=index, clobber=True)
+
     stackup = chip.get('option', 'stackup')
     pdk = chip.get('option', 'pdk')
 
