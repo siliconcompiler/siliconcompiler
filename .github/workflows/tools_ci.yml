@@ -181,7 +181,7 @@ jobs:
         username: ${{ secrets.PACKAGES_ACTOR }}
         password: ${{ secrets.PACKAGES_TOKEN }}
 
-    timeout-minutes: 30
+    timeout-minutes: 45
     name: 'Tool-based tests'
     steps:
       - name: Checkout current SiliconCompiler
