@@ -233,3 +233,4 @@ jobs:
           owner: ${{ github.repository_owner }}
           repo: siliconcompiler
           workflow_file_name: daily_ci.yml
+          wait_interval: 60
