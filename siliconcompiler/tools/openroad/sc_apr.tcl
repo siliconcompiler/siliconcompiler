@@ -124,6 +124,22 @@ if { [llength [dict get $sc_cfg tool $sc_tool task $sc_task {var} debug_level]] 
 }
 
 ###############################
+# Supress messages if requested
+###############################
+
+foreach msg [dict get $sc_cfg tool $sc_tool task $sc_task warningoff] {
+  set or_msg [split $msg "-"]
+  if { [llength $or_msg] != 2 } {
+    utl::warn FLW 1 "$msg is not a valid message id"
+  } else {
+    set or_tool [lindex $or_msg 0]
+    set or_msg_id [expr int([lindex $or_msg 1])]
+    utl::info FLW 1 "Supressing $msg messages"
+    suppress_message $or_tool $or_msg_id
+  }
+}
+
+###############################
 # Read Files
 ###############################
 
