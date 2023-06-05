@@ -80,7 +80,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "43b807fe6fc9a124f2c6330e1522f0ceedbd1f4e",
+    "git-commit": "88c849d112f4f8cf20617bbc98eac055956269c2",
     "auto-update": true
   },
   "slurm": {
