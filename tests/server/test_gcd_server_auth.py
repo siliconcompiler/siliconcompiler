@@ -5,6 +5,8 @@ import time
 
 import pytest
 
+import siliconcompiler
+
 
 ###########################
 @pytest.mark.eda
@@ -103,7 +105,7 @@ def test_gcd_server_not_authenticated(gcd_chip, unused_tcp_port):
     gcd_chip.set('option', 'credentials', tmp_creds)
 
     # Run remote build. It should fail, so catch the expected exception.
-    with pytest.raises(RuntimeError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
 
     # Kill the server process.
