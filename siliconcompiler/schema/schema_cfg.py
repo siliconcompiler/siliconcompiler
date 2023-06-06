@@ -2612,7 +2612,8 @@ def schema_option(cfg):
                      "api: chip.set('option', 'track', True)"],
             schelp="""
             Turns on tracking of all 'record' parameters during each
-            task. Tracking will result in potentially sensitive data
+            task, otherwise only tool and runtime information will be recorded.
+            Tracking will result in potentially sensitive data
             being recorded in the manifest so only turn on this feature
             if you have control of the final manifest.""")
 

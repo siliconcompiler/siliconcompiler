@@ -3617,7 +3617,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         - Check log file
         - Hash all task files
         - Stop Wall timer
-        - Make a task record
         - Save manifest to disk
         - Halt if any errors found
         - Clean up
@@ -3644,8 +3643,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         )
 
         ##################
+        # Make record of sc version and machine
+        self.__record_version(step, index)
+        # Record user information if enabled
+        if self.get('option', 'track', step=step, index=index):
+            self.__record_usermachine(step, index)
+
+        ##################
         # Start wall timer
         wall_start = time.time()
+        self.__record_time(step, index, wall_start, 'start')
 
         ##################
         # Directory setup
@@ -3847,6 +3854,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 raise e
         elif not self.get('option', 'skipall'):
             cmdlist, printable_cmd, _, cmd_args = self._makecmd(tool, task, step, index)
+
+            ##################
+            # Make record of tool options
+            self.__record_tool(step, index, version, toolpath, cmd_args)
+
             self.logger.info('Running in %s', workdir)
             self.logger.info('%s', printable_cmd)
             timeout = self.get('flowgraph', flow, step, index, 'timeout')
@@ -3993,8 +4005,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start), 2)
-        self._record_metric(step, index, 'exetime', cputime, None, source_unit='s')
-        self._record_metric(step, index, 'memory', max_mem_bytes, None, source_unit='B')
+        self._record_metric(step, index, 'exetime', cputime, source=None, source_unit='s')
+        self._record_metric(step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
 
         ##################
         # Post process
@@ -4044,14 +4056,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Capture wall runtime and cpu cores
         wall_end = time.time()
-        walltime = round((wall_end - wall_start), 2)
-        self.set('metric', 'tasktime', walltime, step=step, index=index)
-        self.logger.info(f"Finished task in {walltime}s")
+        self.__record_time(step, index, wall_end, 'end')
 
-        ##################
-        # Make a record if tracking is enabled
-        if self.get('option', 'track', step=step, index=index):
-            self._make_record(step, index, wall_start, wall_end, version, toolpath, cmd_args)
+        walltime = wall_end - wall_start
+        self._record_metric(step, index, 'tasktime', walltime, source=None, source_unit='s')
+        self.logger.info(f"Finished task in {round(walltime, 2)}s")
 
         ##################
         # Save a successful manifest
@@ -4826,41 +4835,40 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 'arch': arch}
 
     #######################################
-    def _make_record(self, step, index, start, end, toolversion, toolpath, cli_args):
-        '''
-        Records provenance details for a runstep.
-        '''
+    def __record_version(self, step, index):
         self.set('record', 'scversion', _metadata.version,
                  step=step, index=index)
 
-        start_date = datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
-        end_date = datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
+    #######################################
+    def __record_time(self, step, index, record_time, timetype):
+        formatted_time = datetime.fromtimestamp(record_time).strftime('%Y-%m-%d %H:%M:%S')
 
-        userid = getpass.getuser()
-        self.set('record', 'userid', userid,
-                 step=step, index=index)
+        if timetype == 'start':
+            key = 'starttime'
+        elif timetype == 'end':
+            key = 'endtime'
+        else:
+            raise ValueError(f'{timetype} is not a valid time record')
 
-        self.set('record', 'starttime', start_date,
-                 step=step, index=index)
-        self.set('record', 'endtime', end_date,
-                 step=step, index=index)
+        self.set('record', key, formatted_time, step=step, index=index)
 
-        machine = platform.node()
-        self.set('record', 'machine', machine,
-                 step=step, index=index)
+    #######################################
+    def __record_tool(self, step, index, toolversion=None, toolpath=None, cli_args=None):
+        if toolversion:
+            self.set('record', 'toolversion', toolversion,
+                     step=step, index=index)
 
-        self.set('record', 'region', self._get_cloud_region(),
-                 step=step, index=index)
+        if toolpath:
+            self.set('record', 'toolpath', toolpath,
+                     step=step, index=index)
 
-        try:
-            gateways = netifaces.gateways()
-            ipaddr, interface = gateways['default'][netifaces.AF_INET]
-            macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
-            self.set('record', 'ipaddr', ipaddr, step=step, index=index)
-            self.set('record', 'macaddr', macaddr, step=step, index=index)
-        except KeyError:
-            self.logger.warning('Could not find default network interface info')
+        if cli_args is not None:
+            toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
+            self.set('record', 'toolargs', toolargs,
+                     step=step, index=index)
 
+    #######################################
+    def __record_usermachine(self, step, index):
         machine_info = Chip._get_machine_info()
         self.set('record', 'platform', machine_info['system'],
                  step=step, index=index)
@@ -4879,18 +4887,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('record', 'arch', machine_info['arch'],
                  step=step, index=index)
 
-        if toolversion:
-            self.set('record', 'toolversion', toolversion,
-                     step=step, index=index)
+        userid = getpass.getuser()
+        self.set('record', 'userid', userid,
+                 step=step, index=index)
 
-        if toolpath:
-            self.set('record', 'toolpath', toolpath,
-                     step=step, index=index)
+        machine = platform.node()
+        self.set('record', 'machine', machine,
+                 step=step, index=index)
 
-        if cli_args is not None:
-            toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
-            self.set('record', 'toolargs', toolargs,
-                     step=step, index=index)
+        self.set('record', 'region', self._get_cloud_region(),
+                 step=step, index=index)
+
+        try:
+            gateways = netifaces.gateways()
+            ipaddr, interface = gateways['default'][netifaces.AF_INET]
+            macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
+            self.set('record', 'ipaddr', ipaddr, step=step, index=index)
+            self.set('record', 'macaddr', macaddr, step=step, index=index)
+        except KeyError:
+            self.logger.warning('Could not find default network interface info')
 
     #######################################
     def _safecompare(self, value, op, goal):
