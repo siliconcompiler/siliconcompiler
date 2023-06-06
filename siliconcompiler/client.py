@@ -69,18 +69,18 @@ def __post(chip, url, post_action, success_action, error_action=None):
 
 
 ###################################
-def __build_post_params(chip, add_job_name=True, add_job_hash=True):
+def __build_post_params(chip, job_name=None, job_hash=None):
     '''
     Helper function to build the params for the post request
     '''
     # Use authentication if necessary.
     post_params = {}
 
-    if 'jobhash' in chip.status and add_job_hash:
-        post_params['job_hash'] = chip.status['jobhash']
+    if job_hash:
+        post_params['job_hash'] = job_hash
 
-    if add_job_name:
-        post_params['job_id'] = chip.get('option', 'jobname')
+    if job_name:
+        post_params['job_id'] = job_name
 
     if 'remote_cfg' in chip.status:
         rcfg = chip.status['remote_cfg']
@@ -234,7 +234,8 @@ def request_remote_run(chip):
     # part of the HTTP spec, so we need to manually follow the trail.
     post_params = {
         'chip_cfg': chip.schema.cfg,
-        'params': __build_post_params(chip, add_job_name=False)
+        'params': __build_post_params(chip,
+                                      job_hash=chip.status['jobhash'])
     }
 
     def post_action(url):
@@ -260,8 +261,11 @@ def is_job_busy(chip):
 
     # Make the request and print its response.
     def post_action(url):
+        params = __build_post_params(chip,
+                                     job_hash=chip.status['jobhash'],
+                                     job_name=chip.get('option', 'jobname'))
         return requests.post(url,
-                             data=json.dumps(__build_post_params(chip)))
+                             data=json.dumps(params))
 
     def error_action(code, msg):
         return {
@@ -299,7 +303,7 @@ def delete_job(chip):
     def post_action(url):
         return requests.post(url,
                              data=json.dumps(__build_post_params(chip,
-                                                                 add_job_name=False)))
+                                                                 job_hash=chip.status['jobhash'])))
 
     def success_action(resp):
         return resp.text
@@ -323,9 +327,7 @@ def fetch_results_request(chip):
     with open(f'{job_hash}.tar.gz', 'wb') as zipf:
         def post_action(url):
             return requests.post(url,
-                                 data=json.dumps(__build_post_params(chip,
-                                                                     add_job_name=False,
-                                                                     add_job_hash=False)),
+                                 data=json.dumps(__build_post_params(chip)),
                                  stream=True)
 
         def success_action(resp):
@@ -393,9 +395,7 @@ def remote_ping(chip):
     # Make the request and print its response.
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(__build_post_params(chip,
-                                                                 add_job_name=False,
-                                                                 add_job_hash=False)))
+                             data=json.dumps(__build_post_params(chip)))
 
     def success_action(resp):
         return resp.json()
