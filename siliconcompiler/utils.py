@@ -24,11 +24,21 @@ def copytree(src, dst, ignore=[], dirs_exist_ok=False, link=False):
         srcfile = os.path.join(src, name)
         dstfile = os.path.join(dst, name)
 
+        if os.path.islink(srcfile):
+            # Get the true filepath if its a link
+            srcfile = os.path.realpath(srcfile)
+
         if os.path.isdir(srcfile):
-            copytree(srcfile, dstfile, ignore=ignore, dirs_exist_ok=dirs_exist_ok)
+            # Continue to copy the hierarchy
+            copytree(srcfile, dstfile,
+                     ignore=ignore,
+                     dirs_exist_ok=dirs_exist_ok,
+                     link=link)
         elif link:
+            # create link
             os.link(srcfile, dstfile)
         else:
+            # copy file
             shutil.copy2(srcfile, dstfile)
 
 
