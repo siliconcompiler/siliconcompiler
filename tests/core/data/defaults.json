@@ -7491,7 +7491,7 @@
                 "cli: -track",
                 "api: chip.set('option', 'track', True)"
             ],
-            "help": "Turns on tracking of all 'record' parameters during each\ntask. Tracking will result in potentially sensitive data\nbeing recorded in the manifest so only turn on this feature\nif you have control of the final manifest.",
+            "help": "Turns on tracking of all 'record' parameters during each\ntask, otherwise only tool and runtime information will be recorded.\nTracking will result in potentially sensitive data\nbeing recorded in the manifest so only turn on this feature\nif you have control of the final manifest.",
             "lock": false,
             "node": {
                 "default": {
