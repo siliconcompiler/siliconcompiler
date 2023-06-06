@@ -35,8 +35,13 @@ def copytree(src, dst, ignore=[], dirs_exist_ok=False, link=False):
                      dirs_exist_ok=dirs_exist_ok,
                      link=link)
         elif link:
-            # create link
-            os.link(srcfile, dstfile)
+            for method in [os.link, os.symlink, shutil.copy2]:
+                try:
+                    # create link
+                    method(srcfile, dstfile)
+                    # success, no need to continue trying
+                except OSError:
+                    pass
         else:
             # copy file
             shutil.copy2(srcfile, dstfile)
