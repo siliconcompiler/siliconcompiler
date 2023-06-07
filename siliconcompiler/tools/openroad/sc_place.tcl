@@ -86,6 +86,10 @@ detailed_placement -max_displacement $openroad_dpl_max_displacement \
 
 if { $openroad_dpo_enable == "true" } {
   improve_placement -max_displacement $openroad_dpo_max_displacement
+
+  # Do another detailed placement in case DPO leaves violations behind
+  detailed_placement -max_displacement $openroad_dpl_max_displacement \
+    {*}$dpl_args
 }
 
 optimize_mirroring
