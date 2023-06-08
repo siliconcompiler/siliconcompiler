@@ -31,6 +31,10 @@ def show(schema, tech, input_path, output_path, screenshot=False):
     tech.load_layout_options = layoutOptions
 
     app = pya.Application.instance()
+    main_window = pya.MainWindow.instance()
+    if not main_window:
+        print('[WARNING] unable to show layout as the main window is not available')
+        return
 
     # Opinionated default KLayout configuration
     # see ~/.klayout/klayoutrc for a list of configuration keys
@@ -47,7 +51,7 @@ def show(schema, tech, input_path, output_path, screenshot=False):
     app.set_config('background-color', '#212121')
 
     # Display the file!
-    cell_view = pya.MainWindow.instance().load_layout(input_path, tech.name)
+    cell_view = main_window.load_layout(input_path, tech.name)
     layout_view = cell_view.view()
 
     # Hide layers that shouldn't be shown in the current view.
