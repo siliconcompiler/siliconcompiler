@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.34.0'
+SCHEMA_VERSION = '0.34.2'
 
 
 #############################################################################
@@ -1275,14 +1275,14 @@ def schema_tool(cfg, tool='default'):
             setting 'novercheck' to True.""")
 
     scparam(cfg, ['tool', tool, 'format'],
-            sctype='str',
+            sctype='enum',
+            enum=["json", "tcl", "yaml"],
             shorthelp="Tool: file format",
             switch="-tool_format 'tool <file>'",
             example=["cli: -tool_format 'yosys tcl'",
                      "api: chip.set('tool', 'yosys', 'format', 'tcl')"],
             schelp="""
-            File format for tool manifest handoff. Supported formats are tcl,
-            yaml, and json.""")
+            File format for tool manifest handoff.""")
 
     key = 'default'
     scparam(cfg, ['tool', tool, 'licenseserver', key],
@@ -2139,7 +2139,7 @@ def schema_option(cfg):
             sctype='file',
             scope='job',
             shorthelp="User credentials file",
-            switch="-credentials <file>'",
+            switch="-credentials <file>",
             example=[
                 "cli: -credentials /home/user/.sc/credentials",
                 "api: chip.set('option', 'credentials', '/home/user/.sc/credentials')"],
@@ -2680,7 +2680,7 @@ def schema_option(cfg):
             shorthelp="Option: auto install packages",
             switch="-autoinstall <bool>",
             example=[
-                "cli: -autoinstall true'",
+                "cli: -autoinstall true",
                 "api: chip.set('option', 'autoinstall', True)"],
             schelp="""
             Enables automatic installation of missing dependencies from

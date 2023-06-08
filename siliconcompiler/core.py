@@ -4982,7 +4982,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return os.path.join(self._getworkdir(jobname=jobname), 'sc_collected_files')
 
     #######################################
-    def _getworkdir(self, jobname=None, step=None, index='0'):
+    def _getworkdir(self, jobname=None, step=None, index=None):
         '''
         Get absolute path to work directory for a given step/index,
         if step/index not given, job directory is returned
@@ -5000,6 +5000,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Return index 0 by default
         if step is not None:
             dirlist.append(step)
+
+            if not index:
+                index = '0'
+
             dirlist.append(index)
 
         return os.path.join(*dirlist)
