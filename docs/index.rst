@@ -19,6 +19,9 @@ Welcome to SiliconCompiler's Documentation!
    Advanced Guide <development_guide/index>
    reference_manual/index
 
+**Version**:
+|version|
+
 **Useful Links**:
 :ref:`Installation <installation>` | `GitHub Repo <https://github.com/siliconcompiler/siliconcompiler>`_ | `File an Issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_
 

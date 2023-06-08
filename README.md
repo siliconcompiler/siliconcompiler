@@ -100,8 +100,8 @@ python -m pip install -e .[docs,test]  # Optional install step for generating do
 # Tool Installation
 
 Installation instructions for all external tools can be found in the
-[Tools](https://docs.siliconcompiler.com/en/stable/reference_manual/tools.html) section
-of the reference manual. We have included shell setup scripts (Ubuntu) for most of the supported tools.
+[External Tools](https://docs.siliconcompiler.com/en/stable/user_guide/installation.html#external-tools) section
+of the user guide. We have included shell setup scripts (Ubuntu) for most of the supported tools.
 See the [./setup](./setup) directory for a complete set of scripts and [./setup/_tools.json](./setup/_tools.json) for the currently recommended tool versions.
 
 # Contributing
