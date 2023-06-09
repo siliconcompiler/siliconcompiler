@@ -35,14 +35,25 @@ def main():
     Examples:
 
     sc-show -design adder
-    (displays build/job0/adder/export/0/outputs/adder.gds)
+    (displays build/adder/job0/export/0/outputs/adder.gds)
+
+    sc-show -design adder -arg_step floorplan
+    (displays build/adder/job0/floorplan/0/outputs/adder.def)
+
+    sc-show -design adder -arg_step place -arg_index 1
+    (displays build/adder/job0/place/1/outputs/adder.def)
+
+    sc-show -design adder -jobname rtl2gds
+    (displays build/adder/rtl2gds/export/0/outputs/adder.gds)
+
+    sc-show -cfg build/adder/rtl2gds/adder.pkg.json
+    (displays build/adder/rtl2gds/export/0/outputs/adder.gds)
 
     sc-show -design adder -ext odb
-    (displays build/job0/adder/export/1/outputs/adder.odb)
+    (displays build/adder/job0/export/1/outputs/adder.odb)
 
-    sc-show build/job0/adder/route/1/outputs/adder.def
-    (displays build/job0/adder/route/1/outputs/adder.def)
-
+    sc-show build/adder/job0/route/1/outputs/adder.def
+    (displays build/adder/job0/route/1/outputs/adder.def)
     """
 
     # TODO: this is a hack to get around design name requirement: since legal
