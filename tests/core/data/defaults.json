@@ -10109,7 +10109,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.34.1"
+                    "value": "0.34.2"
                 }
             }
         },
@@ -10151,11 +10151,16 @@
                 "type": "str"
             },
             "format": {
+                "enum": [
+                    "json",
+                    "tcl",
+                    "yaml"
+                ],
                 "example": [
                     "cli: -tool_format 'yosys tcl'",
                     "api: chip.set('tool', 'yosys', 'format', 'tcl')"
                 ],
-                "help": "File format for tool manifest handoff. Supported formats are tcl,\nyaml, and json.",
+                "help": "File format for tool manifest handoff.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -10173,7 +10178,7 @@
                 "switch": [
                     "-tool_format 'tool <file>'"
                 ],
-                "type": "str"
+                "type": "enum"
             },
             "licenseserver": {
                 "default": {
