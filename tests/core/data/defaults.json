@@ -5976,7 +5976,7 @@
     "option": {
         "autoinstall": {
             "example": [
-                "cli: -autoinstall true'",
+                "cli: -autoinstall true",
                 "api: chip.set('option', 'autoinstall', True)"
             ],
             "help": "Enables automatic installation of missing dependencies from\nthe registry.",
@@ -6211,7 +6211,7 @@
             "scope": "job",
             "shorthelp": "User credentials file",
             "switch": [
-                "-credentials <file>'"
+                "-credentials <file>"
             ],
             "type": "file"
         },
@@ -10109,7 +10109,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.34.0"
+                    "value": "0.34.1"
                 }
             }
         },
