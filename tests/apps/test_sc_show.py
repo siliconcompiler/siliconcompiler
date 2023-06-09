@@ -34,10 +34,10 @@ def heartbeat_dir(tmpdir_factory):
 @pytest.mark.parametrize('flags', [
     ['-design', 'heartbeat'],
     ['-design', 'heartbeat',
-     '-arg_step floorplan'],
+     '-arg_step', 'floorplan'],
     ['-design', 'heartbeat',
-     '-arg_step floorplan',
-     '-arg_index 0'],
+     '-arg_step', 'floorplan',
+     '-arg_index', '0'],
     ['-design', 'heartbeat',
      '-screenshot'],
 ])
