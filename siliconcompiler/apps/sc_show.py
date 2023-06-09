@@ -9,11 +9,14 @@ from siliconcompiler.targets.utils import set_common_showtools
 
 def _get_manifest(dirname):
     # pkg.json file may have a different name from the design due to the entrypoint
-    manifest = glob.glob(os.path.join(dirname, '*.pkg.json'))
-    if manifest:
-        manifest = manifest[0]
-    else:
-        manifest = None
+    glob_paths = [os.path.join(dirname, '*.pkg.json'),
+                  os.path.join(dirname, 'outputs', '*.pkg.json')]
+    manifest = None
+    for path in glob_paths:
+        manifest = glob.glob(path)
+        if manifest:
+            manifest = manifest[0]
+            break
 
     if not manifest or not os.path.isfile(manifest):
         return None
@@ -62,14 +65,25 @@ def main():
         'metavar': '<ext>',
         'help': '(optional) Specify the extension of the file to show.'
     }
+    screenshot_arg = {
+        'action': 'store_true',
+        'help': '(optional) Will generate a screenshot and exit.'
+    }
 
     args = chip.create_cmdline(
         progname,
-        switchlist=['-design', '-input', '-loglevel', '-cfg'],
+        switchlist=['-design',
+                    '-input',
+                    '-loglevel',
+                    '-cfg',
+                    '-arg_step',
+                    '-arg_index',
+                    '-jobname'],
         description=description,
         input_map=input_map,
         additional_args={
-            '-ext': extension_arg
+            '-ext': extension_arg,
+            '-screenshot': screenshot_arg
         })
 
     # Error checking
@@ -106,7 +120,9 @@ def main():
             return 1
         chip.read_manifest(manifest)
     elif not chip.get('option', 'cfg'):
-        manifest = _get_manifest(chip._getworkdir())
+        manifest = _get_manifest(chip._getworkdir(jobname=chip.get('option', 'jobname'),
+                                                  step=chip.get('arg', 'step'),
+                                                  index=chip.get('arg', 'index')))
         if not manifest:
             chip.logger.warning('Could not find manifest from design name')
         else:
@@ -119,7 +135,12 @@ def main():
     # Set supported showtools incase custom flow was used and didn't get set
     set_common_showtools(chip)
 
-    success = chip.show(filename, extension=args['ext'])
+    success = chip.show(filename,
+                        extension=args['ext'],
+                        screenshot=args['screenshot'])
+
+    if args['screenshot'] and os.path.isfile(success):
+        chip.logger.info(f'Screenshot file: {success}')
 
     return 0 if success else 1
 
