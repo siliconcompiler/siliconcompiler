@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.34.0'
+SCHEMA_VERSION = '0.34.1'
 
 
 #############################################################################
@@ -2141,7 +2141,7 @@ def schema_option(cfg):
             sctype='file',
             scope='job',
             shorthelp="User credentials file",
-            switch="-credentials <file>'",
+            switch="-credentials <file>",
             example=[
                 "cli: -credentials /home/user/.sc/credentials",
                 "api: chip.set('option', 'credentials', '/home/user/.sc/credentials')"],
@@ -2682,7 +2682,7 @@ def schema_option(cfg):
             shorthelp="Option: auto install packages",
             switch="-autoinstall <bool>",
             example=[
-                "cli: -autoinstall true'",
+                "cli: -autoinstall true",
                 "api: chip.set('option', 'autoinstall', True)"],
             schelp="""
             Enables automatic installation of missing dependencies from
