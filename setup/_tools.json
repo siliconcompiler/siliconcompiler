@@ -9,7 +9,7 @@
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "48ef7d0cba8b5d6229ff3383e26b3aedfc94c170",
+    "git-commit": "0f9cf823158bf626c8ebbbb29d7685bd7b1592fc",
     "auto-update": true
   },
   "netgen": {
@@ -40,12 +40,12 @@
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "485ffffa0130a1d767ea82b6123c371c93341f86",
+    "git-commit": "2bb9c82c1e62d3bea8367b01c1eabde19cbfb46b",
     "auto-update": true
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "191d30cf1ca5a6cffac9992c6b532569fa2dab65",
+    "git-commit": "4b7b185d05a8d56e29de4acfee9a5c63f927bfc2",
     "auto-update": true
   },
   "bambu": {
@@ -80,7 +80,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "c5e4eec3ba932268a81bb352b3734e8868d874bf",
+    "git-commit": "236e15f3b06fc4a05143399cf10b682996d5c509",
     "auto-update": true
   },
   "slurm": {
