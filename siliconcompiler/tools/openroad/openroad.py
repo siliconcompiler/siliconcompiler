@@ -46,7 +46,7 @@ def setup_tool(chip, exit=True, clobber=True):
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
 
-def setup(chip, mode='batch'):
+def setup(chip):
 
     # default tool settings, note, not additive!
 
@@ -68,17 +68,16 @@ def setup(chip, mode='batch'):
     delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
     libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
 
-    is_screenshot = mode == 'screenshot' or task == 'screenshot'
-    is_show_screenshot = mode == 'show' or task == 'show' or is_screenshot
+    is_screenshot = task == 'screenshot'
+    is_show_screenshot = task == 'show' or is_screenshot
 
     if is_show_screenshot:
-        mode = 'show'
         clobber = True
     else:
         clobber = False
 
     # Fixed for tool
-    setup_tool(chip, exit=(mode == 'batch' or is_screenshot), clobber=clobber)
+    setup_tool(chip, exit=task != 'show', clobber=clobber)
 
     # normalizing thread count based on parallelism and local
     threads = os.cpu_count()
