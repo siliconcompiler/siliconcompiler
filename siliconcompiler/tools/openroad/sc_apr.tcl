@@ -9,6 +9,9 @@ source ./sc_manifest.tcl  > /dev/null
 ###############################
 
 proc sc_get_layer_name { name } {
+  if { [string length $name] == 0 } {
+    return ""
+  }
   if { [ string is integer $name ] } {
     set layer [[ord::get_db_tech] findRoutingLayer $name]
     if { $layer == "NULL" } {
