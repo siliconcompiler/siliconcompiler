@@ -295,6 +295,8 @@ set openroad_rsz_slew_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_ta
 set openroad_rsz_cap_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_cap_margin] 0]
 set openroad_rsz_buffer_inputs [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_buffer_inputs] 0]
 set openroad_rsz_buffer_outputs [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_buffer_outputs] 0]
+set openroad_rsz_skip_pin_swap [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_skip_pin_swap] 0]
+set openroad_rsz_repair_tns [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_repair_tns] 0]
 
 set openroad_sta_early_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_early_timing_derate] 0]
 set openroad_sta_late_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_late_timing_derate] 0]
