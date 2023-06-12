@@ -274,7 +274,11 @@ def post_process(chip):
         "peakpower": [f"power/{corner}.rpt" for corner in chip.get('tool', tool, 'task', task,
                                                                    'var', 'timing_corners',
                                                                    step=step, index=index)],
-        "drvs": ["timing/drv_violators.rpt", "floating_nets.rpt"]
+        "drvs": ["timing/drv_violators.rpt",
+                 "floating_nets.rpt",
+                 f"{chip.design}_antenna.rpt",
+                 f"{chip.design}_antenna_post_repair.rpt",
+                 f"{chip.design}_drc.rpt"]
     }
     metric_reports["leakagepower"] = metric_reports["peakpower"]
 
