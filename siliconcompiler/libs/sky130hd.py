@@ -137,6 +137,7 @@ def setup(chip):
 
     lib.set('option', 'var', 'openroad_cts_clock_buffer', "sky130_fd_sc_hd__clkbuf_4")
 
+    lib.set('option', 'var', 'yosys_abc_clock_multiplier', "1000")  # convert from ns -> ps
     lib.set('option', 'var', 'yosys_driver_cell', "sky130_fd_sc_hd__buf_4")
     lib.set('option', 'var', 'yosys_buffer_cell', "sky130_fd_sc_hd__buf_4")
     lib.set('option', 'var', 'yosys_buffer_input', "A")

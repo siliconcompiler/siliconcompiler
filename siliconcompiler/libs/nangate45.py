@@ -100,6 +100,7 @@ def setup(chip):
     lib.set('option', 'file', 'openroad_global_connect',
             libdir + '/apr/openroad/global_connect.tcl')
 
+    lib.set('option', 'var', 'yosys_abc_clock_multiplier', "1000")  # convert from ns -> ps
     lib.set('option', 'var', 'yosys_driver_cell', "BUF_X4")
     lib.set('option', 'var', 'yosys_buffer_cell', "BUF_X1")
     lib.set('option', 'var', 'yosys_buffer_input', "A")
