@@ -102,6 +102,10 @@ def setup_asic(chip):
              ",".join(['tool', tool, 'task', task, 'var', 'synthesis_corner']),
              step=step, index=index)
 
+    # Require abc clock conversion factor, from library units to ps
+    chip.add('tool', tool, 'task', task, 'require',
+             ','.join(['library', mainlib, 'option', 'var', 'yosys_abc_clock_multiplier']),
+             step=step, index=index)
     abc_driver = get_abc_driver(chip)
     if abc_driver:
         chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver', abc_driver,
@@ -330,12 +334,18 @@ def get_abc_period(chip):
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
+    logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
+    mainlib = logiclibs[0]
+
     abc_clock_period = chip.get('tool', tool, 'task', task, 'var', 'abc_clock_period',
                                 step=step, index=index)
     if abc_clock_period:
         return abc_clock_period[0]
 
     period = None
+
+    abc_clock_multiplier = float(chip.get('library', mainlib, 'option', 'var',
+                                          'yosys_abc_clock_multiplier')[0])
 
     # get clock information from sdc files
     # TODO: fix for fpga/asic differentiation later
@@ -349,31 +359,27 @@ def get_abc_period(chip):
             for line in lines:
                 clock_period = re.findall(r"create_clock.*-period\s+([0-9\.]+)", line)
                 if clock_period:
-                    clock_period = float(clock_period[0])
+                    clock_period = float(clock_period[0]) * abc_clock_multiplier
 
                     if period is None:
                         period = clock_period
                     else:
                         period = min(period, clock_period)
 
-    if period is None and chip.valid('clock'):
+    if period is None:
         # get clock information from defined clocks
-        for clock in chip.getkeys('clock'):
-            if not chip.valid('clock', clock, 'period'):
-                continue
+        for pin in chip.getkeys('datasheet', 'pin'):
+            for mode in chip.getkeys('datasheet', 'pin', pin, 'type'):
+                if chip.get('datasheet', 'pin', pin, 'type', mode) == 'clock':
+                    clock_period = min(chip.get('datasheet', 'pin', pin, 'tperiod', mode)) * 1e12
 
-            clock_period = float(chip.get('clock', clock, 'period'))
-            if period is None:
-                period = clock_period
-            else:
-                period = min(period, clock_period)
+                    if period is None:
+                        period = clock_period
+                    else:
+                        period = min(period, clock_period)
 
     if period is None:
         return None
-
-    # need period in PS
-    if chip.get('unit', 'time')[0] == 'n':
-        period *= 1000
 
     abc_clock_derating = chip.get('tool', tool, 'task', task, 'var', 'abc_clock_derating',
                                   step=step, index=index)
