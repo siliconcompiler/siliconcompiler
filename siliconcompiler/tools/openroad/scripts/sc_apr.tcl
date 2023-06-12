@@ -300,6 +300,7 @@ set openroad_rsz_repair_tns [lindex [dict get $sc_cfg tool $sc_tool task $sc_tas
 
 set openroad_sta_early_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_early_timing_derate] 0]
 set openroad_sta_late_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_late_timing_derate] 0]
+set openroad_sta_top_n_paths [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_top_n_paths] 0]
 
 set openroad_fin_add_fill [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} fin_add_fill] 0]
 

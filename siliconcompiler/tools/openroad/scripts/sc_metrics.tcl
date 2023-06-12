@@ -18,14 +18,17 @@ set PREFIX "SC_METRIC:"
 puts "$PREFIX report_checks -path_delay max"
 report_checks -fields $fields -path_delay max -format full_clock_expanded > reports/timing/setup.rpt
 sc_display_report reports/timing/setup.rpt
+report_checks -path_delay max -group_count $openroad_sta_top_n_paths > reports/timing/setup.topN.rpt
 
 puts "$PREFIX report_checks -path_delay min"
 report_checks -fields $fields -path_delay min -format full_clock_expanded > reports/timing/hold.rpt
 sc_display_report reports/timing/hold.rpt
+report_checks -path_delay min -group_count $openroad_sta_top_n_paths > reports/timing/hold.topN.rpt
 
 puts "$PREFIX unconstrained"
 report_checks -fields $fields -unconstrained -format full_clock_expanded > reports/timing/unconstrained.rpt
 sc_display_report reports/timing/unconstrained.rpt
+report_checks -unconstrained -group_count $openroad_sta_top_n_paths > reports/timing/unconstrained.topN.rpt
 
 if {[llength [all_clocks]] > 0} {
   puts "$PREFIX clock_skew"

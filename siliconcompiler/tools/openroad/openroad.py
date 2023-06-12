@@ -266,8 +266,11 @@ def post_process(chip):
 
     metric_reports = {
         "setuptns": ["timing/total_negative_slack.rpt"],
-        "setupslack": ["timing/worst_slack.setup.rpt", "timing/setup.rpt"],
-        "holdslack": ["timing/worst_slack.hold.rpt", "timing/hold.rpt"],
+        "setupslack": ["timing/worst_slack.setup.rpt", "timing/setup.rpt", "timing/setup.topN.rpt"],
+        "setuppaths": ["timing/setup.topN.rpt"],
+        "holdslack": ["timing/worst_slack.hold.rpt", "timing/hold.rpt", "timing/hold.topN.rpt"],
+        "holdpaths": ["timing/hold.topN.rpt"],
+        "unconstrained": ["timing/unconstrained.topN.rpt"],
         "peakpower": [f"power/{corner}.rpt" for corner in chip.get('tool', tool, 'task', task,
                                                                    'var', 'timing_corners',
                                                                    step=step, index=index)],
@@ -828,6 +831,9 @@ def _define_sta_params(chip):
     _set_parameter(chip, param_key='sta_late_timing_derate',
                    default_value='0.0',
                    schelp='timing derating factor to use for setup corners')
+    _set_parameter(chip, param_key='sta_top_n_paths',
+                   default_value='10',
+                   schelp='number of paths to report timing for')
 
     chip.set('tool', tool, 'task', task, 'var', 'timing_corners', sorted(get_corners(chip)),
              step=step, index=index, clobber=False)
