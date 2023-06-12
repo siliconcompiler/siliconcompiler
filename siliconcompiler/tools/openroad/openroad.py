@@ -705,7 +705,7 @@ def _define_cts_params(chip):
                    schelp='maximum distance between buffers during clock tree synthesis in microns')
     _set_parameter(chip, param_key='cts_cluster_diameter',
                    default_value='100',
-                   schelp='clusting distance to use during clock tree synthesis in microns')
+                   schelp='clustering distance to use during clock tree synthesis in microns')
     _set_parameter(chip, param_key='cts_cluster_size',
                    default_value='30',
                    schelp='number of instances in a cluster to use during clock tree synthesis')
@@ -726,7 +726,7 @@ def _define_grt_params(chip):
                    schelp='true/false, when true perform pin access before global routing')
     _set_parameter(chip, param_key='grt_overflow_iter',
                    default_value='100',
-                   schelp='maximum number of iterations to use in flobal routing when '
+                   schelp='maximum number of iterations to use in global routing when '
                           'attempting to solve overflow')
     _set_parameter(chip, param_key='grt_macro_extension',
                    default_value='2',
