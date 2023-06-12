@@ -34,7 +34,7 @@ def setup_tool(chip, exit=True, clobber=True):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-7761', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-8515', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
 
     # exit automatically in batch mode and not breakpoint
@@ -52,7 +52,7 @@ def setup(chip):
 
     tool = 'openroad'
     script = 'sc_apr.tcl'
-    refdir = 'tools/' + tool
+    refdir = os.path.join('tools', tool, 'scripts')
 
     design = chip.top()
 
@@ -262,9 +262,32 @@ def post_process(chip):
     # Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    metric_reports = {
+        "setuptns": ["timing/total_negative_slack.rpt"],
+        "setupslack": ["timing/worst_slack.setup.rpt", "timing/setup.rpt"],
+        "holdslack": ["timing/worst_slack.hold.rpt", "timing/hold.rpt"],
+        "peakpower": [f"power/{corner}.rpt" for corner in chip.get('tool', tool, 'task', task,
+                                                                   'var', 'timing_corners',
+                                                                   step=step, index=index)],
+        "drvs": ["timing/drv_violators.rpt", "floating_nets.rpt"]
+    }
+    metric_reports["leakagepower"] = metric_reports["peakpower"]
+
+    metrics_file = "reports/metrics.json"
+
+    def get_metric_sources(metric):
+        metric_sources = [metrics_file]
+        if metric in metric_reports:
+            for metric_file in metric_reports[metric]:
+                metric_path = f'reports/{metric_file}'
+                if os.path.exists(metric_path):
+                    metric_sources.append(metric_path)
+        return metric_sources
 
     # parsing log file
-    with open("reports/metrics.json", 'r') as f:
+    with open(metrics_file, 'r') as f:
         metrics = json.load(f)
 
         or_units = {}
@@ -328,20 +351,20 @@ def post_process(chip):
 
                 if or_use:
                     chip._record_metric(step, index, metric, value,
-                                        "reports/metrics.json",
+                                        get_metric_sources(metric),
                                         source_unit=or_unit)
 
         # setup wns and hold wns can be computed from setup slack and hold slack
         if 'sc__metric__timing__setup__ws' in metrics and has_timing:
             wns = min(0.0, chip.get('metric', 'setupslack', step=step, index=index))
             chip._record_metric(step, index, 'setupwns', wns,
-                                "reports/metrics.json",
+                                get_metric_sources('setupslack'),
                                 source_unit=or_units['time'])
 
         if 'sc__metric__timing__hold__ws' in metrics and has_timing:
             wns = min(0.0, chip.get('metric', 'holdslack', step=step, index=index))
             chip._record_metric(step, index, 'holdwns', wns,
-                                "reports/metrics.json",
+                                get_metric_sources('holdslack'),
                                 source_unit=or_units['time'])
 
         drvs = None
@@ -358,7 +381,7 @@ def post_process(chip):
                     drvs += int(metrics[metric])
 
         if drvs is not None:
-            chip._record_metric(step, index, 'drvs', drvs, "reports/metrics.json")
+            chip._record_metric(step, index, 'drvs', drvs, get_metric_sources('drv'))
 
 
 ######

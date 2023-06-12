@@ -366,6 +366,10 @@ if {$sc_task != "floorplan"} {
   set_routing_layers -clock "${openroad_grt_clock_min_layer}-${openroad_grt_clock_max_layer}"
 }
 
+# Setup reports directories
+file mkdir reports/timing
+file mkdir reports/power
+
 if { $sc_task == "show" || $sc_task == "screenshot" } {
   if { $sc_task == "screenshot" } {
     source "$sc_refdir/sc_screenshot.tcl"
