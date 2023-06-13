@@ -2,43 +2,65 @@
 # Report Metrics
 ###############################
 
+proc sc_display_report {report} {
+  if { ![file exists $report] } {
+    return
+  }
+  set fid [open $report r]
+  set report_content [read $fid]
+  close $fid
+  puts $report_content
+}
+
 set fields "{capacitance slew input_pins nets fanout}"
 set PREFIX "SC_METRIC:"
 
 puts "$PREFIX report_checks -path_delay max"
-report_checks -fields $fields -path_delay max -format full_clock_expanded
+report_checks -fields $fields -path_delay max -format full_clock_expanded > reports/timing/setup.rpt
+sc_display_report reports/timing/setup.rpt
+report_checks -path_delay max -group_count $openroad_sta_top_n_paths > reports/timing/setup.topN.rpt
 
 puts "$PREFIX report_checks -path_delay min"
-report_checks -fields $fields -path_delay min -format full_clock_expanded
+report_checks -fields $fields -path_delay min -format full_clock_expanded > reports/timing/hold.rpt
+sc_display_report reports/timing/hold.rpt
+report_checks -path_delay min -group_count $openroad_sta_top_n_paths > reports/timing/hold.topN.rpt
 
 puts "$PREFIX unconstrained"
-report_checks -fields $fields -unconstrained -format full_clock_expanded
+report_checks -fields $fields -unconstrained -format full_clock_expanded > reports/timing/unconstrained.rpt
+sc_display_report reports/timing/unconstrained.rpt
+report_checks -unconstrained -group_count $openroad_sta_top_n_paths > reports/timing/unconstrained.topN.rpt
 
 if {[llength [all_clocks]] > 0} {
   puts "$PREFIX clock_skew"
-  report_clock_skew
+  report_clock_skew > reports/timing/skew.rpt
+  sc_display_report reports/timing/skew.rpt
   report_clock_skew_metric -setup
   report_clock_skew_metric -hold
 }
 
 puts "$PREFIX DRV violators"
-report_check_types -max_slew -max_capacitance -max_fanout -violators
+report_check_types -max_slew -max_capacitance -max_fanout -violators > reports/timing/drv_violators.rpt
+sc_display_report reports/timing/drv_violators.rpt
 report_erc_metrics
 
 puts "$PREFIX floating nets"
-report_floating_nets -verbose
+report_floating_nets -verbose > reports/floating_nets.rpt
+sc_display_report reports/floating_nets.rpt
 
 puts "$PREFIX tns"
-report_tns
+report_tns > reports/timing/total_negative_slack.rpt
+sc_display_report reports/timing/total_negative_slack.rpt
 report_tns_metric -setup
 report_tns_metric -hold
 
 puts "$PREFIX setupslack"
-report_worst_slack -max
+report_worst_slack -max > reports/timing/worst_slack.setup.rpt
+sc_display_report reports/timing/worst_slack.setup.rpt
 report_worst_slack_metric -setup
 
 puts "$PREFIX holdslack"
-report_worst_slack -min
+report_worst_slack -min > reports/timing/worst_slack.hold.rpt
+sc_display_report reports/timing/worst_slack.hold.rpt
 report_worst_slack_metric -hold
 
 utl::metric_int "timing__clocks" [llength [all_clocks]]
@@ -59,8 +81,10 @@ if { [llength [all_clocks]] == 1 } {
 
 puts "$PREFIX power"
 foreach corner [sta::corners] {
-  puts "Power for corner: [$corner name]"
-  report_power -corner [$corner name]
+  set corner_name [$corner name]
+  puts "Power for corner: $corner_name"
+  report_power -corner $corner_name > reports/power/${corner_name}.rpt
+  sc_display_report reports/power/${corner_name}.rpt
 }
 report_power_metric -corner $sc_power_corner
 

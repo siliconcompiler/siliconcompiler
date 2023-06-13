@@ -306,6 +306,7 @@ set openroad_rsz_repair_tns [lindex [dict get $sc_cfg tool $sc_tool task $sc_tas
 
 set openroad_sta_early_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_early_timing_derate] 0]
 set openroad_sta_late_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_late_timing_derate] 0]
+set openroad_sta_top_n_paths [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_top_n_paths] 0]
 
 set openroad_fin_add_fill [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} fin_add_fill] 0]
 
@@ -371,6 +372,10 @@ if {$sc_task != "floorplan"} {
   set_routing_layers -signal "${openroad_grt_signal_min_layer}-${openroad_grt_signal_max_layer}"
   set_routing_layers -clock "${openroad_grt_clock_min_layer}-${openroad_grt_clock_max_layer}"
 }
+
+# Setup reports directories
+file mkdir reports/timing
+file mkdir reports/power
 
 if { $sc_task == "show" || $sc_task == "screenshot" } {
   if { $sc_task == "screenshot" } {

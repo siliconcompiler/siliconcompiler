@@ -64,6 +64,8 @@ def setup_asic(chip):
     mainlib = logiclibs[0]
     for option, value, additional_require in [
             ('flatten', "True", None),
+            ('hier_iterations', "10", None),
+            ('hier_threshold', "1000", None),
             ('autoname', "True", None),
             ('add_buffers', "True", None),
             ('map_adders', "False", ['library', mainlib, 'option', 'file', 'yosys_addermap'])]:
@@ -145,6 +147,13 @@ def setup_asic(chip):
              'File to use for the DFF mapping stage of Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'add_buffers',
              'True/False, flag to indicate whether to add buffers or not.', field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'hier_iterations',
+             'Number of iterations to attempt to determine the hierarchy to flatten',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'hier_threshold',
+             'Instance limit for the number of cells in a module to preserve.',
+             field='help')
 
 
 ################################
