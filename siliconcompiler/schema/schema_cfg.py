@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.34.2'
+SCHEMA_VERSION = '0.34.3'
 
 
 #############################################################################
@@ -3240,7 +3240,7 @@ def schema_checklist(cfg):
             shorthelp="Checklist: item rational",
             switch="-checklist_rationale 'standard item <str>",
             example=[
-                "cli: -checklist_rational 'ISO D000 reliability'",
+                "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: chip.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"],
             schelp="""
             Rationale for the the checklist item. Rationale should be a
@@ -3754,7 +3754,7 @@ def schema_constraint(cfg):
             sctype='str',
             pernode='optional',
             shorthelp="Constraint: Net shielding",
-            switch="-constraint_net_shielding 'name <str>'",
+            switch="-constraint_net_shield 'name <str>'",
             example=[
                 "cli: -constraint_net_shield 'clk vss'",
                 "api: chip.set('constraint', 'net', 'clk', 'shield', 'vss')"],
