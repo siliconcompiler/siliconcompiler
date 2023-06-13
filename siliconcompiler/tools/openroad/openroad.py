@@ -850,15 +850,13 @@ def _define_mpl_params(chip):
                    default_value='false',
                    schelp='true/false, enables the RTLMP macro placement')
     _set_parameter(chip, param_key='rtlmp_min_instances',
-                   schelp='TODO')
+                   schelp='minimum number of instances to use while clustering for macro placement')
     _set_parameter(chip, param_key='rtlmp_max_instances',
-                   schelp='TODO')
+                   schelp='maximum number of instances to use while clustering for macro placement')
     _set_parameter(chip, param_key='rtlmp_min_macros',
-                   schelp='TODO')
+                   schelp='minimum number of macros to use while clustering for macro placement')
     _set_parameter(chip, param_key='rtlmp_max_macros',
-                   schelp='TODO')
-    _set_parameter(chip, param_key='rtlmp_dead_space',
-                   schelp='TODO')
+                   schelp='maximum number of macros to use while clustering for macro placement')
 
 
 def _define_ord_params(chip):

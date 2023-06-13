@@ -387,10 +387,6 @@ if {[design_has_unplaced_macros]} {
       lappend rtlmp_args -max_num_macro $openroad_rtlmp_max_macros
     }
 
-    if { $openroad_rtlmp_dead_space != "" } {
-      lappend rtlmp_args -dead_space $openroad_rtlmp_dead_space
-    }
-
     rtl_macro_placer -report_directory reports/rtlmp \
       -halo_width $halo_max \
       {*}$rtlmp_args

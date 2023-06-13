@@ -243,7 +243,6 @@ set openroad_rtlmp_min_instances [lindex [dict get $sc_cfg tool $sc_tool task $s
 set openroad_rtlmp_max_instances [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_max_instances] 0]
 set openroad_rtlmp_min_macros [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_min_macros] 0]
 set openroad_rtlmp_max_macros [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_max_macros] 0]
-set openroad_rtlmp_dead_space [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_dead_space] 0]
 
 set openroad_gpl_place_density [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} place_density] 0]
 set openroad_gpl_padding [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} pad_global_place] 0]
