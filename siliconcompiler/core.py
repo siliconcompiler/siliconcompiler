@@ -401,7 +401,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         parser = argparse.ArgumentParser(prog=progname,
                                          prefix_chars='-+',
                                          formatter_class=argparse.RawDescriptionHelpFormatter,
-                                         description=description)
+                                         description=description,
+                                         allow_abbrev=False)
 
         # Get a new schema, incase values have already been set
         schema = Schema(logger=self.logger)
