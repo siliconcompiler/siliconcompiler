@@ -1,4 +1,74 @@
 ####################
+# Helper functions
+####################
+proc preserve_modules {} {
+    global sc_cfg
+    global sc_tool
+    global sc_task
+
+    if {[dict exists $sc_cfg tool $sc_tool task $sc_task var preserve_modules]} {
+        foreach module [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
+            yosys select -module $module
+            yosys setattr -mod -set keep_hierarchy 1
+            yosys select -clear
+        }
+    }
+}
+
+proc get_modules {} {
+    yosys echo off
+    set modules_ls [yosys tee -q -s result.string ls]
+    yosys echo on
+    # Grab only the modules and not the header and footer
+    set modules [list]
+    foreach module [lrange [split $modules_ls \n] 2 end-1] {
+        set module [string trim $module]
+        if { [string length $module] == 0 } {
+            continue
+        }
+        lappend modules $module
+    }
+    return [lsort $modules]
+}
+
+proc determine_keep_hierarchy { iter cell_limit } {
+    global sc_design
+
+    # Grab only the modules and not the header and footer
+    set modules [get_modules]
+
+    # Save a copy of the current design so we can do a few optimizations and techmap
+    yosys design -save hierarchy_checkpoint
+    yosys techmap
+    yosys opt -fast -full -purge
+
+    set cell_counts [dict create]
+
+    foreach module $modules {
+        yosys stat -top $module
+        yosys echo off
+        set cells_count [yosys tee -q -s result.string scratchpad -get stat.num_cells]
+        yosys echo on
+        dict set cell_counts $module [expr int($cells_count)]
+    }
+
+    # Restore design
+    yosys design -load hierarchy_checkpoint
+    foreach module $modules {
+        yosys select -module $module
+        yosys setattr -mod -set keep_hierarchy [expr [dict get $cell_counts $module] > $cell_limit]
+        yosys select -clear
+    }
+
+    preserve_modules
+
+    # Rerun coarse synth with flatten
+    yosys synth -flatten -top $sc_design -run coarse:fine
+
+    return [expr [llength $modules] != [llength [get_modules]]]
+}
+
+####################
 # DESIGNER's CHOICE
 ####################
 
@@ -82,19 +152,28 @@ foreach lib_file "$sc_libraries $sc_macro_libraries" {
 yosys hierarchy -top $sc_design
 
 # Mark modules to keep from getting removed in flattening
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var preserve_modules]} {
-    foreach module [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
-        yosys select -module $module
-        yosys setattr -mod -set keep_hierarchy 1
-        yosys select -clear
-    }
-}
+preserve_modules
 
 set synth_args []
 if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] == "True"} {
     lappend synth_args "-flatten"
 }
-yosys synth {*}$synth_args -top $sc_design
+# Start synthesis
+yosys synth {*}$synth_args -top $sc_design -run begin:fine
+
+# Perform hierarchy flattening
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] != "True"} {
+    set sc_hier_iterations [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_iterations] 0]
+    set sc_hier_threshold [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_threshold] 0]
+    for {set i 0} {$i < $sc_hier_iterations} {incr i} {
+        if { [determine_keep_hierarchy $i $sc_hier_threshold] == 0} {
+            break
+        }
+    }
+}
+
+# Finish synthesis
+yosys synth {*}$synth_args -top $sc_design -run fine:check
 
 yosys opt -purge
 
@@ -180,6 +259,7 @@ yosys abc -liberty $sc_dff_library {*}$abc_args
 # Cleanup
 ########################################################
 
+yosys clean -purge
 yosys setundef -zero
 
 yosys splitnets
