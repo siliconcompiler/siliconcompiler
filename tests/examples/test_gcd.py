@@ -43,8 +43,8 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='cts', index='0') == 5
 
     # Warning: *. (x3)
-    # Missing route to pin (x63)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 66
+    # Missing route to pin (x85)
+    assert chip.get('metric', 'warnings', step='route', index='0') == 88
 
     # Warning: *. (x3)
     # Missing route to pin (x224)
