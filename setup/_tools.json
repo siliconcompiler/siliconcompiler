@@ -45,7 +45,7 @@
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "4b7b185d05a8d56e29de4acfee9a5c63f927bfc2",
+    "git-commit": "ac4315e145a133f25ea7d580b621d17a3a4e3f45",
     "auto-update": true
   },
   "bambu": {
