@@ -63,7 +63,7 @@ def setup_asic(chip):
     logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
     mainlib = logiclibs[0]
     for option, value, additional_require in [
-            ('flatten', "False", None),
+            ('flatten', "True", None),
             ('hier_iterations', "10", None),
             ('hier_threshold', "1000", None),
             ('autoname', "True", None),
