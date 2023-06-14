@@ -63,23 +63,17 @@ def setup_asic(chip):
     # set default control knobs
     logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
     mainlib = logiclibs[0]
-    for option, value, additional_require in [
-            ('flatten', "true", None),
-            ('hier_iterations', "10", None),
-            ('hier_threshold', "1000", None),
-            ('autoname', "true", None),
-            ('add_buffers', "true", None),
-            ('map_adders', "false", ['library', mainlib, 'option', 'file', 'yosys_addermap'])]:
+    for option, value in [
+            ('flatten', "true"),
+            ('hier_iterations', "10"),
+            ('hier_threshold', "1000"),
+            ('autoname', "true"),
+            ('add_buffers', "true")]:
         chip.set('tool', tool, 'task', task, 'var', option, value,
                  step=step, index=index, clobber=False)
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['tool', tool, 'task', task, 'var', option]),
                  step=step, index=index)
-        if additional_require is not None and chip.get('tool', tool, 'task', task, 'var', option,
-                                                       step=step, index=index)[0] != "false":
-            chip.add('tool', tool, 'task', task, 'require',
-                     ",".join(additional_require),
-                     step=step, index=index)
 
     # Add conditionally required mainlib variables
     if chip.valid('library', mainlib, 'option', 'var', 'yosys_buffer_cell'):
@@ -88,6 +82,16 @@ def setup_asic(chip):
                  step=step, index=index)
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['library', mainlib, 'option', 'var', 'yosys_buffer_output']),
+                 step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'var', 'map_adders',
+             "true" if chip.valid('library', mainlib, 'option', 'file', 'yosys_addermap') else
+             "false",
+             step=step, index=index, clobber=False)
+    if chip.get('tool', tool, 'task', task, 'var', 'map_adders', step=step, index=index)[0] == \
+       "true":
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['tool', tool, 'task', task, 'var', option]),
                  step=step, index=index)
 
     for var0, var1 in [('yosys_tiehigh_cell', 'yosys_tiehigh_port'),
@@ -122,7 +126,7 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'var', 'autoname',
              'true/false, call autoname to rename wires based on registers', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'map_adders',
-             'false/path to map_adders, techmap adders in Yosys', field='help')
+             'true/false, techmap adders in Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner',
              'Timing corner to use for synthesis', field='help')
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty',

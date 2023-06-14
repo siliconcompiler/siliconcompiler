@@ -186,8 +186,8 @@ proc post_techmap { { opt_args "" } } {
     # Quick optimization
     yosys opt {*}$opt_args -purge
 }
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] != "false"} {
-    set sc_adder_techmap [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] 0]
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] == "true"} {
+    set sc_adder_techmap [lindex [dict get $sc_cfg library $sc_mainlib option {file} yosys_addermap] 0]
     # extract the full adders
     yosys extract_fa
     # map full adders
@@ -195,7 +195,7 @@ if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] != "false"} {
     post_techmap -fast
 }
 
-if [dict exists $sc_cfg tool $sc_tool task $sc_task {file} techmap] {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} techmap] } {
     foreach mapfile [dict get $sc_cfg tool $sc_tool task $sc_task {file} techmap] {
         yosys techmap -map $mapfile
         post_techmap -fast
