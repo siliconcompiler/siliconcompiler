@@ -23,8 +23,8 @@ def setup(chip):
     chip.set('option', 'quiet', True, clobber=False)
 
     # Set die area and clock constraint.
-    chip.set('constraint', 'outline', [(0, 0), (55, 55)], clobber=False)
-    chip.set('constraint', 'corearea', [(5, 5), (50, 50)], clobber=False)
+    chip.set('constraint', 'outline', [(0, 0), (50, 50)], clobber=False)
+    chip.set('constraint', 'corearea', [(5, 5), (45, 45)], clobber=False)
     chip.clock('clk', period=10)
 
     # Add source files.
