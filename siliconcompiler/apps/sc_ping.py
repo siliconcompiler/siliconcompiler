@@ -7,7 +7,7 @@ import argparse
 from siliconcompiler.utils import default_credentials_file
 
 from siliconcompiler import Chip
-from siliconcompiler.client import remote_ping
+from siliconcompiler.remote.client import remote_ping
 
 
 def main():
