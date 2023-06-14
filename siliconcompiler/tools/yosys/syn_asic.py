@@ -64,19 +64,19 @@ def setup_asic(chip):
     logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
     mainlib = logiclibs[0]
     for option, value, additional_require in [
-            ('flatten', "True", None),
+            ('flatten', "true", None),
             ('hier_iterations', "10", None),
             ('hier_threshold', "1000", None),
-            ('autoname', "True", None),
-            ('add_buffers', "True", None),
-            ('map_adders', "False", ['library', mainlib, 'option', 'file', 'yosys_addermap'])]:
+            ('autoname', "true", None),
+            ('add_buffers', "true", None),
+            ('map_adders', "false", ['library', mainlib, 'option', 'file', 'yosys_addermap'])]:
         chip.set('tool', tool, 'task', task, 'var', option, value,
                  step=step, index=index, clobber=False)
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['tool', tool, 'task', task, 'var', option]),
                  step=step, index=index)
         if additional_require is not None and chip.get('tool', tool, 'task', task, 'var', option,
-                                                       step=step, index=index)[0] != "False":
+                                                       step=step, index=index)[0] != "false":
             chip.add('tool', tool, 'task', task, 'require',
                      ",".join(additional_require),
                      step=step, index=index)
@@ -118,11 +118,11 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'var', 'preserve_modules',
              'List of modules in input files to prevent flatten from "flattening"', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'flatten',
-             'True/False, invoke synth with the -flatten option', field='help')
+             'true/false, invoke synth with the -flatten option', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'autoname',
-             'True/False, call autoname to rename wires based on registers', field='help')
+             'true/false, call autoname to rename wires based on registers', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'map_adders',
-             'False/path to map_adders, techmap adders in Yosys', field='help')
+             'true/path to map_adders, techmap adders in Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner',
              'Timing corner to use for synthesis', field='help')
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty',
@@ -147,13 +147,18 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file',
              'File to use for the DFF mapping stage of Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'add_buffers',
-             'True/False, flag to indicate whether to add buffers or not.', field='help')
+             'false/false, flag to indicate whether to add buffers or not.', field='help')
 
     chip.set('tool', tool, 'task', task, 'var', 'hier_iterations',
              'Number of iterations to attempt to determine the hierarchy to flatten',
              field='help')
     chip.set('tool', tool, 'task', task, 'var', 'hier_threshold',
              'Instance limit for the number of cells in a module to preserve.',
+             field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'strategy',
+             'ABC synthesis strategy. Allowed valued DELAY0-4, AREA0-3, or if the strategy '
+             'starts with a + it is assumed to be actual commands for ABC.',
              field='help')
 
 

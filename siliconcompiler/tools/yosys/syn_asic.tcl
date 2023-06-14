@@ -155,14 +155,14 @@ yosys hierarchy -top $sc_design
 preserve_modules
 
 set synth_args []
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] == "True"} {
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] == "true"} {
     lappend synth_args "-flatten"
 }
 # Start synthesis
 yosys synth {*}$synth_args -top $sc_design -run begin:fine
 
 # Perform hierarchy flattening
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] != "True"} {
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] != "true"} {
     set sc_hier_iterations [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_iterations] 0]
     set sc_hier_threshold [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_threshold] 0]
     for {set i 0} {$i < $sc_hier_iterations} {incr i} {
@@ -186,7 +186,7 @@ proc post_techmap { { opt_args "" } } {
     # Quick optimization
     yosys opt {*}$opt_args -purge
 }
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] != "False"} {
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] != "false"} {
     set sc_adder_techmap [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] 0]
     # extract the full adders
     yosys extract_fa
@@ -202,7 +202,7 @@ if [dict exists $sc_cfg tool $sc_tool task $sc_task {file} techmap] {
     }
 }
 
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var autoname] == "True"} {
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var autoname] == "true"} {
     # use autoname to preserve some design naming
     # by doing it before dfflibmap the names will be slightly shorter since they will
     # only contain the $DFF_P names vs. the full library name of the associated flip-flop
@@ -217,16 +217,16 @@ post_techmap
 source "$sc_refdir/syn_strategies.tcl"
 
 set script ""
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var strategy]} {
-    set sc_strategy [dict get $sc_cfg tool $sc_tool task $sc_task var strategy]
-    if { [dict exists $syn_strategies $sc_strategy] } {
-        set script [dict get $syn_strategies $sc_strategy]
-    } elseif { [string match "+*" $sc_strategy] } {
-        # ABC script passthrough
-        set script $sc_stratety
-    } else {
-        yosys log "Warning: no such synthesis strategy $sc_strategy"
-    }
+set sc_strategy [dict get $sc_cfg tool $sc_tool task $sc_task var strategy]
+if { [string length $sc_strategy] == 0 } {
+    # Do nothing
+} elseif { [dict exists $syn_strategies $sc_strategy] } {
+    set script [dict get $syn_strategies $sc_strategy]
+} elseif { [string match "+*" $sc_strategy] } {
+    # ABC script passthrough
+    set script $sc_stratety
+} else {
+    yosys log "Warning: no such synthesis strategy $sc_strategy"
 }
 
 # TODO: other abc flags passed in by OpenLANE we can adopt:
@@ -277,7 +277,7 @@ if {[llength $yosys_hilomap_args] != 0} {
     yosys hilomap -singleton {*}$yosys_hilomap_args
 }
 
-if {[has_buffer_cell] && [dict get $sc_cfg tool $sc_tool task $sc_task var add_buffers] == "True"} {
+if {[has_buffer_cell] && [dict get $sc_cfg tool $sc_tool task $sc_task var add_buffers] == "true"} {
     yosys insbuf -buf {*}[get_buffer_cell]
 }
 
