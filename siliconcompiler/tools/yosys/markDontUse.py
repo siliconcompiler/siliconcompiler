@@ -22,7 +22,7 @@ def processLibertyFile(input_file, dont_use, quiet=False):
     patternList = [re.compile(fnmatch.translate(du)) for du in dont_use]
 
     content_dont_use = ""
-    re_cell_line = re.compile(r"^\s*cell\s*\(\s*[\"]?(.*)[\"]?\)\s*\{")
+    re_cell_line = re.compile(r"^\s*cell\s*\(\s*[\"]?(\w+)[\"]?\)\s*\{")
     count = 0
     for line in content.splitlines():
         content_dont_use += line + "\n"
