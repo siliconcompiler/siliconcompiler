@@ -167,8 +167,6 @@ def prepare_synthesis_libraries(chip):
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
-    mainlib = chip.get('asic', 'logiclib', step=step, index=index)[0]
-
     corner = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner',
                       step=step, index=index)[0]
 
@@ -176,19 +174,16 @@ def prepare_synthesis_libraries(chip):
     dff_liberty_file = chip.find_files('tool', tool, 'task', task, 'file', 'dff_liberty',
                                        step=step, index=index)[0]
     dff_dont_use = []
-    if chip.valid('library', mainlib, 'option', 'var', 'yosys_dff_liberty_dontuse'):
-        dff_dont_use = chip.get('library', mainlib, 'option', 'var', 'yosys_dff_liberty_dontuse')
-    else:
-        for lib in chip.get('asic', 'logiclib', step=step, index=index):
-            dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse', step=step, index=index)
-            if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel,
-                                                   step=step, index=index):
-                # if we have the exact library, use those dontuses,
-                # otherwise continue to build full list
-                dff_dont_use = dontuse
-                break
+    for lib in chip.get('asic', 'logiclib', step=step, index=index):
+        dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse', step=step, index=index)
+        if dff_liberty_file in chip.find_files('library', lib, 'output', corner, delaymodel,
+                                               step=step, index=index):
+            # if we have the exact library, use those dontuses,
+            # otherwise continue to build full list
+            dff_dont_use = dontuse
+            break
 
-            dff_dont_use.extend(dontuse)
+        dff_dont_use.extend(dontuse)
 
     with open(chip.get('tool', tool, 'task', task, 'file', 'dff_liberty_file',
                        step=step, index=index)[0], 'w') as f:

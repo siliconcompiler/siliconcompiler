@@ -64,7 +64,7 @@ def _setup_lib(chip, libname, suffix):
                                        f"DECAPx10_ASAP7_75t_{suffix}"])
 
     # Stupid small cells
-    lib.add('asic', 'cells', 'dontuse', ["*x1_ASAP7*",
+    lib.add('asic', 'cells', 'dontuse', ["[!ASYNC]*x1_ASAP7*",
                                          "*x1p*_ASAP7*",
                                          "*xp*_ASAP7*",
                                          "SDF*",
@@ -82,7 +82,6 @@ def _setup_lib(chip, libname, suffix):
     lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v')
     lib.set('option', 'file', 'yosys_dff_liberty',
             libdir + '/nldm/' + libname + '_' + 'ss.lib.gz')
-    lib.set('option', 'var', 'yosys_dff_liberty_dontuse', ["*x1p*_ASAP7*", "*xp*_ASAP7*"])
 
     # Defaults for OpenROAD tool variables
     lib.set('option', 'var', 'openroad_place_density', '0.60')
