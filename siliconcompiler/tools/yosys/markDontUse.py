@@ -6,7 +6,7 @@ import gzip
 import argparse  # argument parsing
 
 
-def processLibertyFile(input_file, output_file, dont_use, quiet=False):
+def processLibertyFile(input_file, dont_use, quiet=False):
     # Convert * wildcards to regex wildcards
     patternList = [du.replace('*', '.*') for du in dont_use]
 
@@ -52,12 +52,8 @@ def processLibertyFile(input_file, output_file, dont_use, quiet=False):
     if not quiet:
         print("Replaced capacitive load", count)
 
-    # Write output file
-    if not quiet:
-        print("Writing replaced file:", output_file)
-    f = open(output_file, "w")
-    f.write(content)
-    f.close()
+    # Return new text
+    return content
 
 
 if __name__ == "__main__":
