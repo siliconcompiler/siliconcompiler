@@ -223,6 +223,9 @@ def prepare_synthesis_libraries(chip):
                                                    chip.get('option', 'quiet',
                                                             step=step, index=index)))
 
+            if not lib_content:
+                continue
+
             var_name = 'synthesis_libraries'
             if libtype == "macrolib":
                 var_name = 'synthesis_libraries_macros'

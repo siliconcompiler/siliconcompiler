@@ -5014,7 +5014,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not filepath:
             return None
 
+        env_save = os.environ.copy()
+        for env in self.getkeys('option', 'env'):
+            os.environ[env] = self.get('option', 'env', env)
         resolved_path = os.path.expandvars(filepath)
+        os.environ.clear()
+        os.environ.update(env_save)
 
         # variables that don't exist in environment get ignored by `expandvars`,
         # but we can do our own error checking to ensure this doesn't result in
