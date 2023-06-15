@@ -5,9 +5,14 @@ from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
 from PIL import Image
 import report
+import os
 import sys
 sys.path.append('..')
 import core
+
+successColor = '#8EA604' #green
+pendingColor = '#F5BB00' #yellow, could use: #EC9F05
+failureColor = '#FF4E00' #red, could use: #BF3100
 
 ################################
 
@@ -15,28 +20,45 @@ def get_nodes_and_edges(nodeDependencies, successfulPath):
     nodes = []
     edges = []
     for step, index in nodeDependencies :
-        style = 'solid'
-        nodeColor = 'blue'
+        opacity = 0.2
+        width = 1
         if (step, index) in successfulPath :
-            style = 'bold'
+            opacity = 1
             if successfulPath[step, index] != None :
-                nodeColor = 'green'
+                width = 3
+
+        flow = chip.get("option", "flow")
+        taskStatus = chip.get('flowgraph', flow, step, index, 'status')
+        if  taskStatus == core.TaskStatus.SUCCESS :
+            nodeColor = successColor
+        elif taskStatus == core.TaskStatus.ERROR :
+            nodeColor = failureColor
+        else:
+            nodeColor = pendingColor
+
+        tool, task = chip._get_tool_task(step, index)
+        label = step+index+"\n"+tool+","+task
+        if chip._is_builtin(tool, task):
+            label=step+index+"\n"+tool
+
         nodes.append( 
-                Node(id=f"({step}, {index})", #must be string, identification is string of tuple
-                    label=step+index,
+                Node(id=step+index,
+                    label=label,
                     color=nodeColor,
-                    style=style
+                    opacity=opacity,
+                    borderWidth=width,
+                    shape='oval'
                     )
                 )
         for sourceStep, sourceIndex in nodeDependencies[step, index] :
-            style='solid'
+            width = 3
             if (sourceStep, sourceIndex) in successfulPath and (sourceStep, sourceIndex) in successfulPath:
-                style='bold'
+                width = 5
             edges.append( 
-                    Edge(source=f"({sourceStep}, {sourceIndex})", 
+                    Edge(source=sourceStep+sourceIndex,
                     dir='back', 
-                    target=f"({step}, {index})", 
-                    style=style
+                    target=step+index, 
+                    width=width
                     ) 
                     )
     return nodes[::-1], edges #reversed() doesn't work, breaks code
@@ -60,15 +82,15 @@ nodesRecordDf.index = nodesRecordDf.index.map(lambda x: f'{x[0]}{x[1]}')
 
 streamlit.title(f'{chip.design} Metrics')
 
-col1, col2 = streamlit.columns([0.4, 0.6], gap="large")
+col1, col2 = streamlit.columns([0.3, 0.7], gap="large")
 
 with col1:
     streamlit.header('Flowgraph')
 
-    config = Config(width=200,
-                height=400,
+    config = Config(width='100%',
+                height=900, #need to update dynamically, could use number of attributes displayed + offset
                 directed=True, 
-                physics=True, 
+                physics=False, 
                 hierarchical=True,
                 )
 
@@ -102,18 +124,13 @@ with col2:
             params_submitted = streamlit.form_submit_button("Run")
 
     if options['cols'] == [] or options ['rows'] == []:
-        options = {'cols' : dataDf .columns.tolist(), 'rows' : dataDf .index.tolist()}
+        options = {'cols' : dataDf .columns.tolist(), 'rows' : dataDf.index.tolist()}
 
-    container.dataframe((dataDf.loc[options['rows'], options['cols']]), use_container_width=True)
+    container.dataframe((dataDf.loc[options['rows'], options['cols']]), 
+                        use_container_width=True)
 
-col1, col2 = streamlit.columns([0.3, 0.7], gap="large")
+    ############################################################################
 
-with col1:
-    streamlit.header('Manifest Tree')
-
-    streamlit.json(manifestTree, expanded=False)
-
-with col2:
     streamlit.header('Node Information')
 
     option = dataDf.columns.tolist()[0]
@@ -139,21 +156,52 @@ with col2:
     with col3:
         streamlit.caption(option)
 
-        #not working yet
+        #converts from data formatting to display format
         displayLogsAndReports = {}
-        # displayToDataDict = {}
         for step, index in logsAndReportsDict:
-            # displayToDataDict[step+index] = (step, index)
             displayLogsAndReports[step+index] = logsAndReportsDict[step, index]
+
         selected = tree_select(displayLogsAndReports[option], 
                                expand_on_click=True, 
                                only_leaf_checkboxes=True)
-        # step, index = displayToDataDict[option]
+
         if selected["checked"] != [] :
-            with open(selected["checked"][0], 'r') as file:
+            index = 0
+
+            #searches for the first file selected in order of tree
+            while os.path.isdir(selected["checked"][index]):
+                index += 1
+            file_name, file_extension = os.path.splitext(selected["checked"][index])
+            with open(selected["checked"][index], 'r') as file:
                 content = file.read() 
-            streamlit.download_button( label="Download file",
-                                        data=content,
-                                        mime='text')
+            streamlit.download_button(label=f"Download file",
+                                    data=content,
+                                    mime=file_extension)
+            
+            streamlit.header('File Preview')
+
+            if file_extension == ".json":
+                streamlit.json(content)
+            else:
+                textContent = ""
+                i = 1
+                for line in content.splitlines(True):
+                    textContent += f"{i}.{line}" 
+                    i += 1
+
+                streamlit.text(textContent)
+
+col1, col2 = streamlit.columns([0.5, 0.5], gap="large")
+
+with col1:
+    streamlit.header('Manifest Tree')
+
+    streamlit.json(manifestTree, expanded=False)
+
+with col2:  
+    streamlit.header('GDS Preview')
+
+    streamlit.image(f'{chip._getworkdir()}/{chip.design}.png')
+    
 
 ################################

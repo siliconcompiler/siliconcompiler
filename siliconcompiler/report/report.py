@@ -26,6 +26,7 @@ def makeList(chip, steplist=None):
     # Collections for data
     nodes = []
     metrics = {}
+    metrics_unit = {}
 
     # Build ordered list of nodes in flowgraph
     for step in steplist:
@@ -75,10 +76,14 @@ def makeList(chip, steplist=None):
 
         if show_metric:
             metrics_to_show.append(metric)
+            metrics_unit[metric] = metric_unit if metric_unit else ''
 
     # converts from 2d dictionary to pandas DataFrame, transposes so orientation 
     # is correct, and filters based on the metrics we track
-    return (pandas.DataFrame.from_dict(metrics, orient='index').transpose()).loc[metrics_to_show]
+    data = (pandas.DataFrame.from_dict(metrics, orient='index').transpose()).loc[metrics_to_show]
+    # include metrics_unit
+    data.index = data.index.map(lambda x: (x, metrics_unit[x]))
+    return data
 
 ################################
 
