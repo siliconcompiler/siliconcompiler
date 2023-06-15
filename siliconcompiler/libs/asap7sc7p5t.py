@@ -5,9 +5,6 @@ import siliconcompiler
 def _setup_lib(chip, libname, suffix):
     lib = siliconcompiler.Library(chip, libname)
 
-    group = 'asap7sc7p5t'
-    vt = 'rvt'
-    libname = f'{group}_{vt}'
     foundry = 'virtual'
     process = 'asap7'
     stackup = '10M'
@@ -67,7 +64,7 @@ def _setup_lib(chip, libname, suffix):
                                        f"DECAPx10_ASAP7_75t_{suffix}"])
 
     # Stupid small cells
-    lib.add('asic', 'cells', 'dontuse', ["*x1_ASAP7*",
+    lib.add('asic', 'cells', 'dontuse', ["[!ASYNC]*x1_ASAP7*",
                                          "*x1p*_ASAP7*",
                                          "*xp*_ASAP7*",
                                          "SDF*",
@@ -83,6 +80,8 @@ def _setup_lib(chip, libname, suffix):
     # Yosys techmap
     lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
     lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v')
+    lib.set('option', 'file', 'yosys_dff_liberty',
+            libdir + '/nldm/' + libname + '_' + 'ss.lib.gz')
 
     # Defaults for OpenROAD tool variables
     lib.set('option', 'var', 'openroad_place_density', '0.60')

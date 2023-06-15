@@ -3,6 +3,7 @@ from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
 import os
 import re
 import siliconcompiler.tools.yosys.markDontUse as markDontUse
+import siliconcompiler.tools.yosys.mergeLib as mergeLib
 
 
 def make_docs(chip):
@@ -166,7 +167,6 @@ def prepare_synthesis_libraries(chip):
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
-
     corner = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner',
                       step=step, index=index)[0]
 
@@ -185,12 +185,13 @@ def prepare_synthesis_libraries(chip):
 
         dff_dont_use.extend(dontuse)
 
-    markDontUse.processLibertyFile(
-        dff_liberty_file,
-        chip.get('tool', tool, 'task', task, 'file', 'dff_liberty_file', step=step, index=index)[0],
-        dff_dont_use,
-        chip.get('option', 'quiet', step=step, index=index),
-    )
+    with open(chip.get('tool', tool, 'task', task, 'file', 'dff_liberty_file',
+                       step=step, index=index)[0], 'w') as f:
+        f.write(markDontUse.processLibertyFile(
+            dff_liberty_file,
+            dff_dont_use,
+            chip.get('option', 'quiet', step=step, index=index),
+        ))
 
     # Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
 
@@ -209,28 +210,36 @@ def prepare_synthesis_libraries(chip):
 
         return synthesis_libraries
 
-    def process_lib_file(libtype, lib, lib_file, dont_use):
-        input_base_name = os.path.splitext(os.path.basename(lib_file))[0]
-        output_file = os.path.join(
-            chip._getworkdir(step=step, index=index),
-            'inputs',
-            f'sc_{libtype}_{lib}_{input_base_name}.lib'
-        )
-        markDontUse.processLibertyFile(lib_file, output_file, dont_use,
-                                       chip.get('option', 'quiet', step=step, index=index))
-
-        var_name = 'synthesis_libraries'
-        if (libtype == "macrolib"):
-            var_name = 'synthesis_libraries_macros'
-
-        chip.add('tool', tool, 'task', task, 'file', var_name, output_file, step=step, index=index)
-
     for libtype in ('logiclib', 'macrolib'):
         for lib in chip.get('asic', libtype, step=step, index=index):
-            dont_use = chip.get('library', lib, 'asic', 'cells', 'dontuse', step=step, index=index)
+            dont_use = chip.get('library', lib, 'asic', 'cells', 'dontuse',
+                                step=step, index=index)
 
+            lib_content = []
+            # Mark dont use
             for lib_file in get_synthesis_libraries(lib):
-                process_lib_file(libtype, lib, lib_file, dont_use)
+                lib_content.append(
+                    markDontUse.processLibertyFile(lib_file, dont_use,
+                                                   chip.get('option', 'quiet',
+                                                            step=step, index=index)))
+
+            var_name = 'synthesis_libraries'
+            if libtype == "macrolib":
+                var_name = 'synthesis_libraries_macros'
+
+            lib_content = mergeLib.mergeLib(f"{lib}_merged", lib_content[0], lib_content[1:])
+
+            output_file = os.path.join(
+                chip._getworkdir(step=step, index=index),
+                'inputs',
+                f'sc_{libtype}_{lib}.lib'
+            )
+
+            with open(output_file, 'w') as f:
+                f.write(lib_content)
+
+            chip.add('tool', tool, 'task', task, 'file', var_name, output_file,
+                     step=step, index=index)
 
 
 def create_abc_synthesis_constraints(chip):
