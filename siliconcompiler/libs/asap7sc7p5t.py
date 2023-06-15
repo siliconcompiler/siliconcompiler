@@ -81,7 +81,7 @@ def _setup_lib(chip, libname, suffix):
     lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
     lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v')
     lib.set('option', 'file', 'yosys_dff_liberty',
-            libdir + '/nldm/' + libname + '_' + lib_corner + '.lib.gz')
+            libdir + '/nldm/' + libname + '_' + 'ss.lib.gz')
     lib.set('option', 'var', 'yosys_dff_liberty_dontuse', ["*x1p*_ASAP7*", "*xp*_ASAP7*"])
 
     # Defaults for OpenROAD tool variables
