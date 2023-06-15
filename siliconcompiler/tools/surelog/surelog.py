@@ -65,9 +65,9 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[(ERR|FTL|SNT):',
              step=step, index=index, clobber=False)
 
-    # warnings_off = chip.get('tool', tool, 'warningoff')
-    # for warning in warnings_off:
-    #    chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}')
+    for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
+        chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}',
+                 step=step, index=index)
 
 
 def parse_version(stdout):

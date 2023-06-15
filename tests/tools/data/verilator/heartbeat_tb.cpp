@@ -1,5 +1,15 @@
 #include "Vheartbeat.h"
 
+#include "test.h"
+
+#ifndef REQUIRED_FROM_USER
+#error "Fail"
+#endif
+
+#ifndef REQUIRED_FROM_HEADER
+#error "Fail"
+#endif
+
 int main() {
     Vheartbeat *tb = new Vheartbeat;
 

@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import csv
+import os
 
 import pytest
 
@@ -15,10 +16,28 @@ def test_write_manifest():
     chip.input('b.v')
     chip.input('c.v')
 
-    chip.write_manifest('top.pkg.json')
-    chip.write_manifest('top.csv')
-    chip.write_manifest('top.tcl', prune=False)
-    chip.write_manifest('top.yaml')
+    for ext in ('pkg.json', 'tcl', 'csv', 'yaml',
+                'pkg.json.gz', 'tcl.gz', 'csv.gz', 'yaml.gz'):
+        manifest_path = f'top.{ext}'
+        chip.write_manifest(manifest_path)
+        assert os.path.exists(manifest_path)
+
+
+def test_write_manifest_prune():
+
+    chip = siliconcompiler.Chip('top')
+    chip.input('top.sdc')
+    chip.input('top.v')
+    chip.input('a.v')
+    chip.input('b.v')
+    chip.input('c.v')
+
+    chip.write_manifest('top.json', prune=True)
+    assert os.path.exists('top.json')
+
+    assert 'example' in chip.schema.cfg['schemaversion']
+    schema = siliconcompiler.Schema(manifest='top.json')
+    assert 'example' not in schema.cfg['schemaversion']
 
 
 def test_advanced_tcl(monkeypatch):

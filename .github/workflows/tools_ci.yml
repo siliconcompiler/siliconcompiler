@@ -181,7 +181,7 @@ jobs:
         username: ${{ secrets.PACKAGES_ACTOR }}
         password: ${{ secrets.PACKAGES_TOKEN }}
 
-    timeout-minutes: 30
+    timeout-minutes: 45
     name: 'Tool-based tests'
     steps:
       - name: Checkout current SiliconCompiler
@@ -196,8 +196,16 @@ jobs:
           source clean_env/bin/activate
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
-          python3 -m pip install .[test]
-          pytest -n auto --import-mode=append -m "eda and quick"
+          python3 -m pip install -e .[test]
+          pytest -n auto --import-mode=append -m "eda and quick" --cov --cov-report=xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          name: codecov-tools
+          verbose: true
 
   trigger_daily:
     if: always()
@@ -218,9 +226,11 @@ jobs:
 
       - name: Trigger
         if: steps.changes.outputs.tools == 'true'
-        uses: peter-evans/repository-dispatch@v2
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
-          token: ${{ secrets.BOT_TOKEN }}
-          repository: ${{ github.repository }}
-          event-type: trigger-daily-workflow
-          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+          github_token: ${{ github.token }}
+          ref: ${{ github.ref }}
+          owner: ${{ github.repository_owner }}
+          repo: siliconcompiler
+          workflow_file_name: daily_ci.yml
+          wait_interval: 60

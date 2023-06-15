@@ -19,7 +19,8 @@ def setup(chip):
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
-    if chip.valid('input', 'asic', 'floorplan'):
+    if chip.valid('input', 'asic', 'floorplan') and \
+       chip.get('input', 'asic', 'floorplan', step=step, index=index):
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['input', 'asic', 'floorplan']),
                  step=step, index=index)
@@ -28,9 +29,12 @@ def setup(chip):
        not chip.get('input', 'netlist', 'verilog', step=step, index=index):
         chip.add('tool', tool, 'task', task, 'input', design + '.vg', step=step, index=index)
 
-    if chip.valid('tool', tool, 'task', task, 'file', 'padring'):
+    if chip.valid('tool', tool, 'task', task, 'file', 'padring') and \
+       chip.get('tool', tool, 'task', task, 'file', 'padring',
+                step=step, index=index):
         chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['tool', tool, 'task', task, 'file', 'padring']))
+                 ','.join(['tool', tool, 'task', task, 'file', 'padring']),
+                 step=step, index=index)
     chip.set('tool', tool, 'task', task, 'file', 'padring',
              'script to insert the padring',
              field='help')

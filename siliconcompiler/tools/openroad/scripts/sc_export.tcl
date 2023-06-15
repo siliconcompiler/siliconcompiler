@@ -21,6 +21,7 @@ define_process_corner -ext_model_index 0 X
 foreach pexcorner $sc_pex_corners {
   set sc_pextool "${sc_tool}-openrcx"
   set pex_model [lindex [dict get $sc_cfg pdk $sc_pdk pexmodel $sc_pextool $sc_stackup $pexcorner] 0]
+  puts "Writing SPEF for $pexcorner"
   extract_parasitics -ext_model_file $pex_model
   write_spef "outputs/${sc_design}.${pexcorner}.spef"
 }
@@ -36,12 +37,15 @@ foreach scenario $sc_scenarios {
 # read in spef for timing corners
 foreach corner $sc_corners {
   set pexcorner [dict get $lib_pex $corner]
+
+  puts "Reading SPEF for $pexcorner into $corner"
   read_spef -corner $corner \
     "outputs/${sc_design}.${pexcorner}.spef"
 }
 
 # Write timing models
 foreach corner $sc_corners {
+  puts "Writing timing model for $corner"
   write_timing_model -library_name "${sc_design}_${corner}" \
     -corner $corner \
     "outputs/${sc_design}.${corner}.lib"

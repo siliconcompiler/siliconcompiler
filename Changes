@@ -8,6 +8,58 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.12.2 (2023-06-14)
+=========================================
+
+**Major:**
+
+* Added additional arguments to ``sc-show`` to provide access to specific steps and indices in the run.
+
+**Minor:**
+
+* Tools:
+
+  * OpenROAD - added generation of separate timing and power reports in the reports/ directory to provide better insights into the design, added additional parameters to timing repair to enable minimizing total negative slack ['tool', 'openroad', 'task', 'place', 'var', 'rsz_repair_tns'], and added support for RTL-MP for macro placement.
+  * yosys - added initial support for hierarchical synthesis via ['tool', 'yosys', 'task', 'syn_asic', 'var', 'hier_threshold'], this is disabled by default while it is still in development.
+
+
+SiliconCompiler 0.12.1 (2023-06-07)
+=========================================
+
+**Major:**
+
+* Fixed writing of manifest to preserve values that were previously removed incorrectly.
+* Updated recording of ['record', ...] to track tool versions, tool options, task start and end times, and SiliconCompiler version, while preserving control of sensitive records like ['record', 'ipaddr'] with ['option', 'track'].
+
+**Minor:**
+
+* Fixed handling of ``sc-issue`` to avoid clobbering the user set options and only bundle the required files for a testcase to minimize the size of the file.
+* Added error checking for ``create_cmdline`` to check for invalid arguments.
+* Tools:
+
+  * OpenROAD - added support for disallowing one site gaps in detail placement ['tool', 'openroad', 'task', 'place', 'var', 'dpl_disallow_one_site']. Added support for ['option', 'warningoff']
+  * surelog - Added support for ['option', 'warningoff']
+  * Verilator - Added support for ['option', 'warningoff']
+
+
+SiliconCompiler 0.12.0 (2023-05-24)
+=========================================
+
+**Major:**
+
+* Added/updated parameters in ['datasheet'] section of the schema to allow for better capturing of design datasheet.
+* Updated Verilator tool driver to support CFLAGS/LDFLAGS and fix linting task.
+* Added operations task to klayout to allow for unit operations on GDSs like merging, adding outlines, rotating, etc.
+* Added options to ``archive()`` to support archiving multiple jobs and filtering files to include.
+
+**Minor:**
+
+* Added enforcement of ['option', 'mode'] to ensure it is set for better manifest checking.
+* Added per-pin voltage constraints for better support of multiple power/voltage domains, ['constraint', 'timing', scenario, 'voltage', pin].
+* Fixed tool drivers to ensure proper use of ``find_files()`` is not done in ``setup()``.
+* Added check for permissions error while collecting child process memory statistics.
+
+
 SiliconCompiler 0.11.2 (2023-05-15)
 =========================================
 

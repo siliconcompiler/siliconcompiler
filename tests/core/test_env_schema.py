@@ -3,6 +3,8 @@ import os
 import pytest
 import multiprocessing
 
+from tools.dummy import environment
+
 
 @pytest.mark.skipif(
     multiprocessing.get_start_method() != 'fork',
@@ -15,24 +17,16 @@ def test_env(monkeypatch):
     chip.input('fake.v')
     chip.load_target('freepdk45_demo')
     chip.set('option', 'steplist', 'import')
+    flow = chip.get('option', 'flow')
+    chip.modules.clear()
+    chip.set('flowgraph', flow, 'import', '0', 'tool', 'dummy')
+    chip.set('flowgraph', flow, 'import', '0', 'task', 'environment')
+    chip.set('flowgraph', flow, 'import', '0', 'taskmodule', environment.__name__)
 
     # Set env
     chip.set('option', 'env', 'TEST', 'hello')
-
-    # Mock _runtask() so we can test without tools
-    def fake_runtask(chip, step, index, status):
-        chip._init_logger(step, index, in_run=True)
-
-        # Ensure env variable is propagated to tasks
-        assert os.getenv('TEST') == 'hello'
-
-        # Logic to make sure chip.run() registers task as success
-
-        chip.set('flowgraph', 'asicflow', step, index, 'status', siliconcompiler.TaskStatus.SUCCESS)
-        outdir = chip._getworkdir(step=step, index=index)
-        chip.write_manifest(os.path.join(outdir, 'outputs', f"{chip.get('design')}.pkg.json"))
-
-    monkeypatch.setattr(siliconcompiler.Chip, '_runtask', fake_runtask)
+    chip.set('tool', 'dummy', 'task', 'environment', 'var', 'env', 'TEST')
+    chip.set('tool', 'dummy', 'task', 'environment', 'var', 'assert', 'hello')
 
     chip.run()
 

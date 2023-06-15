@@ -43,12 +43,25 @@ class SchemaGen(SphinxDirective):
             if 'unit' in schema:
                 entries.append([strong('Unit'), para(schema['unit'])])
 
-            entries.extend([[strong('Default Value'), para(schema['defvalue'])],
+            defvalue = schema['node']['default']['default']['value']
+            entries.extend([[strong('Default Value'), para(defvalue)],
                             [strong('CLI Switch'), code(schema['switch'])]])
 
+            examples = {}
             for example in schema['example']:
                 name, ex = example.split(':', 1)
-                entries.append([strong(f'Example ({name.upper()})'), code(ex.strip())])
+                examples.setdefault(name, []).append(ex)
+
+            for name, exs in examples.items():
+                examples = [code(ex.strip()) for ex in exs]
+                p = None
+                for ex in examples:
+                    if not p:
+                        p = para("")
+                    else:
+                        p += para("")
+                    p += ex
+                entries.append([strong(f'Example ({name.upper()})'), p])
 
             table = build_table(entries, colwidths=[25, 75])
             body = self.parse_rst(utils.trim(schema['help']))

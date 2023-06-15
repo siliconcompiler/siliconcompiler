@@ -31,16 +31,37 @@ if {[llength [all_clocks]] > 0} {
     -left $openroad_dpl_padding \
     -right $openroad_dpl_padding
 
-  detailed_placement -max_displacement $openroad_dpl_max_displacement
+  set dpl_args []
+  if { $openroad_dpl_disallow_one_site == "true" } {
+    lappend dpl_args "-disallow_one_site_gaps"
+  }
+
+  detailed_placement -max_displacement $openroad_dpl_max_displacement \
+    {*}$dpl_args
   check_placement -verbose
 
   estimate_parasitics -placement
-  repair_timing -setup -setup_margin $openroad_rsz_setup_slack_margin -hold_margin $openroad_rsz_hold_slack_margin
+
+  set repair_timing_args []
+  if { $openroad_rsz_skip_pin_swap == "true" } {
+    lappend repair_timing_args "-skip_pin_swap"
+  }
+
+  puts "Repair setup violations"
+  repair_timing -setup \
+    -setup_margin $openroad_rsz_setup_slack_margin \
+    -hold_margin $openroad_rsz_hold_slack_margin \
+    -repair_tns $openroad_rsz_repair_tns
 
   estimate_parasitics -placement
-  repair_timing -hold -setup_margin $openroad_rsz_setup_slack_margin -hold_margin $openroad_rsz_hold_slack_margin
+  puts "Repair hold violations"
+  repair_timing -hold \
+    -setup_margin $openroad_rsz_setup_slack_margin \
+    -hold_margin $openroad_rsz_hold_slack_margin \
+    -repair_tns $openroad_rsz_repair_tns
 
-  detailed_placement -max_displacement $openroad_dpl_max_displacement
+  detailed_placement -max_displacement $openroad_dpl_max_displacement \
+    {*}$dpl_args
   check_placement -verbose
 }
 

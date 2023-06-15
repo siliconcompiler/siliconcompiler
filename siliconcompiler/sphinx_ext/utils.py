@@ -123,15 +123,6 @@ def build_list(items, enumerated=False):
     return list
 
 
-# SC schema helpers
-def is_leaf(schema):
-    if 'defvalue' in schema:
-        return True
-    elif len(schema.keys()) == 1 and 'default' in schema:
-        return is_leaf(schema['default'])
-    return False
-
-
 def keypath(key_path, refdoc, key_text=None):
     '''Helper function for displaying Schema keypaths.'''
     text_parts = []

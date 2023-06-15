@@ -1,0 +1,20 @@
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+name: 'Server Functional Tests'
+
+jobs:
+  server_tests:
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    steps:
+      - name: Server action dispatch
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
+        with:
+          github_token: ${{ secrets.ZA_TOKEN }}
+          owner: ${{ secrets.SERVER_OWNER }}
+          repo: ${{ secrets.SERVER_REPO }}
+          workflow_file_name: ${{ secrets.SERVER_WORKFLOW }}

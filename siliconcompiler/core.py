@@ -23,7 +23,6 @@ import math
 import pandas
 import pkgutil
 import graphviz
-import uuid
 import shlex
 import platform
 import getpass
@@ -38,7 +37,7 @@ import packaging.specifiers
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from PIL import Image, ImageFont, ImageDraw
-from siliconcompiler.client import remote_preprocess, remote_run, fetch_results
+from siliconcompiler.remote.client import remote_preprocess, remote_run, fetch_results
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils
@@ -46,6 +45,7 @@ from siliconcompiler import units
 from siliconcompiler import _metadata
 import psutil
 import subprocess
+import glob
 
 
 class TaskStatus():
@@ -85,7 +85,9 @@ class Chip:
             self.error("""SiliconCompiler must be run from a directory that exists.
 If you are sure that your working directory is valid, try running `cd $(pwd)`.""", fatal=True)
 
-        self.schema = Schema()
+        self._init_logger()
+
+        self.schema = Schema(logger=self.logger)
 
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
@@ -109,14 +111,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # this is primarily used when generating standalone testcases
         self.__relative_path = None
 
-        # We set 'design' and 'loglevel' by directly calling the schema object
-        # because of a chicken-and-egg problem: self.set() relies on the logger,
-        # but the logger relies on these values.
-        self.schema.set('design', design)
+        self.set('design', design)
         if loglevel:
-            self.schema.set('option', 'loglevel', loglevel)
-
-        self._init_logger()
+            self.set('option', 'loglevel', loglevel)
 
         self._loaded_modules = {
             'flows': [],
@@ -253,15 +250,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
 
-        self.logger = logging.getLogger(uuid.uuid4().hex)
+        # Check if the logger exists and create
+        if not hasattr(self, 'logger') or not self.logger:
+            self.logger = logging.getLogger(f'sc_{id(self)}')
 
-        # Don't propagate log messages to "root" handler (we get duplicate
-        # messages without this)
-        # TODO: this prevents us from being able to capture logs with pytest:
-        # we should revisit it
-        self.logger.propagate = False
-
-        loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
+        loglevel = 'INFO'
+        if hasattr(self, 'schema'):
+            loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
+        else:
+            in_run = False
 
         if loglevel == 'DEBUG':
             prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
@@ -291,22 +288,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             logformat = ' | '.join([prefix, '%(message)s'])
 
-        handler = logging.StreamHandler(stream=sys.stdout)
-        formatter = logging.Formatter(logformat)
+        if not self.logger.hasHandlers():
+            stream_handler = logging.StreamHandler(stream=sys.stdout)
+            self.logger.addHandler(stream_handler)
 
-        handler.setFormatter(formatter)
+        for handler in self.logger.handlers:
+            formatter = logging.Formatter(logformat)
+            handler.setFormatter(formatter)
 
-        # Clear any existing handlers so we don't end up with duplicate messages
-        # if repeat calls to _init_logger are made
-        if len(self.logger.handlers) > 0:
-            self.logger.handlers.clear()
-
-        self.logger.addHandler(handler)
         self.logger.setLevel(loglevel)
-
-    ###########################################################################
-    def _deinit_logger(self):
-        self.logger = None
 
     ###########################################################################
     def _get_switches(self, schema, *keypath):
@@ -411,12 +401,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         parser = argparse.ArgumentParser(prog=progname,
                                          prefix_chars='-+',
                                          formatter_class=argparse.RawDescriptionHelpFormatter,
-                                         description=description)
+                                         description=description,
+                                         allow_abbrev=False)
 
         # Get a new schema, incase values have already been set
-        schema = Schema()
+        schema = Schema(logger=self.logger)
 
         # Iterate over all keys from an empty schema to add parser arguments
+        used_switches = set()
         for keypath in schema.allkeys():
             # Fetch fields from leaf cell
             helpstr = schema.get(*keypath, field='shorthelp')
@@ -429,6 +421,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # Three switch types (bool, list, scalar)
             if not switchlist or any(switch in switchlist for switch in switchstrs):
+                used_switches.update(switchstrs)
                 if typestr == 'bool':
                     parser.add_argument(*switchstrs,
                                         nargs='?',
@@ -453,6 +446,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         dest=dest,
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
+
+        # Check if there are invalid switches
+        if switchlist:
+            for switch in switchlist:
+                if switch not in used_switches:
+                    self.error(f'{switch} is not a valid commandline argument', fatal=True)
 
         if input_map is not None:
             parser.add_argument('source',
@@ -776,7 +775,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         description = self.get(*keypath, field='shorthelp')
         typestr = self.get(*keypath, field='type')
         switchstr = str(self.get(*keypath, field='switch'))
-        defstr = str(self.get(*keypath, field='defvalue'))
+        defstr = str(self.schema.get_default(*keypath))
         requirement = str(self.get(*keypath, field='require'))
         helpstr = self.get(*keypath, field='help')
         example = self.get(*keypath, field='example')
@@ -998,16 +997,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.setLevel(value)
 
         try:
-            if not self.schema.set(
-                *keypath, value, field=field, clobber=clobber, step=step, index=index
-            ):
-                # TODO: this message should be pushed down into Schema.set()
-                # once we have a static logger.
-                if clobber:
-                    self.logger.debug(f'Failed to set value for {keypath}: parameter is locked')
-                else:
-                    self.logger.debug(f'Failed to set value for {keypath}: '
-                                      'clobber is False and parameter may be locked')
+            self.schema.set(*keypath, value, field=field, clobber=clobber, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(e)
 
@@ -1075,11 +1065,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            if not self.schema.add(*args, field=field, step=step, index=index):
-                # TODO: this message should be pushed down into Schema.add()
-                # once we have a static logger.
-                self.logger.debug(f'Failed to add value for {keypath}: '
-                                  'parameter may be locked')
+            self.schema.add(*args, field=field, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
@@ -1359,6 +1345,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Returns none if not found
         """
+        if not path:
+            return None
+
         path_paths = pathlib.Path(path).parts
         for n in range(len(path_paths)):
             # Search through the path elements to see if any of the previous path parts
@@ -1513,7 +1502,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 # update other fields that a user might modify
                 for field in src.getdict(*keylist).keys():
-                    if field in ('node', 'switch', 'type', 'require', 'defvalue',
+                    if field in ('node', 'switch', 'type', 'require',
                                  'shorthelp', 'example', 'help'):
                         # skip these fields (node handled above, others are static)
                         continue
@@ -1918,7 +1907,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         that may have been updated during run().
         """
         # Read from file into new schema object
-        schema = Schema(manifest=filename)
+        schema = Schema(manifest=filename, logger=self.logger)
 
         # Merge data in schema with Chip configuration
         self._merge_manifest(schema, job=job, clear=clear, clobber=clobber, partial=partial)
@@ -1950,7 +1939,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Args:
             filename (filepath): Output filepath
-            prune (bool): If True, essential non-empty parameters from the
+            prune (bool): If True, only essential fields from the
                  the Chip object schema are written to the output file.
             abspath (bool): If set to True, then all schema filepaths
                  are resolved to absolute filepaths.
@@ -1974,12 +1963,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if prune:
             self.logger.debug('Pruning dictionary before writing file %s', filepath)
-            # Keep empty lists to simplify TCL coding
-            if filepath.endswith('.tcl'):
-                keeplists = True
-            else:
-                keeplists = False
-            schema.prune(keeplists=keeplists)
+            schema.prune()
 
         is_csv = re.search(r'(\.csv)(\.gz)*$', filepath)
 
@@ -2247,7 +2231,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # look through dependency package files
             package = os.path.join(cache, dep, ver, f"{dep}-{ver}.sup.gz")
-            schema = Schema(manifest=package)
+            schema = Schema(manifest=package, logger=self.logger)
 
             # done if no more dependencies
             if 'dependency' in schema.getkeys('package'):
@@ -2469,28 +2453,49 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f'Failed to copy {path}', fatal=True)
 
     ###########################################################################
-    def _archive_node(self, tar, step=None, index=None, all_files=False):
-        design = self.get('design')
-        jobname = self.get('option', 'jobname')
-        buildpath = self.get('option', 'builddir')
+    def _archive_node(self, tar, step=None, index=None, include=None):
+        basedir = self._getworkdir(step=step, index=index)
 
-        # Don't use _getworkdir() since we want a relative path for arcname
-        jobdir = os.path.join(buildpath, design, jobname)
+        def arcname(path):
+            return os.path.relpath(path, self.cwd)
 
-        basedir = os.path.join(jobdir, step, index)
-        if all_files:
-            tar.add(os.path.abspath(basedir), arcname=basedir)
+        if include:
+            for pattern in include:
+                for path in glob.iglob(os.path.join(basedir, pattern)):
+                    tar.add(path, arcname=arcname(path))
         else:
             for folder in ('reports', 'outputs'):
                 path = os.path.join(basedir, folder)
-                tar.add(os.path.abspath(path), arcname=path)
+                tar.add(path, arcname=arcname(path))
 
             logfile = os.path.join(basedir, f'{step}.log')
             if os.path.isfile(logfile):
-                tar.add(os.path.abspath(logfile), arcname=logfile)
+                tar.add(logfile, arcname=arcname(logfile))
 
     ###########################################################################
-    def archive(self, step=None, index=None, all_files=False, archive_name=None):
+    def __archive_job(self, tar, job, steplist, index=None, include=None):
+        design = self.get('design')
+        flow = self.get('option', 'flow')
+
+        jobdir = self._getworkdir(jobname=job)
+        manifest = os.path.join(jobdir, f'{design}.pkg.json')
+        if os.path.isfile(manifest):
+            arcname = os.path.relpath(manifest, self.cwd)
+            tar.add(manifest, arcname=arcname)
+        else:
+            self.logger.warning('Archiving job with failed or incomplete run.')
+
+        for step in steplist:
+            if index:
+                indexlist = [index]
+            else:
+                indexlist = self.getkeys('flowgraph', flow, step)
+            for idx in indexlist:
+                self.logger.info(f'Archiving {step}{idx}...')
+                self._archive_node(tar, step, idx, include=include)
+
+    ###########################################################################
+    def archive(self, jobs=None, step=None, index=None, include=None, archive_name=None):
         '''Archive a job directory.
 
         Creates a single compressed archive (.tgz) based on the design,
@@ -2501,17 +2506,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         are archived.
 
         Args:
+            jobs (list of str): List of jobs to archive. By default, archives only the current job.
             step(str): Step to archive.
             index (str): Index to archive
-            all_files (bool): If True, all files are archived.
+            include (list of str): Override of default inclusion rules. Accepts list of glob
+                patterns that are matched from the root of individual step/index directories. To
+                capture all files, supply "*".
             archive_name (str): Path to the archive
-
         '''
-
         design = self.get('design')
-        jobname = self.get('option', 'jobname')
-        buildpath = self.get('option', 'builddir')
-        flow = self.get('option', 'flow')
+        if not jobs:
+            jobname = self.get('option', 'jobname')
+            jobs = [jobname]
+        else:
+            jobname = '_'.join(jobs)
 
         if step:
             steplist = [step]
@@ -2530,24 +2538,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 archive_name = f"{design}_{jobname}.tgz"
 
+        self.logger.info(f'Creating archive {archive_name}...')
+
         with tarfile.open(archive_name, "w:gz") as tar:
-            # Don't use _getworkdir() since we want a relative path for arcname
-            jobdir = os.path.join(buildpath, design, jobname)
-
-            manifest = os.path.join(jobdir, f'{design}.pkg.json')
-            if os.path.isfile(manifest):
-                tar.add(os.path.abspath(manifest), arcname=manifest)
-            else:
-                self.logger.warning('Archiving job with failed or incomplete run.')
-
-            for step in steplist:
-                if index:
-                    indexlist = [index]
-                else:
-                    indexlist = self.getkeys('flowgraph', flow, step)
-                for idx in indexlist:
-                    self._archive_node(tar, step, idx, all_files=all_files)
-
+            for job in jobs:
+                if len(jobs) > 0:
+                    self.logger.info(f'Archiving job {job}...')
+                self.__archive_job(tar, job, steplist, index=index, include=include)
         return archive_name
 
     ###########################################################################
@@ -3396,7 +3393,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return allpaths
 
     ###########################################################################
-    def clock(self, pin, period, jitter=0):
+    def clock(self, pin, period, jitter=0, mode='global'):
         """
         Clock configuration helper function.
 
@@ -3405,27 +3402,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         The method modifies the following schema parameters:
 
-        ['datasheet', name, 'pin']
-        ['datasheet', name, 'period']
-        ['datasheet', name, 'jitter']
+        ['datasheet', 'pin', pin, 'type', mode]
+        ['datasheet', 'pin', pin, 'tperiod', mode]
+        ['datasheet', 'pin', pin, 'tjitter', mode]
 
         Args:
             pin (str): Full hierarchical path to clk pin.
             period (float): Clock period specified in ns.
             jitter (float): Clock jitter specified in ns.
+            mode (str): Mode of operation (from datasheet).
 
         Examples:
             >>> chip.clock('clk', period=1.0)
            Create a clock named 'clk' with a 1.0ns period.
         """
-        design = self.top()
-        self.set('datasheet', design, 'pin', pin, 'type', 'global', 'clk')
+
+        self.set('datasheet', 'pin', pin, 'type', mode, 'clock')
 
         period_range = (period * 1e-9, period * 1e-9, period * 1e-9)
-        self.set('datasheet', design, 'pin', pin, 'tperiod', 'global', period_range)
+        self.set('datasheet', 'pin', pin, 'tperiod', mode, period_range)
 
         jitter_range = (jitter * 1e-9, jitter * 1e-9, jitter * 1e-9)
-        self.set('datasheet', design, 'pin', pin, 'tjitter', 'global', jitter_range)
+        self.set('datasheet', 'pin', pin, 'tjitter', mode, jitter_range)
 
     ###########################################################################
     def node(self, flow, step, task, index=0):
@@ -3590,7 +3588,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if backup and os.path.exists(manifest_path):
                 shutil.copyfile(manifest_path, f'{manifest_path}.bak')
 
-            self.write_manifest(manifest_path, prune=False, abspath=True)
+            self.write_manifest(manifest_path, abspath=True)
 
     ###########################################################################
     def _runtask(self, step, index, status, replay=False):
@@ -3620,7 +3618,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         - Check log file
         - Hash all task files
         - Stop Wall timer
-        - Make a task record
         - Save manifest to disk
         - Halt if any errors found
         - Clean up
@@ -3647,8 +3644,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         )
 
         ##################
+        # Make record of sc version and machine
+        self.__record_version(step, index)
+        # Record user information if enabled
+        if self.get('option', 'track', step=step, index=index):
+            self.__record_usermachine(step, index)
+
+        ##################
         # Start wall timer
         wall_start = time.time()
+        self.__record_time(step, index, wall_start, 'start')
 
         ##################
         # Directory setup
@@ -3679,6 +3684,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Write manifest prior to step running into inputs
+        self.set('arg', 'step', step, clobber=True)
+        self.set('arg', 'index', index, clobber=True)
 
         self.write_manifest(f'inputs/{design}.pkg.json')
 
@@ -3725,8 +3732,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Check manifest
-        self.set('arg', 'step', step, clobber=True)
-        self.set('arg', 'index', index, clobber=True)
 
         if not self.get('option', 'skipcheck'):
             if not self.check_manifest():
@@ -3850,6 +3855,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 raise e
         elif not self.get('option', 'skipall'):
             cmdlist, printable_cmd, _, cmd_args = self._makecmd(tool, task, step, index)
+
+            ##################
+            # Make record of tool options
+            self.__record_tool(step, index, version, toolpath, cmd_args)
+
             self.logger.info('Running in %s', workdir)
             self.logger.info('%s', printable_cmd)
             timeout = self.get('flowgraph', flow, step, index, 'timeout')
@@ -3942,6 +3952,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                 # Process may have already terminated or been killed.
                                 # Retain existing memory usage statistics in this case.
                                 pass
+                            except PermissionError:
+                                # OS is preventing access to this information so it cannot
+                                # be collected
+                                pass
 
                             # Loop until process terminates
                             if not quiet:
@@ -3992,8 +4006,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start), 2)
-        self._record_metric(step, index, 'exetime', cputime, None, source_unit='s')
-        self._record_metric(step, index, 'memory', max_mem_bytes, None, source_unit='B')
+        self._record_metric(step, index, 'exetime', cputime, source=None, source_unit='s')
+        self._record_metric(step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
 
         ##################
         # Post process
@@ -4043,14 +4057,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Capture wall runtime and cpu cores
         wall_end = time.time()
-        walltime = round((wall_end - wall_start), 2)
-        self.set('metric', 'tasktime', walltime, step=step, index=index)
-        self.logger.info(f"Finished task in {walltime}s")
+        self.__record_time(step, index, wall_end, 'end')
 
-        ##################
-        # Make a record if tracking is enabled
-        if self.get('option', 'track', step=step, index=index):
-            self._make_record(step, index, wall_start, wall_end, version, toolpath, cmd_args)
+        walltime = wall_end - wall_start
+        self._record_metric(step, index, 'tasktime', walltime, source=None, source_unit='s')
+        self.logger.info(f"Finished task in {round(walltime, 2)}s")
 
         ##################
         # Save a successful manifest
@@ -4276,7 +4287,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Load the remote storage config into the status dictionary.
             if self.get('option', 'credentials'):
                 # Use the provided remote credentials file.
-                cfg_file = os.path.abspath(self.get('option', 'credentials')[-1])
+                cfg_file = os.path.abspath(self.get('option', 'credentials'))
 
                 if not os.path.isfile(cfg_file):
                     # Check if it's a file since its been requested by the user
@@ -4393,6 +4404,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             jobname = self.get('option', 'jobname')
             tasks_to_run = {}
             processes = {}
+            # Ensure we use spawn for multiprocessing so loggers initialized correctly
+            multiprocessor = multiprocessing.get_context('spawn')
             for step in steplist:
                 for index in indexlist[step]:
                     nodename = f'{step}{index}'
@@ -4409,14 +4422,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     else:
                         tasks_to_run[nodename] = inputs
 
-                    processes[nodename] = multiprocessing.Process(target=self._runtask,
-                                                                  args=(step, index, status))
-
-            # We have to deinit the chip's logger before spawning the processes
-            # since the logger object is not serializable. _runtask_safe will
-            # reinitialize the logger in each new process, and we reinitialize
-            # the primary chip's logger after the processes complete.
-            self._deinit_logger()
+                    processes[nodename] = multiprocessor.Process(target=self._runtask,
+                                                                 args=(step, index, status))
 
             running_tasks = []
             while len(tasks_to_run) > 0 or len(running_tasks) > 0:
@@ -4458,8 +4465,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 # TODO: exponential back-off with max?
                 time.sleep(0.1)
-
-            self._init_logger()
 
             # Make a clean exit if one of the steps failed
             for step in steplist:
@@ -4831,41 +4836,40 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 'arch': arch}
 
     #######################################
-    def _make_record(self, step, index, start, end, toolversion, toolpath, cli_args):
-        '''
-        Records provenance details for a runstep.
-        '''
+    def __record_version(self, step, index):
         self.set('record', 'scversion', _metadata.version,
                  step=step, index=index)
 
-        start_date = datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
-        end_date = datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
+    #######################################
+    def __record_time(self, step, index, record_time, timetype):
+        formatted_time = datetime.fromtimestamp(record_time).strftime('%Y-%m-%d %H:%M:%S')
 
-        userid = getpass.getuser()
-        self.set('record', 'userid', userid,
-                 step=step, index=index)
+        if timetype == 'start':
+            key = 'starttime'
+        elif timetype == 'end':
+            key = 'endtime'
+        else:
+            raise ValueError(f'{timetype} is not a valid time record')
 
-        self.set('record', 'starttime', start_date,
-                 step=step, index=index)
-        self.set('record', 'endtime', end_date,
-                 step=step, index=index)
+        self.set('record', key, formatted_time, step=step, index=index)
 
-        machine = platform.node()
-        self.set('record', 'machine', machine,
-                 step=step, index=index)
+    #######################################
+    def __record_tool(self, step, index, toolversion=None, toolpath=None, cli_args=None):
+        if toolversion:
+            self.set('record', 'toolversion', toolversion,
+                     step=step, index=index)
 
-        self.set('record', 'region', self._get_cloud_region(),
-                 step=step, index=index)
+        if toolpath:
+            self.set('record', 'toolpath', toolpath,
+                     step=step, index=index)
 
-        try:
-            gateways = netifaces.gateways()
-            ipaddr, interface = gateways['default'][netifaces.AF_INET]
-            macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
-            self.set('record', 'ipaddr', ipaddr, step=step, index=index)
-            self.set('record', 'macaddr', macaddr, step=step, index=index)
-        except KeyError:
-            self.logger.warning('Could not find default network interface info')
+        if cli_args is not None:
+            toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
+            self.set('record', 'toolargs', toolargs,
+                     step=step, index=index)
 
+    #######################################
+    def __record_usermachine(self, step, index):
         machine_info = Chip._get_machine_info()
         self.set('record', 'platform', machine_info['system'],
                  step=step, index=index)
@@ -4884,18 +4888,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('record', 'arch', machine_info['arch'],
                  step=step, index=index)
 
-        if toolversion:
-            self.set('record', 'toolversion', toolversion,
-                     step=step, index=index)
+        userid = getpass.getuser()
+        self.set('record', 'userid', userid,
+                 step=step, index=index)
 
-        if toolpath:
-            self.set('record', 'toolpath', toolpath,
-                     step=step, index=index)
+        machine = platform.node()
+        self.set('record', 'machine', machine,
+                 step=step, index=index)
 
-        if cli_args is not None:
-            toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
-            self.set('record', 'toolargs', toolargs,
-                     step=step, index=index)
+        self.set('record', 'region', self._get_cloud_region(),
+                 step=step, index=index)
+
+        try:
+            gateways = netifaces.gateways()
+            ipaddr, interface = gateways['default'][netifaces.AF_INET]
+            macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
+            self.set('record', 'ipaddr', ipaddr, step=step, index=index)
+            self.set('record', 'macaddr', macaddr, step=step, index=index)
+        except KeyError:
+            self.logger.warning('Could not find default network interface info')
 
     #######################################
     def _safecompare(self, value, op, goal):
@@ -4972,7 +4983,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return os.path.join(self._getworkdir(jobname=jobname), 'sc_collected_files')
 
     #######################################
-    def _getworkdir(self, jobname=None, step=None, index='0'):
+    def _getworkdir(self, jobname=None, step=None, index=None):
         '''
         Get absolute path to work directory for a given step/index,
         if step/index not given, job directory is returned
@@ -4990,6 +5001,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Return index 0 by default
         if step is not None:
             dirlist.append(step)
+
+            if not index:
+                index = '0'
+
             dirlist.append(index)
 
         return os.path.join(*dirlist)
@@ -5198,7 +5213,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Modules are not serializable, so save without cache
         attributes['modules'] = {}
+
+        # We have to remove the chip's logger before serializing the object
+        # since the logger object is not serializable.
+        del attributes['logger']
         return attributes
+
+    #######################################
+    def __setstate__(self, state):
+        self.__dict__ = state
+
+        # Reinitialize logger on restore
+        self._init_logger()
+        self.schema._init_logger(self.logger)
 
     #######################################
     def _generate_testcase(self,
@@ -5230,12 +5257,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         flow = self.get('option', 'flow')
         tool, task = self._get_tool_task(step, index, flow=flow)
+        task_requires = self.get('tool', tool, 'task', task, 'require',
+                                 step=step, index=index)
 
         # Set copy flags for _collect
         self.set('option', 'copyall', False)
 
-        def determine_copy(*keypath):
-            copy = True
+        def determine_copy(*keypath, in_require):
+            copy = in_require
+
             if keypath[0] == 'library':
                 # only copy libraries if selected
                 if include_specific_libraries and keypath[1] in include_specific_libraries:
@@ -5243,7 +5273,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     copy = include_libraries
 
-                copy = copy and determine_copy(*keypath[2:])
+                copy = copy and determine_copy(*keypath[2:], in_require=in_require)
             elif keypath[0] == 'pdk':
                 # only copy pdks if selected
                 if include_specific_pdks and keypath[1] in include_specific_pdks:
@@ -5290,7 +5320,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if 'file' not in sctype and 'dir' not in sctype:
                 continue
 
-            self.set(*keypath, determine_copy(*keypath), field='copy')
+            self.set(*keypath,
+                     determine_copy(*keypath,
+                                    in_require=','.join(keypath) in task_requires),
+                     field='copy')
 
         # Collect files
         work_dir = self._getworkdir(step=step, index=index)
@@ -5318,10 +5351,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Rewrite replay.sh
         try:
-            # Unset option to avoid compounding options
-            self.unset('tool', tool, 'task', task, 'option', step=step, index=index)
             # Rerun setup
-            self._setup_task(step, index)
             self.set('arg', 'step', step)
             self.set('arg', 'index', index)
             func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)

@@ -3,6 +3,7 @@ from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
+from siliconcompiler.tools.openroad.openroad import _set_parameter
 
 
 def setup(chip):
@@ -20,6 +21,11 @@ def setup(chip):
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
+    # Set thread count to 1 while issue related to write_timing_model segfaulting
+    # when multiple threads are on is resolved.
+    chip.set('tool', tool, 'task', task, 'threads', 1,
+             step=step, index=index, clobber=True)
+
     stackup = chip.get('option', 'stackup')
     pdk = chip.get('option', 'pdk')
 
@@ -27,11 +33,9 @@ def setup(chip):
     macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
 
     # Determine if exporting the cdl
-    chip.set('tool', tool, 'task', task, 'var', 'write_cdl', 'false',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'write_cdl',
-             'true/false, when true enables writing the CDL file for the design',
-             field='help')
+    _set_parameter(chip, param_key='write_cdl',
+                   default_value='false',
+                   schelp='true/false, when true enables writing the CDL file for the design')
     do_cdl = chip.get('tool', tool, 'task', task, 'var', 'write_cdl',
                       step=step, index=index)[0] == 'true'
 
