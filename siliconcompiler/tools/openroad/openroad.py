@@ -362,13 +362,17 @@ def post_process(chip):
                                         source_unit=or_unit)
 
         # setup wns and hold wns can be computed from setup slack and hold slack
-        if 'sc__metric__timing__setup__ws' in metrics and has_timing:
+        if 'sc__metric__timing__setup__ws' in metrics and \
+           has_timing and \
+           chip.get('metric', 'setupslack', step=step, index=index) is not None:
             wns = min(0.0, chip.get('metric', 'setupslack', step=step, index=index))
             chip._record_metric(step, index, 'setupwns', wns,
                                 get_metric_sources('setupslack'),
                                 source_unit=or_units['time'])
 
-        if 'sc__metric__timing__hold__ws' in metrics and has_timing:
+        if 'sc__metric__timing__hold__ws' in metrics and \
+           has_timing and \
+           chip.get('metric', 'holdslack', step=step, index=index) is not None:
             wns = min(0.0, chip.get('metric', 'holdslack', step=step, index=index))
             chip._record_metric(step, index, 'holdwns', wns,
                                 get_metric_sources('holdslack'),
