@@ -30,6 +30,8 @@ def processLibertyFile(input_file, dont_use, quiet=False):
         if cell_match:
             for du in patternList:
                 if du.match(cell_match.group(1)):
+                    if not quiet:
+                        print(f'  Marking {cell_match.group(1)} as dont_use')
                     content_dont_use += "    dont_use : true;\n"
                     count += 1
                     break
