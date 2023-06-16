@@ -43,6 +43,7 @@ from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils
 from siliconcompiler import units
 from siliconcompiler import _metadata
+from siliconcompiler.tools import SkipCheck as ToolSkipCheck
 import psutil
 import subprocess
 import glob
@@ -1595,6 +1596,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return not error
 
     ###########################################################################
+    def __is_check_skipped(chip, task_module, check_type):
+        skip_check = getattr(task_module, 'skip_checks', None)
+        if not skip_check:
+            return False
+        return check_type in skip_check(chip)
+
+    ###########################################################################
     def check_manifest(self):
         '''
         Verifies the integrity of the pre-run compilation manifest.
@@ -1720,6 +1728,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool, task = self._get_tool_task(step, index, flow=flow)
+                task_module = self._get_task_module(step, index, flow=flow)
                 if self._is_builtin(tool, task):
                     continue
 
@@ -1733,19 +1742,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.error(f'{tool}/{task} is not configured.')
                     continue
 
-                all_required = self.get('tool', tool, 'task', task, 'require',
-                                        step=step, index=index)
-                for item in all_required:
-                    keypath = item.split(',')
-                    if self.schema._is_empty(*keypath):
-                        error = True
-                        self.logger.error(f"Value empty for {keypath} for {tool}.")
+                if self.valid('tool', tool, 'task', task, 'require'):
+                    all_required = self.get('tool', tool, 'task', task, 'require',
+                                            step=step, index=index)
+                    for item in all_required:
+                        keypath = item.split(',')
+                        if self.schema._is_empty(*keypath):
+                            error = True
+                            self.logger.error(f"Value empty for {keypath} for {tool}.")
 
-                task_run = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
-                if self.schema._is_empty('tool', tool, 'exe') and not task_run:
-                    error = True
-                    self.logger.error('No executable or run() function specified for '
-                                      f'{tool}/{task}')
+                if not self.__is_check_skipped(task_module, ToolSkipCheck.exe_empty):
+                    task_run = getattr(task_module, 'run', None)
+                    if self.schema._is_empty('tool', tool, 'exe') and not task_run:
+                        error = True
+                        self.logger.error('No executable or run() function specified for '
+                                          f'{tool}/{task}')
 
         if not self._check_flowgraph_io():
             error = True
@@ -3801,7 +3812,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.STDOUT,
                                       universal_newlines=True)
-                if proc.returncode != 0:
+                if not self.__is_check_skipped(self._get_task_module(step, index, flow=flow),
+                                               ToolSkipCheck.version_return_code) and \
+                   proc.returncode != 0:
                     self.logger.error(f'Version check on {tool} failed with code {proc.returncode}:'
                                       f' {proc.stdout}')
                     self._haltstep(step, index)
