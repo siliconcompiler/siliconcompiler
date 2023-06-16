@@ -36,7 +36,9 @@
     "version": "0.28.8",
     "git-url": "https://github.com/KLayout/klayout.git",
     "docker-skip": true,
-    "auto-update": true
+    "auto-update": true,
+    "run-version": "source version.sh && echo $KLAYOUT_VERSION",
+    "release-notes": "https://www.klayout.de/development.html"
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",

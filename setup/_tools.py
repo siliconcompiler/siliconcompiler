@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import tempfile
+import subprocess
 
 tools = None
 data_file = os.path.join(os.path.dirname(__file__), "_tools.json")
@@ -47,6 +48,25 @@ def bump_version(tools, tool):
 
     with tempfile.TemporaryDirectory(prefix=tool) as repo_work_dir:
         repo = git.Repo.clone_from(tools[tool]["git-url"], repo_work_dir)
+
+        if "run-version" in tools[tool]:
+            script = os.path.join(repo_work_dir, 'sc_get_version.sh')
+            with open(script, 'w') as f:
+                f.write(tools[tool]["run-version"])
+            os.chmod(script, 0o700)
+            proc = subprocess.run(['bash', script],
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.STDOUT,
+                                  universal_newlines=True,
+                                  cwd=repo_work_dir)
+            version = proc.stdout.strip()
+            if not version:
+                return (None, None)
+
+            releasenotes = None
+            if "release-notes" in tools[tool]:
+                releasenotes = tools[tool]["release-notes"]
+            return (version, releasenotes)
 
         newest = None
         for tag in repo.tags:
