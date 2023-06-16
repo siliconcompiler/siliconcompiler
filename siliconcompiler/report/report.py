@@ -87,7 +87,7 @@ def makeList(chip, steplist=None):
 
 ################################
 
-def get_flowgraph_tasks(chip, nodeList, steplist=None):  
+def get_flowgraph_tasks(chip, nodeList):  
     nodes = {}
     for step, index in nodeList:
         nodes[step, index] = {}
@@ -235,5 +235,53 @@ def getPath(chip):
         if inputNodes == []:
             selected_tasks[selected] = "Start Node"
     return selected_tasks
+
+################################
+
+def searchManifestKeys(jsonDict, key):
+    filteredDict = {}
+    for dictKey in jsonDict:
+        if key in dictKey:
+            filteredDict[dictKey] = jsonDict[dictKey]
+        elif isinstance(jsonDict[dictKey], dict):
+            result = searchManifestKeys(jsonDict[dictKey], key)
+            if result: #result is non-empty
+                filteredDict[dictKey] = result
+    return filteredDict
+
+################################
+
+def searchManifestValues(jsonDict, value):
+    filteredDict={}
+    for dictKey in jsonDict:
+        if isinstance(jsonDict[dictKey], dict):
+            result = searchManifestValues(jsonDict[dictKey], value)
+            if result: #result is non-empty
+                filteredDict[dictKey] = result
+        elif isinstance(jsonDict[dictKey], str) and value in jsonDict[dictKey] :
+            filteredDict[dictKey] = jsonDict[dictKey]
+    return filteredDict
+
+################################
+
+#partial matches
+def searchManifest(jsonDict, keySearch=None, valueSearch=None):
+    #return type is dictionary of dictionary
+    if keySearch == None and valueSearch == None:
+        return jsonDict
+    if valueSearch == None:
+        # then user is searching keys
+        return searchManifestKeys(jsonDict, keySearch) # may have to encase in dictionary
+    # user is searching values
+    return searchManifestValues(jsonDict, valueSearch)
+
+################################
+
+def manifestKeyCounter(jsonDict, acc=0):
+    acc += len(jsonDict)
+    for dictKeys in jsonDict:
+        if isinstance(jsonDict[dictKeys], dict):
+            acc = manifestKeyCounter(jsonDict[dictKeys], acc)
+    return acc
 
 ################################

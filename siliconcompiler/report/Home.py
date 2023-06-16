@@ -12,7 +12,7 @@ import core
 
 successColor = '#8EA604' #green
 pendingColor = '#F5BB00' #yellow, could use: #EC9F05
-failureColor = '#FF4E00' #red, could use: #BF3100
+failureColor = '#FF4E00' #red
 
 ################################
 
@@ -37,10 +37,10 @@ def get_nodes_and_edges(nodeDependencies, successfulPath):
             nodeColor = pendingColor
 
         tool, task = chip._get_tool_task(step, index)
-        label = step+index+"\n"+tool+","+task
+        label = step+index+"\n"+tool+"/"+task
         if chip._is_builtin(tool, task):
             label=step+index+"\n"+tool
-
+        
         nodes.append( 
                 Node(id=step+index,
                     label=label,
@@ -50,26 +50,29 @@ def get_nodes_and_edges(nodeDependencies, successfulPath):
                     shape='oval'
                     )
                 )
+
         for sourceStep, sourceIndex in nodeDependencies[step, index] :
             width = 3
             if (sourceStep, sourceIndex) in successfulPath and (sourceStep, sourceIndex) in successfulPath:
                 width = 5
             edges.append( 
                     Edge(source=sourceStep+sourceIndex,
-                    dir='back', 
+                    dir='up', 
                     target=step+index, 
-                    width=width
+                    width=width,
+                    color='black',
+                    curve=True
                     ) 
                     )
-    return nodes[::-1], edges #reversed() doesn't work, breaks code
 
+    return nodes, edges 
 ################################
 
 #gathering data
-chip = core.Chip(design='zerosoc')
-streamlit.set_page_config(page_title="SiliconCompiler",
-                          page_icon=Image.open("SCLogo.png"),
-                          layout="wide")
+# manifest = '../..//.././.json'
+# chip = core.Chip(design='<design>')
+# chip.read_manifest(manifest)
+chip = core.Chip(design='heartbeat')
 chip.read_manifest(chip._getworkdir() + f'/{chip.design}.pkg.json')
 dataDf = report.makeList(chip)
 manifestTree = report.makeManifest(chip)
@@ -80,19 +83,30 @@ nodesRecordDf.index = nodesRecordDf.index.map(lambda x: f'{x[0]}{x[1]}')
 
 ################################
 
+streamlit.set_page_config(page_title="SiliconCompiler",
+                          page_icon=Image.open("SCLogo.png"),
+                          layout="wide")
+
 streamlit.title(f'{chip.design} Metrics')
 
-col1, col2 = streamlit.columns([0.3, 0.7], gap="large")
+#these need to be global variables since they are being accessed in different panels
+displayFileContent = False
+fileContent = ''
+
+col1, col2 = streamlit.columns([0.4, 0.6], gap="large")
 
 with col1:
     streamlit.header('Flowgraph')
 
-    config = Config(width='100%',
-                height=900, #need to update dynamically, could use number of attributes displayed + offset
-                directed=True, 
-                physics=False, 
-                hierarchical=True,
-                )
+    config = Config(width='100%', #need to update dynamically, could use number of attributes displayed + offset
+                    directed=True, 
+                    physics=False, 
+                    hierarchical=True,
+                    clickToUse=True,
+                    nodeSpacing =175,
+                    levelSeparation=250,
+                    sortMethod='directed'
+                    )
 
     nodes, edges = get_nodes_and_edges(report.makeDependencies(chip), report.getPath(chip))
 
@@ -103,6 +117,13 @@ with col1:
     )
 
 with col2:
+    #data manipulation
+    displayToData = {}
+    displayOptions = []
+    for metric, unit in dataDf.index.tolist():
+        displayToData[metric] = (metric, unit)
+        displayOptions.append(metric)
+    
     streamlit.header('Data Metrics')
 
     options = {'cols' : dataDf.columns.tolist(), 'rows' : dataDf.index.tolist()}
@@ -116,15 +137,21 @@ with col2:
             dataDf.columns.tolist(),
             [])
 
-            options['rows'] = streamlit.multiselect(
+            metrics = streamlit.multiselect(
             'Which rows to include?',
-            dataDf .index.tolist(),
+            displayOptions,
             [])
+            options['rows'] = []
+            for metric in metrics:
+                options['rows'].append(displayToData[metric])
 
             params_submitted = streamlit.form_submit_button("Run")
 
     if options['cols'] == [] or options ['rows'] == []:
-        options = {'cols' : dataDf .columns.tolist(), 'rows' : dataDf.index.tolist()}
+        options = {'cols' : dataDf.columns.tolist(), 'rows' : dataDf.index.tolist()}
+    
+
+    
 
     container.dataframe((dataDf.loc[options['rows'], options['cols']]), 
                         use_container_width=True)
@@ -166,42 +193,59 @@ with col2:
                                only_leaf_checkboxes=True)
 
         if selected["checked"] != [] :
+            displayFileContent = True
             index = 0
 
             #searches for the first file selected in order of tree
             while os.path.isdir(selected["checked"][index]):
                 index += 1
-            file_name, file_extension = os.path.splitext(selected["checked"][index])
-            with open(selected["checked"][index], 'r') as file:
+            path = selected["checked"][index]
+            file_name, file_extension = os.path.splitext(path)
+            with open(path, 'r') as file:
                 content = file.read() 
             streamlit.download_button(label=f"Download file",
                                     data=content,
-                                    mime=file_extension)
+                                    file_name=path[path.rfind("/"):])
             
-            streamlit.header('File Preview')
 
-            if file_extension == ".json":
-                streamlit.json(content)
-            else:
-                textContent = ""
-                i = 1
-                for line in content.splitlines(True):
-                    textContent += f"{i}.{line}" 
-                    i += 1
-
-                streamlit.text(textContent)
-
-col1, col2 = streamlit.columns([0.5, 0.5], gap="large")
+col1, col2, col3 = streamlit.columns([0.4, 0.3, 0.3], gap="large")
 
 with col1:
     streamlit.header('Manifest Tree')
 
-    streamlit.json(manifestTree, expanded=False)
+    col1A, col2A = streamlit.columns([0.5, 0.5], gap="large")
+
+    manifest = report.makeManifest(chip)
+
+    with col1A:
+        key = streamlit.text_input('Search Keys', '', placeholder="Keys")
+        if key != '':
+            manifest = report.searchManifest(manifest, keySearch=key)
+
+    with col2A:
+        value = streamlit.text_input('Search Values', '', placeholder="Values")
+        if value != '':
+            manifest = report.searchManifest(manifest, valueSearch=value)
+    
+    numOfKeys = report.manifestKeyCounter(manifest)
+
+    streamlit.json(manifest, expanded=numOfKeys<20)
 
 with col2:  
-    streamlit.header('GDS Preview')
+    streamlit.header('Design Preview')
 
-    streamlit.image(f'{chip._getworkdir()}/{chip.design}.png')
+    # streamlit.image(f'{chip._getworkdir()}/{chip.design}.png')
+
+with col3:
+    # col1A, col2A = streamlit.columns([0.1, 0.8], gap="small")
+    if displayFileContent:
+        streamlit.header('File Preview')
+        
+        print(content)
+        if file_extension == ".json":
+            streamlit.json(content)
+        else:
+        
+            streamlit.code(content, language='markdwon', line_numbers=True)
     
-
 ################################
