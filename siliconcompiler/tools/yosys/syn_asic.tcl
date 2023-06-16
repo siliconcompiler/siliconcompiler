@@ -224,7 +224,7 @@ if { [string length $sc_strategy] == 0 } {
     set script [dict get $syn_strategies $sc_strategy]
 } elseif { [string match "+*" $sc_strategy] } {
     # ABC script passthrough
-    set script $sc_stratety
+    set script $sc_strategy
 } else {
     yosys log "Warning: no such synthesis strategy $sc_strategy"
 }

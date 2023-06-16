@@ -122,7 +122,7 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'var', 'autoname',
              'true/false, call autoname to rename wires based on registers', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'map_adders',
-             'true/path to map_adders, techmap adders in Yosys', field='help')
+             'false/path to map_adders, techmap adders in Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner',
              'Timing corner to use for synthesis', field='help')
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty',
@@ -147,7 +147,7 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file',
              'File to use for the DFF mapping stage of Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'add_buffers',
-             'false/false, flag to indicate whether to add buffers or not.', field='help')
+             'true/false, flag to indicate whether to add buffers or not.', field='help')
 
     chip.set('tool', tool, 'task', task, 'var', 'hier_iterations',
              'Number of iterations to attempt to determine the hierarchy to flatten',
@@ -157,7 +157,7 @@ def setup_asic(chip):
              field='help')
 
     chip.set('tool', tool, 'task', task, 'var', 'strategy',
-             'ABC synthesis strategy. Allowed valued DELAY0-4, AREA0-3, or if the strategy '
+             'ABC synthesis strategy. Allowed values are DELAY0-4, AREA0-3, or if the strategy '
              'starts with a + it is assumed to be actual commands for ABC.',
              field='help')
 
