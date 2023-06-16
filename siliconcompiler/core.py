@@ -1728,7 +1728,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool, task = self._get_tool_task(step, index, flow=flow)
-                task_module = self._get_task_module(step, index, flow=flow)
+                task_module = self._get_task_module(step, index, flow=flow, error=False)
                 if self._is_builtin(tool, task):
                     continue
 
