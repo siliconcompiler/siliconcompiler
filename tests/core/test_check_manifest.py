@@ -60,7 +60,6 @@ def test_check_manifest_without_skip():
         chip.unset('arg', 'step')
         chip.unset('arg', 'index')
 
-
     chip.set('arg', 'step', None)
     chip.set('arg', 'index', None)
     assert not chip.check_manifest()
@@ -85,7 +84,6 @@ def test_check_manifest_with_skip():
         setup(chip)
         chip.unset('arg', 'step')
         chip.unset('arg', 'index')
-
 
     chip.set('arg', 'step', None)
     chip.set('arg', 'index', None)
