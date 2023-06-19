@@ -16,7 +16,7 @@ def setup(chip):
 
     chip.set('tool', tool, 'exe', 'ghdl')
     chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=2.0.0-dev', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=4.0.0-dev', clobber=clobber)
 
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index, clobber=clobber)

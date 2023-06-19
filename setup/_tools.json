@@ -19,7 +19,7 @@
   },
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
-    "git-commit": "d10b226f3d1dc302d7a95b9c2d77beaece3d3634",
+    "git-commit": "b9bae14a9f3503d07cda505c2c78b8dd28f55615",
     "auto-update": false
   },
   "magic": {
