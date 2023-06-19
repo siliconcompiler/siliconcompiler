@@ -93,5 +93,10 @@ def find_incoming_ext(chip):
             if show_file:
                 return ext
 
+    for ext in supported_ext:
+        for fileset in chip.getkeys('input'):
+            if chip.valid('input', fileset, ext):
+                return ext
+
     # Nothing found, just add last one
     return supported_ext[-1]

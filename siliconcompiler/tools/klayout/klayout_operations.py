@@ -176,6 +176,58 @@ def make_property_text(layout, property_layer, property_name, destination_layer)
     return layout
 
 
+def delete_layers(layout, layers):
+    for cell in layout.each_cell():
+        print(f'[INFO] Deleting layers from {cell.name}')
+        for layer in layers:
+            layer_info = layout.get_info(layer)
+            print(f"[INFO] Deleting layer {layer_info.to_s()}")
+
+            cell.shapes(layer).clear()
+
+    return layout
+
+
+def merge_shapes(layout, layers):
+    if layers == ['all']:
+        layers = layout.layer_indexes()
+
+    for cell in layout.each_cell():
+        print(f"[INFO] Merging shapes in {cell.name}")
+        for layer in layers:
+            layer_info = layout.get_info(layer)
+            print(f"[INFO] Merging shapes on layer {layer_info.to_s()}")
+
+            shape_proc = pya.ShapeProcessor()
+            output_shapes = pya.Shapes()
+
+            cell_layout = cell.layout()
+            print("  Shape count (old):", cell.shapes(layer).size())
+            shape_proc.boolean(cell_layout,
+                               cell,
+                               layer,
+                               cell_layout,
+                               cell,
+                               layer,
+                               output_shapes,
+                               pya.EdgeProcessor.ModeOr,
+                               True,
+                               True,
+                               True)
+            print("  Shape count (new):", output_shapes.size())
+            cell.shapes(layer).clear()
+            cell.shapes(layer).insert(output_shapes)
+
+
+def flatten(layout):
+    top_cell = layout.top_cell()
+
+    print(f"[INFO] Flattening: {top_cell.name}")
+    top_cell.flatten(True)
+
+    return layout
+
+
 def parse_operations(schema, base_layout, steps):
     for step in steps:
         step = step.split(":")
@@ -234,6 +286,26 @@ def parse_operations(schema, base_layout, steps):
             base_layout = add_layout_to_top(base_layout, new_name)
         elif (step_name == "write"):
             write_stream(base_layout, f'outputs/{step_args}', __with_timestamps(schema))
+        elif (step_name == "flatten"):
+            base_layout = flatten(base_layout)
+        elif (step_name == "delete_layers"):
+            layers = []
+            for layer in schema.get(*args_key, **__get_keypath_step_index(schema, *args_key)):
+                layer_num = None
+                layer_purpose = None
+                if '/' in layer:
+                    layer_num, layer_purpose = layer.split('/')
+                elif ' ' in layer:
+                    layer_num, layer_purpose = layer.split(' ')
+                elif ':' in layer:
+                    layer_num, layer_purpose = layer.split(':')
+                else:
+                    raise ValueError(f'Unable to determine layer purpose pair for {layer}')
+                layers.append(base_layout.layer(int(layer_num), int(layer_purpose)))
+            base_layout = delete_layers(base_layout, layers)
+        elif (step_name == "merge_shapes"):
+            layers = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))
+            base_layout = merge_shapes(base_layout, layers)
         else:
             raise ValueError(f"Unknown step: {step_name}")
 

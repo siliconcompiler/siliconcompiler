@@ -28,10 +28,16 @@ def setup(chip):
     option = ['-nc', '-z', '-rm']
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
-    chip.add('tool', tool, 'task', task, 'output', design + '.png', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', '4096',
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '4096',
+             step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'var', 'xbins', '1',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'ybins', '1',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'margin', '10',
              step=step, index=index, clobber=False)
 
     # Help
@@ -41,3 +47,27 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution',
              'Vertical resolution in pixels',
              field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'xbins',
+             'If greater than 1, splits the image into multiple segments along x-axis',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'ybins',
+             'If greater than 1, splits the image into multiple segments along y-axis',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'margin',
+             'Margin around design in microns',
+             field='help')
+
+    xbins = int(chip.get('tool', tool, 'task', task, 'var', 'xbins',
+                         step=step, index=index)[0])
+    ybins = int(chip.get('tool', tool, 'task', task, 'var', 'ybins',
+                         step=step, index=index)[0])
+
+    if xbins == 1 and ybins == 1:
+        chip.add('tool', tool, 'task', task, 'output', design + '.png',
+                 step=step, index=index)
+    else:
+        for x in range(xbins):
+            for y in range(ybins):
+                chip.add('tool', tool, 'task', task, 'output', f'{chip.design}_X{x}_Y{y}.png',
+                         step=step, index=index)
