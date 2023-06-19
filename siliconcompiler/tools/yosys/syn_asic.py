@@ -84,14 +84,19 @@ def setup_asic(chip):
                  ",".join(['library', mainlib, 'option', 'var', 'yosys_buffer_output']),
                  step=step, index=index)
 
+    library_has_addermap = \
+        chip.valid('library', mainlib, 'option', 'file', 'yosys_addermap') and \
+        chip.get('library', mainlib, 'option', 'file', 'yosys_addermap')
     chip.set('tool', tool, 'task', task, 'var', 'map_adders',
-             "true" if chip.valid('library', mainlib, 'option', 'file', 'yosys_addermap') else
-             "false",
+             "true" if library_has_addermap else "false",
              step=step, index=index, clobber=False)
     if chip.get('tool', tool, 'task', task, 'var', 'map_adders', step=step, index=index)[0] == \
        "true":
         chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['tool', tool, 'task', task, 'var', option]),
+                 ",".join(['tool', tool, 'task', task, 'var', 'map_adders']),
+                 step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['library', mainlib, 'option', 'file', 'yosys_addermap']),
                  step=step, index=index)
 
     for var0, var1 in [('yosys_tiehigh_cell', 'yosys_tiehigh_port'),
