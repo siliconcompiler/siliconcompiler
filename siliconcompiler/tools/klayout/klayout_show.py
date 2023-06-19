@@ -124,6 +124,12 @@ def __screenshot_montage(schema, view, xbins, ybins):
     margin = float(schema.get('tool', 'klayout', 'task', task, 'var',
                               'margin',
                               step=step, index=index)[0])
+    linewidth = int(schema.get('tool', 'klayout', 'task', task, 'var',
+                               'linewidth',
+                               step=step, index=index)[0])
+    oversampling = int(schema.get('tool', 'klayout', 'task', task, 'var',
+                                  'oversampling',
+                                  step=step, index=index)[0])
 
     view.zoom_fit()
     cell = view.active_cellview().cell
@@ -161,14 +167,18 @@ def __screenshot_montage(schema, view, xbins, ybins):
             sub_img_spec = {
                 "width": x_px,
                 "height": y_px,
-                "linewidth": 0,
-                "oversampling": 2,
+                "linewidth": linewidth,
+                "oversampling": oversampling,
                 "resolution": 0,
                 "target_box": subbox,
                 "monochrome": False
             }
 
-            img = view.get_image_with_options(
+            img_path = os.path.join('outputs', output_file)
+            print(f'[INFO] Saving screenshot (({subbox.left}, {subbox.bottom}), '
+                  f'({subbox.right}, {subbox.top})) to {img_path}')
+            view.save_image_with_options(
+                img_path,
                 sub_img_spec["width"],
                 sub_img_spec["height"],
                 sub_img_spec["linewidth"],
@@ -177,11 +187,6 @@ def __screenshot_montage(schema, view, xbins, ybins):
                 sub_img_spec["target_box"],
                 sub_img_spec["monochrome"]
             )
-            img_path = os.path.join('outputs', output_file)
-
-            print(f'[INFO] Saving screenshot (({subbox.left}, {subbox.bottom}), '
-                  f'({subbox.right}, {subbox.top})) to {img_path}')
-            img.save(img_path)
 
 
 def main():

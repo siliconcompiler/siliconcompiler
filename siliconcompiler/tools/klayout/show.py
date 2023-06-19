@@ -7,7 +7,7 @@ def make_docs(chip):
     chip.set('tool', 'klayout', 'task', 'show', 'var', 'show_filepath', '<path>')
 
 
-def general_gui_setup(chip, task, exit):
+def general_gui_setup(chip, task, exit, require_input=True):
     # Generic tool setup.
     setup_tool(chip)
 
@@ -25,11 +25,12 @@ def general_gui_setup(chip, task, exit):
         layers_to_hide = chip.get('pdk', pdk, 'var', 'klayout', 'hide_layers', stackup)
         chip.add('tool', tool, 'task', task, 'var', 'hide_layers', layers_to_hide,
                  step=step, index=index)
+
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']),
                  step=step, index=index)
-    else:
+    elif require_input:
         incoming_ext = find_incoming_ext(chip)
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['tool', tool, 'task', task, 'var', 'show_filetype']),
