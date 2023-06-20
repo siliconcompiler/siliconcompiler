@@ -89,5 +89,10 @@
     "version": "22.05.7",
     "git-url": "https://github.com/SchedMD/slurm.git",
     "auto-update": false
+  },
+  "montage": {
+    "version": "6.9.11",
+    "auto-update": false,
+    "docker-skip": true
   }
 }
