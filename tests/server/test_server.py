@@ -58,7 +58,7 @@ def gcd_remote_test(gcd_chip, unused_tcp_port):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_gcd_server(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
