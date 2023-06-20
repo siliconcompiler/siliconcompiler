@@ -20,3 +20,11 @@ def setup(chip):
     exe = 'montage'
 
     chip.set('tool', 'montage', 'exe', exe)
+    chip.set('tool', 'montage', 'vswitch', '-version')
+    chip.set('tool', 'montage', 'version', '>=6.9.0')
+
+
+def parse_version(stdout):
+    first_line = stdout.splitlines()[0]
+
+    return first_line.split(' ')[2]
