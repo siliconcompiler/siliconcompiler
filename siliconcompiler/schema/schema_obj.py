@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import re
+import pathlib
 
 try:
     import yaml
@@ -528,9 +529,15 @@ class Schema:
         except TypeError:
             raise TypeError(error_msg) from None
 
-        if sc_type in ('str', 'file', 'dir'):
+        if sc_type == 'str':
             if isinstance(value, str):
                 return value
+            else:
+                raise TypeError(error_msg)
+
+        if sc_type in ('file', 'dir'):
+            if isinstance(value, str) or isinstance(value, pathlib.Path):
+                return str(value)
             else:
                 raise TypeError(error_msg)
 
