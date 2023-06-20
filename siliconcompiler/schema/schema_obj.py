@@ -538,7 +538,7 @@ class Schema:
                 raise TypeError(error_msg)
 
         if sc_type in ('file', 'dir'):
-            if isinstance(value, str) or isinstance(value, pathlib.Path):
+            if isinstance(value, (str, pathlib.Path)):
                 return str(value)
             else:
                 raise TypeError(error_msg)
