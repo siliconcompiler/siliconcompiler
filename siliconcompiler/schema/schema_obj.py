@@ -56,6 +56,8 @@ class Schema:
         if cfg is not None:
             self.cfg = Schema._dict_to_schema(copy.deepcopy(cfg))
         elif manifest is not None:
+            # Normalize value to string in case we receive a pathlib.Path
+            manifest = str(manifest)
             self.cfg = Schema._read_manifest(manifest)
         else:
             self.cfg = schema_cfg()

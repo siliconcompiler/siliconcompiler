@@ -1109,6 +1109,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Performs a lookup in the io map for the fileset and filetype
         and will use those if they are not provided in the arguments
         '''
+        # Normalize value to string in case we receive a pathlib.Path
+        filename = str(filename)
 
         ext = utils.get_file_ext(filename)
 
