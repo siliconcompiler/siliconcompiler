@@ -19,6 +19,7 @@ def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
+    design = chip.top()
 
     montage.setup(chip)
 
@@ -41,23 +42,23 @@ def setup(chip):
 
     for x in range(xbins):
         for y in range(ybins):
-            chip.add('tool', tool, 'task', task, 'input', f'{chip.design}_X{x}_Y{y}.png',
+            chip.add('tool', tool, 'task', task, 'input', f'{design}_X{x}_Y{y}.png',
                      step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'output', f'{chip.design}.png',
+    chip.set('tool', tool, 'task', task, 'output', f'{design}.png',
              step=step, index=index)
 
     options = []
 
     for y in range(ybins):
         for x in range(xbins):
-            options.append(f'inputs/{chip.design}_X{x}_Y{y}.png')
+            options.append(f'inputs/{design}_X{x}_Y{y}.png')
 
     options.append('-tile')
     options.append(f'{xbins}x{ybins}')
     options.append('-geometry')
     options.append('+0+0')
-    options.append(f'outputs/{chip.design}.png')
+    options.append(f'outputs/{design}.png')
 
     chip.set('tool', tool, 'task', task, 'option', options,
              step=step, index=index)

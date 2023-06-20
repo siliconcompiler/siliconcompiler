@@ -326,7 +326,9 @@ if __name__ == "__main__":
     sc_task = 'operations'
 
     sc_ext = get_streams(schema)[0]
-    design = schema.get('design')
+    design = schema.get('option', 'entrypoint')
+    if not design:
+        design = schema.get('design')
 
     in_gds = os.path.join('inputs', f'{design}.{sc_ext}')
     if not os.path.exists(in_gds):

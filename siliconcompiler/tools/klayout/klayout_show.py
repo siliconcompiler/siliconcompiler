@@ -113,7 +113,9 @@ def __screenshot_montage(schema, view, xbins, ybins):
 
     app.set_config("background-color", "#000000")  # Black
 
-    designname = schema.get('design')
+    design = schema.get('option', 'entrypoint')
+    if not design:
+        design = schema.get('design')
 
     horizontal_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var',
                                            'show_horizontal_resolution',
@@ -153,7 +155,7 @@ def __screenshot_montage(schema, view, xbins, ybins):
     for x in range(xbins):
         for y in range(ybins):
             yidx = ybins - y - 1
-            output_file = f"{designname}_X{x}_Y{yidx}.png"
+            output_file = f"{design}_X{x}_Y{yidx}.png"
 
             x_start = view_box.left + x_incr * x
             y_start = view_box.bottom + y_incr * y

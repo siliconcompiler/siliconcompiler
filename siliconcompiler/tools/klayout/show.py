@@ -37,7 +37,7 @@ def general_gui_setup(chip, task, exit, require_input=True):
                  step=step, index=index)
         chip.set('tool', tool, 'task', task, 'var', 'show_filetype', incoming_ext,
                  step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'input', f'{chip.design}.{incoming_ext}',
+        chip.add('tool', tool, 'task', task, 'input', f'{chip.top()}.{incoming_ext}',
                  step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'show_exit', "true" if exit else "false",

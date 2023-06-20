@@ -88,5 +88,5 @@ def setup_gui_screenshot(chip, require_input=True):
     else:
         for x in range(xbins):
             for y in range(ybins):
-                chip.add('tool', tool, 'task', task, 'output', f'{chip.design}_X{x}_Y{y}.png',
+                chip.add('tool', tool, 'task', task, 'output', f'{design}_X{x}_Y{y}.png',
                          step=step, index=index)
