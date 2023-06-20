@@ -1,3 +1,5 @@
+import pathlib
+
 import pytest
 
 from siliconcompiler.schema import Schema
@@ -40,3 +42,15 @@ def test_add_keypath_error():
     schema = Schema()
     with pytest.raises(ValueError):
         schema.add('input', 'verilog', 'foo.v')
+
+
+def test_pathlib():
+    schema = Schema()
+
+    file_path = pathlib.Path('path/to/file.txt')
+    schema.set('option', 'file', 'test', file_path)
+    assert schema.get('option', 'file', 'test') == [str(file_path)]
+
+    dir_path = pathlib.Path('a/directory/')
+    schema.set('option', 'dir', 'test', dir_path)
+    assert schema.get('option', 'dir', 'test') == [str(dir_path)]
