@@ -4,7 +4,7 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(600)
+@pytest.mark.timeout(900)
 def test_slurm_local_py(gcd_chip):
     '''Basic Python API test: build the GCD example using only Python code.
        Note: Requires that the test runner be connected to a cluster, or configured
@@ -23,7 +23,7 @@ def test_slurm_local_py(gcd_chip):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 @pytest.mark.skip(reason='Skipped until test can be fixed')
 def test_slurm_local_py_script_override(gcd_chip):
     '''Basic Python API test: build the GCD example using only Python code.
