@@ -72,8 +72,10 @@ def get_nodes_and_edges(nodeDependencies, successfulPath):
 # manifest = '../..//.././.json'
 # chip = core.Chip(design='<design>')
 # chip.read_manifest(manifest)
-chip = core.Chip(design='heartbeat')
-chip.read_manifest(chip._getworkdir() + f'/{chip.design}.pkg.json')
+chip = core.Chip(design='')
+# chip.read_manifest('build/heartbeat/job0/heartbeat.pkg.json')
+# chip.read_manifest('build/zerosoc/job0/zerosoc.pkg.json')
+chip.read_manifest('build/gcd/job0/gcd.pkg.json')
 dataDf = report.makeList(chip)
 manifestTree = report.makeManifest(chip)
 nodesRecordDf = report.get_flowgraph_tasks(chip, dataDf.columns.tolist()) 
@@ -178,7 +180,7 @@ with col2:
         streamlit.dataframe(dataDf[option].T.dropna(), use_container_width=True)
 
     with col2:
-        streamlit.dataframe((nodesRecordDf.loc[option]), use_container_width=True) 
+        streamlit.dataframe(nodesRecordDf.loc[option].dropna(), use_container_width=True) 
 
     with col3:
         streamlit.caption(option)
@@ -201,10 +203,8 @@ with col2:
                 index += 1
             path = selected["checked"][index]
             file_name, file_extension = os.path.splitext(path)
-            with open(path, 'r') as file:
-                content = file.read() 
             streamlit.download_button(label=f"Download file",
-                                    data=content,
+                                    data=path,
                                     file_name=path[path.rfind("/"):])
             
 
@@ -231,21 +231,24 @@ with col1:
 
     streamlit.json(manifest, expanded=numOfKeys<20)
 
-with col2:  
-    streamlit.header('Design Preview')
+with col2:
+    if os.path.isfile(f'{chip._getworkdir()}/{chip.design}.png'):
+        streamlit.header('Design Preview')
 
-    # streamlit.image(f'{chip._getworkdir()}/{chip.design}.png')
+        streamlit.image(f'{chip._getworkdir()}/{chip.design}.png')
 
 with col3:
-    # col1A, col2A = streamlit.columns([0.1, 0.8], gap="small")
     if displayFileContent:
         streamlit.header('File Preview')
         
-        print(content)
-        if file_extension == ".json":
-            streamlit.json(content)
+        if file_extension == ".png":
+            streamlit.image(path)
         else:
-        
-            streamlit.code(content, language='markdwon', line_numbers=True)
+            with open(path, 'r') as file:
+                content = file.read()
+            if file_extension == ".json":
+                streamlit.json(content)
+            else:
+                streamlit.code(content, language='markdwon', line_numbers=True)
     
 ################################

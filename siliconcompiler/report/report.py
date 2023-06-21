@@ -57,6 +57,7 @@ def makeList(chip, steplist=None):
                 show_metric = True
 
             value = chip.get('metric', metric, step=step, index=index)
+            print(step, index, value)
             if value is not None:
                 show_metric = True
             tool, task = chip._get_tool_task(step, index, flow=flow)
@@ -92,8 +93,8 @@ def get_flowgraph_tasks(chip, nodeList):
     for step, index in nodeList:
         nodes[step, index] = {}
         for key in chip.getkeys('record'):
-            if chip.get('record', key, step=step, index=index):  # check if there is a value to present
-                nodes[step, index][key] = chip.get('record', key, step=step, index=index)
+            # if chip.get('record', key, step=step, index=index):  # check if there is a value to present, if None, then no
+            nodes[step, index][key] = chip.get('record', key, step=step, index=index)
     return pandas.DataFrame.from_dict(nodes, orient='index')
 
 ################################
@@ -204,9 +205,12 @@ def getLogsAndReportsRecHelper(pathName, filter=None):
 def getLogsAndReports(chip, tasks):
     logsReportsTree ={}
     for step, index in tasks:
+        print(chip._getworkdir(step=step, index=index))
         if os.path.isdir(chip._getworkdir(step=step, index=index)):
             logsReportsTree[step, index] = getLogsAndReportsRecHelper(chip._getworkdir(step=step, index=index), 
-                                                                        filter={"reports", 
+                                                                        filter={"inputs",
+                                                                                "reports",
+                                                                                "outputs", 
                                                                                 f'{step}.log',
                                                                                 f'{step}.errors',
                                                                                 f'{step}.warnings'})
