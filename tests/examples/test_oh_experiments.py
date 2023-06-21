@@ -11,7 +11,7 @@ def test_adder_sweep(setup_example_test, oh_dir):
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_check_area(setup_example_test, oh_dir):
     setup_example_test('oh_experiments')
 
@@ -20,7 +20,7 @@ def test_check_area(setup_example_test, oh_dir):
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_feedback_loop(setup_example_test, oh_dir):
     setup_example_test('oh_experiments')
 

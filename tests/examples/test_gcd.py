@@ -56,7 +56,7 @@ def __check_gcd(chip):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_py(setup_example_test):
     setup_example_test('gcd')
 
@@ -74,7 +74,7 @@ def test_py(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_py_read_manifest(scroot):
     '''
     Test that running from manifest generates the same result
@@ -104,7 +104,7 @@ def test_py_read_manifest(scroot):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_cli(setup_example_test):
     ex_dir = setup_example_test('gcd')
 
