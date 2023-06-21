@@ -6,7 +6,7 @@ from siliconcompiler.flows import screenshotflow
 
 
 def main():
-    '''Simple asicflow example.'''
+    '''Simple screenshotflow example.'''
 
     chip = siliconcompiler.Chip('gcd')
     chip.read_manifest('build/gcd/job0/gcd.pkg.json')
