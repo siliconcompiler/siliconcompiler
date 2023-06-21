@@ -9,7 +9,7 @@ def setup(chip, flowname='screenshotflow'):
     '''
     Flow to generate a high resolution design image from a GDS or OAS file.
 
-    The 'asicflow' includes the stages below.
+    The 'screenshotflow' includes the stages below.
 
     * **prepare**: Prepare the stream file, such as flattening design, removing layers, and merging shapes
     * **screenshot**: Generate a set of screenshots tiled across the design
