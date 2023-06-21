@@ -6,7 +6,23 @@ import units
 
 ################################
 
-def makeList(chip, steplist=None):
+def make_list(chip, steplist=None):
+    """
+    Returns a pandas dataframe
+    
+    Returns data to display in the data metrics table. All tasks(steps and indices)
+    are included on the x-axis while all the metrics tracked are on the y-axis.
+    The y-axis row headers are in the form of a tuple where the first element is
+    the metric tracked and the second element is the unit.
+    
+    Args:
+        chip(Chip) : the chip object that contains the schema read from
+    
+    Example:
+        >>> make_list(chip)
+        returns pandas dataframe of tracked metrics
+    """
+
     #from siliconcompiler/siliconcompiler/core.py, "summary" function
     flow = chip.get('option', 'flow')
     steplist = chip.list_steps()
@@ -57,7 +73,6 @@ def makeList(chip, steplist=None):
                 show_metric = True
 
             value = chip.get('metric', metric, step=step, index=index)
-            print(step, index, value)
             if value is not None:
                 show_metric = True
             tool, task = chip._get_tool_task(step, index, flow=flow)
@@ -88,7 +103,21 @@ def makeList(chip, steplist=None):
 
 ################################
 
-def get_flowgraph_tasks(chip, nodeList):  
+def get_flowgraph_tasks(chip, nodeList): #go over this
+    """
+    Returns a pandas dataframe
+    
+    Returns data to display in the data metrics table. One task(step and index)
+    is included on the x-axis while all the metrics tracked are on the y-axis.
+    
+    Args:
+        chip(Chip) : the chip object that contains the schema read from
+        nodeList(list) : list containing tuples of steps and indicies
+    
+    Example:
+        >>> get_flowgraph_tasks(chip, [(import, 0), (syn, 0)])
+        returns pandas dataframe of tracked metrics
+    """
     nodes = {}
     for step, index in nodeList:
         nodes[step, index] = {}
@@ -99,126 +128,236 @@ def get_flowgraph_tasks(chip, nodeList):
 
 ################################
 
-def makeDependencies(chip):
-    dependenciesDict = {}
+def make_dependencies(chip):
+    """
+    Returns a dictionary
+    
+    Returns a dicitionary where each key is one task, a tuple in the form (step, index) 
+    and the value of each key is a list of tuples in the form (step, index).
+    The value of each key represents all the tasks that is a prerequisite to the 
+    key task.
+    
+    Args:
+        chip(Chip) : the chip object that contains the schema read from
+    
+    Example:
+        >>> make_dependencies(chip)
+        returns dictionary of where the values of the keys are the dependencies
+    """
+    dependencies_dict = {}
     flow = chip.get('option', 'flow')
     for step in chip.getkeys('flowgraph', flow):
         for index in chip.getkeys('flowgraph', flow, step):
-            dependenciesDict[step, index] = []
+            dependencies_dict[step, index] = []
             # get inputs
             all_inputs = []
             for in_step, in_index in chip.get('flowgraph', flow, step, index, 'input'):
                 all_inputs.append((in_step, in_index))
             for item in all_inputs:
-                dependenciesDict[step, index].append(item)
-    return dependenciesDict
+                dependencies_dict[step, index].append(item)
+    return dependencies_dict
 
 ################################
 
-def eliminateRepeatFolderNames(keyCopy, str):
-    for index in range(1, len(keyCopy)): 
-        if keyCopy[index-1] == str and keyCopy[index] == str:
-            return keyCopy[:index] + keyCopy[index+1:]
-    return keyCopy
+def eliminate_repeat_folder_names(key_copy, str):
+    """
+    function is a helper for get_all_paths
+
+    Returns a list
+
+    Returns a list where elemenents represent folders. Each successive element/folder
+    is a subfolder to the previous element/folder. The list contains strings. When 
+    a folder's name is the exact same as the subfolder, this function removes that 
+    step. 
+
+    Args:
+        key_copy : the string list that represents a directory
+        str : the name of the folder to remove if there is a duplicate
+    
+    Example:
+        >>> key = eliminate_repeat_folder_names(['default', 'default', 'str', 'default', 'default'], "default")
+        key = ['default', 'str', 'default', 'default'],
+    """
+    for index in range(1, len(key_copy)): 
+        if key_copy[index-1] == str and key_copy[index] == str:
+            return key_copy[:index] + key_copy[index+1:]
+    return key_copy
 
 ################################
 
-def getAllPaths(chip): 
-    allPaths = []
-    allkeys = chip.allkeys()
-    for key in allkeys:
+def get_all_paths(chip): 
+    """
+    function is a helper function to make_manifest
+
+    Returns a list
+
+    Returns a list where elemenents are lists. These inner lists contains strings 
+    where each successive element/folder is a subfolder to the previous element/folder. 
+
+    Args:
+        chip(Chip) : the chip object that contains the schema read from
+    
+    Example:
+        >>> all_paths = get_all_paths(chip)
+        all_paths is a 2d list of strings containing all possible directory paths 
+        in the manifest
+    """
+    all_paths = []
+    all_keys = chip.allkeys()
+    for key in all_keys:
         for value, step, index in chip.schema._getvals(*key):
-            keyCopy = key.copy()
-            keyCopy = eliminateRepeatFolderNames(keyCopy, 'default')
+            key_copy = key.copy()
+            key_copy = eliminate_repeat_folder_names(key_copy, 'default')
             if step is None and index is None:
                 pass #should I be passing?
             elif index is None: #isn't getting used
-                keyCopy += [step, 'default']
+                key_copy += [step, 'default']
             else:
-                keyCopy += [step + index]
+                key_copy += [step + index]
 
             if isinstance(value, list): 
                 for item in value:
-                    keyCopyCopy = keyCopy.copy()
-                    keyCopyCopy.append(item)
-                    allPaths.append(keyCopyCopy)
+                    key_copy_copy = key_copy.copy()
+                    key_copy_copy.append(item)
+                    all_paths.append(key_copy_copy)
             else:
-                keyCopy.append(value)
-                allPaths.append(keyCopy)
-    return allPaths
+                key_copy.append(value)
+                all_paths.append(key_copy)
+    return all_paths
 
 
 ################################
 
-def makeManifestHelper(currTree, currTreeNode, remainingTreeNodes): 
-    if len(remainingTreeNodes) == 1:
-        currTree[currTreeNode] = remainingTreeNodes[0]
-        return currTree
+def make_manifest_helper(curr_tree, curr_tree_node, remaining_tree_nodes): 
+    """
+    function is a recursive helper function to make_manifest, more info there
+
+    Args:
+        curr_tree(dictionary) : the current tree/json
+        curr_tree_node(string) : string of the current node/folder name
+        remaining_tree_nodes(list) : list of strings of keys left in the key path
+    """
+    if len(remaining_tree_nodes) == 1:
+        curr_tree[curr_tree_node] = remaining_tree_nodes[0]
+        return curr_tree
     else:
-        if currTreeNode in currTree :
-            currTree[currTreeNode] = makeManifestHelper(currTree[currTreeNode],
-                                                        remainingTreeNodes[0], 
-                                                        remainingTreeNodes[1:])
+        if curr_tree_node in curr_tree :
+           curr_tree[curr_tree_node] = make_manifest_helper(curr_tree[curr_tree_node],
+                                                        remaining_tree_nodes[0], 
+                                                        remaining_tree_nodes[1:])
         else:
-            currTree[currTreeNode] = makeManifestHelper({},
-                                                        remainingTreeNodes[0], 
-                                                        remainingTreeNodes[1:])
-        return currTree
+            curr_tree[curr_tree_node] = make_manifest_helper({},
+                                                        remaining_tree_nodes[0], 
+                                                        remaining_tree_nodes[1:])
+        return curr_tree
     
 ################################
 
-def makeManifest(chip): 
-    manifestTree = {}
-    allPaths = getAllPaths(chip)
-    for path in allPaths :
-        makeManifestHelper(manifestTree, 
+def make_manifest(chip): 
+    """
+    Returns a dictionary
+
+    Returns a dictionary of dictionaries ... of dictionaries, but it's more helpful
+    to think of it as a tree(or json) where each dictionary is a parent node with 
+    limitless children nodes. The key to each dicitonary is the name of that node.
+    Leaves are key value pairs where the value is not a dictionary but a string. 
+
+    Args:
+        chip(Chip) : the chip object that contains the schema read from
+    
+    Example:
+        >>> make_manifest(chip)
+        returns tree/json of manifest
+    """
+    manifest_tree = {}
+    all_paths = get_all_paths(chip)
+    for path in all_paths:
+        make_manifest_helper(manifest_tree, 
                               path[0], 
                               path[1:])
-    return manifestTree
+    return manifest_tree
 
 ################################
 
-def getLogsAndReportsRecHelper(pathName, filter=None):
-    files = os.listdir(pathName)
-    logsReportsTree = []
-    nonFolders = []
+def get_logs_and_reports_helper(path_name, filter=None):
+    """
+    function is a recursive helper function to get_logs_and_report, more info there
+
+    Args:
+        path_name(string) : string of the pathname to the file/folder accessed
+        filter(set) : set of desired files/folders, None implies all files or 
+                      folders are wanted
+    """
+    files = os.listdir(path_name)
+    logs_reports_tree = []
+    non_folders = []
     for file in files :
         if filter != None and file not in filter:
             continue
-        if os.path.isfile(f'{pathName}/{file}'):
-            nonFolders.append(file)
+        if os.path.isfile(f'{path_name}/{file}'):
+            non_folders.append(file)
         else:
             node = {}
             node["label"] = file
-            node["value"] = f'{pathName}/{file}'
-            node["children"] = getLogsAndReportsRecHelper(f'{pathName}/{file}')
-            logsReportsTree.append(node)
-    for file in nonFolders :
+            node["value"] = f'{path_name}/{file}'
+            node["children"] = get_logs_and_reports_helper(f'{path_name}/{file}')
+            logs_reports_tree.append(node)
+    for file in non_folders:
         node = {}
         node["label"] = file
-        node["value"] = f'{pathName}/{file}'
-        logsReportsTree.append(node)
-    return logsReportsTree
+        node["value"] = f'{path_name}/{file}'
+        logs_reports_tree.append(node)
+    return logs_reports_tree
 
 ################################
 
-def getLogsAndReports(chip, tasks):
-    logsReportsTree ={}
+def get_logs_and_reports(chip, tasks):
+    """
+    Returns a dictionary
+
+    Returns a dictionary of lists ... of dictionaries of lists, but it's more helpful
+    to think of it as a tree where each dictionary is a parent node with 
+    limitless children nodes. The key to each dicitonary is the name of that node.
+    Leaves are key value pairs where the value is not a dictionary but a string. 
+
+    Args:
+        chip(Chip) : the chip object that contains the schema read from
+        tasks(list) : list of tuples following the form (step, index)
+    
+    Example:
+        >>> get_logs_and_reports(chip, [('import', '0'), ('syn', '0')])
+        returns dictionary that has keys ('import', '0'), ('syn', '0') where the
+        values of those keys are the logs and reports of that node
+    """
+    logs_reports_tree ={}
     for step, index in tasks:
-        print(chip._getworkdir(step=step, index=index))
         if os.path.isdir(chip._getworkdir(step=step, index=index)):
-            logsReportsTree[step, index] = getLogsAndReportsRecHelper(chip._getworkdir(step=step, index=index), 
+            logs_reports_tree[step, index] = get_logs_and_reports_helper(chip._getworkdir(step=step, index=index), 
                                                                         filter={"inputs",
                                                                                 "reports",
                                                                                 "outputs", 
                                                                                 f'{step}.log',
                                                                                 f'{step}.errors',
                                                                                 f'{step}.warnings'})
-    return logsReportsTree
+    return logs_reports_tree
 
 ################################
 
-def getPath(chip):
+def get_path(chip):
+    """
+    Returns a dictionary
+
+    Returns a dictionary where each key is a node that is part of the "winning"
+    path. The value of each key is either None, "End Node", or "Start Node". None
+    implies that that node is neither and end node nor a start node.
+
+    Args:
+        chip(Chip) : the chip object that contains the schema read from
+    
+    Example:
+        >>> get_path(chip)
+        returns the "winning" path for that job
+    """
     steplist = chip.list_steps()
     flow = chip.get('option', 'flow')
     selected_tasks = {}
@@ -231,61 +370,100 @@ def getPath(chip):
     # Search backwards, saving anything that was selected by leaf tasks.
     while len(to_search) > 0: #why do we search the succesful 
         task = to_search.pop(-1)
-        inputNodes = chip.get('flowgraph', flow, *task, 'select')
-        for selected in inputNodes:
+        input_nodes = chip.get('flowgraph', flow, *task, 'select')
+        for selected in input_nodes:
             if selected not in selected_tasks:
                 selected_tasks[selected] = None
                 to_search.append(selected)
-        if inputNodes == []:
+        if input_nodes == []:
             selected_tasks[selected] = "Start Node"
     return selected_tasks
 
 ################################
 
-def searchManifestKeys(jsonDict, key):
-    filteredDict = {}
-    for dictKey in jsonDict:
+def search_manifest_keys(manifest, key):
+    """
+    function is a recursive helper to search_manifest, more info there
+
+    Args:
+        manifest(dictionary) : a dicitionary representing the manifest
+        key(string) : searches all keys for partial matches on this string
+    """
+    filtered_manifest = {}
+    for dictKey in manifest:
         if key in dictKey:
-            filteredDict[dictKey] = jsonDict[dictKey]
-        elif isinstance(jsonDict[dictKey], dict):
-            result = searchManifestKeys(jsonDict[dictKey], key)
+            filtered_manifest[dictKey] = manifest[dictKey]
+        elif isinstance(manifest[dictKey], dict):
+            result = search_manifest_keys(manifest[dictKey], key)
             if result: #result is non-empty
-                filteredDict[dictKey] = result
-    return filteredDict
+                filtered_manifest[dictKey] = result
+    return filtered_manifest
 
 ################################
 
-def searchManifestValues(jsonDict, value):
-    filteredDict={}
-    for dictKey in jsonDict:
-        if isinstance(jsonDict[dictKey], dict):
-            result = searchManifestValues(jsonDict[dictKey], value)
+def search_manifest_values(manifest, value):
+    """
+    function is a recursive helper to search_manifest, more info there
+
+    Args:
+        manifest(dictionary) : a dicitionary representing the manifest
+        value(string) : searches all values for partial matches on this string
+    """
+    filtered_manifest={}
+    for dictKey in manifest:
+        if isinstance(manifest[dictKey], dict):
+            result = search_manifest_values(manifest[dictKey], value)
             if result: #result is non-empty
-                filteredDict[dictKey] = result
-        elif isinstance(jsonDict[dictKey], str) and value in jsonDict[dictKey] :
-            filteredDict[dictKey] = jsonDict[dictKey]
-    return filteredDict
+                filtered_manifest[dictKey] = result
+        elif isinstance(manifest[dictKey], str) and value in manifest[dictKey] :
+            filtered_manifest[dictKey] = manifest[dictKey]
+    return filtered_manifest
 
 ################################
 
 #partial matches
-def searchManifest(jsonDict, keySearch=None, valueSearch=None):
-    #return type is dictionary of dictionary
-    if keySearch == None and valueSearch == None:
-        return jsonDict
-    if valueSearch == None:
+def search_manifest(manifest, key_search=None, value_search=None):
+    """
+    Returns a dictionary
+
+    Returns the same structure as make_manifest, but it is filtered by partial 
+    matches by keys or values. If both key_search and value_search are None, the 
+    original manifest is returned.
+
+    Args:
+        manifest(dictionary) : a dicitionary representing the manifest
+        key_search(string) : searches all keys for partial matches on this string
+        value_search(string) : searches all values for partial matches on this string
+    
+    Example:
+        >>> search_manifest(jsonDict, key_search='input', value_search='v')
+        returns a filtered version of jsonDict where each path contains at least 
+        one key that contains the substring input and has values that contain v.
+    """
+    if key_search == None and value_search == None:
+        return manifest
+    if value_search == None:
         # then user is searching keys
-        return searchManifestKeys(jsonDict, keySearch) # may have to encase in dictionary
+        return search_manifest_keys(manifest, key_search) # may have to encase in dictionary
     # user is searching values
-    return searchManifestValues(jsonDict, valueSearch)
+    return search_manifest_values(manifest, value_search)
 
 ################################
 
-def manifestKeyCounter(jsonDict, acc=0):
-    acc += len(jsonDict)
-    for dictKeys in jsonDict:
-        if isinstance(jsonDict[dictKeys], dict):
-            acc = manifestKeyCounter(jsonDict[dictKeys], acc)
+def manifest_key_counter(manifest, acc=0):
+    """
+    Returns an int
+
+    Returns the number of folders and files
+
+    Args:
+        manifest(dictionary) : a dicitionary representing the manifest
+        acc(int) : an accumulator of the current number of folders and files
+    """
+    acc += len(manifest)
+    for dictKeys in manifest:
+        if isinstance(manifest[dictKeys], dict):
+            acc = manifest_key_counter(manifest[dictKeys], acc)
     return acc
 
 ################################

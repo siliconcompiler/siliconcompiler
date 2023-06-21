@@ -1,5 +1,3 @@
-#>> streamlit run Home.py
-
 import streamlit
 from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
@@ -74,12 +72,12 @@ def get_nodes_and_edges(nodeDependencies, successfulPath):
 # chip.read_manifest(manifest)
 chip = core.Chip(design='')
 # chip.read_manifest('build/heartbeat/job0/heartbeat.pkg.json')
-# chip.read_manifest('build/zerosoc/job0/zerosoc.pkg.json')
-chip.read_manifest('build/gcd/job0/gcd.pkg.json')
-dataDf = report.makeList(chip)
-manifestTree = report.makeManifest(chip)
+chip.read_manifest('build/zerosoc/job0/zerosoc.pkg.json')
+# chip.read_manifest('build/gcd/job0/gcd.pkg.json')
+dataDf = report.make_list(chip)
+manifestTree = report.make_manifest(chip)
 nodesRecordDf = report.get_flowgraph_tasks(chip, dataDf.columns.tolist()) 
-logsAndReportsDict = report.getLogsAndReports(chip, dataDf.columns.tolist()) 
+logsAndReportsDict = report.get_logs_and_reports(chip, dataDf.columns.tolist()) 
 dataDf.columns = dataDf.columns.map(lambda x: f'{x[0]}{x[1]}')
 nodesRecordDf.index = nodesRecordDf.index.map(lambda x: f'{x[0]}{x[1]}')
 
@@ -95,149 +93,151 @@ streamlit.title(f'{chip.design} Metrics')
 displayFileContent = False
 fileContent = ''
 
-col1, col2 = streamlit.columns([0.4, 0.6], gap="large")
+if os.path.isfile(f'{chip._getworkdir()}/{chip.design}.png'):
+    tab1, tab2, tab3, tab4 = streamlit.tabs(["Metrics", "Manifest", "File Preview", "Design Preview"])
+    with tab4:
+        streamlit.header('Design Preview')
 
-with col1:
-    streamlit.header('Flowgraph')
+        streamlit.image(f'{chip._getworkdir()}/{chip.design}.png')
+else:
+     tab1, tab2, tab3 = streamlit.tabs(["Metrics", "Manifest", "File Preview"])
 
-    config = Config(width='100%', #need to update dynamically, could use number of attributes displayed + offset
-                    directed=True, 
-                    physics=False, 
-                    hierarchical=True,
-                    clickToUse=True,
-                    nodeSpacing =175,
-                    levelSeparation=250,
-                    sortMethod='directed'
-                    )
+with tab1:
+    col1, col2 = streamlit.columns([0.4, 0.6], gap="large")
 
-    nodes, edges = get_nodes_and_edges(report.makeDependencies(chip), report.getPath(chip))
-
-    return_value = agraph(
-        nodes=nodes,
-        edges=edges,
-        config=config
-    )
-
-with col2:
-    #data manipulation
-    displayToData = {}
-    displayOptions = []
-    for metric, unit in dataDf.index.tolist():
-        displayToData[metric] = (metric, unit)
-        displayOptions.append(metric)
-    
-    streamlit.header('Data Metrics')
-
-    options = {'cols' : dataDf.columns.tolist(), 'rows' : dataDf.index.tolist()}
-
-    container = streamlit.container()
-
-    with streamlit.expander("Select Parameters"):
-        with streamlit.form("params"):
-            options['cols'] = streamlit.multiselect(
-            'Which columns to include?',
-            dataDf.columns.tolist(),
-            [])
-
-            metrics = streamlit.multiselect(
-            'Which rows to include?',
-            displayOptions,
-            [])
-            options['rows'] = []
-            for metric in metrics:
-                options['rows'].append(displayToData[metric])
-
-            params_submitted = streamlit.form_submit_button("Run")
-
-    if options['cols'] == [] or options ['rows'] == []:
-        options = {'cols' : dataDf.columns.tolist(), 'rows' : dataDf.index.tolist()}
-    
-
-    
-
-    container.dataframe((dataDf.loc[options['rows'], options['cols']]), 
-                        use_container_width=True)
-
-    ############################################################################
-
-    streamlit.header('Node Information')
-
-    option = dataDf.columns.tolist()[0]
-
-    col1, col2, col3 = streamlit.columns(3, gap='small')
-
-    with streamlit.expander("Select Node"):
-        with streamlit.form("nodes"):
-            option = streamlit.selectbox( 'Which Node would you like to inspect?', 
-                                    dataDf.columns.tolist())
-
-            params_submitted = streamlit.form_submit_button("Run")
-    
-    if return_value != None :
-        option = return_value
-    
     with col1:
-        streamlit.dataframe(dataDf[option].T.dropna(), use_container_width=True)
+        streamlit.header('Flowgraph')
+
+        config = Config(width='100%', #need to update dynamically, could use number of attributes displayed + offset
+                        directed=True, 
+                        physics=False, 
+                        hierarchical=True,
+                        clickToUse=True,
+                        nodeSpacing =175,
+                        levelSeparation=250,
+                        sortMethod='directed'
+                        )
+
+        nodes, edges = get_nodes_and_edges(report.make_dependencies(chip), report.get_path(chip))
+
+        return_value = agraph(
+            nodes=nodes,
+            edges=edges,
+            config=config
+        )
 
     with col2:
-        streamlit.dataframe(nodesRecordDf.loc[option].dropna(), use_container_width=True) 
+        #data manipulation
+        displayToData = {}
+        displayOptions = []
+        for metric, unit in dataDf.index.tolist():
+            displayToData[metric] = (metric, unit)
+            displayOptions.append(metric)
+        
+        streamlit.header('Data Metrics')
 
-    with col3:
-        streamlit.caption(option)
+        options = {'cols' : dataDf.columns.tolist(), 'rows' : dataDf.index.tolist()}
 
-        #converts from data formatting to display format
-        displayLogsAndReports = {}
-        for step, index in logsAndReportsDict:
-            displayLogsAndReports[step+index] = logsAndReportsDict[step, index]
+        container = streamlit.container()
 
-        selected = tree_select(displayLogsAndReports[option], 
-                               expand_on_click=True, 
-                               only_leaf_checkboxes=True)
+        with streamlit.expander("Select Parameters"):
+            with streamlit.form("params"):
+                options['cols'] = streamlit.multiselect(
+                'Which columns to include?',
+                dataDf.columns.tolist(),
+                [])
 
-        if selected["checked"] != [] :
-            displayFileContent = True
-            index = 0
+                metrics = streamlit.multiselect(
+                'Which rows to include?',
+                displayOptions,
+                [])
+                options['rows'] = []
+                for metric in metrics:
+                    options['rows'].append(displayToData[metric])
 
-            #searches for the first file selected in order of tree
-            while os.path.isdir(selected["checked"][index]):
-                index += 1
-            path = selected["checked"][index]
-            file_name, file_extension = os.path.splitext(path)
-            streamlit.download_button(label=f"Download file",
-                                    data=path,
-                                    file_name=path[path.rfind("/"):])
-            
+                params_submitted = streamlit.form_submit_button("Run")
 
-col1, col2, col3 = streamlit.columns([0.4, 0.3, 0.3], gap="large")
+        if options['cols'] == [] or options ['rows'] == []:
+            options = {'cols' : dataDf.columns.tolist(), 'rows' : dataDf.index.tolist()}
+        
 
-with col1:
+        
+
+        container.dataframe((dataDf.loc[options['rows'], options['cols']]), 
+                            use_container_width=True)
+
+        ############################################################################
+
+        streamlit.header('Node Information')
+
+        option = dataDf.columns.tolist()[0]
+
+        col1, col2, col3 = streamlit.columns(3, gap='small')
+
+        with streamlit.expander("Select Node"):
+            with streamlit.form("nodes"):
+                option = streamlit.selectbox( 'Which Node would you like to inspect?', 
+                                        dataDf.columns.tolist())
+
+                params_submitted = streamlit.form_submit_button("Run")
+        
+        if return_value != None :
+            option = return_value
+        
+        with col1:
+            streamlit.dataframe(dataDf[option].T.dropna(), use_container_width=True)
+
+        with col2:
+            streamlit.dataframe(nodesRecordDf.loc[option].dropna(), use_container_width=True) 
+
+        with col3:
+            streamlit.caption(option)
+
+            #converts from data formatting to display format
+            displayLogsAndReports = {}
+            for step, index in logsAndReportsDict:
+                displayLogsAndReports[step+index] = logsAndReportsDict[step, index]
+
+            selected = tree_select(displayLogsAndReports[option], 
+                                expand_on_click=True, 
+                                only_leaf_checkboxes=True)
+
+            if selected["checked"] != [] :
+                displayFileContent = True
+                index = 0
+
+                #searches for the first file selected in order of tree
+                while os.path.isdir(selected["checked"][index]):
+                    index += 1
+                path = selected["checked"][index]
+                file_name, file_extension = os.path.splitext(path)
+                streamlit.download_button(label=f"Download file",
+                                        data=path,
+                                        file_name=path[path.rfind("/"):])
+
+
+with tab2:
     streamlit.header('Manifest Tree')
 
     col1A, col2A = streamlit.columns([0.5, 0.5], gap="large")
 
-    manifest = report.makeManifest(chip)
+    manifest = report.make_manifest(chip)
 
     with col1A:
         key = streamlit.text_input('Search Keys', '', placeholder="Keys")
         if key != '':
-            manifest = report.searchManifest(manifest, keySearch=key)
+            manifest = report.search_manifest(manifest, keySearch=key)
 
     with col2A:
         value = streamlit.text_input('Search Values', '', placeholder="Values")
         if value != '':
-            manifest = report.searchManifest(manifest, valueSearch=value)
+            manifest = report.search_manifest(manifest, valueSearch=value)
     
-    numOfKeys = report.manifestKeyCounter(manifest)
+    numOfKeys = report.manifest_key_counter(manifest)
 
     streamlit.json(manifest, expanded=numOfKeys<20)
 
-with col2:
-    if os.path.isfile(f'{chip._getworkdir()}/{chip.design}.png'):
-        streamlit.header('Design Preview')
-
-        streamlit.image(f'{chip._getworkdir()}/{chip.design}.png')
-
-with col3:
+with tab3:
     if displayFileContent:
         streamlit.header('File Preview')
         
@@ -250,5 +250,7 @@ with col3:
                 streamlit.json(content)
             else:
                 streamlit.code(content, language='markdwon', line_numbers=True)
+    else:
+        streamlit.error('Select a file in the metrics tab first!')
     
 ################################
