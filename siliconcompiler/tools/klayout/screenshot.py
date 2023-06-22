@@ -20,18 +20,37 @@ def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
-    design = chip.top()
     clobber = False
 
-    general_gui_setup(chip, task, True)
+    setup_gui_screenshot(chip)
 
     option = ['-nc', '-z', '-rm']
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
-    chip.add('tool', tool, 'task', task, 'output', design + '.png', step=step, index=index)
+
+def setup_gui_screenshot(chip, require_input=True):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+    design = chip.top()
+
+    general_gui_setup(chip, task, True, require_input=require_input)
+
     chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', '4096',
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '4096',
+             step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'var', 'xbins', '1',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'ybins', '1',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'margin', '10',
+             step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'var', 'linewidth', '0',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'oversampling', '2',
              step=step, index=index, clobber=False)
 
     # Help
@@ -41,3 +60,33 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution',
              'Vertical resolution in pixels',
              field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'xbins',
+             'If greater than 1, splits the image into multiple segments along x-axis',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'ybins',
+             'If greater than 1, splits the image into multiple segments along y-axis',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'margin',
+             'Margin around design in microns',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'linewidth',
+             'Width of lines in detailed screenshots',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'oversampling',
+             'Image oversampling used in detailed screenshots',
+             field='help')
+
+    xbins = int(chip.get('tool', tool, 'task', task, 'var', 'xbins',
+                         step=step, index=index)[0])
+    ybins = int(chip.get('tool', tool, 'task', task, 'var', 'ybins',
+                         step=step, index=index)[0])
+
+    if xbins == 1 and ybins == 1:
+        chip.add('tool', tool, 'task', task, 'output', design + '.png',
+                 step=step, index=index)
+    else:
+        for x in range(xbins):
+            for y in range(ybins):
+                chip.add('tool', tool, 'task', task, 'output', f'{design}_X{x}_Y{y}.png',
+                         step=step, index=index)
