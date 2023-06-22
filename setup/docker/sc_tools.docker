@@ -30,7 +30,7 @@ RUN cat $SC_PREFIX/apt.txt >> $SC_PREFIX/apt_all.txt && \
 {% endfor %}
 
 # Execute scripts needed by tools
-RUN find $SC_PREFIX -name "*.sh" -maxdepth 1 -exec {} \; && \
+RUN find $SC_PREFIX -name "*.sh" -maxdepth 1 -exec {} + && \
     rm -f $SC_PREFIX/*.sh
 
 RUN cat $SC_PREFIX/apt_all.txt | xargs apt-get install --ignore-missing -y && \
