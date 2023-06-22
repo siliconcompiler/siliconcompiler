@@ -26,7 +26,8 @@ def general_gui_setup(chip, task, exit, require_input=True):
         chip.add('tool', tool, 'task', task, 'var', 'hide_layers', layers_to_hide,
                  step=step, index=index)
 
-    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
+    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
+       chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']),
                  step=step, index=index)
