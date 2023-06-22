@@ -4,7 +4,6 @@ For example, if the flow contains a compile step which generates the
 next executable needed in the flow.
 '''
 
-from siliconcompiler.tools import SkipCheck
 
 
 def setup(chip):
@@ -15,7 +14,3 @@ def setup(chip):
 
     chip.set('tool', tool, 'exe', None, clobber=False)
     chip.set('tool', tool, 'task', task, 'option', [], step=step, index=index, clobber=False)
-
-
-def skip_checks(chip):
-    return SkipCheck.exe_empty

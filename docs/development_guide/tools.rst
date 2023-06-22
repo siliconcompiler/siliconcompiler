@@ -179,15 +179,6 @@ Note that pure-Python tool drivers still require a ``setup()`` function, but mos
 * Breakpoints
 * Output redirection/regex-based logfile parsing
 
-skip_checks(chip)
------------------
-This method allows a tool to modify the checks that SilionCompiler is performing during its run.
-If this method is not provided, all checks will be performed.
-
-The supported checks to be skipped are:
-* exe_empty: if set, this will not enforce that the tool have :keypath:`tool,<tool>,exe` set
-* version_return_code: if set, this will skip checking the version check return code.
-
 
 TCL interface
 --------------

@@ -2,7 +2,6 @@ import glob
 import os
 import stat
 from siliconcompiler.tools.execute.execute import setup as tool_setup
-from siliconcompiler.tools.execute.execute import skip_checks as tool_skip_checks
 
 
 def setup(chip):
@@ -29,7 +28,3 @@ def pre_process(chip):
     chip.set('tool', tool, 'exe', exec)
 
     os.chmod(exec, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-
-
-def skip_checks(chip):
-    return tool_skip_checks(chip)

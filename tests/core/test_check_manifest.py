@@ -9,8 +9,6 @@ from tests.core.tools.fake import foo
 from tests.core.tools.fake import bar
 from tests.core.tools.fake import baz
 from tests.core.tools.echo import echo
-from tests.core.tools.dummy import skip_checks
-from tests.core.tools.dummy import skip_checks_wrong
 
 from siliconcompiler.tools.builtin import nop
 
@@ -34,56 +32,6 @@ def test_check_manifest():
         chip.unset('arg', 'index')
 
     chip.set('option', 'steplist', steps)
-
-    chip.set('arg', 'step', None)
-    chip.set('arg', 'index', None)
-    assert chip.check_manifest()
-
-
-def test_check_manifest_without_skip():
-
-    chip = siliconcompiler.Chip('gcd')
-    chip.set('option', 'mode', 'asic')
-    chip.set('option', 'flow', 'asicflow')
-    chip.node('asicflow', 'import', nop)
-    chip.node('asicflow', 'skip_checks', skip_checks_wrong)
-    chip.edge('asicflow', 'import', 'skip_checks')
-    index = '0'
-    for step in ['import', 'skip_checks']:
-        chip.set('arg', 'step', step)
-        chip.set('arg', 'index', index)
-        module = chip._get_task_module(step, index)
-        assert module is not None
-        setup = getattr(module, 'setup', None)
-        assert setup is not None
-        setup(chip)
-        chip.unset('arg', 'step')
-        chip.unset('arg', 'index')
-
-    chip.set('arg', 'step', None)
-    chip.set('arg', 'index', None)
-    assert not chip.check_manifest()
-
-
-def test_check_manifest_with_skip():
-
-    chip = siliconcompiler.Chip('gcd')
-    chip.set('option', 'mode', 'asic')
-    chip.set('option', 'flow', 'asicflow')
-    chip.node('asicflow', 'import', nop)
-    chip.node('asicflow', 'skip_checks', skip_checks)
-    chip.edge('asicflow', 'import', 'skip_checks')
-    index = '0'
-    for step in ['import', 'skip_checks']:
-        chip.set('arg', 'step', step)
-        chip.set('arg', 'index', index)
-        module = chip._get_task_module(step, index)
-        assert module is not None
-        setup = getattr(module, 'setup', None)
-        assert setup is not None
-        setup(chip)
-        chip.unset('arg', 'step')
-        chip.unset('arg', 'index')
 
     chip.set('arg', 'step', None)
     chip.set('arg', 'index', None)
