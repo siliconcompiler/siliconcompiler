@@ -7,7 +7,7 @@ from siliconcompiler.tools.execute.execute import setup as tool_setup
 def setup(chip):
     '''
     Execute the output of the previous step directly.
-    This only works if the task recieves a single file.
+    This only works if the task receives a single file.
     '''
     tool_setup(chip)
 
