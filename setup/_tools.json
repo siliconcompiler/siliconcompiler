@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "56e5cbc5879fc166615658ee7882db5980a4cc44",
+    "git-commit": "a292e4815989c9f946d4f6dc3a43fc6fd9ea9864",
     "docker-cmds": [
       "RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"
     ],
@@ -9,7 +9,7 @@
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "72d22b7d918962830eac88a5473be8440633f9d2",
+    "git-commit": "07d6fa0928666b795ee799e7addac562c684d84c",
     "auto-update": true
   },
   "netgen": {
@@ -19,7 +19,7 @@
   },
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
-    "git-commit": "d10b226f3d1dc302d7a95b9c2d77beaece3d3634",
+    "git-commit": "b9bae14a9f3503d07cda505c2c78b8dd28f55615",
     "auto-update": false
   },
   "magic": {
@@ -33,10 +33,12 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.28.8",
+    "version": "0.28.9",
     "git-url": "https://github.com/KLayout/klayout.git",
     "docker-skip": true,
-    "auto-update": true
+    "auto-update": true,
+    "run-version": "source version.sh && echo $KLAYOUT_VERSION",
+    "release-notes": "https://www.klayout.de/development.html"
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
@@ -45,7 +47,7 @@
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "d1ff81a41c75ae4568bcb6d4f8f0cbc5688e76a1",
+    "git-commit": "d45deccc0a24042c68a722d7839b693e429abd89",
     "auto-update": true
   },
   "bambu": {
@@ -80,7 +82,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "8b2a0010216f9a15c09bd2f4dc63691949b126df",
+    "git-commit": "51e627686a26c0f39b968f348a2f2f1e60b29043",
     "auto-update": true
   },
   "slurm": {

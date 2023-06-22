@@ -23,8 +23,24 @@ def setup(chip):
     task = chip._get_task(step, index)
     design = chip.top()
 
-    chip.add('tool', tool, 'task', task, 'option', ['--cc', '--exe'],
+    chip.add('tool', tool, 'task', task, 'option', '--exe',
              step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'var', 'mode', 'cc', clobber=False, step=step, index=index)
+    mode = chip.get('tool', tool, 'task', task, 'var', 'mode', step=step, index=index)
+    if mode == ['cc']:
+        chip.add('tool', tool, 'task', task, 'option', '--cc', step=step, index=index)
+    elif mode == ['systemc']:
+        chip.add('tool', tool, 'task', task, 'option', '--sc', step=step, index=index)
+    else:
+        chip.error(f"Invalid mode {mode} provided to verilator/compile. Expected one of 'cc' or "
+                   "'systemc'")
+
+    pins_bv = chip.get('tool', tool, 'task', task, 'var', 'pins_bv', step=step, index=index)
+    if pins_bv:
+        chip.add('tool', tool, 'task', task, 'option', ['--pins-bv', pins_bv[0]],
+                 step=step, index=index)
+
     chip.add('tool', tool, 'task', task, 'option', f'-o ../outputs/{design}.vexe',
              step=step, index=index)
 
@@ -39,6 +55,16 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'var', 'ldflags',
              'flags to provide to the linker invoked by Verilator',
+             field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'pins_bv',
+             'controls datatypes used to represent SystemC inputs/outputs. See --pins-bv in '
+             'Verilator docs for more info.',
+             field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'mode',
+             "defines compilation mode for Verilator. Valid options are 'cc' for C++, or 'systemc' "
+             "for SystemC.",
              field='help')
 
     chip.set('tool', tool, 'task', task, 'dir', 'cincludes',

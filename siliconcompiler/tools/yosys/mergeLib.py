@@ -4,6 +4,10 @@
 import re
 
 
+library_match = re.compile(r"^\s*library\s*\(")
+cell_match = re.compile(r"^\s*cell\s*\(")
+
+
 def mergeLib(lib_name, base_lib, additional_libs):
     new_lib = __copy_header(base_lib, lib_name)
 
@@ -18,9 +22,9 @@ def mergeLib(lib_name, base_lib, additional_libs):
 def __copy_header(lib, lib_name):
     new_lib = ""
     for line in lib.splitlines():
-        if re.match(r"^\s*library\s+\(", line):
+        if library_match.match(line):
             new_lib += f"library ({lib_name}) {{\n"
-        elif re.match(r"^\s*cell\s+\(", line):
+        elif cell_match.match(line):
             break
         else:
             new_lib += line + "\n"
@@ -32,7 +36,7 @@ def __copy_cells(lib):
     new_lib = ""
     flag = 0
     for line in lib.splitlines():
-        if re.match(r"^\s*cell\s+\(", line):
+        if cell_match.match(line):
             flag = 1
             new_lib += line + "\n"
         elif flag > 0:

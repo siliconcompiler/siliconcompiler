@@ -1109,6 +1109,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Performs a lookup in the io map for the fileset and filetype
         and will use those if they are not provided in the arguments
         '''
+        # Normalize value to string in case we receive a pathlib.Path
+        filename = str(filename)
 
         ext = utils.get_file_ext(filename)
 
@@ -1528,6 +1530,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             is_list = paramtype.startswith('[')
 
             if is_file or is_dir:
+                if keypath == ['option', 'builddir']:
+                    # Skip ['option', 'builddir'] since it will get created by run() if it doesn't
+                    # exist
+                    continue
+
                 for check_files, step, index in self.schema._getvals(*keypath):
                     if not check_files:
                         continue
@@ -1543,7 +1550,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         if is_list:
                             found_file = found_file[0]
                         if not found_file:
-                            self.logger.error(f"Paramater {keypath} path {check_file} is invalid")
+                            self.logger.error(f"Parameter {keypath} path {check_file} is invalid")
                             error = True
 
         return not error

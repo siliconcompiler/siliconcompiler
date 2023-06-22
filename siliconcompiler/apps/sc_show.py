@@ -135,7 +135,8 @@ def main():
                                                   step=chip.get('arg', 'step'),
                                                   index=chip.get('arg', 'index')))
         if not manifest:
-            chip.logger.warning('Could not find manifest from design name')
+            chip.logger.error('Could not find manifest from design name')
+            return 1
         else:
             chip.read_manifest(manifest)
 
