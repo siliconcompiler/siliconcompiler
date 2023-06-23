@@ -1727,6 +1727,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool, task = self._get_tool_task(step, index, flow=flow)
+                task_module = self._get_task_module(step, index, flow=flow, error=False)
                 if self._is_builtin(tool, task):
                     continue
 
@@ -1740,15 +1741,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.error(f'{tool}/{task} is not configured.')
                     continue
 
-                all_required = self.get('tool', tool, 'task', task, 'require',
-                                        step=step, index=index)
-                for item in all_required:
-                    keypath = item.split(',')
-                    if self.schema._is_empty(*keypath):
-                        error = True
-                        self.logger.error(f"Value empty for {keypath} for {tool}.")
+                if self.valid('tool', tool, 'task', task, 'require'):
+                    all_required = self.get('tool', tool, 'task', task, 'require',
+                                            step=step, index=index)
+                    for item in all_required:
+                        keypath = item.split(',')
+                        if self.schema._is_empty(*keypath):
+                            error = True
+                            self.logger.error(f"Value empty for {keypath} for {tool}.")
 
-                task_run = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
+                task_run = getattr(task_module, 'run', None)
                 if self.schema._is_empty('tool', tool, 'exe') and not task_run:
                     error = True
                     self.logger.error('No executable or run() function specified for '
@@ -3809,9 +3811,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                       stderr=subprocess.STDOUT,
                                       universal_newlines=True)
                 if proc.returncode != 0:
-                    self.logger.error(f'Version check on {tool} failed with code {proc.returncode}:'
-                                      f' {proc.stdout}')
-                    self._haltstep(step, index)
+                    self.logger.warn(f'Version check on {tool} failed with code {proc.returncode}')
+
                 parse_version = getattr(self._get_tool_module(step, index, flow=flow),
                                         'parse_version',
                                         None)
