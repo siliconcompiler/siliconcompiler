@@ -10,7 +10,7 @@ def make_list(chip):
     """
     Returns a pandas dataframe
     
-    Returns data to display in the data metrics table. All tasks(steps and indices)
+    Returns data to display in the data metrics table. All nodes(steps and indices)
     are included on the x-axis while all the metrics tracked are on the y-axis.
     The y-axis row headers are in the form of a tuple where the first element is
     the metric tracked and the second element is the unit.
@@ -99,11 +99,11 @@ def make_list(chip):
 
 ################################
 
-def get_flowgraph_tasks(chip, nodeList): #go over this
+def get_flowgraph_nodes(chip, nodeList):
     """
     Returns a pandas dataframe
     
-    Returns data to display in the data metrics table. One task(step and index)
+    Returns data to display in the data metrics table. One node(step and index)
     is included on the x-axis while all the metrics tracked are on the y-axis.
     
     Args:
@@ -111,14 +111,13 @@ def get_flowgraph_tasks(chip, nodeList): #go over this
         nodeList(list) : list containing tuples of steps and indicies
     
     Example:
-        >>> get_flowgraph_tasks(chip, [(import, 0), (syn, 0)])
+        >>> get_flowgraph_nodes(chip, [(import, 0), (syn, 0)])
         returns pandas dataframe of tracked metrics
     """
     nodes = {}
     for step, index in nodeList:
         nodes[step, index] = {}
         for key in chip.getkeys('record'):
-            # if chip.get('record', key, step=step, index=index):  # check if there is a value to present, if None, then no
             nodes[step, index][key] = chip.get('record', key, step=step, index=index)
     return pandas.DataFrame.from_dict(nodes, orient='index')
 
@@ -128,10 +127,10 @@ def make_dependencies(chip):
     """
     Returns a dictionary
     
-    Returns a dicitionary where each key is one task, a tuple in the form (step, index) 
+    Returns a dicitionary where each key is one node, a tuple in the form (step, index) 
     and the value of each key is a list of tuples in the form (step, index).
-    The value of each key represents all the tasks that is a prerequisite to the 
-    key task.
+    The value of each key represents all the nodes that is a prerequisite to the 
+    key node.
     
     Args:
         chip(Chip) : the chip object that contains the schema read from
@@ -145,12 +144,8 @@ def make_dependencies(chip):
     for step in chip.getkeys('flowgraph', flow):
         for index in chip.getkeys('flowgraph', flow, step):
             dependencies_dict[step, index] = []
-            # get inputs
-            all_inputs = []
             for in_step, in_index in chip.get('flowgraph', flow, step, index, 'input'):
-                all_inputs.append((in_step, in_index))
-            for item in all_inputs:
-                dependencies_dict[step, index].append(item)
+                dependencies_dict[step, index].append((in_step, in_index))
     return dependencies_dict
 
 ################################
@@ -205,8 +200,8 @@ def get_all_paths(chip):
             key_copy = key.copy()
             key_copy = eliminate_repeat_folder_names(key_copy, 'default')
             if step is None and index is None:
-                pass #should I be passing?
-            elif index is None: #isn't getting used
+                pass 
+            elif index is None: 
                 key_copy += [step, 'default']
             else:
                 key_copy += [step + index]
@@ -237,11 +232,15 @@ def make_manifest_helper(curr_tree, curr_tree_node, remaining_tree_nodes):
         curr_tree[curr_tree_node] = remaining_tree_nodes[0]
         return curr_tree
     else:
-        if curr_tree_node in curr_tree :
+        if curr_tree_node in curr_tree: 
+           # the tree were creating is already partially made, so add on to that
+           # branch
            curr_tree[curr_tree_node] = make_manifest_helper(curr_tree[curr_tree_node],
                                                         remaining_tree_nodes[0], 
                                                         remaining_tree_nodes[1:])
         else:
+            # the tree were creating is needs to be created from nothing, so 
+            # instantiate a new dictionary
             curr_tree[curr_tree_node] = make_manifest_helper({},
                                                         remaining_tree_nodes[0], 
                                                         remaining_tree_nodes[1:])
@@ -294,12 +293,14 @@ def get_logs_and_reports_helper(path_name, filter=None):
             non_folders.append(file)
         else:
             node = {}
+            # these keys are specific to streamlit_tree_select
             node["label"] = file
             node["value"] = f'{path_name}/{file}'
             node["children"] = get_logs_and_reports_helper(f'{path_name}/{file}')
             logs_reports_tree.append(node)
     for file in non_folders:
         node = {}
+        # these keys are specific to streamlit_tree_select
         node["label"] = file
         node["value"] = f'{path_name}/{file}'
         logs_reports_tree.append(node)
@@ -307,7 +308,7 @@ def get_logs_and_reports_helper(path_name, filter=None):
 
 ################################
 
-def get_logs_and_reports(chip, tasks):
+def get_logs_and_reports(chip, nodes):
     """
     Returns a dictionary
 
@@ -318,7 +319,7 @@ def get_logs_and_reports(chip, tasks):
 
     Args:
         chip(Chip) : the chip object that contains the schema read from
-        tasks(list) : list of tuples following the form (step, index)
+        nodes(list) : list of tuples following the form (step, index)
     
     Example:
         >>> get_logs_and_reports(chip, [('import', '0'), ('syn', '0')])
@@ -326,7 +327,7 @@ def get_logs_and_reports(chip, tasks):
         values of those keys are the logs and reports of that node
     """
     logs_reports_tree ={}
-    for step, index in tasks:
+    for step, index in nodes:
         if os.path.isdir(chip._getworkdir(step=step, index=index)):
             logs_reports_tree[step, index] = get_logs_and_reports_helper(chip._getworkdir(step=step, index=index), 
                                                                         filter={"inputs",
@@ -356,24 +357,24 @@ def get_path(chip):
     """
     steplist = chip.list_steps()
     flow = chip.get('option', 'flow')
-    selected_tasks = {}
+    selected_nodes = {}
     to_search = []
-    # Start search with any successful leaf tasks.
-    leaf_tasks = chip._get_flowgraph_exit_nodes(flow=flow, steplist=steplist)
-    for task in leaf_tasks:
-        selected_tasks[task] = "End Node"
-        to_search.append(task)
-    # Search backwards, saving anything that was selected by leaf tasks.
-    while len(to_search) > 0: #why do we search the succesful 
-        task = to_search.pop(-1)
-        input_nodes = chip.get('flowgraph', flow, *task, 'select')
+    # Start search with any successful leaf nodes.
+    leaf_nodes = chip._get_flowgraph_exit_nodes(flow=flow, steplist=steplist)
+    for node in leaf_nodes:
+        selected_nodes[node] = "End Node"
+        to_search.append(node)
+    # Search backwards, saving anything that was selected by leaf nodes.
+    while len(to_search) > 0:
+        node = to_search.pop(-1)
+        input_nodes = chip.get('flowgraph', flow, *node, 'select')
         for selected in input_nodes:
-            if selected not in selected_tasks:
-                selected_tasks[selected] = None
+            if selected not in selected_nodes:
+                selected_nodes[selected] = None
                 to_search.append(selected)
         if input_nodes == []:
-            selected_tasks[selected] = "Start Node"
-    return selected_tasks
+            selected_nodes[selected] = "Start Node"
+    return selected_nodes
 
 ################################
 
